@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>mistral_classifier_7b &mdash; torchtune main documentation</title>
+  <title>mistral_reward_7b &mdash; torchtune main documentation</title>
   
 
   
@@ -41,7 +41,7 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="lora_mistral_classifier_7b" href="torchtune.models.mistral.lora_mistral_classifier_7b.html" />
+    <link rel="next" title="lora_mistral_reward_7b" href="torchtune.models.mistral.lora_mistral_reward_7b.html" />
     <link rel="prev" title="qlora_mistral_7b" href="torchtune.models.mistral.qlora_mistral_7b.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -371,13 +371,13 @@
         
           <li><a href="../api_ref_models.html">torchtune.models</a> &gt;</li>
         
-      <li>mistral_classifier_7b</li>
+      <li>mistral_reward_7b</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.models.mistral.mistral_classifier_7b.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.models.mistral.mistral_reward_7b.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -407,14 +407,15 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="mistral-classifier-7b">
-<h1>mistral_classifier_7b<a class="headerlink" href="#mistral-classifier-7b" title="Permalink to this heading">¶</a></h1>
+  <section id="mistral-reward-7b">
+<h1>mistral_reward_7b<a class="headerlink" href="#mistral-reward-7b" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.models.mistral.mistral_classifier_7b">
-<span class="sig-prename descclassname"><span class="pre">torchtune.models.mistral.</span></span><span class="sig-name descname"><span class="pre">mistral_classifier_7b</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.transformer.TransformerDecoder"><span class="pre">TransformerDecoder</span></a></span></span><a class="reference internal" href="../_modules/torchtune/models/mistral/_model_builders.html#mistral_classifier_7b"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.mistral.mistral_classifier_7b" title="Permalink to this definition">¶</a></dt>
-<dd><p>Builder for creating a Mistral 7B classifier model initialized w/ the default 7b
+<dt class="sig sig-object py" id="torchtune.models.mistral.mistral_reward_7b">
+<span class="sig-prename descclassname"><span class="pre">torchtune.models.mistral.</span></span><span class="sig-name descname"><span class="pre">mistral_reward_7b</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.transformer.TransformerDecoder"><span class="pre">TransformerDecoder</span></a></span></span><a class="reference internal" href="../_modules/torchtune/models/mistral/_model_builders.html#mistral_reward_7b"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.mistral.mistral_reward_7b" title="Permalink to this definition">¶</a></dt>
+<dd><p>Builder for creating a Mistral 7B model initialized w/ the default 7b
 parameter values from:
-<a class="reference external" href="https://huggingface.co/Ray2333/reward-model-Mistral-7B-instruct-Unified-Feedback">https://huggingface.co/Ray2333/reward-model-Mistral-7B-instruct-Unified-Feedback</a></p>
+<a class="reference external" href="https://huggingface.co/Ray2333/reward-model-Mistral-7B-instruct-Unified-Feedback">https://huggingface.co/Ray2333/reward-model-Mistral-7B-instruct-Unified-Feedback</a>
+where the output layer is a classification layer projecting to a single class for reward modelling.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Instantiation of Mistral 7B classifier model</p>
@@ -435,7 +436,7 @@ parameter values from:
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.models.mistral.lora_mistral_classifier_7b.html" class="btn btn-neutral float-right" title="lora_mistral_classifier_7b" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.models.mistral.lora_mistral_reward_7b.html" class="btn btn-neutral float-right" title="lora_mistral_reward_7b" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="torchtune.models.mistral.qlora_mistral_7b.html" class="btn btn-neutral" title="qlora_mistral_7b" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
@@ -470,7 +471,7 @@ parameter values from:
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">mistral_classifier_7b</a></li>
+<li><a class="reference internal" href="#">mistral_reward_7b</a></li>
 </ul>
 
             </div>

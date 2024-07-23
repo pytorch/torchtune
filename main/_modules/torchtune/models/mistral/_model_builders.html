@@ -448,6 +448,7 @@
         <span class="n">norm_eps</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
     <span class="p">)</span></div>
 
+
 <div class="viewcode-block" id="mistral_tokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.mistral_tokenizer.html#torchtune.models.mistral.mistral_tokenizer">[docs]</a><span class="k">def</span> <span class="nf">mistral_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MistralTokenizer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Tokenizer for Mistral models.</span>
@@ -459,6 +460,7 @@
 <span class="sd">        MistralTokenizer: Instantiation of the Mistral tokenizer</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">MistralTokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
+
 
 <div class="viewcode-block" id="lora_mistral_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.lora_mistral_7b.html#torchtune.models.mistral.lora_mistral_7b">[docs]</a><span class="k">def</span> <span class="nf">lora_mistral_7b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
@@ -516,12 +518,12 @@
 <span class="s2">&quot;&quot;&quot;</span>
 
 
-<div class="viewcode-block" id="mistral_classifier_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.mistral_classifier_7b.html#torchtune.models.mistral.mistral_classifier_7b">[docs]</a><span class="k">def</span> <span class="nf">mistral_classifier_7b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="mistral_reward_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.mistral_reward_7b.html#torchtune.models.mistral.mistral_reward_7b">[docs]</a><span class="k">def</span> <span class="nf">mistral_reward_7b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Builder for creating a Mistral 7B classifier model initialized w/ the default 7b</span>
+<span class="sd">    Builder for creating a Mistral 7B model initialized w/ the default 7b</span>
 <span class="sd">    parameter values from:</span>
 <span class="sd">    https://huggingface.co/Ray2333/reward-model-Mistral-7B-instruct-Unified-Feedback</span>
-
+<span class="sd">    where the output layer is a classification layer projecting to a single class for reward modelling.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        TransformerDecoder: Instantiation of Mistral 7B classifier model</span>
@@ -540,7 +542,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_mistral_classifier_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.lora_mistral_classifier_7b.html#torchtune.models.mistral.lora_mistral_classifier_7b">[docs]</a><span class="k">def</span> <span class="nf">lora_mistral_classifier_7b</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_mistral_reward_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.lora_mistral_reward_7b.html#torchtune.models.mistral.lora_mistral_reward_7b">[docs]</a><span class="k">def</span> <span class="nf">lora_mistral_reward_7b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -549,7 +551,7 @@
     <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Builder for creating a Mistral classifier 7B model with LoRA enabled.</span>
+<span class="sd">    Builder for creating a Mistral reward 7B model with LoRA enabled.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers</span>
@@ -588,12 +590,12 @@
     <span class="p">)</span></div>
 
 
-<span class="n">qlora_mistral_classifier_7b</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">lora_mistral_classifier_7b</span><span class="p">,</span> <span class="n">quantize_base</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">qlora_mistral_reward_7b</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">lora_mistral_reward_7b</span><span class="p">,</span> <span class="n">quantize_base</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-<span class="n">qlora_mistral_classifier_7b</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">Builder for creating a Mistral classifier model with QLoRA enabled. Base model weights in linear layers</span>
+<span class="n">qlora_mistral_reward_7b</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">Builder for creating a Mistral reward 7B model with QLoRA enabled. Base model weights in linear layers</span>
 <span class="s2">that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.</span>
-<span class="s2">Please see `lora_mistral_classifier_7b` for full API arguments.</span>
+<span class="s2">Please see `lora_mistral_reward_7b` for full API arguments.</span>
 <span class="s2">&quot;&quot;&quot;</span>
 </pre></div>
 

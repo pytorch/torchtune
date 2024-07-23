@@ -1,9 +1,0 @@
-﻿.. role:: hidden
-    :class: hidden-section
-.. currentmodule:: torchtune.models.mistral
-
-
-lora_mistral_classifier_7b
-==========================
-
-.. autofunction:: lora_mistral_classifier_7b

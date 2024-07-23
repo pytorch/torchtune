@@ -3,7 +3,7 @@
 .. currentmodule:: torchtune.models.mistral
 
 
-mistral_classifier_7b
-=====================
+mistral_reward_7b
+=================
 
-.. autofunction:: mistral_classifier_7b
+.. autofunction:: mistral_reward_7b

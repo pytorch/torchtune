@@ -499,9 +499,7 @@
         <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
         <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">hidden_dim</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">intermediate_dim</span> <span class="k">if</span> <span class="n">intermediate_dim</span> <span class="k">else</span> <span class="n">scale_hidden_dim_for_mlp</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">)</span>
-    <span class="p">)</span>
+    <span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">intermediate_dim</span> <span class="k">if</span> <span class="n">intermediate_dim</span> <span class="k">else</span> <span class="n">scale_hidden_dim_for_mlp</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">)</span>
     <span class="n">mlp</span> <span class="o">=</span> <span class="n">llama2_mlp</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">)</span>
     <span class="n">layer</span> <span class="o">=</span> <span class="n">TransformerDecoderLayer</span><span class="p">(</span>
         <span class="n">attn</span><span class="o">=</span><span class="n">self_attn</span><span class="p">,</span>
@@ -611,9 +609,7 @@
         <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">hidden_dim</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">intermediate_dim</span> <span class="k">if</span> <span class="n">intermediate_dim</span> <span class="k">else</span> <span class="n">scale_hidden_dim_for_mlp</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">)</span>
-    <span class="p">)</span>
+    <span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">intermediate_dim</span> <span class="k">if</span> <span class="n">intermediate_dim</span> <span class="k">else</span> <span class="n">scale_hidden_dim_for_mlp</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">apply_lora_to_mlp</span><span class="p">:</span>
         <span class="n">mlp</span> <span class="o">=</span> <span class="n">lora_llama2_mlp</span><span class="p">(</span>
             <span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
@@ -715,9 +711,7 @@
 <span class="sd">        ValueError: If lora_modules arg is an empty list</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">lora_modules</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Must pass one or more of </span><span class="si">{</span><span class="n">LORA_ATTN_MODULES</span><span class="si">}</span><span class="s2"> as lora_modules&quot;</span>
-        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Must pass one or more of </span><span class="si">{</span><span class="n">LORA_ATTN_MODULES</span><span class="si">}</span><span class="s2"> as lora_modules&quot;</span><span class="p">)</span>
 
     <span class="n">head_dim</span> <span class="o">=</span> <span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads</span>
     <span class="n">num_kv_heads</span> <span class="o">=</span> <span class="n">num_kv_heads</span> <span class="k">if</span> <span class="n">num_kv_heads</span> <span class="k">else</span> <span class="n">num_heads</span>
@@ -825,6 +819,219 @@
         <span class="n">down_proj</span><span class="o">=</span><span class="n">down_proj</span><span class="p">,</span>
         <span class="n">up_proj</span><span class="o">=</span><span class="n">up_proj</span><span class="p">,</span>
     <span class="p">)</span>
+
+
+<span class="c1"># ------------------ Llama2 Classifier ------------------</span>
+
+
+<span class="k">def</span> <span class="nf">llama2_classifier</span><span class="p">(</span>
+    <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">num_kv_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">attn_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">intermediate_dim</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">norm_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build a base Llama2 model with the final projection replaced with a classification layer.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        num_classes (int): number of classes for classification.</span>
+<span class="sd">        vocab_size (int): number of tokens in vocabulary.</span>
+<span class="sd">        num_layers (int): number of layers in the transformer decoder.</span>
+<span class="sd">        num_heads (int): number of query heads. For MHA this is also the</span>
+<span class="sd">            number of heads for key and value</span>
+<span class="sd">        num_kv_heads (int): number of key and value heads. If specified,</span>
+<span class="sd">            user should ensure `num_heads` % `num_kv_heads` == 0. Default value is</span>
+<span class="sd">            `None`, in which case this is the same as MHA</span>
+<span class="sd">        embed_dim (int): embedding dimension for self-attention</span>
+<span class="sd">        max_seq_len (int): maximum sequence length the model will be run with, as used</span>
+<span class="sd">            by :func:`~torchtune.modules.KVCache`</span>
+<span class="sd">        attn_dropout (float): dropout value passed onto scaled_dot_product_attention.</span>
+<span class="sd">            Default: 0.0</span>
+<span class="sd">        intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,</span>
+<span class="sd">            this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`</span>
+<span class="sd">        norm_eps (float): epsilon in RMS norms.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        TransformerDecoder: Instantiation of Llama2 model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">head_dim</span> <span class="o">=</span> <span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads</span>
+    <span class="n">num_kv_heads</span> <span class="o">=</span> <span class="n">num_kv_heads</span> <span class="k">if</span> <span class="n">num_kv_heads</span> <span class="k">else</span> <span class="n">num_heads</span>
+
+    <span class="n">rope</span> <span class="o">=</span> <span class="n">RotaryPositionalEmbeddings</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">)</span>
+    <span class="n">self_attn</span> <span class="o">=</span> <span class="n">CausalSelfAttention</span><span class="p">(</span>
+        <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+        <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_kv_heads</span><span class="p">,</span>
+        <span class="n">head_dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span>
+        <span class="n">q_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+        <span class="n">k_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+        <span class="n">v_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+        <span class="n">output_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+        <span class="n">pos_embeddings</span><span class="o">=</span><span class="n">rope</span><span class="p">,</span>
+        <span class="n">kv_cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+        <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">intermediate_dim</span> <span class="k">if</span> <span class="n">intermediate_dim</span> <span class="k">else</span> <span class="n">scale_hidden_dim_for_mlp</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">)</span>
+    <span class="n">mlp</span> <span class="o">=</span> <span class="n">llama2_mlp</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">)</span>
+    <span class="n">layer</span> <span class="o">=</span> <span class="n">TransformerDecoderLayer</span><span class="p">(</span>
+        <span class="n">attn</span><span class="o">=</span><span class="n">self_attn</span><span class="p">,</span>
+        <span class="n">mlp</span><span class="o">=</span><span class="n">mlp</span><span class="p">,</span>
+        <span class="n">sa_norm</span><span class="o">=</span><span class="n">RMSNorm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
+        <span class="n">mlp_norm</span><span class="o">=</span><span class="n">RMSNorm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">tok_embeddings</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
+    <span class="n">output_proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">TransformerDecoder</span><span class="p">(</span>
+        <span class="n">tok_embeddings</span><span class="o">=</span><span class="n">tok_embeddings</span><span class="p">,</span>
+        <span class="n">layer</span><span class="o">=</span><span class="n">layer</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span>
+        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+        <span class="n">head_dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span>
+        <span class="n">norm</span><span class="o">=</span><span class="n">RMSNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
+        <span class="n">output</span><span class="o">=</span><span class="n">output_proj</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">lora_llama2_classifier</span><span class="p">(</span>
+    <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
+    <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="c1"># llama2 classifier args,</span>
+    <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="c1"># llama2 args</span>
+    <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">num_kv_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">intermediate_dim</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">attn_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">norm_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
+    <span class="c1"># LoRA args</span>
+    <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="c1"># Quantization args</span>
+    <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a version of Llama2 (an instance of :func:`~torchtune.modules.TransformerDecoder`)</span>
+<span class="sd">    with LoRA applied based on the passed in configuration.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers</span>
+<span class="sd">            LoRA should be applied to in each self-attention block. Options are</span>
+<span class="sd">            ``{&quot;q_proj&quot;, &quot;k_proj&quot;, &quot;v_proj&quot;, &quot;output_proj&quot;}``.</span>
+<span class="sd">        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.</span>
+<span class="sd">            Default: False</span>
+<span class="sd">        apply_lora_to_output (bool): whether to apply LoRA to the model&#39;s final output projection.</span>
+<span class="sd">            Default: False</span>
+<span class="sd">        num_classes (int): number of classes for classification.</span>
+<span class="sd">        vocab_size (int): number of tokens in vocabulary.</span>
+<span class="sd">        num_layers (int): number of layers in the transformer decoder.</span>
+<span class="sd">        num_heads (int): number of query heads. For MHA this is also the</span>
+<span class="sd">            number of heads for key and value</span>
+<span class="sd">        num_kv_heads (int): number of key and value heads. User should ensure</span>
+<span class="sd">            `num_heads` % `num_kv_heads` == 0. For standard MHA set `num_kv_heads` == `num_heads`,</span>
+<span class="sd">            for GQA `num_kv_heads` &lt; `num_heads`, and for MQA set `num_kv_heads` == 1.</span>
+<span class="sd">        embed_dim (int): embedding dimension for self-attention</span>
+<span class="sd">        max_seq_len (int): maximum sequence length the model will be run with, as used</span>
+<span class="sd">            by :func:`~torchtune.modules.KVCache`</span>
+<span class="sd">        attn_dropout (float): dropout value passed onto scaled_dot_product_attention.</span>
+<span class="sd">            Default: 0.0</span>
+<span class="sd">        intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,</span>
+<span class="sd">            this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`</span>
+<span class="sd">        norm_eps (float): epsilon in RMS norms.</span>
+<span class="sd">        lora_rank (int): rank of each low-rank approximation</span>
+<span class="sd">        lora_alpha (float): scaling factor for the low-rank approximation</span>
+<span class="sd">        lora_dropout (float): LoRA dropout probability. Default: 0.0</span>
+<span class="sd">        quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base</span>
+<span class="sd">            weights within linear layers LoRA is applied to. The final output linear projection is not</span>
+<span class="sd">            supported for quantization currently.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        TransformerDecoder: Instantiation of Llama2 model with LoRA applied to</span>
+<span class="sd">        a subset of the attention projections in each layer.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">self_attn</span> <span class="o">=</span> <span class="n">lora_llama2_self_attention</span><span class="p">(</span>
+        <span class="n">lora_modules</span><span class="o">=</span><span class="n">lora_attn_modules</span><span class="p">,</span>
+        <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+        <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_kv_heads</span><span class="p">,</span>
+        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+        <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
+        <span class="n">lora_rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
+        <span class="n">lora_alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
+        <span class="n">lora_dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
+        <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">intermediate_dim</span> <span class="k">if</span> <span class="n">intermediate_dim</span> <span class="k">else</span> <span class="n">scale_hidden_dim_for_mlp</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">apply_lora_to_mlp</span><span class="p">:</span>
+        <span class="n">mlp</span> <span class="o">=</span> <span class="n">lora_llama2_mlp</span><span class="p">(</span>
+            <span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+            <span class="n">hidden_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
+            <span class="n">lora_rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
+            <span class="n">lora_alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
+            <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
+            <span class="n">lora_dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mlp</span> <span class="o">=</span> <span class="n">llama2_mlp</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">)</span>
+
+    <span class="n">layer</span> <span class="o">=</span> <span class="n">TransformerDecoderLayer</span><span class="p">(</span>
+        <span class="n">attn</span><span class="o">=</span><span class="n">self_attn</span><span class="p">,</span>
+        <span class="n">mlp</span><span class="o">=</span><span class="n">mlp</span><span class="p">,</span>
+        <span class="n">sa_norm</span><span class="o">=</span><span class="n">RMSNorm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
+        <span class="n">mlp_norm</span><span class="o">=</span><span class="n">RMSNorm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="n">tok_embeddings</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
+
+    <span class="c1"># TODO: quantize_base is not applied to final output_proj currently.</span>
+    <span class="n">output_proj</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">LoRALinear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">apply_lora_to_output</span>
+        <span class="k">else</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">TransformerDecoder</span><span class="p">(</span>
+        <span class="n">tok_embeddings</span><span class="o">=</span><span class="n">tok_embeddings</span><span class="p">,</span>
+        <span class="n">layer</span><span class="o">=</span><span class="n">layer</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span>
+        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+        <span class="n">head_dim</span><span class="o">=</span><span class="p">(</span><span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads</span><span class="p">),</span>
+        <span class="n">norm</span><span class="o">=</span><span class="n">RMSNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
+        <span class="n">output</span><span class="o">=</span><span class="n">output_proj</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">quantize_base</span><span class="p">:</span>
+        <span class="c1"># For QLoRA, we reparametrize 4-bit tensors to higher precision, and offload to CPU on the fly</span>
+        <span class="c1"># so as to not increase peak memory</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">_register_state_dict_hook</span><span class="p">(</span>
+            <span class="n">partial</span><span class="p">(</span>
+                <span class="n">reparametrize_as_dtype_state_dict_post_hook</span><span class="p">,</span>
+                <span class="c1"># TODO this is clowny, figure out a better way to get what precision the rest</span>
+                <span class="c1"># of the model is in</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                <span class="n">offload_to_cpu</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">model</span>
 </pre></div>
 
              </article>

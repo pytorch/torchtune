@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>code_llama2_7b &mdash; torchtune main documentation</title>
+  <title>llama2_reward_7b &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="lora_code_llama2_7b" href="torchtune.models.code_llama2.lora_code_llama2_7b.html" />
-    <link rel="prev" title="qlora_llama2_reward_7b" href="torchtune.models.llama2.qlora_llama2_reward_7b.html" />
+    <link rel="next" title="lora_llama2_reward_7b" href="torchtune.models.llama2.lora_llama2_reward_7b.html" />
+    <link rel="prev" title="Llama2Tokenizer" href="torchtune.models.llama2.Llama2Tokenizer.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -371,13 +371,13 @@
         
           <li><a href="../api_ref_models.html">torchtune.models</a> &gt;</li>
         
-      <li>code_llama2_7b</li>
+      <li>llama2_reward_7b</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.models.code_llama2.code_llama2_7b.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.models.llama2.llama2_reward_7b.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -407,16 +407,17 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="code-llama2-7b">
-<h1>code_llama2_7b<a class="headerlink" href="#code-llama2-7b" title="Permalink to this heading">¶</a></h1>
+  <section id="llama2-reward-7b">
+<h1>llama2_reward_7b<a class="headerlink" href="#llama2-reward-7b" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.models.code_llama2.code_llama2_7b">
-<span class="sig-prename descclassname"><span class="pre">torchtune.models.code_llama2.</span></span><span class="sig-name descname"><span class="pre">code_llama2_7b</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.transformer.TransformerDecoder"><span class="pre">TransformerDecoder</span></a></span></span><a class="reference internal" href="../_modules/torchtune/models/code_llama2/_model_builders.html#code_llama2_7b"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.code_llama2.code_llama2_7b" title="Permalink to this definition">¶</a></dt>
-<dd><p>Builder for creating a Code-Llama2 model initialized w/ the default 7B parameter values
-from <a class="reference external" href="https://arxiv.org/pdf/2308.12950.pdf">https://arxiv.org/pdf/2308.12950.pdf</a></p>
+<dt class="sig sig-object py" id="torchtune.models.llama2.llama2_reward_7b">
+<span class="sig-prename descclassname"><span class="pre">torchtune.models.llama2.</span></span><span class="sig-name descname"><span class="pre">llama2_reward_7b</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.transformer.TransformerDecoder"><span class="pre">TransformerDecoder</span></a></span></span><a class="reference internal" href="../_modules/torchtune/models/llama2/_model_builders.html#llama2_reward_7b"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.llama2.llama2_reward_7b" title="Permalink to this definition">¶</a></dt>
+<dd><p>Builder for creating a Llama2 model initialized w/ the default 7B parameter values
+from <a class="reference external" href="https://arxiv.org/abs/2307.09288">https://arxiv.org/abs/2307.09288</a>, where the output layer is a classification layer
+projecting to a single class for reward modelling.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Instantiation of Code-Llama2 7B model</p>
+<dd class="field-odd"><p>Instantiation of Llama2 7B model</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.TransformerDecoder">TransformerDecoder</a></p>
@@ -434,10 +435,10 @@ from <a class="reference external" href="https://arxiv.org/pdf/2308.12950.pdf">h
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.models.code_llama2.lora_code_llama2_7b.html" class="btn btn-neutral float-right" title="lora_code_llama2_7b" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.models.llama2.lora_llama2_reward_7b.html" class="btn btn-neutral float-right" title="lora_llama2_reward_7b" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.models.llama2.qlora_llama2_reward_7b.html" class="btn btn-neutral" title="qlora_llama2_reward_7b" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.models.llama2.Llama2Tokenizer.html" class="btn btn-neutral" title="Llama2Tokenizer" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -469,7 +470,7 @@ from <a class="reference external" href="https://arxiv.org/pdf/2308.12950.pdf">h
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">code_llama2_7b</a></li>
+<li><a class="reference internal" href="#">llama2_reward_7b</a></li>
 </ul>
 
             </div>

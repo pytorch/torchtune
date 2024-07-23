@@ -541,6 +541,15 @@ or <cite>Meta-Llama-3.1-70B-Instruct</cite>.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama2.Llama2Tokenizer.html#torchtune.models.llama2.Llama2Tokenizer" title="torchtune.models.llama2.Llama2Tokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama2.Llama2Tokenizer</span></code></a></p></td>
 <td><p>Llama2's implementation of the SentencePiece tokenizer.</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama2.llama2_reward_7b.html#torchtune.models.llama2.llama2_reward_7b" title="torchtune.models.llama2.llama2_reward_7b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama2.llama2_reward_7b</span></code></a></p></td>
+<td><p>Builder for creating a Llama2 model initialized w/ the default 7B parameter values from <a class="reference external" href="https://arxiv.org/abs/2307.09288">https://arxiv.org/abs/2307.09288</a>, where the output layer is a classification layer projecting to a single class for reward modelling.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama2.lora_llama2_reward_7b.html#torchtune.models.llama2.lora_llama2_reward_7b" title="torchtune.models.llama2.lora_llama2_reward_7b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama2.lora_llama2_reward_7b</span></code></a></p></td>
+<td><p>Builder for creating a Llama2 7B reward model with LoRA enabled.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama2.qlora_llama2_reward_7b.html#torchtune.models.llama2.qlora_llama2_reward_7b" title="torchtune.models.llama2.qlora_llama2_reward_7b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama2.qlora_llama2_reward_7b</span></code></a></p></td>
+<td><p>Builder for creating a Llama2 reward 7b model with QLoRA enabled.</p></td>
+</tr>
 </tbody>
 </table>
 </section>
@@ -653,14 +662,14 @@ or <cite>Meta-Llama-3.1-70B-Instruct</cite>.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.mistral.qlora_mistral_7b.html#torchtune.models.mistral.qlora_mistral_7b" title="torchtune.models.mistral.qlora_mistral_7b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mistral.qlora_mistral_7b</span></code></a></p></td>
 <td><p>Builder for creating a Mistral model with QLoRA enabled.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.mistral.mistral_classifier_7b.html#torchtune.models.mistral.mistral_classifier_7b" title="torchtune.models.mistral.mistral_classifier_7b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mistral.mistral_classifier_7b</span></code></a></p></td>
-<td><p>Builder for creating a Mistral 7B classifier model initialized w/ the default 7b parameter values from: <a class="reference external" href="https://huggingface.co/Ray2333/reward-model-Mistral-7B-instruct-Unified-Feedback">https://huggingface.co/Ray2333/reward-model-Mistral-7B-instruct-Unified-Feedback</a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.mistral.mistral_reward_7b.html#torchtune.models.mistral.mistral_reward_7b" title="torchtune.models.mistral.mistral_reward_7b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mistral.mistral_reward_7b</span></code></a></p></td>
+<td><p>Builder for creating a Mistral 7B model initialized w/ the default 7b parameter values from: <a class="reference external" href="https://huggingface.co/Ray2333/reward-model-Mistral-7B-instruct-Unified-Feedback">https://huggingface.co/Ray2333/reward-model-Mistral-7B-instruct-Unified-Feedback</a> where the output layer is a classification layer projecting to a single class for reward modelling.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.mistral.lora_mistral_classifier_7b.html#torchtune.models.mistral.lora_mistral_classifier_7b" title="torchtune.models.mistral.lora_mistral_classifier_7b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mistral.lora_mistral_classifier_7b</span></code></a></p></td>
-<td><p>Builder for creating a Mistral classifier 7B model with LoRA enabled.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.mistral.lora_mistral_reward_7b.html#torchtune.models.mistral.lora_mistral_reward_7b" title="torchtune.models.mistral.lora_mistral_reward_7b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mistral.lora_mistral_reward_7b</span></code></a></p></td>
+<td><p>Builder for creating a Mistral reward 7B model with LoRA enabled.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.mistral.qlora_mistral_classifier_7b.html#torchtune.models.mistral.qlora_mistral_classifier_7b" title="torchtune.models.mistral.qlora_mistral_classifier_7b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mistral.qlora_mistral_classifier_7b</span></code></a></p></td>
-<td><p>Builder for creating a Mistral classifier model with QLoRA enabled.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.mistral.qlora_mistral_reward_7b.html#torchtune.models.mistral.qlora_mistral_reward_7b" title="torchtune.models.mistral.qlora_mistral_reward_7b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mistral.qlora_mistral_reward_7b</span></code></a></p></td>
+<td><p>Builder for creating a Mistral reward 7B model with QLoRA enabled.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.mistral.mistral_tokenizer.html#torchtune.models.mistral.mistral_tokenizer" title="torchtune.models.mistral.mistral_tokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mistral.mistral_tokenizer</span></code></a></p></td>
 <td><p>Tokenizer for Mistral models.</p></td>

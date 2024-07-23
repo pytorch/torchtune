@@ -445,8 +445,9 @@
     <span class="n">PHI3_MINI</span> <span class="o">=</span> <span class="s2">&quot;phi3_mini&quot;</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Phi-3 family of models. See :func:`~torchtune.models.phi3.phi3`&quot;&quot;&quot;</span>
 
-    <span class="n">MISTRAL_REWARD</span> <span class="o">=</span> <span class="s2">&quot;mistral_reward&quot;</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Mistral model with a classification head. See :func:`~torchtune.models.mistral.mistral_classifier`&quot;&quot;&quot;</span></div>
+    <span class="n">REWARD</span> <span class="o">=</span> <span class="s2">&quot;reward&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A Llama2, Llama3, or Mistral model with a classification head projecting to a single class for reward modelling.</span>
+<span class="sd">    See :func:`~torchtune.models.mistral.mistral_reward_7b` or :func:`~torchtune.models.llama2.llama2_reward_7b`&quot;&quot;&quot;</span></div>
 
 
 <span class="k">def</span> <span class="nf">get_path</span><span class="p">(</span><span class="n">input_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">missing_ok</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
