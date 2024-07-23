@@ -44,6 +44,19 @@ or `Meta-Llama-3.1-70B-Instruct`.
     llama3.llama3_tokenizer
     llama3.Llama3Tokenizer
 
+    |
+
+    llama3_1.llama3_1
+    llama3_1.lora_llama3_1
+    llama3_1.llama3_1_8b
+    llama3_1.lora_llama3_1_8b
+    llama3_1.qlora_llama3_1_8b
+    llama3_1.llama3_1_70b
+    llama3_1.lora_llama3_1_70b
+    llama3_1.qlora_llama3_1_70b
+
+
+> Note: The Llama3.1 tokenizer reuses the `llama3.llama3_tokenizer` builder class.
 
 llama2
 ------
