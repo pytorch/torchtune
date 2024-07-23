@@ -14,6 +14,7 @@ def samsum_dataset(
     source: str = "samsum",
     train_on_input: bool = False,
     packed: bool = False,
+    split: str = "train",
 ) -> InstructDataset:
     """
     Support for summarization datasets and their variants from Hugging Face Datasets.
@@ -35,6 +36,8 @@ def samsum_dataset(
         source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
+        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
+            of a given split, e.g. ``split="train[:10%]"``. Default is "train".
 
     Returns:
         InstructDataset: dataset configured with source data and template
@@ -54,5 +57,5 @@ def samsum_dataset(
         column_map={"output": "summary"},
         train_on_input=train_on_input,
         packed=packed,
-        split="train",
+        split=split,
     )
