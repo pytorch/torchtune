@@ -26,7 +26,7 @@ from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_pos
 from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
 
 """
-Component builders for the Llama3 model and popular variants such as LoRA.
+Component builders for the Llama3.1 model and popular variants such as LoRA.
 
 torchtune provides composable building blocks. Builder functions help
 stitch these building blocks into higher-level components. This design has
