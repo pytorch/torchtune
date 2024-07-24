@@ -96,7 +96,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             and not torch.cuda.is_bf16_supported()
         ):
             raise RuntimeError("Full bf16 training is not supported on this hardware.")
-        # # logging attributes
+        # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
@@ -347,7 +347,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         if compile_model:
             log.info("Compiling model with torch.compile...")
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-
+            model.compile(backend=backend)
         if self._device == torch.device("cuda"):
             memory_stats = utils.get_memory_stats(device=self._device)
             utils.log_memory_stats(memory_stats)
