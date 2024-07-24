@@ -39,6 +39,7 @@ These are especially useful for specifying from a YAML config.
 
     instruct_dataset
     chat_dataset
+    chat_preference_dataset
     text_completion_dataset
 
 Generic dataset classes
@@ -55,4 +56,5 @@ Class representations for the above dataset builders.
     TextCompletionDataset
     ConcatDataset
     PackedDataset
-    PreferenceDataset
+    InstructPreferenceDataset
+    ChatPreferenceDataset

@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from torchtune.data import StackExchangedPairedTemplate
-from torchtune.datasets._preference import PreferenceDataset
+from torchtune.datasets._preference import InstructPreferenceDataset
 from torchtune.modules.tokenizers import ModelTokenizer
 
 
@@ -15,9 +15,9 @@ def stack_exchanged_paired_dataset(
     source: str = "lvwerra/stack-exchange-paired",
     max_seq_len: int = 1024,
     split: str = "train",
-) -> PreferenceDataset:
+) -> InstructPreferenceDataset:
     """
-    Family of preference datasets similar to `StackExchangePaired data
+    Family of instruct preference datasets similar to ``StackExchangePaired data
     <https://huggingface.co/datasets/lvwerra/stack-exchange-paired>`_.
 
     Args:
@@ -29,9 +29,9 @@ def stack_exchanged_paired_dataset(
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
 
     Returns:
-        PreferenceDataset: The preference dataset built from source paired data.
+        InstructPreferenceDataset: The preference dataset built from source paired data.
     """
-    return PreferenceDataset(
+    return InstructPreferenceDataset(
         tokenizer=tokenizer,
         source=source,
         template=StackExchangedPairedTemplate(),
