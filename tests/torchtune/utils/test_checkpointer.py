@@ -301,6 +301,32 @@ class TestHFLlama2FullModelCheckpointer:
         assert len(output_state_dict_1.keys()) + 1 == len(orig_state_dict_1.keys())
         assert len(output_state_dict_2.keys()) + 1 == len(orig_state_dict_2.keys())
 
+    def test_load_save_adapter_only(
+        self, tmp_path, single_file_checkpointer, llama2_hf_checkpoints
+    ):
+        """ """
+        state_dict = single_file_checkpointer.load_checkpoint()
+
+        with pytest.raises(
+            ValueError, match="Adapter checkpoint not found in state_dict"
+        ):
+            single_file_checkpointer.save_checkpoint(
+                state_dict, epoch=2, adapter_only=True
+            )
+
+        state_dict[ADAPTER_KEY] = {}
+        single_file_checkpointer.save_checkpoint(state_dict, epoch=2, adapter_only=True)
+
+        output_file_1 = Path.joinpath(tmp_path, "hf_model_0001_2.pt")
+        output_file_2 = Path.joinpath(tmp_path, "adapter_2.pt")
+
+        with pytest.raises(ValueError, match="Unable to load checkpoint from"):
+            output_state_dict_1 = safe_torch_load(output_file_1)
+
+        output_state_dict_2 = safe_torch_load(output_file_2)
+        # Check that the empty adapter we saved is the one loaded succesfully
+        assert len(output_state_dict_2.keys()) == 0
+
     def test_save_checkpoint_in_peft_format(
         self,
         single_file_checkpointer: FullModelHFCheckpointer,
@@ -480,6 +506,8 @@ class TestHFMistralRewardModelFullModelCheckpointer:
             ),
             "model.norm.weight": randn(_DIM, dtype=weight_dtype),
             "score.weight": randn(1, _DIM, dtype=weight_dtype),
+            # adding bias to ensure it doesn't cause an unexpected key
+            "score.bias": randn(1, _DIM, dtype=weight_dtype),
         }
         return state_dict
 
@@ -528,7 +556,7 @@ class TestHFMistralRewardModelFullModelCheckpointer:
         return FullModelHFCheckpointer(
             checkpoint_dir=tmp_path,
             checkpoint_files=[checkpoint_file],
-            model_type="MISTRAL_REWARD",
+            model_type="REWARD",
             output_dir=tmp_path,
         )
 
@@ -554,12 +582,12 @@ class TestHFMistralRewardModelFullModelCheckpointer:
 
         # Converted state dict from the checkpointer
         state_dict = single_file_checkpointer.load_checkpoint()
-        # Check that we've loaded all the keys
-        assert len(state_dict["model"].keys()) == len(orig_state_dict.keys())
+        # Check that we've loaded all the keys minus the output bias
+        assert len(state_dict["model"].keys()) == len(orig_state_dict.keys()) - 1
 
         # the keys in original state dict should match up with the keys in the weight_map
         for key in orig_state_dict.keys():
-            if "inv_freq" in key:
+            if "inv_freq" in key or "output.bias" in key:
                 continue
             assert key in single_file_checkpointer._weight_map
 
@@ -584,7 +612,7 @@ class TestHFMistralRewardModelFullModelCheckpointer:
         output_file = Path.joinpath(checkpoint_file.parent, "hf_model_0001_1.pt")
         output_state_dict = safe_torch_load(output_file)
 
-        assert len(output_state_dict.keys()) == len(orig_state_dict.keys())
+        assert len(output_state_dict.keys()) == len(orig_state_dict.keys()) - 1
 
 
 class TestHFGemmaFullModelCheckpointer:
