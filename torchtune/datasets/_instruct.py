@@ -6,6 +6,11 @@
 
 from typing import Any, Callable, Dict, List, Mapping, Optional
 
+# NOTE: adding this because of out of disk space error
+import datasets
+
+datasets.builder.has_sufficient_disk_space = lambda needed_bytes, directory=".": True
+
 import numpy as np
 from datasets import load_dataset
 from torch.utils.data import Dataset
