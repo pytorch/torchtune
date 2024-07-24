@@ -58,6 +58,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         - :class:`~torchtune.modules.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
         - :class:`~torchtune.modules.loss.IPO`: Identity Preference Optimization (IPO).
         - :class:`~torchtune.modules.loss.SimPOLoss`: Simple Preference Optimization (SimPO).
+
     Assumptions:
         - Checkpoints are ONLY saved at epoch boundaries. In case of failure, work done
             in ongoing epoch is lost.
