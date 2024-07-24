@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Tuple
-
 import pytest
 import torch
 
@@ -35,7 +33,7 @@ class TestLlama3ScaledRoPE:
 
     EXPECTED_FREQS_CIS_MEAN = tensor(0.1738)
     EXPECTED_FREQS_CIS_SUM = tensor(91141.7656)
-    EXPECTED_FREQS_CIS_MAX = tensor(1.)
+    EXPECTED_FREQS_CIS_MAX = tensor(1.0)
 
     EXPECTED_X_OUT_MEAN = tensor(-2.4781e-06)
     EXPECTED_X_OUT_SUM = tensor(-83.1523)
@@ -57,12 +55,10 @@ class TestLlama3ScaledRoPE:
         return torch.randn(bsz, seq_len, num_heads, head_dim)
 
     @pytest.fixture
-    def rope(
-        self, input_params
-    ) -> Llama3ScaledRoPE:
+    def rope(self, input_params) -> Llama3ScaledRoPE:
         _, _, head_dim, _, max_seq_len = input_params
         return Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len)
-    
+
     def test_cache_equality(self, input, rope) -> None:
         # Have to explicitly call _rope_init() to initialize theta matrix
         rope._rope_init()
@@ -83,9 +79,7 @@ class TestLlama3ScaledRoPE:
         # check shapes
         assert_expected(x_out.shape, input.shape)
 
-    def test_forward_with_curr_pos(
-        self, input, rope
-    ) -> None:
+    def test_forward_with_curr_pos(self, input, rope) -> None:
         (
             _,
             seq_len,
@@ -105,9 +99,7 @@ class TestLlama3ScaledRoPE:
         # check shapes
         assert_expected(x_out.shape, input.shape)
 
-    def test_forward_with_packed_pos(
-        self, input, rope
-    ) -> None:
+    def test_forward_with_packed_pos(self, input, rope) -> None:
         """
         Use input_pos to indicate positions of each token relative to its sequence
         when sample is packed.
@@ -136,13 +128,9 @@ class TestLlama3ScaledRoPE:
 
     def test_rope_init_meta_device(self, input_params):
         _, _, head_dim, _, max_seq_len = input_params
-        rope_on_device = Llama3ScaledRoPE(
-            dim=head_dim, max_seq_len=max_seq_len
-        )
+        rope_on_device = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len)
         with torch.device("meta"):
-            meta_rope = Llama3ScaledRoPE(
-                dim=head_dim, max_seq_len=max_seq_len
-            )
+            meta_rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len)
 
         meta_rope._rope_init()
         for p1, p2 in zip(rope_on_device.buffers(), meta_rope.buffers()):
