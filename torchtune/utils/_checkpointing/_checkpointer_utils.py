@@ -42,8 +42,9 @@ class ModelType(Enum):
     PHI3_MINI = "phi3_mini"
     """Phi-3 family of models. See :func:`~torchtune.models.phi3.phi3`"""
 
-    MISTRAL_REWARD = "mistral_reward"
-    """Mistral model with a classification head. See :func:`~torchtune.models.mistral.mistral_classifier`"""
+    REWARD = "reward"
+    """A Llama2, Llama3, or Mistral model with a classification head projecting to a single class for reward modelling.
+    See :func:`~torchtune.models.mistral.mistral_reward_7b` or :func:`~torchtune.models.llama2.llama2_reward_7b`"""
 
 
 def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:

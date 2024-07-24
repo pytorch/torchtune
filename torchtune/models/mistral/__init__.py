@@ -10,18 +10,14 @@ from ._component_builders import (
     mistral,
     mistral_classifier,
 )
-from ._convert_weights import (  # noqa
-    mistral_reward_hf_to_tune,
-    mistral_reward_tune_to_hf,
-)
 from ._model_builders import (
     lora_mistral_7b,
-    lora_mistral_classifier_7b,
+    lora_mistral_reward_7b,
     mistral_7b,
-    mistral_classifier_7b,
+    mistral_reward_7b,
     mistral_tokenizer,
     qlora_mistral_7b,
-    qlora_mistral_classifier_7b,
+    qlora_mistral_reward_7b,
 )
 from ._tokenizer import MistralTokenizer
 
@@ -34,10 +30,10 @@ __all__ = [
     "mistral_reward_hf_to_tune",
     "mistral_reward_tune_to_hf",
     "lora_mistral_7b",
-    "lora_mistral_classifier_7b",
+    "lora_mistral_reward_7b",
     "mistral_7b",
-    "mistral_classifier_7b",
+    "mistral_reward_7b",
     "mistral_tokenizer",
     "qlora_mistral_7b",
-    "qlora_mistral_classifier_7b",
+    "qlora_mistral_reward_7b",
 ]
