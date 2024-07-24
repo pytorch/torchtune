@@ -17,7 +17,7 @@ def stack_exchanged_paired_dataset(
     split: str = "train",
 ) -> InstructPreferenceDataset:
     """
-    Family of instruct preference datasets similar to ``StackExchangePaired data
+    Family of instruct preference datasets similar to `StackExchangePaired data
     <https://huggingface.co/datasets/lvwerra/stack-exchange-paired>`_.
 
     Args:

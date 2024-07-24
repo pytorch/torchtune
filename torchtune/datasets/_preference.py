@@ -268,8 +268,9 @@ def chat_preference_dataset(
     Build a configurable preference dataset with conversations. This method should be
     used to configure a custom chat-format preference dataset from the yaml config instead of
     using :class:`~torchtune.datasets.ChatPreferenceDataset` directly, as it is made to be config friendly.
-    An example of a dataset which this config would support is
-        https://huggingface.co/datasets/argilla/ultrafeedback-binarized-preferences-cleaned
+    An example of a dataset which this config would support is `the Ultrafeedback dataset
+    <https://huggingface.co/datasets/argilla/ultrafeedback-binarized-preferences-cleaned>`_.
+
     Args:
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
