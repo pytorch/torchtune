@@ -12,7 +12,7 @@ from torch.utils.data import Dataset
 
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, InstructTemplate, Message
 
-from torchtune.modules.tokenizers import Tokenizer
+from torchtune.modules.tokenizers import ModelTokenizer
 
 
 class PreferenceDataset(Dataset):
@@ -23,15 +23,15 @@ class PreferenceDataset(Dataset):
     The general flow from loading a sample to tokenized prompt is:
     load sample -> apply transform -> format into template -> tokenize
 
-    If the column/key names differ from the expected names in the `InstructTemplate`,
-    then the `column_map` argument can be used to provide this mapping.
+    If the column/key names differ from the expected names in the :class:`~torchtune.data.InstructTemplate`,
+    then the ``column_map`` argument can be used to provide this mapping.
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
-        source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
+        source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         template (InstructTemplate): template used to format the prompt. If the placeholder variable
-            names in the template do not match the column/key names in the dataset, use `column_map` to map them.
+            names in the template do not match the column/key names in the dataset, use ``column_map`` to map them.
         transform (Optional[Callable]): transform to apply to the sample before formatting to the template.
             Default is None.
         column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names in the template
@@ -39,12 +39,12 @@ class PreferenceDataset(Dataset):
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
     """
 
     def __init__(
         self,
-        tokenizer: Tokenizer,
+        tokenizer: ModelTokenizer,
         source: str,
         template: InstructTemplate,
         transform: Optional[Callable] = None,

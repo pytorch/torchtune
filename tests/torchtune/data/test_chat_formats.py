@@ -4,7 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+
 import pytest
+from tests.test_utils import assert_dialogue_equal
 from torchtune.data import ChatMLFormat, Llama2ChatFormat, Message, MistralChatFormat
 
 # Taken from Open-Orca/SlimOrca-Dedup on HuggingFace:
@@ -34,13 +36,6 @@ CHAT_SAMPLE = [
 ]
 
 
-def _assert_dialogue_equal(actual, expected):
-    assert len(actual) == len(expected)
-    for i in range(len(actual)):
-        assert actual[i].role == expected[i].role
-        assert actual[i].content == expected[i].content
-
-
 class TestLlama2ChatFormat:
     expected_dialogue = [
         Message(
@@ -65,7 +60,7 @@ class TestLlama2ChatFormat:
 
     def test_format(self):
         actual = Llama2ChatFormat.format(CHAT_SAMPLE)
-        _assert_dialogue_equal(actual, self.expected_dialogue)
+        assert_dialogue_equal(actual, self.expected_dialogue)
 
 
 class TestMistralChatFormat:
@@ -90,7 +85,7 @@ class TestMistralChatFormat:
     def test_format(self):
         no_system_sample = CHAT_SAMPLE[1:]
         actual = MistralChatFormat.format(no_system_sample)
-        _assert_dialogue_equal(actual, self.expected_dialogue)
+        assert_dialogue_equal(actual, self.expected_dialogue)
 
     def test_format_with_system_prompt_raises(self):
         with pytest.raises(
@@ -127,4 +122,4 @@ class TestChatMLFormat:
 
     def test_format(self):
         actual = ChatMLFormat.format(CHAT_SAMPLE)
-        _assert_dialogue_equal(actual, self.expected_dialogue)
+        assert_dialogue_equal(actual, self.expected_dialogue)

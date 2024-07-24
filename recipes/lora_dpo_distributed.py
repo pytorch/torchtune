@@ -27,6 +27,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets import ConcatDataset
+from torchtune.modules import rlhf
 from torchtune.modules.peft.peft_utils import (
     disable_adapter,
     get_adapter_params,
@@ -92,6 +93,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             our checkpointer deepdive (https://pytorch.org/torchtune/main/tutorials/checkpointer.html).
 
         - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
+
+    The following losses are supported in this recipe:
+        - :class:`~torchtune.modules.loss.DPOLoss`: Direct Preference Optimization (DPO).
+        - :class:`~torchtune.modules.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
+        - :class:`~torchtune.modules.loss.IPO`: Identity Preference Optimization (IPO).
+        - :class:`~torchtune.modules.loss.SimPOLoss`: Simple Preference Optimization (SimPO).
 
     For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
     has example commands for how to kick-off training.
@@ -237,7 +244,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             else None,
         )
 
-        self._loss_fn = config.instantiate(cfg.loss)
+        self._loss_fn = self._setup_loss_fn(
+            cfg.loss, use_average_logprobs=cfg.get("use_average_logprobs", False)
+        )
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -271,6 +280,47 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             num_training_steps=self.total_epochs * self._steps_per_epoch,
             last_epoch=self.global_step - 1,
         )
+
+    def _setup_loss_fn(
+        self, cfg_loss: DictConfig, use_average_logprobs: bool = False
+    ) -> nn.Module:
+        """
+        Sets up loss function based on available supported 'direct preference optimization' style losses.
+        We also perform an additional check to guide users towards correctly setting hyperparameters
+        Raises:
+            ValueError: If the loss type is not supported.
+        """
+        valid_reference_based_loss_types = ["DPOLoss", "RSOLoss", "IPOLoss"]
+        valid_reference_free_loss_types = ["SimPOLoss"]
+
+        # verify loss is one of the supported types
+        if any(
+            f"torchtune.modules.loss.{loss_type}" == cfg_loss._component_
+            for loss_type in valid_reference_based_loss_types
+        ):
+            self._loss_type = "reference_based"
+        elif any(
+            f"torchtune.modules.loss.{loss_type}" == cfg_loss._component_
+            for loss_type in valid_reference_free_loss_types
+        ):
+            self._loss_type = "reference_free"
+        else:
+            raise ValueError(
+                f"Loss type must be one of {valid_reference_based_loss_types + valid_reference_free_loss_types }, but found "
+                f"{cfg_loss._component_}."
+            )
+
+        if (
+            not use_average_logprobs
+            and cfg_loss._component_ == "torchtune.modules.loss.SimPOLoss"
+        ):
+            warn(
+                "Using SimPOLoss with use_average_logprobs=False may lead to unexpected behavior."
+                "Please set use_average_logprobs=True."
+            )
+        self._use_average_logprobs = use_average_logprobs
+        log.info("Loss function is initialized.")
+        return config.instantiate(cfg_loss)
 
     def _setup_model(
         self,
@@ -356,11 +406,11 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             sync_module_states=True,
             # Initialize empty modules on all non-zero ranks
             param_init_fn=(
-                lambda module: module.to_empty(
-                    device=torch.device("cuda"), recurse=False
+                lambda module: (
+                    module.to_empty(device=torch.device("cuda"), recurse=False)
+                    if not self._is_rank_zero
+                    else None
                 )
-                if not self._is_rank_zero
-                else None
             ),
         )
 
@@ -548,7 +598,11 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         all_logits = model(concatenated_input_ids)
 
-        all_log_probs = self.get_batch_log_probs(all_logits, concatenated_labels)
+        all_log_probs = rlhf.get_batch_log_probs(
+            all_logits,
+            concatenated_labels,
+            return_average_logprobs=self._use_average_logprobs,
+        )
 
         chosen_log_probs = all_log_probs[:len_chosen]
         rejected_log_probs = all_log_probs[len_chosen:]
@@ -557,45 +611,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         rejected_logits = all_logits[len_chosen:]
 
         return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits)
-
-    @staticmethod
-    def get_batch_log_probs(
-        logits: torch.FloatTensor,
-        labels: torch.LongTensor,
-        label_pad_token_id: int = CROSS_ENTROPY_IGNORE_IDX,
-    ) -> torch.FloatTensor:
-        """
-        Calculate log probabilities based on provided logits and labels.
-
-        Args:
-            logits (torch.FloatTensor): direct logits output of the model of shape (b, s, v)
-            labels (torch.LongTensor): ground-truth labels to compute log probs with, shape (b, s).
-                Label tokens with a value of label_pad_token_id are ignored.
-            label_pad_token_id (int): token id to ignore in labels.
-
-        Returns:
-            Calculated log probs of shape (b, )
-
-        Raises:
-            ValueError: If logits and labels have different shapes.
-        """
-
-        if logits.shape[:-1] != labels.shape:
-            raise ValueError(
-                "Logits (batch and sequence length dim) and labels must have the same shape."
-            )
-
-        labels = labels[:, 1:].clone()
-        logits = logits[:, :-1, :]
-        loss_mask = labels != label_pad_token_id
-
-        labels[labels == label_pad_token_id] = 0
-        # take log-likelihood of the labels given our model
-        per_token_log_probs = torch.gather(
-            logits.log_softmax(-1), dim=2, index=labels.unsqueeze(2)
-        ).squeeze(2)
-
-        return (per_token_log_probs * loss_mask).sum(-1)
 
     def train(self) -> None:
         """
@@ -639,19 +654,23 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     policy_rejected_logits,
                 ) = self.concatenated_forward(self._model, batch)
 
-                with torch.no_grad(), disable_adapter(self._model):
-                    (
+                # reference based losses (e.g. DPO) explicitly regularize the objective fn based on
+                # the reference model's output - reference-free losses (such as SimPO) don't require this.
+                if self._loss_type == "reference_based":
+                    with torch.no_grad(), disable_adapter(self._model):
+                        (
+                            reference_chosen_log_probs,
+                            reference_rejected_log_probs,
+                            _,
+                            _,
+                        ) = self.concatenated_forward(self._model, batch)
+                    loss_args += (
                         reference_chosen_log_probs,
                         reference_rejected_log_probs,
-                        _,
-                        _,
-                    ) = self.concatenated_forward(self._model, batch)
+                    )
 
                 loss, chosen_rewards, rejected_rewards = self._loss_fn(
-                    policy_chosen_log_probs,
-                    policy_rejected_log_probs,
-                    reference_chosen_log_probs,
-                    reference_rejected_log_probs,
+                    *loss_args,
                 )
                 loss = loss.mean()
                 reward_accuracies = (chosen_rewards > rejected_rewards).float()

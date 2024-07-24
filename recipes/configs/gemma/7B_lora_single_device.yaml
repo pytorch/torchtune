@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run (torchtune does not use gguf so you can ignore it to save time and space):
-#   tune download google/gemma-7b --hf-token <HF_TOKEN> --output-dir /tmp/gemma-7b --ignore-patterns "gemma-7b.gguf"
+#   tune download google/gemma-7b --hf-token <HF_TOKEN> --ignore-patterns "gemma-7b.gguf"
 #
 # To launch on a single device, run the following command from root:
 #   tune run lora_finetune_single_device --config gemma/7B_lora_single_device
