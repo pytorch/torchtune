@@ -8,6 +8,7 @@
 
 &nbsp;
 
+> [!NOTE]
 > **July 2024**: torchtune has updated model weights for Llama3.1 in source and nightly builds! Check out our configs for both the [8B and 70B versions](recipes/configs/llama3_1/) of the model. LoRA, QLoRA, and full finetune methods are supported. Support for QLoRA 405B will be added soon.
 
 ## Introduction
