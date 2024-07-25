@@ -143,6 +143,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self.global_step = 0
 
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self._adapter_only = cfg.get("adapter_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
@@ -526,11 +527,20 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     }
                 )
 
-            self._checkpointer.save_checkpoint(
-                checkpoint_dict,
-                epoch=epoch,
-                intermediate_checkpoint=intermediate_checkpoint,
-            )
+            # If the option was True, save only the adapter except for the last epoch
+            if self._adapter_only and epoch + 1 < self.total_epochs:
+                self._checkpointer.save_checkpoint(
+                    checkpoint_dict,
+                    epoch=epoch,
+                    intermediate_checkpoint=(epoch + 1 < self.total_epochs),
+                    adapter_only=True,
+                )
+            else:
+                self._checkpointer.save_checkpoint(
+                    checkpoint_dict,
+                    epoch=epoch,
+                    intermediate_checkpoint=(epoch + 1 < self.total_epochs),
+                )
 
     def concatenated_forward(
         self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]

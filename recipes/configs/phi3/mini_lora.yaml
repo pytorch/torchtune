@@ -42,6 +42,7 @@ checkpointer:
   output_dir: /tmp/Phi-3-mini-4k-instruct
   model_type: PHI3_MINI
 resume_from_checkpoint: False
+adapter_only: False
 
 # Dataset and Sampler
 dataset:
