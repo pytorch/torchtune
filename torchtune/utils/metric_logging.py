@@ -8,7 +8,7 @@ import sys
 import time
 from pathlib import Path
 
-from typing import Mapping, Optional, Union
+from typing import List, Mapping, Optional, Union
 
 from numpy import ndarray
 from omegaconf import DictConfig, OmegaConf
@@ -326,7 +326,7 @@ class CometLogger(MetricLoggerInterface):
         project_name (Optional[str]): Comet.ml project name. Defaults to Uncategorized.
         workspace (Optional[str]): Comet.ml workspace name. If not provided, uses the default workspace.
         experiment_name (Optional[str]): Name of the experiment. If not provided, Comet will auto-generate a name.
-        tags (Optional[list[str]]): Tags to associate with the experiment.
+        tags (Optional[List[str]]): Tags to associate with the experiment.
         log_code (bool): Whether to log the source code. Defaults to True.
         **kwargs: Additional arguments to pass to comet_ml.Experiment.
 
@@ -353,7 +353,7 @@ class CometLogger(MetricLoggerInterface):
         project_name: Optional[str] = None,
         workspace: Optional[str] = None,
         experiment_name: Optional[str] = None,
-        tags: Optional[list[str]] = None,
+        tags: Optional[List[str]] = None,
         log_code: bool = True,
         **kwargs,
     ):
