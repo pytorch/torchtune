@@ -404,6 +404,11 @@ looks something like this:
     # set to True if restarting training
     resume_from_checkpoint: True
 
+    # adapter_only option
+    # Set to True to save only the adapter weights for intermediate epochs.
+    # For the final epoch, the entire model weights will be saved regardless of this option.
+    adapter_only: False
+
 |
 
 Putting this all together
