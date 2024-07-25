@@ -55,7 +55,7 @@ jobs:
           path: docs/build/html/
 
   doc-preview:
-    runs-on: [self-hosted, linux.2xlarge]
+    runs-on: [self-hosted, amz2023.linux.2xlarge]
     needs: build_docs
     if: ${{ github.event_name == 'pull_request' }}
     steps:

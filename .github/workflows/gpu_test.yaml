@@ -20,7 +20,7 @@ defaults:
 
 jobs:
   gpu_test:
-    runs-on: linux.8xlarge.nvidia.gpu
+    runs-on: amz2023.linux.8xlarge.nvidia.gpu
     strategy:
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11']
