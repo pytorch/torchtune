@@ -531,12 +531,12 @@ If you look at our <a class="reference internal" href="../generated/torchtune.da
 we don’t include the <code class="code docutils literal notranslate"><span class="pre">&lt;s&gt;</span></code> and <code class="code docutils literal notranslate"><span class="pre">&lt;/s&gt;</span></code> tokens. These are the beginning-of-sequence
 (BOS) and end-of-sequence (EOS) tokens that are represented differently in the tokenizer
 than the rest of the prompt template. Let’s tokenize this example with the
-<a class="reference internal" href="../generated/torchtune.modules.tokenizers.SentencePieceTokenizer.html#torchtune.modules.tokenizers.SentencePieceTokenizer" title="torchtune.modules.tokenizers.SentencePieceTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">SentencePieceTokenizer</span></code></a> used by Llama2 to see
+<a class="reference internal" href="../generated/torchtune.models.llama2.llama2_tokenizer.html#torchtune.models.llama2.llama2_tokenizer" title="torchtune.models.llama2.llama2_tokenizer"><code class="xref py py-func docutils literal notranslate"><span class="pre">llama2_tokenizer()</span></code></a> used by Llama2 to see
 why.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">SentencePieceTokenizer</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.llama2</span> <span class="kn">import</span> <span class="n">llama2_tokenizer</span>
 
 <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">llama2_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Llama-2-7b-hf/tokenizer.model&quot;</span><span class="p">)</span>
-<span class="n">user_message</span> <span class="o">=</span> <span class="n">formatted_messages</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text_content</span>
+<span class="n">user_message</span> <span class="o">=</span> <span class="n">formatted_messages</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">content</span>
 <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">user_message</span><span class="p">,</span> <span class="n">add_bos</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">add_eos</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
 <span class="c1"># [1, 518, 25580, 29962, 3532, 14816, 29903, 6778, ..., 2]</span>
@@ -573,9 +573,9 @@ token.</p>
 </div>
 <p>Now let’s take a look at Llama3’s formatting to see how it’s tokenized differently
 than Llama2.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">TikTokenTokenizer</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.llama3</span> <span class="kn">import</span> <span class="n">llama3_tokenizer</span>
 
-<span class="n">tokenizer</span> <span class="o">=</span> <span class="n">llama3_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model&quot;</span><span class="p">)</span>
+<span class="n">tokenizer</span> <span class="o">=</span> <span class="n">llama3_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Meta-Llama-3-8B/original/tokenizer.model&quot;</span><span class="p">)</span>
 <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span><span class="n">Message</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">]</span>
 <span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">tokens</span><span class="p">))</span>
@@ -642,7 +642,7 @@ Llama3 understands and tokenizes correctly?</p>
 <span class="c1"># ]</span>
 </pre></div>
 </div>
-<p>The Llama3 tokenizer class, <a class="reference internal" href="../generated/torchtune.modules.tokenizers.TikTokenTokenizer.html#torchtune.modules.tokenizers.TikTokenTokenizer" title="torchtune.modules.tokenizers.TikTokenTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TikTokenTokenizer</span></code></a>,
+<p>The Llama3 tokenizer class, <a class="reference internal" href="../generated/torchtune.models.llama3.Llama3Tokenizer.html#torchtune.models.llama3.Llama3Tokenizer" title="torchtune.models.llama3._tokenizer.Llama3Tokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">Llama3Tokenizer</span></code></a>,
 expects the input to be in the <a class="reference internal" href="../generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> format. Let’s
 quickly write a function that can parse a single row from our csv file into
 the Message dataclass. The function also needs to have a train_on_input parameter.</p>
@@ -668,7 +668,7 @@ the Message dataclass. The function also needs to have a train_on_input paramete
 </div>
 <p>Since we’re fine-tuning Llama3, the tokenizer will handle formatting the prompt for
 us. But if we were fine-tuning a model that requires a template, for example the
-Mistral-7B model which uses the <a class="reference internal" href="../generated/torchtune.modules.tokenizers.SentencePieceTokenizer.html#torchtune.modules.tokenizers.SentencePieceTokenizer" title="torchtune.modules.tokenizers.SentencePieceTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">SentencePieceTokenizer</span></code></a>,
+Mistral-7B model which uses the <a class="reference internal" href="../generated/torchtune.models.mistral.MistralTokenizer.html#torchtune.models.mistral.MistralTokenizer" title="torchtune.models.mistral._tokenizer.MistralTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">MistralTokenizer</span></code></a>,
 we would need to use a chat format like <a class="reference internal" href="../generated/torchtune.data.MistralChatFormat.html#torchtune.data.MistralChatFormat" title="torchtune.data.MistralChatFormat"><code class="xref py py-class docutils literal notranslate"><span class="pre">MistralChatFormat</span></code></a> to format
 all messages according to their <a class="reference external" href="https://docs.mistral.ai/getting-started/open_weight_models/#chat-template">recommendations</a>.</p>
 <p>Now let’s create a builder function for our dataset that loads in our local file,
@@ -676,7 +676,7 @@ converts to a list of Messages using our function, and creates a <a class="refer
 object.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">custom_dataset</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">Tokenizer</span><span class="p">,</span>
+    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2048</span><span class="p">,</span>  <span class="c1"># You can expose this if you want to experiment</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatDataset</span><span class="p">:</span>
 

@@ -41,7 +41,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="CausalSelfAttention" href="generated/torchtune.modules.CausalSelfAttention.html" />
-    <link rel="prev" title="gemma_tokenizer" href="generated/torchtune.models.gemma.gemma_tokenizer.html" />
+    <link rel="prev" title="GemmaTokenizer" href="generated/torchtune.models.gemma.GemmaTokenizer.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -436,18 +436,33 @@
 </tbody>
 </table>
 </section>
-<section id="tokenizers">
-<h2>Tokenizers<a class="headerlink" href="#tokenizers" title="Permalink to this heading">¶</a></h2>
+<section id="base-tokenizers">
+<h2>Base Tokenizers<a class="headerlink" href="#base-tokenizers" title="Permalink to this heading">¶</a></h2>
+<p>Base tokenizers are tokenizer models that perform the direct encoding of text
+into token IDs and decoding of token IDs into text. These are typically <a class="reference external" href="https://en.wikipedia.org/wiki/Byte_pair_encoding">byte pair
+encodings</a> that underlie the
+model specific tokenizers.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.tokenizers.SentencePieceTokenizer.html#torchtune.modules.tokenizers.SentencePieceTokenizer" title="torchtune.modules.tokenizers.SentencePieceTokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tokenizers.SentencePieceTokenizer</span></code></a></p></td>
-<td><p>A wrapper around SentencePieceProcessor.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.tokenizers.SentencePieceBaseTokenizer.html#torchtune.modules.tokenizers.SentencePieceBaseTokenizer" title="torchtune.modules.tokenizers.SentencePieceBaseTokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tokenizers.SentencePieceBaseTokenizer</span></code></a></p></td>
+<td><p>A light-weight wrapper around SentencePieceProcessor that additionally handles trimming leading whitespaces.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.tokenizers.TikTokenTokenizer.html#torchtune.modules.tokenizers.TikTokenTokenizer" title="torchtune.modules.tokenizers.TikTokenTokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tokenizers.TikTokenTokenizer</span></code></a></p></td>
-<td><p>A wrapper around tiktoken Encoding.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.tokenizers.TikTokenBaseTokenizer.html#torchtune.modules.tokenizers.TikTokenBaseTokenizer" title="torchtune.modules.tokenizers.TikTokenBaseTokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tokenizers.TikTokenBaseTokenizer</span></code></a></p></td>
+<td><p>A lightweight wrapper around tiktoken Encoding.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.tokenizers.Tokenizer.html#torchtune.modules.tokenizers.Tokenizer" title="torchtune.modules.tokenizers.Tokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tokenizers.Tokenizer</span></code></a></p></td>
-<td><p>Abstract tokenizer</p></td>
+</tbody>
+</table>
+</section>
+<section id="tokenizer-utilities">
+<h2>Tokenizer Utilities<a class="headerlink" href="#tokenizer-utilities" title="Permalink to this heading">¶</a></h2>
+<p>These are helper methods that can be used by any tokenizer.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.tokenizers.tokenize_messages_no_special_tokens.html#torchtune.modules.tokenizers.tokenize_messages_no_special_tokens" title="torchtune.modules.tokenizers.tokenize_messages_no_special_tokens"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tokenizers.tokenize_messages_no_special_tokens</span></code></a></p></td>
+<td><p>Tokenize a list of messages one at a time then concatenate them, returning a list of tokens and a list of masks.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.tokenizers.parse_hf_tokenizer_json.html#torchtune.modules.tokenizers.parse_hf_tokenizer_json" title="torchtune.modules.tokenizers.parse_hf_tokenizer_json"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tokenizers.parse_hf_tokenizer_json</span></code></a></p></td>
+<td><p>Parse the <code class="docutils literal notranslate"><span class="pre">tokenizer.json</span></code> file from a Hugging Face model to extract the special token str to id mapping.</p></td>
 </tr>
 </tbody>
 </table>
@@ -514,7 +529,7 @@
         <a href="generated/torchtune.modules.CausalSelfAttention.html" class="btn btn-neutral float-right" title="CausalSelfAttention" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="generated/torchtune.models.gemma.gemma_tokenizer.html" class="btn btn-neutral" title="gemma_tokenizer" accesskey="p" rel="prev"><img src="_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="generated/torchtune.models.gemma.GemmaTokenizer.html" class="btn btn-neutral" title="GemmaTokenizer" accesskey="p" rel="prev"><img src="_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -548,7 +563,8 @@
               <ul>
 <li><a class="reference internal" href="#">torchtune.modules</a><ul>
 <li><a class="reference internal" href="#modeling-components-and-building-blocks">Modeling Components and Building Blocks</a></li>
-<li><a class="reference internal" href="#tokenizers">Tokenizers</a></li>
+<li><a class="reference internal" href="#base-tokenizers">Base Tokenizers</a></li>
+<li><a class="reference internal" href="#tokenizer-utilities">Tokenizer Utilities</a></li>
 <li><a class="reference internal" href="#peft-components">PEFT Components</a></li>
 <li><a class="reference internal" href="#module-utilities">Module Utilities</a></li>
 <li><a class="reference internal" href="#loss">Loss</a></li>

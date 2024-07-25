@@ -408,11 +408,12 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.datasets._text_completion</span> <span class="kn">import</span> <span class="n">TextCompletionDataset</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">Tokenizer</span>
+
+<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">ModelTokenizer</span>
 
 
 <div class="viewcode-block" id="wikitext_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.wikitext_dataset.html#torchtune.datasets.wikitext_dataset">[docs]</a><span class="k">def</span> <span class="nf">wikitext_dataset</span><span class="p">(</span>
-    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">Tokenizer</span><span class="p">,</span>
+    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;wikitext&quot;</span><span class="p">,</span>
     <span class="n">subset</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;wikitext-103-raw-v1&quot;</span><span class="p">,</span>
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -423,7 +424,7 @@
 <span class="sd">    an unstructured text corpus consisting of articles from Wikipedia.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.</span>
+<span class="sd">        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.</span>
 <span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s ``load_dataset``</span>
 <span class="sd">            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)</span>
 <span class="sd">        subset (str): name of subset of data to use, see the `wikitext page &lt;https://huggingface.co/datasets/wikitext#data-fields&gt;`_</span>

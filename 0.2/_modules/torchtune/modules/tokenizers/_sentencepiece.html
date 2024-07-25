@@ -405,24 +405,25 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span> <span class="nn">sentencepiece</span> <span class="kn">import</span> <span class="n">SentencePieceProcessor</span>
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">truncate</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers._utils</span> <span class="kn">import</span> <span class="n">BaseTokenizer</span>
 
 <span class="n">WHITESPACE_CHARS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\r</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\v</span><span class="s2">&quot;</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="SentencePieceTokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.SentencePieceTokenizer.html#torchtune.modules.tokenizers.SentencePieceTokenizer">[docs]</a><span class="k">class</span> <span class="nc">SentencePieceTokenizer</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;A wrapper around SentencePieceProcessor.</span>
+<div class="viewcode-block" id="SentencePieceBaseTokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.SentencePieceBaseTokenizer.html#torchtune.modules.tokenizers.SentencePieceBaseTokenizer">[docs]</a><span class="k">class</span> <span class="nc">SentencePieceBaseTokenizer</span><span class="p">(</span><span class="n">BaseTokenizer</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A light-weight wrapper around SentencePieceProcessor that additionally handles</span>
+<span class="sd">    trimming leading whitespaces.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        path (str): Path to pretrained tokenizer file.</span>
 
-<span class="sd">    Example:</span>
-<span class="sd">        # Accepts only non-batched input for now</span>
-<span class="sd">        &gt;&gt;&gt; tokenizer = SentencePieceTokenizer(&quot;/path/to/spm_model&quot;)</span>
-<span class="sd">        &gt;&gt;&gt; tokenized_text = SentencePieceTokenizer.encode(&quot;Hello world!&quot;, add_bos=True, add_eos=True)</span>
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; tokenizer = SentencePieceBaseTokenizer(&quot;/path/to/spm_model&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; tokenized_text = tokenizer.encode(&quot;Hello world!&quot;, add_bos=True, add_eos=True)</span>
 <span class="sd">        &gt;&gt;&gt; print(tokenized_text)</span>
 <span class="sd">        [1, 31587, 29644, 102, 2]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -439,17 +440,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span> <span class="o">=</span> <span class="n">spm_model</span><span class="o">.</span><span class="n">eos_id</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pad_id</span> <span class="o">=</span> <span class="n">spm_model</span><span class="o">.</span><span class="n">pad_id</span><span class="p">()</span>
 
-        <span class="c1"># This is used in tokenize_messages: if the tokenizer does not</span>
-        <span class="c1"># encode whitespace, then we can more easily split strings</span>
+        <span class="c1"># If the tokenizer does not encode whitespace,</span>
+        <span class="c1"># then we can more easily split strings</span>
         <span class="c1"># on whitespace characters and encode them separately.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">encodes_whitespace</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span>
             <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">spm_model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">WHITESPACE_CHARS</span><span class="p">]</span>
         <span class="p">)</span>
 
-        <span class="c1"># During generation, stop when eos_id is encountered</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">stop_tokens</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">]</span>
-
-<div class="viewcode-block" id="SentencePieceTokenizer.encode"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.SentencePieceTokenizer.html#torchtune.modules.tokenizers.SentencePieceTokenizer.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span>
+<div class="viewcode-block" id="SentencePieceBaseTokenizer.encode"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.SentencePieceBaseTokenizer.html#torchtune.modules.tokenizers.SentencePieceBaseTokenizer.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">add_bos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -461,19 +459,26 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (str): The input text to be encoded, unbatched.</span>
-<span class="sd">            add_bos (bool): Whether to prepend BOS special token (Beginning of Sentence) to the input, defaults to True.</span>
-<span class="sd">            add_eos (bool): Whether to append EOS special token (End of Sentence) to the input, defaults to True.</span>
+<span class="sd">            add_bos (bool): Whether to prepend BOS to the input, defaults to True.</span>
+<span class="sd">            add_eos (bool): Whether to append EOS to the input, defaults to True.</span>
 <span class="sd">            trim_leading_whitespace (bool): Whether to trim leading whitespace from</span>
 <span class="sd">                underlying sentencepiece tokenization. Sentencepiece normally prepends</span>
 <span class="sd">                whitespace to any tokenized text, which can cause differences where</span>
 <span class="sd">                encode(s1) + encode(s2) != encode(s1 + s2) due to leading whitespace</span>
-<span class="sd">                added to s2. Default: False</span>
+<span class="sd">                added to s2. This will only trim leading whitespace if the underlying</span>
+<span class="sd">                ``SentencePieceProcessor`` encodes whitespace. Default: False</span>
 <span class="sd">            prefix (Optional[str]): Optional string to encode for trimming leading</span>
 <span class="sd">                whitespaces. Used only if trim_leading_whitespace=True. Default: None</span>
+
 <span class="sd">        Returns:</span>
 <span class="sd">            List[int]: The encoded token IDs.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">trim_leading_whitespace</span><span class="p">:</span>
+        <span class="c1"># We typically trim leading whitespace on the next message when</span>
+        <span class="c1"># it is a continuation of the turn (i.e. not the first message)</span>
+        <span class="c1"># or the previous message did not end with a space. This is handled</span>
+        <span class="c1"># by the caller of this method. We only need to trim leading whitespace</span>
+        <span class="c1"># if the underlying SentencePieceProcessor encodes whitespace.</span>
+        <span class="k">if</span> <span class="n">trim_leading_whitespace</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">encodes_whitespace</span><span class="p">:</span>
             <span class="c1"># Can define our own custom prefix depending on vocab if needed</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;prefix&quot;</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span> <span class="ow">or</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
@@ -495,7 +500,7 @@
                 <span class="n">out_type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
             <span class="p">)</span></div>
 
-<div class="viewcode-block" id="SentencePieceTokenizer.decode"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.SentencePieceTokenizer.html#torchtune.modules.tokenizers.SentencePieceTokenizer.decode">[docs]</a>    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<div class="viewcode-block" id="SentencePieceBaseTokenizer.decode"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.SentencePieceBaseTokenizer.html#torchtune.modules.tokenizers.SentencePieceBaseTokenizer.decode">[docs]</a>    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Decode token IDs to strings.</span>
 
 <span class="sd">        Args:</span>
@@ -504,99 +509,7 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            str: The decoded text.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">spm_model</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="SentencePieceTokenizer.tokenize_messages"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.SentencePieceTokenizer.html#torchtune.modules.tokenizers.SentencePieceTokenizer.tokenize_messages">[docs]</a>    <span class="k">def</span> <span class="nf">tokenize_messages</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span> <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Tokenize a list of messages one at a time then concatenate them,</span>
-<span class="sd">        returning a list of tokens and a list of masks.</span>
-
-<span class="sd">        Note: llama2 sentencepiece has problems where in general</span>
-<span class="sd">        encode(s1 + s2) != encode(s1) + encode(s2) due to whitespace handling.</span>
-<span class="sd">        We can get around this by prepending s2 with a known token and slicing the</span>
-<span class="sd">        beginning off the tokenized s2.</span>
-
-<span class="sd">        Example:</span>
-<span class="sd">            &gt;&gt;&gt; tokenizer = SentencePieceTokenizer(tokenizer_path)</span>
-<span class="sd">            &gt;&gt;&gt; messages = [</span>
-<span class="sd">                Message(role=&quot;system&quot;, content=&quot;system message\n&quot;, masked=True),</span>
-<span class="sd">                Message(role=&quot;user&quot;, content=&quot;user prompt\n&quot;, masked=True),</span>
-<span class="sd">                Message(role=&quot;assistant&quot;, content=&quot;assistant response\n&quot;),</span>
-<span class="sd">                ]</span>
-<span class="sd">            # tokenize_messages encodes messages separately and concats</span>
-<span class="sd">            &gt;&gt;&gt; tokenizer.tokenize_messages(messages, max_seq_len)[0]</span>
-<span class="sd">            [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]</span>
-
-
-<span class="sd">            # Same result as encoding the full string in one go</span>
-<span class="sd">            &gt;&gt;&gt; tokenizer.encode(&#39;&#39;.join([message.content for message in messages]))</span>
-<span class="sd">            [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]</span>
-
-
-<span class="sd">        Args:</span>
-<span class="sd">            messages (List[Message]): A list of messages, each containing role, content,</span>
-<span class="sd">                and masked attributes.</span>
-<span class="sd">            max_seq_len (Optional[int]): A max sequence length to truncate tokens to.</span>
-<span class="sd">                Default: None</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            Tuple[List[int], List[bool]]: The tokenized messages</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">start_of_turn</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="n">end_of_turn</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="n">prev_ends_with_space</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="n">tokenized_messages</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">mask</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
-            <span class="c1"># If assistant message, this is the end of a turn</span>
-            <span class="n">end_of_turn</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;assistant&quot;</span>
-
-            <span class="c1"># Prepend BOS on start of new turns</span>
-            <span class="k">if</span> <span class="n">start_of_turn</span><span class="p">:</span>
-                <span class="n">tokenized_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span><span class="p">)</span>
-                <span class="n">mask</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">masked</span><span class="p">)</span>
-
-            <span class="c1"># We want to trim leading whitespace on the next message when</span>
-            <span class="c1"># (a) it is a continuation of the turn (i.e. not the first message)</span>
-            <span class="c1"># (b) the vocabulary explicitly encodes whitespace characters, and</span>
-            <span class="c1"># (c) the previous message did not end with a space</span>
-            <span class="n">trim_leading_whitespace</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="p">(</span><span class="ow">not</span> <span class="n">start_of_turn</span><span class="p">)</span>
-                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">encodes_whitespace</span>
-                <span class="ow">and</span> <span class="ow">not</span> <span class="n">prev_ends_with_space</span>
-            <span class="p">)</span>
-
-            <span class="c1"># Tokenize current message, append with masks</span>
-            <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
-                <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">),</span>
-                <span class="n">add_bos</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="n">add_eos</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="n">trim_leading_whitespace</span><span class="o">=</span><span class="n">trim_leading_whitespace</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="n">prev_ends_with_space</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span>
-            <span class="n">tokenized_messages</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
-            <span class="n">mask</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">message</span><span class="o">.</span><span class="n">masked</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">))</span>
-
-            <span class="c1"># If assistant message, append EOS at end</span>
-            <span class="k">if</span> <span class="n">end_of_turn</span><span class="p">:</span>
-                <span class="n">tokenized_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">)</span>
-                <span class="n">mask</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">masked</span><span class="p">)</span>
-                <span class="n">end_of_turn</span> <span class="o">=</span> <span class="kc">False</span>
-                <span class="n">start_of_turn</span> <span class="o">=</span> <span class="kc">True</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">start_of_turn</span> <span class="o">=</span> <span class="kc">False</span>
-
-            <span class="c1"># Break out early if we reach max_seq_len</span>
-            <span class="k">if</span> <span class="n">max_seq_len</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokenized_messages</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">max_seq_len</span><span class="p">:</span>
-                <span class="k">break</span>
-
-        <span class="c1"># Finally, truncate if necessary</span>
-        <span class="k">if</span> <span class="n">max_seq_len</span><span class="p">:</span>
-            <span class="n">tokenized_messages</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">tokenized_messages</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">)</span>
-            <span class="n">mask</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">,</span> <span class="n">message</span><span class="o">.</span><span class="n">masked</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">tokenized_messages</span><span class="p">,</span> <span class="n">mask</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">spm_model</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span></div></div>
 </pre></div>
 
              </article>

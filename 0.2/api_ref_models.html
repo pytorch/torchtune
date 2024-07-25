@@ -405,18 +405,19 @@
               
   <section id="torchtune-models">
 <span id="models"></span><h1>torchtune.models<a class="headerlink" href="#torchtune-models" title="Permalink to this heading">¶</a></h1>
-<section id="llama3">
-<h2>llama3<a class="headerlink" href="#llama3" title="Permalink to this heading">¶</a></h2>
+<section id="llama3-llama3-1">
+<h2>llama3 &amp; llama3.1<a class="headerlink" href="#llama3-llama3-1" title="Permalink to this heading">¶</a></h2>
 <p>All models from the <a class="reference external" href="https://llama.meta.com/llama3/">Llama3 family</a>.</p>
 <p>To download the Llama3-8B-Instruct model:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Meta-Llama-3-8B-Instruct<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
 </pre></div>
 </div>
 <p>To download the Llama3-70B-Instruct model:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Meta-Llama-3-70B-Instruct<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
---ignore-patterns<span class="w"> </span><span class="s2">&quot;original/consolidated*&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Meta-Llama-3-70B-Instruct<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;original/consolidated*&quot;</span>
 </pre></div>
 </div>
+<p>To download the Llama3.1 weights of the above models, you can instead download from <cite>Meta-Llama-3.1-8B-Instruct</cite>
+or <cite>Meta-Llama-3.1-70B-Instruct</cite>.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3.llama3.html#torchtune.models.llama3.llama3" title="torchtune.models.llama3.llama3"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3.llama3</span></code></a></p></td>
@@ -446,8 +447,39 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3.llama3_tokenizer.html#torchtune.models.llama3.llama3_tokenizer" title="torchtune.models.llama3.llama3_tokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3.llama3_tokenizer</span></code></a></p></td>
 <td><p>Tokenizer for Llama3.</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama3.Llama3Tokenizer.html#torchtune.models.llama3.Llama3Tokenizer" title="torchtune.models.llama3.Llama3Tokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3.Llama3Tokenizer</span></code></a></p></td>
+<td><p>tiktoken tokenizer configured with Llama3 Instruct's special tokens, as described in <a class="reference external" href="https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3">https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3</a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_1.llama3_1.html#torchtune.models.llama3_1.llama3_1" title="torchtune.models.llama3_1.llama3_1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_1.llama3_1</span></code></a></p></td>
+<td><p>Build the decoder associated with the Llama3.1 model.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_1.lora_llama3_1.html#torchtune.models.llama3_1.lora_llama3_1" title="torchtune.models.llama3_1.lora_llama3_1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_1.lora_llama3_1</span></code></a></p></td>
+<td><p>Return a version of Llama3.1 (an instance of <a class="reference internal" href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.TransformerDecoder"><code class="xref py py-func docutils literal notranslate"><span class="pre">TransformerDecoder()</span></code></a>) with LoRA applied based on the passed in configuration.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_1.llama3_1_8b.html#torchtune.models.llama3_1.llama3_1_8b" title="torchtune.models.llama3_1.llama3_1_8b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_1.llama3_1_8b</span></code></a></p></td>
+<td><p>Builder for creating a Llama3.1 model initialized w/ the default 8b parameter values.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_1.lora_llama3_1_8b.html#torchtune.models.llama3_1.lora_llama3_1_8b" title="torchtune.models.llama3_1.lora_llama3_1_8b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_1.lora_llama3_1_8b</span></code></a></p></td>
+<td><p>Builder for creating a Llama3.1 8B model with LoRA enabled.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_1.qlora_llama3_1_8b.html#torchtune.models.llama3_1.qlora_llama3_1_8b" title="torchtune.models.llama3_1.qlora_llama3_1_8b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_1.qlora_llama3_1_8b</span></code></a></p></td>
+<td><p>Builder for creating a Llama3.1 8B model with QLoRA enabled.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_1.llama3_1_70b.html#torchtune.models.llama3_1.llama3_1_70b" title="torchtune.models.llama3_1.llama3_1_70b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_1.llama3_1_70b</span></code></a></p></td>
+<td><p>Builder for creating a Llama3.1 model initialized w/ the default 70B parameter values.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_1.lora_llama3_1_70b.html#torchtune.models.llama3_1.lora_llama3_1_70b" title="torchtune.models.llama3_1.lora_llama3_1_70b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_1.lora_llama3_1_70b</span></code></a></p></td>
+<td><p>Builder for creating a Llama3.1 70B model with LoRA enabled.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_1.qlora_llama3_1_70b.html#torchtune.models.llama3_1.qlora_llama3_1_70b" title="torchtune.models.llama3_1.qlora_llama3_1_70b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_1.qlora_llama3_1_70b</span></code></a></p></td>
+<td><p>Builder for creating a Llama3.1 70B model with QLoRA enabled.</p></td>
+</tr>
 </tbody>
 </table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The Llama3.1 tokenizer reuses the <cite>llama3.llama3_tokenizer</cite> builder class.</p>
+</div>
 </section>
 <section id="llama2">
 <h2>llama2<a class="headerlink" href="#llama2" title="Permalink to this heading">¶</a></h2>
@@ -501,6 +533,9 @@
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama2.llama2_tokenizer.html#torchtune.models.llama2.llama2_tokenizer" title="torchtune.models.llama2.llama2_tokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama2.llama2_tokenizer</span></code></a></p></td>
 <td><p>Tokenizer for Llama2.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama2.Llama2Tokenizer.html#torchtune.models.llama2.Llama2Tokenizer" title="torchtune.models.llama2.Llama2Tokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama2.Llama2Tokenizer</span></code></a></p></td>
+<td><p>Llama2's implementation of the SentencePiece tokenizer.</p></td>
 </tr>
 </tbody>
 </table>
@@ -576,6 +611,9 @@
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.phi3.phi3_mini_tokenizer.html#torchtune.models.phi3.phi3_mini_tokenizer" title="torchtune.models.phi3.phi3_mini_tokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">phi3.phi3_mini_tokenizer</span></code></a></p></td>
 <td><p>Phi-3 Mini tokenizer.</p></td>
 </tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.phi3.Phi3MiniTokenizer.html#torchtune.models.phi3.Phi3MiniTokenizer" title="torchtune.models.phi3.Phi3MiniTokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">phi3.Phi3MiniTokenizer</span></code></a></p></td>
+<td><p>SentencePiece tokenizer configured with Phi3 Mini's special tokens.</p></td>
+</tr>
 </tbody>
 </table>
 </section>
@@ -621,6 +659,9 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.mistral.mistral_tokenizer.html#torchtune.models.mistral.mistral_tokenizer" title="torchtune.models.mistral.mistral_tokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mistral.mistral_tokenizer</span></code></a></p></td>
 <td><p>Tokenizer for Mistral models.</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.mistral.MistralTokenizer.html#torchtune.models.mistral.MistralTokenizer" title="torchtune.models.mistral.MistralTokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mistral.MistralTokenizer</span></code></a></p></td>
+<td><p>Mistral's implementation of the SentencePiece tokenizer</p></td>
+</tr>
 </tbody>
 </table>
 </section>
@@ -663,6 +704,9 @@
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.gemma.gemma_tokenizer.html#torchtune.models.gemma.gemma_tokenizer" title="torchtune.models.gemma.gemma_tokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gemma.gemma_tokenizer</span></code></a></p></td>
 <td><p>Tokenizer for Gemma.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.gemma.GemmaTokenizer.html#torchtune.models.gemma.GemmaTokenizer" title="torchtune.models.gemma.GemmaTokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gemma.GemmaTokenizer</span></code></a></p></td>
+<td><p>Gemma's implementation of the SentencePiece tokenizer</p></td>
 </tr>
 </tbody>
 </table>
@@ -713,7 +757,7 @@
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
 <li><a class="reference internal" href="#">torchtune.models</a><ul>
-<li><a class="reference internal" href="#llama3">llama3</a></li>
+<li><a class="reference internal" href="#llama3-llama3-1">llama3 &amp; llama3.1</a></li>
 <li><a class="reference internal" href="#llama2">llama2</a></li>
 <li><a class="reference internal" href="#code-llama">code llama</a></li>
 <li><a class="reference internal" href="#phi-3">phi-3</a></li>

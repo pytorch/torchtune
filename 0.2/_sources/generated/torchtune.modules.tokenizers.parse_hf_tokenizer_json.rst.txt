@@ -3,8 +3,7 @@
 .. currentmodule:: torchtune.modules.tokenizers
 
 
-SentencePieceTokenizer
-======================
+parse_hf_tokenizer_json
+=======================
 
-.. autoclass:: SentencePieceTokenizer
-    :members:
+.. autofunction:: parse_hf_tokenizer_json

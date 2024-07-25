@@ -521,9 +521,10 @@
         <span class="n">custom_generate_next_token</span> <span class="o">=</span> <span class="n">generate_next_token</span>
 
     <span class="c1"># generate the first tokens conditioned on the prompt</span>
+    <span class="n">input_pos</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">prompt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">tokens</span> <span class="o">=</span> <span class="n">generate_next_token</span><span class="p">(</span>
         <span class="n">model</span><span class="p">,</span>
-        <span class="n">input_pos</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">prompt_length</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">prompt</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+        <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">[:</span><span class="n">prompt_length</span><span class="p">],</span>
         <span class="n">x</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span>
         <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">,</span>
         <span class="n">top_k</span><span class="o">=</span><span class="n">top_k</span><span class="p">,</span>
@@ -538,7 +539,9 @@
         <span class="k">if</span> <span class="n">stop_token_reached</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">():</span>
             <span class="k">return</span> <span class="n">generated_tokens</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
 
-    <span class="n">input_pos</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">prompt_length</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">prompt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">curr_pos</span> <span class="o">=</span> <span class="n">prompt_length</span>
+    <span class="c1"># if key value caches are enabled, we can incrementally decode</span>
+    <span class="n">incremental_decoding</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_generated_tokens</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
         <span class="c1"># update stop_token_mask if we reached a stop token in a previous step</span>
         <span class="c1"># by appending the logical not of stop_token_reached to the end of the mask</span>
@@ -548,12 +551,24 @@
                 <span class="p">[</span><span class="n">stop_token_mask</span><span class="p">,</span> <span class="o">~</span><span class="n">stop_token_reached</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bsz</span><span class="p">,</span> <span class="mi">1</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span>
             <span class="p">)</span>
 
+        <span class="c1"># if incremental decoding is enabled, we can use the current position</span>
+        <span class="c1"># otherwise, we take the whole sequence up to the current position</span>
+        <span class="k">if</span> <span class="n">incremental_decoding</span><span class="p">:</span>
+            <span class="n">curr_input_pos</span> <span class="o">=</span> <span class="n">input_pos</span><span class="p">[</span><span class="n">curr_pos</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">curr_input_pos</span> <span class="o">=</span> <span class="n">input_pos</span><span class="p">[:</span> <span class="n">curr_pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">tokens</span> <span class="o">=</span> <span class="n">generated_tokens</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+
         <span class="n">tokens</span> <span class="o">=</span> <span class="n">custom_generate_next_token</span><span class="p">(</span>
-            <span class="n">model</span><span class="p">,</span> <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">tokens</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="n">top_k</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">input_pos</span><span class="o">=</span><span class="n">curr_input_pos</span><span class="p">,</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">tokens</span><span class="p">,</span>
+            <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">,</span>
+            <span class="n">top_k</span><span class="o">=</span><span class="n">top_k</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">generated_tokens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">generated_tokens</span><span class="p">,</span> <span class="n">tokens</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">input_pos</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">curr_pos</span> <span class="o">+=</span> <span class="mi">1</span>
 
         <span class="k">if</span> <span class="n">stop_tokens</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">stop_token_reached</span> <span class="o">=</span> <span class="n">update_stop_tokens_tracker</span><span class="p">(</span>

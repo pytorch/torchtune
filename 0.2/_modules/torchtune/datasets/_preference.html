@@ -413,7 +413,7 @@
 
 <span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">InstructTemplate</span><span class="p">,</span> <span class="n">Message</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">Tokenizer</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">ModelTokenizer</span>
 
 
 <div class="viewcode-block" id="PreferenceDataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.PreferenceDataset.html#torchtune.datasets.PreferenceDataset">[docs]</a><span class="k">class</span> <span class="nc">PreferenceDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
@@ -428,7 +428,7 @@
 <span class="sd">    then the ``column_map`` argument can be used to provide this mapping.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.</span>
+<span class="sd">        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.</span>
 <span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s `load_dataset`</span>
 <span class="sd">            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)</span>
 <span class="sd">        template (InstructTemplate): template used to format the prompt. If the placeholder variable</span>
@@ -445,7 +445,7 @@
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">tokenizer</span><span class="p">:</span> <span class="n">Tokenizer</span><span class="p">,</span>
+        <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
         <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">template</span><span class="p">:</span> <span class="n">InstructTemplate</span><span class="p">,</span>
         <span class="n">transform</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>

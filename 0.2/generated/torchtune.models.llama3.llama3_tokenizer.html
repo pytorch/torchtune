@@ -40,7 +40,7 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="llama2" href="torchtune.models.llama2.llama2.html" />
+    <link rel="next" title="Llama3Tokenizer" href="torchtune.models.llama3.Llama3Tokenizer.html" />
     <link rel="prev" title="qlora_llama3_70b" href="torchtune.models.llama3.qlora_llama3_70b.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -409,17 +409,22 @@
 <h1>llama3_tokenizer<a class="headerlink" href="#llama3-tokenizer" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="torchtune.models.llama3.llama3_tokenizer">
-<span class="sig-prename descclassname"><span class="pre">torchtune.models.llama3.</span></span><span class="sig-name descname"><span class="pre">llama3_tokenizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.modules.tokenizers.TikTokenTokenizer.html#torchtune.modules.tokenizers.TikTokenTokenizer" title="torchtune.modules.tokenizers._tiktoken.TikTokenTokenizer"><span class="pre">TikTokenTokenizer</span></a></span></span><a class="reference internal" href="../_modules/torchtune/models/llama3/_model_builders.html#llama3_tokenizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.llama3.llama3_tokenizer" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">torchtune.models.llama3.</span></span><span class="sig-name descname"><span class="pre">llama3_tokenizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">special_tokens_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.models.llama3.Llama3Tokenizer.html#torchtune.models.llama3.Llama3Tokenizer" title="torchtune.models.llama3._tokenizer.Llama3Tokenizer"><span class="pre">Llama3Tokenizer</span></a></span></span><a class="reference internal" href="../_modules/torchtune/models/llama3/_model_builders.html#llama3_tokenizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.llama3.llama3_tokenizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Tokenizer for Llama3.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path to the tokenizer</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path to the tokenizer</p></li>
+<li><p><strong>special_tokens_path</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – Path to <code class="docutils literal notranslate"><span class="pre">tokenizer.json</span></code> from Hugging Face
+model files that contains all registered special tokens, or a local json file
+structured similarly. Default is None to use the canonical Llama3 special tokens.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Instantiation of the Llama3 tokenizer</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="torchtune.modules.tokenizers.TikTokenTokenizer.html#torchtune.modules.tokenizers.TikTokenTokenizer" title="torchtune.modules.tokenizers.TikTokenTokenizer">TikTokenTokenizer</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="torchtune.models.llama3.Llama3Tokenizer.html#torchtune.models.llama3.Llama3Tokenizer" title="torchtune.models.llama3.Llama3Tokenizer">Llama3Tokenizer</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -434,7 +439,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.models.llama2.llama2.html" class="btn btn-neutral float-right" title="llama2" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.models.llama3.Llama3Tokenizer.html" class="btn btn-neutral float-right" title="Llama3Tokenizer" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="torchtune.models.llama3.qlora_llama3_70b.html" class="btn btn-neutral" title="qlora_llama3_70b" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>

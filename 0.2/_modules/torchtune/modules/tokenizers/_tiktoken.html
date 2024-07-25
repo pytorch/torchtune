@@ -405,234 +405,92 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span>
 
 <span class="kn">from</span> <span class="nn">tiktoken</span> <span class="kn">import</span> <span class="n">Encoding</span>
 <span class="kn">from</span> <span class="nn">tiktoken.load</span> <span class="kn">import</span> <span class="n">load_tiktoken_bpe</span>
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">truncate</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers._utils</span> <span class="kn">import</span> <span class="n">_split_long_repetitions</span><span class="p">,</span> <span class="n">Tokenizer</span>
-
-
-<span class="n">CL100K_PATTERN</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;(?i:&#39;s|&#39;t|&#39;re|&#39;ve|&#39;m|&#39;ll|&#39;d)|[^\r\n\p</span><span class="si">{L}</span><span class="s2">\p</span><span class="si">{N}</span><span class="s2">]?\p</span><span class="si">{L}</span><span class="s2">+|\p</span><span class="si">{N}</span><span class="s2">{1,3}| ?[^\s\p</span><span class="si">{L}</span><span class="s2">\p</span><span class="si">{N}</span><span class="s2">]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+&quot;&quot;&quot;</span>  <span class="c1"># noqa</span>
-
-<span class="c1"># bos and eos tokens</span>
-<span class="n">BEGIN_OF_TEXT</span> <span class="o">=</span> <span class="s2">&quot;&lt;|begin_of_text|&gt;&quot;</span>
-<span class="n">END_OF_TEXT</span> <span class="o">=</span> <span class="s2">&quot;&lt;|end_of_text|&gt;&quot;</span>
-<span class="c1"># fill-in-the-middle tags</span>
-<span class="n">FIM_PREFIX</span> <span class="o">=</span> <span class="s2">&quot;&lt;|fim_prefix|&gt;&quot;</span>
-<span class="n">FIM_MIDDLE</span> <span class="o">=</span> <span class="s2">&quot;&lt;|fim_middle|&gt;&quot;</span>
-<span class="n">FIM_SUFFIX</span> <span class="o">=</span> <span class="s2">&quot;&lt;|fim_suffix|&gt;&quot;</span>
-<span class="c1"># start and end header tokens for formatting chat messages</span>
-<span class="n">START_HEADER_ID</span> <span class="o">=</span> <span class="s2">&quot;&lt;|start_header_id|&gt;&quot;</span>
-<span class="n">END_HEADER_ID</span> <span class="o">=</span> <span class="s2">&quot;&lt;|end_header_id|&gt;&quot;</span>
-<span class="n">STEP_ID</span> <span class="o">=</span> <span class="s2">&quot;&lt;|step_id|&gt;&quot;</span>
-<span class="c1"># different end of message tags</span>
-<span class="n">EOM_ID</span> <span class="o">=</span> <span class="s2">&quot;&lt;|eom_id|&gt;&quot;</span>
-<span class="n">EOT_ID</span> <span class="o">=</span> <span class="s2">&quot;&lt;|eot_id|&gt;&quot;</span>
-<span class="c1"># special token for ipython messages</span>
-<span class="n">PYTHON_TAG</span> <span class="o">=</span> <span class="s2">&quot;&lt;|python_tag|&gt;&quot;</span>
-
-<span class="n">ALL_SPECIAL_TOKENS</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="n">BEGIN_OF_TEXT</span><span class="p">,</span>
-    <span class="n">END_OF_TEXT</span><span class="p">,</span>
-    <span class="n">FIM_PREFIX</span><span class="p">,</span>
-    <span class="n">FIM_MIDDLE</span><span class="p">,</span>
-    <span class="n">FIM_SUFFIX</span><span class="p">,</span>
-    <span class="n">STEP_ID</span><span class="p">,</span>
-    <span class="n">START_HEADER_ID</span><span class="p">,</span>
-    <span class="n">END_HEADER_ID</span><span class="p">,</span>
-    <span class="n">EOM_ID</span><span class="p">,</span>
-    <span class="n">EOT_ID</span><span class="p">,</span>
-    <span class="n">PYTHON_TAG</span><span class="p">,</span>
-<span class="p">]</span>
-
-<span class="n">PAD_ID</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers._utils</span> <span class="kn">import</span> <span class="n">BaseTokenizer</span>
 
 <span class="c1"># Constants controlling encode logic</span>
 <span class="n">MAX_ENCODE_CHARS</span> <span class="o">=</span> <span class="mi">400_000</span>
 <span class="n">MAX_NO_WHITESPACE_CHARS</span> <span class="o">=</span> <span class="mi">25_000</span>
 
 
-<div class="viewcode-block" id="TikTokenTokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.TikTokenTokenizer.html#torchtune.modules.tokenizers.TikTokenTokenizer">[docs]</a><span class="k">class</span> <span class="nc">TikTokenTokenizer</span><span class="p">(</span><span class="n">Tokenizer</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;A wrapper around tiktoken Encoding.</span>
+<div class="viewcode-block" id="TikTokenBaseTokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.TikTokenBaseTokenizer.html#torchtune.modules.tokenizers.TikTokenBaseTokenizer">[docs]</a><span class="k">class</span> <span class="nc">TikTokenBaseTokenizer</span><span class="p">(</span><span class="n">BaseTokenizer</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A lightweight wrapper around tiktoken Encoding. This class additionally handles</span>
+<span class="sd">    breaking up the input text into substrings of a max length and splitting up long</span>
+<span class="sd">    repetitions to improve encode speed.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        path (str): Path to pretrained tokenizer checkpoint file.</span>
 <span class="sd">        name (str): Name of the tokenizer (used by tiktoken for identification).</span>
-<span class="sd">        pattern (str): Regex pattern used to for string parsing.</span>
-<span class="sd">        all_special_tokens (Optional[List[str]]): List of all special tokens. First element</span>
-<span class="sd">            must be bos token, second element must be eos token, final element must be</span>
-<span class="sd">            python tag. All elements must be unique. Length must be at most 256.</span>
-<span class="sd">            Default: None (will use ALL_SPECIAL_TOKENS)</span>
-<span class="sd">        bos_token (str): Beginning of sequence token. Defaults to BEGIN_OF_TEXT.</span>
-<span class="sd">        eos_token (str): End of sequence token. Defaults to END_OF_TEXT.</span>
-<span class="sd">        start_header_id (str): Start header token. Defaults to START_HEADER_ID.</span>
-<span class="sd">        end_header_id (str): End header token. Defaults to END_HEADER_ID.</span>
-<span class="sd">        step_id (str): Step token. Defaults to STEP_ID.</span>
-<span class="sd">        eom_id (str): End of message token. Defaults to EOM_ID.</span>
-<span class="sd">        eot_id (str): End of turn token. Defaults to EOT_ID.</span>
-<span class="sd">        python_tag (str): Python tag token. Defaults to PYTHON_TAG.</span>
+<span class="sd">        pattern (str): Regex pattern used to split input text into chunks before passing</span>
+<span class="sd">            to byte-pair encoding.</span>
+<span class="sd">        bos_id (int): beginning-of-sequence token id. This can be present or absent in ``special_tokens``.</span>
+<span class="sd">        eos_id (int): end-of-sequence token id. This can be present or absent in ``special_tokens``.</span>
+<span class="sd">        special_tokens (Dict[str, int]): Mapping of special tokens to their ids.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; tokenizer = TikTokenBaseTokenizer(&quot;/path/to/tt_model&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; tokenized_text = tokenizer.encode(&quot;Hello world!&quot;, add_bos=True, add_eos=True)</span>
+<span class="sd">        &gt;&gt;&gt; print(tokenized_text)</span>
+<span class="sd">        [1, 31587, 29644, 102, 2]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;llama3_tiktoken&quot;</span><span class="p">,</span>
-        <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">CL100K_PATTERN</span><span class="p">,</span>
-        <span class="n">all_special_tokens</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">bos_token</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">BEGIN_OF_TEXT</span><span class="p">,</span>
-        <span class="n">eos_token</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">END_OF_TEXT</span><span class="p">,</span>
-        <span class="n">start_header_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">START_HEADER_ID</span><span class="p">,</span>
-        <span class="n">end_header_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">END_HEADER_ID</span><span class="p">,</span>
-        <span class="n">step_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">STEP_ID</span><span class="p">,</span>
-        <span class="n">eom_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">EOM_ID</span><span class="p">,</span>
-        <span class="n">eot_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">EOT_ID</span><span class="p">,</span>
-        <span class="n">python_tag</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">PYTHON_TAG</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">bos_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">eos_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">special_tokens</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
     <span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">num_reserved_special_tokens</span> <span class="o">=</span> <span class="mi">256</span>
-        <span class="n">all_special_tokens</span> <span class="o">=</span> <span class="n">all_special_tokens</span> <span class="ow">or</span> <span class="n">ALL_SPECIAL_TOKENS</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_special_tokens</span><span class="p">(</span>
-            <span class="n">all_special_tokens</span><span class="o">=</span><span class="n">all_special_tokens</span><span class="p">,</span>
-            <span class="n">bos_token</span><span class="o">=</span><span class="n">bos_token</span><span class="p">,</span>
-            <span class="n">eos_token</span><span class="o">=</span><span class="n">eos_token</span><span class="p">,</span>
-            <span class="n">step_id</span><span class="o">=</span><span class="n">step_id</span><span class="p">,</span>
-            <span class="n">start_header_id</span><span class="o">=</span><span class="n">start_header_id</span><span class="p">,</span>
-            <span class="n">end_header_id</span><span class="o">=</span><span class="n">end_header_id</span><span class="p">,</span>
-            <span class="n">eom_id</span><span class="o">=</span><span class="n">eom_id</span><span class="p">,</span>
-            <span class="n">eot_id</span><span class="o">=</span><span class="n">eot_id</span><span class="p">,</span>
-            <span class="n">python_tag</span><span class="o">=</span><span class="n">python_tag</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">all_special_tokens</span> <span class="o">=</span> <span class="n">all_special_tokens</span>
-
-        <span class="n">mergeable_ranks</span> <span class="o">=</span> <span class="n">load_tiktoken_bpe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">base_vocab_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mergeable_ranks</span><span class="p">)</span>
-        <span class="n">all_special_tokens_with_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_all_special_tokens_with_ids</span><span class="p">()</span>
+        <span class="n">mergeable_ranks</span> <span class="o">=</span> <span class="n">load_tiktoken_bpe</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tt_model</span> <span class="o">=</span> <span class="n">Encoding</span><span class="p">(</span>
             <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
             <span class="n">pat_str</span><span class="o">=</span><span class="n">pattern</span><span class="p">,</span>
             <span class="n">mergeable_ranks</span><span class="o">=</span><span class="n">mergeable_ranks</span><span class="p">,</span>
-            <span class="n">special_tokens</span><span class="o">=</span><span class="p">{</span><span class="o">**</span><span class="n">all_special_tokens_with_ids</span><span class="p">},</span>
+            <span class="n">special_tokens</span><span class="o">=</span><span class="n">special_tokens</span><span class="p">,</span>
         <span class="p">)</span>
-
-        <span class="c1"># Encode BOS and EOS, define pad ID</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encode_special_token</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_special_tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encode_special_token</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_special_tokens</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pad_id</span> <span class="o">=</span> <span class="n">PAD_ID</span>
-
+        <span class="c1"># Vocab size without special tokens</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_vocab_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mergeable_ranks</span><span class="p">)</span>
+        <span class="c1"># Vocab size with special tokens</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tt_model</span><span class="o">.</span><span class="n">n_vocab</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span> <span class="o">=</span> <span class="n">bos_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span> <span class="o">=</span> <span class="n">eos_id</span>
 
-        <span class="c1"># Encode extra special tokens</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">step_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encode_special_token</span><span class="p">(</span><span class="n">step_id</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">start_header_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encode_special_token</span><span class="p">(</span><span class="n">start_header_id</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">end_header_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encode_special_token</span><span class="p">(</span><span class="n">end_header_id</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">eom_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encode_special_token</span><span class="p">(</span><span class="n">eom_id</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">eot_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encode_special_token</span><span class="p">(</span><span class="n">eot_id</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">python_tag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encode_special_token</span><span class="p">(</span><span class="n">python_tag</span><span class="p">)</span>
-
-        <span class="c1"># During generation, stop when either eos_id or eot_id is encountered</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">stop_tokens</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eot_id</span><span class="p">]</span>
-
-    <span class="k">def</span> <span class="nf">_validate_special_tokens</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">all_special_tokens</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-        <span class="n">bos_token</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">eos_token</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">step_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">start_header_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">end_header_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">eom_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">eot_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">python_tag</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_split_long_repetitions</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_consecutive_slice_len</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Validate all the special tokens are as expected. Should satisfy:</span>
-
-<span class="sd">        (1) bos_token, eos_token, step_id, start_header_id, end_header_id, eom_id,</span>
-<span class="sd">            eot_id, python_tag are all in all_special_tokens,</span>
-<span class="sd">        (2) bos_token should be first, eos_token should be second, python_tag should be last,</span>
-<span class="sd">        (3) all special tokens are unique, and</span>
-<span class="sd">        (4) at most 256 special tokens</span>
+<span class="sd">        Split the string `s` so that each substring contains no more than `max_consecutive_slice_len`</span>
+<span class="sd">        consecutive whitespaces or consecutive non-whitespaces</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="p">[</span>
-            <span class="n">bos_token</span><span class="p">,</span>
-            <span class="n">eos_token</span><span class="p">,</span>
-            <span class="n">step_id</span><span class="p">,</span>
-            <span class="n">start_header_id</span><span class="p">,</span>
-            <span class="n">end_header_id</span><span class="p">,</span>
-            <span class="n">eom_id</span><span class="p">,</span>
-            <span class="n">eot_id</span><span class="p">,</span>
-            <span class="n">python_tag</span><span class="p">,</span>
-        <span class="p">]:</span>
-            <span class="k">assert</span> <span class="p">(</span>
-                <span class="n">token</span> <span class="ow">in</span> <span class="n">all_special_tokens</span>
-            <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="s2"> missing from all_special_tokens&quot;</span>
-        <span class="k">assert</span> <span class="p">(</span>
-            <span class="n">all_special_tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">bos_token</span>
-        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;First special token must be bos, got </span><span class="si">{</span><span class="n">all_special_tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="k">assert</span> <span class="p">(</span>
-            <span class="n">all_special_tokens</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">eos_token</span>
-        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Second special token must be eos, got </span><span class="si">{</span><span class="n">all_special_tokens</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="k">assert</span> <span class="p">(</span>
-            <span class="n">all_special_tokens</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">python_tag</span>
-        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Last special token must be python_tag, got </span><span class="si">{</span><span class="n">all_special_tokens</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">all_special_tokens</span><span class="p">))</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span>
-            <span class="n">all_special_tokens</span>
-        <span class="p">),</span> <span class="s2">&quot;Special tokens must be unique.&quot;</span>
-        <span class="k">assert</span> <span class="p">(</span>
-            <span class="nb">len</span><span class="p">(</span><span class="n">all_special_tokens</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_reserved_special_tokens</span>
-        <span class="p">),</span> <span class="s2">&quot;The total number of basic and extra special tokens cannot exceed the number of reserved tokens.&quot;</span>
+        <span class="n">current_slice_len</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">current_slice_is_space</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">isspace</span><span class="p">()</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">False</span>
+        <span class="n">slice_start</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="k">def</span> <span class="nf">_get_all_special_tokens_with_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Returns a dictionary of all special tokens and their corresponding ids to be passed</span>
-<span class="sd">        to tiktoken Encoding.</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)):</span>
+            <span class="n">is_now_space</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">isspace</span><span class="p">()</span>
 
-<span class="sd">        There are 256 slots for special tokens, any remaining spaces beyond self.all_special_tokens</span>
-<span class="sd">        will be filled with dummy reserved tokens. Tokens will be added in the order:</span>
-<span class="sd">        (1) all special tokens but python_tag, (2) all reserved tokens, (3) python_tag.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">reserved_tokens</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="sa">f</span><span class="s2">&quot;&lt;|reserved_special_token_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">|&gt;&quot;</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">num_reserved_special_tokens</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_special_tokens</span><span class="p">)</span>
-            <span class="p">)</span>
-        <span class="p">]</span>
-        <span class="c1"># Python tag special token should come last (validated in __init__)</span>
-        <span class="n">all_special_tokens</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">all_special_tokens</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-            <span class="o">+</span> <span class="n">reserved_tokens</span>
-            <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">all_special_tokens</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
-        <span class="p">)</span>
+            <span class="k">if</span> <span class="n">current_slice_is_space</span> <span class="o">^</span> <span class="n">is_now_space</span><span class="p">:</span>
+                <span class="n">current_slice_len</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">current_slice_is_space</span> <span class="o">=</span> <span class="n">is_now_space</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">current_slice_len</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">current_slice_len</span> <span class="o">&gt;</span> <span class="n">max_consecutive_slice_len</span><span class="p">:</span>
+                    <span class="k">yield</span> <span class="n">s</span><span class="p">[</span><span class="n">slice_start</span><span class="p">:</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">slice_start</span> <span class="o">=</span> <span class="n">i</span>
+                    <span class="n">current_slice_len</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">yield</span> <span class="n">s</span><span class="p">[</span><span class="n">slice_start</span><span class="p">:]</span>
 
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="n">token</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_vocab_size</span> <span class="o">+</span> <span class="n">i</span>
-            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">token</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">all_special_tokens</span><span class="p">)</span>
-        <span class="p">}</span>
-
-    <span class="k">def</span> <span class="nf">_encode_special_token</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Encodes a special token.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            token (str): The special token to encode.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            int: The encoded special token.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tt_model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
-            <span class="n">token</span><span class="p">,</span>
-            <span class="n">allowed_special</span><span class="o">=</span><span class="s2">&quot;all&quot;</span><span class="p">,</span>
-            <span class="n">disallowed_special</span><span class="o">=</span><span class="p">(),</span>
-        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-
-<div class="viewcode-block" id="TikTokenTokenizer.encode"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.TikTokenTokenizer.html#torchtune.modules.tokenizers.TikTokenTokenizer.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span>
+<div class="viewcode-block" id="TikTokenBaseTokenizer.encode"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.TikTokenBaseTokenizer.html#torchtune.modules.tokenizers.TikTokenBaseTokenizer.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">add_bos</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-        <span class="n">add_eos</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">add_bos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">add_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Encode a string into a list of token ids. Assumes that the string</span>
@@ -640,8 +498,6 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (str): The string to encode.</span>
-<span class="sd">            add_bos (bool): Whether to add the beginning of sequence token.</span>
-<span class="sd">            add_eos (bool): Whether to add the end of sequence token.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            List[int]: The list of token ids.</span>
@@ -653,7 +509,9 @@
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">),</span> <span class="n">MAX_ENCODE_CHARS</span><span class="p">):</span>
             <span class="n">substr</span> <span class="o">=</span> <span class="n">text</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">MAX_ENCODE_CHARS</span><span class="p">]</span>
             <span class="c1"># See https://github.com/openai/tiktoken/issues/195</span>
-            <span class="n">sliced_substr</span> <span class="o">=</span> <span class="n">_split_long_repetitions</span><span class="p">(</span><span class="n">substr</span><span class="p">,</span> <span class="n">MAX_NO_WHITESPACE_CHARS</span><span class="p">)</span>
+            <span class="n">sliced_substr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_long_repetitions</span><span class="p">(</span>
+                <span class="n">substr</span><span class="p">,</span> <span class="n">MAX_NO_WHITESPACE_CHARS</span>
+            <span class="p">)</span>
             <span class="n">substrs</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">sliced_substr</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">substr</span> <span class="ow">in</span> <span class="n">substrs</span><span class="p">:</span>
             <span class="c1"># allowed_special and disallowed_special are used by tiktoken to define</span>
@@ -668,12 +526,12 @@
                 <span class="p">)</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">add_bos</span><span class="p">:</span>
-            <span class="n">tokens</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span><span class="p">)</span>
+            <span class="n">tokens</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span><span class="p">]</span> <span class="o">+</span> <span class="n">tokens</span>
         <span class="k">if</span> <span class="n">add_eos</span><span class="p">:</span>
-            <span class="n">tokens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">)</span>
+            <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokens</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">tokens</span></div>
 
-<div class="viewcode-block" id="TikTokenTokenizer.decode"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.TikTokenTokenizer.html#torchtune.modules.tokenizers.TikTokenTokenizer.decode">[docs]</a>    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span>
+<div class="viewcode-block" id="TikTokenBaseTokenizer.decode"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.TikTokenBaseTokenizer.html#torchtune.modules.tokenizers.TikTokenBaseTokenizer.decode">[docs]</a>    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">token_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
         <span class="n">truncate_at_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -684,91 +542,20 @@
 <span class="sd">        Args:</span>
 <span class="sd">            token_ids (List[int]): The list of token ids.</span>
 <span class="sd">            truncate_at_eos (bool): Whether to truncate the string at the end of</span>
-<span class="sd">                sequence token.</span>
+<span class="sd">                sequence token. Default is True.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            str: The decoded string.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">truncate_at_eos</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="n">idx_eos</span> <span class="o">=</span> <span class="n">token_ids</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">)</span>
+                <span class="n">k</span> <span class="o">=</span> <span class="n">token_ids</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-                <span class="n">idx_eos</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="k">if</span> <span class="n">idx_eos</span><span class="p">:</span>
-                <span class="n">token_ids</span> <span class="o">=</span> <span class="n">token_ids</span><span class="p">[:</span><span class="n">idx_eos</span><span class="p">]</span>
+                <span class="n">k</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">k</span><span class="p">:</span>
+                <span class="n">token_ids</span> <span class="o">=</span> <span class="n">token_ids</span><span class="p">[:</span><span class="n">k</span><span class="p">]</span>
         <span class="n">token_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">token_id</span> <span class="k">for</span> <span class="n">token_id</span> <span class="ow">in</span> <span class="n">token_ids</span> <span class="k">if</span> <span class="n">token_id</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span><span class="p">]</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tt_model</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">token_ids</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="TikTokenTokenizer.tokenize_message"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.TikTokenTokenizer.html#torchtune.modules.tokenizers.TikTokenTokenizer.tokenize_message">[docs]</a>    <span class="k">def</span> <span class="nf">tokenize_message</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Message</span><span class="p">,</span> <span class="n">tokenize_header</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Tokenize a message into a list of token ids.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            message (Message): The message to tokenize.</span>
-<span class="sd">            tokenize_header (bool): Whether to prepend a tokenized header to each message.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            List[int]: The list of token ids.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">tokenize_header</span><span class="p">:</span>
-            <span class="n">tokenized_header</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">start_header_id</span><span class="p">]</span>
-                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">role</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">add_bos</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">add_eos</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-                <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">end_header_id</span><span class="p">]</span>
-                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">add_bos</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">add_eos</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-            <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">tokenized_header</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">tokenized_body</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
-            <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">add_bos</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">add_eos</span><span class="o">=</span><span class="kc">False</span>
-        <span class="p">)</span>
-        <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">ipython</span><span class="p">:</span>
-            <span class="n">tokenized_body</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">python_tag</span><span class="p">]</span> <span class="o">+</span> <span class="n">tokenized_body</span>
-        <span class="n">tokenized_message</span> <span class="o">=</span> <span class="n">tokenized_header</span> <span class="o">+</span> <span class="n">tokenized_body</span>
-        <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">eot</span><span class="p">:</span>
-            <span class="n">tokenized_message</span> <span class="o">=</span> <span class="n">tokenized_message</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">eot_id</span><span class="p">]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">tokenized_message</span> <span class="o">=</span> <span class="n">tokenized_message</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">eom_id</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">tokenized_message</span></div>
-
-<div class="viewcode-block" id="TikTokenTokenizer.tokenize_messages"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.TikTokenTokenizer.html#torchtune.modules.tokenizers.TikTokenTokenizer.tokenize_messages">[docs]</a>    <span class="k">def</span> <span class="nf">tokenize_messages</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
-        <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">tokenize_header</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="n">add_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Tokenize a list of messages into a list of token ids and masks.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            messages (List[Message]): The list of messages to tokenize.</span>
-<span class="sd">            max_seq_len (Optional[int]): The maximum sequence length.</span>
-<span class="sd">            tokenize_header (bool): Whether to prepend a tokenized header to each message.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            Tuple[List[int], List[bool]]: The list of token ids and the list of masks.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">tokens</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span><span class="p">]</span>
-        <span class="c1"># bos and eos are always masked</span>
-        <span class="n">mask</span> <span class="o">=</span> <span class="p">[</span><span class="kc">True</span><span class="p">]</span>
-        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
-            <span class="n">tokenized_message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenize_message</span><span class="p">(</span>
-                <span class="n">message</span><span class="p">,</span> <span class="n">tokenize_header</span><span class="o">=</span><span class="n">tokenize_header</span>
-            <span class="p">)</span>
-            <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokens</span> <span class="o">+</span> <span class="n">tokenized_message</span>
-            <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">+</span> <span class="p">([</span><span class="n">message</span><span class="o">.</span><span class="n">masked</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokenized_message</span><span class="p">))</span>
-            <span class="k">if</span> <span class="n">max_seq_len</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">max_seq_len</span><span class="p">:</span>
-                <span class="k">break</span>
-        <span class="k">if</span> <span class="n">add_eos</span><span class="p">:</span>
-            <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokens</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">]</span>
-            <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">+</span> <span class="p">[</span><span class="kc">True</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">max_seq_len</span><span class="p">:</span>
-            <span class="n">tokens</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">tokens</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">)</span>
-            <span class="n">mask</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tt_model</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">token_ids</span><span class="p">)</span></div></div>
 </pre></div>
 
              </article>

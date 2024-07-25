@@ -409,11 +409,11 @@
 
 <span class="kn">from</span> <span class="nn">torchtune.datasets._chat</span> <span class="kn">import</span> <span class="n">chat_dataset</span><span class="p">,</span> <span class="n">ChatDataset</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">Tokenizer</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">ModelTokenizer</span>
 
 
 <div class="viewcode-block" id="slimorca_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.slimorca_dataset.html#torchtune.datasets.slimorca_dataset">[docs]</a><span class="k">def</span> <span class="nf">slimorca_dataset</span><span class="p">(</span>
-    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">Tokenizer</span><span class="p">,</span>
+    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Open-Orca/SlimOrca-Dedup&quot;</span><span class="p">,</span>
     <span class="n">chat_format</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -434,7 +434,7 @@
 <span class="sd">    that length.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.</span>
+<span class="sd">        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.</span>
 <span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s `load_dataset`.</span>
 <span class="sd">        chat_format (Optional[str]): name of template used to format the chat. See the description</span>
 <span class="sd">            in :class:`~torchtune.datasets.ChatDataset` for more details. Default: None</span>

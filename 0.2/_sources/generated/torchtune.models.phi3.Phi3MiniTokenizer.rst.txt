@@ -1,0 +1,10 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.models.phi3
+
+
+Phi3MiniTokenizer
+=================
+
+.. autoclass:: Phi3MiniTokenizer
+    :members:

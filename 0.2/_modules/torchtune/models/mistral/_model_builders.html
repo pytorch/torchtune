@@ -414,7 +414,7 @@
 <span class="p">)</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">TransformerDecoder</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">SentencePieceTokenizer</span>
+<span class="kn">from</span> <span class="nn">torchtune.models.mistral._tokenizer</span> <span class="kn">import</span> <span class="n">MistralTokenizer</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 
@@ -446,8 +446,7 @@
         <span class="n">norm_eps</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
     <span class="p">)</span></div>
 
-
-<div class="viewcode-block" id="mistral_tokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.mistral_tokenizer.html#torchtune.models.mistral.mistral_tokenizer">[docs]</a><span class="k">def</span> <span class="nf">mistral_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SentencePieceTokenizer</span><span class="p">:</span>
+<div class="viewcode-block" id="mistral_tokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.mistral_tokenizer.html#torchtune.models.mistral.mistral_tokenizer">[docs]</a><span class="k">def</span> <span class="nf">mistral_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MistralTokenizer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Tokenizer for Mistral models.</span>
 
@@ -455,13 +454,9 @@
 <span class="sd">        path (str): path to the tokenizer</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        SentencePieceTokenizer: Instantiation of the Mistral tokenizer</span>
+<span class="sd">        MistralTokenizer: Instantiation of the Mistral tokenizer</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">SentencePieceTokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-    <span class="c1"># Original tokenizer has no pad_id, which causes indexing errors when batch training</span>
-    <span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_id</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">return</span> <span class="n">tokenizer</span></div>
-
+    <span class="k">return</span> <span class="n">MistralTokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="lora_mistral_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.lora_mistral_7b.html#torchtune.models.mistral.lora_mistral_7b">[docs]</a><span class="k">def</span> <span class="nf">lora_mistral_7b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
