@@ -6,10 +6,12 @@ torchtune.models
 
 .. currentmodule:: torchtune.models
 
-llama3
-------
+llama3 & llama3.1
+-----------------
 
 All models from the `Llama3 family <https://llama.meta.com/llama3/>`_.
+
+Request Access on `Hugging Face <https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct>`__.
 
 To download the Llama3-8B-Instruct model:
 
@@ -21,9 +23,10 @@ To download the Llama3-70B-Instruct model:
 
 .. code-block:: bash
 
-    tune download meta-llama/Meta-Llama-3-70B-Instruct --hf-token <HF_TOKEN>
-    --ignore-patterns "original/consolidated*"
+    tune download meta-llama/Meta-Llama-3-70B-Instruct --hf-token <HF_TOKEN> --ignore-patterns "original/consolidated*"
 
+To download the Llama3.1 weights of the above models, you can instead download from `Meta-Llama-3.1-8B-Instruct`
+or `Meta-Llama-3.1-70B-Instruct`.
 
 .. autosummary::
     :toctree: generated/
@@ -40,11 +43,28 @@ To download the Llama3-70B-Instruct model:
     llama3.llama3_tokenizer
     llama3.Llama3Tokenizer
 
+    |
+
+    llama3_1.llama3_1
+    llama3_1.lora_llama3_1
+    llama3_1.llama3_1_8b
+    llama3_1.lora_llama3_1_8b
+    llama3_1.qlora_llama3_1_8b
+    llama3_1.llama3_1_70b
+    llama3_1.lora_llama3_1_70b
+    llama3_1.qlora_llama3_1_70b
+
+
+.. note::
+
+    The Llama3.1 tokenizer reuses the `llama3.llama3_tokenizer` builder class.
 
 llama2
 ------
 
 All models from the `Llama2 family <https://llama.meta.com/llama2/>`_.
+
+Request Access on `Hugging Face <https://huggingface.co/meta-llama/Llama-2-7b>`__.
 
 To download the Llama2-7B model:
 
@@ -81,12 +101,17 @@ To download the Llama2-70B model:
     llama2.qlora_llama2_70b
     llama2.llama2_tokenizer
     llama2.Llama2Tokenizer
+    llama2.llama2_reward_7b
+    llama2.lora_llama2_reward_7b
+    llama2.qlora_llama2_reward_7b
 
 
 code llama
 ----------
 
 Models from the `Code Llama family <https://arxiv.org/pdf/2308.12950>`_.
+
+Request Access on `Hugging Face <https://huggingface.co/meta-llama/Llama-2-7b>`__.
 
 To download the CodeLlama-7B model:
 
@@ -138,6 +163,8 @@ mistral
 
 All models from `Mistral AI family <https://mistral.ai/technology/#models>`_.
 
+Request Access on `Hugging Face <https://huggingface.co/mistralai/Mistral-7B-v0.3>`__.
+
 To download the Mistral 7B v0.1 model:
 
 .. code-block:: bash
@@ -155,9 +182,9 @@ To download the Mistral 7B v0.1 model:
     mistral.mistral_7b
     mistral.lora_mistral_7b
     mistral.qlora_mistral_7b
-    mistral.mistral_classifier_7b
-    mistral.lora_mistral_classifier_7b
-    mistral.qlora_mistral_classifier_7b
+    mistral.mistral_reward_7b
+    mistral.lora_mistral_reward_7b
+    mistral.qlora_mistral_reward_7b
     mistral.mistral_tokenizer
     mistral.MistralTokenizer
 
@@ -166,6 +193,8 @@ gemma
 -----
 
 Models of size 2B and 7B from the `Gemma family <https://blog.google/technology/developers/gemma-open-models/>`_.
+
+Request Access on `Hugging Face <https://huggingface.co/google/gemma-2b>`__.
 
 To download the Gemma 2B model:
 

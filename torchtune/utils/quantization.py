@@ -15,11 +15,12 @@ from torchao.quantization.quant_api import (
 
 from torchtune.modules.low_precision._utils import (
     _get_torchao_version,
+    _is_fbcode,
     _nightly_version_ge,
 )
 
 ao_version, is_nightly = _get_torchao_version()
-if is_nightly and _nightly_version_ge(ao_version, "2024-07-03"):
+if _is_fbcode() or (is_nightly and _nightly_version_ge(ao_version, "2024-07-03")):
     from torchao.quantization.quant_api import quantize_ as quantize
 else:
     from torchao.quantization.quant_api import quantize
@@ -110,3 +111,6 @@ def _get_enable_fake_quant(quantizer_mode: str) -> Callable:
     If the quantizer is not recognized as a known QAT quantizer, return None.
     """
     return _quantizer_mode_to_enable_fake_quant.get(quantizer_mode, None)
+
+
+# test-codev

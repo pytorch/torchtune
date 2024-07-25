@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download google/gemma-2b --hf-token <HF_TOKEN> --output-dir /tmp/gemma --ignore-patterns ""
+#   tune download google/gemma-2b --hf-token <HF_TOKEN> --ignore-patterns ""
 #
 # To launch on a single device, run the following command from root:
 #   tune run lora_finetune_single_device --config gemma/2B_qlora_single_device
@@ -18,7 +18,7 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.gemma.gemma_tokenizer
-  path: /tmp/gemma/tokenizer.model
+  path: /tmp/gemma-2b/tokenizer.model
 
 # Dataset
 dataset:
@@ -36,13 +36,13 @@ model:
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/gemma/
+  checkpoint_dir: /tmp/gemma-2b/
   checkpoint_files: [
     model-00001-of-00002.safetensors,
     model-00002-of-00002.safetensors,
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/gemma
+  output_dir: /tmp/gemma-2b
   model_type: GEMMA
 resume_from_checkpoint: False
 

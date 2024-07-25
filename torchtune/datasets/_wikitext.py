@@ -16,6 +16,7 @@ def wikitext_dataset(
     source: str = "wikitext",
     subset: str = "wikitext-103-raw-v1",
     max_seq_len: Optional[int] = None,
+    split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],
 ) -> TextCompletionDataset:
     """
@@ -31,6 +32,8 @@ def wikitext_dataset(
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
+        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
+            of a given split, e.g. ``split="train[:10%]"``. Default is "train".
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
     Returns:
@@ -43,6 +46,6 @@ def wikitext_dataset(
         column="text",
         max_seq_len=max_seq_len,
         name=subset,
-        split="train",
+        split=split,
         **load_dataset_kwargs,
     )

@@ -64,7 +64,6 @@ loss:
   _component_: torchtune.modules.loss.DPOLoss
   beta: 0.1
   label_smoothing: 0
-  loss_type: sigmoid
 
 # Training
 epochs: 1
