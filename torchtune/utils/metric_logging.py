@@ -345,7 +345,7 @@ class CometLogger(MetricLoggerInterface):
         You can install it with `pip install comet_ml`.
         You need to set up your Comet.ml API key before using this logger.
         You can do this by setting the COMET_API_KEY environment variable
-        or by calling `comet_ml.init()` with your API key.
+        or by calling `comet_ml.login()` with your API key.
     """
 
     def __init__(
