@@ -85,7 +85,7 @@ profiler:
   enabled: False
 
   # Output directory of trace artifacts
-  output_dir: ${output_dir}/profiling_outputs
+  output_dir: /tmp/Phi-3-mini-4k-instruct/profiling_outputs
 
   #`torch.profiler.ProfilerActivity` types to trace
   cpu: True
