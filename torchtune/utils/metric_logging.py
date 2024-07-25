@@ -319,7 +319,7 @@ class TensorBoardLogger(MetricLoggerInterface):
             self._writer = None
 
 class CometLogger(MetricLoggerInterface):
-    """Logger for use with Comet.ml (https://www.comet.ml/).
+    """Logger for use w/ Comet.ml (https://www.comet.ml/).
 
     Args:
         project_name (Optional[str]): Comet.ml project name. Defaults to Uncategorized.
