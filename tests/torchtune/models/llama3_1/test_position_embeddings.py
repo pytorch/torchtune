@@ -99,7 +99,7 @@ class TestLlama3ScaledRoPE:
         # check shapes
         assert_expected(x_out.shape, input.shape)
 
-    def test_forward_with_packed_pos(self, input, rope) -> None:
+    def test_forward_with_2d_pos_ids(self, input, rope) -> None:
         """
         Use input_pos to indicate positions of each token relative to its sequence
         when sample is packed.
@@ -135,3 +135,6 @@ class TestLlama3ScaledRoPE:
         meta_rope._rope_init()
         for p1, p2 in zip(rope_on_device.buffers(), meta_rope.buffers()):
             torch.testing.assert_close(p1, p2)
+
+        # Assert meta_rope cache is no longer on meta device
+        assert meta_rope.cache.device != torch.device("meta")
