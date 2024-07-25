@@ -17,6 +17,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 from tests.test_utils import assert_expected, captured_output
 
 from torchtune.utils.metric_logging import (
+    CometLogger,
     DiskLogger,
     StdoutLogger,
     TensorBoardLogger,
@@ -165,3 +166,37 @@ class TestWandBLogger:
             expected_config_path = "torchtune_config.yaml"
             mock_save.assert_called_once_with(cfg, expected_config_path)
             mock_wandb_save.assert_called_once_with(expected_config_path)
+
+
+class TestCometLogger:
+    def test_log(self) -> None:
+        with patch("comet_ml.Experiment") as mock_experiment:
+            logger = CometLogger(project_name="test_project")
+            for i in range(5):
+                logger.log("test_log", float(i) ** 2, i)
+            logger.close()
+
+            assert mock_experiment.return_value.log_metric.call_count == 5
+            for i in range(5):
+                mock_experiment.return_value.log_metric.assert_any_call(
+                    "test_log", float(i) ** 2, step=i
+                )
+
+    def test_log_dict(self) -> None:
+        with patch("comet_ml.Experiment") as mock_experiment:
+            logger = CometLogger(project_name="test_project")
+            metric_dict = {f"log_dict_{i}": float(i) ** 2 for i in range(5)}
+            logger.log_dict(metric_dict, 1)
+            logger.close()
+
+            mock_experiment.return_value.log_metrics.assert_called_with(metric_dict, step=1)
+
+    def test_log_config(self) -> None:
+        with patch("comet_ml.Experiment") as mock_experiment:
+            logger = CometLogger(project_name="test_project")
+            cfg = OmegaConf.create({"a": 1, "b": 2})
+            logger.log_config(cfg)
+            mock_experiment.return_value.log_parameters.assert_called_with(cfg)
+
+
+
