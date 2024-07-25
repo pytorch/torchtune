@@ -317,3 +317,80 @@ class TensorBoardLogger(MetricLoggerInterface):
         if self._writer:
             self._writer.close()
             self._writer = None
+
+class CometLogger(MetricLoggerInterface):
+    """Logger for use with Comet.ml (https://www.comet.ml/).
+
+    Args:
+        project_name (Optional[str]): Comet.ml project name. Defaults to Uncategorized.
+        workspace (Optional[str]): Comet.ml workspace name. If not provided, uses the default workspace.
+        experiment_name (Optional[str]): Name of the experiment. If not provided, Comet will auto-generate a name.
+        tags (Optional[list[str]]): Tags to associate with the experiment.
+        log_code (bool): Whether to log the source code. Defaults to True.
+        **kwargs: Additional arguments to pass to comet_ml.Experiment.
+
+    Example:
+        >>> from torchtune.utils.metric_logging import CometLogger
+        >>> logger = CometLogger(project_name="my_project", workspace="my_workspace")
+        >>> logger.log("my_metric", 1.0, 1)
+        >>> logger.log_dict({"my_metric": 1.0}, 1)
+        >>> logger.close()
+
+    Raises:
+        ImportError: If `comet_ml` package is not installed.
+
+    Note:
+        This logger requires the comet_ml package to be installed.
+        You can install it with `pip install comet_ml`.
+        You need to set up your Comet.ml API key before using this logger.
+        You can do this by setting the COMET_API_KEY environment variable
+        or by calling `comet_ml.init()` with your API key.
+    """
+
+    def __init__(
+        self,
+        project_name: Optional[str] = None,
+        workspace: Optional[str] = None,
+        experiment_name: Optional[str] = None,
+        tags: Optional[list[str]] = None,
+        log_code: bool = True,
+        **kwargs,
+    ):
+        try:
+            from comet_ml import Experiment
+        except ImportError as e:
+            raise ImportError(
+                "``comet_ml`` package not found. Please install comet_ml using `pip install comet_ml` to use CometLogger."
+                "Alternatively, use the ``StdoutLogger``, which can be specified by setting metric_logger_type='stdout'."
+            ) from e
+
+        _, self.rank = get_world_size_and_rank()
+
+        if self.rank == 0:
+            self.experiment = Experiment(project_name=project_name, workspace=workspace, log_code=log_code, **kwargs)
+            if experiment_name:
+                self.experiment.set_name(experiment_name)
+            if tags:
+                self.experiment.add_tags(tags)
+        else:
+            self.experiment = None
+
+    def log(self, name: str, data: Scalar, step: int) -> None:
+        if self.experiment is not None:
+            self.experiment.log_metric(name, data, step=step)
+
+    def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
+        if self.experiment is not None:
+            self.experiment.log_metrics(payload, step=step)
+
+    def log_config(self, config: DictConfig) -> None:
+        if self.experiment is not None:
+            resolved = OmegaConf.to_container(config, resolve=True)
+            self.experiment.log_parameters(resolved)
+
+    def close(self) -> None:
+        if self.experiment is not None:
+            self.experiment.end()
+
+    def __del__(self) -> None:
+        self.close()
