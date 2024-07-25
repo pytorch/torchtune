@@ -654,6 +654,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     policy_rejected_logits,
                 ) = self.concatenated_forward(self._model, batch)
 
+                loss_args = (policy_chosen_log_probs, policy_rejected_log_probs)
+
                 # reference based losses (e.g. DPO) explicitly regularize the objective fn based on
                 # the reference model's output - reference-free losses (such as SimPO) don't require this.
                 if self._loss_type == "reference_based":
