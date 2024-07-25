@@ -189,7 +189,9 @@ class TestCometLogger:
             logger.log_dict(metric_dict, 1)
             logger.close()
 
-            mock_experiment.return_value.log_metrics.assert_called_with(metric_dict, step=1)
+            mock_experiment.return_value.log_metrics.assert_called_with(
+                metric_dict, step=1
+            )
 
     def test_log_config(self) -> None:
         with patch("comet_ml.Experiment") as mock_experiment:
@@ -197,6 +199,3 @@ class TestCometLogger:
             cfg = OmegaConf.create({"a": 1, "b": 2})
             logger.log_config(cfg)
             mock_experiment.return_value.log_parameters.assert_called_with(cfg)
-
-
-

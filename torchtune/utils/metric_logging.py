@@ -318,6 +318,7 @@ class TensorBoardLogger(MetricLoggerInterface):
             self._writer.close()
             self._writer = None
 
+
 class CometLogger(MetricLoggerInterface):
     """Logger for use w/ Comet.ml (https://www.comet.ml/).
 
@@ -367,7 +368,12 @@ class CometLogger(MetricLoggerInterface):
         _, self.rank = get_world_size_and_rank()
 
         if self.rank == 0:
-            self.experiment = Experiment(project_name=project_name, workspace=workspace, log_code=log_code, **kwargs)
+            self.experiment = Experiment(
+                project_name=project_name,
+                workspace=workspace,
+                log_code=log_code,
+                **kwargs,
+            )
             if experiment_name:
                 self.experiment.set_name(experiment_name)
             if tags:
