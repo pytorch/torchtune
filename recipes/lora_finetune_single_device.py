@@ -470,9 +470,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         - Adapter weights with key ADAPTER_KEY
         - Relevant recipe state if training is not complete
 
-        Checkpointer will save the merged weights, adapter weights and recipe state in
-        different checkpoint files. To correctly resume from training, the adapter weights
-        and recipe state must be provided along with the base model weights.
+        If the `self._adapter_only` option is True, the checkpointer will:
+        - Save only the adapter weights for all epochs except the final epoch
+        - Save the complete state (merged weights, adapter weights, and recipe state) for the final epoch only
+
+        If the `self._adapter_only` option is False, the checkpointer will save the complete state for all epochs.
+
+        To correctly resume from training, the adapter weights and recipe state must be provided along with the base model weights.
         """
         ckpt_dict = {}
         # if training is in-progress, checkpoint the optimizer state as well
@@ -517,18 +521,19 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         ckpt_dict.update({utils.ADAPTER_CONFIG: adapter_config})
 
         # If the option was True, save only the adapter except for the last epoch
-        if self._adapter_only and epoch + 1 < self.total_epochs:
+        is_intermediate_epoch = epoch + 1 < self.total_epochs
+        if self._adapter_only and is_intermediate_epoch:
             self._checkpointer.save_checkpoint(
                 ckpt_dict,
                 epoch=epoch,
-                intermediate_checkpoint=(epoch + 1 < self.total_epochs),
+                intermediate_checkpoint=is_intermediate_epoch,
                 adapter_only=True,
             )
         else:
             self._checkpointer.save_checkpoint(
                 ckpt_dict,
                 epoch=epoch,
-                intermediate_checkpoint=(epoch + 1 < self.total_epochs),
+                intermediate_checkpoint=is_intermediate_epoch,
             )
 
     def train(self) -> None:
