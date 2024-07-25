@@ -361,12 +361,17 @@ def load_from_full_model_state_dict(
 def get_full_model_state_dict(
     model: "FSDPModule",
     is_rank_zero: bool,
+    trainable_only: bool = False,
 ) -> Dict[str, Any]:
     """
     Converting sharded state dict into a full state dict on cpu
     Returning non-empty result on rank0 to avoid peaking cpu memory
+
+    Args:
+        model (FSDPModule): wrapped module
+        is_rank_zero (bool): flag to check if the process is on rank 0
+        trainable_only (bool): flag to only return state dict of trainable parameters
     """
-    sharded_sd = model.state_dict()
     cpu_state_dict = {}
     has_nf4 = any(
         isinstance(param._local_tensor, NF4Tensor) for param in model.parameters()
@@ -388,6 +393,9 @@ def get_full_model_state_dict(
                         full_fqn = module_name + "." + local_fqn
                     else:
                         full_fqn = local_fqn
+                    if trainable_only and not param.requires_grad:
+                        # skip trainable params when trainable_only is True
+                        continue
                     if full_fqn in cpu_state_dict:
                         # Iterate over every param in every module bottoms-up
                         # When lower TransformerBlock gets unsharded,
@@ -407,6 +415,7 @@ def get_full_model_state_dict(
                     cpu_state_dict[full_fqn] = param.cpu()
             module.reshard()
     else:
+        sharded_sd = model.state_dict()
         for param_name, sharded_param in sharded_sd.items():
             full_param = sharded_param.full_tensor()
             if is_rank_zero:

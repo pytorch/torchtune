@@ -463,6 +463,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         different checkpoint files. To correctly resume from training, the adapter weights
         and recipe state must be provided along with the base model weights.
         """
+        # Only build adapter
+        # If not adapter only, load weights
+
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
 
@@ -472,6 +475,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         cpu_state_dict = utils.get_full_model_state_dict(
             self._model,
             self._is_rank_zero,
+            trainable_only=intermediate_checkpoint,
         )
 
         if intermediate_checkpoint:
@@ -494,14 +498,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             }
             checkpoint_dict.update({utils.ADAPTER_KEY: adapter_state_dict})
 
-            # merge the adapter weights and base weights to create the model checkpoint
-            merged_state_dict = get_merged_lora_ckpt(
-                cpu_state_dict,
-                rank=self._lora_rank,
-                alpha=self._lora_alpha,
-            )
-            checkpoint_dict.update({utils.MODEL_KEY: merged_state_dict})
-
             # if training is in-progress, checkpoint the optimizer state and recipe state
             # as well.
             if intermediate_checkpoint:
@@ -514,6 +510,14 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
                     }
                 )
+            else:
+                # merge the adapter weights and base weights to create the model checkpoint
+                merged_state_dict = get_merged_lora_ckpt(
+                    cpu_state_dict,
+                    rank=self._lora_rank,
+                    alpha=self._lora_alpha,
+                )
+                checkpoint_dict.update({utils.MODEL_KEY: merged_state_dict})
 
             adapter_config = {
                 "r": self._lora_rank,
@@ -531,6 +535,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 checkpoint_dict,
                 epoch=epoch,
                 intermediate_checkpoint=intermediate_checkpoint,
+                adapter_only=intermediate_checkpoint,
             )
 
     def train(self) -> None:
