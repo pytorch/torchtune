@@ -12,7 +12,7 @@
 Currently `TransformerDecoder` with `TransformerDecoderLayer` is a decoder only style transformer. As opposed to the original transformer (image below), decoder only style models don't take inputs from an encoder and remove the cross attention block (green) from the decoder block (`TransformerDecoderLayer`). Since most SOTA LLMs have been GPT style decoder only models for the last few years, only supporting Decoder layers have worked well until now.
 
 <p align="center">
-  <img src="https://github.com/pytorch/torchtune/blob/main/labeled_attention.png?raw=true" width=50%/>
+  <img src="https://github.com/pbontrager/torchtune/blob/304444545fdc658de1e239b05ef8928cdf21240b/labeled_attention.png?raw=true" width=50%/>
 </p>
 
 But looking forward at the advances in multimodal LLMs, it's clear that encoder-decoder model architectures will become important again [ref](https://scontent-iad3-1.xx.fbcdn.net/v/t39.2365-6/452387774_1036916434819166_4173978747091533306_n.pdf?_nc_cat=104&ccb=1-7&_nc_sid=3c67a6&_nc_ohc=t6egZJ8QdI4Q7kNvgGwBp2W&_nc_ht=scontent-iad3-1.xx&oh=00_AYC2OwSKC1f5iJMNAiAj48_5_u1cmYjC1nPcIizQmBu7HQ&oe=66A6EB8D). This brings with it several new requirements for TransformerDecoderLayers:
