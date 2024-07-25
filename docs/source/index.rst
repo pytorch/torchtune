@@ -100,6 +100,15 @@ torchtune tutorials.
 .. toctree::
    :glob:
    :maxdepth: 1
+   :caption: Recipes
+   :hidden:
+
+   recipes/recipes_index
+   recipes/lora_finetune
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
    :caption: Tutorials
    :hidden:
 
@@ -110,12 +119,6 @@ torchtune tutorials.
    tutorials/e2e_flow
    tutorials/datasets
    tutorials/chat
-
-.. currentmodule:: torchtune.recipes
-
-.. autoclass:: ..torchtune.recipes.FullFinetuneRecipeSingleDevice
-   :members:
-
 
 .. toctree::
    :glob:
