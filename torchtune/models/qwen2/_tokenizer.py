@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import json
-import os.path
-
 import unicodedata
 from functools import lru_cache
 from typing import Dict, List, Optional, Tuple
@@ -30,6 +28,8 @@ QWEN2_SPECIAL_TOKENS = {
 ENDOFTEXT = "<|endoftext|>"
 IM_START = "<|im_start|>"
 IM_END = "<|im_end|>"
+
+DEFAULT_QWEN2_TOKENIZER_BPE_CACHE_SIZE = 151646
 
 
 @lru_cache()
@@ -79,14 +79,28 @@ class Qwen2Tokenizer(ModelTokenizer):
     See <https://github.com/huggingface/transformers/blob/v4.40.1/src/transformers/models/qwen2/tokenization_qwen2.py>.
 
     Args:
-        vocab_file (str): Path to vocab.json file.
+        path (str): Path to vocab.json file.
         merges_file (str): Path to merges.txt file.
+            merges.txt contains all BPE merge operations, and this file is required to split a single word into
+            byte-level BPE tokens.
+        errors (str): Paradigm to follow when decoding bytes to UTF-8. Defaults to "replace".
+            See [bytes.decode](https://docs.python.org/3/library/stdtypes.html#bytes.decode) for more information.
+        unk_token (Optional[str]): The unknown token. A token that is not in the vocabulary cannot be converted
+            to an ID and is set to be this token instead. Defaults to "<|endoftext|>".
+        bos_token (Optional[str]): The beginning of sequence token. Defaults to None.
+        eos_token (str): The end of sequence token. Defaults to "<|endoftext|>".
+        pad_token (Optional[str]): The token used for padding. Defaults to "<|endoftext|>".
+        bpe_cache_size (int): BPE token cache size in Qwen2Tokenizer.
+            NOTE: large cache size will speed up tokenization, but the cache object will get really
+            large for long running processes (esp. for texts of language that do not use space between
+            word, e.g. Chinese); technically not a memory leak but appears as one.
+            By default, we set the cache size equals to size of the official Qwen2 tokenizer.
 
     Example:
-        >>> tokenizer = Qwen2Tokenizer(vocab_file="/path/to/vocab.json", merges_file="/path/to/merges.txt")
+        >>> tokenizer = Qwen2Tokenizer(path="/path/to/vocab.json", merges_file="/path/to/merges.txt")
         >>> tokenized_text = tokenizer.encode("Hello world!")
         >>> print(tokenized_text)
-        []
+        [39, 385, 78, 675, 0, 2000]
     """
 
     system = f"{IM_START}system\n{{content}}{IM_END}\n"
@@ -97,7 +111,7 @@ class Qwen2Tokenizer(ModelTokenizer):
     def __init__(
         self,
         path: str,
-        merges_file: str = None,
+        merges_file: str,
         special_tokens: Optional[Dict[str, int]] = None,
         *,
         errors: str = "replace",
@@ -105,11 +119,10 @@ class Qwen2Tokenizer(ModelTokenizer):
         bos_token: Optional[str] = None,
         eos_token: str = ENDOFTEXT,
         pad_token: Optional[str] = ENDOFTEXT,
+        bpe_cache_size: int = DEFAULT_QWEN2_TOKENIZER_BPE_CACHE_SIZE,
     ):
         with open(path, encoding="utf-8") as vocab_handle:
             self.encoder = json.load(vocab_handle)
-        if merges_file is None:
-            merges_file = os.path.join(os.path.dirname(path), "merges.txt")
 
         self.decoder = {v: k for k, v in self.encoder.items()}
         self.errors = errors  # how to handle errors in decoding
@@ -123,11 +136,8 @@ class Qwen2Tokenizer(ModelTokenizer):
                     continue
                 bpe_merges.append(tuple(line.split()))
         self.bpe_ranks = dict(zip(bpe_merges, range(len(bpe_merges))))
-        # NOTE: the cache can grow without bound and will get really large for long running processes
-        # (esp. for texts of language that do not use space between word, e.g. Chinese); technically
-        # not a memory leak but appears as one.
-        # GPT2Tokenizer has the same problem, so let's be consistent.
-        self.cache = {}
+
+        self._bpe = lru_cache(maxsize=bpe_cache_size)(self._bpe_without_cache)
 
         self.pat = re.compile(PRETOKENIZE_REGEX)
 
@@ -144,14 +154,12 @@ class Qwen2Tokenizer(ModelTokenizer):
         self.im_end_id = self.special_tokens[IM_END]
         self.stop_tokens = [self.eos_id, self.im_end_id]
 
-        # Tokens trie for special tokens.
+        # Pattern for special tokens.
         self._pattern_split_special_tokens = re.compile(
             r"(\L<options>)", options=self.special_tokens.keys()
         )
 
-    def _bpe(self, token):
-        if token in self.cache:
-            return self.cache[token]
+    def _bpe_without_cache(self, token):
         word = tuple(token)
         pairs = get_pairs(word)
 
@@ -188,7 +196,6 @@ class Qwen2Tokenizer(ModelTokenizer):
             else:
                 pairs = get_pairs(word)
         word = " ".join(word)
-        self.cache[token] = word
         return word
 
     def _tokenize(self, text):
