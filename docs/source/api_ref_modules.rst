@@ -80,8 +80,10 @@ Loss
    :toctree: generated/
    :nosignatures:
 
-   loss.DPOLoss
    loss.PPOLoss
+   loss.DPOLoss
+   loss.RSOLoss
+   loss.IPOLoss
 
 
 Vision Transforms

@@ -15,6 +15,7 @@ def cnn_dailymail_articles_dataset(
     tokenizer: ModelTokenizer,
     source: str = "ccdv/cnn_dailymail",
     max_seq_len: Optional[int] = None,
+    split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],
 ) -> TextCompletionDataset:
     """
@@ -29,6 +30,8 @@ def cnn_dailymail_articles_dataset(
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
+        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
+            of a given split, e.g. ``split="train[:10%]"``. Default is "train".
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
     Returns:
@@ -40,7 +43,7 @@ def cnn_dailymail_articles_dataset(
         source=source,
         column="article",
         max_seq_len=max_seq_len,
-        split="train",
+        split=split,
         # This is used to specify the version of the dataset, a required argument
         # by the cnn_dailymail dataset builder:
         # https://huggingface.co/datasets/ccdv/cnn_dailymail/blob/main/cnn_dailymail.py#L80

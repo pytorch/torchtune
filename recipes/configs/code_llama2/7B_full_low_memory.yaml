@@ -3,7 +3,8 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#     tune download codellama/CodeLlama-7b-hf --output-dir /tmp/CodeLlama-7b-hf
+#     tune download meta-llama/CodeLlama-7b-hf --output-dir /tmp/CodeLlama-7b-hf
+#
 # The default config uses an optimizer from bitsandbytes. If you do not have it installed,
 # you can install it with
 #   pip install bitsandbytes

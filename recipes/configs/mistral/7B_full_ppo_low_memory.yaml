@@ -95,7 +95,7 @@ value_checkpointer:
       "model-00003-of-00003.safetensors"
   ]
   output_dir: ${output_dir}/value
-  model_type: MISTRAL_REWARD
+  model_type: REWARD
 
 # checkpointer for the reward model, ensure `checkpoint_files`
 # always points to the original reward model weights, even if resuming training
@@ -108,7 +108,7 @@ reward_checkpointer:
       "model-00003-of-00003.safetensors"
   ]
   output_dir: ${output_dir}/value
-  model_type: MISTRAL_REWARD
+  model_type: REWARD
 
 
 resume_from_checkpoint: False

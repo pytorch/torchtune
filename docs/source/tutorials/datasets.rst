@@ -395,8 +395,9 @@ you can also add more advanced behavior.
 Multiple in-memory datasets
 ---------------------------
 
-It is also possible to train on multiple datasets and configure them individually.
-You can even mix instruct and chat datasets or other custom datasets.
+It is also possible to train on multiple datasets and configure them individually using
+our :class:`~torchtune.datasets.ConcatDataset` interface. You can even mix instruct and chat datasets
+or other custom datasets.
 
 .. code-block:: yaml
 

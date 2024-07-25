@@ -23,7 +23,7 @@ def clip_vision_encoder(
     """
     Builds the vision encoder associated with the clip model. This includes:
     
-    - TransformerEncoderLayer
+    - num_layers TransformerEncoderLayers
     - positional embeddings
     - CLS projection (optional)
 
@@ -31,24 +31,24 @@ def clip_vision_encoder(
     :class:`torchtune.modules.vision_transformer.VisionTransformer`.
 
     Args:
+        tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
+            the size of the input image. In this case, the function will consider your image as a single tile.
+        patch_size (int): The size of each patch. Used to divide the tiles into patches.
+            E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches
+            with shape (40, 40) each.
         embed_dim (int): The dimensionality of each patch embedding (token).
         num_layers (int): The number of transformer layers.
         num_heads (int): The number of attention heads in each transformer layer.
+        cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.
         out_indices (Optional[List[int]]): The indices of hidden layers to return.
             If provided, it will return the intermediate results of the transformer layers
             before they go through a next layer. For example, ``out_indices=[0,3]`` will
             return the tokens before they go through the first and fourth layers.
         output_cls_projection (bool): If True, only the CLS token projection will be outputted,
             instead of all tokens. Defaults to False.
-        tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
-            the size of the input image. In this case, the function will consider your image as a single tile.
-        patch_size (int): The size of each patch. Used to divide the tiles into patches.
-            E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches
-            with shape (40, 40) each.
         max_num_tiles (int): The maximum number of tiles that can be processed. This is used to
             determine the size of the positional embeddings.
         in_channels (int): The number of image input channels.
-        cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.
 
     Returns:
         A `VisionTransformer` object.

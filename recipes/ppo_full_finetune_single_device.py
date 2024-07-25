@@ -54,6 +54,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
     Full finetuning recipe for RLHF with PPO for dense transformer-based LLMs such as LLama2. This recipe is optimized
     for single GPU training. Training on CPU is not supported.
 
+    This implementation is based on `Learning to summarize from human feedback <https://arxiv.org/abs/2009.01325`_ and
+    `Training a Helpful and Harmless Assistant with Reinforcement Learning from Human Feedback <https://arxiv.org/abs/2204.05862`_.
+
     Features:
         - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
             flag. Activation checkpointing helps reduce the memory footprint since we no longer keep

@@ -19,6 +19,7 @@ def slimorca_dataset(
     max_seq_len: int = 1024,
     train_on_input: bool = False,
     packed: bool = False,
+    split: str = "train",
 ) -> ChatDataset:
     """
     Support for `SlimOrca-style <https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup>`_
@@ -28,7 +29,7 @@ def slimorca_dataset(
     The Llama3 models do not prescribe a particular format.
 
     The returned data is a tuple of input token id list and label token id
-    list. If `max_seq_len` keyword argument is provided, the returned
+    list. If ``max_seq_len`` keyword argument is provided, the returned
     input token id list is ensured (by truncation if necessary) to be within
     that length.
 
@@ -42,6 +43,8 @@ def slimorca_dataset(
             Default is 1024.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
+        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
+            of a given split, e.g. ``split="train[:10%]"``. Default is "train".
 
     Raises:
         ValueError: If `max_seq_len` is less than 4.
@@ -72,5 +75,5 @@ def slimorca_dataset(
         max_seq_len=max_seq_len,
         train_on_input=train_on_input,
         packed=packed,
-        split="train",
+        split=split,
     )

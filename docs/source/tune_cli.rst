@@ -126,12 +126,14 @@ The ``tune ls`` command lists out all the built-in recipes and configs within to
 Copy a built-in recipe or config
 --------------------------------
 
-The ``tune cp <config> <path>`` command copies built-in recipes and configs to a provided location. This allows you to make a local copy of a library
+The ``tune cp <recipe|config> <path>`` command copies built-in recipes and configs to a provided location. This allows you to make a local copy of a library
 recipe or config to edit directly for yourself.
 
 .. list-table::
    :widths: 30 60
 
+   * - \-n, \--no-clobber
+     - Do not overwrite destination if it already exists
    * - \--make-parents
      - Create parent directories for destination if they do not exist. If not set to True, will error if parent directories do not exist
 
@@ -207,5 +209,6 @@ The ``tune validate <config>`` command will validate that your config is formatt
 
 .. code-block:: bash
 
-    $ tune validate recipes/configs/full_finetune_distributed.yaml
+    # If you've copied over a built-in config and want to validate custom changes
+    $ tune validate my_configs/llama3/8B_full.yaml
     Config is well-formed!

@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from datetime import datetime
 from importlib.metadata import PackageNotFoundError, version
 from typing import Optional, Tuple
 
@@ -14,6 +15,18 @@ import torchao
 
 def _is_fbcode():
     return not hasattr(torch.version, "git_version")
+
+
+def _nightly_version_ge(ao_version_str: str, date: str) -> bool:
+    """
+    Compare a torchao nightly version to a date of the form
+    %Y-%m-%d.
+
+    Returns True if the nightly version is greater than or equal to
+        the date, False otherwise
+    """
+    ao_datetime = datetime.strptime(ao_version_str.split("+")[0], "%Y.%m.%d")
+    return ao_datetime >= datetime.strptime(date, "%Y-%m-%d")
 
 
 def _get_torchao_version() -> Tuple[Optional[str], Optional[bool]]:
