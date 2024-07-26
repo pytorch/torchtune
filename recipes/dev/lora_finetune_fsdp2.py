@@ -139,6 +139,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
 
+        self._merge_checkpoint = cfg.get("merge_checkpoint", True)
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
@@ -470,12 +471,13 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         checkpoint_dict = {}
 
         intermediate_checkpoint = epoch + 1 < self.total_epochs
+        merge_checkpoint = self._merge_checkpoint and not intermediate_checkpoint
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
         cpu_state_dict = utils.get_full_model_state_dict(
             self._model,
             self._is_rank_zero,
-            trainable_only=intermediate_checkpoint,
+            trainable_only=not merge_checkpoint,
         )
 
         if intermediate_checkpoint:
@@ -510,8 +512,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
                     }
                 )
-            else:
-                # merge the adapter weights and base weights to create the model checkpoint
+
+            # if training is complete, optionally merge adapter with the base weights
+            if merge_checkpoint:
                 merged_state_dict = get_merged_lora_ckpt(
                     cpu_state_dict,
                     rank=self._lora_rank,
@@ -535,7 +538,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 checkpoint_dict,
                 epoch=epoch,
                 intermediate_checkpoint=intermediate_checkpoint,
-                adapter_only=intermediate_checkpoint,
+                adapter_only=not merge_checkpoint,
             )
 
     def train(self) -> None:
