@@ -1,3 +1,5 @@
+.. _lora_finetune_recipe_label:
+
 =============================
 LoRA Single Device finetuning
 =============================
