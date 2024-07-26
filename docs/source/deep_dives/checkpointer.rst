@@ -117,7 +117,7 @@ ways in which torchtune interoperates with the surrounding ecosystem.
 
 To be "state-dict invariant", the ``load_checkpoint`` and
 ``save_checkpoint`` methods make use of the weight convertors available
-`here <https://github.com/pytorch/torchtune/blob/main/torchtune/models/convert_weights.py>`_.
+:ref:`here<convert_weights_label>`.
 
 |
 
@@ -125,11 +125,11 @@ Handling different Checkpoint Formats
 -------------------------------------
 
 torchtune supports three different
-`checkpointers <https://github.com/pytorch/torchtune/blob/main/torchtune/utils/_checkpointing/_checkpointer.py>`_,
+:ref:`checkpointers<checkpointing_label>`,
 each of which supports a different checkpoint format.
 
 
-**HFCheckpointer**
+:class:`HFCheckpointer <torchtune.utils.FullModelHFCheckpointer>`
 
 This checkpointer reads and writes checkpoints in a format which is compatible with the transformers
 framework from Hugging Face. As mentioned above, this is the most popular format within the Hugging Face
@@ -196,11 +196,11 @@ The following snippet explains how the HFCheckpointer is setup in torchtune conf
     correctly or error out in case of discrepancy between the HF checkpoint file and torchtune's
     model implementations. This json file is downloaded from the hub along with the model checkpoints.
     More details on how these are used during conversion can be found
-    `here <https://github.com/pytorch/torchtune/blob/main/torchtune/models/convert_weights.py>`_.
+    :ref:`here <convert_weights_label>`.
 
 |
 
-**MetaCheckpointer**
+:class:`MetaCheckpointer <torchtune.utils.FullModelMetaCheckpointer>`
 
 This checkpointer reads and writes checkpoints in a format which is compatible with the original meta-llama
 github repository.
@@ -259,7 +259,7 @@ The following snippet explains how the MetaCheckpointer is setup in torchtune co
 
 |
 
-**TorchTuneCheckpointer**
+:class:`TorchTuneCheckpointer <torchtune.utils.FullModelTorchTuneCheckpointer>`
 
 This checkpointer reads and writes checkpoints in a format that is compatible with torchtune's
 model definition. This does not perform any state_dict conversions and is currently used either
@@ -460,8 +460,7 @@ For this section we'll use the Llama2 13B model in HF format.
 
 
 You can do this with any model supported by torchtune. You can find a full list
-of models and model builders
-`here <https://github.com/pytorch/torchtune/tree/main/torchtune/models>`__.
+of models and model builders :ref:`here <models>`.
 
 We hope this deep-dive provided a deeper insight into the checkpointer and
 associated utilities in torchtune. Happy tuning!
