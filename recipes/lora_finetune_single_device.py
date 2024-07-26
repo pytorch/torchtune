@@ -35,6 +35,16 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
+def model_loss(model, tokens, mask, input_pos, labels, loss_fn):
+    logits = model(tokens, mask=mask, input_pos=input_pos)
+    # Shift so that tokens < n predict n
+    logits = logits[..., :-1, :].contiguous()
+    labels = labels[..., 1:].contiguous()
+    logits = logits.transpose(1, 2)
+    # Compute loss
+    return loss_fn(logits, labels)
+
+
 class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
     LoRA finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe is optimized
@@ -383,7 +393,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         if compile_model:
             log.info("Compiling model with torch.compile...")
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-            model.compile(backend=backend)
+            # model.compile(backend=backend)
+            self._model_loss = torch.compile(model_loss, backend=backend)
+        else:
+            self._model_loss = model_loss
+
         if self._device.type == "cuda":
             memory_stats = utils.get_memory_stats(device=self._device)
             utils.log_memory_stats(memory_stats)
@@ -566,13 +580,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         input_pos.to(self._device) if input_pos is not None else None
                     )
 
-                    logits = self._model(tokens, mask=mask, input_pos=input_pos)
-                    # Shift so that tokens < n predict n
-                    logits = logits[..., :-1, :].contiguous()
-                    labels = labels[..., 1:].contiguous()
-                    logits = logits.transpose(1, 2)
-                    # Compute loss
-                    loss = self._loss_fn(logits, labels)
+                    # logits = self._model(tokens, mask=mask, input_pos=input_pos)
+                    # # Shift so that tokens < n predict n
+                    # logits = logits[..., :-1, :].contiguous()
+                    # labels = labels[..., 1:].contiguous()
+                    # logits = logits.transpose(1, 2)
+                    # # Compute loss
+                    # loss = self._loss_fn(logits, labels)
+                    loss = self._model_loss(self._model, tokens, mask, input_pos, labels, self._loss_fn)
                     loss = loss / self._gradient_accumulation_steps
                     running_loss += loss
                     loss.backward()
