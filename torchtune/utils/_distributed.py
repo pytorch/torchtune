@@ -372,6 +372,8 @@ def get_full_model_state_dict(
         is_rank_zero (bool): flag to check if the process is on rank 0
         trainable_only (bool): flag to only return state dict of trainable parameters
     """
+    # [Warning] FSDPModel.state_dict converts all Parameter Tensors to DTensors
+    sharded_sd = model.state_dict()
     cpu_state_dict = {}
     has_nf4 = any(
         isinstance(param._local_tensor, NF4Tensor) for param in model.parameters()
@@ -415,7 +417,6 @@ def get_full_model_state_dict(
                     cpu_state_dict[full_fqn] = param.cpu()
             module.reshard()
     else:
-        sharded_sd = model.state_dict()
         for param_name, sharded_param in sharded_sd.items():
             full_param = sharded_param.full_tensor()
             if is_rank_zero:

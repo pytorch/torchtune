@@ -65,10 +65,10 @@ def llama3_1_70b() -> TransformerDecoder:
 
 def llama3_1_405b() -> TransformerDecoder:
     """
-    Builder for creating a Llama3 model initialized w/ the default 405B parameter values.
+    Builder for creating a Llama3.1 model initialized w/ the default 405B parameter values.
 
     Returns:
-        TransformerDecoder: Instantiation of Llama3 405B model
+        TransformerDecoder: Instantiation of Llama3.1 405B model
     """
     return llama3_1(
         vocab_size=128_256,
@@ -92,7 +92,7 @@ def llama3_tokenizer(path: str, special_tokens_path: Optional[str] = None) -> Ll
         path (str): path to the tokenizer
         special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
             model files that contains all registered special tokens, or a local json file 
-            structured similarly. Default is None to use the canonical Llama3 special tokens.
+            structured similarly. Default is None to use the canonical Llama3.1 special tokens.
     
     Returns:
         Llama3Tokenizer: Instantiation of the Llama3/Llama3.1 tokenizer
@@ -212,9 +212,9 @@ def lora_llama3_1_405b(
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
-    Builder for creating a Llama3 405B model with LoRA enabled.
+    Builder for creating a Llama3.1 405B model with LoRA enabled.
 
-    The Llama3 defaults are the same as in :func:`~torchtune.models.llama3.llama3_8b`,
+    The Llama3.1 defaults are the same as in :func:`~torchtune.models.llama3.llama3_8b`,
     while LoRA default params are based on
     https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43.
 
@@ -231,7 +231,7 @@ def lora_llama3_1_405b(
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        TransformerDecoder: Instantiation of Llama3 8B model with LoRA applied
+        TransformerDecoder: Instantiation of Llama3.1 8B model with LoRA applied
     """
     return lora_llama3_1(
         lora_attn_modules=lora_attn_modules,
