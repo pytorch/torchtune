@@ -51,6 +51,10 @@ _ALL_RECIPES = [
                 name="phi3/mini_full_low_memory",
                 file_path="phi3/mini_full_low_memory.yaml",
             ),
+            Config(
+                name="gemma/2B_full_single_device",
+                file_path="gemma/2B_full_single_device.yaml",
+            )
         ],
         supports_distributed=False,
     ),
