@@ -40,7 +40,7 @@ class TransformerDecoderLayer(nn.Module):
         self,
         x: Tensor,
         *,
-        mask: _MaskType,
+        mask: _MaskType = None,
         input_pos: Optional[Tensor] = None,
     ) -> Tensor:
         """
@@ -190,7 +190,7 @@ class TransformerDecoder(nn.Module):
         self,
         tokens: Tensor,
         *,
-        mask: _MaskType,
+        mask: _MaskType = None,
         input_pos: Optional[Tensor] = None,
     ) -> Tensor:
         """

@@ -192,7 +192,7 @@ class CausalSelfAttention(nn.Module):
         self,
         x: Tensor,
         *,
-        mask: _MaskType,
+        mask: _MaskType = None,
         input_pos: Optional[Tensor] = None,
     ) -> Tensor:
         # input has shape [b, s, d]

@@ -10,11 +10,13 @@ import torch
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.datasets._packed import PACK_TYPE
 from torchtune.utils.attention_bias import packed_block_causal_mask
 
 
 def padded_collate(
     batch: List[Dict[str, List[int]]],
+    device: torch.device,
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
 ) -> Dict[str, torch.Tensor]:
@@ -23,6 +25,7 @@ def padded_collate(
 
     Args:
         batch (List[Dict[str, List[int]]]): A list of tuples containing input, label pairs.
+        device (torch.device): Device to move batch to.
         padding_idx (int): Padding index for input ids. Defaults to 0.
         ignore_idx (int): Padding index for labels. Defaults to -100.
 
@@ -69,7 +72,7 @@ def padded_collate(
             (0, labels_seq_len - input_ids_seq_len),
             value=padding_idx,
         )
-    return {"tokens": input_ids, "labels": labels}
+    return {"tokens": input_ids.to(device), "labels": labels.to(device)}
 
 
 def padded_collate_dpo(
@@ -137,42 +140,69 @@ def padded_collate_dpo(
 
 
 def padded_collate_packed(
-    batch: List[Dict[str, torch.Tensor]],
+    batch: List[PACK_TYPE],
     device: torch.device,
 ) -> Dict[str, torch.Tensor]:
-    """Collate packed sequences into a batch. Only convert the document ids into
-    a block mask for use with flex attention. Tokens, labels, and input_pos are
+    """Collate packed sequences into a batch. Only convert the seq lens into
+    a block mask for use with attention. Tokens, labels, and input_pos are
     already padded to the same length within :class:`~torchtune.datasets.PackedDataset`.
 
     Args:
-        batch (List[Dict[str, torch.Tensor]]): A list of pack dictionaries containing the following keys:
+        batch (List[PACK_TYPE]): A list of pack dictionaries containing the following keys:
             - tokens: input token ids
             - labels: label token ids
             - input_pos: relative position ids for each sequence in pack
-            - document_ids: integer ids denoting the sample the tokens belong to within the pack
+            - seq_lens: lengths of each sample within the pack
 
     Returns:
         Dict[str, torch.Tensor]: Collated input, label, input_pos, mask tensors.
+
+    Example:
+        >>> token_pairs = [
+        >>>    {"tokens": [1, 2, 3, 4, 5, 6], "labels": [7, 8, 9, 10, 11, 12],
+        >>>     "input_pos": [0, 1, 2, 0, 1, 0], "seq_lens": [3, 2, 1]},
+        >>>    {"tokens": [13, 14, 15, 16, 17, 18], "labels": [19, 20, 21, 22, 23, 24],
+        >>>     "input_pos": [0, 1, 0, 1, 0, 1], "seq_lens": [2, 2, 2]},
+        >>> ]
+        >>> collated = padded_collate_packed(
+        >>>    batch=token_pairs,
+        >>>    device=device,
+        >>> )
+        >>> collated["mask"]
+        >>> tensor([
+        >>> [[1, 0, 0, 0, 0, 0],
+        >>>  [1, 1, 0, 0, 0, 0],
+        >>>  [1, 1, 1, 0, 0, 0],
+        >>>  [0, 0, 0, 1, 0, 0],
+        >>>  [0, 0, 0, 1, 1, 0],
+        >>>  [0, 0, 0, 0, 0, 1]],
+        >>> [[1, 0, 0, 0, 0, 0],
+        >>>  [1, 1, 0, 0, 0, 0],
+        >>>  [0, 0, 1, 0, 0, 0],
+        >>>  [0, 0, 1, 1, 0, 0],
+        >>>  [0, 0, 0, 0, 1, 0],
+        >>>  [0, 0, 0, 0, 1, 1]])
     """
-    bsz = len(batch)
-    seq_len = batch[0]["document_ids"].shape[0]
 
     tokens = torch.stack([x["tokens"] for x in batch])
     labels = torch.stack([x["labels"] for x in batch])
     input_pos = torch.stack([x["input_pos"] for x in batch])
-    document_ids = torch.stack([x["document_ids"] for x in batch])
+
+    # Different number of samples in each pack, so pad seq lens with 0 to even out the batch
+    seq_lens = pad_sequence(
+        [x["seq_lens"] for x in batch],
+        batch_first=True,
+        padding_value=0,
+    )
 
     block_mask = packed_block_causal_mask(
-        document_ids=document_ids,
-        batch_size=bsz,
-        num_heads=1,
-        seq_len=seq_len,
+        seq_lens=seq_lens,
         device=device,
     )
 
     return {
-        "tokens": tokens,
-        "labels": labels,
-        "input_pos": input_pos,
+        "tokens": tokens.to(device),
+        "labels": labels.to(device),
+        "input_pos": input_pos.to(device),
         "mask": block_mask,
     }

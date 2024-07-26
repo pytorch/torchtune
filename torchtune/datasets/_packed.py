@@ -206,14 +206,12 @@ class PackedDataset(Dataset):
         self.packs.append(pack)
 
     def _convert_to_tensors(self, pack: PACK_TYPE) -> PACK_TYPE:
-        """Converts a pack into tensors. Pack comes in as a dict of lists and is converted to tensors.
-        The only key that does not get converted is ``seq_lens``.
-        """
+        """Converts a pack into tensors. Pack comes in as a dict of lists and is converted to tensors."""
         return {
-            "tokens": torch.tensor(pack["tokens"]),
-            "labels": torch.tensor(pack["labels"]),
-            "input_pos": torch.tensor(pack["input_pos"]),
-            "seq_lens": pack["seq_lens"],
+            "tokens": torch.tensor(pack["tokens"], dtype=torch.long),
+            "labels": torch.tensor(pack["labels"], dtype=torch.long),
+            "input_pos": torch.tensor(pack["input_pos"], dtype=torch.long),
+            "seq_lens": torch.tensor(pack["seq_lens"], dtype=torch.long),
         }
 
     def _pad_pack(self, pack: PACK_TYPE, padding_idx: int) -> PACK_TYPE:
@@ -232,6 +230,11 @@ class PackedDataset(Dataset):
             value=CROSS_ENTROPY_IGNORE_IDX,
         )
 
+        # Add padding tokens as a last seq len to ensure sum is max_seq_len
+        padded_seq_lens = torch.cat(
+            [pack["seq_lens"], torch.tensor([self.max_seq_len - len(pack["tokens"])])]
+        )
+
         # Pad input_pos continuing the sequence from last value
         # in input_pos
         # e.g. [0 1 2] -> [0 1 2 3 4 5] for self.max_seq_len = 6
@@ -247,30 +250,11 @@ class PackedDataset(Dataset):
             "tokens": padded_tokens,
             "labels": padded_labels,
             "input_pos": padded_input_pos,
-            "seq_lens": pack["seq_lens"],  # seq_len is untouched
+            "seq_lens": padded_seq_lens,
         }
 
     def __len__(self) -> int:
         return len(self.packs)
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
-        """Constructs the document_ids on-the-fly and returns whole pack."""
-        current_pack = self.packs[idx]
-        document_ids = torch.cat(
-            [
-                torch.full((seq_len,), i, dtype=torch.long)
-                for i, seq_len in enumerate(current_pack["seq_lens"])
-            ]
-        )
-        document_ids = F.pad(
-            document_ids,
-            (0, self.max_seq_len - len(document_ids)),
-            value=-1,
-        )
-
-        return {
-            "tokens": current_pack["tokens"],
-            "labels": current_pack["labels"],
-            "input_pos": current_pack["input_pos"],
-            "document_ids": document_ids,
-        }
+        return self.packs[idx]

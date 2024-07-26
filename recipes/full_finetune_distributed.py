@@ -33,9 +33,6 @@ from torchtune.utils.activations import apply_selective_activation_checkpointing
 
 from tqdm import tqdm
 
-if utils.torch_version_ge("2.5.0"):
-    from torch.nn.attention.flex_attention import BlockMask
-
 
 log = utils.get_logger("DEBUG")
 
@@ -416,6 +413,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             sampler=sampler,
             collate_fn=partial(
                 utils.padded_collate,
+                device=self._device,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=self._loss_fn.ignore_index,
             )
@@ -514,15 +512,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 mask = batch.get("mask", None)  # shape [b, s, s]
                 input_pos = batch.get("input_pos", None)  # shape [b, s]
 
-                tokens = tokens.to(self._device)
                 num_tokens += tokens.numel()
-                labels = labels.to(self._device)
-                if utils.torch_version_ge("2.5.0") and not isinstance(mask, BlockMask):
-                    mask = mask.to(self._device) if mask is not None else None
-                input_pos = (
-                    input_pos.to(self._device) if input_pos is not None else None
-                )
 
+                # Batch collater already moves model inputs to correct device
                 logits = self._model(
                     tokens,
                     mask=mask,

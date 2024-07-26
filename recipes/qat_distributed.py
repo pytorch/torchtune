@@ -441,11 +441,15 @@ class QATRecipeDistributed(FTRecipeInterface):
             sampler=sampler,
             collate_fn=partial(
                 utils.padded_collate,
+                device=self._device,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=self._loss_fn.ignore_index,
             )
             if not packed
-            else None,
+            else partial(
+                utils.padded_collate_packed,
+                device=self._device,
+            ),
         )
 
         if self._is_rank_zero:
@@ -557,14 +561,9 @@ class QATRecipeDistributed(FTRecipeInterface):
                         )
                         self._model.apply(enable_fq)
 
-                tokens = tokens.to(self._device)
                 num_tokens += tokens.numel()
-                labels = labels.to(self._device)
-                mask = mask.to(self._device) if mask is not None else None
-                input_pos = (
-                    input_pos.to(self._device) if input_pos is not None else None
-                )
 
+                # Batch collater already moves model inputs to correct device
                 logits = self._model(tokens, mask=mask, input_pos=input_pos)
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
