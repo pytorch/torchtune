@@ -4,18 +4,54 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.datasets._instruct import instruct_dataset, InstructDataset
-from torchtune.modules.tokenizers import ModelTokenizer
+
+from typing import Any, Dict, Mapping, Optional
+
+from torch.utils.data import Dataset
+from torchtune.data import Message
+from torchtune.data._templates import GrammarErrorCorrectionTemplate
+from torchtune.datasets._finetune import FinetuneDataset
+from torchtune.datasets._packed import PackedDataset
+from torchtune.modules.transforms import Transform
+
+
+class GrammarMessages(Transform):
+    def __init__(
+        self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None
+    ):
+        self.train_on_input = train_on_input
+        self.column_map = column_map
+        self.template = GrammarErrorCorrectionTemplate()
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        column_map = self.column_map or {}
+        key_input = column_map.get("input", "input")
+        key_output = column_map.get("output", "output")
+        messages = [
+            Message(
+                role="user",
+                content=sample[key_input],
+                masked=not self.train_on_input,
+                eot=False,
+            ),
+            Message(
+                role="assistant",
+                content=sample[key_output],
+                masked=False,
+                eot=True,
+            ),
+        ]
+        sample["messages"] = self.template(messages=messages)
+        return sample
 
 
 def grammar_dataset(
-    tokenizer: ModelTokenizer,
+    model_transform: Transform,
     *,
     source: str = "liweili/c4_200m",
     train_on_input: bool = False,
     packed: bool = False,
-    split: str = "train",
-) -> InstructDataset:
+) -> Dataset:
     """
     Support for grammar correction datasets and their variants from Hugging Face Datasets.
     Here is an `example <https://huggingface.co/datasets/liweili/c4_200m>`_ of a grammar correction dataset.
@@ -36,8 +72,6 @@ def grammar_dataset(
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
-        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
-            of a given split, e.g. ``split="train[:10%]"``. Default is "train".
 
     Returns:
         InstructDataset: dataset configured with source data and template
@@ -50,12 +84,11 @@ def grammar_dataset(
         >>> Batch size: 8
     """
 
-    return instruct_dataset(
-        tokenizer=tokenizer,
+    message_transform = GrammarMessages(train_on_input=train_on_input)
+    ds = FinetuneDataset(
         source=source,
-        template="torchtune.data.GrammarErrorCorrectionTemplate",
-        column_map={"sentence": "input"},
-        train_on_input=train_on_input,
-        packed=packed,
-        split=split,
+        message_transform=message_transform,
+        model_transform=model_transform,
+        split="train",
     )
+    return PackedDataset(ds) if packed else ds
