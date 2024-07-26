@@ -143,7 +143,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self.global_step = 0
 
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
-        self._adapter_only = cfg.get("adapter_only", False)
+        self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
+        log.info(f"save_adapter_weights_only: {self._save_adapter_weights_only}")
+
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
@@ -471,19 +473,14 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         - Merged weights with key MODEL_KEY
         - Adapter weights with key ADAPTER_KEY
         - Relevant recipe state if training is not complete
-
-        If the `self._adapter_only` option is True, the checkpointer will:
-        - Save only the adapter weights for all epochs except the final epoch
-        - Save the complete state (merged weights, adapter weights, and recipe state) for the final epoch only
-
-        If the `self._adapter_only` option is False, the checkpointer will save the complete state for all epochs.
+        - If the `self._save_adapter_weights_only` option is True, the checkpointer will save only the adapter weights
 
         To correctly resume from training, the adapter weights and recipe state must be provided along with the base model weights.
         """
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
 
-        intermediate_checkpoint = epoch + 1 < self.total_epochs
+        is_intermediate_epoch = epoch + 1 < self.total_epochs
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
         with FSDP.state_dict_type(
@@ -493,7 +490,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=True),
         ):
             cpu_state_dict = self._model.state_dict()
-            if intermediate_checkpoint:
+            if is_intermediate_epoch:
                 opt_state_dict = FSDP.optim_state_dict(self._model, self._optimizer)
             else:
                 opt_state_dict = None
@@ -520,7 +517,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
             # if training is in-progress, checkpoint the optimizer state and recipe state
             # as well.
-            if intermediate_checkpoint:
+            if is_intermediate_epoch:
                 checkpoint_dict.update(
                     {
                         utils.OPT_KEY: opt_state_dict,
@@ -531,20 +528,18 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     }
                 )
 
-            # If the option was True, save only the adapter except for the last epoch
-            is_intermediate_epoch = epoch + 1 < self.total_epochs
-            if self._adapter_only and is_intermediate_epoch:
-                self._checkpointer.save_checkpoint(
-                    checkpoint_dict,
-                    epoch=epoch,
-                    intermediate_checkpoint=is_intermediate_epoch,
-                    adapter_only=True,
-                )
-            else:
-                self._checkpointer.save_checkpoint(
-                    checkpoint_dict,
-                    epoch=epoch,
-                    intermediate_checkpoint=is_intermediate_epoch,
+            self._checkpointer.save_checkpoint(
+                checkpoint_dict,
+                epoch=epoch,
+                intermediate_checkpoint=is_intermediate_epoch,
+                adapter_only=self._save_adapter_weights_only,
+            )
+            if not is_intermediate_epoch:
+                log.info(
+                    "Saving final model checkpoint."
+                    "Please note that you have set save_adapter_only=True, so only adapter weights will be saved."
+                    "You need to merge the adapter weights into your base model for further use. "
+                    "See {where do we point them for now??}"
                 )
 
     def concatenated_forward(
