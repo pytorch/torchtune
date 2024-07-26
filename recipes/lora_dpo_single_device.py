@@ -412,7 +412,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 "Saving final model checkpoint."
                 "Please note that you have set save_adapter_weights_only=True, so only adapter weights will be saved."
                 "You need to merge the adapter weights into your base model for further use. "
-                "See 'https://github.com/pytorch/torchtune/blob/main/docs/source/deep_dives/checkpointer.rst'"
+                f"See {type(self._checkpointer).__name__}"
             )
 
     def concatenated_forward(
