@@ -53,7 +53,7 @@ function. You can see a list of all supported datasets :ref:`here<datasets>`.
     dataset=torchtune.datasets.alpaca_dataset
 
 Hugging Face datasets
--------------------------------
+---------------------
 
 We provide first class support for datasets on the Hugging Face hub. Under the hood,
 all of our built-in datasets and dataset builders are using Hugging Face's ``load_dataset()``
