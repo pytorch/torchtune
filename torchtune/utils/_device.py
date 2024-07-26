@@ -6,9 +6,10 @@
 
 import os
 from typing import Optional
-from ._version import torch_version_ge
 
 import torch
+
+from ._version import torch_version_ge
 
 
 def _get_local_rank() -> Optional[int]:
@@ -91,9 +92,7 @@ def _validate_device_from_env(device: torch.device) -> None:
             )
 
     if device.type == "mps" and not torch_version_ge("2.4.0"):
-        raise RuntimeError(
-                f"MPS support requires torch version >= 2.4.0."
-            )
+        raise RuntimeError("MPS support requires torch version >= 2.4.0.")
 
     # Check if the device is available on this machine
     try:

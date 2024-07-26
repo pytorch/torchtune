@@ -7,7 +7,6 @@
 import contextlib
 from typing import Dict, Generator, Iterable, Optional, Tuple
 
-import packaging
 import torch
 import torch.nn as nn
 
@@ -64,10 +63,7 @@ def verify_bf16_support() -> bool:
         and torch.cuda.is_bf16_supported()
         and torch.distributed.is_nccl_available()
         and torch.cuda.nccl.version() >= (2, 10)
-    ) or (
-        torch.backends.mps.is_available()
-        and torch_version_ge("2.4.0")
-    )
+    ) or (torch.backends.mps.is_available() and torch_version_ge("2.4.0"))
 
 
 def get_dtype(

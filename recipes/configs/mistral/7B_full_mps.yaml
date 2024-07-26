@@ -1,5 +1,5 @@
 # Config for single-device M based Mac full finetuning using a Mistral 7B model
-# 
+#
 # This config uses hyperparameters based on small set of experiments and information
 # available on various forums. These are not meant to replicate the numbers
 # from the paper
