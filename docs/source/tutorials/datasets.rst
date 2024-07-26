@@ -52,7 +52,7 @@ function. You can see a list of all supported datasets :ref:`here<datasets>`.
     tune run full_finetune_single_device --config llama3/8B_full_single_device \
     dataset=torchtune.datasets.alpaca_dataset
 
-Hugging Face and Local datasets
+Hugging Face datasets
 -------------------------------
 
 We provide first class support for datasets on the Hugging Face hub. Under the hood,
@@ -253,7 +253,7 @@ Here is an example of a sample that is formatted with :class:`~torchtune.data.Al
 We provide `other instruct templates <data>`
 for common tasks such summarization and grammar correction. If you need to create your own
 instruct template for a custom task, you can inherit from :class:`~torchtune.data.InstructTemplate`
-and create your own class. 
+and create your own class.
 
 .. code-block:: python
 
@@ -296,18 +296,14 @@ and create your own class.
 
 
 Under the hood, torchtune is using :code:`importlib.import_module` to locate components from their dotpaths.
-You can place your custom template class in any Python file as long as the file is 
-accessible by Python's import mechanism. This means the module should be in a directory 
-that is included in Python's search paths (:code:`sys.path`). 
+You can place your custom template class in any Python file as long as the file is
+accessible by Python's import mechanism. This means the module should be in a directory
+that is included in Python's search paths (:code:`sys.path`).
 This often includes:
 
 - The current directory from which your Python interpreter or script is run.
 - Directories where Python packages are installed (like :code:`site-packages`).
 - Any directories added to :code:`sys.path` at runtime using :code:`sys.path.append` or through the :code:`PYTHONPATH` environment variable.
-
-If you are working within a cloned repository of torchtune you can just define your custom template 
-class in the same file as other similar components, in this situation you can change the class name 
-in the config without changing the path at all.
 
 
 Custom chat dataset and chat formats
