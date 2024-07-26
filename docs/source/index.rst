@@ -104,7 +104,11 @@ torchtune tutorials.
    :hidden:
 
    recipes/recipes_index
-   recipes/lora_finetune
+   recipes/full_finetune_single_device
+   recipes/full_finetune_multi_device
+   recipes/lora_finetune_single_device
+   recipes/lora_finetune_multi_device
+   recipes/lora_dpo_finetune_single_device
 
 .. toctree::
    :glob:

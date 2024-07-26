@@ -1,8 +1,6 @@
-.. _lora_finetune_recipe_label:
-
-=======================================
-LoRA Single Device finetuning
-=======================================
+===================================
+Full-memory Multi Device finetuning
+===================================
 
 This recipe supports finetuning using `LoRA <https://arxiv.org/abs/2106.09685>`_, a technique to significantly reduce memory consumption during training
 whilst still maintaining competitive performance.

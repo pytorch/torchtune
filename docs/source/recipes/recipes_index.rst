@@ -39,18 +39,41 @@ using memory efficient techniques like `LoRA <https://arxiv.org/abs/2106.09685>`
                                                 mistral/7B_lora_single_device
         ...
 
+Continued pre-training/Supervised finetuning
+--------------------------------------------
 
-**Ccontinued pre-training** and **supervised fine-tuning** paradigms are widely supported in our recipes through customising
-the dataset you're working with. Check out our dataset tutorial for more information :ref:`data_set_tutorial_label`.
+Our  fine-tuning recipes support all of our models and all our dataset types [1]. This includes continued pre-training, and various supervised fune-tuning
+paradigms, which can be customised through our datasets. Check out our :ref:`dataset tutorial <dataset_tutorial_label>` for more information. Our fine-tuning recipes
+include:
 
-* :ref:`LoRA Single Device finetuning <lora_finetune_recipe_label>`
-* :ref:`LoRA Multi-Device finetuning <lora_finetune_recipe_label>`
-* :ref:`Full-memory Single Device finetuning <lora_finetune_recipe_label>`
-* :ref:`Full-memory Multi-Device finetuning <lora_finetune_recipe_label>`
+* :ref:`Single-device <lora_finetune_recipe_label>` and :ref:`multi-device <lora_finetune_recipe_label>` full-finetuning.
+* :ref:`Single-device <lora_finetune_recipe_label>` and :ref:`multi-device <lora_finetune_recipe_label>` LoRA-finetuning.
 
-
+Alignment finetuning
+--------------------
 
 Interested in alignment fine-tuning? You've come to the right place! We support the following alignment techniques:
 
-* Single and multi-device, LoRA, :ref:`reward-model-free, finetuning <lora_finetune_recipe_label>` techniques based on
-  `Direct Preference Optimisation <https://arxiv.org/abs/2305.18290>`_.
+Reward modelling
+^^^^^^^^^^^^^^^^
+
+* Reward model training with:
+
+  * :ref:`Single-device <lora_finetune_recipe_label>` and :ref:`multi-device <lora_finetune_recipe_label>` full-finetuning.
+  * :ref:`Single-device <lora_finetune_recipe_label>` and :ref:`multi-device <lora_finetune_recipe_label>` LoRA finetuning.
+
+
+Reinforcement Learning from Human Feedback (RLHF)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* :ref:`Preference finetuning <lora_finetune_recipe_label>` techniques based on `Direct Preference Optimisation <https://arxiv.org/abs/2305.18290>`_ with:
+
+  * :ref:`Single-device <lora_finetune_recipe_label>` and :ref:`multi-device <lora_finetune_recipe_label>` LoRA finetuning.
+
+* :ref:`Single-device <lora_finetune_recipe_label>` RLHF with Proximal Policy Optimisation full-finetuning.
+
+
+.. note::
+
+  [1] Our reward and preference modelling recipes currently support a limited subset of tasks.
+  See the :class:`preference datasets <torchtune.datasets.PreferenceDataset>` page for more details.
