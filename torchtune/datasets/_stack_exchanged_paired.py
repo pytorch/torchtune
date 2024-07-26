@@ -6,24 +6,27 @@
 
 from torchtune.data import StackExchangedPairedTemplate
 from torchtune.datasets._preference import PreferenceDataset
-from torchtune.modules.tokenizers import Tokenizer
+from torchtune.modules.tokenizers import ModelTokenizer
 
 
 def stack_exchanged_paired_dataset(
-    tokenizer: Tokenizer,
+    tokenizer: ModelTokenizer,
     *,
     source: str = "lvwerra/stack-exchange-paired",
     max_seq_len: int = 1024,
+    split: str = "train",
 ) -> PreferenceDataset:
     """
     Family of preference datasets similar to `StackExchangePaired data
     <https://huggingface.co/datasets/lvwerra/stack-exchange-paired>`_.
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`.
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
             Default is 1024.
+        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
+            of a given split, e.g. ``split="train[:10%]"``. Default is "train".
 
     Returns:
         PreferenceDataset: The preference dataset built from source paired data.
@@ -38,6 +41,6 @@ def stack_exchanged_paired_dataset(
             "rejected": "response_k",
         },
         max_seq_len=max_seq_len,
-        split="train",
+        split=split,
         data_dir="data/rl",
     )

@@ -59,6 +59,7 @@ def lora_code_llama2_7b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for LoRA linear layers. Default: 0.05
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
@@ -139,6 +140,7 @@ def lora_code_llama2_13b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for LoRA linear layers. Default: 0.05
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
@@ -220,6 +222,7 @@ def lora_code_llama2_70b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for LoRA linear layers. Default: 0.05
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:

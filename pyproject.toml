@@ -10,6 +10,7 @@ authors = [
 ]
 keywords = ["pytorch", "finetuning", "llm"]
 dependencies = [
+
     # Hugging Face integrations
     "datasets",
     "huggingface_hub",
@@ -26,7 +27,7 @@ dependencies = [
     "omegaconf",
 
     # Quantization
-    "torchao==0.3",
+    "torchao==0.3.1",
 ]
 dynamic = ["version"]
 
@@ -65,7 +66,7 @@ where = [""]
 include = ["torchtune*", "recipes*"]
 
 [tool.setuptools.package-data]
-recipes = ["configs/*.yaml", "configs/*/*.yaml"]
+recipes = ["configs/*.yaml", "configs/*/*.yaml", "configs/*/*/*.yaml"]
 
 
 # ---- Tooling specifications ---- #

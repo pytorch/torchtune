@@ -17,7 +17,7 @@ from torch.nn.utils.rnn import pad_sequence
 
 from torchtune import config, utils
 from torchtune.modules import TransformerDecoder
-from torchtune.modules.tokenizers import Tokenizer
+from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.recipe_interfaces import EvalRecipeInterface
 
 
@@ -42,7 +42,8 @@ class _EvalWrapper(HFLM):
 
     Args:
         model (TransformerDecoder): The model to evaluate.
-        tokenizer (Tokenizer): The tokenizer to use.
+        tokenizer (ModelTokenizer): Tokenizer associated with the model being evaluated.
+            This should be the same tokenizer used when fine-tuning the model.
         device (torch.device): The device to use.
         max_seq_length (int): The maximum sequence length to use.
         batch_size (int): The batch size per GPU to use.
@@ -51,7 +52,7 @@ class _EvalWrapper(HFLM):
     def __init__(
         self,
         model: TransformerDecoder,
-        tokenizer: Tokenizer,
+        tokenizer: ModelTokenizer,
         *,
         device: torch.device,
         max_seq_length: int = 4096,
@@ -181,7 +182,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
     def setup(self) -> None:
         self._device = utils.get_device(device=self._cfg.device)
-        self._dtype = utils.get_dtype(dtype=self._cfg.dtype)
+        self._dtype = utils.get_dtype(dtype=self._cfg.dtype, device=self._device)
         self._limit = self._cfg.limit
         self._tasks = list(self._cfg.tasks)
         self._quantizer = config.instantiate(self._cfg.quantizer)

@@ -10,7 +10,7 @@ import torch
 
 from torchtune.models.convert_weights import get_mapped_key
 
-_MISTRAL_REWARD = {
+_REWARD = {
     "model.embed_tokens.weight": "tok_embeddings.weight",
     "model.layers.{}.self_attn.q_proj.weight": "layers.{}.attn.q_proj.weight",
     "model.layers.{}.self_attn.k_proj.weight": "layers.{}.attn.k_proj.weight",
@@ -26,7 +26,7 @@ _MISTRAL_REWARD = {
 }
 
 
-def mistral_reward_hf_to_tune(
+def reward_hf_to_tune(
     state_dict: Dict[str, torch.Tensor],
     num_heads: int = 32,
     num_kv_heads: int = 32,
@@ -35,7 +35,7 @@ def mistral_reward_hf_to_tune(
 ) -> Dict[str, torch.Tensor]:
     """
     Convert a state dict from HF's format to torchtune's format, which contains the weights
-    of a Mistral reward model.
+    of a reward model (i.e. a classifier with a single class).
     State dicts from multiple checkpoint files should be consolidated into a single state dict
     before calling this function.
     The logic is identical to :func:`~torchtune.models.convert_weights.hf_to_tune`, but with a different mapping.
@@ -66,8 +66,13 @@ def mistral_reward_hf_to_tune(
         )
 
     for key, value in state_dict.items():
-        if "rotary_emb.inv_freq" not in key:  # Skip loading the position embeddings
-            new_key = get_mapped_key(key, _MISTRAL_REWARD)
+        # ignore output layer bias - these are not used in the reward model
+        # and some HF pipelines (e.g. TRL) may save them
+        if key == "score.bias":
+            continue
+        # Skip loading the position embeddings
+        if "rotary_emb.inv_freq" not in key:
+            new_key = get_mapped_key(key, _REWARD)
         if "q_proj" in key:
             value = _permute(value, num_heads)
         elif "k_proj" in key:
@@ -76,17 +81,17 @@ def mistral_reward_hf_to_tune(
     return converted_state_dict
 
 
-def mistral_reward_tune_to_hf(
+def reward_tune_to_hf(
     state_dict: Dict[str, torch.Tensor],
     num_heads: int = 32,
     num_kv_heads: int = 32,
     dim: int = 4096,
 ) -> Dict[str, torch.Tensor]:
     """
-    Convert a state dict from torchtune's format to Hugging Face's format for a Mistral reward model.
+    Convert a state dict from torchtune's format to Hugging Face's format for a reward model.
 
-    This function takes a state dictionary in torchtune's format, which contains the weights of a Mistral reward model,
-    and converts it into a format that can be loaded into a Hugging Face model.
+    This function takes a state dictionary in torchtune's format, which contains the weights of a reward model
+    (i.e. a classifier with a single class), and converts it into a format that can be loaded into a Hugging Face model.
     The logic is identical to :func:`~torchtune.models.convert_weights.tune_to_hf`, but with a different mapping.
 
     Args:
@@ -100,7 +105,7 @@ def mistral_reward_tune_to_hf(
 
     """
     converted_state_dict = {}
-    inverted_mapping_dict = {v: k for k, v in _MISTRAL_REWARD.items()}
+    inverted_mapping_dict = {v: k for k, v in _REWARD.items()}
     head_dim = dim // num_heads
 
     def _permute(t, n_heads):

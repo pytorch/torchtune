@@ -9,18 +9,15 @@ from unittest.mock import patch
 import pytest
 from datasets import Dataset
 
-from tests.test_utils import get_assets_path
+from tests.test_utils import DummyTokenizer
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets import alpaca_cleaned_dataset, alpaca_dataset
-from torchtune.modules.tokenizers import SentencePieceTokenizer
 
 
 class TestAlpacaDataset:
     @pytest.fixture
     def tokenizer(self):
-        # m.model is a pretrained Sentencepiece model using the following command:
-        # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
-        return SentencePieceTokenizer(str(get_assets_path() / "m.model"))
+        return DummyTokenizer()
 
     @patch("torchtune.datasets._instruct.load_dataset")
     def test_label_no_masking(self, load_dataset, tokenizer):

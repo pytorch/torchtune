@@ -101,8 +101,6 @@ def get_dtype(
             f"Dtype {torch_dtype} must be one of {', '.join(list(PRECISION_STR_TO_DTYPE.keys()))} for finetuning."
         )
 
-    # TODO (rohan-varma): prefer to use get_default_device() here to figure out whether user is training on
-    # CPU or GPU, but it is not supported in versions of torch we test.
     if (
         torch_dtype == torch.bfloat16
         and device != torch.device("cpu")

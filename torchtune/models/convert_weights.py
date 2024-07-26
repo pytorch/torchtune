@@ -249,6 +249,7 @@ def tune_to_peft_adapter_weights(
     num_heads: int = 32,
     num_kv_heads: int = 32,
     dim: int = 4096,
+    head_dim: int = None,
 ):
     converted_state_dict = {}
     full_mapping = {}
@@ -266,7 +267,8 @@ def tune_to_peft_adapter_weights(
             }
         )
 
-    head_dim = dim // num_heads
+    if head_dim is None:
+        head_dim = dim // num_heads
 
     def _permute_lora_matrix(t, n_heads):
         rank = t.shape[-1]
