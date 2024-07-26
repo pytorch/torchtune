@@ -528,7 +528,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         if not is_intermediate_epoch:
             log.info(
                 "Saving final model checkpoint."
-                "Please note that you have set save_adapter_only=True, so only adapter weights will be saved."
+                "Please note that you have set save_adapter_weights_only=True, so only adapter weights will be saved."
                 "You need to merge the adapter weights into your base model for further use. "
                 "See {where do we point them for now??}"
             )
