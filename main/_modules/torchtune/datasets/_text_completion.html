@@ -423,8 +423,11 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.</span>
-<span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s ``load_dataset``</span>
+<span class="sd">        source (str): path to dataset repository on Hugging Face. For local datasets,</span>
+<span class="sd">            define source as the data file type (e.g. &quot;json&quot;, &quot;csv&quot;, &quot;text&quot;) and pass</span>
+<span class="sd">            in the filepath in ``data_files``. See Hugging Face&#39;s ``load_dataset``</span>
 <span class="sd">            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)</span>
+<span class="sd">            for more details.</span>
 <span class="sd">        column (str): name of column in the sample that contains the text data. This is typically required</span>
 <span class="sd">            for Hugging Face datasets or tabular data. For local datasets with a single column, use the default &quot;text&quot;,</span>
 <span class="sd">            which is what is assigned by Hugging Face datasets when loaded into memory. Default is &quot;text&quot;.</span>
@@ -432,7 +435,8 @@
 <span class="sd">            Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory</span>
 <span class="sd">            and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.</span>
 <span class="sd">        add_eos (bool): Whether to add an EOS token to the end of the sequence. Default is True.</span>
-<span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.</span>
+<span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,</span>
+<span class="sd">            such as ``data_files`` or ``split``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>

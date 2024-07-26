@@ -427,19 +427,25 @@ contributes to the loss.
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>tokenizer</strong> (<em>ModelTokenizer</em>) – Tokenizer used by the model that implements the <code class="docutils literal notranslate"><span class="pre">tokenize_messages</span></code> method.</p></li>
-<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path string of dataset, anything supported by Hugging Face’s <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>
-(<a class="reference external" href="https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path">https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path</a>)</p></li>
+<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path to dataset repository on Hugging Face. For local datasets,
+define source as the data file type (e.g. “json”, “csv”, “text”) and pass
+in the filepath in <code class="docutils literal notranslate"><span class="pre">data_files</span></code>. See Hugging Face’s <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>
+(<a class="reference external" href="https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path">https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path</a>)
+for more details.</p></li>
 <li><p><strong>template</strong> (<a class="reference internal" href="torchtune.data.InstructTemplate.html#torchtune.data.InstructTemplate" title="torchtune.data.InstructTemplate"><em>InstructTemplate</em></a>) – template used to format the prompt. If the placeholder variable
 names in the template do not match the column/key names in the dataset, use <code class="docutils literal notranslate"><span class="pre">column_map</span></code> to map them.</p></li>
 <li><p><strong>transform</strong> (<em>Optional</em><em>[</em><em>Callable</em><em>]</em>) – transform to apply to the sample before formatting to the template.
 Default is None.</p></li>
 <li><p><strong>column_map</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em><em>]</em>) – a mapping from the expected placeholder names in the template
-to the column/key names in the sample. If None, assume these are identical.</p></li>
+to the column/key names in the sample. If None, assume these are identical.
+The output column can be indicated using the <code class="docutils literal notranslate"><span class="pre">output</span></code> key mapping.
+If no placeholder for the <code class="docutils literal notranslate"><span class="pre">output</span></code> column is provided in <code class="docutils literal notranslate"><span class="pre">column_map</span></code> it is assumed to be <code class="docutils literal notranslate"><span class="pre">output</span></code>.</p></li>
 <li><p><strong>train_on_input</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – Whether the model is trained on the prompt or not. Default is False.</p></li>
 <li><p><strong>max_seq_len</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – Maximum number of tokens in the returned input and label token id lists.
 Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
 and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.</p></li>
-<li><p><strong>**load_dataset_kwargs</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – additional keyword arguments to pass to <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>.</p></li>
+<li><p><strong>**load_dataset_kwargs</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – additional keyword arguments to pass to <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>,
+such as <code class="docutils literal notranslate"><span class="pre">data_files</span></code> or <code class="docutils literal notranslate"><span class="pre">split</span></code>.</p></li>
 </ul>
 </dd>
 </dl>

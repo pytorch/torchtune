@@ -471,7 +471,7 @@ tune<span class="w"> </span>run<span class="w"> </span>full_finetune_single_devi
 all of our built-in datasets and dataset builders are using Hugging Face’s <code class="docutils literal notranslate"><span class="pre">load_dataset()</span></code>
 to load in your data, whether local or on the hub.</p>
 <p>You can pass in a Hugging Face dataset path to the <code class="docutils literal notranslate"><span class="pre">source</span></code> parameter in any of our builders
-to specify which dataset on the hub to download. Additionally, all builders accept
+to specify which dataset on the hub to download or use from a local directory path (see <a class="reference internal" href="#local-and-remote-datasets">Local and remote datasets</a>). Additionally, all builders accept
 any keyword-arguments that <code class="docutils literal notranslate"><span class="pre">load_dataset()</span></code> supports. You can see a full list
 on Hugging Face’s <a class="reference external" href="https://huggingface.co/docs/datasets/en/loading">documentation.</a></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">text_completion_dataset</span>
@@ -678,6 +678,16 @@ tune<span class="w"> </span>run<span class="w"> </span>full_finetune_single_devi
 dataset.template<span class="o">=</span>import.path.to.CustomTemplate
 </pre></div>
 </div>
+<p>torchtune uses <code class="code docutils literal notranslate"><span class="pre">importlib.import_module</span></code> (see <code class="docutils literal notranslate"><span class="pre">importlib</span></code> <a class="reference external" href="https://docs.python.org/3/library/importlib.html">docs</a> for more details)
+to locate components from their dotpaths. You can place your custom template class
+in any Python file as long as the file is accessible by Python’s import mechanism.
+This means the module should be in a directory that is included in Python’s search
+paths (<code class="code docutils literal notranslate"><span class="pre">sys.path</span></code>). This often includes:</p>
+<ul class="simple">
+<li><p>The current directory from which your Python interpreter or script is run.</p></li>
+<li><p>Directories where Python packages are installed (like <code class="code docutils literal notranslate"><span class="pre">site-packages</span></code>).</p></li>
+<li><p>Any directories added to <code class="code docutils literal notranslate"><span class="pre">sys.path</span></code> at runtime using <code class="code docutils literal notranslate"><span class="pre">sys.path.append</span></code> or through the <code class="code docutils literal notranslate"><span class="pre">PYTHONPATH</span></code> environment variable.</p></li>
+</ul>
 </section>
 <section id="custom-chat-dataset-and-chat-formats">
 <h2>Custom chat dataset and chat formats<a class="headerlink" href="#custom-chat-dataset-and-chat-formats" title="Permalink to this heading">¶</a></h2>
