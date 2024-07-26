@@ -618,7 +618,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     "Saving final model checkpoint."
                     "Please note that you have set save_adapter_weights_only=True, so only adapter weights will be saved."
                     "You need to merge the adapter weights into your base model for further use. "
-                    "See {where do we point them for now??}"
+                    "See 'https://github.com/pytorch/torchtune/blob/main/docs/source/deep_dives/checkpointer.rst'"
                 )
 
     def train(self) -> None:
