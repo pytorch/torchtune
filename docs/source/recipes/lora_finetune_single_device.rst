@@ -4,8 +4,8 @@
 LoRA Single Device finetuning
 =============================
 
-This recipe supports finetuning using `LoRA <https://arxiv.org/abs/2106.09685>`_, a technique to significantly reduce memory consumption during training
-whilst still maintaining competitive performance.
+This recipe supports finetuning on next-token prediction tasks using `LoRA <https://arxiv.org/abs/2106.09685>`_,
+a technique to significantly reduce memory consumption during training whilst still maintaining competitive performance.
 
 Interested in using this recipe? Check out some of our awesome tutorials to show off how it can be used:
 
@@ -40,57 +40,76 @@ our :ref:`configs tutorial <config_tutorial_label>`:
     The :ref:`cli_label` allows you to :ref:`list <cli_label>`, :ref:`run <cli_label>`, :ref:`copy <cli_label>`,
     and :ref:`validate <cli_label>` configs without touching a line of code!
 
-
 -- Salman: Just copy-pasted the recipe docs, to tidy up. broad strokes here.
 
-LoRA finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe is optimized
-  for single GPU training. Training on CPU is not supported.
 
-  Features:
-      - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
-          flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
-          activations in memory and instead recompute them during the backward pass. This is especially
-          helpful for larger batch sizes when you're memory constrained. But these savings in memory
-          come at the cost of training performance. In most cases training can slow-down quite a bit as
-          a result of this activation recomputation.
+.. code-block:: yaml
 
-      - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
-          flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
-          most cases this should halve the memory footprint of full precision (fp32) training, without
-          loss in model quality (will depend on the model, training data and other settings). For
-          GPUs which do not support bfloat16, we fall back to fp32. Mixed precision training and fp16
-          precision are currently not supported.g
+    # ANNOTATED YAML FILE
+    # ANNOTATED YAML FILE
+    # ANNOTATED YAML FILE
+    # ANNOTATED YAML FILE
+    # Tokenizer
+    tokenizer:
+      _component_: torchtune.models.gemma.gemma_tokenizer
+      path: /tmp/gemma-2b/tokenizer.model
 
-      - Gradient Accumulation. You can simulate larger batch sizes by accumulating gradients. This is
-          controlled using the ``gradient_accumulation_steps`` flag.
+    # Dataset
+    dataset:
+      _component_: torchtune.datasets.alpaca_dataset
+    seed: null
+    shuffle: True
 
-              Total Batch Size = batch_size * gradient accumulation steps.
+    # Model Arguments
+    model:
+      _component_: torchtune.models.gemma.lora_gemma_2b
+      lora_attn_modules: ['q_proj', 'k_proj', 'v_proj']
+      apply_lora_to_mlp: True
+      lora_rank: 64
+      lora_alpha: 16
 
-          For example: with batch_size=1 and gradient_accumulation_steps=32 we get a total batch size of 32.
+    checkpointer:
+      _component_: torchtune.utils.FullModelHFCheckpointer
+      checkpoint_dir: /tmp/gemma-2b/
+      checkpoint_files: [
+        model-00001-of-00002.safetensors,
+        model-00002-of-00002.safetensors,
+      ]
+      recipe_checkpoint: null
+      output_dir: /tmp/gemma-2b
+      model_type: GEMMA
+    resume_from_checkpoint: False
 
-          Gradient accumulation is especially useful when you are memory constrained. In this case,
-          accumulating gradients might give you better training speed than enabling activation
-          checkpointing.
+    optimizer:
+      _component_: torch.optim.AdamW
+      lr: 2e-5
 
-      - Lower precision optimizers. This recipe supports lower-precision optimizers from the bitsandbytes
-          library (https://huggingface.co/docs/bitsandbytes/main/en/index). We've tested the recipe with
-          8-bit AdamW and Paged AdamW.
+    lr_scheduler:
+      _component_: torchtune.modules.get_cosine_schedule_with_warmup
+      num_warmup_steps: 100
 
-      - Checkpointing. Model weights are checkpointed both at the end of each epoch and at the end of
-          training. Currently we checkpoint both the adapter weights (trainable params only) and the
-          complete merged weights (adapter weights added back to the base model). For more details
-          please take a look at our LoRA tutorial
-          (https://pytorch.org/torchtune/main/tutorials/lora_finetune.html).
+    loss:
+      _component_: torch.nn.CrossEntropyLoss
 
-          Optimizer State and recipe state (seed, total_epochs, number of epochs run etc) are
-          only saved at the end of a given epoch and used in case of resuming training. Resuming
-          training is controlled by the ``resume_from_checkpoint`` flag. Mid-epoch checkpointing is
-          currently not supported.
+    # Fine-tuning arguments
+    batch_size: 4
+    epochs: 3
+    max_steps_per_epoch: null
+    gradient_accumulation_steps: 1
 
-          For more details on the checkpointer, please take a look at
-          our checkpointer deepdive (https://pytorch.org/torchtune/main/tutorials/checkpointer.html).
+    # Training env
+    device: cuda
 
-      - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
+    # Memory management
+    enable_activation_checkpointing: True
 
-  For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
-  has example commands for how to kick-off training.
+    # Reduced precision
+    dtype: bf16
+
+    # Logging
+    metric_logger:
+      _component_: torchtune.utils.metric_logging.DiskLogger
+      log_dir: ${output_dir}
+    output_dir: /tmp/alpaca-gemma-lora
+    log_every_n_steps: 1
+    log_peak_memory_stats: False

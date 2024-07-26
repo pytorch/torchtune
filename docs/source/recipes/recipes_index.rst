@@ -18,9 +18,6 @@ Each recipe consists of three components:
 
   To learn more about the concept of "recipes", check out our technical deep-dive: :ref:`recipe_deepdive`.
 
-torchtune provides built-in recipes for finetuning on single device, on multiple devices with `FSDP <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/>`_,
-using memory efficient techniques like `LoRA <https://arxiv.org/abs/2106.09685>`_, and more!
-
 .. note::
 
     You can also utilize the :code:`tune ls` command to print out all recipes and corresponding configs.
@@ -42,7 +39,8 @@ using memory efficient techniques like `LoRA <https://arxiv.org/abs/2106.09685>`
 Continued pre-training/Supervised finetuning
 --------------------------------------------
 
-Our  fine-tuning recipes support all of our models and all our dataset types [1]. This includes continued pre-training, and various supervised fune-tuning
+torchtune provides built-in recipes for finetuning on single device, on multiple devices with `FSDP <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/>`_,
+using memory efficient techniques like `LoRA <https://arxiv.org/abs/2106.09685>`_, and more! Our  fine-tuning recipes support all of our models and all our dataset types [1]. This includes continued pre-training, and various supervised fune-tuning
 paradigms, which can be customised through our datasets. Check out our :ref:`dataset tutorial <dataset_tutorial_label>` for more information. Our fine-tuning recipes
 include:
 
