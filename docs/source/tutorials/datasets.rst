@@ -295,11 +295,11 @@ and create your own class.
     dataset.template=import.path.to.CustomTemplate
 
 
-torchtune uses :code:`importlib.import_module` to locate components from their dotpaths.
-You can place your custom template class in any Python file as long as the file is
-accessible by Python's import mechanism. This means the module should be in a directory
-that is included in Python's search paths (:code:`sys.path`).
-This often includes:
+torchtune uses :code:`importlib.import_module` (see ``importlib`` `docs <https://docs.python.org/3/library/importlib.html>`_ for more details)
+to locate components from their dotpaths. You can place your custom template class
+in any Python file as long as the file is accessible by Python's import mechanism.
+This means the module should be in a directory that is included in Python's search
+paths (:code:`sys.path`). This often includes:
 
 - The current directory from which your Python interpreter or script is run.
 - Directories where Python packages are installed (like :code:`site-packages`).
