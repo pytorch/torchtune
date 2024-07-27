@@ -458,9 +458,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
             )
 
-        # clean up before training begins
-        utils.cleanup_before_training()
-
         # zero out the gradients before starting training
         if not self._optimizer_in_bwd:
             self._optimizer.zero_grad(set_to_none=True)

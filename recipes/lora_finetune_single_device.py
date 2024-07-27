@@ -576,9 +576,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         The core training loop.
         """
 
-        # clean up before training begins
-        utils.cleanup_before_training()
-
         # zero out the gradients before starting training
         self._optimizer.zero_grad(set_to_none=True)
 
