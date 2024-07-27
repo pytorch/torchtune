@@ -477,7 +477,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
 
-        is_intermediate_epoch = epoch + 1 < self.total_epochs
+        intermediate_checkpoint = epoch + 1 < self.total_epochs
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
         with FSDP.state_dict_type(
@@ -487,7 +487,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=True),
         ):
             cpu_state_dict = self._model.state_dict()
-            if is_intermediate_epoch:
+            if intermediate_checkpoint:
                 opt_state_dict = FSDP.optim_state_dict(self._model, self._optimizer)
             else:
                 opt_state_dict = None
@@ -514,7 +514,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
             # if training is in-progress, checkpoint the optimizer state and recipe state
             # as well.
-            if is_intermediate_epoch:
+            if intermediate_checkpoint:
                 checkpoint_dict.update(
                     {
                         utils.OPT_KEY: opt_state_dict,
@@ -528,7 +528,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
                 epoch=epoch,
-                intermediate_checkpoint=is_intermediate_epoch,
+                intermediate_checkpoint=intermediate_checkpoint,
                 adapter_only=self._save_adapter_weights_only,
             )
 

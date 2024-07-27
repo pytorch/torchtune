@@ -367,9 +367,9 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         """
         ckpt_dict = {}
 
-        is_intermediate_epoch = epoch + 1 < self.total_epochs
+        intermediate_checkpoint = epoch + 1 < self.total_epochs
         # if training is in-progress, checkpoint the optimizer state as well
-        if is_intermediate_epoch:
+        if intermediate_checkpoint:
             ckpt_dict.update(
                 {
                     utils.OPT_KEY: self._optimizer.state_dict(),
@@ -401,7 +401,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         self._checkpointer.save_checkpoint(
             ckpt_dict,
             epoch=epoch,
-            intermediate_checkpoint=is_intermediate_epoch,
+            intermediate_checkpoint=intermediate_checkpoint,
             adapter_only=self._save_adapter_weights_only,
         )
 
