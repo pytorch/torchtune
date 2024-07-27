@@ -132,6 +132,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
+        # Arguments to pre allocte memory
+        self._batch_size = cfg.batch_size
+        self._max_seq_len = cfg.dataset.max_seq_len
+
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. This includes the
@@ -520,10 +524,66 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             intermediate_checkpoint=(epoch + 1 < self.total_epochs),
         )
 
+    def preallocate_memory(self):
+        """
+        Preallocates memory by doing one forward/backward pass with a dummy batch,
+        with the maximum sequence length, without updating the weights.
+        This reduces peak memory reserved during training, and also garantess that
+        you wont run into out-of-memory issues because of the batch size or sequence length.
+
+        For more info, check please check
+        `https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html#preallocate-memory-in-case-of-variable-input-length`.
+        """
+        # Generate a random batch with maximum sequence length
+        tokens = torch.zeros(
+            size=(self._batch_size, self._max_seq_len),
+            device=self._device,
+            dtype=torch.int64,
+        )
+        labels = torch.zeros(
+            size=(self._batch_size, self._max_seq_len),
+            device=self._device,
+            dtype=torch.int64,
+        )
+        mask = torch.ones(
+            (self._batch_size, self._max_seq_len, self._max_seq_len),
+            device=self._device,
+            dtype=torch.bool,
+        )
+        input_pos = (
+            torch.arange(self._max_seq_len, device=self._device, dtype=torch.int64)
+            .unsqueeze(0)
+            .repeat(self._batch_size, 1)
+        )
+
+        # Forward pass
+        logits = self._model(tokens, mask=mask, input_pos=input_pos)
+        logits = logits[..., :-1, :].contiguous()
+        labels = labels[..., 1:].contiguous()
+        logits = logits.transpose(1, 2)
+
+        # Compute loss
+        loss = self._loss_fn(logits, labels)
+        # free logits otherwise it peaks backward memory
+        del logits
+        loss.backward()
+
+        # Zero out gradients
+        self._optimizer.zero_grad(set_to_none=True)
+
     def train(self) -> None:
         """
         The core training loop.
         """
+
+        # clean up before training begins
+        utils.cleanup_before_training()
+
+        # zero out the gradients before starting training
+        self._optimizer.zero_grad(set_to_none=True)
+
+        # Preallocate memory before training starts
+        self.preallocate_memory()
 
         if self._model_compile:
             log.info(
