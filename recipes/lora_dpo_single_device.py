@@ -404,19 +404,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             intermediate_checkpoint=is_intermediate_epoch,
             adapter_only=self._save_adapter_weights_only,
         )
-        if not is_intermediate_epoch:
-            log.ingo("Saving final epoch checkpoint.")
-            if self._save_adapter_weights_only:
-                log.info(
-                    "Please note that you have set save_adapter_weights_only=True, so only adapter weights will be saved."
-                    "You need to merge the adapter weights into your base model for further use. "
-                    f"See {type(self._checkpointer).__name__}"
-                )
-            else:
-                log.info(
-                    "The full model checkpoint, including all weights and configurations, has been saved successfully."
-                    "You can now use this checkpoint for further training or inference."
-                )
 
     def concatenated_forward(
         self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
