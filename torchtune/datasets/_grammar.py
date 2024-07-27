@@ -5,52 +5,28 @@
 # LICENSE file in the root directory of this source tree.
 
 
-from typing import Any, Dict, Mapping, Optional
+from typing import Dict, Optional
 
 from torch.utils.data import Dataset
-from torchtune.data import Message
-from torchtune.data._templates import GrammarErrorCorrectionTemplate
+from torchtune.data import ToInputOutputMessages
+from torchtune.data._prompt_templates import (
+    GrammarErrorCorrectionTemplate,
+    PromptTemplate,
+)
 from torchtune.datasets._finetune import FinetuneDataset
 from torchtune.datasets._packed import PackedDataset
 from torchtune.modules.transforms import Transform
-
-
-class GrammarMessages(Transform):
-    def __init__(
-        self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None
-    ):
-        self.train_on_input = train_on_input
-        self.column_map = column_map
-        self.template = GrammarErrorCorrectionTemplate()
-
-    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
-        column_map = self.column_map or {}
-        key_input = column_map.get("input", "input")
-        key_output = column_map.get("output", "output")
-        messages = [
-            Message(
-                role="user",
-                content=sample[key_input],
-                masked=not self.train_on_input,
-                eot=False,
-            ),
-            Message(
-                role="assistant",
-                content=sample[key_output],
-                masked=False,
-                eot=True,
-            ),
-        ]
-        sample["messages"] = self.template(messages=messages)
-        return sample
 
 
 def grammar_dataset(
     model_transform: Transform,
     *,
     source: str = "liweili/c4_200m",
+    column_map: Optional[Dict[str, str]] = None,
+    prompt_template: Optional[PromptTemplate] = GrammarErrorCorrectionTemplate(),
     train_on_input: bool = False,
     packed: bool = False,
+    split: str = "train",
 ) -> Dataset:
     """
     Support for grammar correction datasets and their variants from Hugging Face Datasets.
@@ -70,6 +46,8 @@ def grammar_dataset(
     Args:
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``.
+        prompt_template (Optional[PromptTemplate]): optional template used to format the prompt. Default
+            is :class:`~torchtune.data.GrammarErrorCorrectionTemplate`.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
 
@@ -84,11 +62,14 @@ def grammar_dataset(
         >>> Batch size: 8
     """
 
-    message_transform = GrammarMessages(train_on_input=train_on_input)
+    message_transform = ToInputOutputMessages(
+        train_on_input=train_on_input, column_map=column_map
+    )
     ds = FinetuneDataset(
         source=source,
         message_transform=message_transform,
         model_transform=model_transform,
-        split="train",
+        prompt_template=prompt_template,
+        split=split,
     )
     return PackedDataset(ds) if packed else ds

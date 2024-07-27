@@ -7,7 +7,7 @@
 import json
 from typing import Dict, List, Optional, Protocol, Tuple
 
-from torchtune.data._types import Message
+from torchtune.data._messages import Message
 from torchtune.data._utils import truncate
 
 

@@ -20,7 +20,7 @@ class TestSamsumDataset:
     def tokenizer(self):
         return DummyTokenizer()
 
-    @patch("torchtune.datasets._instruct.load_dataset")
+    @patch("torchtune.datasets._finetune.load_dataset")
     def test_label_no_masking(self, load_dataset, tokenizer):
         """
         Test whether the input and the labels are correctly created when the input is not masked.
@@ -37,7 +37,7 @@ class TestSamsumDataset:
             ]
         )
 
-        samsum_ds = samsum_dataset(tokenizer=tokenizer, train_on_input=True)
+        samsum_ds = samsum_dataset(model_transform=tokenizer, train_on_input=True)
         input, labels = samsum_ds[0]["tokens"], samsum_ds[0]["labels"]
 
         assert len(input) == len(labels)
@@ -45,7 +45,7 @@ class TestSamsumDataset:
         assert input[0] == tokenizer.bos_id
         assert CROSS_ENTROPY_IGNORE_IDX not in labels
 
-    @patch("torchtune.datasets._instruct.load_dataset")
+    @patch("torchtune.datasets._finetune.load_dataset")
     def test_label_masking(self, load_dataset, tokenizer):
         """
         Test whether the input and the labels are correctly created when the input is masked.
@@ -62,7 +62,7 @@ class TestSamsumDataset:
             ]
         )
 
-        samsum_ds = samsum_dataset(tokenizer=tokenizer)
+        samsum_ds = samsum_dataset(model_transform=tokenizer)
 
         # Extract the prompt and tokenize it; we'll need this to test whether we're masking the
         # input correctly

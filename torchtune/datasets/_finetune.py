@@ -63,17 +63,27 @@ class FinetuneDataset(Dataset):
     optional prompt template -> apply model-specific transform -> tokens used for training
 
     Args:
-        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
-        source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
+        source (str): path to dataset repository on Hugging Face. For local datasets,
+            define source as the data file type (e.g. "json", "csv", "text") and pass
+            in the filepath in ``data_files``. See Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
-        convert_to_messages (Callable[[Mapping[str, Any]], List[Message]]): function that keys into the desired field in the sample
-            and converts to a list of :class:`~torchtune.data.Message` that follows the Llama format with the expected keys
-        chat_format (Optional[ChatFormat]): template used to format the chat. This is used to add structured text around the actual
-            messages, such as the [INST] tags in Llama2 and in Mistral. The extra text will still get tokenized as normal text, not
-            as special tokens. In models like Llama3 where the tokenizer adds tags as special tokens, ``chat_format`` is not needed,
-            unless you want to structure messages in a particular way for inference.
-        max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
-        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+            for more details.
+        message_transform (Transform): callable that keys into the desired fields in the sample
+            and converts text content to a list of :class:`~torchtune.data.Message`. It is expected that the final list
+            of messages are stored in the ``"messages"`` key.
+        model_transform (Transform): callable that applies model-specific pre-processing to the sample after the list of
+            messages is created from ``message_transform``. This includes tokenization and any modality-specific
+            transforms.
+        prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
+            to add structured text around the actual messages. The structured text is used in three scenarios:
+            - Task-specific templates to gear models for a particular task that it will expect after training
+            - Model-specific templates that are required whenever the model is prompted, such as the [INST]
+              tags in Llama2 and in Mistral
+            - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
+            The extra text will still get tokenized as normal text, not as special tokens.
+        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
+            the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
+            details.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
     """
 

@@ -4,7 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List, Literal, Union
+from typing import Any, Dict, List, Literal, Mapping, Optional, Union
+
+from torchtune.modules.transforms import Transform
 
 Role = Literal[
     "system",  # Origin is system prompt
@@ -106,3 +108,32 @@ class Message:
             raise RuntimeError(
                 f"Only assistant messages can be tool calls. Found role {self.role} in message: {self.text_content}"
             )
+
+
+class ToInputOutputMessages(Transform):
+    def __init__(
+        self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None
+    ):
+        self.train_on_input = train_on_input
+        self.column_map = column_map
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        column_map = self.column_map or {}
+        key_input = column_map.get("input", "input")
+        key_output = column_map.get("output", "output")
+        messages = [
+            Message(
+                role="user",
+                content=sample[key_input],
+                masked=not self.train_on_input,
+                eot=False,
+            ),
+            Message(
+                role="assistant",
+                content=sample[key_output],
+                masked=False,
+                eot=True,
+            ),
+        ]
+        sample["messages"] = messages
+        return sample

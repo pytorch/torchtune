@@ -4,18 +4,26 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.datasets import instruct_dataset, InstructDataset
-from torchtune.modules.tokenizers import ModelTokenizer
+
+from typing import Dict, Optional
+
+from torchtune.data import ToInputOutputMessages
+from torchtune.data._prompt_templates import PromptTemplate, SummarizeTemplate
+from torchtune.datasets._finetune import FinetuneDataset
+from torchtune.datasets._packed import PackedDataset
+from torchtune.modules.transforms import Transform
 
 
 def samsum_dataset(
-    tokenizer: ModelTokenizer,
+    model_transform: Transform,
     *,
-    source: str = "samsum",
+    source: str = "Samsung/samsum",
+    column_map: Optional[Dict[str, str]] = None,
+    prompt_template: Optional[PromptTemplate] = SummarizeTemplate(),
     train_on_input: bool = False,
     packed: bool = False,
     split: str = "train",
-) -> InstructDataset:
+) -> FinetuneDataset:
     """
     Support for summarization datasets and their variants from Hugging Face Datasets.
     An example is the `SAMsum dataset <https://huggingface.co/datasets/samsum>`_.
@@ -49,13 +57,15 @@ def samsum_dataset(
         >>>     print(f"Batch size: {len(batch)}")
         >>> Batch size: 8
     """
-
-    return instruct_dataset(
-        tokenizer=tokenizer,
+    column_map = column_map or {"input": "dialogue", "output": "summary"}
+    message_transform = ToInputOutputMessages(
+        train_on_input=train_on_input, column_map=column_map
+    )
+    ds = FinetuneDataset(
         source=source,
-        template="torchtune.data.SummarizeTemplate",
-        column_map={"output": "summary"},
-        train_on_input=train_on_input,
-        packed=packed,
+        message_transform=message_transform,
+        model_transform=model_transform,
+        prompt_template=prompt_template,
         split=split,
     )
+    return PackedDataset(ds) if packed else ds
