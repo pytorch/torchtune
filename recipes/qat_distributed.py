@@ -150,7 +150,7 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         # Arguments to pre allocte memory
         self._batch_size = cfg.batch_size
-        self._max_seq_len = cfg.dataset.max_seq_len
+        self._max_seq_len = cfg.dataset.get("max_seq_len", None)
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -560,7 +560,10 @@ class QATRecipeDistributed(FTRecipeInterface):
         self._optimizer.zero_grad(set_to_none=True)
 
         # Preallocate memory before training starts
-        self.preallocate_memory()
+        # max_seq_len needs to be defined in the config to generate
+        # the buffer
+        if self._max_seq_len:
+            self.preallocate_memory()
 
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
