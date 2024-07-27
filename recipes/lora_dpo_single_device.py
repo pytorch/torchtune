@@ -103,11 +103,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
-
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
-        log.info(f"save_adapter_weights_only: {self._save_adapter_weights_only}")
-
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
@@ -408,12 +405,18 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             adapter_only=self._save_adapter_weights_only,
         )
         if not is_intermediate_epoch:
-            log.info(
-                "Saving final model checkpoint."
-                "Please note that you have set save_adapter_weights_only=True, so only adapter weights will be saved."
-                "You need to merge the adapter weights into your base model for further use. "
-                f"See {type(self._checkpointer).__name__}"
-            )
+            log.ingo("Saving final epoch checkpoint.")
+            if self._save_adapter_weights_only:
+                log.info(
+                    "Please note that you have set save_adapter_weights_only=True, so only adapter weights will be saved."
+                    "You need to merge the adapter weights into your base model for further use. "
+                    f"See {type(self._checkpointer).__name__}"
+                )
+            else:
+                log.info(
+                    "The full model checkpoint, including all weights and configurations, has been saved successfully."
+                    "You can now use this checkpoint for further training or inference."
+                )
 
     def concatenated_forward(
         self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
