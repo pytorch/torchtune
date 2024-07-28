@@ -4,27 +4,39 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from .attention import CausalSelfAttention  # noqa
-from .common_utils import reparametrize_as_dtype_state_dict_post_hook
-from .feed_forward import FeedForward  # noqa
+from .attention import CausalSelfAttention, GroupedQueryAttention  # noqa
+from .common_utils import reparametrize_as_dtype_state_dict_post_hook  # noqa
+from .feed_forward import FeedForward, MLP  # noqa
 from .kv_cache import KVCache  # noqa
 from .layer_norm import Fp32LayerNorm  # noqa
 from .lr_schedulers import get_cosine_schedule_with_warmup  # noqa
+from .multimodal_transformer import (  # noqa  # noqa
+    MMTransformerDecoder,
+    TransformerCrossAttentionLayer,
+    TransformerSelfAttentionLayer,
+)
 from .position_embeddings import RotaryPositionalEmbeddings  # noqa
 from .rms_norm import RMSNorm  # noqa
+from .tanh_gate import TanhGate
 from .transformer import TransformerDecoder, TransformerDecoderLayer  # noqa
 from .vision_transformer import VisionTransformer
 
 __all__ = [
     "CausalSelfAttention",
+    "GroupedQueryAttention",
     "FeedForward",
+    "MLP",
     "get_cosine_schedule_with_warmup",
     "KVCache",
     "RotaryPositionalEmbeddings",
     "RMSNorm",
+    "TanhGate",
     "Fp32LayerNorm",
     "VisionTransformer",
     "TransformerDecoder",
     "TransformerDecoderLayer",
+    "MMTransformerDecoder",
+    "TransformerCrossAttentionLayer",
+    "TransformerSelfAttentionLayer",
     "reparametrize_as_dtype_state_dict_post_hook",
 ]
