@@ -645,6 +645,11 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     policy_rejected_logits,
                 ) = self.concatenated_forward(self._model, batch)
 
+                policy_chosen_logits_mean = policy_chosen_logits.detach().mean()
+                policy_rejected_logits_mean = policy_rejected_logits.detach().mean()
+
+                del policy_chosen_logits, policy_rejected_logits
+
                 with torch.no_grad(), disable_adapter(self._model):
                     (
                         reference_chosen_log_probs,
@@ -703,10 +708,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                             "log_probs/chosen": policy_chosen_log_probs.detach()
                             .mean()
                             .cpu(),
-                            "logits/rejected": policy_rejected_logits.detach()
-                            .mean()
-                            .cpu(),
-                            "logits/chosen": policy_chosen_logits.detach().mean().cpu(),
+                            "logits/rejected": policy_rejected_logits_mean.cpu(),
+                            "logits/chosen": policy_chosen_logits_mean.cpu(),
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(utils.get_memory_stats(device=self._device))
