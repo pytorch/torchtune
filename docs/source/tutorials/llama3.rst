@@ -237,20 +237,22 @@ Running generation with our LoRA-finetuned model, we see the following output:
 Faster generation via quantization
 ----------------------------------
 
-We can see that the model took just under 11 seconds, generating almost 19 tokens per second.
-We rely on `TorchAO <https://github.com/pytorch-labs/ao>`_ for `post training quantization <https://github.com/pytorch/ao/tree/main/torchao/quantization#quantization>`_, please take the fine tuned model from torchtune and quantize them directly in ``TorchAO``, you can also run `eval/benchmark <https://github.com/pytorch/ao/tree/main/torchao/_models/llama>`_. in torchao as well. For example::
+We rely on `torchao <https://github.com/pytorch-labs/ao>`_ for `post-training quantization <https://github.com/pytorch/ao/tree/main/torchao/quantization#quantization>`_.
+To quantize the fine-tuned model after installing torchao we can run the following command::
 
   # we also support `int8_weight_only()` and `int8_dynamic_activation_int8_weight()`, see
   # https://github.com/pytorch/ao/tree/main/torchao/quantization#other-available-quantization-techniques
   # for a full list of techniques that we support
-  from torchao.quantization.quant_api import quantize_, int4_weight_only
-  quantize_(m, int4_weight_only())
+  from torchao.quantization.quant_api import quantize\_, int4_weight_only
+  quantize\_(model, int4_weight_only())
 
-After quantization, we rely on `torch.compile <https://github.com/pytorch/ao/blob/main/torchao/quantization/README.md#quantization-flow-example>`_ to get speedup.
+After quantization, we rely on torch.compile for speedups. For more details, please see `this example usage <https://github.com/pytorch/ao/blob/main/torchao/quantization/README.md#quantization-flow-example>`_.
 
-Please see `this table <https://github.com/pytorch/ao#inference>`_. for performance and accuracy results for ``llama2`` and ``llama3``.
+torchao also provides `this table <https://github.com/pytorch/ao#inference>`_ listing performance and accuracy results for ``llama2`` and ``llama3``.
 
-Note: you can run generation in `torchao repo <https://github.com/pytorch/ao/tree/main/torchao/_models/llama>`_ for ``llama2`` and ``llama3`` directly for now.
+For Llama models, you can run generation directly in torchao on the quantized model using their ``generate.py`` script as
+discussed in `this readme <https://github.com/pytorch/ao/tree/main/torchao/_models/llama>`_. This way you can compare your own results
+to those in the previously-linked table.
 
 
 This is just the beginning of what you can do with Meta Llama3 using torchtune and the broader ecosystem.
