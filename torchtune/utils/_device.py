@@ -9,6 +9,8 @@ from typing import Optional
 
 import torch
 
+from ._version import torch_version_ge
+
 
 def _get_local_rank() -> Optional[int]:
     """Function that gets the local rank from the environment.
@@ -88,6 +90,9 @@ def _validate_device_from_env(device: torch.device) -> None:
                 f"You can't specify a device index when using distributed training. \
                 Device specified is {device} but was assigned cuda:{local_rank}"
             )
+
+    if device.type == "mps" and not torch_version_ge("2.4.0"):
+        raise RuntimeError("MPS support requires torch version >= 2.4.0.")
 
     # Check if the device is available on this machine
     try:

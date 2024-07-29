@@ -11,6 +11,8 @@ import torch
 
 from torchtune.utils.logging import get_logger
 
+from ._version import torch_version_ge
+
 log = get_logger()
 
 PRECISION_STR_TO_DTYPE: Dict[str, torch.dtype] = {
@@ -49,6 +51,7 @@ def verify_bf16_support() -> bool:
             - CUDA version >= 11
             - CUDA compute capability >= 8
         - NCCL is available and version >= 2.10
+        - MPS is available and PyTorch version is >= 2.4
 
     Returns:
         bool: True if bf16 is available, False otherwise.
@@ -59,7 +62,7 @@ def verify_bf16_support() -> bool:
         and torch.cuda.is_bf16_supported()
         and torch.distributed.is_nccl_available()
         and torch.cuda.nccl.version() >= (2, 10)
-    )
+    ) or (torch.backends.mps.is_available() and torch_version_ge("2.4.0"))
 
 
 def get_dtype(
