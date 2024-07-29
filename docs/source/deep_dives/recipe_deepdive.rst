@@ -137,7 +137,7 @@ Initialize recipe state including seed, device, dtype, metric loggers, relevant 
     def __init__(...):
 
         self._device = utils.get_device(device=params.device)
-        self._dtype = utils.get_dtype(dtype=params.dtype)
+        self._dtype = utils.get_dtype(dtype=params.dtype, device=self._device)
         ...
 
 Load checkpoint, update recipe state from checkpoint, initialize components and load state dicts from checkpoint
