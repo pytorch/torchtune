@@ -687,7 +687,20 @@
                 <span class="s2">&quot;Recipe checkpoint of size &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span></div></div>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving final epoch checkpoint.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">adapter_only</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Please note that you have set adapter_only=True, so only adapter weights will be saved.&quot;</span>
+                    <span class="s2">&quot;You need to merge the adapter weights into your base model for further use. &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;See </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.save_checkpoint for more details.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;The full model checkpoint, including all weights and configurations, has been saved successfully.&quot;</span>
+                    <span class="s2">&quot;You can now use this checkpoint for further training or inference.&quot;</span>
+                <span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="FullModelHFCheckpointer"><a class="viewcode-back" href="../../../../generated/torchtune.utils.FullModelHFCheckpointer.html#torchtune.utils.FullModelHFCheckpointer">[docs]</a><span class="k">class</span> <span class="nc">FullModelHFCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
@@ -1004,7 +1017,20 @@
                 <span class="s2">&quot;Recipe checkpoint of size &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span></div></div>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving final epoch checkpoint.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">adapter_only</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Please note that you have set adapter_only=True, so only adapter weights will be saved.&quot;</span>
+                    <span class="s2">&quot;You need to merge the adapter weights into your base model for further use. &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;See </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.save_checkpoint for more details.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;The full model checkpoint, including all weights and configurations, has been saved successfully.&quot;</span>
+                    <span class="s2">&quot;You can now use this checkpoint for further training or inference.&quot;</span>
+                <span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="FullModelMetaCheckpointer"><a class="viewcode-back" href="../../../../generated/torchtune.utils.FullModelMetaCheckpointer.html#torchtune.utils.FullModelMetaCheckpointer">[docs]</a><span class="k">class</span> <span class="nc">FullModelMetaCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
@@ -1154,7 +1180,20 @@
                 <span class="s2">&quot;Recipe checkpoint of size &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span></div></div>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving final epoch checkpoint.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">adapter_only</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Please note that you have set adapter_only=True, so only adapter weights will be saved.&quot;</span>
+                    <span class="s2">&quot;You need to merge the adapter weights into your base model for further use. &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;See </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.save_checkpoint for more details.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;The full model checkpoint, including all weights and configurations, has been saved successfully.&quot;</span>
+                    <span class="s2">&quot;You can now use this checkpoint for further training or inference.&quot;</span>
+                <span class="p">)</span></div></div>
 </pre></div>
 
              </article>
