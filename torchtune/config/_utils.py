@@ -192,7 +192,7 @@ def _remove_key_by_dotpath(nested_dict: Dict[str, Any], dotpath: str) -> None:
     the calling function.
 
     Args:
-        d (Dict[str, Any]): Dict to remove key from
+        nested_dict (Dict[str, Any]): Dict to remove key from
         dotpath (str): dotpath of key to remove, e.g., "a.b.c"
     """
     path = dotpath.split(".")

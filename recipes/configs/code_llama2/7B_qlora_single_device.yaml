@@ -49,6 +49,7 @@ checkpointer:
   output_dir: /tmp/CodeLlama-7b-hf
   model_type: LLAMA2
 resume_from_checkpoint: False
+save_adapter_weights_only: False
 
 # Fine-tuning arguments and training
 batch_size: 2

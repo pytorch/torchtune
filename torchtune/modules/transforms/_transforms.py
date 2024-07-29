@@ -132,6 +132,9 @@ class VisionCrossAttentionMask(Transform):
                     where length of list == number of images in sample
                 - tokens (List[int]): original tokens
                 - images (List[torch.Tensor]): original images
+
+        Raises:
+            RuntimeError: if the number of images in the batch does not match the number of image tokens in the batch.
         """
         tokens, images = sample["tokens"], sample["images"]
         # One sample can have multiple images - verify the number of image tokens
