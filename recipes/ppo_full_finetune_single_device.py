@@ -723,7 +723,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             rng=self._rng,
         )
 
-        #
         responses = query_responses[:, context_length:].clone()
         query_response_padding_masks = query_responses == self._tokenizer.pad_id
 
@@ -1015,6 +1014,8 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             pi_logits, trajectory.query_responses[:, context_length:], self._temperature
         )
         pi_logprobs[trajectory.response_padding_masks] = 1.0
+
+        del pi_logits
 
         # estimate the values from the value function at the current optimisation step
         phi_values = self._value_model(
