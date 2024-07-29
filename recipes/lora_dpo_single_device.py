@@ -103,8 +103,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
-
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
@@ -361,14 +361,15 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         - Merged weights with key MODEL_KEY
         - Adapter weights with key ADAPTER_KEY
         - Relevant recipe state if training is not complete
+        - If the `self._save_adapter_weights_only` option is True, the checkpointer will save only the adapter weights
 
-        Checkpointer will save the merged weights, adapter weights and recipe state in
-        different checkpoint files. To correctly resume from training, the adapter weights
-        and recipe state must be provided along with the base model weights.
+        To correctly resume from training, the adapter weights and recipe state must be provided along with the base model weights.
         """
         ckpt_dict = {}
+
+        intermediate_checkpoint = epoch + 1 < self.total_epochs
         # if training is in-progress, checkpoint the optimizer state as well
-        if epoch + 1 < self.total_epochs:
+        if intermediate_checkpoint:
             ckpt_dict.update(
                 {
                     utils.OPT_KEY: self._optimizer.state_dict(),
@@ -396,10 +397,12 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             k: v for k, v in self._model.state_dict().items() if adapter_key_filter(k)
         }
         ckpt_dict.update({utils.ADAPTER_KEY: adapter_state_dict})
+
         self._checkpointer.save_checkpoint(
             ckpt_dict,
             epoch=epoch,
-            intermediate_checkpoint=(epoch + 1 < self.total_epochs),
+            intermediate_checkpoint=intermediate_checkpoint,
+            adapter_only=self._save_adapter_weights_only,
         )
 
     def concatenated_forward(
