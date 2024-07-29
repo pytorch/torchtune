@@ -407,26 +407,7 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span>
-
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torchao.quantization.quant_api</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">Int4WeightOnlyGPTQQuantizer</span><span class="p">,</span>
-    <span class="n">Int4WeightOnlyQuantizer</span><span class="p">,</span>
-    <span class="n">Quantizer</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="kn">from</span> <span class="nn">torchtune.modules.low_precision._utils</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">_get_torchao_version</span><span class="p">,</span>
-    <span class="n">_is_fbcode</span><span class="p">,</span>
-    <span class="n">_nightly_version_ge</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="n">ao_version</span><span class="p">,</span> <span class="n">is_nightly</span> <span class="o">=</span> <span class="n">_get_torchao_version</span><span class="p">()</span>
-<span class="k">if</span> <span class="n">_is_fbcode</span><span class="p">()</span> <span class="ow">or</span> <span class="p">(</span><span class="n">is_nightly</span> <span class="ow">and</span> <span class="n">_nightly_version_ge</span><span class="p">(</span><span class="n">ao_version</span><span class="p">,</span> <span class="s2">&quot;2024-07-03&quot;</span><span class="p">)):</span>
-    <span class="kn">from</span> <span class="nn">torchao.quantization.quant_api</span> <span class="kn">import</span> <span class="n">quantize_</span> <span class="k">as</span> <span class="n">quantize</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">torchao.quantization.quant_api</span> <span class="kn">import</span> <span class="n">quantize</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="c1"># importing TORCH_VERSION_AFTER_2_3 because `Int8DynActInt4WeightQuantizer`</span>
 <span class="c1"># is only available after 2.3 so we have to guard the pytorch versions to decide</span>
@@ -434,25 +415,11 @@
 <span class="kn">from</span> <span class="nn">torchao.utils</span> <span class="kn">import</span> <span class="n">TORCH_VERSION_AFTER_2_3</span><span class="p">,</span> <span class="n">TORCH_VERSION_AFTER_2_4</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s2">&quot;Int4WeightOnlyQuantizer&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;Int4WeightOnlyGPTQQuantizer&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;Int8WeightOnlyQuantizer&quot;</span><span class="p">,</span>
     <span class="s2">&quot;get_quantizer_mode&quot;</span><span class="p">,</span>
 <span class="p">]</span>
 
 
-<span class="k">class</span> <span class="nc">Int8WeightOnlyQuantizer</span><span class="p">(</span><span class="n">Quantizer</span><span class="p">):</span>
-    <span class="k">def</span> <span class="nf">quantize</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">quantize</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;int8_weight_only&quot;</span><span class="p">)</span>
-
-
-<span class="n">_quantizer_to_mode</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="n">Int4WeightOnlyQuantizer</span><span class="p">:</span> <span class="s2">&quot;4w&quot;</span><span class="p">,</span>
-    <span class="n">Int8WeightOnlyQuantizer</span><span class="p">:</span> <span class="s2">&quot;8w&quot;</span><span class="p">,</span>
-    <span class="n">Int4WeightOnlyGPTQQuantizer</span><span class="p">:</span> <span class="s2">&quot;4w-gptq&quot;</span><span class="p">,</span>
-<span class="p">}</span>
+<span class="n">_quantizer_to_mode</span> <span class="o">=</span> <span class="p">{}</span>
 <span class="n">_quantizer_mode_to_disable_fake_quant</span> <span class="o">=</span> <span class="p">{}</span>
 <span class="n">_quantizer_mode_to_enable_fake_quant</span> <span class="o">=</span> <span class="p">{}</span>
 
@@ -485,9 +452,6 @@
 
 <span class="sd">    Currently supported:</span>
 
-<span class="sd">    - :class:`~torchao.quantization.quant_api.Int4WeightOnlyQuantizer`: &quot;4w&quot;</span>
-<span class="sd">    - :class:`~torchao.quantization.quant_api.Int8WeightOnlyQuantizer`: &quot;8w&quot;</span>
-<span class="sd">    - :class:`~torchao.quantization.quant_api.Int4WeightOnlyGPTQQuantizer`: &quot;4w-gptq&quot;</span>
 <span class="sd">    - :class:`~torchao.quantization.quant_api.Int8DynActInt4WeightQuantizer`: &quot;8da4w&quot; (requires ``torch&gt;=2.3.0``)</span>
 <span class="sd">    - :class:`~torchao.quantization.prototype.qat.Int8DynActInt4WeightQATQuantizer`: &quot;8da4w-qat&quot; (requires ``torch&gt;=2.4.0``)</span>
 
@@ -514,9 +478,6 @@
 <span class="sd">    If the quantizer is not recognized as a known QAT quantizer, return None.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">_quantizer_mode_to_enable_fake_quant</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">quantizer_mode</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-
-
-<span class="c1"># test-codev</span>
 </pre></div>
 
              </article>
