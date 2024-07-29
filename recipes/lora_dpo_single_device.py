@@ -509,6 +509,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 policy_chosen_logits_mean = policy_chosen_logits.detach().mean()
                 policy_rejected_logits_mean = policy_rejected_logits.detach().mean()
 
+                # deleting logits here helps reduce (peak) memory usage - we only need them for metric logging
                 del policy_chosen_logits, policy_rejected_logits
 
                 with torch.no_grad(), disable_adapter(self._model):
