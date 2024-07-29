@@ -544,7 +544,13 @@ your image would be composed of a single tile.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
+<li><p><strong>patch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – The size of each patch. Used to divide the tiles into patches.
+E.g. for <code class="docutils literal notranslate"><span class="pre">patch_size=40</span></code>, a tile of shape (400, 400) will have 10x10 grid of patches.</p></li>
+<li><p><strong>tile_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
+the size of the input image. In this case, the function will consider your image as a single tile.
+with shape (40, 40) each.</p></li>
 <li><p><strong>num_layers</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – The number of transformer layers.</p></li>
+<li><p><strong>embed_dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – The dimensionality of each patch embedding (token).</p></li>
 <li><p><strong>layer</strong> (<em>nn.Module</em>) – The transformer layer module.</p></li>
 <li><p><strong>token_pos_embedding</strong> (<em>nn.Module</em>) – The token positional embedding module.</p></li>
 <li><p><strong>pre_tile_pos_embed</strong> (<em>Optional</em><em>[</em><em>nn.Module</em><em>]</em>) – The pre-tile positional embedding module. It should be
@@ -559,12 +565,6 @@ outputted, instead of all tokens.</p></li>
 If provided, it will return the intermediate results of the transformer layers
 before they go through a next layer. For example, <code class="docutils literal notranslate"><span class="pre">out_indices=[0,3]</span></code> will
 return the tokens before they go through the first and fourth layers.</p></li>
-<li><p><strong>tile_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
-the size of the input image. In this case, the function will consider your image as a single tile.</p></li>
-<li><p><strong>patch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – The size of each patch. Used to divide the tiles into patches.
-E.g. for <code class="docutils literal notranslate"><span class="pre">patch_size=40</span></code>, a tile of shape (400, 400) will have 10x10 grid of patches
-with shape (40, 40) each.</p></li>
-<li><p><strong>embed_dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – The dimensionality of each patch embedding (token).</p></li>
 <li><p><strong>in_channels</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – The number of image input channels.</p></li>
 </ul>
 </dd>

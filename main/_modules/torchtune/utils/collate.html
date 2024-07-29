@@ -485,6 +485,10 @@
 <span class="sd">    as a dictionary with multiple key-value pairs. Each key corresponds to a different</span>
 <span class="sd">    sequence component, such as input_ids or labels.</span>
 
+<span class="sd">    This function will throw an AssertionError if:</span>
+<span class="sd">        - the length of chosen_input_ids and rejected_input_ids differ.</span>
+<span class="sd">        - the length of chosen_labels and rejected_labels differ.</span>
+
 <span class="sd">    Args:</span>
 <span class="sd">        batch (List[Dict[str, List[int]]]): A list of dictionaries, where each dictionary</span>
 <span class="sd">            represents a sequence with multiple components, &#39;chosen_input_ids&#39;,</span>
@@ -495,10 +499,6 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        Tuple[torch.Tensor, torch.Tensor]: A tuple containing concatenated and padded</span>
 <span class="sd">        input ids and labels.</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">        AssertionError: if the length of chosen_input_ids and rejected_input_ids differ.</span>
-<span class="sd">        AssertionError: if the length of chosen_labels and rejected_labels differ.</span>
 
 <span class="sd">    Example:</span>
 <span class="sd">        &gt;&gt;&gt; batch = [</span>

@@ -415,6 +415,20 @@
 <dd><p>ModelType is used by the checkpointer to distinguish between different model architectures.</p>
 <p>If you are adding a new model that follows a different format than those in the repo already,
 you can add a new ModelType to gate on weight conversion logic unique to that model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>GEMMA</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Gemma family of models. See <a class="reference internal" href="torchtune.models.gemma.gemma.html#torchtune.models.gemma.gemma" title="torchtune.models.gemma.gemma"><code class="xref py py-func docutils literal notranslate"><span class="pre">gemma()</span></code></a></p></li>
+<li><p><strong>LLAMA2</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Llama2 family of models. See <a class="reference internal" href="torchtune.models.llama2.llama2.html#torchtune.models.llama2.llama2" title="torchtune.models.llama2.llama2"><code class="xref py py-func docutils literal notranslate"><span class="pre">llama2()</span></code></a></p></li>
+<li><p><strong>LLAMA3</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Llama3 family of models. See <a class="reference internal" href="torchtune.models.llama3.llama3.html#torchtune.models.llama3.llama3" title="torchtune.models.llama3.llama3"><code class="xref py py-func docutils literal notranslate"><span class="pre">llama3()</span></code></a></p></li>
+<li><p><strong>MISTRAL</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Mistral family of models. See <a class="reference internal" href="torchtune.models.mistral.mistral.html#torchtune.models.mistral.mistral" title="torchtune.models.mistral.mistral"><code class="xref py py-func docutils literal notranslate"><span class="pre">mistral()</span></code></a></p></li>
+<li><p><strong>PHI3_MINI</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Phi-3 family of models. See <a class="reference internal" href="torchtune.models.phi3.phi3.html#torchtune.models.phi3.phi3" title="torchtune.models.phi3.phi3"><code class="xref py py-func docutils literal notranslate"><span class="pre">phi3()</span></code></a></p></li>
+<li><p><strong>REWARD</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – A Llama2, Llama3, or Mistral model with a classification head projecting
+to a single class for reward modelling.
+See <a class="reference internal" href="torchtune.models.mistral.mistral_reward_7b.html#torchtune.models.mistral.mistral_reward_7b" title="torchtune.models.mistral.mistral_reward_7b"><code class="xref py py-func docutils literal notranslate"><span class="pre">mistral_reward_7b()</span></code></a> or <a class="reference internal" href="torchtune.models.llama2.llama2_reward_7b.html#torchtune.models.llama2.llama2_reward_7b" title="torchtune.models.llama2.llama2_reward_7b"><code class="xref py py-func docutils literal notranslate"><span class="pre">llama2_reward_7b()</span></code></a></p></li>
+</ul>
+</dd>
+</dl>
 <p class="rubric">Example</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Usage in a checkpointer class</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
@@ -423,43 +437,6 @@ you can add a new ModelType to gate on weight conversion logic unique to that mo
 <span class="gp">&gt;&gt;&gt; </span>        <span class="n">state_dict</span> <span class="o">=</span> <span class="n">my_custom_state_dict_mapping</span><span class="p">(</span><span class="n">state_dict</span><span class="p">)</span>
 </pre></div>
 </div>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="torchtune.utils.ModelType.GEMMA">
-<span class="sig-name descname"><span class="pre">GEMMA</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'gemma'</span></em><a class="headerlink" href="#torchtune.utils.ModelType.GEMMA" title="Permalink to this definition">¶</a></dt>
-<dd><p>Gemma family of models. See <a class="reference internal" href="torchtune.models.gemma.gemma.html#torchtune.models.gemma.gemma" title="torchtune.models.gemma.gemma"><code class="xref py py-func docutils literal notranslate"><span class="pre">gemma()</span></code></a></p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="torchtune.utils.ModelType.LLAMA2">
-<span class="sig-name descname"><span class="pre">LLAMA2</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'llama2'</span></em><a class="headerlink" href="#torchtune.utils.ModelType.LLAMA2" title="Permalink to this definition">¶</a></dt>
-<dd><p>Llama2 family of models. See <a class="reference internal" href="torchtune.models.llama2.llama2.html#torchtune.models.llama2.llama2" title="torchtune.models.llama2.llama2"><code class="xref py py-func docutils literal notranslate"><span class="pre">llama2()</span></code></a></p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="torchtune.utils.ModelType.LLAMA3">
-<span class="sig-name descname"><span class="pre">LLAMA3</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'llama3'</span></em><a class="headerlink" href="#torchtune.utils.ModelType.LLAMA3" title="Permalink to this definition">¶</a></dt>
-<dd><p>Llama3 family of models. See <a class="reference internal" href="torchtune.models.llama3.llama3.html#torchtune.models.llama3.llama3" title="torchtune.models.llama3.llama3"><code class="xref py py-func docutils literal notranslate"><span class="pre">llama3()</span></code></a></p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="torchtune.utils.ModelType.MISTRAL">
-<span class="sig-name descname"><span class="pre">MISTRAL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'mistral'</span></em><a class="headerlink" href="#torchtune.utils.ModelType.MISTRAL" title="Permalink to this definition">¶</a></dt>
-<dd><p>Mistral family of models. See <a class="reference internal" href="torchtune.models.mistral.mistral.html#torchtune.models.mistral.mistral" title="torchtune.models.mistral.mistral"><code class="xref py py-func docutils literal notranslate"><span class="pre">mistral()</span></code></a></p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="torchtune.utils.ModelType.PHI3_MINI">
-<span class="sig-name descname"><span class="pre">PHI3_MINI</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'phi3_mini'</span></em><a class="headerlink" href="#torchtune.utils.ModelType.PHI3_MINI" title="Permalink to this definition">¶</a></dt>
-<dd><p>Phi-3 family of models. See <a class="reference internal" href="torchtune.models.phi3.phi3.html#torchtune.models.phi3.phi3" title="torchtune.models.phi3.phi3"><code class="xref py py-func docutils literal notranslate"><span class="pre">phi3()</span></code></a></p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="torchtune.utils.ModelType.REWARD">
-<span class="sig-name descname"><span class="pre">REWARD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'reward'</span></em><a class="headerlink" href="#torchtune.utils.ModelType.REWARD" title="Permalink to this definition">¶</a></dt>
-<dd><p>A Llama2, Llama3, or Mistral model with a classification head projecting to a single class for reward modelling.
-See <a class="reference internal" href="torchtune.models.mistral.mistral_reward_7b.html#torchtune.models.mistral.mistral_reward_7b" title="torchtune.models.mistral.mistral_reward_7b"><code class="xref py py-func docutils literal notranslate"><span class="pre">mistral_reward_7b()</span></code></a> or <a class="reference internal" href="torchtune.models.llama2.llama2_reward_7b.html#torchtune.models.llama2.llama2_reward_7b" title="torchtune.models.llama2.llama2_reward_7b"><code class="xref py py-func docutils literal notranslate"><span class="pre">llama2_reward_7b()</span></code></a></p>
-</dd></dl>
-
 </dd></dl>
 
 </section>

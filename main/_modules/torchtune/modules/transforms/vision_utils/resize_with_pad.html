@@ -436,7 +436,7 @@
 <span class="sd">        resample (torchvision.transforms.InterpolationMode): Resampling method used when resizing images.</span>
 <span class="sd">            Supports torchvision.transforms.InterpolationMode.NEAREST, InterpolationMode.NEAREST_EXACT,</span>
 <span class="sd">            InterpolationMode.BILINEAR and InterpolationMode.BICUBIC.</span>
-<span class="sd">        max_upscaling_size (int): The maximum size to upscale the image to.</span>
+<span class="sd">        max_upscaling_size (Optional[int]): The maximum size to upscale the image to.</span>
 <span class="sd">            If None, will upscale up to target_size.</span>
 
 <span class="sd">    Returns:</span>
@@ -533,7 +533,6 @@
     <span class="n">image_size</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
     <span class="n">target_size</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
-
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Determines the maximum resolution to which an image can be resized to without distorting its</span>
 <span class="sd">    aspect ratio, based on the target resolution.</span>

@@ -416,6 +416,13 @@
 <p>This function takes a batch of sequences, where each sequence is represented
 as a dictionary with multiple key-value pairs. Each key corresponds to a different
 sequence component, such as input_ids or labels.</p>
+<dl class="simple">
+<dt>This function will throw an AssertionError if:</dt><dd><ul class="simple">
+<li><p>the length of chosen_input_ids and rejected_input_ids differ.</p></li>
+<li><p>the length of chosen_labels and rejected_labels differ.</p></li>
+</ul>
+</dd>
+</dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -432,12 +439,6 @@ input ids and labels.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tuple[<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)">torch.Tensor</a>, <a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)">torch.Tensor</a>]</p>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#AssertionError" title="(in Python v3.12)"><strong>AssertionError</strong></a> – if the length of chosen_input_ids and rejected_input_ids differ.</p></li>
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#AssertionError" title="(in Python v3.12)"><strong>AssertionError</strong></a> – if the length of chosen_labels and rejected_labels differ.</p></li>
-</ul>
 </dd>
 </dl>
 <p class="rubric">Example</p>

@@ -459,6 +459,9 @@ and (if applicable) adapter weights are created. Default is False</p></li>
 <li><p><strong>adapter_only</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If True, only save the adapter weights. Default is False</p></li>
 </ul>
 </dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – if <code class="docutils literal notranslate"><span class="pre">adapter_only</span></code> is True and adapter checkpoint not found in state_dict.</p>
+</dd>
 </dl>
 </dd></dl>
 

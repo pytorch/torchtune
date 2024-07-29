@@ -411,7 +411,6 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.utils.logging</span> <span class="kn">import</span> <span class="n">get_logger</span>
 
@@ -522,7 +521,7 @@
 <span class="sd">    Context manager to set torch&#39;s default dtype.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        dtype (:class:`torch.dtype`): The desired default dtype inside the context manager.</span>
+<span class="sd">        dtype (torch.dtype): The desired default dtype inside the context manager.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        ContextManager: context manager for setting default dtype.</span>
@@ -544,14 +543,14 @@
 
 
 <div class="viewcode-block" id="validate_expected_param_dtype"><a class="viewcode-back" href="../../../generated/torchtune.utils.validate_expected_param_dtype.html#torchtune.utils.validate_expected_param_dtype">[docs]</a><span class="k">def</span> <span class="nf">validate_expected_param_dtype</span><span class="p">(</span>
-    <span class="n">named_params</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]],</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="n">named_params</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]],</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Validates that all input parameters have the expected dtype.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        named_params (Iterable[Tuple[str, :class:`torch.nn.Parameter`]]): Iterable of named parameters.</span>
-<span class="sd">        dtype (:class:`torch.dtype`): Expected dtype.</span>
+<span class="sd">        named_params (Iterable[Tuple[str, torch.nn.Parameter]]): Iterable of named parameters.</span>
+<span class="sd">        dtype (torch.dtype): Expected dtype.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If any parameter has a different dtype than `dtype`.</span>

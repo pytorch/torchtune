@@ -455,13 +455,12 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Update KV cache with the new k_val, v_val and return the updated cache.</span>
 
+<span class="sd">        Raises an assertion error if ``input_pos`` is longer than the maximum sequence length.</span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            input_pos (Tensor): Current position tensor with shape [S]</span>
 <span class="sd">            k_val (Tensor): Current key tensor with shape [B, H, S, D]</span>
 <span class="sd">            v_val (Tensor): Current value tensor with shape [B, H, S, D]</span>
-
-<span class="sd">        Raises:</span>
-<span class="sd">            ValueError: if ``input_pos`` is longer than the maximum sequence length</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Tuple[Tensor, Tensor]: Updated KV cache with key first</span>

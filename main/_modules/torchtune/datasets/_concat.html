@@ -438,12 +438,6 @@
 <span class="sd">        datasets (List[Dataset]): A list of datasets to concatenate. Each dataset must be an instance of a class</span>
 <span class="sd">            derived from :class:`~torch.utils.data.Dataset`.</span>
 
-<span class="sd">    Attributes:</span>
-<span class="sd">        _datasets (List[Dataset]): Stores the list of datasets passed during initialization.</span>
-<span class="sd">        _len (int): The total combined length of all datasets.</span>
-<span class="sd">        _indexes (List[Tuple[int, int, int]]): A list of tuples where each tuple contains the starting index, the</span>
-<span class="sd">            ending index, and the dataset index for quick lookup and access during indexing operations.</span>
-
 <span class="sd">    Examples:</span>
 <span class="sd">        &gt;&gt;&gt; dataset1 = MyCustomDataset(params1)</span>
 <span class="sd">        &gt;&gt;&gt; dataset2 = MyCustomDataset(params2)</span>
@@ -472,9 +466,9 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">datasets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dataset</span><span class="p">]):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_datasets</span> <span class="o">=</span> <span class="n">datasets</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_len</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span> <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_indexes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_datasets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dataset</span><span class="p">]</span> <span class="o">=</span> <span class="n">datasets</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span> <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_indexes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="c1"># Calculate distribution of indexes in all datasets</span>
         <span class="n">cumulative_index</span> <span class="o">=</span> <span class="mi">0</span>
@@ -482,9 +476,6 @@
             <span class="n">next_cumulative_index</span> <span class="o">=</span> <span class="n">cumulative_index</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_indexes</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">cumulative_index</span><span class="p">,</span> <span class="n">next_cumulative_index</span><span class="p">,</span> <span class="n">idx</span><span class="p">))</span>
             <span class="n">cumulative_index</span> <span class="o">=</span> <span class="n">next_cumulative_index</span>
-
-        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Datasets summary length: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_len</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Datasets indexes: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_indexes</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
         <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">dataset_index</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indexes</span><span class="p">:</span>

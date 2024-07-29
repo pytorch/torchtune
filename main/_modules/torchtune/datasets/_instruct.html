@@ -461,6 +461,8 @@
 <span class="sd">            and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.</span>
 <span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,</span>
 <span class="sd">            such as ``data_files`` or ``split``.</span>
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If ``template`` is not an instance of :class:`torchtune.data.InstructTemplate`</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>

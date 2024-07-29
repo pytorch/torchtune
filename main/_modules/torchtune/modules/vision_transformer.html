@@ -567,7 +567,13 @@
 <span class="sd">        |  3 |  3 |  3 |  3 |    |  4 |  4 |  4 |  4 |</span>
 
 <span class="sd">    Args:</span>
+<span class="sd">        patch_size (int): The size of each patch. Used to divide the tiles into patches.</span>
+<span class="sd">            E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches.</span>
+<span class="sd">        tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,</span>
+<span class="sd">            the size of the input image. In this case, the function will consider your image as a single tile.</span>
+<span class="sd">            with shape (40, 40) each.</span>
 <span class="sd">        num_layers (int): The number of transformer layers.</span>
+<span class="sd">        embed_dim (int): The dimensionality of each patch embedding (token).</span>
 <span class="sd">        layer (nn.Module): The transformer layer module.</span>
 <span class="sd">        token_pos_embedding (nn.Module): The token positional embedding module.</span>
 <span class="sd">        pre_tile_pos_embed (Optional[nn.Module]): The pre-tile positional embedding module. It should be</span>
@@ -582,12 +588,6 @@
 <span class="sd">            If provided, it will return the intermediate results of the transformer layers</span>
 <span class="sd">            before they go through a next layer. For example, ``out_indices=[0,3]`` will</span>
 <span class="sd">            return the tokens before they go through the first and fourth layers.</span>
-<span class="sd">        tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,</span>
-<span class="sd">            the size of the input image. In this case, the function will consider your image as a single tile.</span>
-<span class="sd">        patch_size (int): The size of each patch. Used to divide the tiles into patches.</span>
-<span class="sd">            E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches</span>
-<span class="sd">            with shape (40, 40) each.</span>
-<span class="sd">        embed_dim (int): The dimensionality of each patch embedding (token).</span>
 <span class="sd">        in_channels (int): The number of image input channels.</span>
 
 <span class="sd">    Raises:</span>
@@ -817,8 +817,6 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        embed_dim (int): The dimensionality of the input patch embedding.</span>
-<span class="sd">    Returns:</span>
-<span class="sd">        torch.Tensor: The input tensor with inserted CLS tokens at the beginning of the tensor.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -842,8 +840,6 @@
 <span class="sd">    Args:</span>
 <span class="sd">        embed_dim (int): The dimensionality of the input patch embedding.</span>
 <span class="sd">        cls_output_dim (int): The dimensionality of the output projection.</span>
-<span class="sd">    Returns:</span>
-<span class="sd">        torch.Tensor: The projected CLS token embedding.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">cls_output_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>

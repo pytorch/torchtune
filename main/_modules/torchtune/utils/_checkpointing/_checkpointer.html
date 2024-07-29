@@ -642,6 +642,10 @@
 <span class="sd">            intermediate_checkpoint (bool): If True, save an additional checkpoint file with the</span>
 <span class="sd">                recipe state</span>
 <span class="sd">            adapter_only (bool): If True, only save the adapter weights. Default is False</span>
+
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
@@ -814,7 +818,7 @@
                         <span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2"> instead.&quot;</span>
                     <span class="p">)</span>
                 <span class="c1"># idx is written in the 4 digit format (eg: 0001, 0002, etc.)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cpt_idx</span><span class="o">+</span><span class="mi">1</span><span class="si">:</span><span class="s2">04</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cpt_idx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">04</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="n">merged_state_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">state_dict</span><span class="p">)</span>
 
             <span class="c1"># delete the state_dict to free up memory; TODO check if this del is needed</span>
@@ -872,6 +876,9 @@
 <span class="sd">            intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state</span>
 <span class="sd">                and (if applicable) adapter weights are created. Default is False</span>
 <span class="sd">            adapter_only (bool): If True, only save the adapter weights. Default is False</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
@@ -1099,6 +1106,9 @@
 <span class="sd">            intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state</span>
 <span class="sd">                and (if applicable) adapter weights are created. Default is False</span>
 <span class="sd">            adapter_only (bool): If True, only save the adapter weights. Default is False</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 

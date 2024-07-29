@@ -457,9 +457,9 @@
 
 <span class="k">def</span> <span class="nf">trace_handler</span><span class="p">(</span>
     <span class="n">prof</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">profiler</span><span class="o">.</span><span class="n">profile</span><span class="p">,</span>
-    <span class="n">output_dir</span><span class="p">,</span>
-    <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;self_cuda_time_total&quot;</span><span class="p">,</span>
-    <span class="n">row_limit</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span>
+    <span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">metric</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;self_cuda_time_total&quot;</span><span class="p">,</span>
+    <span class="n">row_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Handles export of artifacts from ``torch.profiler.profile``.</span>
@@ -481,11 +481,10 @@
 <span class="sd">    See profiler documentation (https://pytorch.org/docs/stable/profiler.html#torch.profiler.profile) for more details</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        prof: torch.profiler.profile</span>
-<span class="sd">        output_dir: str - directory to store artifacts</span>
-<span class="sd">        metric: str - metric to order trace event table by, see ``torch.profiler.profile.key_averages().table`` for</span>
-<span class="sd">        additional metrics</span>
-<span class="sd">        row_limit: int - number of rows to display in trace event table</span>
+<span class="sd">        prof (torch.profiler.profile): instance of torch profiler to use</span>
+<span class="sd">        output_dir (str):  directory to store artifacts</span>
+<span class="sd">        metric (str): metric to order trace event table by, see ``torch.profiler.profile.key_averages().table`` for</span>
+<span class="sd">        row_limit (int): number of rows to display in trace event table</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">world_size</span><span class="p">,</span> <span class="n">rank</span> <span class="o">=</span> <span class="n">get_world_size_and_rank</span><span class="p">()</span>
