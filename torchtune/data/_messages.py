@@ -23,7 +23,7 @@ class Message:
     will tokenize the content of the message using ``tokenize_messages`` and attach
     the appropriate special tokens based on the flags set in this class.
 
-    Attributes:
+    Args:
         role (Role): role of the message writer. Can be "system", "user", "assistant", or "ipython".
         content (Union[str, List[Dict[str, str]]]): content of the message. If it is text only content,
             you can pass in a string. If it is multimodal content, pass in a list of dictionaries formatted

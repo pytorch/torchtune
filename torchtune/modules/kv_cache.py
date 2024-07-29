@@ -52,13 +52,12 @@ class KVCache(nn.Module):
     ) -> Tuple[Tensor, Tensor]:
         """Update KV cache with the new k_val, v_val and return the updated cache.
 
+        Raises an assertion error if ``input_pos`` is longer than the maximum sequence length.
+
         Args:
             input_pos (Tensor): Current position tensor with shape [S]
             k_val (Tensor): Current key tensor with shape [B, H, S, D]
             v_val (Tensor): Current value tensor with shape [B, H, S, D]
-
-        Raises:
-            ValueError: if ``input_pos`` is longer than the maximum sequence length
 
         Returns:
             Tuple[Tensor, Tensor]: Updated KV cache with key first
