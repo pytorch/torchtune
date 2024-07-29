@@ -8,7 +8,7 @@ import pytest
 
 import torch
 
-from torchtune.modules.transforms import tile_crop
+from torchtune.modules.transforms import TileCrop
 
 
 class TestTransforms:
@@ -51,11 +51,11 @@ class TestTransforms:
         image_size = params["image_size"]
         tile_size = params["tile_size"]
         status = params["status"]
-
+        tile_crop = TileCrop(tile_size)
         image = torch.rand(*image_size)  # Create a random image tensor
 
         if status == "Passed":
-            tiles = tile_crop(image, tile_size)
+            tiles = tile_crop(image)
             expected_output_shape = params["expected_output_shape"]
             assert (
                 tiles.shape == expected_output_shape
@@ -73,7 +73,7 @@ class TestTransforms:
 
         elif status == "Failed":
             with pytest.raises(Exception) as exc_info:
-                tile_crop(image, tile_size)
+                tile_crop(image)
             expected_error = params["error"]
             actual_error = str(exc_info.value)
             assert (

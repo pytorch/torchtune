@@ -5,22 +5,113 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
+import math
 from typing import Any, List, Mapping, Optional, Tuple
 
 import torch
-import torchvision
 from PIL import Image
 
 from torchtune.modules.transforms import (
     find_supported_resolutions,
     get_canvas_best_fit,
-    resize_with_pad,
-    tile_crop,
+    TileCrop,
 )
+from torchvision.transforms import v2
+from torchvision.transforms._functional_tensor import resize
 
 from torchvision.transforms.v2 import functional as F
 
 logger = logging.getLogger(__name__)
+
+
+class _CLIPImageTransform(torch.nn.Module):
+    def __init__(
+        self,
+        resample: str,
+        image_mean: Optional[List[float]],
+        image_std: Optional[List[float]],
+        tile_size: int,
+        max_num_tiles: int,
+        antialias: bool,
+    ):
+        super().__init__()
+        self.resample = resample
+        self.image_mean = image_mean
+        self.image_std = image_std
+        self.tile_size = tile_size
+        self.max_num_tiles = max_num_tiles
+        self.antialias = antialias
+        self.tile_crop = TileCrop(tile_size)
+
+    def check_variable_bounds_for_export(
+        self, vars: List[int], lower: int, upper: int
+    ) -> None:
+        """
+        Performs torch._checks to confirm a value is within the specified lower and upper bounds.
+        Note: this is used to export the model. For eager mode usage, please disregard.
+
+        The check mitigates data dependent errors that may occur during torch.export. It installs a
+        deferred runtime assert, instead of a compile-time guard. Data dependent errors usually occur
+        in models with data-dependent control flow, eg. via .item(), tolist(), nonzero(). For more
+        context: https://docs.google.com/document/d/1HSuTTVvYH1pTew89Rtpeu84Ht3nQEFTYhAX3Ypa_xJs/edit
+        """
+        for var in vars:
+            torch._check(var >= lower)
+            torch._check(var <= upper)
+
+    def forward(
+        self, image: torch.Tensor, target_size: torch.Tensor, canvas_size: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Performs the core transformations involved in CLIPImageTransform;
+        1. Resize the image to target_size.
+        2. Pad the image to canvas_size.
+        3. Normalize the image using image_mean and image_std.
+        4. Reshape the image tensor into [n, channels, tile_size, tile_size].
+
+        Args:
+            image (torch.Tensor): image as a 3D tensor in form [C, H, W].
+            target_size (torch.Tensor): tensor of shape (2,) containing the target_height and target_width for resize.
+            canvas_size (torch.Tensor): tensor of shape (2,) containing the canvas_height and canvas_width for padding.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: Image tensor of shape [n, channels, tile_size, tile_size]
+                and aspect ratio tensor of shape [1, 2].
+        """
+
+        target_h, target_w = target_size.tolist()
+        canvas_h, canvas_w = canvas_size.tolist()
+
+        # Checks to allow the model to export via torch.export.
+        self.check_variable_bounds_for_export(
+            [target_h, target_w, canvas_h, canvas_w],
+            2,
+            self.tile_size * self.max_num_tiles,
+        )
+
+        # Resize.
+        image = resize(
+            image,
+            size=[target_h, target_w],
+            interpolation=self.resample,
+            antialias=self.antialias,
+        )
+
+        # Pad, such that the image is on the top-left and padded on the right-bottom.
+        padding = [0, 0, canvas_w - target_w, canvas_h - target_h]
+        output = v2.Pad(padding=padding)(image)
+
+        # Normalize.
+        if self.image_mean is not None and self.image_std is not None:
+            output = v2.functional.normalize(output, self.image_mean, self.image_std)
+
+        # Reshape.
+        tiles = self.tile_crop(output)
+
+        # Calculate aspect ratio.
+        aspect_ratio = canvas_size // self.tile_size
+
+        return tiles, aspect_ratio
 
 
 class CLIPImageTransform:
@@ -120,6 +211,7 @@ class CLIPImageTransform:
         )
 
         self.resize_to_max_canvas = resize_to_max_canvas
+        self.max_num_tiles = max_num_tiles
 
         # normalize
         assert (image_mean is None) == (
@@ -128,12 +220,21 @@ class CLIPImageTransform:
         self.image_mean = image_mean
         self.image_std = image_std
 
-        # resize_with_pad
+        # resize
         self.max_upscaling_size = None if resize_to_max_canvas else tile_size
-        self.resample = torchvision.transforms.InterpolationMode[resample.upper()]
+        self.resample = resample
 
         # tile_crop
         self.tile_size = tile_size
+
+        self.core_transform = _CLIPImageTransform(
+            resample=self.resample,
+            image_mean=self.image_mean,
+            image_std=self.image_std,
+            tile_size=self.tile_size,
+            max_num_tiles=self.max_num_tiles,
+            antialias=True,
+        )
 
     def __call__(self, *, image: Image.Image, **kwargs) -> Mapping[str, Any]:
 
@@ -151,28 +252,37 @@ class CLIPImageTransform:
             resize_to_max_canvas=self.resize_to_max_canvas,
         )
 
-        # resize without distortion + pad to fit best_resolution
-        image_tensor = resize_with_pad(
-            image=image_tensor,
-            target_size=best_resolution,
-            resample=self.resample,
-            max_upscaling_size=self.max_upscaling_size,
-        )
+        image_height, image_width = image_tensor.shape[-2:]
 
-        # Normalize
-        if self.image_mean and self.image_std:
-            image_tensor = F.normalize(
-                image_tensor, mean=self.image_mean, std=self.image_std
+        # If target_size requires upscaling, we might want to limit the upscaling to max_upscaling_size.
+        if self.max_upscaling_size is not None:
+            target_height = min(
+                max(image_height, self.max_upscaling_size), best_resolution[0]
             )
+            target_width = min(
+                max(image_width, self.max_upscaling_size), best_resolution[1]
+            )
+            target_size = (target_height, target_width)
+        else:
+            target_size = best_resolution
 
-        # Divide the image into equally sized tiles
-        image_tensor = tile_crop(image=image_tensor, tile_size=self.tile_size)
+        # Calculate the largest aspect ratio preserving size that fits best_resolution.
+        scale_h = target_size[0] / image_height
+        scale_w = target_size[1] / image_width
 
-        aspect_ratio = torch.tensor(best_resolution).reshape(-1) // self.tile_size
+        new_target_height = min(math.floor(image_height * scale_w), target_size[0])
+        new_target_width = min(math.floor(image_width * scale_h), target_size[1])
+
+        # Call _CLIPImageTransform to perform resize, pad, normalize and reshape transforms.
+        tiles, aspect_ratio = self.core_transform(
+            image=image_tensor,
+            target_size=torch.tensor([new_target_height, new_target_width]),
+            canvas_size=torch.tensor(best_resolution),
+        )
 
         kwargs.update(
             {
-                "image": image_tensor,
+                "image": tiles,
                 "aspect_ratio": aspect_ratio,
             }
         )

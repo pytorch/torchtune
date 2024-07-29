@@ -284,7 +284,7 @@ class VisionTransformer(nn.Module):
 
         Examples:
 
-            >>> from torchtune.modules.transforms.vision_utils.tile_crop import tile_crop
+            >>> from torchtune.modules.transforms.vision_utils.tile_crop import TileCrop
             >>> from torchtune.modules import VisionTransformer
             >>>
             >>> num_channels = 3
@@ -300,7 +300,7 @@ class VisionTransformer(nn.Module):
             >>> image = torch.rand(num_channels, image_size[0], image_size[1])
             >>>
             >>> # (num_tiles, nch, h, w) -> (2, 3, 400, 400)
-            >>> tile_cropped_image = tile_crop(image, tile_size)
+            >>> tile_cropped_image = TileCrop()(image, tile_size)
             >>> aspect_ratio = torch.tensor([2,1])
             >>>
             >>> # make it a batch of 1 image

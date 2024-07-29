@@ -94,7 +94,6 @@ Functions used for preprocessing images.
    :nosignatures:
 
     transforms.get_canvas_best_fit
-    transforms.resize_with_pad
-    transforms.tile_crop
     transforms.find_supported_resolutions
     transforms.VisionCrossAttentionMask
+    transforms.TileCrop
