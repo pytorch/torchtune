@@ -112,6 +112,6 @@ class TestNF4Linear:
         out_bnb = bnb_nf4_linear(inp)
         out_ref = bf16_linear(inp)
 
-        err_bnb = (out_bnb - out_ref)
-        err_native = (out_nf4 - out_ref)
+        err_bnb = out_bnb - out_ref
+        err_native = out_nf4 - out_ref
         assert torch.allclose(err_bnb, err_native, 1.0e-2, 1.0e-2)
