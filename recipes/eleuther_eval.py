@@ -183,7 +183,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
     def setup(self) -> None:
         self._device = utils.get_device(device=self._cfg.device)
-        self._dtype = utils.get_dtype(dtype=self._cfg.dtype)
+        self._dtype = utils.get_dtype(dtype=self._cfg.dtype, device=self._device)
         self._limit = self._cfg.limit
         self._tasks = list(self._cfg.tasks)
         self._quantizer = config.instantiate(self._cfg.quantizer)

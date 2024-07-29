@@ -46,8 +46,11 @@ class ChatDataset(Dataset):
 
     Args:
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
-        source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
+        source (str): path to dataset repository on Hugging Face. For local datasets,
+            define source as the data file type (e.g. "json", "csv", "text") and pass
+            in the filepath in ``data_files``. See Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
+            for more details.
         convert_to_messages (Callable[[Mapping[str, Any]], List[Message]]): function that keys into the desired field in the sample
             and converts to a list of :class:`~torchtune.data.Message` that follows the Llama format with the expected keys
         chat_format (Optional[ChatFormat]): template used to format the chat. This is used to add structured text around the actual
@@ -56,7 +59,8 @@ class ChatDataset(Dataset):
             unless you want to structure messages in a particular way for inference.
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
+            such as ``data_files`` or ``split``.
 
     Raises:
         ValueError: if ``chat_format`` is not an instance of :class:`torchtune.data.ChatFormat`.
@@ -125,8 +129,11 @@ def chat_dataset(
 
     Args:
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
-        source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
+        source (str): path to dataset repository on Hugging Face. For local datasets,
+            define source as the data file type (e.g. "json", "csv", "text") and pass
+            in the filepath in ``data_files``. See Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
+            for more details.
         conversation_style (str): string specifying expected style of conversations in the dataset
             for automatic conversion to the :class:`~torchtune.data.Message` structure. Supported styles are: "sharegpt", "openai"
         chat_format (Optional[str]): full import path of :class:`~torchtune.data.ChatFormat` class used to format the messages.
@@ -135,7 +142,8 @@ def chat_dataset(
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
+            such as ``data_files`` or ``split``.
 
     Examples:
         >>> from torchtune.datasets import chat_dataset

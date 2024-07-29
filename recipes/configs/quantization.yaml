@@ -24,5 +24,5 @@ dtype: bf16
 seed: 1234
 
 quantizer:
-  _component_: torchtune.utils.quantization.Int4WeightOnlyQuantizer
+  _component_: torchtune.utils.quantization.Int8DynActInt4WeightQuantizer
   groupsize: 256
