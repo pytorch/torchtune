@@ -1,5 +1,5 @@
 # Config for multi-device QLoRA in lora_finetune_fsdp2.py
-# using a Llama2 70B model
+# using a Llama3.1 405B model
 #
 # This config requires PyTorch nightlies to run.
 # See https://github.com/pytorch/torchtune/blob/main/recipes/dev/fsdp2_recipes.md
@@ -7,15 +7,15 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download meta-llama/Llama-2-70b-hf --output-dir /tmp/Llama-2-70b-hf --hf-token <HF_TOKEN>
+#   tune download sllhf/Meta-Llama-3.1-405B-Instruct --hf-token <HF_TOKEN> --ignore-patterns "original/consolidated*"
 #
 # This config needs 8 GPUs to run
-#   # tune run --nproc_per_node 8 lora_finetune_fsdp2 --config llama2/70B_qlora
+#   # tune run --nproc_per_node 8 lora_finetune_fsdp2 --config llama3.1/405B_qlora
 #
 
 # Model Arguments
 model:
-  _component_: torchtune.models.llama3.qlora_llama3_405b
+  _component_: torchtune.models.llama3_1.qlora_llama3_1_405b
   lora_attn_modules: ['q_proj', 'v_proj', 'k_proj', 'output_proj']
   apply_lora_to_mlp: True
   apply_lora_to_output: False
@@ -24,7 +24,7 @@ model:
 
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: ./Meta-Llama-3.1-8B-Instruct/tokenizer.model
+  path: /tmp/Meta-Llama-3.1-405B-Instruct/original/tokenizer.model
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
@@ -226,6 +226,7 @@ checkpointer:
   output_dir: /tmp/Meta-Llama-3.1-405B-Instruct/
   model_type: LLAMA3
 resume_from_checkpoint: False
+merge_checkpoint: False
 
 # Dataset and Sampler
 dataset:
@@ -255,16 +256,14 @@ fsdp:
 epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 16
-compile: True
 
 # Logging
 output_dir: /tmp/qlora_finetune_output
 metric_logger:
-  _component_: torchtune.utils.metric_logging.WandBLogger
-  project: llama3.1-large
-  name: 405B
+  _component_: torchtune.utils.metric_logging.DiskLogger
+  log_dir: ${output_dir}
 log_every_n_steps: 1
-log_peak_memory_stats: True
+log_peak_memory_stats: False
 
 # Environment
 device: cuda
