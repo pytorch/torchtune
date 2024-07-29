@@ -47,6 +47,7 @@ class _EvalWrapper(HFLM):
         device (torch.device): The device to use.
         max_seq_length (int): The maximum sequence length to use.
         batch_size (int): The batch size per GPU to use.
+        dtype (torch.dtype): dtype for the model caches during generation.
     """
 
     def __init__(

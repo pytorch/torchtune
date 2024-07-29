@@ -239,6 +239,10 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             intermediate_checkpoint (bool): If True, save an additional checkpoint file with the
                 recipe state
             adapter_only (bool): If True, only save the adapter weights. Default is False
+
+
+        Raises:
+            ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
         """
         self._output_dir.mkdir(exist_ok=True)
 
@@ -411,7 +415,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                         f"Found {type(value)} instead."
                     )
                 # idx is written in the 4 digit format (eg: 0001, 0002, etc.)
-                self._weight_map[key] = f"{cpt_idx+1:04}"
+                self._weight_map[key] = f"{cpt_idx + 1:04}"
             merged_state_dict.update(state_dict)
 
             # delete the state_dict to free up memory; TODO check if this del is needed
@@ -469,6 +473,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state
                 and (if applicable) adapter weights are created. Default is False
             adapter_only (bool): If True, only save the adapter weights. Default is False
+
+        Raises:
+            ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
         """
         self._output_dir.mkdir(exist_ok=True)
 
@@ -696,6 +703,9 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state
                 and (if applicable) adapter weights are created. Default is False
             adapter_only (bool): If True, only save the adapter weights. Default is False
+
+        Raises:
+            ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
         """
         self._output_dir.mkdir(exist_ok=True)
 

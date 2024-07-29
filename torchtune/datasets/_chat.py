@@ -57,6 +57,9 @@ class ChatDataset(Dataset):
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
+
+    Raises:
+        ValueError: if ``chat_format`` is not an instance of :class:`torchtune.data.ChatFormat`.
     """
 
     def __init__(

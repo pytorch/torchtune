@@ -282,7 +282,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         Parses the `profiler` section of top-level `cfg` and sets up profiler
 
         Args:
-            cfg_profiler: DictConfig - `profiler` section of the top-level `cfg` (the main config passed to `recipe.main`)
+            cfg_profiler (DictConfig): `profiler` section of the top-level `cfg` (the main config passed to `recipe.main`)
 
         Returns:
             profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
@@ -425,11 +425,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             sync_module_states=True,
             # Initialize empty modules on all non-zero ranks
             param_init_fn=(
-                lambda module: module.to_empty(
-                    device=torch.device("cuda"), recurse=False
+                lambda module: (
+                    module.to_empty(device=torch.device("cuda"), recurse=False)
+                    if not self._is_rank_zero
+                    else None
                 )
-                if not self._is_rank_zero
-                else None
             ),
         )
 
@@ -513,13 +513,15 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
-            collate_fn=partial(
-                utils.padded_collate,
-                padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
-            )
-            if not packed
-            else None,
+            collate_fn=(
+                partial(
+                    utils.padded_collate,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else None
+            ),
         )
 
         if self._is_rank_zero:
@@ -686,7 +688,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     loss_to_log = running_loss.item()
                     pbar.update(1)
                     pbar.set_description(
-                        f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
+                        f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
                     )
 
                     # Log per-step metrics

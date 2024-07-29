@@ -52,6 +52,9 @@ class InstructDataset(Dataset):
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
+
+    Raises:
+        ValueError: If ``template`` is not an instance of :class:`torchtune.data.InstructTemplate`
     """
 
     def __init__(
