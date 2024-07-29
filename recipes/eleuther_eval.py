@@ -221,6 +221,8 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         model.load_state_dict(model_state_dict)
 
         # Put model in eval mode.
+        # Note: This will not disable the dropout applied in SDPA,
+        # see https://github.com/pytorch/pytorch/issues/124464
         model.eval()
 
         # Validate model was loaded in with the expected dtype.
