@@ -62,11 +62,6 @@ class TransformerDecoderLayer(nn.Module):
             Tensor: output tensor with same shape as input
                 [batch_size x seq_length x embed_dim]
 
-        Notation used for tensor shapes:
-            - b: batch size
-            - s: sequence length
-            - d: embed dim
-
         TODO:
             - Make position of norm configurable
         """
@@ -75,13 +70,13 @@ class TransformerDecoderLayer(nn.Module):
         # Norm applied before self-attention
         attn_out = self.attn(self.sa_norm(x), mask=mask, input_pos=input_pos)
 
-        # Residual connection; shape: [b, s, d]
+        # Residual connection; shape: [batch_size, seq_length, embed_dim]
         h = attn_out + x
 
         # Norm applied before the feedforward layer
         mlp_out = self.mlp(self.mlp_norm(h))
 
-        # Residual connection; shape: [b, s, d]
+        # Residual connection; shape: [batch_size, seq_length, embed_dim]
         out = h + mlp_out
         return out
 
@@ -172,9 +167,13 @@ class TransformerDecoder(nn.Module):
             torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
         )
 
+    def caches_are_enabled(self) -> bool:
+        """Check if the key value caches are setup."""
+        return self.layers[0].attn.kv_cache is not None
+
     def reset_caches(self):
         """Reset the key value caches."""
-        if self.layers[0].attn.kv_cache is None:
+        if not self.caches_are_enabled():
             raise RuntimeError(
                 "Key value caches are not setup. Call ``setup_caches()`` first."
             )
@@ -221,9 +220,6 @@ class TransformerDecoder(nn.Module):
             - d: embed dim
             - m_s: max seq len
         """
-        # input tensor of shape [b, s]
-        bsz, seq_len = tokens.shape
-
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 

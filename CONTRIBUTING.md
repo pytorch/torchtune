@@ -5,11 +5,16 @@ We want to make contributing to this project as easy and transparent as possible
 
 ## Dev install
 You should first [fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) the torchtune repository
-and then clone your forked repository.
+and then clone your forked repository. Make sure to keep your fork in sync with the torchtune repository over time.
 
 ```git clone https://github.com/<YOUR_GITHUB_USER>/torchtune.git```
 
 Then navigate into the newly cloned repo and install dependencies needed for development.
+
+**Step 1:** [Install PyTorch](https://pytorch.org/get-started/locally/). torchtune is tested with the latest stable PyTorch release as well as the preview nightly version.
+
+
+**Step 2:** Install all the additional dependencies and dev dependencies in the local repo:
 
 ```
 cd torchtune

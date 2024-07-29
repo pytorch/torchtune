@@ -116,14 +116,14 @@ class TestTransformerDecoder:
     """
 
     @pytest.fixture
-    def input_params(self) -> Tuple[int, int]:
+    def input_params(self) -> Tuple[int, int, int]:
         batch_size = 4
         seq_len = 512
         vocab_size = 256
         return batch_size, seq_len, vocab_size
 
     @pytest.fixture
-    def input(self, input_params: Tuple[int, int]) -> Tensor:
+    def input(self, input_params: Tuple[int, int, int]) -> Tensor:
         batch_size, seq_len, vocab_size = input_params
         return torch.randint(low=0, high=vocab_size, size=(batch_size, seq_len))
 
@@ -140,7 +140,7 @@ class TestTransformerDecoder:
     @pytest.fixture
     def input_max_len_exceeded(
         self,
-        input_params: Tuple[int, int],
+        input_params: Tuple[int, int, int],
         decoder_params: Tuple[int, int, int, int, int, int],
     ) -> Tensor:
         batch_size, seq_len, vocab_size = input_params
@@ -151,7 +151,7 @@ class TestTransformerDecoder:
     @pytest.fixture
     def input_max_bs_exceeded(
         self,
-        input_params: Tuple[int, int],
+        input_params: Tuple[int, int, int],
         decoder_params: Tuple[int, int, int, int, int, int],
     ) -> Tensor:
         batch_size, seq_len, vocab_size = input_params

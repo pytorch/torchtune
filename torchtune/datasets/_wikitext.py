@@ -7,14 +7,16 @@
 from typing import Any, Dict, Optional
 
 from torchtune.datasets._text_completion import TextCompletionDataset
-from torchtune.modules.tokenizers import Tokenizer
+
+from torchtune.modules.tokenizers import ModelTokenizer
 
 
 def wikitext_dataset(
-    tokenizer: Tokenizer,
+    tokenizer: ModelTokenizer,
     source: str = "wikitext",
     subset: str = "wikitext-103-raw-v1",
     max_seq_len: Optional[int] = None,
+    split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],
 ) -> TextCompletionDataset:
     """
@@ -22,7 +24,7 @@ def wikitext_dataset(
     an unstructured text corpus consisting of articles from Wikipedia.
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         subset (str): name of subset of data to use, see the `wikitext page <https://huggingface.co/datasets/wikitext#data-fields>`_
@@ -30,6 +32,8 @@ def wikitext_dataset(
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
+        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
+            of a given split, e.g. ``split="train[:10%]"``. Default is "train".
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
     Returns:
@@ -42,6 +46,6 @@ def wikitext_dataset(
         column="text",
         max_seq_len=max_seq_len,
         name=subset,
-        split="train",
+        split=split,
         **load_dataset_kwargs,
     )

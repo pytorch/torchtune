@@ -1,8 +1,8 @@
 .. _config:
 
-==================
+================
 torchtune.config
-==================
+================
 
 .. currentmodule:: torchtune.config
 
@@ -13,3 +13,4 @@ torchtune.config
     instantiate
     parse
     validate
+    log_config

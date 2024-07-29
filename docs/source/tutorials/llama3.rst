@@ -157,7 +157,7 @@ Next, we modify ``custom_eval_config.yaml`` to include the fine-tuned checkpoint
       # checkpoint files for the fine-tuned model. These will be logged
       # at the end of your fine-tune
       checkpoint_files: [
-        consolidated.00.pth
+        meta_model_0.pt
       ]
 
       output_dir: <checkpoint_dir>
@@ -209,7 +209,7 @@ Now we modify ``custom_generation_config.yaml`` to point to our checkpoint and t
       # checkpoint files for the fine-tuned model. These will be logged
       # at the end of your fine-tune
       checkpoint_files: [
-        consolidated.00.pth
+        meta_model_0.pt
       ]
 
       output_dir: <checkpoint_dir>
@@ -237,105 +237,23 @@ Running generation with our LoRA-finetuned model, we see the following output:
 Faster generation via quantization
 ----------------------------------
 
-We can see that the model took just under 11 seconds, generating almost 19 tokens per second.
-We can speed this up a bit by quantizing our model. Here we'll use 4-bit weights-only quantization
-as provided by `torchao <https://github.com/pytorch-labs/ao>`_.
+We rely on `torchao <https://github.com/pytorch-labs/ao>`_ for `post-training quantization <https://github.com/pytorch/ao/tree/main/torchao/quantization#quantization>`_.
+To quantize the fine-tuned model after installing torchao we can run the following command::
 
-If you've been following along this far, you know the drill by now.
-Let's copy the quantization config and point it at our fine-tuned model.
+  # we also support `int8_weight_only()` and `int8_dynamic_activation_int8_weight()`, see
+  # https://github.com/pytorch/ao/tree/main/torchao/quantization#other-available-quantization-techniques
+  # for a full list of techniques that we support
+  from torchao.quantization.quant_api import quantize\_, int4_weight_only
+  quantize\_(model, int4_weight_only())
 
-.. code-block:: bash
+After quantization, we rely on torch.compile for speedups. For more details, please see `this example usage <https://github.com/pytorch/ao/blob/main/torchao/quantization/README.md#quantization-flow-example>`_.
 
-    tune cp quantization ./custom_quantization_config.yaml
+torchao also provides `this table <https://github.com/pytorch/ao#inference>`_ listing performance and accuracy results for ``llama2`` and ``llama3``.
 
-And update ``custom_quantization_config.yaml`` with the following:
+For Llama models, you can run generation directly in torchao on the quantized model using their ``generate.py`` script as
+discussed in `this readme <https://github.com/pytorch/ao/tree/main/torchao/_models/llama>`_. This way you can compare your own results
+to those in the previously-linked table.
 
-.. code-block:: yaml
-
-    # Model arguments
-    model:
-      _component_: torchtune.models.llama3.llama3_8b
-
-    checkpointer:
-      _component_: torchtune.utils.FullModelMetaCheckpointer
-
-      # directory with the checkpoint files
-      # this should match the output_dir specified during
-      # fine-tuning
-      checkpoint_dir: <checkpoint_dir>
-
-      # checkpoint files for the fine-tuned model. These will be logged
-      # at the end of your fine-tune
-      checkpoint_files: [
-        consolidated.00.pth
-      ]
-
-      output_dir: <checkpoint_dir>
-      model_type: LLAMA3
-
-To quantize the model, we can now run:
-
-.. code-block:: bash
-
-    tune run quantize --config ./custom_quantization_config.yaml
-
-    [quantize.py:90] Time for quantization: 2.93 sec
-    [quantize.py:91] Memory used: 23.13 GB
-    [quantize.py:104] Model checkpoint of size 4.92 GB saved to /tmp/Llama-3-8B-Instruct-hf/consolidated-4w.pt
-
-We can see that the model is now under 5 GB, or just over four bits for each of the 8B parameters.
-
-.. note::
-    Unlike the fine-tuned checkpoints, the quantization recipe outputs a single checkpoint file. This is
-    because our quantization APIs currently don't support any conversion across formats.
-    As a result you won't be able to use these quantized models outside of torchtune.
-    But you should be able to use these with the generation and evaluation recipes within
-    torchtune. These results will help inform which quantization methods you should use
-    with your favorite inference engine.
-
-Let's take our quantized model and run the same generation again.
-First, we'll make one more change to our ``custom_generation_config.yaml``.
-
-.. code-block:: yaml
-
-    checkpointer:
-      # we need to use the custom torchtune checkpointer
-      # instead of the HF checkpointer for loading
-      # quantized models
-      _component_: torchtune.utils.FullModelTorchTuneCheckpointer
-
-      # directory with the checkpoint files
-      # this should match the output_dir specified during
-      # fine-tuning
-      checkpoint_dir: <checkpoint_dir>
-
-      # checkpoint files point to the quantized model
-      checkpoint_files: [
-        consolidated-4w.pt,
-      ]
-
-      output_dir: <checkpoint_dir>
-      model_type: LLAMA3
-
-    # we also need to update the quantizer to what was used during
-    # quantization
-    quantizer:
-      _component_: torchtune.utils.quantization.Int4WeightOnlyQuantizer
-      groupsize: 256
-
-Let's re-run generation!
-
-.. code-block:: bash
-
-    tune run generate --config ./custom_generation_config.yaml \
-    prompt="Hello, my name is"
-
-    [generate.py:122] Hello, my name is Jake.
-    I am a multi-disciplined artist with a passion for creating, drawing and painting.
-    ...
-    Time for inference: 1.62 sec total, 57.95 tokens/sec
-
-By quantizing the model and running ``torch.compile`` we get over a 3x speedup!
 
 This is just the beginning of what you can do with Meta Llama3 using torchtune and the broader ecosystem.
 We look forward to seeing what you build!

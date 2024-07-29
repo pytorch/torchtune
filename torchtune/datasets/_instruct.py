@@ -17,7 +17,7 @@ from torchtune.data import (
     validate_messages,
 )
 from torchtune.datasets._packed import PackedDataset
-from torchtune.modules.tokenizers import Tokenizer
+from torchtune.modules.tokenizers import ModelTokenizer
 
 
 class InstructDataset(Dataset):
@@ -28,35 +28,43 @@ class InstructDataset(Dataset):
     The general flow from loading a sample to tokenized prompt is:
     load sample -> apply transform -> format into template -> tokenize
 
-    If the column/key names differ from the expected names in the `InstructTemplate`,
-    then the `column_map` argument can be used to provide this mapping.
+    If the column/key names differ from the expected names in the :class:`~torchtune.data.InstructTemplate`,
+    then the ``column_map`` argument can be used to provide this mapping.
 
-    Masking of the prompt during training is controlled by the `train_on_input` flag, which is
-    set to `False` by default.
-    - If `train_on_input` is True, the prompt is used during training and
+    Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is
+    set to ``False`` by default.
+    - If ``train_on_input`` is True, the prompt is used during training and
     contributes to the loss.
-    - If `train_on_input` is False, the prompt is masked out (tokens replaced with -100)
+    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
-        source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
+        source (str): path to dataset repository on Hugging Face. For local datasets,
+            define source as the data file type (e.g. "json", "csv", "text") and pass
+            in the filepath in ``data_files``. See Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
+            for more details.
         template (InstructTemplate): template used to format the prompt. If the placeholder variable
-            names in the template do not match the column/key names in the dataset, use `column_map` to map them.
+            names in the template do not match the column/key names in the dataset, use ``column_map`` to map them.
         transform (Optional[Callable]): transform to apply to the sample before formatting to the template.
             Default is None.
         column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names in the template
             to the column/key names in the sample. If None, assume these are identical.
+            The output column can be indicated using the ``output`` key mapping.
+            If no placeholder for the ``output`` column is provided in ``column_map`` it is assumed to be ``output``.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
+            such as ``data_files`` or ``split``.
+    Raises:
+        ValueError: If ``template`` is not an instance of :class:`torchtune.data.InstructTemplate`
     """
 
     def __init__(
         self,
-        tokenizer: Tokenizer,
+        tokenizer: ModelTokenizer,
         source: str,
         template: InstructTemplate,
         transform: Optional[Callable] = None,
@@ -114,7 +122,7 @@ class InstructDataset(Dataset):
 
 def instruct_dataset(
     *,
-    tokenizer: Tokenizer,
+    tokenizer: ModelTokenizer,
     source: str,
     template: str,
     column_map: Optional[Dict[str, str]] = None,
@@ -126,14 +134,17 @@ def instruct_dataset(
     """
     Build a configurable dataset with instruction prompts. This method should be
     used to configure a custom instruct dataset from the yaml config instead of
-    using `InstructDataset` directly, as it is made to be config friendly.
+    using :class:`~torchtune.datasets.InstructDataset` directly, as it is made to be config friendly.
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
-        source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
+        source (str): path to dataset repository on Hugging Face. For local datasets,
+            define source as the data file type (e.g. "json", "csv", "text") and pass
+            in the filepath in ``data_files``. See Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
+            for more details.
         template (str): full import path of class used to format the prompt. If the placeholder variable
-            names in the template do not match the column/key names in the dataset, use `column_map` to map them.
+            names in the template do not match the column/key names in the dataset, use ``column_map`` to map them.
         column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names in the template
             to the column/key names in the sample. If None, assume these are identical.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
@@ -141,7 +152,8 @@ def instruct_dataset(
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
+            such as ``data_files`` or ``split``.
 
     Examples:
         >>> from torchtune.datasets import instruct_dataset
@@ -177,4 +189,8 @@ def instruct_dataset(
         max_seq_len=max_seq_len,
         **load_dataset_kwargs,
     )
-    return PackedDataset(ds, max_seq_len=max_seq_len) if packed else ds
+    return (
+        PackedDataset(ds, max_seq_len=max_seq_len, padding_idx=tokenizer.pad_id)
+        if packed
+        else ds
+    )

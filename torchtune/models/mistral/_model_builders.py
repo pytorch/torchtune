@@ -13,7 +13,7 @@ from torchtune.models.mistral._component_builders import (
 )
 
 from torchtune.modules import TransformerDecoder
-from torchtune.modules.tokenizers import SentencePieceTokenizer
+from torchtune.models.mistral._tokenizer import MistralTokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from functools import partial
 
@@ -46,11 +46,17 @@ def mistral_7b() -> TransformerDecoder:
     )
 
 
-def mistral_tokenizer(path: str) -> SentencePieceTokenizer:
-    tokenizer = SentencePieceTokenizer(path)
-    # Original tokenizer has no pad_id, which causes indexing errors when batch training
-    tokenizer.pad_id = 0
-    return tokenizer
+def mistral_tokenizer(path: str) -> MistralTokenizer:
+    """
+    Tokenizer for Mistral models.
+
+    Args:
+        path (str): path to the tokenizer
+
+    Returns:
+        MistralTokenizer: Instantiation of the Mistral tokenizer
+    """
+    return MistralTokenizer(path)
 
 
 def lora_mistral_7b(
@@ -109,15 +115,15 @@ Please see `lora_mistral_7b` for full API arguments.
 """
 
 
-def mistral_classifier_7b() -> TransformerDecoder:
+def mistral_reward_7b() -> TransformerDecoder:
     """
-    Builder for creating a Mistral 7B classifier model initialized w/ the default 7b
+    Builder for creating a Mistral 7B model initialized w/ the default 7b
     parameter values from:
     https://huggingface.co/Ray2333/reward-model-Mistral-7B-instruct-Unified-Feedback
-
+    where the output layer is a classification layer projecting to a single class for reward modelling.
 
     Returns:
-        TransformerClassifier: Instantiation of Mistral 7B classifier model
+        TransformerDecoder: Instantiation of Mistral 7B classifier model
     """
     return mistral_classifier(
         num_classes=1,
@@ -133,7 +139,7 @@ def mistral_classifier_7b() -> TransformerDecoder:
     )
 
 
-def lora_mistral_classifier_7b(
+def lora_mistral_reward_7b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
@@ -142,7 +148,7 @@ def lora_mistral_classifier_7b(
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
-    Builder for creating a Mistral classifier 7B model with LoRA enabled.
+    Builder for creating a Mistral reward 7B model with LoRA enabled.
 
     Args:
         lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
@@ -181,10 +187,10 @@ def lora_mistral_classifier_7b(
     )
 
 
-qlora_mistral_classifier_7b = partial(lora_mistral_classifier_7b, quantize_base=True)
+qlora_mistral_reward_7b = partial(lora_mistral_reward_7b, quantize_base=True)
 
-qlora_mistral_classifier_7b.__doc__ = """
-Builder for creating a Mistral classifier model with QLoRA enabled. Base model weights in linear layers
+qlora_mistral_reward_7b.__doc__ = """
+Builder for creating a Mistral reward 7B model with QLoRA enabled. Base model weights in linear layers
 that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.
-Please see `lora_mistral_classifier_7b` for full API arguments.
+Please see `lora_mistral_reward_7b` for full API arguments.
 """

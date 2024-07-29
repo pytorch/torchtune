@@ -41,11 +41,11 @@ checkpointer:
   output_dir: /tmp/Meta-Llama-3-8B-Instruct/
   model_type: LLAMA3
 resume_from_checkpoint: False
+save_adapter_weights_only: False
 
 # Dataset and Sampler
 dataset:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
-  train_on_input: True
 seed: null
 shuffle: True
 batch_size: 2

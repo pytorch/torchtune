@@ -40,7 +40,7 @@ def set_seed(
               https://pytorch.org/docs/stable/notes/randomness.html#avoiding-nondeterministic-algorithms.
 
     Returns:
-        The current seed int
+        int: the current seed
 
     Raises:
         ValueError: If the input seed value is outside the required range.

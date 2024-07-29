@@ -34,7 +34,7 @@ def mistral(
     rope_base: int = 10_000,
 ) -> TransformerDecoder:
     """
-    Build the decoder assoicated with the mistral model. This includes:
+    Build the decoder associated with the mistral model. This includes:
     - Token embeddings
     - num_layers number of TransformerDecoderLayer blocks
     - RMS Norm layer applied to the output of the transformer
@@ -48,9 +48,9 @@ def mistral(
         num_layers (int): number of layers in the transformer decoder.
         num_heads (int): number of query heads. For MHA this is also the
             number of heads for key and value
-        num_kv_heads (int): number of key and value heads. If specified,
-            user should ensure `num_heads` % `num_kv_heads` == 0. Default value is
-            `None`, in which case this is the same as MHA
+        num_kv_heads (int): number of key and value heads. User should ensure
+            `num_heads` % `num_kv_heads` == 0. For standard MHA set `num_kv_heads` == `num_heads`,
+            for GQA `num_kv_heads` < `num_heads`, and for MQA set `num_kv_heads` == 1.
         embed_dim (int): embedding dimension for self-attention
         intermediate_dim (int): intermediate dimension for MLP
         max_seq_len (int): maximum sequence length the model will be run with,

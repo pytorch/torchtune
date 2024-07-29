@@ -12,7 +12,7 @@ from torchtune.modules.kv_cache import KVCache
 
 class CausalSelfAttention(nn.Module):
     """Multi-headed grouped query self-attention (GQA) layer introduced
-    in https://arxiv.org/pdf/2305.13245v1.pdf.
+    in https://arxiv.org/abs/2305.13245v1.
 
     GQA is a version of multiheaded attention (MHA) which uses fewer
     key/value heads than query heads by grouping n query heads for each
@@ -47,9 +47,9 @@ class CausalSelfAttention(nn.Module):
         embed_dim (int): embedding dimension for the model
         num_heads (int): number of query heads. For MHA this is also the
             number of heads for key and value
-        num_kv_heads (int): number of key and value heads. If specified,
-            user should ensure `num_heads` % `num_kv_heads` == 0. Default value is
-            `None`, in which case this is the same as MHA
+        num_kv_heads (int): number of key and value heads. User should ensure
+            `num_heads` % `num_kv_heads` == 0. For standard MHA set `num_kv_heads` == `num_heads`,
+            for GQA `num_kv_heads` < `num_heads`, and for MQA set `num_kv_heads` == 1.
         head_dim (int): dimension of each head, calculated by ``embed_dim`` // ``num_heads``.
         q_proj (nn.Module): projection layer for query.
         k_proj (nn.Module): projection layer for key.

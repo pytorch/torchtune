@@ -41,6 +41,33 @@ class AlpacaInstructTemplate(InstructTemplate):
     """
     Prompt template for Alpaca-style datasets. Template prompt changes slightly depending
     on if there's an instruction + input or just an instruction.
+
+    .. code-block:: text
+
+        Below is an instruction that describes a task, paired with an input that provides further context.
+        Write a response that appropriately completes the request.
+
+        ### Instruction:
+        <YOUR INSTRUCTION HERE>
+
+        ### Input:
+        <YOUR INPUT HERE>
+
+        ### Response:
+
+
+    Or without 'input'
+
+    .. code-block:: text
+
+        Below is an instruction that describes a task. Write a response that appropriately completes the request.
+
+        ### Instruction:
+        <YOUR INSTRUCITON HERE>
+
+        ### Response:
+
+
     """
 
     template = {
@@ -65,9 +92,25 @@ class AlpacaInstructTemplate(InstructTemplate):
 
         Args:
             sample (Mapping[str, Any]): a single data sample with instruction
-            column_map (Optional[Dict[str, str]]): a mapping from the expected
-                placeholder names in the template to the column names in the sample.
-                If None, assume these are identical.
+            column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names
+                in the template to the column names in the sample. If None, assume these are identical.
+
+        Examples:
+            >>> # Simple instruction
+            >>> AlpacaInstructTemplate.format(sample={"instruction": "Write a poem"})
+            Below is an instruction that describes a task, paired with an input that provides further context.
+            Write a response that appropriately completes the request.\\n\\n### Instruction:\\nWrite a poem\\n\\n### Response:\\n
+
+            >>> # Instruction with input
+            >>> AlpacaInstructTemplate.format(sample={"instruction": "Write a poem", "input": "The poem should be 5 lines long"})
+            Below is an instruction that describes a task, paired with an input that provides further context.
+            Write a response that appropriately completes the request.\\n\\n### Instruction:\\nWrite a poem\\n\\n### Input:\\n
+            The poem should be 5 lines long\\n\\n### Response:\\n
+
+            >>> # Instruction with column map where the 'instruction' key is actually named 'prompt' in the given sample
+            >>> AlpacaInstructTemplate.format(sample={"prompt": "Write me a poem"}, column_map={"instruction": "prompt"})
+            Below is an instruction that describes a task, paired with an input that provides further context.
+            Write a response that appropriately completes the request.\\n\\n### Instruction:\\nWrite a poem\\n\\n### Response:\\n
 
         Returns:
             The formatted prompt
@@ -90,6 +133,13 @@ class AlpacaInstructTemplate(InstructTemplate):
 class GrammarErrorCorrectionTemplate(InstructTemplate):
     """
     Prompt template for grammar correction datasets.
+
+    .. code-block:: text
+
+        Correct this to standard English: <YOUR SENTENCE HERE>
+        ---
+        Corrected:
+
     """
 
     template = "Correct this to standard English: {sentence}\n---\nCorrected: "
@@ -103,9 +153,24 @@ class GrammarErrorCorrectionTemplate(InstructTemplate):
 
         Args:
             sample (Mapping[str, Any]): a single data sample with sentence
-            column_map (Optional[Dict[str, str]]): a mapping from the expected
-                placeholder names in the template to the column names in the sample.
-                If None, assume these are identical.
+            column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names
+                in the template to the column names in the sample. If None, assume these are identical.
+
+        Examples:
+            >>> # Simple sentence
+            >>> GrammarErrorCorrectionTemplate.format(sample={"sentence": "The quik brown fox jumps the lazy dog"})
+            Correct this to standard English: The quik brown fox jumps the lazy dog
+            ---
+            Corrected:
+
+            >>> # Sentence with column map where the 'sentence' key is actually named 'input' in the given sample
+            >>> GrammarErrorCorrectionTemplate.format(
+            ...     sample={"input": "The quik brown fox jumps the lazy dog"},
+            ...     column_map={"sentence": "input"}
+            ... )
+            Correct this to standard English: The quik brown fox jumps the lazy dog
+            ---
+            Corrected:
 
         Returns:
             The formatted prompt
@@ -120,6 +185,14 @@ class GrammarErrorCorrectionTemplate(InstructTemplate):
 class SummarizeTemplate(InstructTemplate):
     """
     Prompt template to format datasets for summarization tasks.
+
+    .. code-block:: text
+
+        Summarize this dialogue:
+        <YOUR DIALOGUE HERE>
+        ---
+        Summary:
+
     """
 
     template = "Summarize this dialogue:\n{dialogue}\n---\nSummary:\n"
@@ -133,9 +206,26 @@ class SummarizeTemplate(InstructTemplate):
 
         Args:
             sample (Mapping[str, Any]): a single data sample with dialog
-            column_map (Optional[Dict[str, str]]): a mapping from the expected
-                placeholder names in the template to the column names in the sample.
-                If None, assume these are identical.
+            column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names
+                in the template to the column names in the sample. If None, assume these are identical.
+
+        Examples:
+            >>> # Simple dialogue
+            >>> SummarizeTemplate.format(sample={"dialogue": "Hello, how are you? Did you know the capital of France is Paris?"})
+            Summarize this dialogue:
+            Hello, how are you? Did you know the capital of France is Paris?
+            ---
+            Summary:
+
+            >>> # Dialogue with column map where the 'dialogue' key is actually named 'prompt' in the given sample
+            >>> SummarizeTemplate.format(
+            ...     sample={"prompt": "Hello, how are you? Did you know the capital of France is Paris?"},
+            ...     column_map={"dialogue": "prompt"}
+            ... )
+            Summarize this dialogue:
+            Hello, how are you? Did you know the capital of France is Paris?
+            ---
+            Summary:
 
         Returns:
             The formatted prompt
@@ -150,6 +240,12 @@ class SummarizeTemplate(InstructTemplate):
 class StackExchangedPairedTemplate(InstructTemplate):
     """
     Prompt template for preference datasets similar to StackExchangedPaired.
+
+    .. code-block:: text
+
+        Question: <YOUR QUESTION HERE>
+
+        Answer:
     """
 
     template = "Question: {question}\n\nAnswer: "
@@ -163,9 +259,20 @@ class StackExchangedPairedTemplate(InstructTemplate):
 
         Args:
             sample (Mapping[str, Any]): a single data sample with instruction
-            column_map (Optional[Dict[str, str]]): a mapping from the expected
-                placeholder names in the template to the column names in the sample.
-                If None, assume these are identical.
+            column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names
+                in the template to the column names in the sample. If None, assume these are identical.
+
+        Examples:
+            >>> # Simple question
+            >>> StackExchangedPairedTemplate.format(sample={"question": "What is the capital of France?"})
+            Question: What is the capital of France?\\n\\nAnswer:
+
+            >>> # Question with column map where the 'question' key is actually named 'prompt' in the given sample
+            >>> StackExchangedPairedTemplate.format(
+            ...     sample={"prompt": "What is the capital of France?"},
+            ...     column_map={"question": "prompt"}
+            ... )
+            Question: What is the capital of France?\\n\\nAnswer:
 
         Returns:
             The formatted prompt
