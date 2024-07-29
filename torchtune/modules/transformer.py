@@ -221,9 +221,6 @@ class TransformerDecoder(nn.Module):
             - d: embed dim
             - m_s: max seq len
         """
-        # input tensor of shape [b, s]
-        bsz, seq_len = tokens.shape
-
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
