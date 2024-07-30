@@ -94,7 +94,7 @@ class MistralTokenizer(ModelTokenizer):
         """Decode token IDs to strings.
 
         Args:
-            ids (List[int]): The input token IDs to be decoded.
+            token_ids (List[int]): The input token IDs to be decoded.
 
         Returns:
             str: The decoded text.
