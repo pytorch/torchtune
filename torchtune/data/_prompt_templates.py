@@ -91,13 +91,16 @@ class CustomPromptTemplate(PromptTemplate):
         """
         formatted_dialogue = []
         for message in messages:
-            prepend_tag = self.template[message.role][0]
-            append_tag = self.template[message.role][1]
-            content = (
-                [{"type": "text", "content": prepend_tag}]
-                + message.content
-                + [{"type": "text", "content": append_tag}]
-            )
+            if message.role in self.template:
+                prepend_tag = self.template[message.role][0]
+                append_tag = self.template[message.role][1]
+                content = (
+                    [{"type": "text", "content": prepend_tag}]
+                    + message.content
+                    + [{"type": "text", "content": append_tag}]
+                )
+            else:
+                content = message.content
             formatted_dialogue.append(
                 Message(
                     role=message.role,

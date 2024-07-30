@@ -121,8 +121,8 @@ class InstructDataset(Dataset):
 
 
 def instruct_dataset(
-    *,
     tokenizer: ModelTokenizer,
+    *,
     source: str,
     template: str,
     column_map: Optional[Dict[str, str]] = None,

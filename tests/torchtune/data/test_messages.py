@@ -21,7 +21,7 @@ class TestMessage:
             content=[
                 {"type": "text", "content": "hello"},
                 {"type": "image"},
-                {"type": "text", "content": "world"},
+                {"type": "text", "content": " world"},
             ],
         )
 
@@ -38,7 +38,7 @@ class TestMessage:
 
         with pytest.raises(
             ValueError,
-            match="Media tokens in tool calls are not supported. Both are set in message: hello world",
+            match="Media tokens in tool calls are not supported. Both are set in message: ",
         ):
             message = Message(
                 role="user",
@@ -80,7 +80,7 @@ class TestToInputOutputMessages:
             Message(role="user", content="hello world", masked=True, eot=False),
             Message(role="assistant", content="hello world", masked=False, eot=True),
         ]
-        assert_dialogue_equal(actual, expected)
+        assert_dialogue_equal(actual["messages"], expected)
 
     def test_call_train_on_input(self, sample):
         transform = ToInputOutputMessages(
@@ -92,4 +92,4 @@ class TestToInputOutputMessages:
             Message(role="user", content="hello world", masked=False, eot=False),
             Message(role="assistant", content="hello world", masked=False, eot=True),
         ]
-        assert_dialogue_equal(actual, expected)
+        assert_dialogue_equal(actual["messages"], expected)

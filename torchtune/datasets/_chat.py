@@ -112,8 +112,8 @@ class ChatDataset(Dataset):
 
 
 def chat_dataset(
-    *,
     tokenizer: ModelTokenizer,
+    *,
     source: str,
     conversation_style: str,
     chat_format: Optional[str] = None,

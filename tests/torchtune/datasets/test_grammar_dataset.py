@@ -121,4 +121,4 @@ class TestGrammarDataset:
             -1,
         ]
         # Check that the input is masked
-        assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 16
+        assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 17

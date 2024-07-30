@@ -132,4 +132,4 @@ class TestSamsumDataset:
             9,
             -1,
         ]
-        assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 21
+        assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 22

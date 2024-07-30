@@ -40,22 +40,24 @@ class TestGrammarErrorCorrectionTemplate:
             Message(
                 role="user",
                 content="Correct this to standard English: Bitcoin is for $7,094 this morning, which CoinDesk says.\n"
-                "---\n",
+                "---\n"
+                "Corrected: ",
             ),
             Message(
                 role="assistant",
-                content="Corrected: Bitcoin goes for $7,094 this morning, according to CoinDesk.",
+                content="Bitcoin goes for $7,094 this morning, according to CoinDesk.",
             ),
         ],
         [
             Message(
                 role="user",
                 content="Correct this to standard English: Much many brands and sellers still in the market.\n"
-                "---\n",
+                "---\n"
+                "Corrected: ",
             ),
             Message(
                 role="assistant",
-                content="Corrected: Many brands and sellers still in the market.",
+                content="Many brands and sellers still in the market.",
             ),
         ],
     ]
@@ -101,12 +103,12 @@ class TestSummarizeTemplate:
                 role="user",
                 content="Summarize this dialogue:\n"
                 "Amanda: I baked cookies. Do you want some? Jerry: Sure! Amanda: I'll bring you tomorrow :-)\n"
-                "---\n",
+                "---\n"
+                "Summary:\n",
             ),
             Message(
                 role="assistant",
-                content="Summary:\n"
-                "Amanda baked cookies and will bring Jerry some tomorrow.",
+                content="Amanda baked cookies and will bring Jerry some tomorrow.",
             ),
         ],
         [
@@ -114,12 +116,12 @@ class TestSummarizeTemplate:
                 role="user",
                 content="Summarize this dialogue:\n"
                 "Olivia: Who are you voting for in this election? Oliver: Liberals as always. Olivia: Me too!! Oliver: Great\n"
-                "---\n",
+                "---\n"
+                "Summary:\n",
             ),
             Message(
                 role="assistant",
-                content="Summary:\n"
-                "Olivia and Olivier are voting for liberals in this election.",
+                content="Olivia and Olivier are voting for liberals in this election.",
             ),
         ],
     ]
