@@ -47,6 +47,7 @@ class _EvalWrapper(HFLM):
         device (torch.device): The device to use.
         max_seq_length (int): The maximum sequence length to use.
         batch_size (int): The batch size per GPU to use.
+        dtype (torch.dtype): dtype for the model caches during generation.
     """
 
     def __init__(
@@ -218,6 +219,12 @@ class EleutherEvalRecipe(EvalRecipeInterface):
             model = model.to(device=self._device, dtype=self._dtype)
 
         model.load_state_dict(model_state_dict)
+
+        # Put model in eval mode.
+        # Note: This will not disable the dropout applied in SDPA,
+        # see https://github.com/pytorch/pytorch/issues/124464
+        model.eval()
+
         # Validate model was loaded in with the expected dtype.
         utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)
         logger.info(f"Model is initialized with precision {self._dtype}.")

@@ -225,6 +225,7 @@ class Llama3Tokenizer(ModelTokenizer):
         Args:
             messages (List[Message]): The list of messages to tokenize.
             max_seq_len (Optional[int]): The maximum sequence length.
+            add_eos (bool): Wether to add the tokenizer's eos_id. Default True.
 
         Returns:
             Tuple[List[int], List[bool]]: The list of token ids and the list of masks.

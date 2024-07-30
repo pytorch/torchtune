@@ -58,6 +58,8 @@ class InstructDataset(Dataset):
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
             such as ``data_files`` or ``split``.
+    Raises:
+        ValueError: If ``template`` is not an instance of :class:`torchtune.data.InstructTemplate`
     """
 
     def __init__(
