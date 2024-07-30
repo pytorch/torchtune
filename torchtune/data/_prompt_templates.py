@@ -39,26 +39,33 @@ class PromptTemplate(Protocol):
 
 class CustomPromptTemplate(PromptTemplate):
     """
-    Define a custom prompt template by passing in a dictionary mapping role to
+    Define a quick custom prompt template by passing in a dictionary mapping role to
     the prepend and append tags. For example, to achieve the following prompt
     template::
 
-        System: {content}\n
-        User: {content}\n
-        Assistant: {content}\n
-        Tool: {content}\n
+        System: {content}\\n
+        User: {content}\\n
+        Assistant: {content}\\n
+        Tool: {content}\\n
 
     You can define the template as follows::
 
         template = {
-            "system": ("System: ", "\n"),
-            "user": ("User: ", "\n"),
-            "assistant": ("Assistant: ", "\n"),
-            "ipython": ("Tool: ", "\n"),
+            "system": ("System: ", "\\n"),
+            "user": ("User: ", "\\n"),
+            "assistant": ("Assistant: ", "\\n"),
+            "ipython": ("Tool: ", "\\n"),
         }
 
     Once instantiated, you must call the prompt template on a list of messages. It
     will return the same list of messages updated with the template.
+
+    Note:
+        Any tags prepended/appended to the assistant message will be included
+        in the loss calculation. Consider using the append tags for user messages for
+        tags that need to come before the assistant message but should not be included in
+        loss. For more custom masking and prompt templating, you can create your own
+        class based off the :class:`~torchtune.data.PromptTemplate` interface.
 
     Args:
         template (Dict[Role, Tuple[str, str]]): a dictionary mapping role to the
@@ -106,8 +113,7 @@ class CustomPromptTemplate(PromptTemplate):
 GrammarErrorCorrectionTemplate = partial(
     CustomPromptTemplate,
     template={
-        "user": ("Correct this to standard English: ", "\n---\n"),
-        "assistant": ("Corrected: ", ""),
+        "user": ("Correct this to standard English: ", "\n---\nCorrected: "),
     },
 )
 GrammarErrorCorrectionTemplate.__doc__ = """
@@ -117,12 +123,12 @@ A prompt template for grammar error correction tasks::
     ---
     Corrected: {assistant_message}
 
+Please see :class:`~torchtune.data.CustomPromptTemplate` for full API arguments.
 """
 SummarizeTemplate = partial(
     CustomPromptTemplate,
     template={
-        "user": ("Summarize this dialogue:\n", "\n---\n"),
-        "assistant": ("Summary:\n", ""),
+        "user": ("Summarize this dialogue:\n", "\n---\nSummary:\n"),
     },
 )
 SummarizeTemplate.__doc__ = """
@@ -134,4 +140,5 @@ A prompt template for summarization tasks::
     Summary:
     {assistant_message}
 
+Please see :class:`~torchtune.data.CustomPromptTemplate` for full API arguments.
 """

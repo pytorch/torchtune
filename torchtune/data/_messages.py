@@ -24,7 +24,9 @@ class Message:
     the appropriate special tokens based on the flags set in this class.
 
     Args:
-        role (Role): role of the message writer. Can be "system", "user", "assistant", or "ipython".
+        role (Role): role of the message writer. Can be "system" for system prompts,
+            "user" for human prompts, "assistant" for model responses, or "ipython"
+            for tool call returns.
         content (Union[str, List[Dict[str, str]]]): content of the message. If it is text only content,
             you can pass in a string. If it is multimodal content, pass in a list of dictionaries formatted
             as follows::
@@ -101,11 +103,11 @@ class Message:
 
     def _validate_message(self) -> None:
         if self.ipython and self.contains_media:
-            raise RuntimeError(
+            raise ValueError(
                 f"Media tokens in tool calls are not supported. Both are set in message: {self.text_content}"
             )
         if self.ipython and self.role != "assistant":
-            raise RuntimeError(
+            raise ValueError(
                 f"Only assistant messages can be tool calls. Found role {self.role} in message: {self.text_content}"
             )
 
@@ -135,5 +137,4 @@ class ToInputOutputMessages(Transform):
                 eot=True,
             ),
         ]
-        sample["messages"] = messages
-        return sample
+        return {"messages": messages}

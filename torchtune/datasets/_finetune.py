@@ -21,6 +21,7 @@ class FinetuneDataset(Dataset):
     All datasets can be considered "conversations" with the model, or AI assistant.
     Thus, we can format all text content as messages in a conversation assigned to
     a :class:`~torchtune.data.Role`:
+
     - system messages contain the system prompt
     - user messages contain the input prompt into the model
     - assistant messages are the response of the model and what you actually want
@@ -76,10 +77,12 @@ class FinetuneDataset(Dataset):
             transforms.
         prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
             to add structured text around the actual messages. The structured text is used in three scenarios:
+
             - Task-specific templates to gear models for a particular task that it will expect after training
             - Model-specific templates that are required whenever the model is prompted, such as the [INST]
               tags in Llama2 and in Mistral
             - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
+
             The extra text will still get tokenized as normal text, not as special tokens.
         filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
             the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
@@ -102,7 +105,8 @@ class FinetuneDataset(Dataset):
         self._model_transform = model_transform
 
         self._data = load_dataset(source, **load_dataset_kwargs)
-        self._data = self._data.filter(filter_fn)
+        if filter_fn is not None:
+            self._data = self._data.filter(filter_fn)
 
     def __len__(self):
         return len(self._data)

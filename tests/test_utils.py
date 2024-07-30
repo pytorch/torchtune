@@ -10,6 +10,7 @@ import re
 import sys
 import unittest
 from contextlib import contextmanager
+from functools import partial
 from io import StringIO
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Mapping, Optional, TextIO, Tuple, Union
@@ -18,7 +19,7 @@ import pytest
 
 import torch
 from torch import nn
-from torchtune.data import ChatFormat, Message, truncate
+from torchtune.data import ChatFormat, CustomPromptTemplate, Message, truncate
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
 
@@ -148,6 +149,16 @@ class DummyChatFormat(ChatFormat):
                 Message(role=message.role, content=content, masked=message.masked),
             )
         return formatted_dialogue
+
+
+DummyPromptTemplate = partial(
+    CustomPromptTemplate,
+    template={
+        "system": ("System:\n", "\n"),
+        "user": ("User:\n", "\n"),
+        "assistant": ("Assistant:\n", "\n"),
+    },
+)
 
 
 def get_assets_path():

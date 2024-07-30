@@ -23,6 +23,8 @@ and models.
     GrammarErrorCorrectionTemplate
     SummarizeTemplate
     StackExchangedPairedTemplate
+    PromptTemplate
+    CustomPromptTemplate
 
     ChatFormat
     ChatMLFormat

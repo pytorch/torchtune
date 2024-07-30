@@ -49,6 +49,8 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         special_tokens (Optional[Dict[str, int]]): mapping containing special text tokens and
             their registered token IDs. If left as None, this will be set to the canonical
             Llama3 special tokens.
+        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
+            after which the input will be truncated. Default is None.
 
     Examples:
         >>> tokenizer = Llama3Tokenizer("/path/to/tt_model")
@@ -226,7 +228,6 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
 
         Args:
             messages (List[Message]): The list of messages to tokenize.
-            max_seq_len (Optional[int]): The maximum sequence length.
             add_eos (bool): Wether to add the tokenizer's eos_id. Default True.
 
         Returns:
