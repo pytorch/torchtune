@@ -164,7 +164,13 @@ class VisionTransformer(nn.Module):
         |  3 |  3 |  3 |  3 |    |  4 |  4 |  4 |  4 |
 
     Args:
+        patch_size (int): The size of each patch. Used to divide the tiles into patches.
+            E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches.
+        tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
+            the size of the input image. In this case, the function will consider your image as a single tile.
+            with shape (40, 40) each.
         num_layers (int): The number of transformer layers.
+        embed_dim (int): The dimensionality of each patch embedding (token).
         layer (nn.Module): The transformer layer module.
         token_pos_embedding (nn.Module): The token positional embedding module.
         pre_tile_pos_embed (Optional[nn.Module]): The pre-tile positional embedding module. It should be
@@ -179,12 +185,6 @@ class VisionTransformer(nn.Module):
             If provided, it will return the intermediate results of the transformer layers
             before they go through a next layer. For example, ``out_indices=[0,3]`` will
             return the tokens before they go through the first and fourth layers.
-        tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
-            the size of the input image. In this case, the function will consider your image as a single tile.
-        patch_size (int): The size of each patch. Used to divide the tiles into patches.
-            E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches
-            with shape (40, 40) each.
-        embed_dim (int): The dimensionality of each patch embedding (token).
         in_channels (int): The number of image input channels.
 
     Raises:
@@ -414,8 +414,6 @@ class CLSEmbedding(nn.Module):
 
     Args:
         embed_dim (int): The dimensionality of the input patch embedding.
-    Returns:
-        torch.Tensor: The input tensor with inserted CLS tokens at the beginning of the tensor.
     """
 
     def __init__(self, embed_dim: int) -> None:
@@ -439,8 +437,6 @@ class CLSProjection(nn.Module):
     Args:
         embed_dim (int): The dimensionality of the input patch embedding.
         cls_output_dim (int): The dimensionality of the output projection.
-    Returns:
-        torch.Tensor: The projected CLS token embedding.
     """
 
     def __init__(self, embed_dim: int, cls_output_dim: int) -> None:

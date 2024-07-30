@@ -364,7 +364,7 @@ Checkpointing for LoRA
 In torchtune, we output both the adapter weights and the full model "merged" weights
 for LoRA. The "merged" checkpoint can be used just like you would use the source
 checkpoint with any post-training tools. For more details, take a look at our
-:ref:`LoRA Finetuning Tutorial <lora_finetune_label>`.
+:ref:`LoRA Finetuning Tutorial <lora_finetune_label>`.Additionally, by setting the option "save_adapter_weights_only" to True when saving a checkpoint, you can choose to save only the adapter weights.
 
 The primary difference between the two use cases is when you want to resume training
 from a checkpoint. In this case, the checkpointer needs access to both the initial frozen
@@ -406,6 +406,9 @@ looks something like this:
 
     # set to True if restarting training
     resume_from_checkpoint: True
+
+    # Set to True to save only the adapter weights
+    save_adapter_weights_only: False
 
 |
 

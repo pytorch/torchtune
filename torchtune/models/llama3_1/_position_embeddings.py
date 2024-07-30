@@ -12,14 +12,11 @@ import torch
 from torch import nn, Tensor
 
 
-class Llama31RotaryPositionalEmbeddings(nn.Module):
+class Llama3ScaledRoPE(nn.Module):
     """
     This class implements Rotary Positional Embeddings (RoPE)
-    proposed in https://arxiv.org/abs/2104.09864.
-
-    Reference implementation (used for correctness verfication)
-    can be found here:
-    https://github.com/meta-llama/llama/blob/main/llama/model.py#L80
+    proposed in https://arxiv.org/abs/2104.09864 with additional
+    scaling from https://github.com/meta-llama/llama-models/blob/dc42f22a3b05502e7296402b019a51f57fa045c9/models/llama3_1.
 
     In this implementation we cache the embeddings for each position upto
     ``max_seq_len`` by computing this during init.
@@ -120,9 +117,6 @@ class Llama31RotaryPositionalEmbeddings(nn.Module):
             - s: sequence length
             - n_h: num heads
             - h_d: head dim
-
-        TODO: The implementation below can be made more efficient
-        for inference.
         """
         # TODO: Remove this hack for handling scaling for Meta device
         if not self.is_cache_built:

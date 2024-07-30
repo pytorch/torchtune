@@ -8,7 +8,6 @@ import contextlib
 from typing import Dict, Generator, Iterable, Optional, Tuple
 
 import torch
-import torch.nn as nn
 
 from torchtune.utils.logging import get_logger
 
@@ -101,8 +100,6 @@ def get_dtype(
             f"Dtype {torch_dtype} must be one of {', '.join(list(PRECISION_STR_TO_DTYPE.keys()))} for finetuning."
         )
 
-    # TODO (rohan-varma): prefer to use get_default_device() here to figure out whether user is training on
-    # CPU or GPU, but it is not supported in versions of torch we test.
     if (
         torch_dtype == torch.bfloat16
         and device != torch.device("cpu")
@@ -121,7 +118,7 @@ def set_default_dtype(dtype: torch.dtype) -> Generator[None, None, None]:
     Context manager to set torch's default dtype.
 
     Args:
-        dtype (:class:`torch.dtype`): The desired default dtype inside the context manager.
+        dtype (torch.dtype): The desired default dtype inside the context manager.
 
     Returns:
         ContextManager: context manager for setting default dtype.
@@ -143,14 +140,14 @@ def set_default_dtype(dtype: torch.dtype) -> Generator[None, None, None]:
 
 
 def validate_expected_param_dtype(
-    named_params: Iterable[Tuple[str, nn.Parameter]], dtype: torch.dtype
+    named_params: Iterable[Tuple[str, torch.nn.Parameter]], dtype: torch.dtype
 ) -> None:
     """
     Validates that all input parameters have the expected dtype.
 
     Args:
-        named_params (Iterable[Tuple[str, :class:`torch.nn.Parameter`]]): Iterable of named parameters.
-        dtype (:class:`torch.dtype`): Expected dtype.
+        named_params (Iterable[Tuple[str, torch.nn.Parameter]]): Iterable of named parameters.
+        dtype (torch.dtype): Expected dtype.
 
     Raises:
         ValueError: If any parameter has a different dtype than `dtype`.
