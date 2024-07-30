@@ -7,7 +7,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download sllhf/Meta-Llama-3.1-405B-Instruct --hf-token <HF_TOKEN> --ignore-patterns "original/consolidated*"
+#   tune download meta-llama/Meta-Llama-3.1-405B-Instruct --hf-token <HF_TOKEN> --ignore-patterns "original/consolidated*"
 #
 # This config needs 8 GPUs to run
 #   # tune run --nproc_per_node 8 lora_finetune_fsdp2 --config llama3.1/405B_qlora
@@ -24,7 +24,7 @@ model:
 
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Meta-Llama-3.1-405B-Instruct/original/tokenizer.model
+  path: /tmp/Meta-Llama-3.1-405B-Instruct/original/mp8/tokenizer.model
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer

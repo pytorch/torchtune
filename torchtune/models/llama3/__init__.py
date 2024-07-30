@@ -12,7 +12,6 @@ from ._model_builders import (  # noqa
     llama3_tokenizer,
     lora_llama3_70b,
     lora_llama3_8b,
-    qlora_llama3_405b,
     qlora_llama3_70b,
     qlora_llama3_8b,
 )
@@ -29,5 +28,4 @@ __all__ = [
     "lora_llama3_70b",
     "qlora_llama3_8b",
     "qlora_llama3_70b",
-    "qlora_llama3_405b",
 ]
