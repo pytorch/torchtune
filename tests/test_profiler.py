@@ -61,7 +61,8 @@ def _setup_profiler(
     Parses the `profiler` section of top-level `cfg` and sets up profiler
 
     Args:
-        cfg: DictConfig - `profiler` section of the top-level `cfg` (the main config passed to `recipe.main`)
+        cfg_profiler (DictConfig): `profiler` section of the top-level `cfg` (the main config passed to `recipe.main`)
+        return_cfg (bool): Doesn't seem to be used. Default False.
 
     Returns:
         profiler: torch.profiler.profile | DummyProfiler - DummyProfiler is a nullcontext with no-op methods

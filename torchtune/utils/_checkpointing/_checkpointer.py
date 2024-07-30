@@ -240,6 +240,10 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             intermediate_checkpoint (bool): If True, save an additional checkpoint file with the
                 recipe state
             adapter_only (bool): If True, only save the adapter weights. Default is False
+
+
+        Raises:
+            ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
         """
         self._output_dir.mkdir(exist_ok=True)
 
@@ -282,6 +286,19 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
                 f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
                 f"saved to {output_path}"
             )
+        else:
+            logger.info("Saving final epoch checkpoint.")
+            if adapter_only:
+                logger.info(
+                    "Please note that you have set adapter_only=True, so only adapter weights will be saved."
+                    "You need to merge the adapter weights into your base model for further use. "
+                    f"See {self.__class__.__name__}.save_checkpoint for more details."
+                )
+            else:
+                logger.info(
+                    "The full model checkpoint, including all weights and configurations, has been saved successfully."
+                    "You can now use this checkpoint for further training or inference."
+                )
 
 
 class FullModelHFCheckpointer(_CheckpointerInterface):
@@ -412,7 +429,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                         f"Found {type(value)} instead."
                     )
                 # idx is written in the 4 digit format (eg: 0001, 0002, etc.)
-                self._weight_map[key] = f"{cpt_idx+1:04}"
+                self._weight_map[key] = f"{cpt_idx + 1:04}"
             merged_state_dict.update(state_dict)
 
             # delete the state_dict to free up memory; TODO check if this del is needed
@@ -478,6 +495,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state
                 and (if applicable) adapter weights are created. Default is False
             adapter_only (bool): If True, only save the adapter weights. Default is False
+
+        Raises:
+            ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
         """
         self._output_dir.mkdir(exist_ok=True)
 
@@ -612,6 +632,19 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
                 f"saved to {output_path}"
             )
+        else:
+            logger.info("Saving final epoch checkpoint.")
+            if adapter_only:
+                logger.info(
+                    "Please note that you have set adapter_only=True, so only adapter weights will be saved."
+                    "You need to merge the adapter weights into your base model for further use. "
+                    f"See {self.__class__.__name__}.save_checkpoint for more details."
+                )
+            else:
+                logger.info(
+                    "The full model checkpoint, including all weights and configurations, has been saved successfully."
+                    "You can now use this checkpoint for further training or inference."
+                )
 
 
 class FullModelMetaCheckpointer(_CheckpointerInterface):
@@ -713,6 +746,9 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state
                 and (if applicable) adapter weights are created. Default is False
             adapter_only (bool): If True, only save the adapter weights. Default is False
+
+        Raises:
+            ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
         """
         self._output_dir.mkdir(exist_ok=True)
 
@@ -759,3 +795,16 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
                 f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
                 f"saved to {output_path}"
             )
+        else:
+            logger.info("Saving final epoch checkpoint.")
+            if adapter_only:
+                logger.info(
+                    "Please note that you have set adapter_only=True, so only adapter weights will be saved."
+                    "You need to merge the adapter weights into your base model for further use. "
+                    f"See {self.__class__.__name__}.save_checkpoint for more details."
+                )
+            else:
+                logger.info(
+                    "The full model checkpoint, including all weights and configurations, has been saved successfully."
+                    "You can now use this checkpoint for further training or inference."
+                )
