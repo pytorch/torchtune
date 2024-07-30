@@ -28,6 +28,7 @@ class ModelType(Enum):
         REWARD (str): A Llama2, Llama3, or Mistral model with a classification head projecting
             to a single class for reward modelling.
             See :func:`~torchtune.models.mistral.mistral_reward_7b` or :func:`~torchtune.models.llama2.llama2_reward_7b`
+        QWEN2 (str): Qwen2 family of models. See :func:`~torchtune.models.qwen2.qwen2`
 
     Example:
         >>> # Usage in a checkpointer class
@@ -43,9 +44,7 @@ class ModelType(Enum):
     MISTRAL: str = "mistral"
     PHI3_MINI: str = "phi3_mini"
     REWARD: str = "reward"
-
-    QWEN2 = "qwen2"
-    """Qwen2 family of models. See :func:`~torchtune.models.qwen2.qwen2`"""
+    QWEN2: str = "qwen2"
 
 
 def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
