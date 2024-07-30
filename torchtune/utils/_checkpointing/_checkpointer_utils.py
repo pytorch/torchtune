@@ -44,6 +44,9 @@ class ModelType(Enum):
     PHI3_MINI: str = "phi3_mini"
     REWARD: str = "reward"
 
+    QWEN2 = "qwen2"
+    """Qwen2 family of models. See :func:`~torchtune.models.qwen2.qwen2`"""
+
 
 def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
     """
