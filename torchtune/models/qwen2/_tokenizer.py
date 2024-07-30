@@ -83,6 +83,7 @@ class Qwen2Tokenizer(ModelTokenizer):
         merges_file (str): Path to merges.txt file.
             merges.txt contains all BPE merge operations, and this file is required to split a single word into
             byte-level BPE tokens.
+        special_tokens (Optional[Dict[str, int]]): Special tokens to add to the tokenizer. Default is None.
         errors (str): Paradigm to follow when decoding bytes to UTF-8. Defaults to "replace".
             See [bytes.decode](https://docs.python.org/3/library/stdtypes.html#bytes.decode) for more information.
         unk_token (Optional[str]): The unknown token. A token that is not in the vocabulary cannot be converted
@@ -96,6 +97,12 @@ class Qwen2Tokenizer(ModelTokenizer):
             word, e.g. Chinese); technically not a memory leak but appears as one.
             By default, we set the cache size equals to size of the official Qwen2 tokenizer.
 
+    Attributes:
+        system (str): Qwen2 system prompt.
+        user (str): Qwen2 user prompt.
+        assistant (str): Qwen2 assistant prompt.
+        assistant_for_generation (str): Qwen2 assistant prompt for generation.
+
     Example:
         >>> tokenizer = Qwen2Tokenizer(path="/path/to/vocab.json", merges_file="/path/to/merges.txt")
         >>> tokenized_text = tokenizer.encode("Hello world!")
@@ -103,10 +110,10 @@ class Qwen2Tokenizer(ModelTokenizer):
         [39, 385, 78, 675, 0, 2000]
     """
 
-    system = f"{IM_START}system\n{{content}}{IM_END}\n"
-    user = f"{IM_START}user\n{{content}}{IM_END}\n"
-    assistant = f"{IM_START}assistant\n{{content}}{IM_END}\n"
-    assistant_for_generation = f"{IM_START}assistant\n"
+    system: str = f"{IM_START}system\n{{content}}{IM_END}\n"
+    user: str = f"{IM_START}user\n{{content}}{IM_END}\n"
+    assistant: str = f"{IM_START}assistant\n{{content}}{IM_END}\n"
+    assistant_for_generation: str = f"{IM_START}assistant\n"
 
     def __init__(
         self,
@@ -213,7 +220,7 @@ class Qwen2Tokenizer(ModelTokenizer):
         return self.encoder.get(token, self.unk_id)
 
     def encode(
-        self, text: str, add_bos: bool = True, add_eos: bool = True, **kwargs
+        self, text: str, add_bos: bool = True, add_eos: bool = True
     ) -> List[int]:
         """
         Encode a string into a list of token ids.
@@ -226,7 +233,7 @@ class Qwen2Tokenizer(ModelTokenizer):
         Returns:
             List[int]: The list of token ids.
 
-        Notes:
+        Note:
             This method follows
             <https://github.com/huggingface/transformers/blob/v4.41.2/src/transformers/tokenization_utils.py#L541> and
             <https://github.com/huggingface/transformers/blob/v4.41.2/src/transformers/models/qwen2/tokenization_qwen2.py#L262>.
@@ -279,7 +286,6 @@ class Qwen2Tokenizer(ModelTokenizer):
         self,
         token_ids: List[int],
         skip_special_tokens: bool = False,
-        **kwargs,
     ) -> str:
         """
         Decode a list of token ids into a string.
@@ -316,7 +322,6 @@ class Qwen2Tokenizer(ModelTokenizer):
         messages: List[Message],
         max_seq_len: Optional[int] = None,
         apply_chat_template: bool = True,
-        **kwargs,
     ) -> Tuple[List[int], List[bool]]:
         """
         Given a list of messages, return a list of tokens for the concatenated
