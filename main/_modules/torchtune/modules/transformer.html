@@ -410,6 +410,7 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span><span class="p">,</span> <span class="n">Tensor</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">CausalSelfAttention</span><span class="p">,</span> <span class="n">KVCache</span>
@@ -649,6 +650,155 @@
         <span class="c1"># shape: [b, s, out_dim] - out_dim is usually the vocab size</span>
         <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">h</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">output</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">TiedEmbeddingTransformerDecoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transformer Decoder with tied embedding weight. A key difference between</span>
+<span class="sd">    this class and :class:`~torchtune.modules.TransformerDecoder`</span>
+<span class="sd">    is that the output projection is replaced with token embeddings weights.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move</span>
+<span class="sd">            tokens to an embedding space.</span>
+<span class="sd">        layer (TransformerDecoderLayer): Transformer Decoder layer.</span>
+<span class="sd">        num_layers (int): Number of Transformer Decoder layers.</span>
+<span class="sd">        max_seq_len (int): maximum sequence length the model will be run with, as used</span>
+<span class="sd">            by :func:`~torchtune.modules.KVCache`</span>
+<span class="sd">        num_heads (int): number of query heads. For MHA this is also the</span>
+<span class="sd">            number of heads for key and value. This is used to setup the</span>
+<span class="sd">            :func:`~torchtune.modules.KVCache`</span>
+<span class="sd">        head_dim (int): embedding dimension for each head in self-attention. This is used</span>
+<span class="sd">            to setup the :func:`~torchtune.modules.KVCache`</span>
+<span class="sd">        norm (nn.Module): Callable that applies normalization to the output of the decoder,</span>
+<span class="sd">            before final MLP.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        Arg values are checked for correctness (eg: ``attn_dropout`` belongs to [0,1])</span>
+<span class="sd">        in the module where they are used. This helps reduces the number of raise</span>
+<span class="sd">        statements in code and improves readability.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">tok_embeddings</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">,</span>
+        <span class="n">layer</span><span class="p">:</span> <span class="n">TransformerDecoderLayer</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">head_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">norm</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span> <span class="o">=</span> <span class="n">tok_embeddings</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">_get_clones</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">norm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">max_seq_len</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">num_heads</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span> <span class="o">=</span> <span class="n">head_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">setup_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Setup key value caches for attention calculation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            batch_size (int): batch size for the caches.</span>
+<span class="sd">            dtype (torch.dtype): dtype for the caches.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span> <span class="o">=</span> <span class="n">KVCache</span><span class="p">(</span>
+                <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+                <span class="n">max_seq_len</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span>
+                <span class="n">num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
+                <span class="n">head_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># causal_mask is used during inference to ensure we&#39;re attending</span>
+        <span class="c1"># to the right tokens</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tril</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">reset_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the key value caches.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;Key value caches are not setup. Call ``setup_caches()`` first.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">tokens</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            tokens (Tensor): input tensor with shape [b x s]</span>
+<span class="sd">            mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask</span>
+<span class="sd">                with shape [b x s x s]. This is applied after the query-key multiplication and</span>
+<span class="sd">                before the softmax. A value of True in row i and column j means token i attends</span>
+<span class="sd">                to token j. A value of False means token i does not attend to token j. If no</span>
+<span class="sd">                mask is specified, a causal mask is used by default. Default is None.</span>
+<span class="sd">            input_pos (Optional[Tensor]): Optional tensor which contains the position ids</span>
+<span class="sd">                of each token. During training, this is used to indicate the positions</span>
+<span class="sd">                of each token relative to its sample when packed, shape [b x s].</span>
+<span class="sd">                During inference, this indicates the position of the current token.</span>
+<span class="sd">                If none, assume the index of the token is its position id. Default is None.</span>
+
+<span class="sd">        Note: At the very first step of inference, when the model is provided with a prompt,</span>
+<span class="sd">        ``input_pos`` would contain the positions of all of the tokens in the prompt</span>
+<span class="sd">        (eg: ``torch.arange(prompt_length)``). This is because we will need to compute the</span>
+<span class="sd">        KV values for each position.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: output tensor with shape [b x s x v]</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if causal_mask is set but input_pos is None</span>
+
+<span class="sd">        Notation used for tensor shapes:</span>
+<span class="sd">            - b: batch size</span>
+<span class="sd">            - s: sequence length</span>
+<span class="sd">            - v: vocab size</span>
+<span class="sd">            - d: embed dim</span>
+<span class="sd">            - m_s: max seq len</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># input tensor of shape [b, s]</span>
+        <span class="n">bsz</span><span class="p">,</span> <span class="n">seq_len</span> <span class="o">=</span> <span class="n">tokens</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="c1"># shape: [b, s, d]</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">input_pos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Caches are setup, but the position of input token is missing&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;An attention mask was set. Cannot use a non-causal mask for inference&quot;</span>
+                <span class="p">)</span>
+            <span class="c1"># shape: [1, input_pos_len, m_s]</span>
+            <span class="c1"># in most cases input_pos_len should be 1</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+            <span class="c1"># shape: [b, s, d]</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">)</span>
+
+        <span class="c1"># shape: [b, s, d]</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+
+        <span class="c1"># shape: [b, s, out_dim] - out_dim is usually the vocab size</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">output</span>
 </pre></div>
 
              </article>
