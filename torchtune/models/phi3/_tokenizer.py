@@ -189,7 +189,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
             for item in message.content:
                 if item["type"] == "text":
                     tokens = tokens + self.encode(
-                        item["content"].rstrip(" "),
+                        item["content"],
                         add_bos=False,
                         add_eos=False,
                         trim_leading_whitespace=True,  # Always trim whitespace (just to match HF tokenizer implementation)
