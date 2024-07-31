@@ -87,7 +87,6 @@ class TestFullFinetuneDistributedRecipe:
         """.split()
         if fsdp_sharding_strategy:
             cmd.append(f"fsdp_sharding_strategy={fsdp_sharding_strategy}")
-        print(cmd)
         model_config = MODEL_TEST_CONFIGS[model_type]
         cmd = cmd + self._get_test_config_overrides() + model_config
 
