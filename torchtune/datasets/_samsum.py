@@ -7,7 +7,7 @@
 
 from typing import Dict, Optional
 
-from torchtune.data import ToInputOutputMessages
+from torchtune.data import InputOutputToMessages
 from torchtune.data._prompt_templates import PromptTemplate, SummarizeTemplate
 from torchtune.datasets._finetune import FinetuneDataset
 from torchtune.datasets._packed import PackedDataset
@@ -67,7 +67,7 @@ def samsum_dataset(
         >>> Batch size: 8
     """
     column_map = column_map or {"input": "dialogue", "output": "summary"}
-    message_transform = ToInputOutputMessages(
+    message_transform = InputOutputToMessages(
         train_on_input=train_on_input, column_map=column_map
     )
     ds = FinetuneDataset(

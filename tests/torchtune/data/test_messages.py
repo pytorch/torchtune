@@ -10,7 +10,7 @@ from torchtune.data._messages import (
     JsonToMessages,
     Message,
     ShareGPTToMessages,
-    ToInputOutputMessages,
+    InputOutputToMessages,
 )
 
 # Taken from Open-Orca/SlimOrca-Dedup on Hugging Face:
@@ -100,7 +100,7 @@ class TestMessage:
         assert image_message.text_content == "hello world"
 
 
-class TestToInputOutputMessages:
+class TestInputOutputToMessages:
     @pytest.fixture
     def sample(self):
         return {
@@ -109,7 +109,7 @@ class TestToInputOutputMessages:
         }
 
     def test_call(self, sample):
-        transform = ToInputOutputMessages(
+        transform = InputOutputToMessages(
             column_map={"input": "maybe_input", "output": "maybe_output"}
         )
         actual = transform(sample)
@@ -120,7 +120,7 @@ class TestToInputOutputMessages:
         assert_dialogue_equal(actual["messages"], expected)
 
     def test_call_train_on_input(self, sample):
-        transform = ToInputOutputMessages(
+        transform = InputOutputToMessages(
             column_map={"input": "maybe_input", "output": "maybe_output"},
             train_on_input=True,
         )

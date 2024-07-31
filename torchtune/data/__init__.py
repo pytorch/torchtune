@@ -21,7 +21,7 @@ from torchtune.data._messages import (
     Message,
     Role,
     ShareGPTToMessages,
-    ToInputOutputMessages,
+    InputOutputToMessages,
 )
 from torchtune.data._prompt_templates import (
     CustomPromptTemplate,
@@ -50,5 +50,5 @@ __all__ = [
     "Role",
     "CustomPromptTemplate",
     "PromptTemplate",
-    "ToInputOutputMessages",
+    "InputOutputToMessages",
 ]
