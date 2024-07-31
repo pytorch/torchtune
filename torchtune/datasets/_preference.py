@@ -10,9 +10,10 @@ import numpy as np
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
-from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, InstructTemplate, Message
+from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, PromptTemplate
 
 from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.modules.transforms import Transform
 
 
 class PreferenceDataset(Dataset):
@@ -27,47 +28,47 @@ class PreferenceDataset(Dataset):
     then the ``column_map`` argument can be used to provide this mapping.
 
     Args:
-        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path to dataset repository on Hugging Face. For local datasets,
             define source as the data file type (e.g. "json", "csv", "text") and pass
             in the filepath in ``data_files``. See Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
             for more details.
-        template (InstructTemplate): template used to format the prompt. If the placeholder variable
-            names in the template do not match the column/key names in the dataset, use ``column_map`` to map them.
-        transform (Optional[Callable]): transform to apply to the sample before formatting to the template.
-            Default is None.
-        column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names in the template
-            to the column/key names in the sample. If None, assume these are identical.
-        max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
-            Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
-            and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
+        message_transform (Transform): callable that keys into the desired fields in the sample
+            and converts text content to a list of :class:`~torchtune.data.Message`. It is expected that the final list
+            of messages are stored in the ``"messages"`` key.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
+        prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
+            to add structured text around the actual messages. The structured text is used in three scenarios:
+
+            - Task-specific templates to gear models for a particular task that it will expect after training
+            - Model-specific templates that are required whenever the model is prompted, such as the [INST]
+              tags in Llama2 and in Mistral
+            - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
+
+            The extra text will still get tokenized as normal text, not as special tokens.
+        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
+            the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
+            details.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
             such as ``data_files`` or ``split``.
     """
 
     def __init__(
         self,
-        tokenizer: ModelTokenizer,
+        *,
         source: str,
-        template: InstructTemplate,
-        transform: Optional[Callable] = None,
-        column_map: Optional[Dict[str, str]] = None,
-        max_seq_len: Optional[int] = None,
+        message_transform: Transform,
+        tokenizer: ModelTokenizer,
+        prompt_template: Optional[PromptTemplate] = None,
+        filter_fn: Optional[Callable] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._tokenizer = tokenizer
+        self._prompt_template = prompt_template
+        self._message_transform = message_transform
         self._data = load_dataset(source, **load_dataset_kwargs)
-        self.template = template
-        self._transform = transform
-        self._column_map = column_map
-        self.max_seq_len = max_seq_len
-        self._data = self._data.filter(
-            lambda x: len(x[column_map["prompt"]]) + len(x[column_map["chosen"]])
-            <= max_seq_len
-            and len(x[column_map["prompt"]]) + len(x[column_map["rejected"]])
-            <= max_seq_len
-        )
+        if filter_fn is not None:
+            self._data = self._data.filter(filter_fn)
 
     def __len__(self):
         return len(self._data)
@@ -77,34 +78,26 @@ class PreferenceDataset(Dataset):
         return self._prepare_sample(sample)
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
-        transformed_sample = self._transform(sample) if self._transform else sample
-        prompt = self.template.format(transformed_sample, self._column_map)
+        transformed_sample = self._message_transform(sample)
+        if self._prompt_template is not None:
+            transformed_sample["chosen"] = self._prompt_template(
+                transformed_sample["chosen"]
+            )
+            transformed_sample["rejected"] = self._prompt_template(
+                transformed_sample["rejected"]
+            )
 
-        column_map = self._column_map or {}
-        key_chosen = column_map.get("chosen", "chosen")
-        key_rejected = column_map.get("rejected", "rejected")
-
-        chosen_message = [
-            Message(role="user", content=prompt, masked=True),
-            Message(role="assistant", content=transformed_sample[key_chosen]),
-        ]
-
-        rejected_message = [
-            Message(role="user", content=prompt, masked=True),
-            Message(role="assistant", content=transformed_sample[key_rejected]),
-        ]
-
-        # TODO: Trunction differs from original DPO repo
+        # TODO: Truncation differs from original DPO repo
         # in DPO: first truncate prompts, then responses
         chosen_input_ids, c_masks = self._tokenizer.tokenize_messages(
-            chosen_message, self.max_seq_len
+            transformed_sample["chosen"],
         )
         chosen_labels = list(
             np.where(c_masks, CROSS_ENTROPY_IGNORE_IDX, chosen_input_ids)
         )
 
         rejected_input_ids, r_masks = self._tokenizer.tokenize_messages(
-            rejected_message, self.max_seq_len
+            transformed_sample["rejected"],
         )
         rejected_labels = list(
             np.where(r_masks, CROSS_ENTROPY_IGNORE_IDX, rejected_input_ids)

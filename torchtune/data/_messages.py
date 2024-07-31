@@ -138,3 +138,29 @@ class InputOutputToMessages(Transform):
             ),
         ]
         return {"messages": messages}
+
+
+class ChosenRejectedToMessages(Transform):
+    def __init__(
+        self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None
+    ):
+        self.train_on_input = train_on_input
+        self.column_map = column_map
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        column_map = self._column_map or {}
+        key_prompt = column_map.get("prompt", "prompt")
+        key_chosen = column_map.get("chosen", "chosen")
+        key_rejected = column_map.get("rejected", "rejected")
+
+        chosen_messages = [
+            Message(role="user", content=sample[key_prompt], masked=True),
+            Message(role="assistant", content=sample[key_chosen]),
+        ]
+
+        rejected_messages = [
+            Message(role="user", content=sample[key_prompt], masked=True),
+            Message(role="assistant", content=sample[key_rejected]),
+        ]
+
+        return {"chosen": chosen_messages, "rejected": rejected_messages}

@@ -17,7 +17,12 @@ from torchtune.data._instruct_templates import (
     InstructTemplate,
     StackExchangedPairedTemplate,
 )
-from torchtune.data._messages import InputOutputToMessages, Message, Role
+from torchtune.data._messages import (
+    ChosenRejectedToMessages,
+    InputOutputToMessages,
+    Message,
+    Role,
+)
 from torchtune.data._prompt_templates import (
     CustomPromptTemplate,
     GrammarErrorCorrectionTemplate,
@@ -46,4 +51,5 @@ __all__ = [
     "CustomPromptTemplate",
     "PromptTemplate",
     "InputOutputToMessages",
+    "ChosenRejectedToMessages",
 ]
