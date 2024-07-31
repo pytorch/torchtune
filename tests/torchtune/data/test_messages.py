@@ -6,7 +6,7 @@
 
 import pytest
 from tests.test_utils import assert_dialogue_equal
-from torchtune.data._messages import Message, ToInputOutputMessages
+from torchtune.data._messages import InputOutputToMessages, Message
 
 
 class TestMessage:
@@ -63,7 +63,7 @@ class TestMessage:
         assert image_message.text_content == "hello world"
 
 
-class TestToInputOutputMessages:
+class TestInputOutputToMessages:
     @pytest.fixture
     def sample(self):
         return {
@@ -72,7 +72,7 @@ class TestToInputOutputMessages:
         }
 
     def test_call(self, sample):
-        transform = ToInputOutputMessages(
+        transform = InputOutputToMessages(
             column_map={"input": "maybe_input", "output": "maybe_output"}
         )
         actual = transform(sample)
@@ -83,7 +83,7 @@ class TestToInputOutputMessages:
         assert_dialogue_equal(actual["messages"], expected)
 
     def test_call_train_on_input(self, sample):
-        transform = ToInputOutputMessages(
+        transform = InputOutputToMessages(
             column_map={"input": "maybe_input", "output": "maybe_output"},
             train_on_input=True,
         )

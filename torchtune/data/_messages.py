@@ -112,7 +112,7 @@ class Message:
             )
 
 
-class ToInputOutputMessages(Transform):
+class InputOutputToMessages(Transform):
     def __init__(
         self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None
     ):

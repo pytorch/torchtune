@@ -17,7 +17,7 @@ from torchtune.data._instruct_templates import (
     InstructTemplate,
     StackExchangedPairedTemplate,
 )
-from torchtune.data._messages import Message, Role, ToInputOutputMessages
+from torchtune.data._messages import InputOutputToMessages, Message, Role
 from torchtune.data._prompt_templates import (
     CustomPromptTemplate,
     GrammarErrorCorrectionTemplate,
@@ -45,5 +45,5 @@ __all__ = [
     "Role",
     "CustomPromptTemplate",
     "PromptTemplate",
-    "ToInputOutputMessages",
+    "InputOutputToMessages",
 ]

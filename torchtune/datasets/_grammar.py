@@ -8,7 +8,7 @@
 from typing import Dict, Optional
 
 from torch.utils.data import Dataset
-from torchtune.data import ToInputOutputMessages
+from torchtune.data import InputOutputToMessages
 from torchtune.data._prompt_templates import (
     GrammarErrorCorrectionTemplate,
     PromptTemplate,
@@ -71,7 +71,7 @@ def grammar_dataset(
         >>> Batch size: 8
     """
 
-    message_transform = ToInputOutputMessages(
+    message_transform = InputOutputToMessages(
         train_on_input=train_on_input, column_map=column_map
     )
     ds = FinetuneDataset(
