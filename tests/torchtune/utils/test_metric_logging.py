@@ -17,6 +17,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 from tests.test_utils import assert_expected, captured_output
 
 from torchtune.utils.metric_logging import (
+    ClearMLLogger,
     DiskLogger,
     StdoutLogger,
     TensorBoardLogger,
@@ -165,3 +166,45 @@ class TestWandBLogger:
             expected_config_path = "torchtune_config.yaml"
             mock_save.assert_called_once_with(cfg, expected_config_path)
             mock_wandb_save.assert_called_once_with(expected_config_path)
+
+
+@pytest.mark.skip(reason="Will fail if clearml is not installed")
+class TestClearmlLogger:
+    def test_clearml_import(self):
+        # Test to ensure that the ClearmlLogger handles the absence of `clearml` gracefully
+        with patch(
+            "builtins.__import__", side_effect=ImportError("No module named 'clearml'")
+        ):
+            with pytest.raises(ImportError):
+                logger = ClearMLLogger(project="test_project")
+
+    @patch("clearml.Task.create")
+    def test_log_dict(self, mock_create):
+        from unittest.mock import MagicMock
+
+        # Setting up the ClearML task and logger mocks
+        mock_task_instance = MagicMock()
+        mock_logger = MagicMock()
+        mock_create.return_value = mock_task_instance
+        mock_task_instance.get_logger.return_value = mock_logger
+
+        # Instantiate the logger
+        logger = ClearMLLogger(project="test_project")
+        metric_dict = {f"log_dict_{i}": float(i) ** 2 for i in range(5)}
+        step = 1
+        series = None  # Assuming you are using the default series for all entries
+
+        # Call the method under test
+        logger.log_dict(metric_dict, step, series)
+
+        # Verify that report_scalar was called correctly for each entry in the dictionary
+        for name, value in metric_dict.items():
+            mock_logger.report_scalar.assert_any_call(
+                title=name, series=series, value=value, iteration=step
+            )
+
+        # Ensure the correct number of calls were made
+        assert mock_logger.report_scalar.call_count == len(metric_dict)
+
+        # Cleanup by closing the logger
+        logger.close()
