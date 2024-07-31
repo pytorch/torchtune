@@ -23,6 +23,8 @@ class MistralTokenizer(ModelTokenizer, Transform):
 
     Args:
         path (str): Path to pretrained tokenizer file.
+        max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
+            Default: None
 
     Examples:
         >>> tokenizer = MistralTokenizer("/path/to/spm_model")
@@ -34,6 +36,7 @@ class MistralTokenizer(ModelTokenizer, Transform):
     def __init__(
         self,
         path: str,
+        max_seq_len: Optional[int] = None,
     ):
         self._spm_model = SentencePieceBaseTokenizer(path)
 
@@ -42,6 +45,8 @@ class MistralTokenizer(ModelTokenizer, Transform):
 
         # During generation, stop when eos_id is encountered
         self.stop_tokens = [self.eos_id]
+
+        self.max_seq_len = max_seq_len
 
     @property
     def eos_id(self):
@@ -103,7 +108,7 @@ class MistralTokenizer(ModelTokenizer, Transform):
         return self._spm_model.decode(token_ids)
 
     def tokenize_messages(
-        self, messages: List[Message], max_seq_len: Optional[int] = None
+        self, messages: List[Message]
     ) -> Tuple[List[int], List[bool]]:
         r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
@@ -115,7 +120,7 @@ class MistralTokenizer(ModelTokenizer, Transform):
             beginning off the tokenized s2.
 
         Example:
-            >>> tokenizer = MistralTokenizer(tokenizer_path)
+            >>> tokenizer = MistralTokenizer(tokenizer_path, max_seq_len)
             >>> messages = [
                 Message(role="system", content="system message\n", masked=True),
                 Message(role="user", content="user prompt\n", masked=True),
@@ -123,7 +128,7 @@ class MistralTokenizer(ModelTokenizer, Transform):
             ]
 
             >>> # tokenize_messages encodes messages separately and concats
-            >>> tokenizer.tokenize_messages(messages, max_seq_len)[0]
+            >>> tokenizer.tokenize_messages(messages)[0]
             [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]
 
 
@@ -135,8 +140,6 @@ class MistralTokenizer(ModelTokenizer, Transform):
         Args:
             messages (List[Message]): A list of messages, each containing role, content,
                 and masked attributes.
-            max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
-                Default: None
 
         Returns:
             Tuple[List[int], List[bool]]: The tokenized messages
@@ -146,7 +149,7 @@ class MistralTokenizer(ModelTokenizer, Transform):
             messages=messages,
             bos_id=self.bos_id,
             eos_id=self.eos_id,
-            max_seq_len=max_seq_len,
+            max_seq_len=self.max_seq_len,
         )
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:

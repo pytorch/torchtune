@@ -31,6 +31,8 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
 
     Args:
         path (str): Path to pretrained SentencePiece tokenizer file.
+        max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
+            Default: None
 
     Examples:
         >>> tokenizer = Llama2Tokenizer("/path/to/spm_model")
@@ -42,6 +44,7 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
     def __init__(
         self,
         path: str,
+        max_seq_len: Optional[int] = None,
     ):
         self._spm_model = SentencePieceBaseTokenizer(path)
 
@@ -50,6 +53,8 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
 
         # During generation, stop when eos_id is encountered
         self.stop_tokens = [self.eos_id]
+
+        self.max_seq_len = max_seq_len
 
     @property
     def eos_id(self):
@@ -88,7 +93,8 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
         return self._spm_model.decode(token_ids)
 
     def tokenize_messages(
-        self, messages: List[Message], max_seq_len: Optional[int] = None
+        self,
+        messages: List[Message],
     ) -> Tuple[List[int], List[bool]]:
         r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
@@ -100,7 +106,7 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
             beginning off the tokenized s2.
 
         Example:
-            >>> tokenizer = Llama2Tokenizer(tokenizer_path)
+            >>> tokenizer = Llama2Tokenizer(tokenizer_path, max_seq_len)
             >>> messages = [
                 Message(role="system", content="system message\n", masked=True),
                 Message(role="user", content="user prompt\n", masked=True),
@@ -108,7 +114,7 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
             ]
 
             >>> # tokenize_messages encodes messages separately and concats
-            >>> tokenizer.tokenize_messages(messages, max_seq_len)[0]
+            >>> tokenizer.tokenize_messages(messages)[0]
             [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]
 
             >>> # Same result as encoding the full string in one go
@@ -119,8 +125,6 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
         Args:
             messages (List[Message]): A list of messages, each containing role, content,
                 and masked attributes.
-            max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
-                Default: None
 
         Returns:
             Tuple[List[int], List[bool]]: The tokenized messages
@@ -130,7 +134,7 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
             messages=messages,
             bos_id=self.bos_id,
             eos_id=self.eos_id,
-            max_seq_len=max_seq_len,
+            max_seq_len=self.max_seq_len,
         )
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
