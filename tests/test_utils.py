@@ -42,6 +42,9 @@ TOKENIZER_PATHS = {
 
 
 class DummyTokenizer(ModelTokenizer, Transform):
+    def __init__(self, max_seq_len: Optional[int] = None):
+        self.max_seq_len = max_seq_len
+
     def encode(self, text, add_bos=True, add_eos=True, **kwargs) -> List[int]:
         words = text.split()
         tokens = [len(word) for word in words]
@@ -52,7 +55,8 @@ class DummyTokenizer(ModelTokenizer, Transform):
         return tokens
 
     def tokenize_messages(
-        self, messages: List[Message], max_seq_len: Optional[int] = None
+        self,
+        messages: List[Message],
     ) -> Tuple[List[int], List[bool]]:
         """
         A simplified version of Llama2Tokenizer's ``tokenize_messages`` for testing purposes.
@@ -95,13 +99,15 @@ class DummyTokenizer(ModelTokenizer, Transform):
                 start_of_turn = False
 
             # Break out early if we reach max_seq_len
-            if max_seq_len and len(tokenized_messages) >= max_seq_len:
+            if self.max_seq_len and len(tokenized_messages) >= self.max_seq_len:
                 break
 
         # Finally, truncate if necessary
-        if max_seq_len:
-            tokenized_messages = truncate(tokenized_messages, max_seq_len, self.eos_id)
-            mask = truncate(mask, max_seq_len, message.masked)
+        if self.max_seq_len:
+            tokenized_messages = truncate(
+                tokenized_messages, self.max_seq_len, self.eos_id
+            )
+            mask = truncate(mask, self.max_seq_len, message.masked)
 
         return tokenized_messages, mask
 
