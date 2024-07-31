@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#     tune download codellama/CodeLlama-7b-hf --output-dir /tmp/CodeLlama-7b-hf
+#   tune download meta-llama/CodeLlama-7b-hf --output-dir /tmp/CodeLlama-7b-hf
 #
 # To launch on a single device, run the following command from root:
 #   tune run lora_finetune_single_device --config code_llama2/7B_qlora_single_device
@@ -32,7 +32,6 @@ tokenizer:
 # Dataset
 dataset:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
-  train_on_input: True
 seed: null
 shuffle: True
 
@@ -50,6 +49,7 @@ checkpointer:
   output_dir: /tmp/CodeLlama-7b-hf
   model_type: LLAMA2
 resume_from_checkpoint: False
+save_adapter_weights_only: False
 
 # Fine-tuning arguments and training
 batch_size: 2
@@ -87,6 +87,25 @@ log_peak_memory_stats: False
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training
 profiler:
-  _component_: torchtune.utils.profiler
+  _component_: torchtune.utils.setup_torch_profiler
   enabled: False
-  output_dir: ${output_dir}/torchtune_perf_tracing.json
+
+  #Output directory of trace artifacts
+  output_dir: ${output_dir}/profiling_outputs
+
+  #`torch.profiler.ProfilerActivity` types to trace
+  cpu: True
+  cuda: True
+
+  #trace options passed to `torch.profiler.profile`
+  profile_memory: False
+  with_stack: False
+  record_shapes: True
+  with_flops: False
+
+  # `torch.profiler.schedule` options:
+  # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+  wait_steps: 5
+  warmup_steps: 5
+  active_steps: 2
+  num_cycles: 1

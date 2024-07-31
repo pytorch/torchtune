@@ -30,7 +30,6 @@ tokenizer:
 # Dataset
 dataset:
   _component_: torchtune.datasets.alpaca_dataset
-  train_on_input: True
 seed: null
 shuffle: True
 
@@ -54,6 +53,7 @@ checkpointer:
   output_dir: /tmp/Mistral-7B-v0.1
   model_type: MISTRAL
 resume_from_checkpoint: False
+save_adapter_weights_only: False
 
 optimizer:
   _component_: torch.optim.AdamW

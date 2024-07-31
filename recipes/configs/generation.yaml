@@ -28,9 +28,13 @@ tokenizer:
   path: /tmp/Llama-2-7b-hf/tokenizer.model
 
 # Generation arguments; defaults taken from gpt-fast
-prompt: "Hello, my name is"
+prompt: "Tell me a joke?"
+instruct_template: null
+chat_format: null
 max_new_tokens: 300
 temperature: 0.6 # 0.8 and 0.6 are popular values to try
 top_k: 300
+# It is recommended to set enable_kv_cache=False for long-context models like Llama3.1
+enable_kv_cache: True
 
 quantizer: null

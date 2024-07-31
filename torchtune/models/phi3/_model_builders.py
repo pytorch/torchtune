@@ -1,13 +1,11 @@
-from typing import List
+from typing import List, Optional
 
 from torchtune.models.phi3._component_builders import phi3, lora_phi3
-from torchtune.models.phi3._sentencepiece import Phi3MiniSentencePieceTokenizer
+from torchtune.models.phi3._tokenizer import Phi3MiniTokenizer
 
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from functools import partial
-
-import torch
 
 
 """
@@ -40,28 +38,27 @@ def phi3_mini() -> TransformerDecoder:
         norm_eps=1e-5,
     )
 
-def phi3_mini_tokenizer(path: str) -> Phi3MiniSentencePieceTokenizer:
+def phi3_mini_tokenizer(path: str, special_tokens_path: Optional[str] = None) -> Phi3MiniTokenizer:
     """Phi-3 Mini tokenizer.
     Ref: https://huggingface.co/microsoft/Phi-3-mini-4k-instruct/blob/main/tokenizer_config.json
 
     Args:
         path (str): Path to the SPM tokenizer model.
+        special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
+            model files that contains all registered special tokens, or a local json file 
+            structured similarly. Default is None to use the canonical Phi3 special tokens.
 
     Note:
         This tokenizer includes typical LM EOS and BOS tokens like
         <s>, </s>, and <unk>. However, to support chat completion,
-        it is also augmented with special tokens like <|endoftext|>
-        and <|assistant|>.
-
-    Warning:
-        Microsoft currently opts to ignore system messages citing better performance.
-        See https://huggingface.co/microsoft/Phi-3-mini-4k-instruct/discussions/51 for more details.
+        it is also augmented with special tokens like <endoftext>
+        and <assistant>.
 
     Returns:
-        Phi3MiniSentencePieceTokenizer: Instantiation of the SPM tokenizer.
+        Phi3MiniSentencePieceBaseTokenizer: Instantiation of the SPM tokenizer.
     """
-    tokenizer = Phi3MiniSentencePieceTokenizer(path)
-    return tokenizer
+    special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
+    return Phi3MiniTokenizer(path=path, special_tokens=special_tokens)
 
 
 def lora_phi3_mini(

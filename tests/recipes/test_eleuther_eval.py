@@ -49,7 +49,20 @@ class TestEleutherEval:
 
         out = capsys.readouterr().out
 
-        search_results = re.search(r"acc(?:_norm)?\s*\|?\s*([\d.]+)", out.strip())
+        # v0.4.2 format
+        # |    Tasks     |Version|Filter|n-shot|Metric|Value |   |Stderr|
+        # |--------------|------:|------|-----:|------|-----:|---|-----:|
+        # |truthfulqa_mc2|      2|none  |     0|acc   |0.3469|±  |0.1444|
+
+        # v0.4.3 format
+        # |    Tasks     |Version|Filter|n-shot|Metric|   |Value |   |Stderr|
+        # |--------------|------:|------|-----:|------|---|-----:|---|-----:|
+        # |truthfulqa_mc2|      2|none  |     0|acc   |↑  |0.3469|±  |0.1444|
+
+        # The below RegEx command will pick up both formats
+        search_results = re.search(
+            r"acc(?:_norm)?\s*\|?\s*(?:\↑\s*\|?)?([\d.]+)", out.strip()
+        )
         assert search_results is not None
         acc_result = float(search_results.group(1))
         assert math.isclose(acc_result, 0.3, abs_tol=0.05)

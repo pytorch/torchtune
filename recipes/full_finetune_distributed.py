@@ -106,7 +106,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         if (
             cfg.get("fsdp_cpu_offload", False)
-            and cfg.get("fused", False)
+            and cfg.optimizer.get("fused", False)
             and not utils.torch_version_ge("2.4.0")
         ):
             raise RuntimeError(
@@ -157,27 +157,41 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         """
         Updates the recipe state from checkpoint.
         """
-        # If seed, total_epoch or max_steps_per_epoch don't match,
-        # warn the user and overwrite
         try:
-            if (
-                self.seed != ckpt_dict[utils.SEED_KEY]
-                or self.total_epochs != ckpt_dict[utils.TOTAL_EPOCHS_KEY]
-                or self.max_steps_per_epoch != ckpt_dict[utils.MAX_STEPS_KEY]
-            ):
-                warn(
-                    message="""Configured value for seed, epochs or max_steps_per_epoch
-                    does not match the value stored in checkpoint."""
-                )
-            self.seed = utils.set_seed(seed=ckpt_dict[utils.SEED_KEY])
             self.epochs_run = ckpt_dict[utils.EPOCHS_KEY]
-            self.total_epochs = ckpt_dict[utils.TOTAL_EPOCHS_KEY]
-            self.max_steps_per_epoch = ckpt_dict[utils.MAX_STEPS_KEY]
+
+            # on mismatch, warn the user and prevent the override
+            if self.seed != ckpt_dict[utils.SEED_KEY]:
+                warn(
+                    message=(
+                        "Config value for seed does not match the checkpoint value, "
+                        f"using the checkpoint value: {ckpt_dict[utils.SEED_KEY]}"
+                    )
+                )
+                self.seed = ckpt_dict[utils.SEED_KEY]
+            if self.max_steps_per_epoch != ckpt_dict[utils.MAX_STEPS_KEY]:
+                warn(
+                    message=(
+                        "Config value for max_steps_per_epoch does not match the checkpoint value, "
+                        f"using the checkpoint value: {ckpt_dict[utils.MAX_STEPS_KEY]}"
+                    )
+                )
+                self.max_steps_per_epoch = ckpt_dict[utils.MAX_STEPS_KEY]
+
+            # on mismatch, warn the user but allow the override
+            if self.total_epochs != ckpt_dict[utils.TOTAL_EPOCHS_KEY]:
+                warn(
+                    message=(
+                        "Config value for total_epochs does not match the checkpoint value, "
+                        f"using the config value: {self.total_epochs}"
+                    )
+                )
+
         except KeyError as e:
-            raise KeyError from e(
-                "Checkpoint does not contain the required keys needed for updating recipe state."
+            raise KeyError(
+                "Checkpoint does not contain the required keys needed for updating recipe state. "
                 "Are you sure you passed in the right recipe checkpoint?"
-            )
+            ) from e
 
     def setup(self, cfg: DictConfig) -> None:
         """
@@ -356,8 +370,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
 
         if opt_state_dict:
-            opt_state_dict = utils.transform_opt_state_dict(
-                opt_state_dict, self._model, optimizer
+            opt_state_dict = FSDP.optim_state_dict_to_load(
+                self._model, optimizer, opt_state_dict
             )
             optimizer.load_state_dict(opt_state_dict)
 
@@ -512,6 +526,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 logits = logits.transpose(1, 2)
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
+                # free logits otherwise it peaks backward memory
+                del logits
 
                 loss = loss / self._gradient_accumulation_steps
                 running_loss += loss
@@ -528,7 +544,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     loss_to_log = running_loss.item()
                     pbar.update(1)
                     pbar.set_description(
-                        f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
+                        f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
                     )
 
                     # Log per-step metrics

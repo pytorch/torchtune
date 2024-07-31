@@ -1,0 +1,90 @@
+# Config for multi-device LoRA with FSDP2 in lora_finetune_fsdp2.py
+# using a Llama2 13B model
+#
+# This config requires PyTorch nightlies to run.
+# See https://github.com/pytorch/torchtune/blob/main/recipes/dev/fsdp2_recipes.md
+# for setup instructions.
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download meta-llama/Llama-2-13b-hf --output-dir /tmp/Llama-2-13b-hf --hf-token <HF_TOKEN>
+#
+# To launch on 4 devices, run the following command from root:
+#   tune run --nnodes 1 --nproc_per_node 4 lora_finetune_fsdp2 --config llama2/13B_lora
+#
+# You can add specific overrides through the command line. For example
+# to override the checkpointer directory while launching training
+# you can run:
+#   tune run --nnodes 1 --nproc_per_node 4 lora_finetune_fsdp2 --config llama2/13B_lora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#
+# This config works best when the model is being fine-tuned on 2+ GPUs.
+# For single device LoRA finetuning please use 7B_lora_single_device.yaml
+# or 7B_qlora_single_device.yaml and update the model and checkpoints to
+# the 13B model.
+
+
+# Model Arguments
+model:
+  _component_: torchtune.models.llama2.lora_llama2_13b
+  lora_attn_modules: ['q_proj', 'v_proj', 'k_proj']
+  apply_lora_to_mlp: True
+  apply_lora_to_output: True
+  lora_rank: 8
+  lora_alpha: 16
+
+checkpointer:
+  _component_: torchtune.utils.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Llama-2-13b-hf/
+  checkpoint_files: [
+    pytorch_model-00001-of-00003.bin,
+    pytorch_model-00002-of-00003.bin,
+    pytorch_model-00003-of-00003.bin
+  ]
+  adapter_checkpoint: null
+  recipe_checkpoint: null
+  output_dir: /tmp/Llama-2-13b-hf/
+  model_type: LLAMA2
+resume_from_checkpoint: False
+save_adapter_weights_only: False
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.llama2.llama2_tokenizer
+  path: /tmp/Llama-2-13b-hf/tokenizer.model
+
+# Dataset and Sampler
+dataset:
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+seed: null
+shuffle: True
+batch_size: 2
+
+# Optimizer and Scheduler
+optimizer:
+  _component_: torch.optim.AdamW
+  weight_decay: 0.01
+  lr: 2e-4
+lr_scheduler:
+  _component_: torchtune.modules.get_cosine_schedule_with_warmup
+  num_warmup_steps: 100
+
+loss:
+  _component_: torch.nn.CrossEntropyLoss
+
+# Training
+epochs: 1
+max_steps_per_epoch: null
+gradient_accumulation_steps: 16
+
+# Logging
+output_dir: /tmp/lora_finetune_output
+metric_logger:
+  _component_: torchtune.utils.metric_logging.DiskLogger
+  log_dir: ${output_dir}
+log_every_n_steps: 1
+log_peak_memory_stats: False
+
+# Environment
+device: cuda
+dtype: bf16
+enable_activation_checkpointing: False
