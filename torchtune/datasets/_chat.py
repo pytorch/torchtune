@@ -12,11 +12,11 @@ from datasets import load_dataset
 from torch.utils.data import Dataset
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import (
-    ChatFormat,
     CROSS_ENTROPY_IGNORE_IDX,
     get_openai_messages,
     get_sharegpt_messages,
     Message,
+    PromptTemplate,
     validate_messages,
 )
 from torchtune.datasets._packed import PackedDataset
@@ -53,17 +53,16 @@ class ChatDataset(Dataset):
             for more details.
         convert_to_messages (Callable[[Mapping[str, Any]], List[Message]]): function that keys into the desired field in the sample
             and converts to a list of :class:`~torchtune.data.Message` that follows the Llama format with the expected keys
-        chat_format (Optional[ChatFormat]): template used to format the chat. This is used to add structured text around the actual
-            messages, such as the [INST] tags in Llama2 and in Mistral. The extra text will still get tokenized as normal text, not
-            as special tokens. In models like Llama3 where the tokenizer adds tags as special tokens, ``chat_format`` is not needed,
+        prompt_template (Optional[PromptTemplate]): template used to format the chat.
+            This is used to add structured text around the actual messages, such as the
+            [INST] tags in Llama2 and in Mistral. The extra text will still get tokenized
+            as normal text, not as special tokens. In models like Llama3 where the tokenizer
+            adds tags as special tokens, ``prompt_template`` is not needed,
             unless you want to structure messages in a particular way for inference.
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
             such as ``data_files`` or ``split``.
-
-    Raises:
-        ValueError: if ``chat_format`` is not an instance of :class:`torchtune.data.ChatFormat`.
     """
 
     def __init__(
@@ -72,20 +71,15 @@ class ChatDataset(Dataset):
         tokenizer: ModelTokenizer,
         source: str,
         convert_to_messages: Callable[[Mapping[str, Any]], List[Message]],
-        chat_format: Optional[ChatFormat] = None,
+        prompt_template: Optional[PromptTemplate] = None,
         max_seq_len: int,
         train_on_input: bool = False,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
-        if chat_format is not None and not isinstance(chat_format(), ChatFormat):
-            raise ValueError(
-                f"chat_format must be a ChatFormat class, not {type(chat_format())}"
-            )
-
         self._tokenizer = tokenizer
         self._data = load_dataset(source, **load_dataset_kwargs)
         self._convert_to_messages = convert_to_messages
-        self.chat_format = chat_format
+        self._prompt_template = prompt_template
         self.max_seq_len = max_seq_len
         self.train_on_input = train_on_input
 
@@ -98,8 +92,8 @@ class ChatDataset(Dataset):
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
         messages = self._convert_to_messages(sample, self.train_on_input)
-        if self.chat_format is not None:
-            messages = self.chat_format.format(messages)
+        if self._prompt_template is not None:
+            messages = self._prompt_template(messages)
         validate_messages(messages)
         tokens, mask = self._tokenizer.tokenize_messages(
             messages,
@@ -116,7 +110,7 @@ def chat_dataset(
     *,
     source: str,
     conversation_style: str,
-    chat_format: Optional[str] = None,
+    prompt_template: Optional[str] = None,
     max_seq_len: int,
     train_on_input: bool = False,
     packed: bool = False,
@@ -136,9 +130,10 @@ def chat_dataset(
             for more details.
         conversation_style (str): string specifying expected style of conversations in the dataset
             for automatic conversion to the :class:`~torchtune.data.Message` structure. Supported styles are: "sharegpt", "openai"
-        chat_format (Optional[str]): full import path of :class:`~torchtune.data.ChatFormat` class used to format the messages.
-            See the description in :class:`~torchtune.datasets.ChatDataset` for more details. For a list of all
-            possible chat formats, check out :ref:`chat_formats`. Default: None.
+        prompt_template (Optional[str]): full import path of :class:`~torchtune.data.PromptTemplate`
+            class used to format the messages. See the description in :class:`~torchtune.datasets.ChatDataset`
+            for more details. For a list of all possible prompt templates, check out :ref:`prompt_templates`.
+            Default: None.
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
@@ -151,7 +146,7 @@ def chat_dataset(
         ...   tokenizer=tokenizer,
         ...   source="HuggingFaceH4/no_robots",
         ...   conversation_style="sharegpt",
-        ...   chat_format="torchtune.data.ChatMLFormat",
+        ...   prompt_template="torchtune.data.ChatMLFormat",
         ...   max_seq_len=2096,
         ...   train_on_input=True
         ... )
@@ -162,7 +157,7 @@ def chat_dataset(
             _component_: torchtune.datasets.chat_dataset
             source: HuggingFaceH4/no_robots
             conversation_style: sharegpt
-            chat_format: torchtune.data.ChatMLFormat
+            prompt_template: torchtune.data.ChatMLFormat
             max_seq_len: 2096
             train_on_input: True
 
@@ -184,8 +179,8 @@ def chat_dataset(
         tokenizer=tokenizer,
         source=source,
         convert_to_messages=convert_to_messages,
-        chat_format=_get_component_from_path(chat_format)
-        if chat_format is not None
+        prompt_template=_get_component_from_path(prompt_template)()
+        if prompt_template is not None
         else None,
         max_seq_len=max_seq_len,
         train_on_input=train_on_input,

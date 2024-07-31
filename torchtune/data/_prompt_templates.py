@@ -37,6 +37,207 @@ class PromptTemplate(Protocol):
         pass
 
 
+class Llama2ChatTemplate(PromptTemplate):
+    """
+    Prompt template that formats chat data of human and system prompts with appropriate tags
+    used in Llama2 pre-training. Taken from Meta's official `Llama inference
+    repository <https://github.com/meta-llama/llama/blob/main/llama/generation.py>`_.
+
+    .. code-block:: text
+
+        "[INST] <<SYS>>
+        You are a helpful, respectful and honest assistant.
+        <</SYS>>"
+
+        I am going to Paris, what should I see? [/INST] Paris, the capital of France, is known for its stunning architecture..."
+
+
+    """
+
+    template = {
+        "system": ("<<SYS>>\n", "\n<</SYS>>\n\n"),
+        "user": ("[INST] ", " [/INST] "),
+        "assistant": ("", ""),
+        "ipython": ("", ""),
+    }
+
+    def __call__(
+        self,
+        messages: List[Message],
+    ) -> List[Message]:
+        """
+        Format user and system messages with appropriate tags.
+
+        Args:
+            messages (List[Message]): a single conversation, structured as a list
+                of `Message` objects
+
+        Returns:
+            The formatted list of messages
+        """
+        system_message = []
+        formatted_dialogue = []
+        for message in messages:
+            if message.role == "system":
+                system_message = (
+                    [{"type": "text", "content": self.template["system"][0]}]
+                    + message.content
+                    + [{"type": "text", "content": self.template["system"][1]}]
+                )
+                # Incorporate the system message in the user message - Llama2 only
+                # looks for the <<SYS>> tags and not the explicit role so this will
+                # be treated the same as an actual system message. We do this because
+                # of the nesting of the system prompt in the user message.
+                continue
+            elif message.role == "user":
+                content = (
+                    [{"type": "text", "content": self.template["user"][0]}]
+                    + system_message
+                    + message.content
+                    + [{"type": "text", "content": self.template["user"][1]}]
+                )
+            elif message.role == "assistant":
+                # No special formatting needed for assistant message
+                content = message.content
+            formatted_dialogue.append(
+                Message(
+                    role=message.role,
+                    content=content,
+                    masked=message.masked,
+                    ipython=message.ipython,
+                    eot=message.eot,
+                ),
+            )
+        return formatted_dialogue
+
+
+class MistralChatTemplate(PromptTemplate):
+    """
+    Formats according to `Mistral's instruct model
+    <https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1#instruction-format>`_.
+
+    It is identical to :class:`~torchtune.data.Llama2ChatTemplate`, except it does not support system
+    prompts.
+
+    Note:
+        This template is only recommended for Mistral's Instruct-v0.1 and Instruct-v0.2 models.
+        Instruct-v0.3 adds additional tags for tool calls, which is not yet supported by this
+        template.
+
+    .. code-block:: text
+
+        "[INST] I am going to Paris, what should I see? [/INST] Paris, the capital
+        of France, is known for its stunning architecture..."
+
+    """
+
+    template = {
+        "system": None,
+        "user": ("[INST] ", " [/INST] "),
+        "assistant": ("", ""),
+        "ipython": ("", ""),
+    }
+
+    def __call__(
+        self,
+        messages: List[Message],
+    ) -> List[Message]:
+        """
+        Format user and system messages with appropriate tags.
+
+        Args:
+            messages (List[Message]): a single conversation, structured as a list
+                of `Message` objects
+
+        Returns:
+            The formatted list of messages
+
+        Raises:
+            ValueError: If system prompts are provided
+        """
+        formatted_dialogue = []
+        for message in messages:
+            if message.role == "system":
+                raise ValueError(
+                    "System prompts are not supported in MistralChatTemplate"
+                )
+            else:
+                content = (
+                    [{"type": "text", "content": self.template[message.role][0]}]
+                    + message.content
+                    + [{"type": "text", "content": self.template[message.role][1]}]
+                )
+            formatted_dialogue.append(
+                Message(
+                    role=message.role,
+                    content=content,
+                    masked=message.masked,
+                    ipython=message.ipython,
+                    eot=message.eot,
+                ),
+            )
+        return formatted_dialogue
+
+
+class ChatMLTemplate(PromptTemplate):
+    """
+    OpenAI's `Chat Markup Language
+    <https://github.com/MicrosoftDocs/azure-docs/blob/772c14eeabfa0c0c561d5c2d34ef19341f528b7b/articles/ai-services/openai/how-to/chat-markup-language.md>`_
+    used by their chat models.
+
+    It is the default chat template used by Hugging Face models.
+
+    .. code-block:: text
+
+        <|im_start|>system
+        Provide some context and/or instructions to the model.<|im_end|>
+        <|im_start|>user
+        The user’s message goes here<|im_end|>
+        <|im_start|>assistant
+        The assistant’s response goes here<|im_end|>
+
+    """
+
+    template = {
+        "system": ("<|im_start|>system\n", "<|im_end|>\n"),
+        "user": ("<|im_start|>user\n", "<|im_end|>\n"),
+        "assistant": ("<|im_start|>assistant\n", "<|im_end|>"),
+        "ipython": ("", ""),
+    }
+
+    def __call__(
+        self,
+        messages: List[Message],
+    ) -> List[Message]:
+        """
+        Format user, assistant, and system messages with appropriate tags.
+
+        Args:
+            messages (List[Message]): a single conversation, structured as a list
+                of `Message` objects
+
+        Returns:
+            The formatted list of messages
+        """
+        formatted_dialogue = []
+        for message in messages:
+            content = (
+                [{"type": "text", "content": self.template[message.role][0]}]
+                + message.content
+                + [{"type": "text", "content": self.template[message.role][1]}]
+            )
+            formatted_dialogue.append(
+                Message(
+                    role=message.role,
+                    content=content,
+                    masked=message.masked,
+                    ipython=message.ipython,
+                    eot=message.eot,
+                ),
+            )
+        return formatted_dialogue
+
+
 class CustomPromptTemplate(PromptTemplate):
     """
     Define a quick custom prompt template by passing in a dictionary mapping role to
