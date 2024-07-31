@@ -7,10 +7,10 @@
 import pytest
 from tests.test_utils import assert_dialogue_equal
 from torchtune.data._messages import (
-    JsonToMessages,
+    InputOutputToMessages,
+    JSONToMessages,
     Message,
     ShareGPTToMessages,
-    InputOutputToMessages,
 )
 
 # Taken from Open-Orca/SlimOrca-Dedup on Hugging Face:
@@ -163,7 +163,7 @@ class TestShareGPTToMessages:
         )
 
 
-class TestJsonToMessages:
+class TestJSONToMessages:
     samples = {
         "messages": [
             {
@@ -182,12 +182,12 @@ class TestJsonToMessages:
     }
 
     def test_conversion(self):
-        transform = JsonToMessages()
+        transform = JSONToMessages()
         converted_messages = transform(self.samples)
         assert_dialogue_equal(converted_messages["messages"], EXPECTED_MESSAGE)
 
     def test_conversion_train_on_input(self):
-        transform = JsonToMessages(train_on_input=True)
+        transform = JSONToMessages(train_on_input=True)
         converted_messages = transform(self.samples)
         assert_dialogue_equal(
             converted_messages["messages"], EXPECTED_MESSAGE_TRAIN_ON_INPUT

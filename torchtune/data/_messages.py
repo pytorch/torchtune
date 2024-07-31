@@ -168,14 +168,10 @@ class ShareGPTToMessages(Transform):
         ]
 
     Args:
-        sample (Mapping[str, Any]): a single data sample with "conversations" field pointing
-            to a list of dict messages.
+        train_on_input (bool): whether the prompt should remain unmasked. Default: False
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("conversations")
             to the new column names in the dataset. If None, assume these are identical.
-        train_on_input (bool): whether the prompt should remain unmasked. Default: False
-
-    Returns:
-        List[Message]: A list of messages with "role" and "content" fields.
+            Default is None.
     """
 
     def __init__(
@@ -185,6 +181,16 @@ class ShareGPTToMessages(Transform):
         self.column_map = column_map
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        """
+        Return a list of Message objects from the provided sample dict.
+
+        Args:
+            sample (Mapping[str, Any]): a single data sample with "messages" field pointing
+                to a list of dict messages.
+
+        Returns:
+            List[Message]: A list of messages with "role" and "content" fields.
+        """
         role_map = {"system": "system", "human": "user", "gpt": "assistant"}
 
         messages = []
@@ -197,7 +203,7 @@ class ShareGPTToMessages(Transform):
         return {"messages": messages}
 
 
-class JsonToMessages(Transform):
+class JSONToMessages(Transform):
     """
     Convert a chat sample with identical json structure to torchtune's :class:`~torchtune.data.Message`
     structure. This transform simply creates Message dataclasses from the provided jsons.
@@ -225,14 +231,10 @@ class JsonToMessages(Transform):
         ]
 
     Args:
-        sample (Mapping[str, Any]): a single data sample with "messages" field pointing
-            to a list of dict messages.
+        train_on_input (bool): whether the prompt should remain unmasked. Default: False
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("messages")
             to the new column names in the dataset. If None, assume these are identical.
-        train_on_input (bool): whether the prompt should remain unmasked. Default: False
-
-    Returns:
-        List[Message]: A list of messages with "role" and "content" fields.
+            Default is None.
     """
 
     def __init__(
@@ -242,6 +244,16 @@ class JsonToMessages(Transform):
         self.column_map = column_map
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        """
+        Return a list of Message objects from the provided sample dict.
+
+        Args:
+            sample (Mapping[str, Any]): a single data sample with "messages" field pointing
+                to a list of dict messages.
+
+        Returns:
+            List[Message]: A list of messages with "role" and "content" fields.
+        """
         updated_messages = []
         for message in sample["messages"]:
             message["masked"] = (message["role"] != "assistant") and (
