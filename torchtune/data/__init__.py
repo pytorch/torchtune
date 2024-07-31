@@ -11,13 +11,18 @@ from torchtune.data._chat_formats import (
     MistralChatFormat,
 )
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.data._converters import get_openai_messages, get_sharegpt_messages
 from torchtune.data._instruct_templates import (
     AlpacaInstructTemplate,
     InstructTemplate,
     StackExchangedPairedTemplate,
 )
-from torchtune.data._messages import Message, Role, ToInputOutputMessages
+from torchtune.data._messages import (
+    JsonToMessages,
+    Message,
+    Role,
+    ShareGPTToMessages,
+    ToInputOutputMessages,
+)
 from torchtune.data._prompt_templates import (
     CustomPromptTemplate,
     GrammarErrorCorrectionTemplate,
@@ -36,8 +41,8 @@ __all__ = [
     "Llama2ChatFormat",
     "MistralChatFormat",
     "ChatMLFormat",
-    "get_openai_messages",
-    "get_sharegpt_messages",
+    "JsonToMessages",
+    "ShareGPTToMessages",
     "truncate",
     "Message",
     "validate_messages",
