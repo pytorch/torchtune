@@ -104,7 +104,7 @@ class TestLoRAFinetuneDistributedRecipe:
         ],
     )
     def test_training_state_on_resume(
-        self, config, model_type, ckpt_type, fsdp_sharding_strategy, tmpdir, monkeypatch
+        self, config, model_type, ckpt_type, tmpdir, monkeypatch
     ):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
