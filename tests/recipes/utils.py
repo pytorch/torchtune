@@ -20,7 +20,7 @@ CKPT_COMPONENT_MAP = {
 
 
 class DummyDataset(Dataset):
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         self._data = torch.LongTensor(
             [
                 [0, 2, 4, 2, 5, 6, 7, 8, 9, 1, 2, 4, 3, 3, 5, 6, 8, 2, 1, 1],
