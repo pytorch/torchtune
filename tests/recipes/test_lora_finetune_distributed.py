@@ -100,7 +100,6 @@ class TestLoRAFinetuneDistributedRecipe:
         [
             ("llama2/7B_lora", "llama2", "hf"),
             ("llama3/8B_lora", "llama3", "tune"),
-            ("llama3/8B_full", "llama3", "tune"),
         ],
     )
     def test_training_state_on_resume(
