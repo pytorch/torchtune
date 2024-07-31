@@ -55,7 +55,14 @@ class TestLoRAFinetuneDistributedRecipe:
 
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
-    def test_loss(self, tmpdir, monkeypatch):
+    @pytest.mark.parametrize(
+        "fsdp_sharding_strategy",
+        [
+            (None),
+            ("NO_SHARD"),
+        ],
+    )
+    def test_loss(self, fsdp_sharding_strategy, tmpdir, monkeypatch):
         ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
@@ -72,6 +79,8 @@ class TestLoRAFinetuneDistributedRecipe:
             metric_logger.filename={log_file} \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
         """.split()
+        if fsdp_sharding_strategy:
+            cmd.append(f"fsdp_sharding_strategy={fsdp_sharding_strategy}")
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
 
@@ -87,11 +96,11 @@ class TestLoRAFinetuneDistributedRecipe:
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
     @pytest.mark.parametrize(
-        "config, model_type, ckpt_type, fsdp_sharding_strategy",
+        "config, model_type, ckpt_type",
         [
-            ("llama2/7B_lora", "llama2", "hf", None),
-            ("llama3/8B_lora", "llama3", "tune", None),
-            ("llama3/8B_full", "llama3", "tune", "NO_SHARD"),
+            ("llama2/7B_lora", "llama2", "hf"),
+            ("llama3/8B_lora", "llama3", "tune"),
+            ("llama3/8B_full", "llama3", "tune"),
         ],
     )
     def test_training_state_on_resume(
@@ -130,8 +139,6 @@ class TestLoRAFinetuneDistributedRecipe:
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
         """.split()
-        if fsdp_sharding_strategy:
-            cmd.append(f"fsdp_sharding_strategy={fsdp_sharding_strategy}")
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
 
