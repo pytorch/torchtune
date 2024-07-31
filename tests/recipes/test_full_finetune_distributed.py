@@ -54,8 +54,8 @@ class TestFullFinetuneDistributedRecipe:
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type, fsdp_sharding_strategy",
         [
-            ("llama2/7B_full", "llama2", "hf"),
-            ("llama3/8B_full", "llama3", "tune"),
+            ("llama2/7B_full", "llama2", "hf", None),
+            ("llama3/8B_full", "llama3", "tune", None),
             ("llama3/8B_full", "llama3", "tune", "NO_SHARD"),
         ],
     )
