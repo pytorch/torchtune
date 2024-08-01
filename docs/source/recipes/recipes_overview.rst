@@ -1,11 +1,11 @@
-.. _recipes_index_label:
+.. _recipes_overview_label:
 
-==============
-Recipes Index
-==============
+================
+Recipes Overview
+================
 
 Recipes are the primary entry points for torchtune users.
-These can be thought of as **hackable, singularly-focused scripts for interacting with LLMs** including training,
+These can be thought of as **hackable, singularly-focused scripts for interacting with LLMs** including fine-tuning,
 inference, evaluation, and quantization.
 
 Each recipe consists of three components:
@@ -36,42 +36,26 @@ Each recipe consists of three components:
                                                 mistral/7B_lora_single_device
         ...
 
-Continued pre-training/Supervised finetuning
---------------------------------------------
+Supervised finetuning
+---------------------
 
 torchtune provides built-in recipes for finetuning on single device, on multiple devices with `FSDP <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/>`_,
-using memory efficient techniques like `LoRA <https://arxiv.org/abs/2106.09685>`_, and more! Our  fine-tuning recipes support all of our models and all our dataset types [1]. This includes continued pre-training, and various supervised fune-tuning
-paradigms, which can be customised through our datasets. Check out our :ref:`dataset tutorial <dataset_tutorial_label>` for more information. Our fine-tuning recipes
+using a variety :ref:`memory_optimisation_overview_label`. Our  fine-tuning recipes support all of our models and all our dataset types. This includes continued pre-training, and various supervised fune-tuning
+paradigms, which can be customised through our datasets. Check out our :ref:`dataset tutorial <dataset_tutorial_label>` for more information. Our supervised fine-tuning recipes
 include:
 
-* :ref:`Single-device <lora_finetune_recipe_label>` and :ref:`multi-device <lora_finetune_recipe_label>` full-finetuning.
-* :ref:`Single-device <lora_finetune_recipe_label>` and :ref:`multi-device <lora_finetune_recipe_label>` LoRA-finetuning.
+* :ref:`Single-device <lora_finetune_recipe_label>` and distributed LoRA-finetuning.
+
+.. * :ref:`Single-device <lora_finetune_recipe_label>` and :ref:`multi-device <lora_finetune_recipe_label>` LoRA-finetuning.
 
 Alignment finetuning
 --------------------
-
 Interested in alignment fine-tuning? You've come to the right place! We support the following alignment techniques:
 
-Reward modelling
-^^^^^^^^^^^^^^^^
+Direct Preference Optimisation (DPO) Fine-Tuning
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* Reward model training with:
-
-  * :ref:`Single-device <lora_finetune_recipe_label>` and :ref:`multi-device <lora_finetune_recipe_label>` full-finetuning.
-  * :ref:`Single-device <lora_finetune_recipe_label>` and :ref:`multi-device <lora_finetune_recipe_label>` LoRA finetuning.
-
-
-Reinforcement Learning from Human Feedback (RLHF)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-* :ref:`Preference finetuning <lora_finetune_recipe_label>` techniques based on `Direct Preference Optimisation <https://arxiv.org/abs/2305.18290>`_ with:
+`Direct Preference Optimisation <https://arxiv.org/abs/2305.18290>`_ (DPO) stype techniques allow for aligning language models with respect
+to a reward model objective function without the use of reinforcement learning. We support DPO preference fine-tuning with:
 
   * :ref:`Single-device <lora_finetune_recipe_label>` and :ref:`multi-device <lora_finetune_recipe_label>` LoRA finetuning.
-
-* :ref:`Single-device <lora_finetune_recipe_label>` RLHF with Proximal Policy Optimisation full-finetuning.
-
-
-.. note::
-
-  [1] Our reward and preference modelling recipes currently support a limited subset of tasks.
-  See the :class:`preference datasets <torchtune.datasets.PreferenceDataset>` page for more details.

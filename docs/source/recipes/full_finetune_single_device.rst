@@ -1,73 +1,82 @@
-===================================
-Full-memory Multi Device finetuning
-===================================
+.. _recipe_label_here:
 
-This recipe supports finetuning using `LoRA <https://arxiv.org/abs/2106.09685>`_, a technique to significantly reduce memory consumption during training
-whilst still maintaining competitive performance.
+============
+Recipe Title
+============
 
-Interested in using this recipe? Check out some of our awesome tutorials to show off how it can be used:
+<Recipe intro>
 
-* :ref:`Finetuning Llama2 with LoRA<lora_finetune_label>`
-* :ref:`End-to-End Workflow with torchtune<dataset_tutorial_label>`
-* :ref:`Fine-tuning Llama3 with Chat Data<chat_tutorial_label>`
-* :ref:`Meta Llama3 in torchtune<llama3_label>`
-* :ref:`Fine-Tune Your First LLM<finetune_llama_label>`
+Interested in using this recipe? Check out some of our tutorials which show how it is used:
+
+.. Don't have any tutorials to reference? Consider writing one! : )
+
+.. these tutorials are probably generic enough to be referenced in most of our recipes
+.. but please consider if this is the case when writing this document.
+
+* :ref:`finetune_llama_label`
+* :ref:`e2e_flow`
+
+The best way to get started with our recipes is through the :ref:`cli_label`, which allows you to start fine-tuning
+one of our built-in models without touching a single line of code!
+
+For example, if you're interested in using this recipe with the latest `Llama models <https://llama.meta.com/>`_, you can fine-tune
+in just two steps:
+
+.. fill the commands below out if you so desire
+
+.. note::
+
+    You may need to be granted access to the LLama model you're interested in. See
+    :ref:`here <download_llama_label>` for details on accessing gated repositories.
 
 
-This recipe supports instruct supervised-finetuning, chat supervised fine-tuning, and continued pre-training tasks.
-These are are primarily configured through the ``dataset`` configuration parameter. Take a look at
+.. code-block:: bash
 
-Full finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe is optimized
-for single GPU training. Training on CPU is not supported.
+    tune download path/to/huggingface_model \
+        --output-dir /tmp/model_name \
+        --hf-token <HF ACCESS TOKEN>
 
-Features:
-    - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
-        flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
-        activations in memory and instead recompute them during the backward pass. This is especially
-        helpful for larger batch sizes when you're memory constrained. But these savings in memory
-        come at the cost of training performance. In most cases training can slow-down quite a bit as
-        a result of this activation recomputation.
+    tune run <recipe> --config <config> \
+        model._component_=<model_component> \
+        tokenizer._component_=<model_component> \
+        checkpointer ... \
+        logger._component_=torchtune.utils.metric_logging.WandBLogger \
+        dataset ... \
 
-    - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
-        flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
-        most cases this should halve the memory footprint of full precision (fp32) training, without
-        loss in model quality (will depend on the model, training data and other settings). For
-        GPUs which do not support bfloat16, we fall back to fp32. Mixed precision training and fp16
-        precision are currently not supported.
 
-    - Gradient Accumulation. You can simulate larger batch sizes by accumulating gradients. This is
-        controlled using the ``gradient_accumulation_steps`` flag.
+.. note::
 
-            Total Batch Size = batch_size * gradient accumulation steps.
+    The :ref:`cli_label` allows you to list all our recipes and configs, run recipes, copy configs and recipes,
+    and validate configs without touching a line of code!
 
-        For example: with batch_size=1 and gradient_accumulation_steps=32 we get a total batch size of 32.
 
-        Gradient accumulation is especially useful when you are memory constrained. In this case,
-        accumulating gradients might give you better training speed than enabling activation
-        checkpointing.
+.. detail the recipe params below. you might want to include these defaults:
 
-    - Optimizer in Backward. Fusing the optimizer step into the backward pass helps reduce the memory
-        footprint associated with gradients. This can be especially helpful when you are memory
-        constrained. Note that users can only use ONE of gradient accumulation or optimizer in backward.
-        These features currently do not work together. For more details on optimizer in backward, please
-        see this tutorial: https://pytorch.org/tutorials/intermediate/optimizer_step_in_backward_tutorial.html
+.. you can include this line for all recipes
 
-    - Lower precision optimizers. This recipe supports lower-precision optimizers from the bitsandbytes
-        library (https://huggingface.co/docs/bitsandbytes/main/en/index). We've tested the recipe with
-        8-bit AdamW and Paged AdamW. These optimizers are especially helpful when you are memory constrained
-        since they help reduce the memory footprint associated with the optimizer states.
+Most of you will want to twist, pull, and bop all the different levers and knobs we expose in our recipes. Check out our
+:ref:`configs tutorial <config_tutorial_label>` to learn how to customize recipes to suit your needs.
+Are you also interested in our memory optimisation features? Check out our  :ref:`memory optimization overview<memory_optimisation_overview_label>`!
+.. and for lora/qlora recipes
 
-    - Checkpointing. Model weights are checkpointed both at the end of each epoch and at the end of
-        training. Optimizer State and recipe state (seed, total_epochs, number of epochs run etc) are
-        only saved at the end of a given epoch and used in case of resuming training.
+This recipe in particular supports :ref:`parameter efficient fine-tuning (PEFT) <glossary_peft>`: :ref:`glossary_lora` and :ref:`glossary_qlora`.
 
-        Resuming training is controlled by the ``resume_from_checkpoint`` flag. Mid-epoch checkpointing is
-        currently not supported.
+.. and for single device recipes
 
-        For more details on the checkpointer, please take a look at
-        our checkpointer deepdive (https://pytorch.org/torchtune/main/deep_dives/checkpointer.html).
+As with all our single-device recipes, you can also:
 
-    - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
+* Adjust :ref:`model precision <glossary_precision>`.
+* Use :ref:`activation checkpointing <glossary_act_ckpt>`.
+* Enable :ref:`gradient accumulation <glossary_grad_accm>`.
+* Use :ref:`lower precision optimizers <glossary_low_precision_opt>`.
 
-For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
-has example commands for how to kick-off training.
+
+.. and you can add the below for LoRA
+.. However, note that since LoRA significantly reduces memory usage due to gradient state, you will likely not need this
+.. feature.
+
+.. and for distributed recipes
+
+As with all our distributed recipes:
+
+* `glossary_distrib`

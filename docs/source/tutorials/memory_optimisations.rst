@@ -1,7 +1,7 @@
 .. _memory_optimisation_overview_label:
 
 ============================
-Memory Optimisation Overview
+Memory Optimization Overview
 ============================
 
 **Author**: `Salman Mohammadi <https://github.com/SalmanMohammadi>`_
@@ -204,6 +204,7 @@ As above, these parameters are also specified under the ``model`` flag or config
   To get a deeper sense of how LoRA parameters affect memory usage during training,
   see the :ref:`relevant section in our Llama2 LoRA tutorial<lora_tutorial_memory_tradeoff_label>`.
 
+.. _glossary_qlora:
 
 Quantized Low Rank Adaptation (LoRA)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

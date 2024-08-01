@@ -103,7 +103,7 @@ torchtune tutorials.
    :caption: Recipes
    :hidden:
 
-   recipes/recipes_index
+   recipes/recipes_overview
    recipes/full_finetune_single_device
    recipes/full_finetune_multi_device
    recipes/lora_finetune_single_device
