@@ -299,6 +299,7 @@ A comparison of the (smoothed) loss curves between this run and our baseline ove
     The above figure was generated with W&B. You can use torchtune's :class:`~torchtune.utils.metric_logging.WandBLogger`
     to generate similar loss curves, but you will need to install W&B and setup an account separately.
 
+.. _lora_tutorial_memory_tradeoff_label:
 
 Trading off memory and model performance with LoRA
 --------------------------------------------------

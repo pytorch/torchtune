@@ -110,6 +110,7 @@ torchtune tutorials.
    tutorials/e2e_flow
    tutorials/datasets
    tutorials/chat
+   tutorials/memory_optimisations
 
 .. toctree::
    :glob:
