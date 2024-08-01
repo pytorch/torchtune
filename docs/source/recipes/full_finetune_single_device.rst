@@ -1,8 +1,8 @@
 .. _recipe_label_here:
 
-============
-Recipe Title
-============
+=====================
+TEMPLATE Recipe Title
+=====================
 
 <Recipe intro>
 
