@@ -194,7 +194,6 @@ class TestLlama3Tokenizer:
             376,
             110,
             46,
-            32,
             128011,
             1542,
             720,
@@ -401,7 +400,7 @@ class TestLlama3Tokenizer:
         with pytest.raises(
             ValueError, match="<|begin_of_text|> missing from special_tokens"
         ):
-            tokenizer = Llama3Tokenizer(
+            _ = Llama3Tokenizer(
                 path=str(ASSETS / "tiktoken_small.model"),
                 # Same as LLAMA3_SPECIAL_TOKENS but one missing
                 special_tokens={
