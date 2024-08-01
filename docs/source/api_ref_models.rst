@@ -6,8 +6,8 @@ torchtune.models
 
 .. currentmodule:: torchtune.models
 
-llama3
-------
+llama3 & llama3.1
+-----------------
 
 All models from the `Llama3 family <https://llama.meta.com/llama3/>`_.
 
@@ -23,9 +23,10 @@ To download the Llama3-70B-Instruct model:
 
 .. code-block:: bash
 
-    tune download meta-llama/Meta-Llama-3-70B-Instruct --hf-token <HF_TOKEN>
-    --ignore-patterns "original/consolidated*"
+    tune download meta-llama/Meta-Llama-3-70B-Instruct --hf-token <HF_TOKEN> --ignore-patterns "original/consolidated*"
 
+To download the Llama3.1 weights of the above models, you can instead download from `Meta-Llama-3.1-8B-Instruct`
+or `Meta-Llama-3.1-70B-Instruct`.
 
 .. autosummary::
     :toctree: generated/
@@ -42,6 +43,21 @@ To download the Llama3-70B-Instruct model:
     llama3.llama3_tokenizer
     llama3.Llama3Tokenizer
 
+    |
+
+    llama3_1.llama3_1
+    llama3_1.lora_llama3_1
+    llama3_1.llama3_1_8b
+    llama3_1.lora_llama3_1_8b
+    llama3_1.qlora_llama3_1_8b
+    llama3_1.llama3_1_70b
+    llama3_1.lora_llama3_1_70b
+    llama3_1.qlora_llama3_1_70b
+
+
+.. note::
+
+    The Llama3.1 tokenizer reuses the `llama3.llama3_tokenizer` builder class.
 
 llama2
 ------
@@ -85,6 +101,9 @@ To download the Llama2-70B model:
     llama2.qlora_llama2_70b
     llama2.llama2_tokenizer
     llama2.Llama2Tokenizer
+    llama2.llama2_reward_7b
+    llama2.lora_llama2_reward_7b
+    llama2.qlora_llama2_reward_7b
 
 
 code llama
@@ -163,9 +182,9 @@ To download the Mistral 7B v0.1 model:
     mistral.mistral_7b
     mistral.lora_mistral_7b
     mistral.qlora_mistral_7b
-    mistral.mistral_classifier_7b
-    mistral.lora_mistral_classifier_7b
-    mistral.qlora_mistral_classifier_7b
+    mistral.mistral_reward_7b
+    mistral.lora_mistral_reward_7b
+    mistral.qlora_mistral_reward_7b
     mistral.mistral_tokenizer
     mistral.MistralTokenizer
 

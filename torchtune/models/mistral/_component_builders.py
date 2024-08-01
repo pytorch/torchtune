@@ -13,6 +13,7 @@ from torch import nn
 from torchtune.modules import (
     CausalSelfAttention,
     FeedForward,
+    FrozenNF4Linear,
     RMSNorm,
     RotaryPositionalEmbeddings,
     TransformerDecoder,
@@ -114,13 +115,13 @@ def mistral(
     )
 
 
-def mistral_mlp(dim: int, hidden_dim: int) -> FeedForward:
+def mistral_mlp(dim: int, hidden_dim: int, quantize_base: bool = False) -> FeedForward:
     """
     Build the MLP layer associated with the Mistral model.
     """
-    gate_proj = nn.Linear(dim, hidden_dim, bias=False)
-    down_proj = nn.Linear(hidden_dim, dim, bias=False)
-    up_proj = nn.Linear(dim, hidden_dim, bias=False)
+    gate_proj = nn.Linear(dim, hidden_dim, bias=False) if not quantize_base else FrozenNF4Linear(dim, hidden_dim, bias=False)
+    down_proj = nn.Linear(hidden_dim, dim, bias=False) if not quantize_base else FrozenNF4Linear(hidden_dim, dim, bias=False)
+    up_proj = nn.Linear(dim, hidden_dim, bias=False) if not quantize_base else FrozenNF4Linear(dim, hidden_dim, bias=False)
     return FeedForward(gate_proj=gate_proj, down_proj=down_proj, up_proj=up_proj)
 
 
@@ -209,7 +210,7 @@ def lora_mistral(
             quantize_base=quantize_base,
         )
     else:
-        mlp = mistral_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
+        mlp = mistral_mlp(dim=embed_dim, hidden_dim=intermediate_dim, quantize_base=quantize_base)
 
     layer = TransformerDecoderLayer(
         attn=self_attn,
@@ -316,7 +317,11 @@ def lora_mistral_self_attention(
             quantize_base=quantize_base,
         )
         if "q_proj" in lora_modules
-        else nn.Linear(embed_dim, num_heads * head_dim, bias=False)
+        else (
+            nn.Linear(embed_dim, num_heads * head_dim, bias=False)
+            if not quantize_base
+            else FrozenNF4Linear(embed_dim, num_heads * head_dim, bias=False)
+        )
     )
     k_proj = (
         LoRALinear(
@@ -328,7 +333,11 @@ def lora_mistral_self_attention(
             quantize_base=quantize_base,
         )
         if "k_proj" in lora_modules
-        else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+        else (
+            nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+            if not quantize_base
+            else FrozenNF4Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+        )
     )
     v_proj = (
         LoRALinear(
@@ -340,7 +349,11 @@ def lora_mistral_self_attention(
             quantize_base=quantize_base,
         )
         if "v_proj" in lora_modules
-        else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+        else (
+            nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+            if not quantize_base
+            else FrozenNF4Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+        )
     )
     output_proj = (
         LoRALinear(
@@ -352,7 +365,11 @@ def lora_mistral_self_attention(
             quantize_base=quantize_base,
         )
         if "output_proj" in lora_modules
-        else nn.Linear(embed_dim, embed_dim, bias=False)
+        else (
+            nn.Linear(embed_dim, embed_dim, bias=False)
+            if not quantize_base
+            else FrozenNF4Linear(embed_dim, embed_dim, bias=False)
+        )
     )
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
     self_attn = CausalSelfAttention(
@@ -526,6 +543,7 @@ def lora_mistral_classifier(
             Default: False
         apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
             Default: False
+        num_classes (int): number of classes for the classification layer.
         vocab_size (int): number of tokens in vocabulary.
         num_layers (int): number of layers in the transformer decoder.
         num_heads (int): number of query heads. For MHA this is also the

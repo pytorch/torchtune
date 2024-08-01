@@ -19,6 +19,17 @@ class ModelType(Enum):
     If you are adding a new model that follows a different format than those in the repo already,
     you can add a new ModelType to gate on weight conversion logic unique to that model.
 
+    Attributes:
+        GEMMA (str): Gemma family of models. See :func:`~torchtune.models.gemma.gemma`
+        LLAMA2 (str): Llama2 family of models. See :func:`~torchtune.models.llama2.llama2`
+        LLAMA3 (str): Llama3 family of models. See :func:`~torchtune.models.llama3.llama3`
+        MISTRAL (str): Mistral family of models. See :func:`~torchtune.models.mistral.mistral`
+        PHI3_MINI (str): Phi-3 family of models. See :func:`~torchtune.models.phi3.phi3`
+        REWARD (str): A Llama2, Llama3, or Mistral model with a classification head projecting
+            to a single class for reward modelling.
+            See :func:`~torchtune.models.mistral.mistral_reward_7b` or :func:`~torchtune.models.llama2.llama2_reward_7b`
+        QWEN2 (str): Qwen2 family of models. See :func:`~torchtune.models.qwen2.qwen2`
+
     Example:
         >>> # Usage in a checkpointer class
         >>> def load_checkpoint(self, ...):
@@ -27,23 +38,13 @@ class ModelType(Enum):
         >>>         state_dict = my_custom_state_dict_mapping(state_dict)
     """
 
-    GEMMA = "gemma"
-    """Gemma family of models. See :func:`~torchtune.models.gemma.gemma`"""
-
-    LLAMA2 = "llama2"
-    """Llama2 family of models. See :func:`~torchtune.models.llama2.llama2`"""
-
-    LLAMA3 = "llama3"
-    """Llama3 family of models. See :func:`~torchtune.models.llama3.llama3`"""
-
-    MISTRAL = "mistral"
-    """Mistral family of models. See :func:`~torchtune.models.mistral.mistral`"""
-
-    PHI3_MINI = "phi3_mini"
-    """Phi-3 family of models. See :func:`~torchtune.models.phi3.phi3`"""
-
-    MISTRAL_REWARD = "mistral_reward"
-    """Mistral model with a classification head. See :func:`~torchtune.models.mistral.mistral_classifier`"""
+    GEMMA: str = "gemma"
+    LLAMA2: str = "llama2"
+    LLAMA3: str = "llama3"
+    MISTRAL: str = "mistral"
+    PHI3_MINI: str = "phi3_mini"
+    REWARD: str = "reward"
+    QWEN2: str = "qwen2"
 
 
 def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:

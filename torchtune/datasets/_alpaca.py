@@ -18,6 +18,7 @@ def alpaca_dataset(
     train_on_input: bool = True,
     max_seq_len: int = 512,
     packed: bool = False,
+    split: str = "train",
 ) -> InstructDataset:
     """
     Support for family of Alpaca-style datasets from Hugging Face Datasets using
@@ -40,7 +41,8 @@ def alpaca_dataset(
             Default is 512, but we recommend setting this to the highest you can fit in memory and
             is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
-
+        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
+            of a given split, e.g. ``split="train[:10%]"``. Default is "train".
     Returns:
         InstructDataset: dataset configured with source data and template
 
@@ -59,7 +61,7 @@ def alpaca_dataset(
         train_on_input=train_on_input,
         max_seq_len=max_seq_len,
         packed=packed,
-        split="train",
+        split=split,
     )
 
 

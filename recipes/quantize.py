@@ -25,28 +25,6 @@ class QuantizationRecipe:
     Uses quantizer classes from torchao to quantize a model.
 
     Supported quantization modes are:
-    8w:
-        torchtune.utils.quantization.Int8WeightOnlyQuantizer
-        int8 weight only per axis group quantization
-
-    4w:
-        torchtune.utils.quantization.Int4WeightOnlyQuantizer
-        int4 weight only per axis group quantization
-        Args:
-            `groupsize` (int): a parameter of int4 weight only quantization,
-            it refers to the size of quantization groups which get independent quantization parameters
-            e.g. 32, 64, 128, 256, smaller numbers means more fine grained and higher accuracy
-
-    4w-gptq:
-        torchtune.utils.quantization.Int4WeightOnlyGPTQQuantizer
-        int4 weight only per axis group quantization with GPTQ
-        Args:
-            `groupsize`: see description in `4w`
-            `blocksize`: GPTQ is applied to a 'block' of columns at a time,
-                larger blocks trade off memory for perf, recommended to be a constant
-                multiple of groupsize.
-            `percdamp`: GPTQ stablization hyperparameter, recommended to be .01
-
     8da4w (PyTorch 2.3+):
         torchtune.utils.quantization.Int8DynActInt4WeightQuantizer
         int8 per token dynamic activation with int4 weight only per axis group quantization
@@ -69,7 +47,7 @@ class QuantizationRecipe:
 
     def __init__(self, cfg: DictConfig) -> None:
         self._device = utils.get_device(device=cfg.device)
-        self._dtype = utils.get_dtype(dtype=cfg.dtype)
+        self._dtype = utils.get_dtype(dtype=cfg.dtype, device=self._device)
         self._quantizer = config.instantiate(cfg.quantizer)
         self._quantization_mode = utils.get_quantizer_mode(self._quantizer)
         utils.set_seed(seed=cfg.seed)
