@@ -16,7 +16,6 @@ from torchtune.utils.attention_bias import packed_block_causal_mask
 
 def padded_collate(
     batch: List[Dict[str, List[int]]],
-    device: torch.device,
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
 ) -> Dict[str, torch.Tensor]:
@@ -25,7 +24,6 @@ def padded_collate(
 
     Args:
         batch (List[Dict[str, List[int]]]): A list of tuples containing input, label pairs.
-        device (torch.device): Device to move batch to.
         padding_idx (int): Padding index for input ids. Defaults to 0.
         ignore_idx (int): Padding index for labels. Defaults to -100.
 
@@ -72,7 +70,7 @@ def padded_collate(
             (0, labels_seq_len - input_ids_seq_len),
             value=padding_idx,
         )
-    return {"tokens": input_ids.to(device), "labels": labels.to(device)}
+    return {"tokens": input_ids, "labels": labels}
 
 
 def padded_collate_dpo(
@@ -141,7 +139,7 @@ def padded_collate_dpo(
 
 def padded_collate_packed(
     batch: List[PACK_TYPE],
-    device: torch.device,
+    device: torch.device = torch.device("cuda"),
 ) -> Dict[str, torch.Tensor]:
     """Collate packed sequences into a batch. Only convert the seq lens into
     a block mask for use with attention. Tokens, labels, and input_pos are
@@ -153,6 +151,7 @@ def padded_collate_packed(
             - labels: label token ids
             - input_pos: relative position ids for each sequence in pack
             - seq_lens: lengths of each sample within the pack
+        device (torch.device): device to create block mask on. Default is "cuda".
 
     Returns:
         Dict[str, torch.Tensor]: Collated input, label, input_pos, mask tensors.
@@ -201,8 +200,8 @@ def padded_collate_packed(
     )
 
     return {
-        "tokens": tokens.to(device),
-        "labels": labels.to(device),
-        "input_pos": input_pos.to(device),
+        "tokens": tokens,
+        "labels": labels,
+        "input_pos": input_pos,
         "mask": block_mask,
     }

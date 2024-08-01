@@ -48,12 +48,14 @@ class TransformerDecoderLayer(nn.Module):
         Args:
             x (Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
-            mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask
+            mask (_MaskType): Optional boolean tensor which contains the attention mask
                 with shape [batch_size x seq_length x seq_length]. This is applied after
                 the query-key multiplication and before the softmax. A value of True in row i
                 and column j means token i attends to token j. A value of False means token i
                 does not attend to token j. If no mask is specified, a causal mask
-                is used by default. Default is None.
+                is used by default. If a BlockMask is passed for document masking in a packed
+                sequence, we use :func:`~torch.nn.attention.flex_attention.flex_attention` when
+                computing attention. Default is None.
             input_pos (Optional[Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
@@ -197,11 +199,14 @@ class TransformerDecoder(nn.Module):
         """
         Args:
             tokens (Tensor): input tensor with shape [b x s]
-            mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask
-                with shape [b x s x s]. This is applied after the query-key multiplication and
-                before the softmax. A value of True in row i and column j means token i attends
-                to token j. A value of False means token i does not attend to token j. If no
-                mask is specified, a causal mask is used by default. Default is None.
+            mask (_MaskType): Optional boolean tensor which contains the attention mask
+                with shape [b x s x s]. This is applied after
+                the query-key multiplication and before the softmax. A value of True in row i
+                and column j means token i attends to token j. A value of False means token i
+                does not attend to token j. If no mask is specified, a causal mask
+                is used by default. If a BlockMask is passed for document masking in a packed
+                sequence, we use :func:`~torch.nn.attention.flex_attention.flex_attention` when
+                computing attention. Default is None.
             input_pos (Optional[Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
@@ -337,17 +342,20 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         self,
         tokens: Tensor,
         *,
-        mask: Optional[Tensor] = None,
+        mask: _MaskType = None,
         input_pos: Optional[Tensor] = None,
     ) -> Tensor:
         """
         Args:
             tokens (Tensor): input tensor with shape [b x s]
-            mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask
-                with shape [b x s x s]. This is applied after the query-key multiplication and
-                before the softmax. A value of True in row i and column j means token i attends
-                to token j. A value of False means token i does not attend to token j. If no
-                mask is specified, a causal mask is used by default. Default is None.
+            mask (_MaskType): Optional boolean tensor which contains the attention mask
+                with shape [b x s x s]. This is applied after
+                the query-key multiplication and before the softmax. A value of True in row i
+                and column j means token i attends to token j. A value of False means token i
+                does not attend to token j. If no mask is specified, a causal mask
+                is used by default. If a BlockMask is passed for document masking in a packed
+                sequence, we use :func:`~torch.nn.attention.flex_attention.flex_attention` when
+                computing attention. Default is None.
             input_pos (Optional[Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].

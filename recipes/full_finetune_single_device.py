@@ -441,14 +441,15 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 mask = batch.get("mask", None)  # shape [b, s, s]
                 input_pos = batch.get("input_pos", None)  # shape [b, s]
 
+                tokens = tokens.to(self._device)
                 num_tokens += tokens.numel()
-
-                # Batch collater already moves model inputs to correct device
-                logits = self._model(
-                    tokens,
-                    mask=mask,
-                    input_pos=input_pos,
+                labels = labels.to(self._device)
+                mask = mask.to(self._device) if mask is not None else None
+                input_pos = (
+                    input_pos.to(self._device) if input_pos is not None else None
                 )
+
+                logits = self._model(tokens, mask=mask, input_pos=input_pos)
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
                 labels = labels[..., 1:].contiguous()

@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import logging
 from typing import Optional
 
 import torch
@@ -12,6 +13,10 @@ from torch import nn, Tensor
 from torchtune.modules.kv_cache import KVCache
 from torchtune.utils._version import torch_version_ge
 from torchtune.utils.attention_bias import _MaskType
+from torchtune.utils.logging import get_logger, log_once
+
+_log: logging.Logger = get_logger()
+
 
 if torch_version_ge("2.5.0"):
     from torch.nn.attention.flex_attention import BlockMask, flex_attention
@@ -34,6 +39,11 @@ if torch_version_ge("2.5.0"):
         # This will use flash attention under the hood with support for custom masks.
         # Currently, it is used when sample packing is enabled (see torchtune.datasets.PackedDataset)
         if isinstance(mask, BlockMask):
+            log_once(
+                _log,
+                "Using flex attention for attention computation since a BlockMask was passed in.",
+                level=logging.DEBUG,
+            )
             return flex_attention_compiled(
                 q,
                 k,
