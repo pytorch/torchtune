@@ -515,7 +515,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             sampler=sampler,
             collate_fn=partial(
                 utils.padded_collate,
-                device=self._device,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=self._loss_fn.ignore_index,
             )
