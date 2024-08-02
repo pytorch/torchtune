@@ -27,11 +27,20 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
+<<<<<<< HEAD
 from torchtune.modules.peft import (
     get_adapter_params,
     get_lora_module_names,
     get_merged_lora_ckpt,
     LoRALinear,
+=======
+from torchtune.modules.peft import DoRALinear, LoRALinear
+from torchtune.modules.peft.peft_utils import (
+    get_adapter_params,
+    get_lora_module_names,
+    get_merged_lora_ckpt,
+    notify_base_params_loaded,
+>>>>>>> ecafe18 (wip hacky changes)
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
@@ -346,6 +355,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         for m in reversed(list(model.modules())):
             if isinstance(m, nn.Linear) and m.weight.requires_grad:
                 fully_shard(m, **fsdp_kwargs)
+            if isinstance(m, DoRALinear):
+                fully_shard(m, **fsdp_kwargs)
+            if isinstance(m, DoRALinear):
+                fully_shard(m, **fsdp_kwargs)
             # TransformerSelfAttentionLayer is wrapped by CheckpointWrapper
             # when enable_activation_checkpointing
             if enable_activation_checkpointing:
@@ -366,15 +379,26 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), self._device:
             lora_device = "cpu" if cfg_fsdp and cfg_fsdp.cpu_offload else self._device
             for m in model.modules():
-                if isinstance(m, LoRALinear) and not lora_weights_state_dict:
+                if (
+                    isinstance(m, LoRALinear) or isinstance(m, DoRALinear)
+                ) and not lora_weights_state_dict:
                     # lora may not be covered in state dict
                     # if finetune for the 1st time
                     m.lora_a.to_empty(device=lora_device)
                     m.lora_b.to_empty(device=lora_device)
                     m.initialize_parameters()
+                # if isinstance(m, DoRALinear) and not lora_weights_state_dict:
+                #     # dora may not be covered in state dict
+                #     # if finetune for the 1st time
+                #     m.lora_a.to_empty(device=lora_device)
+                #     m.lora_b.to_empty(device=lora_device)
+                #     m.initialize_parameters()
                 # RoPE is not covered in state dict
                 if isinstance(m, modules.RotaryPositionalEmbeddings):
                     m.reset_parameters()
+            # TODO: check for DoRA too
+            if not lora_weights_state_dict:
+                notify_base_params_loaded(model, self._device)
 
         base_missing, base_unexpected = utils.load_from_full_model_state_dict(
             model, base_model_state_dict, self._device, self._is_rank_zero

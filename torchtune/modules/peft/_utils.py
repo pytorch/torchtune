@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import contextlib
+import functools
 from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set
 
 import torch
@@ -366,7 +367,7 @@ def validate_missing_and_unexpected_for_lora(
         raise AssertionError("Unexpected key loading adapter")
 
 
-def notify_base_params_loaded(model: nn.Module):
+def notify_base_params_loaded(model: nn.Module, device: torch.device):
     """
     Notify all submodules in a LoRA model that the base model's parameters have been
     loaded, in case they need to do additional initialization (e.g. initialization of
@@ -375,9 +376,9 @@ def notify_base_params_loaded(model: nn.Module):
     Args:
         model (nn.Module): the LoRA model.
     """
-    model.apply(_notify_base_params_loaded)
+    model.apply(functools.partial(_notify_base_params_loaded, device=device))
 
 
-def _notify_base_params_loaded(module):
+def _notify_base_params_loaded(module, device):
     if hasattr(module, "initialize_dora_magnitude"):
-        module.initialize_dora_magnitude()
+        module.initialize_dora_magnitude(device)

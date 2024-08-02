@@ -259,7 +259,11 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
         if recurse:
             return True
 
-        if isinstance(module, LoRALinear) or isinstance(module, DoRALinear):
+        # Assumes lora_a and lora_b are nn.Linears that are the
+        # only trainable modules in the entire network. Wraps
+        # these in separate FSDP unit to work around FSDP allocating
+        # extra gradient memory when wrapped with other modules.
+        if hasattr(module, "weight") and module.weight.requires_grad:
             return True
 
         return isinstance(module, tuple(modules_to_wrap))

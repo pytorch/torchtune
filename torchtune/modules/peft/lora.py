@@ -196,16 +196,20 @@ class DoRALinear(nn.Module, AdapterModule):
         # after loading the base model weights in `initialize_dora`.
         nn.init.ones_(self.magnitude)
 
-    def initialize_dora_magnitude(self):
+    def initialize_dora_magnitude(self, device: torch.device):
         """
         DoRA initializes the magnitude vector such that its outputs are initially
         identical to standard LoRA's outputs.
         """
+        # self.magnitude = self.magnitude.to(device)
+        magnitude = torch.empty_like(self.magnitude, device=device)
         base_weight = self.weight.to(self.lora_a.weight.dtype)
         lora_weight = self.lora_b.weight @ self.lora_a.weight
         weight = base_weight + self.scaling * lora_weight
         weight_norm = torch.linalg.norm(weight, dim=1)
-        self.magnitude.data = weight_norm
+        # del self.magnitude
+        print(f"WEFWEF {weight_norm.device}")
+        self.magnitude = nn.Parameter(weight_norm)
 
     def _create_weight(self):
         """
