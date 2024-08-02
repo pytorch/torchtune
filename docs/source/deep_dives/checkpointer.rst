@@ -115,9 +115,15 @@ fine-tuned checkpoints from torchtune with any post-training tool (quantization,
 which supports the source format, without any code changes OR conversion scripts. This is one of the
 ways in which torchtune interoperates with the surrounding ecosystem.
 
-To be "state-dict invariant", the ``load_checkpoint`` and
-``save_checkpoint`` methods make use of the weight convertors available
-:ref:`here<convert_weights_label>`.
+.. note::
+
+  To be state-dict "invariant" in this way, the ``load_checkpoint`` and ``save_checkpoint`` methods of each checkpointer
+  make use of weight convertors which correctly map weights between checkpoint formats. For example, when loading weights
+  from HuggingFace, we apply a permutation to certain weights on load and save to ensure checkpoints behave exactly the same.
+  To further illustrate this, the llama family of models uses a
+  `generic weight converter function <https://github.com/pytorch/torchtune/blob/898670f0eb58f956b5228e5a55ccac4ea0efaff8/torchtune/models/convert_weights.py#L113>`_
+  whilst some other models like Phi have their own `conversion functions <https://github.com/pytorch/torchtune/blob/main/torchtune/models/phi3/_convert_weights.py>`_
+  which can be found within their model folders.
 
 |
 
@@ -196,8 +202,6 @@ The following snippet explains how the HFCheckpointer is setup in torchtune conf
     read directly from the ``config.json`` file. This helps ensure we either load the weights
     correctly or error out in case of discrepancy between the HF checkpoint file and torchtune's
     model implementations. This json file is downloaded from the hub along with the model checkpoints.
-    More details on how these are used during conversion can be found
-    :ref:`here <convert_weights_label>`.
 
 |
 

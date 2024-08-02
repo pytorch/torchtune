@@ -237,6 +237,3 @@ Vision components to support multimodality using `CLIP encoder <https://arxiv.or
     clip.TokenPositionalEmbedding
     clip.TiledTokenPositionalEmbedding
     clip.TilePositionalEmbedding
-
-
-.. _convert_weights_label:
