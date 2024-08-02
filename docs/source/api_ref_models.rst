@@ -240,19 +240,3 @@ Vision components to support multimodality using `CLIP encoder <https://arxiv.or
 
 
 .. _convert_weights_label:
-
-convert_weights
----------------
-
-Weight conversion utilities between different checkpoint formats. In addition to mapping weights between
-checkpoint formats, we use :func:`tune_to_hf <convert_weights.tune_to_hf>` and :func:`hf_to_tune <convert_weights.hf_to_tune>`
-to ensure model parameters read from HF ``config.json`` files are identical to torchtune's model implementations.
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    convert_weights.tune_to_hf
-    convert_weights.hf_to_tune
-    convert_weights.tune_to_meta
-    convert_weights.meta_to_tune
