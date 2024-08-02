@@ -62,7 +62,7 @@ Lower Precision Optimizers
 --------------------------
 
 In addition to reducing model precision during training, we can also reduce precision in our optimzer state.
-All of our fine-tuning recipes support lower-sprecision optimizers from the `bitsandbytes <https://huggingface.co/docs/bitsandbytes/main/en/index>`_ library -
+All of our fine-tuning recipes support lower-precision optimizers from the `bitsandbytes <https://huggingface.co/docs/bitsandbytes/main/en/index>`_ library -
 a good place to start might be the ``Adam8bit`` and ``PagedAdamW`` optimizers, which we've tested our recipes with.
 
 To use this in your recipes, make sure you have installed bitsandbytes (``pip install bitsandbytes``). Then, enable
@@ -71,7 +71,7 @@ a low precision optimizer using the :ref:`cli_label`:
 .. code-block:: bash
 
   tune run <RECIPE> --config <CONFIG> \
-  optimizer._component_=bitsandbytes.optim.PagedAdamW8bit
+  optimizer._component_=bitsandbytes.optim.PagedAdamW
 
 or by directly :ref:`modify a config file<config_tutorial_label>`:
 
@@ -100,12 +100,12 @@ consider a technique which enables the use of "stateful" optimizers such as ``Ad
 by completely removing the buffer of gradients which are stored by the optimizer during its ``step()``.
 
 We encourage you to read through the fantastic PyTorch tutorial on this concept:
-`*How to save memory by fusing the optimizer step into the backward pass* <https://pytorch.org/tutorials/intermediate/optimizer_step_in_backward_tutorial.html>`_
+`How to save memory by fusing the optimizer step into the backward pass <https://pytorch.org/tutorials/intermediate/optimizer_step_in_backward_tutorial.html>`_
 
 .. todo (SalmanMohammadi) ref full finetune
 
 You can enable this feature using the ``optimizer_in_bwd`` flag, which is currently only supported in our
-full finetune recipe. You might want to use this feature when:
+single-device full finetune recipe. You might want to use this feature when:
 
 * When gradient memory is particularly large i.e. when using a stateful optimizer.
 * When you don't need gradient accumulation.
@@ -134,8 +134,9 @@ an excerpt to give you a quick idea of how it works:
   transformer models, in which case it is common to add the low-rank matrices
   to some of the linear projections in each transformer layer's self-attention.
 
-You can fine-tune with LoRA with all of our models, using any of  our ``_lora`` recipes. Just add the ``lora_`` prefix to the
-name of any model you're interested in. By using the :ref:`cli_label`:
+You can fine-tune with LoRA with all of our models, using any of  our ``_lora`` recipes and ``_lora`` configs. Just add the ``lora_`` prefix to the
+name of any model you're interested in. We also provide a set of configs for LoRA out-of-the-box - simply refer to any ``_lora`` config.
+To customise LoRA, you can use the :ref:`cli_label`:
 
 .. code-block:: bash
 
@@ -215,24 +216,28 @@ an excerpt to give you a quick idea of how it works:
   `QLoRA <https://arxiv.org/abs/2305.14314>`_ is an enhancement on top of `LoRA <https://arxiv.org/abs/2106.09685>`_
   that maintains the frozen model parameters from LoRA in 4-bit quantized precision, thereby reducing memory usage.
 
-Just like LoRA, you can fine-tune with QLoRA with all of our models, using any of  our ``_lora`` recipes. Just add the ``qlora_`` prefix to the
-name of any model you're interested in. To avoid repetition, please refer to the section above for how to
+Just like LoRA, you can fine-tune with QLoRA with all of our models, using any of  our ``_lora`` recipes.
+Just add the ``qlora_`` prefix to the name of any model you're interested in.
+We also provide a set of configs for QLoRA out-of-the-box - simply refer to any ``_qlora`` config.
+To avoid repetition, please refer to the section above for how to
 configure this in your recipes. All the rest of the LoRA parameters remain the same for QLoRA.
 
 .. _glossary_distrib:
 
-Distributed
------------
+.. TODO
 
-.. _glossary_fsdp:
+.. Distributed
+.. -----------
 
-Fully Sharded Data Parallel (FSDP)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. .. _glossary_fsdp:
 
-All our ``_distributed`` recipes use `FSDP <https://pytorch.org/docs/stable/fsdp.html>`.
-.. _glossary_fsdp2:
+.. Fully Sharded Data Parallel (FSDP)
+.. ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-(Experimental) Fully Sharded Data Parallel 2 (FSDP2)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-This directory contains distributed training recipes for LoRA and QLoRA using `FSDP2 <https://github.com/pytorch/pytorch/issues/114299>`_.
-Currently FSDP2 is only available in PyTorch nightly releases.
+.. All our ``_distributed`` recipes use `FSDP <https://pytorch.org/docs/stable/fsdp.html>`.
+.. .. _glossary_fsdp2:
+
+.. (Experimental) Fully Sharded Data Parallel 2 (FSDP2)
+.. ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. This directory contains distributed training recipes for LoRA and QLoRA using `FSDP2 <https://github.com/pytorch/pytorch/issues/114299>`_.
+.. Currently FSDP2 is only available in PyTorch nightly releases.

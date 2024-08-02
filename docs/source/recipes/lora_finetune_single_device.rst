@@ -46,10 +46,14 @@ in just two steps:
 Most of you will want to twist, pull, and bop all the different levers and knobs we expose in our recipes. Check out our
 :ref:`configs tutorial <config_tutorial_label>` to learn how to customize recipes to suit your needs.
 
-Are you also interested in our memory optimisation features? Check out our  :ref:`memory optimization overview<memory_optimisation_overview_label>`!
-This recipe in particular supports :ref:`parameter efficient fine-tuning (PEFT) <glossary_peft>`: :ref:`glossary_lora` and :ref:`glossary_qlora`.
+There are two levers to pull when working with this recipe, specifically:
 
-As with all our single-device recipes, you can also:
+:ref:`Parameter efficient fine-tuning (PEFT) <glossary_peft>` using:
+
+* :ref:`glossary_lora`
+* :ref:`glossary_qlora`.
+
+As with all of our recipes, you can also:
 
 * Adjust :ref:`model precision <glossary_precision>`.
 * Use :ref:`activation checkpointing <glossary_act_ckpt>`.
@@ -57,3 +61,5 @@ As with all our single-device recipes, you can also:
 * Use :ref:`lower precision optimizers <glossary_low_precision_opt>`. However, note that since LoRA
   significantly reduces memory usage due to gradient state, you will likely not need this
   feature.
+
+If you're interested in an overview of our memory optimisation features, check out our  :ref:`memory optimization overview<memory_optimisation_overview_label>`!

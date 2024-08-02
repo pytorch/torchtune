@@ -1,4 +1,4 @@
-.. _recipe_label_here:
+.. _<recipe_name>_recipe_label:
 
 ============
 Recipe Title
@@ -32,9 +32,10 @@ in just two steps:
 
 .. code-block:: bash
 
-    tune download path/to/huggingface_model \
-        --output-dir /tmp/model_name \
-        --hf-token <HF ACCESS TOKEN>
+    tune download meta-llama/Meta-Llama-3.1-8B-Instruct \
+    --output-dir /tmp/Meta-Llama-3.1-8B-Instruct \
+    --ignore-patterns "original/consolidated.00.pth" \
+    --HF_TOKEN <HF_TOKEN>
 
     tune run <recipe> --config <config> \
         model._component_=<model_component> \
@@ -56,15 +57,18 @@ in just two steps:
 
 Most of you will want to twist, pull, and bop all the different levers and knobs we expose in our recipes. Check out our
 :ref:`configs tutorial <config_tutorial_label>` to learn how to customize recipes to suit your needs.
-Are you also interested in our memory optimisation features? Check out our  :ref:`memory optimization overview<memory_optimisation_overview_label>`!
+
+There are <> levers to pull when working with <>, specifically:
 
 .. and for lora/qlora recipes
+:ref:`Parameter efficient fine-tuning (PEFT) <glossary_peft>` using:
 
-This recipe in particular supports :ref:`parameter efficient fine-tuning (PEFT) <glossary_peft>`: :ref:`glossary_lora` and :ref:`glossary_qlora`.
+* :ref:`glossary_lora`
+* :ref:`glossary_qlora`.
 
 .. and for single device recipes
 
-As with all our single-device recipes, you can also:
+As with all of our recipes, you can also:
 
 * Adjust :ref:`model precision <glossary_precision>`.
 * Use :ref:`activation checkpointing <glossary_act_ckpt>`.
@@ -78,6 +82,9 @@ As with all our single-device recipes, you can also:
 
 .. and for distributed recipes
 
-As with all our distributed recipes:
+.. As with all our distributed recipes:
 
-* `glossary_distrib`
+.. * `glossary_distrib`
+
+
+If you're interested in an overview of our memory optimisation features, check out our  :ref:`memory optimization overview<memory_optimisation_overview_label>`!
