@@ -27,8 +27,14 @@ from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune import modules, utils
 from torchtune.models.llama2._component_builders import llama2, lora_llama2
 from torchtune.models.llama3._component_builders import llama3
+<<<<<<< HEAD
 from torchtune.modules import TransformerSelfAttentionLayer
 from torchtune.modules.peft import get_adapter_params, LoRALinear, set_trainable_params
+=======
+from torchtune.modules import TransformerDecoderLayer
+from torchtune.modules.peft import DoRALinear, LoRALinear
+from torchtune.modules.peft.peft_utils import get_adapter_params, set_trainable_params
+>>>>>>> f906811 (wip changes to refactor dora)
 
 
 class TestDistributed:
@@ -165,7 +171,7 @@ def _get_n_lora_and_tformer_layers(model):
     num_lora = 0
     num_transformer_layers = 0
     for module in model.modules():
-        if isinstance(module, LowRankAdapter):
+        if isinstance(module, LoRALinear) or isinstance(module, DoRALinear):
             num_lora += 1
         if isinstance(module, TransformerDecoderLayer):
             num_transformer_layers += 1
@@ -220,7 +226,9 @@ class TestLoRAFSDP:
             # LoRA a & b linears should be individually wrapped.
             # And TransformerSelfAttentionLayers should be individually wrapped.
             for fsdp_submodule in FSDP.fsdp_modules(wrapped_lora):
-                if isinstance(fsdp_submodule.module, LowRankAdapter):
+                if isinstance(fsdp_submodule.module, LoRALinear) or isinstance(
+                    fsdp_submodule.module, DoRALinear
+                ):
                     num_lora -= 1
                 elif isinstance(fsdp_submodule.module, TransformerDecoderLayer):
                     num_transformer_layers -= 1

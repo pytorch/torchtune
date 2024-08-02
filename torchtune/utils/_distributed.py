@@ -26,7 +26,6 @@ from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune import modules
-from torchtune.modules.peft.lora import LowRankAdapter
 
 from torchtune.utils._device import get_device
 from torchtune.utils.logging import get_logger
@@ -260,7 +259,7 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
         if recurse:
             return True
 
-        if isinstance(module, LowRankAdapter):
+        if isinstance(module, LoRALinear) or isinstance(module, DoRALinear):
             return True
 
         return isinstance(module, tuple(modules_to_wrap))
