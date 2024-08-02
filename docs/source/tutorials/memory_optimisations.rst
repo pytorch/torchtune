@@ -84,7 +84,7 @@ or by directly :ref:`modify a config file<config_tutorial_label>`:
 .. note::
 
   Utilising lower-precision optimizers as a memory-saving technique works best when using an optimizer which
-  maintain a state of gradient statistics. As an alternative, you could try a stateless optimizer
+  maintains a state of gradient statistics. As an alternative, you could try a stateless optimizer
   such as `stochastic gradient descent <https://pytorch.org/docs/stable/generated/torch.optim.SGD.html>`_
   without momentum, which doesn't require any additional memory usage, and may result in lower memory usage
   than a low-precision "stateful" optimizer. This concept is also important in :ref:`fusing the optimizer step
@@ -100,15 +100,15 @@ consider a technique which enables the use of "stateful" optimizers such as ``Ad
 by completely removing the buffer of gradients which are stored by the optimizer during its ``step()``.
 
 We encourage you to read through the fantastic PyTorch tutorial on this concept:
-`How to save memory by fusing the optimizer step into the backward pass <https://pytorch.org/tutorials/intermediate/optimizer_step_in_backward_tutorial.html>`_
+`How to save memory by fusing the optimizer step into the backward pass <https://pytorch.org/tutorials/intermediate/optimizer_step_in_backward_tutorial.html>`_.
 
 .. todo (SalmanMohammadi) ref full finetune
 
 You can enable this feature using the ``optimizer_in_bwd`` flag, which is currently only supported in our
-single-device full finetune recipe. You might want to use this feature when:
+single-device full finetune recipe. This feature works best when gradient memory is particularly large
+i.e. when using a stateful optimizer with a model with a lot of parameters, and you don't need to use
+gradient accumulation.
 
-* When gradient memory is particularly large i.e. when using a stateful optimizer.
-* When you don't need gradient accumulation.
 
 .. note::
 
