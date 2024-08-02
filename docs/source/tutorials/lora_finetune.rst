@@ -324,7 +324,7 @@ with torchtune's EleutherAI evaluation harness integration, see our :ref:`End-to
 
 Previously, we only enabled LoRA for the linear layers in each self-attention module, but in fact there are other linear
 layers we can apply LoRA to: MLP layers and our model's final output projection. Note that for Llama-2-7B the final output
-projection maps to the vocability dimension (32000 instead of 4096 as in the other linear layers), so enabling LoRA for this layer will increase
+projection maps to the vocabulary dimension (32000 instead of 4096 as in the other linear layers), so enabling LoRA for this layer will increase
 our peak memory a bit more than the other layers. We can make the following changes to our config:
 
 .. code-block:: yaml
