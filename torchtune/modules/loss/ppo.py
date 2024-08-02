@@ -57,8 +57,9 @@ class PPOLoss(nn.Module):
         Args:
             pi_old_logprobs (torch.Tensor): Log probabilities of the old policy.
             pi_logprobs (torch.Tensor): Log probabilities of the current policy.
-            advantage (torch.Tensor): Advantage values.
-            values (torch.Tensor): Value predictions.
+            advantages (torch.Tensor): Advantage values.
+            phi_old_values (torch.Tensor): Value predictions of the old value function.
+            phi_values (torch.Tensor): Value predictions of the current value function.
             returns (torch.Tensor): Return values.
             padding_masks (Optional[torch.Tensor]): Padding token masks of the same shape as ``pi_logprobs``,
                 where True indicates the corresponding loss values should participage in policy loss calculation.

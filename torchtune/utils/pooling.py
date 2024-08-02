@@ -6,7 +6,9 @@
 import torch
 
 
-def get_unmasked_sequence_lengths(mask: torch.Tensor, dtype=torch.long) -> torch.Tensor:
+def get_unmasked_sequence_lengths(
+    mask: torch.Tensor, dtype: torch.dtype = torch.long
+) -> torch.Tensor:
     """
     Returns the sequence lengths for each batch element, excluding masked tokens.
     Args:

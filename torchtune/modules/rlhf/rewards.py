@@ -61,9 +61,9 @@ def get_rewards_ppo(
         logprobs (torch.Tensor): Policy logprobs, shape (b, reponse_len).
         ref_logprobs (torch.Tensor): Reference base model, shape (b, reponse_len).
         kl_coeff (float): KL reward contribution coefficient.
-        valid_score_idxs (torch.Tensor, optional): A tensor of indexes for valid (non-padded) token predictions.
+        valid_score_idxs (Optional[torch.Tensor]): A tensor of indexes for valid (non-padded) token predictions.
             This is useful when calculating rewards for padded sequences, as scores and value estimates are defined
-            for the last valid predicted token. Shape: (b,).
+            for the last valid predicted token. Shape: (b,). Default None.
 
     Returns:
         Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple of tensors with shape [b, response_len] each:
@@ -104,6 +104,7 @@ def whiten(x: torch.Tensor, shift_mean: bool = True) -> torch.Tensor:
 
     Args:
         x (torch.Tensor): input tensor.
+        shift_mean (bool): whether to shift the normalized tensor back to its original mean. Default True.
 
     Returns:
         torch.Tensor: The whitened tensor.
@@ -125,7 +126,7 @@ def masked_mean(
         x (torch.Tensor): The input tensor.
         mask (torch.Tensor): The bool mask tensor, where True indicates the corresponding value in ``x``
             should participate in the mean calculation.
-        dim (int): The axis to calculate the mean over.
+        dim (Optional[int]): The axis to calculate the mean over. Default None.
 
     Returns:
         torch.Tensor: The mean tensor.
@@ -206,8 +207,8 @@ def estimate_advantages(
         rewards (torch.Tensor): The rewards received at each time step. Shape: (b, reponse_len)
         gamma (float): The discount factor.
         lmbda (float): The GAE-Lambda parameter.
-        masks (torch.Tensor, optional): A bool mask tensor, where True indicates the corresponding value in ``values``
-            should participate in the mean calculation.
+        masks (Optional[torch.Tensor]): A bool mask tensor, where True indicates the corresponding value in ``values``
+            should participate in the mean calculation. Default None.
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: A tuple containing the estimated advantages and returns.
             - advantages (torch.Tensor): The estimated advantages. Shape: (b, reponse_len)

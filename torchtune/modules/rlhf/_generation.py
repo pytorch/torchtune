@@ -61,7 +61,7 @@ def generate_next_token_with_logits(
         mask (Optional[torch.Tensor]): attention mask with shape [bsz x seq_length x seq_length],
             default None.
         temperature (float): value to scale the predicted logits by, default 1.0.
-        top_k (int): Top-k value to use for sampling, default None.
+        top_k (Optional[int]): Top-k value to use for sampling, default None.
         rng (Optional[torch.Generator]): random number generator, default None.
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: tuple of two tensors:
@@ -104,8 +104,8 @@ def get_causal_mask(
 
 @torch.inference_mode()
 def generate_with_logits(
-    model,
-    prompt,
+    model: TransformerDecoder,
+    prompt: torch.Tensor,
     *,
     max_generated_tokens: int,
     pad_id: int = 0,

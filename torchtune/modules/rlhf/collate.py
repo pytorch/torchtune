@@ -21,7 +21,6 @@ def left_padded_collate(
 
     Args:
         batch (List[Dict[str, List[int]]]): A list of dictionaries containing inputs.
-        max_seq_len (int): The maximum sequence length to pad to.
         padding_idx (int): The padding index. Defaults to 0.
     Returns:
         torch.Tensor: The padded tensor of input ids with shape [batch_size, max_seq_len].
@@ -47,6 +46,10 @@ def padded_collate_dpo(
     as a dictionary with multiple key-value pairs. Each key corresponds to a different
     sequence component, such as input_ids or labels.
 
+    This will raise:
+        AssertionError: if the length of chosen_input_ids and rejected_input_ids differ.
+        AssertionError: if the length of chosen_labels and rejected_labels differ.
+
     Args:
         batch (List[Dict[str, List[int]]]): A list of dictionaries, where each dictionary
             represents a sequence with multiple components, 'chosen_input_ids',
@@ -58,9 +61,6 @@ def padded_collate_dpo(
         Tuple[torch.Tensor, torch.Tensor]: A tuple containing concatenated and padded
         input ids and labels.
 
-    Raises:
-        AssertionError: if the length of chosen_input_ids and rejected_input_ids differ.
-        AssertionError: if the length of chosen_labels and rejected_labels differ.
 
     Example:
         >>> batch = [
