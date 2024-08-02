@@ -66,7 +66,7 @@ There are <> levers to pull when working with <>, specifically:
 * :ref:`glossary_lora`
 * :ref:`glossary_qlora`.
 
-.. and for single device recipes
+.. and generally for all our recipes:
 
 As with all of our recipes, you can also:
 
