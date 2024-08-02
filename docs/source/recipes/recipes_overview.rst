@@ -45,7 +45,7 @@ This includes continued pre-training, and various supervised fune-tuning paradig
 :ref:`dataset tutorial <dataset_tutorial_label>` for more information. Our supervised fine-tuning recipes include:
 
 * :ref:`Single-device <lora_finetune_recipe_label>` LoRA fine-tuning.
-* :ref:`Distributed Quantization-Aware Training<qat_distributed_recipe_label>` fine-tuning.
+* :ref:`Distributed Quantization-Aware Training<qat_distributed_recipe_label>`.
 
 .. Alignment finetuning
 .. --------------------

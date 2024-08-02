@@ -1,8 +1,8 @@
 .. _qat_distributed_recipe_label:
 
-=========================================================
-Quantization-Aware Training (QAT) Distributed Fine-tuning
-=========================================================
+=============================================
+Distributed Quantization-Aware Training (QAT)
+=============================================
 
 QAT allows for taking advantage of memory-saving optimisations from quantisation at inference time, without significantly
 degrading model performace. In torchtune, we use `torchao <https://github.com/pytorch/ao>`_ to implement QAT during training.
