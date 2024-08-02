@@ -117,6 +117,37 @@ class CausalSelfAttention(nn.Module):
         self.output_proj = output_proj
         self.pos_embeddings = pos_embeddings
 
+    def setup_cache(self, batch_size: int, dtype: torch.dtype) -> None:
+        """Setup key value caches for attention calculation.
+
+        Args:
+            batch_size (int): batch size for the caches.
+            dtype (torch.dtype): dtype for the caches.
+
+        Raises:
+            RuntimeError: if called when kv_cache is already setup.
+        """
+        # Don't overwrite user defined kv_cache from init
+        if self.kv_cache is not None:
+            raise RuntimeError(
+                "Key value caches are already setup. You cannot call ``setup_caches()`` twice."
+            )
+        self.kv_cache = KVCache(
+            batch_size=batch_size,
+            max_seq_len=self.max_seq_len,
+            num_heads=self.num_heads,
+            head_dim=self.head_dim,
+            dtype=dtype,
+        )
+
+    def reset_caches(self):
+        """Reset the key value caches."""
+        if self.kv_cache is None:
+            raise RuntimeError(
+                "Key value caches are not setup. Call ``setup_caches()`` first."
+            )
+        self.kv_cache.reset()
+
     def forward(
         self,
         x: Tensor,
@@ -160,6 +191,10 @@ class CausalSelfAttention(nn.Module):
         """
         # input has shape [b, s, d]
         bsz, seq_len, _ = x.shape
+
+        if self.kv_cache and input_pos is None:
+            cache_size = self.kv_cache.size
+            input_pos = torch.arange(cache_size, cache_size + seq_len, device=x.device)
 
         if seq_len > self.max_seq_len:
             raise ValueError(

@@ -10,7 +10,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
 
-from torchtune.modules import CausalSelfAttention, KVCache
+from torchtune.modules import CausalSelfAttention
 
 
 class TransformerDecoderLayer(nn.Module):
@@ -35,6 +35,23 @@ class TransformerDecoderLayer(nn.Module):
         self.attn = attn
         self.mlp_norm = mlp_norm
         self.mlp = mlp
+
+    def setup_cache(self, batch_size: int, dtype: torch.dtype) -> None:
+        """Setup key value caches for attention calculation.
+
+        Args:
+            batch_size (int): batch size for the caches.
+            dtype (torch.dtype): dtype for the caches.
+        """
+        self.attn.setup_cache(batch_size, dtype)
+
+    def cache_enabled(self) -> bool:
+        """Check if the key value caches are setup."""
+        return self.attn.kv_cache is not None
+
+    def reset_caches(self):
+        """Reset the key value caches."""
+        self.attn.reset_cache()
 
     def forward(
         self,
@@ -154,13 +171,7 @@ class TransformerDecoder(nn.Module):
             dtype (torch.dtype): dtype for the caches.
         """
         for layer in self.layers:
-            layer.attn.kv_cache = KVCache(
-                batch_size=batch_size,
-                max_seq_len=self.max_seq_len,
-                num_heads=self.num_heads,
-                head_dim=self.head_dim,
-                dtype=dtype,
-            )
+            layer.setup_cache(batch_size, dtype)
 
         # causal_mask is used during inference to ensure we're attending
         # to the right tokens
@@ -170,7 +181,7 @@ class TransformerDecoder(nn.Module):
 
     def caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""
-        return self.layers[0].attn.kv_cache is not None
+        return self.layers[0].cache_enabled()
 
     def reset_caches(self):
         """Reset the key value caches."""
@@ -180,7 +191,7 @@ class TransformerDecoder(nn.Module):
             )
 
         for layer in self.layers:
-            layer.attn.kv_cache.reset()
+            layer.reset_cache()
 
     def forward(
         self,
@@ -304,19 +315,17 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
             dtype (torch.dtype): dtype for the caches.
         """
         for layer in self.layers:
-            layer.attn.kv_cache = KVCache(
-                batch_size=batch_size,
-                max_seq_len=self.max_seq_len,
-                num_heads=self.num_heads,
-                head_dim=self.head_dim,
-                dtype=dtype,
-            )
+            layer.setup_cache(batch_size, dtype)
 
         # causal_mask is used during inference to ensure we're attending
         # to the right tokens
         self.causal_mask = torch.tril(
             torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
         )
+
+    def caches_are_enabled(self) -> bool:
+        """Check if the key value caches are setup."""
+        return self.layers[0].cache_enabled()
 
     def reset_caches(self):
         """Reset the key value caches."""
@@ -326,7 +335,7 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
             )
 
         for layer in self.layers:
-            layer.attn.kv_cache.reset()
+            layer.reset_cache()
 
     def forward(
         self,
