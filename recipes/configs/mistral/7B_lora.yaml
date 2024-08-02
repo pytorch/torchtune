@@ -53,6 +53,7 @@ checkpointer:
   output_dir: /tmp/Mistral-7B-v0.1
   model_type: MISTRAL
 resume_from_checkpoint: False
+save_adapter_weights_only: False
 
 optimizer:
   _component_: torch.optim.AdamW

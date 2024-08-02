@@ -33,7 +33,7 @@ def resize_with_pad(
         resample (torchvision.transforms.InterpolationMode): Resampling method used when resizing images.
             Supports torchvision.transforms.InterpolationMode.NEAREST, InterpolationMode.NEAREST_EXACT,
             InterpolationMode.BILINEAR and InterpolationMode.BICUBIC.
-        max_upscaling_size (int): The maximum size to upscale the image to.
+        max_upscaling_size (Optional[int]): The maximum size to upscale the image to.
             If None, will upscale up to target_size.
 
     Returns:
@@ -130,7 +130,6 @@ def _get_max_res_without_distortion(
     image_size: Tuple[int, int],
     target_size: Tuple[int, int],
 ) -> Tuple[int, int]:
-
     """
     Determines the maximum resolution to which an image can be resized to without distorting its
     aspect ratio, based on the target resolution.

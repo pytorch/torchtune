@@ -9,15 +9,21 @@ from .common_utils import reparametrize_as_dtype_state_dict_post_hook
 from .feed_forward import FeedForward  # noqa
 from .kv_cache import KVCache  # noqa
 from .layer_norm import Fp32LayerNorm  # noqa
+from .low_precision import FrozenNF4Linear  # noqa
 from .lr_schedulers import get_cosine_schedule_with_warmup  # noqa
 from .position_embeddings import RotaryPositionalEmbeddings  # noqa
 from .rms_norm import RMSNorm  # noqa
-from .transformer import TransformerDecoder, TransformerDecoderLayer  # noqa
+from .transformer import (  # noqa
+    TiedEmbeddingTransformerDecoder,
+    TransformerDecoder,
+    TransformerDecoderLayer,
+)
 from .vision_transformer import VisionTransformer
 
 __all__ = [
     "CausalSelfAttention",
     "FeedForward",
+    "FrozenNF4Linear",
     "get_cosine_schedule_with_warmup",
     "KVCache",
     "RotaryPositionalEmbeddings",
@@ -25,6 +31,7 @@ __all__ = [
     "Fp32LayerNorm",
     "VisionTransformer",
     "TransformerDecoder",
+    "TiedEmbeddingTransformerDecoder",
     "TransformerDecoderLayer",
     "reparametrize_as_dtype_state_dict_post_hook",
 ]
