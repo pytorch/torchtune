@@ -508,9 +508,16 @@ across the same number of files.</p></li>
 fine-tuned checkpoints from torchtune with any post-training tool (quantization, eval, inference)
 which supports the source format, without any code changes OR conversion scripts. This is one of the
 ways in which torchtune interoperates with the surrounding ecosystem.</p>
-<p>To be “state-dict invariant”, the <code class="docutils literal notranslate"><span class="pre">load_checkpoint</span></code> and
-<code class="docutils literal notranslate"><span class="pre">save_checkpoint</span></code> methods make use of the weight convertors available
-<a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/torchtune/models/convert_weights.py">here</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To be state-dict “invariant” in this way, the <code class="docutils literal notranslate"><span class="pre">load_checkpoint</span></code> and <code class="docutils literal notranslate"><span class="pre">save_checkpoint</span></code> methods of each checkpointer
+make use of weight converters which correctly map weights between checkpoint formats. For example, when loading weights
+from Hugging Face, we apply a permutation to certain weights on load and save to ensure checkpoints behave exactly the same.
+To further illustrate this, the Llama family of models uses a
+<a class="reference external" href="https://github.com/pytorch/torchtune/blob/898670f0eb58f956b5228e5a55ccac4ea0efaff8/torchtune/models/convert_weights.py#L113">generic weight converter function</a>
+whilst some other models like Phi3 have their own <a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/torchtune/models/phi3/_convert_weights.py">conversion functions</a>
+which can be found within their model folders.</p>
+</div>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
@@ -519,9 +526,10 @@ ways in which torchtune interoperates with the surrounding ecosystem.</p>
 <section id="handling-different-checkpoint-formats">
 <h2>Handling different Checkpoint Formats<a class="headerlink" href="#handling-different-checkpoint-formats" title="Permalink to this heading">¶</a></h2>
 <p>torchtune supports three different
-<a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/torchtune/utils/_checkpointing/_checkpointer.py">checkpointers</a>,
+<a class="reference internal" href="../api_ref_utilities.html#checkpointing-label"><span class="std std-ref">checkpointers</span></a>,
 each of which supports a different checkpoint format.</p>
-<p><strong>HFCheckpointer</strong></p>
+<section id="hfcheckpointer">
+<h3><a class="reference internal" href="../generated/torchtune.utils.FullModelHFCheckpointer.html#torchtune.utils.FullModelHFCheckpointer" title="torchtune.utils.FullModelHFCheckpointer"><code class="xref py py-class docutils literal notranslate"><span class="pre">HFCheckpointer</span></code></a><a class="headerlink" href="#hfcheckpointer" title="Permalink to this heading">¶</a></h3>
 <p>This checkpointer reads and writes checkpoints in a format which is compatible with the transformers
 framework from Hugging Face. As mentioned above, this is the most popular format within the Hugging Face
 Model Hub and is the default format in every torchtune config.</p>
@@ -586,14 +594,14 @@ files.</p>
 <p>Checkpoint conversion to and from HF’s format requires access to model params which are
 read directly from the <code class="docutils literal notranslate"><span class="pre">config.json</span></code> file. This helps ensure we either load the weights
 correctly or error out in case of discrepancy between the HF checkpoint file and torchtune’s
-model implementations. This json file is downloaded from the hub along with the model checkpoints.
-More details on how these are used during conversion can be found
-<a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/torchtune/models/convert_weights.py">here</a>.</p>
+model implementations. This json file is downloaded from the hub along with the model checkpoints.</p>
 </div>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
-<p><strong>MetaCheckpointer</strong></p>
+</section>
+<section id="metacheckpointer">
+<h3><a class="reference internal" href="../generated/torchtune.utils.FullModelMetaCheckpointer.html#torchtune.utils.FullModelMetaCheckpointer" title="torchtune.utils.FullModelMetaCheckpointer"><code class="xref py py-class docutils literal notranslate"><span class="pre">MetaCheckpointer</span></code></a><a class="headerlink" href="#metacheckpointer" title="Permalink to this heading">¶</a></h3>
 <p>This checkpointer reads and writes checkpoints in a format which is compatible with the original meta-llama
 github repository.</p>
 <p>For this checkpointer to work correctly, we assume that <code class="docutils literal notranslate"><span class="pre">checkpoint_dir</span></code> contains the necessary checkpoint
@@ -651,13 +659,16 @@ files.</p>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
-<p><strong>TorchTuneCheckpointer</strong></p>
+</section>
+<section id="torchtunecheckpointer">
+<h3><a class="reference internal" href="../generated/torchtune.utils.FullModelTorchTuneCheckpointer.html#torchtune.utils.FullModelTorchTuneCheckpointer" title="torchtune.utils.FullModelTorchTuneCheckpointer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TorchTuneCheckpointer</span></code></a><a class="headerlink" href="#torchtunecheckpointer" title="Permalink to this heading">¶</a></h3>
 <p>This checkpointer reads and writes checkpoints in a format that is compatible with torchtune’s
 model definition. This does not perform any state_dict conversions and is currently used either
 for testing or for loading quantized models for generation.</p>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
+</section>
 </section>
 <section id="intermediate-vs-final-checkpoints">
 <h2>Intermediate vs Final Checkpoints<a class="headerlink" href="#intermediate-vs-final-checkpoints" title="Permalink to this heading">¶</a></h2>
@@ -837,8 +848,7 @@ create some models and run a simple forward.</p>
 </pre></div>
 </div>
 <p>You can do this with any model supported by torchtune. You can find a full list
-of models and model builders
-<a class="reference external" href="https://github.com/pytorch/torchtune/tree/main/torchtune/models">here</a>.</p>
+of models and model builders <a class="reference internal" href="../api_ref_models.html#models"><span class="std std-ref">here</span></a>.</p>
 <p>We hope this deep-dive provided a deeper insight into the checkpointer and
 associated utilities in torchtune. Happy tuning!</p>
 </section>
@@ -892,7 +902,12 @@ associated utilities in torchtune. Happy tuning!</p>
 <li><a class="reference internal" href="#checkpoint-format">Checkpoint Format</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#handling-different-checkpoint-formats">Handling different Checkpoint Formats</a></li>
+<li><a class="reference internal" href="#handling-different-checkpoint-formats">Handling different Checkpoint Formats</a><ul>
+<li><a class="reference internal" href="#hfcheckpointer"><code class="xref py py-class docutils literal notranslate"><span class="pre">HFCheckpointer</span></code></a></li>
+<li><a class="reference internal" href="#metacheckpointer"><code class="xref py py-class docutils literal notranslate"><span class="pre">MetaCheckpointer</span></code></a></li>
+<li><a class="reference internal" href="#torchtunecheckpointer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TorchTuneCheckpointer</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#intermediate-vs-final-checkpoints">Intermediate vs Final Checkpoints</a></li>
 <li><a class="reference internal" href="#checkpointing-for-lora">Checkpointing for LoRA</a></li>
 <li><a class="reference internal" href="#putting-this-all-together">Putting this all together</a></li>

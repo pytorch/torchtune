@@ -604,7 +604,7 @@ You can learn all about configs in our <a class="reference internal" href="confi
 <section id="config-and-cli-parsing-using-parse">
 <h3>Config and CLI parsing using <code class="code docutils literal notranslate"><span class="pre">parse</span></code><a class="headerlink" href="#config-and-cli-parsing-using-parse" title="Permalink to this heading">¶</a></h3>
 <p>We provide a convenient decorator <a class="reference internal" href="../generated/torchtune.config.parse.html#torchtune.config.parse" title="torchtune.config.parse"><code class="xref py py-func docutils literal notranslate"><span class="pre">parse()</span></code></a> that wraps
-your recipe to enable running from the command-line with <code class="code docutils literal notranslate"><span class="pre">tune</span></code> with config
+your recipe to enable running from the command-line with <a class="reference internal" href="../tune_cli.html#cli-label"><span class="std std-ref">tune</span></a> with config
 and CLI override parsing.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@config</span><span class="o">.</span><span class="n">parse</span>
 <span class="k">def</span> <span class="nf">recipe_main</span><span class="p">(</span><span class="n">cfg</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -618,7 +618,7 @@ and CLI override parsing.</p>
 <section id="running-your-recipe">
 <h3>Running your recipe<a class="headerlink" href="#running-your-recipe" title="Permalink to this heading">¶</a></h3>
 <p>You should be able to run your recipe by providing the direct paths to your custom
-recipe and custom config using the <code class="code docutils literal notranslate"><span class="pre">tune</span></code> command with any CLI overrides:</p>
+recipe and custom config using the <a class="reference internal" href="../tune_cli.html#cli-label"><span class="std std-ref">tune</span></a> command with any CLI overrides:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>&lt;path/to/recipe&gt;<span class="w"> </span>--config<span class="w"> </span>&lt;path/to/config&gt;<span class="w"> </span><span class="nv">k1</span><span class="o">=</span>v1<span class="w"> </span><span class="nv">k2</span><span class="o">=</span>v2<span class="w"> </span>...
 </pre></div>
 </div>

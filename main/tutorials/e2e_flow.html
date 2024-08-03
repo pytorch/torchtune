@@ -562,7 +562,7 @@ will be easier than overriding all of these elements through the CLI.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>cp<span class="w"> </span>eleuther_evaluation<span class="w"> </span>./custom_eval_config.yaml<span class="w"> </span><span class="se">\</span>
 </pre></div>
 </div>
-<p>For this tutorial we’ll use the <code class="docutils literal notranslate"><span class="pre">truthfulqa_mc2</span></code> task from the harness.
+<p>For this tutorial we’ll use the <a class="reference external" href="https://github.com/sylinrl/TruthfulQA">truthfulqa_mc2</a> task from the harness.
 This task measures a model’s propensity to be truthful when answering questions and
 measures the model’s zero-shot accuracy on a question followed by one or more true
 responses and one or more false responses. Let’s first run a baseline without fine-tuning.</p>
@@ -771,7 +771,7 @@ Bandwidth<span class="w"> </span>achieved:<span class="w"> </span><span class="m
 <section id="uploading-your-model-to-the-hugging-face-hub">
 <h2>Uploading your model to the Hugging Face Hub<a class="headerlink" href="#uploading-your-model-to-the-hugging-face-hub" title="Permalink to this heading">¶</a></h2>
 <p>Your new model is working great and you want to share it with the world. The easiest way to do this
-is utilizing the <code class="docutils literal notranslate"><span class="pre">huggingface-cli</span></code> command, which works seamlessly with torchtune. Simply point the CLI
+is utilizing the <a class="reference external" href="https://huggingface.co/docs/huggingface_hub/en/guides/cli">huggingface-cli</a> command, which works seamlessly with torchtune. Simply point the CLI
 to your finetuned model directory like so:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>huggingface-cli<span class="w"> </span>upload<span class="w"> </span>&lt;hf-repo-id&gt;<span class="w"> </span>&lt;checkpoint-dir&gt;
 </pre></div>

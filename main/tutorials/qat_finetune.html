@@ -443,7 +443,7 @@ resulting model, and evaluate your quantized model using torchtune.</p>
 </div>
 <section id="what-is-qat">
 <h2>What is QAT?<a class="headerlink" href="#what-is-qat" title="Permalink to this heading">¶</a></h2>
-<p>Quantization-Aware Training (QAT) refers to simulating quantization numerics during
+<p><a class="reference external" href="https://pytorch.org/blog/introduction-to-quantization-on-pytorch/#quantization-aware-training">Quantization-Aware Training</a> (QAT) refers to simulating quantization numerics during
 training or fine-tuning, with the end goal of ultimately producing a higher quality
 quantized model compared to simple post-training quantization (PTQ). During QAT,
 the weights and/or activations are “fake quantized”, meaning they are transformed
@@ -514,7 +514,7 @@ CausalSelfAttention<span class="o">(</span>
 </div>
 <p>After fine-tuning, we can convert the model to get an actual quantized model.
 If we print the converted model, we’ll see that the QAT linears have been
-swapped with <code class="code docutils literal notranslate"><span class="pre">Int8DynActInt4WeightLinear</span></code>, which are the quantized versions
+swapped with <a class="reference external" href="https://github.com/pytorch/ao/blob/428084356ace4ea94c22a3a9b3d74cff8ee41db3/torchao/quantization/prototype/qat.py#L38">Int8DynActInt4WeightLinear</a>, which are the quantized versions
 of the linear layers. This quantized model can then be saved to checkpoint and
 used for inference or generation.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Fine-tune as before</span>
@@ -568,7 +568,8 @@ modifications accordingly:</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>QAT in torchtune is currently not compatible with <code class="code docutils literal notranslate"><span class="pre">memory_efficient_fsdp_wrap</span></code>. This is a known issue and will be fixed in a future torchtune version.</p>
+<p>QAT in torchtune is currently not compatible with <a class="reference external" href="https://pytorch.org/torchtune/stable/generated/torchtune.utils.get_full_finetune_fsdp_wrap_policy.html#torchtune.utils.get_full_finetune_fsdp_wrap_policy">memory_efficient_fsdp_wrap</a>.
+This is a known issue and will be fixed in a future torchtune version.</p>
 </div>
 <p>Empirically, we observed that disabling fake quantization for the first N steps
 led to better results, presumably because doing so allows the weights to stabilize

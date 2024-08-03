@@ -438,21 +438,22 @@
 <p>As you go through the tutorials and code, there are two concepts which will help you better understand and use torchtune.</p>
 <p><strong>Configs.</strong> YAML files which help you configure training settings (dataset, model, chekckpoint) and
 hyperparameters (batch size, learning rate) without modifying code.
-See the <a class="reference internal" href="deep_dives/configs.html#config-tutorial-label"><span class="std std-ref">All About Configs deep-dive</span></a> for more information.</p>
+See the “<a class="reference internal" href="deep_dives/configs.html#config-tutorial-label"><span class="std std-ref">All About Configs</span></a>” deep-dive for more information.</p>
 <p><strong>Recipes.</strong> Recipes can be thought of
 as targeted end-to-end pipelines for training and optionally evaluating LLMs.
 Each recipe implements a training method (eg: full fine-tuning) with a set of meaningful
 features (eg: FSDP + Activation Checkpointing + Gradient Accumulation + Reduced Precision training)
-applied to a given model family (eg: Llama2). See the <a class="reference internal" href="deep_dives/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">What Are Recipes? deep-dive</span></a> for more information.</p>
+applied to a given model family (eg: Llama2). See the “<a class="reference internal" href="deep_dives/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">What Are Recipes?</span></a>” deep-dive for more information.</p>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
 </section>
 <section id="design-principles">
-<h2>Design Principles<a class="headerlink" href="#design-principles" title="Permalink to this heading">¶</a></h2>
+<span id="design-principles-label"></span><h2>Design Principles<a class="headerlink" href="#design-principles" title="Permalink to this heading">¶</a></h2>
 <p>torchtune embodies <a class="reference external" href="https://pytorch.org/docs/stable/community/design.html">PyTorch’s design philosophy</a>, especially “usability over everything else”.</p>
 <p><strong>Native PyTorch</strong></p>
-<p>torchtune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: Hugging Face Datasets, EleutherAI Eval Harness), all of the core functionality is written in PyTorch.</p>
+<p>torchtune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: <a class="reference external" href="https://huggingface.co/docs/datasets/en/index">Hugging Face Datasets</a>,
+<a class="reference external" href="https://github.com/EleutherAI/lm-evaluation-harness">EleutherAI’s Eval Harness</a>), all of the core functionality is written in PyTorch.</p>
 <p><strong>Simplicity and Extensibility</strong></p>
 <p>torchtune is designed to be easy to understand, use and extend.</p>
 <ul class="simple">

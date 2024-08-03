@@ -434,7 +434,7 @@ available options and their details. For example, <code class="docutils literal 
 to download files using the CLI.</p>
 </section>
 <section id="download-a-model">
-<h2>Download a model<a class="headerlink" href="#download-a-model" title="Permalink to this heading">¶</a></h2>
+<span id="tune-download-label"></span><h2>Download a model<a class="headerlink" href="#download-a-model" title="Permalink to this heading">¶</a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">download</span> <span class="pre">&lt;path&gt;</span></code> command downloads any model from the Hugging Face Hub.</p>
 <table class="docutils align-default">
 <colgroup>
@@ -501,7 +501,7 @@ built-in recipes or configs. For a list of supported model families and architec
 </div>
 </section>
 <section id="list-built-in-recipes-and-configs">
-<h2>List built-in recipes and configs<a class="headerlink" href="#list-built-in-recipes-and-configs" title="Permalink to this heading">¶</a></h2>
+<span id="tune-ls-label"></span><h2>List built-in recipes and configs<a class="headerlink" href="#list-built-in-recipes-and-configs" title="Permalink to this heading">¶</a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">ls</span></code> command lists out all the built-in recipes and configs within torchtune.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>ls
 RECIPE<span class="w">                                   </span>CONFIG
@@ -519,9 +519,9 @@ full_finetune_distributed<span class="w">                </span>llama2/7B_full
 </div>
 </section>
 <section id="copy-a-built-in-recipe-or-config">
-<h2>Copy a built-in recipe or config<a class="headerlink" href="#copy-a-built-in-recipe-or-config" title="Permalink to this heading">¶</a></h2>
+<span id="tune-cp-cli-label"></span><h2>Copy a built-in recipe or config<a class="headerlink" href="#copy-a-built-in-recipe-or-config" title="Permalink to this heading">¶</a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">cp</span> <span class="pre">&lt;recipe|config&gt;</span> <span class="pre">&lt;path&gt;</span></code> command copies built-in recipes and configs to a provided location. This allows you to make a local copy of a library
-recipe or config to edit directly for yourself.</p>
+recipe or config to edit directly for yourself. See <a class="reference internal" href="tutorials/first_finetune_tutorial.html#tune-cp-label"><span class="std std-ref">here</span></a> for an example of how to use this command.</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 33%" />
@@ -598,7 +598,7 @@ Further information on config overrides can be found <a class="reference interna
 </div>
 </section>
 <section id="validate-a-config">
-<h2>Validate a config<a class="headerlink" href="#validate-a-config" title="Permalink to this heading">¶</a></h2>
+<span id="validate-cli-label"></span><h2>Validate a config<a class="headerlink" href="#validate-a-config" title="Permalink to this heading">¶</a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">validate</span> <span class="pre">&lt;config&gt;</span></code> command will validate that your config is formatted properly.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># If you&#39;ve copied over a built-in config and want to validate custom changes</span>
 $<span class="w"> </span>tune<span class="w"> </span>validate<span class="w"> </span>my_configs/llama3/8B_full.yaml

@@ -468,7 +468,7 @@ tune<span class="w"> </span>run<span class="w"> </span>full_finetune_single_devi
 <section id="hugging-face-datasets">
 <h2>Hugging Face datasets<a class="headerlink" href="#hugging-face-datasets" title="Permalink to this heading">¶</a></h2>
 <p>We provide first class support for datasets on the Hugging Face hub. Under the hood,
-all of our built-in datasets and dataset builders are using Hugging Face’s <code class="docutils literal notranslate"><span class="pre">load_dataset()</span></code>
+all of our built-in datasets and dataset builders are using Hugging Face’s <a class="reference external" href="https://huggingface.co/docs/datasets/v2.20.0/en/package_reference/loading_methods#datasets.load_dataset">load_dataset()</a>
 to load in your data, whether local or on the hub.</p>
 <p>You can pass in a Hugging Face dataset path to the <code class="docutils literal notranslate"><span class="pre">source</span></code> parameter in any of our builders
 to specify which dataset on the hub to download or use from a local directory path (see <a class="reference internal" href="#local-and-remote-datasets">Local and remote datasets</a>). Additionally, all builders accept
@@ -504,7 +504,7 @@ dataset.split<span class="o">=</span>train<span class="w"> </span>dataset.data_d
 </section>
 <section id="setting-max-sequence-length">
 <h2>Setting max sequence length<a class="headerlink" href="#setting-max-sequence-length" title="Permalink to this heading">¶</a></h2>
-<p>The default collator <code class="xref py py-func docutils literal notranslate"><span class="pre">padded_collate()</span></code> used in all
+<p>The default collator, <a class="reference internal" href="../generated/torchtune.utils.padded_collate.html#torchtune.utils.padded_collate" title="torchtune.utils.padded_collate"><code class="xref py py-func docutils literal notranslate"><span class="pre">padded_collate()</span></code></a>, used in all
 our training recipes will pad samples to the max sequence length within the batch,
 not globally. If you wish to set an upper limit on the max sequence length globally,
 you can specify it in the dataset builder with <code class="docutils literal notranslate"><span class="pre">max_seq_len</span></code>. Any sample in the dataset
@@ -638,7 +638,7 @@ structures the data in the following way:</p>
 <span class="c1">#</span>
 </pre></div>
 </div>
-<p>We provide <cite>other instruct templates &lt;data&gt;</cite>
+<p>We provide <a class="reference internal" href="../api_ref_data.html#data"><span class="std std-ref">other instruct templates</span></a>
 for common tasks such summarization and grammar correction. If you need to create your own
 instruct template for a custom task, you can inherit from <a class="reference internal" href="../generated/torchtune.data.InstructTemplate.html#torchtune.data.InstructTemplate" title="torchtune.data.InstructTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">InstructTemplate</span></code></a>
 and create your own class.</p>

@@ -701,13 +701,13 @@ object.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>You can pass in any keyword argument for <code class="code docutils literal notranslate"><span class="pre">load_dataset</span></code> into all our
+<p>You can pass in any keyword argument for <a class="reference external" href="https://huggingface.co/docs/datasets/v2.20.0/en/package_reference/loading_methods#datasets.load_dataset">load_dataset</a> into all our
 Dataset classes and they will honor them. This is useful for common parameters
 such as specifying the data split with <code class="code docutils literal notranslate"><span class="pre">split</span></code> or configuration with
 <code class="code docutils literal notranslate"><span class="pre">name</span></code></p>
 </div>
 <p>Now we’re ready to start fine-tuning! We’ll use the built-in LoRA single device recipe.
-Use the <code class="code docutils literal notranslate"><span class="pre">tune</span> <span class="pre">cp</span></code> command to get a copy of the <code class="code docutils literal notranslate"><span class="pre">8B_lora_single_device.yaml</span></code>
+Use the <a class="reference internal" href="../tune_cli.html#tune-cp-cli-label"><span class="std std-ref">tune cp</span></a> command to get a copy of the <code class="code docutils literal notranslate"><span class="pre">8B_lora_single_device.yaml</span></code>
 config and update it to use your new dataset. Create a new folder for your project
 and make sure the dataset builder and message converter are saved in that directory,
 then specify it in the config.</p>

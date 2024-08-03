@@ -41,7 +41,7 @@ And should see the following output:
 Install via ``git clone``
 -------------------------
 
-If you want the latest and greatest features from torchtune or if you want to become a contributor,
+If you want the latest and greatest features from torchtune or if you want to `become a contributor <https://github.com/pytorch/torchtune/blob/main/CONTRIBUTING.md>`_,
 you can also install the package locally with the following command.
 
 .. code-block:: bash

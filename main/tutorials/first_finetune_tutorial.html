@@ -481,7 +481,7 @@ inference, evaluation, and quantization.</p>
 </div>
 <p>torchtune provides built-in recipes for finetuning on single device, on multiple devices with <a class="reference external" href="https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/">FSDP</a>,
 using memory efficient techniques like <a class="reference external" href="https://arxiv.org/abs/2106.09685">LoRA</a>, and more! You can view all built-in recipes <a class="reference external" href="https://github.com/pytorch/torchtune/tree/main/recipes">on GitHub</a>. You can also utilize the
-<code class="code docutils literal notranslate"><span class="pre">tune</span> <span class="pre">ls</span></code> command to print out all recipes and corresponding configs.</p>
+<a class="reference internal" href="../tune_cli.html#tune-ls-label"><span class="std std-ref">tune ls</span></a> command to print out all recipes and corresponding configs.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>ls
 RECIPE<span class="w">                                   </span>CONFIG
 full_finetune_single_device<span class="w">              </span>llama2/7B_full_low_memory
@@ -500,7 +500,7 @@ a single device. For a more in-depth discussion on LoRA in torchtune, you can se
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p><strong>Why have a separate recipe for single device vs. distributed?</strong> This is discussed in
-<a class="reference internal" href="../deep_dives/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">What Are Recipes?</span></a> but one of our core principles in torchtune is minimal abstraction and boilerplate code.
+“<a class="reference internal" href="../deep_dives/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">What Are Recipes?</span></a>” but one of our <a class="reference internal" href="../overview.html#design-principles-label"><span class="std std-ref">core principles</span></a> in torchtune is minimal abstraction and boilerplate code.
 If you only want to train on a single GPU, our single-device recipe ensures you don’t have to worry about additional
 features like FSDP that are only required for distributed training.</p>
 </div>
@@ -521,7 +521,7 @@ you want to set the number of training epochs to 1.</p>
 </pre></div>
 </div>
 <p><strong>Copy the config through `tune cp` and modify directly</strong></p>
-<p>If you want to make more substantial changes to the config, you can use the <code class="code docutils literal notranslate"><span class="pre">tune</span></code> CLI to copy it to your local directory.</p>
+<p>If you want to make more substantial changes to the config, you can use the <a class="reference internal" href="../tune_cli.html#cli-label"><span class="std std-ref">tune</span></a> CLI to copy it to your local directory.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>cp<span class="w"> </span>llama2/7B_lora_single_device<span class="w"> </span>custom_config.yaml
 Copied<span class="w"> </span>file<span class="w"> </span>to<span class="w"> </span>custom_config.yaml
 </pre></div>
@@ -539,7 +539,7 @@ changing the LoRA rank, update batch size, etc.</p>
 <section id="training-a-model">
 <h2>Training a model<a class="headerlink" href="#training-a-model" title="Permalink to this heading">¶</a></h2>
 <p>Now that you have a model in the proper format and a config that suits your needs, let’s get training!</p>
-<p>Just like all the other steps, you will be using the <code class="code docutils literal notranslate"><span class="pre">tune</span></code> CLI tool to launch your finetuning run.</p>
+<p>Just like all the other steps, you will be using the <a class="reference internal" href="../tune_cli.html#cli-label"><span class="std std-ref">tune</span></a> CLI tool to launch your finetuning run.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama2/7B_lora_single_device<span class="w"> </span><span class="nv">epochs</span><span class="o">=</span><span class="m">1</span>
 INFO:torchtune.utils.logging:Running<span class="w"> </span>LoRAFinetuneRecipeSingleDevice<span class="w"> </span>with<span class="w"> </span>resolved<span class="w"> </span>config:
 Writing<span class="w"> </span>logs<span class="w"> </span>to<span class="w"> </span>/tmp/lora_finetune_output/log_1713194212.txt

@@ -483,22 +483,22 @@ for one epoch on a common instruct dataset for illustrative purposes. The basic 
 <p class="admonition-title">Note</p>
 <p>To see a full list of recipes and their corresponding configs, simply run <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">ls</span></code> from the command line.</p>
 </div>
-<p>We can also add command-line overrides as needed, e.g.</p>
+<p>We can also add <a class="reference internal" href="../deep_dives/configs.html#cli-override"><span class="std std-ref">command-line overrides</span></a> as needed, e.g.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_lora_single_device<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>checkpointer.checkpoint_dir<span class="o">=</span>&lt;checkpoint_dir&gt;<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>tokenizer.path<span class="o">=</span>&lt;checkpoint_dir&gt;/tokenizer.model<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>checkpointer.output_dir<span class="o">=</span>&lt;checkpoint_dir&gt;
 </pre></div>
 </div>
-<p>This will load the Llama3-8B-Instruct checkpoint and tokenizer from <code class="docutils literal notranslate"><span class="pre">&lt;checkpoint_dir&gt;</span></code> used in the <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">download</span></code> command above,
+<p>This will load the Llama3-8B-Instruct checkpoint and tokenizer from <code class="docutils literal notranslate"><span class="pre">&lt;checkpoint_dir&gt;</span></code> used in the <a class="reference internal" href="../tune_cli.html#tune-download-label"><span class="std std-ref">tune download</span></a> command above,
 then save a final checkpoint in the same directory following the original format. For more details on the
 checkpoint formats supported in torchtune, see our <a class="reference internal" href="../deep_dives/checkpointer.html#understand-checkpointer"><span class="std std-ref">checkpointing deep-dive</span></a>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>To see the full set of configurable parameters for this (and other) configs we can use <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">cp</span></code> to copy (and modify)
-the default config. <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">cp</span></code> can be used with recipe scripts too, in case you want to make more custom changes
-that cannot be achieved by directly modifying existing configurable parameters. For more on <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">cp</span></code> see the section on
-<a class="reference internal" href="first_finetune_tutorial.html#tune-cp-label"><span class="std std-ref">modifying configs</span></a>.</p>
+<p>To see the full set of configurable parameters for this (and other) configs we can use <a class="reference internal" href="../tune_cli.html#tune-cp-cli-label"><span class="std std-ref">tune cp</span></a> to copy (and modify)
+the default config. <a class="reference internal" href="../tune_cli.html#tune-cp-cli-label"><span class="std std-ref">tune cp</span></a> can be used with recipe scripts too, in case you want to make more custom changes
+that cannot be achieved by directly modifying existing configurable parameters. For more on <a class="reference internal" href="../tune_cli.html#tune-cp-cli-label"><span class="std std-ref">tune cp</span></a> see the section on
+<a class="reference internal" href="first_finetune_tutorial.html#tune-cp-label"><span class="std std-ref">modifying configs</span></a> in our “<a class="reference internal" href="first_finetune_tutorial.html#finetune-llama-label"><span class="std std-ref">Fine-Tune Your First LLM</span></a>” tutorial.</p>
 </div>
 <p>Once training is complete, the model checkpoints will be saved and their locations will be logged. For
 LoRA fine-tuning, the final checkpoint will contain the merged weights, and a copy of just the (much smaller) LoRA weights
@@ -534,7 +534,7 @@ for model evaluation on common benchmark tasks.</p>
 <p class="admonition-title">Note</p>
 <p>Make sure you’ve first installed the evaluation harness via <code class="code docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;lm_eval==0.4.*&quot;</span></code>.</p>
 </div>
-<p>For this tutorial we’ll use the <code class="docutils literal notranslate"><span class="pre">truthfulqa_mc2</span></code> task from the harness.
+<p>For this tutorial we’ll use the <a class="reference external" href="https://github.com/sylinrl/TruthfulQA">truthfulqa_mc2</a> task from the harness.
 This task measures a model’s propensity to be truthful when answering questions and
 measures the model’s zero-shot accuracy on a question followed by one or more true
 responses and one or more false responses. First, let’s copy the config so we can point the YAML

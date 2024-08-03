@@ -461,7 +461,7 @@ for a particular run.</p>
 </pre></div>
 </div>
 <section id="configuring-components-using-instantiate">
-<h3>Configuring components using <code class="code docutils literal notranslate"><span class="pre">instantiate</span></code><a class="headerlink" href="#configuring-components-using-instantiate" title="Permalink to this heading">¶</a></h3>
+<h3>Configuring components using <a class="reference internal" href="../generated/torchtune.config.instantiate.html#torchtune.config.instantiate" title="torchtune.config.instantiate"><code class="xref py py-func docutils literal notranslate"><span class="pre">instantiate</span></code></a><a class="headerlink" href="#configuring-components-using-instantiate" title="Permalink to this heading">¶</a></h3>
 <p>Many fields will require specifying torchtune objects with associated keyword
 arguments as parameters. Models, datasets, optimizers, and loss functions are
 common examples of this. You can easily do this using the <code class="code docutils literal notranslate"><span class="pre">_component_</span></code>
@@ -553,10 +553,10 @@ will automatically resolve it for you.</p>
 </section>
 <section id="validating-your-config">
 <h3>Validating your config<a class="headerlink" href="#validating-your-config" title="Permalink to this heading">¶</a></h3>
-<p>We provide a convenient CLI utility, <code class="code docutils literal notranslate"><span class="pre">tune</span> <span class="pre">validate</span></code>, to quickly verify that
+<p>We provide a convenient CLI utility, <a class="reference internal" href="../tune_cli.html#validate-cli-label"><span class="std std-ref">tune validate</span></a>, to quickly verify that
 your config is well-formed and all components can be instantiated properly. You
 can also pass in overrides if you want to test out the exact commands you will run
-your experiments with. If any parameters are not well-formed, <code class="code docutils literal notranslate"><span class="pre">tune</span> <span class="pre">validate</span></code>
+your experiments with. If any parameters are not well-formed, <a class="reference internal" href="../tune_cli.html#validate-cli-label"><span class="std std-ref">tune validate</span></a>
 will list out all the locations where an error was found.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>cp<span class="w"> </span>llama2/7B_lora_single_device<span class="w"> </span>./my_config.yaml
 tune<span class="w"> </span>validate<span class="w"> </span>./my_config.yaml
@@ -640,9 +640,10 @@ tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_devi
 <p>You may need to remove certain parameters from the config when changing components
 through overrides that require different keyword arguments. You can do so by using
 the <cite>~</cite> flag and specify the dotpath of the config field you would like to remove.
-For example, if you want to override a built-in config and use the <code class="docutils literal notranslate"><span class="pre">bitsandbytes.optim.PagedAdamW8bit</span></code>
+For example, if you want to override a built-in config and use the
+<a class="reference external" href="https://huggingface.co/docs/bitsandbytes/main/en/reference/optim/adamw#bitsandbytes.optim.PagedAdamW8bit">bitsandbytes.optim.PagedAdamW8bit</a>
 optimizer, you may need to delete parameters like <code class="docutils literal notranslate"><span class="pre">foreach</span></code> which are
-specific to PyTorch optimizers. Note that this example requires that you have <code class="docutils literal notranslate"><span class="pre">bitsandbytes</span></code>
+specific to PyTorch optimizers. Note that this example requires that you have <a class="reference external" href="https://github.com/bitsandbytes-foundation/bitsandbytes">bitsandbytes</a>
 installed.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># In configs/llama3/8B_full.yaml</span>
 <span class="nt">optimizer</span><span class="p">:</span>
@@ -706,7 +707,7 @@ tune<span class="w"> </span>run<span class="w"> </span>--nproc_per_node<span cla
 <li><a class="reference internal" href="#">All About Configs</a><ul>
 <li><a class="reference internal" href="#where-do-parameters-live">Where do parameters live?</a></li>
 <li><a class="reference internal" href="#writing-configs">Writing configs</a><ul>
-<li><a class="reference internal" href="#configuring-components-using-instantiate">Configuring components using <code class="code docutils literal notranslate"><span class="pre">instantiate</span></code></a></li>
+<li><a class="reference internal" href="#configuring-components-using-instantiate">Configuring components using <code class="xref py py-func docutils literal notranslate"><span class="pre">instantiate</span></code></a></li>
 <li><a class="reference internal" href="#referencing-other-config-fields-with-interpolations">Referencing other config fields with interpolations</a></li>
 <li><a class="reference internal" href="#validating-your-config">Validating your config</a></li>
 <li><a class="reference internal" href="#best-practices-for-writing-configs">Best practices for writing configs</a><ul>

@@ -152,7 +152,7 @@ Let's take a look at how to construct Llama2 models in torchtune with and withou
 
 .. note::
 
-    Calling :code:`lora_llama_2_7b` alone will not handle the definition of which parameters are trainable.
+    Calling :func:`lora_llama_2_7b <torchtune.models.llama2.lora_llama2_7b>` alone will not handle the definition of which parameters are trainable.
     See :ref:`below<setting_trainable_params>` for how to do this.
 
 Let's inspect each of these models a bit more closely.
@@ -205,7 +205,8 @@ model without any wrappers or custom checkpoint conversion logic.
 .. note::
     Whenever loading weights with :code:`strict=False`, you should verify that any missing or extra keys in
     the loaded :code:`state_dict` are as expected. torchtune's LoRA recipes do this by default via e.g.
-    :func:`torchtune.modules.peft.validate_state_dict_for_lora`.
+    :func:`validate_state_dict_for_lora() <torchtune.modules.peft.validate_state_dict_for_lora>` or
+    :func:`validate_missing_and_unexpected_for_lora() <torchtune.modules.peft.validate_missing_and_unexpected_for_lora>`.
 
 Once we've loaded the base model weights, we also want to set only LoRA parameters to trainable.
 
@@ -258,7 +259,7 @@ You can then run the following command to perform a LoRA finetune of Llama2-7B w
 .. note::
     Make sure to point to the location of your Llama2 weights and tokenizer. This can be done
     either by adding :code:`checkpointer.checkpoint_files=[my_model_checkpoint_path] tokenizer_checkpoint=my_tokenizer_checkpoint_path`
-    or by directly modifying the :code:`7B_lora.yaml` file. See our :ref:`config_tutorial_label`
+    or by directly modifying the :code:`7B_lora.yaml` file. See our "":ref:`config_tutorial_label`" recipe
     for more details on how you can easily clone and modify torchtune configs.
 
 .. note::
@@ -297,14 +298,16 @@ A comparison of the (smoothed) loss curves between this run and our baseline ove
 
 .. note::
     The above figure was generated with W&B. You can use torchtune's :class:`~torchtune.utils.metric_logging.WandBLogger`
-    to generate similar loss curves, but you will need to install W&B and setup an account separately.
+    to generate similar loss curves, but you will need to install W&B and setup an account separately. For more details on
+    using W&B in torchtune, see our ":ref:`wandb_logging`" recipe.
 
 
 Trading off memory and model performance with LoRA
 --------------------------------------------------
 
 In the preceding example, we ran LoRA on two devices. But given LoRA's low memory footprint, we can run fine-tuning
-on a single device using most commodity GPUs which support bfloat16 floating-point format. This can be done via the command:
+on a single device using most commodity GPUs which support `bfloat16 <https://en.wikipedia.org/wiki/Bfloat16_floating-point_format#bfloat16_floating-point_format>`_
+floating-point format. This can be done via the command:
 
 .. code-block:: bash
 
@@ -315,13 +318,13 @@ to see our peak memory during a finetune. We will experiment along two axes:
 first, which model layers have LoRA applied, and second, the rank of each LoRA layer. (We will scale
 alpha in parallel to LoRA rank, as discussed above.)
 
-To compare the results of our experiments, we can evaluate our models on :code:`truthfulqa_mc2`, a task from
+To compare the results of our experiments, we can evaluate our models on `truthfulqa_mc2 <https://github.com/sylinrl/TruthfulQA>`_, a task from
 the `TruthfulQA <https://arxiv.org/abs/2109.07958>`_ benchmark for language models. For more details on how to run this and other evaluation tasks
 with torchtune's EleutherAI evaluation harness integration, see our :ref:`End-to-End Workflow Tutorial <eval_harness_label>`.
 
 Previously, we only enabled LoRA for the linear layers in each self-attention module, but in fact there are other linear
 layers we can apply LoRA to: MLP layers and our model's final output projection. Note that for Llama-2-7B the final output
-projection maps to dimension 32000 (instead of 4096 as in the other linear layers), so enabling LoRA for this layer will increase
+projection maps to the vocabulary dimension (32000 instead of 4096 as in the other linear layers), so enabling LoRA for this layer will increase
 our peak memory a bit more than the other layers. We can make the following changes to our config:
 
 .. code-block:: yaml
