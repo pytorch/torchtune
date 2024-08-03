@@ -41,6 +41,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             "dtype=fp32",
             "enable_activation_checkpointing=False",
             "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
+            "tokenizer._component_=torchtune.models.llama2.llama2_tokenizer",
             "seed=9",
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
@@ -73,7 +74,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         # resume after 2, and ensure the losses for the final two steps after resuming are identical
         cmd_1 = f"""
         tune run ppo_full_finetune_single_device \
-            --config llama2/1B_full_ppo \
+            --config mistral/7B_full_ppo_low_memory \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -125,7 +126,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         resumed_log_file = gen_log_file_name(resumed_log_dir)
         cmd_2 = f"""
         tune run ppo_full_finetune_single_device \
-            --config llama2/1B_full_ppo \
+            --config mistral/7B_full_ppo_low_memory \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{policy_tmpdir}' \
@@ -193,7 +194,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         write_hf_ckpt_config(value_tmpdir)
         cmd_1 = f"""
         tune run ppo_full_finetune_single_device \
-            --config llama2/1B_full_ppo \
+            --config mistral/7B_full_ppo_low_memory \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -247,7 +248,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         resumed_log_file = gen_log_file_name(resumed_log_dir)
         cmd_2 = f"""
         tune run ppo_full_finetune_single_device \
-            --config llama2/1B_full_ppo \
+            --config mistral/7B_full_ppo_low_memory \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{policy_tmpdir}' \
