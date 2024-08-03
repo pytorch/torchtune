@@ -6,8 +6,8 @@ Memory Optimization Overview
 
 **Author**: `Salman Mohammadi <https://github.com/SalmanMohammadi>`_
 
-Torchtune comes with a host of plug-and-play memory optimisation components which give you lots of flexibility
-to `tune` our recipes to your hardware. This page provides a brief glossary of these components and how you might use them.
+torchtune comes with a host of plug-and-play memory optimization components which give you lots of flexibility
+to ``tune`` our recipes to your hardware. This page provides a brief glossary of these components and how you might use them.
 
 
 .. _glossary_precision:
@@ -54,14 +54,14 @@ computations.
 
 .. note::
 
-  Gradient accumulation should always be set to 1 when using :ref:`fusing the optimizer step into the backward pass <glossary_opt_in_bwd>`.
+  Gradient accumulation should always be set to 1 when :ref:`fusing the optimizer step into the backward pass <glossary_opt_in_bwd>`.
 
 .. _glossary_low_precision_opt:
 
 Lower Precision Optimizers
 --------------------------
 
-In addition to reducing model precision during training, we can also reduce precision in our optimzer state.
+In addition to reducing model precision during training, we can also reduce precision in our optimizer state.
 All of our fine-tuning recipes support lower-precision optimizers from the `bitsandbytes <https://huggingface.co/docs/bitsandbytes/main/en/index>`_ library -
 a good place to start might be the ``Adam8bit`` and ``PagedAdamW`` optimizers, which we've tested our recipes with.
 
@@ -125,7 +125,7 @@ Parameter Efficient Fine-Tuning (PEFT)
 Low Rank Adaptation (LoRA)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Our tutorial on :ref:`finetuning Llama2 with LoRA<lora_finetune_label>` does a fantastic job of explaining LoRA, and how to use it. Here's
+You can read our tutorial on :ref:`finetuning Llama2 with LoRA<lora_finetune_label>` to understand how LoRA works, and how to use it. Here's
 an excerpt to give you a quick idea of how it works:
 
   `LoRA <https://arxiv.org/abs/2106.09685>`_ is an adapter-based method for
@@ -134,9 +134,9 @@ an excerpt to give you a quick idea of how it works:
   transformer models, in which case it is common to add the low-rank matrices
   to some of the linear projections in each transformer layer's self-attention.
 
-You can fine-tune with LoRA with all of our models, using any of  our ``_lora`` recipes and ``_lora`` configs. Just add the ``lora_`` prefix to the
+You can fine-tune with LoRA with all of our models, using any of our ``lora_`` recipes and ``_lora`` configs. Just add the ``lora_`` prefix to the
 name of any model you're interested in. We also provide a set of configs for LoRA out-of-the-box - simply refer to any ``_lora`` config.
-To customise LoRA, you can use the :ref:`cli_label`:
+To customize LoRA, you can use the :ref:`cli_label`:
 
 .. code-block:: bash
 
@@ -210,13 +210,13 @@ As above, these parameters are also specified under the ``model`` flag or config
 Quantized Low Rank Adaptation (LoRA)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Our tutorial on :ref:`finetuning Llama2 with QLoRA<qlora_finetune_label>` does a fantastic job of explaining QLoRA, and how to use it. Here's
+You can read our tutorial on :ref:`finetuning Llama2 with QLoRA<qlora_finetune_label>` to understand how QLoRA works, and how to use it. Here's
 an excerpt to give you a quick idea of how it works:
 
   `QLoRA <https://arxiv.org/abs/2305.14314>`_ is an enhancement on top of `LoRA <https://arxiv.org/abs/2106.09685>`_
   that maintains the frozen model parameters from LoRA in 4-bit quantized precision, thereby reducing memory usage.
 
-Just like LoRA, you can fine-tune with QLoRA with all of our models, using any of  our ``_lora`` recipes.
+Just like LoRA, you can fine-tune with QLoRA with all of our models, using any of  our ``lora_`` recipes.
 Just add the ``qlora_`` prefix to the name of any model you're interested in.
 We also provide a set of configs for QLoRA out-of-the-box - simply refer to any ``_qlora`` config.
 To avoid repetition, please refer to the section above for how to

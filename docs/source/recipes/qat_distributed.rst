@@ -4,25 +4,26 @@
 Distributed Quantization-Aware Training (QAT)
 =============================================
 
-QAT allows for taking advantage of memory-saving optimisations from quantisation at inference time, without significantly
-degrading model performace. In torchtune, we use `torchao <https://github.com/pytorch/ao>`_ to implement QAT during training.
-This works by :ref:`simluating quantization numerics during fine-tuning <what_is_qat_label>`. While this may introduce memory and
-compute overheads during training, our tests found that QAT significantly reduced performance degredation in evaluations of
+QAT allows for taking advantage of memory-saving optimizations from quantization at inference time, without significantly
+degrading model performance. In torchtune, we use `torchao <https://github.com/pytorch/ao>`_ to implement QAT during training.
+This works by :ref:`simulating quantization numerics during fine-tuning <what_is_qat_label>`. While this may introduce memory and
+compute overheads during training, our tests found that QAT significantly reduced performance degradation in evaluations of
 quantized model, without compromising on model size reduction gains.
 
 Interested in using this recipe? Check out some of our tutorials which show how it is used:
 
 * :ref:`qat_finetune_label`
 
-The best way to get started with our recipes is through the :ref:`cli_label`, which allows you to start fine-tuning
-one of our built-in models without touching a single line of code!
+The best way to get started with our recipes is through the :ref:`cli_label`, which allows you to
+list all our recipes and configs, run recipes, copy configs and recipes, and validate configs
+without touching a line of code!
 
 For example, if you're interested in using this recipe with the latest `Llama models <https://llama.meta.com/>`_, you can fine-tune
 in just two steps:
 
 .. note::
 
-    You may need to be granted access to the LLama model you're interested in. See
+    You may need to be granted access to the Llama model you're interested in. See
     :ref:`here <download_llama_label>` for details on accessing gated repositories.
 
 
@@ -39,13 +40,8 @@ in just two steps:
 .. note::
   This workload requires at least 6 GPUs, each with VRAM of at least 80GB.
 
-.. note::
 
-    The :ref:`cli_label` allows you to list all our recipes and configs, run recipes, copy configs and recipes,
-    and validate configs without touching a line of code!
-
-
-Most of you will want to twist, pull, and bop all the different levers and knobs we expose in our recipes. Check out our
+Most of you will want to twist, pull, and bop all the different levers, buttons, and knobs we expose in our recipes. Check out our
 :ref:`configs tutorial <config_tutorial_label>` to learn how to customize recipes to suit your needs.
 
 Currently, the main lever you can pull for QAT is by using delayed fake quantization:
@@ -59,10 +55,10 @@ provide you with an idea of how to roughly configure this parameter, we've teste
 
 In the future we plan to support different quantization strategies. For now, note that you'll need at least
 ``torch>=2.4.0`` to use the `Int8DynActInt4WeightQATQuantizer <https://github.com/pytorch/ao/blob/08024c686fdd3f3dc2817094f817f54be7d3c4ac/torchao/quantization/prototype/qat/api.py#L35>`_
-strategy. Generally, we apply QAT in three steps:
+strategy. Generally, the pipeline for training, quantizing, and evaluating a model using QAT is:
 
 #. Run the ``qat_distributed`` recipe using the above command, or by following the tutorial. By default, this will use ``Int8DynActInt4WeightQATQuantizer``.
-#. This produces an unquantized model in the original data type. To get an actual quantized model, follow this with
+#. This produces an un-quantized model in the original data type. To get an actual quantized model, follow this with
    ``tune run quantize`` while specifying the same quantizer in the config, e.g.
 
    .. code-block:: yaml

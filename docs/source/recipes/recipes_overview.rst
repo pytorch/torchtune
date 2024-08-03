@@ -36,12 +36,12 @@ Each recipe consists of three components:
                                                 mistral/7B_lora_single_device
         ...
 
-Supervised finetuning
+Supervised Finetuning
 ---------------------
 
-Torchtune provides built-in recipes for finetuning on single device, on multiple devices with `FSDP <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/>`_,
-using a variety :ref:`of memory optimization features <memory_optimisation_overview_label>`. Our  fine-tuning recipes support all of our models and all our dataset types.
-This includes continued pre-training, and various supervised fune-tuning paradigms, which can be customised through our datasets. Check out our
+torchtune provides built-in recipes for finetuning on single device, on multiple devices with `FSDP <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/>`_,
+using a variety of :ref:`memory optimization features <memory_optimisation_overview_label>`. Our  fine-tuning recipes support all of our models and all our dataset types.
+This includes continued pre-training, and various supervised funetuning paradigms, which can be customized through our datasets. Check out our
 :ref:`dataset tutorial <dataset_tutorial_label>` for more information. Our supervised fine-tuning recipes include:
 
 * :ref:`Single-device <lora_finetune_recipe_label>` LoRA fine-tuning.

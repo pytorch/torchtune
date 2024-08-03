@@ -16,8 +16,9 @@ Interested in using this recipe? Check out some of our tutorials which show how 
 * :ref:`finetune_llama_label`
 * :ref:`e2e_flow`
 
-The best way to get started with our recipes is through the :ref:`cli_label`, which allows you to start fine-tuning
-one of our built-in models without touching a single line of code!
+The best way to get started with our recipes is through the :ref:`cli_label`, which allows you to
+list all our recipes and configs, run recipes, copy configs and recipes, and validate configs
+without touching a line of code!
 
 For example, if you're interested in using this recipe with the latest `Llama models <https://llama.meta.com/>`_, you can fine-tune
 in just two steps:
@@ -26,7 +27,7 @@ in just two steps:
 
 .. note::
 
-    You may need to be granted access to the LLama model you're interested in. See
+    You may need to be granted access to the Llama model you're interested in. See
     :ref:`here <download_llama_label>` for details on accessing gated repositories.
 
 
@@ -44,18 +45,11 @@ in just two steps:
         logger._component_=torchtune.utils.metric_logging.WandBLogger \
         dataset ... \
 
-
-.. note::
-
-    The :ref:`cli_label` allows you to list all our recipes and configs, run recipes, copy configs and recipes,
-    and validate configs without touching a line of code!
-
-
 .. detail the recipe params below. you might want to include these defaults:
 
 .. you can include this line for all recipes
 
-Most of you will want to twist, pull, and bop all the different levers and knobs we expose in our recipes. Check out our
+Most of you will want to twist, pull, and bop all the different levers, buttons, and knobs we expose in our recipes. Check out our
 :ref:`configs tutorial <config_tutorial_label>` to learn how to customize recipes to suit your needs.
 
 There are <> levers to pull when working with <>, specifically:

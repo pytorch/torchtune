@@ -1,7 +1,7 @@
 .. _lora_finetune_recipe_label:
 
 =============================
-LoRA Single Device finetuning
+LoRA Single Device Finetuning
 =============================
 
 This recipe supports finetuning on next-token prediction tasks using `LoRA <https://arxiv.org/abs/2106.09685>`_,
@@ -15,8 +15,9 @@ Interested in using this recipe? Check out some of our awesome tutorials to show
 * :ref:`Meta Llama3 in torchtune<llama3_label>`
 * :ref:`Fine-Tune Your First LLM<finetune_llama_label>`
 
-The best way to get started with our recipes is through the :ref:`cli_label`, which allows you to start fine-tuning
-one of our built-in models without touching a single line of code!
+The best way to get started with our recipes is through the :ref:`cli_label`, which allows you to
+list all our recipes and configs, run recipes, copy configs and recipes, and validate configs
+without touching a line of code!
 
 For example, if you're interested in using this recipe with the latest `Llama models <https://llama.meta.com/>`_, you can fine-tune
 in just two steps:
@@ -24,7 +25,7 @@ in just two steps:
 
 .. note::
 
-    You may need to be granted access to the LLama model you're interested in. See
+    You may need to be granted access to the Llama model you're interested in. See
     :ref:`here <download_llama_label>` for details on accessing gated repositories.
 
 
@@ -37,13 +38,8 @@ in just two steps:
     tune run lora_finetune_single_device \
     --config llama3_1/8B_lora_single_device
 
-.. note::
 
-    The :ref:`cli_label` allows you to list all our recipes and configs, run recipes, copy configs and recipes,
-    and validate configs without touching a line of code!
-
-
-Most of you will want to twist, pull, and bop all the different levers and knobs we expose in our recipes. Check out our
+Most of you will want to twist, pull, and bop all the different levers, buttons, and knobs we expose in our recipes. Check out our
 :ref:`configs tutorial <config_tutorial_label>` to learn how to customize recipes to suit your needs.
 
 There are two levers to pull when working with this recipe, specifically:
