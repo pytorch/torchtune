@@ -122,7 +122,7 @@ ways in which torchtune interoperates with the surrounding ecosystem.
   from Hugging Face, we apply a permutation to certain weights on load and save to ensure checkpoints behave exactly the same.
   To further illustrate this, the Llama family of models uses a
   `generic weight converter function <https://github.com/pytorch/torchtune/blob/898670f0eb58f956b5228e5a55ccac4ea0efaff8/torchtune/models/convert_weights.py#L113>`_
-  whilst some other models like Phi have their own `conversion functions <https://github.com/pytorch/torchtune/blob/main/torchtune/models/phi3/_convert_weights.py>`_
+  whilst some other models like Phi3 have their own `conversion functions <https://github.com/pytorch/torchtune/blob/main/torchtune/models/phi3/_convert_weights.py>`_
   which can be found within their model folders.
 
 |
