@@ -97,6 +97,10 @@ class TikTokenBaseTokenizer(BaseTokenizer):
 
         Args:
             text (str): The string to encode.
+            add_bos (bool): Whether to add the tokenizer's bos_id to the encoded string.
+                Default True.
+            add_eos (bool): Whether to add the tokenizer's eos_id to the encoded string.
+                Default True.
 
         Returns:
             List[int]: The list of token ids.

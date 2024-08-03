@@ -93,6 +93,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
 
+    The following losses are supported in this recipe:
+        - :class:`~torchtune.modules.loss.DPOLoss`: Direct Preference Optimization (DPO).
+        - :class:`~torchtune.modules.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
+        - :class:`~torchtune.modules.loss.IPO`: Identity Preference Optimization (IPO).
+
+
     For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
     has example commands for how to kick-off training.
 
@@ -135,8 +141,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
-
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
@@ -356,11 +362,11 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             sync_module_states=True,
             # Initialize empty modules on all non-zero ranks
             param_init_fn=(
-                lambda module: module.to_empty(
-                    device=torch.device("cuda"), recurse=False
+                lambda module: (
+                    module.to_empty(device=torch.device("cuda"), recurse=False)
+                    if not self._is_rank_zero
+                    else None
                 )
-                if not self._is_rank_zero
-                else None
             ),
         )
 
@@ -464,10 +470,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         - Merged weights with key MODEL_KEY
         - Adapter weights with key ADAPTER_KEY
         - Relevant recipe state if training is not complete
+        - If the `self._save_adapter_weights_only` option is True, the checkpointer will save only the adapter weights
 
-        Checkpointer will save the merged weights, adapter weights and recipe state in
-        different checkpoint files. To correctly resume from training, the adapter weights
-        and recipe state must be provided along with the base model weights.
+        To correctly resume from training, the adapter weights and recipe state must be provided along with the base model weights.
         """
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
@@ -524,6 +529,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 checkpoint_dict,
                 epoch=epoch,
                 intermediate_checkpoint=intermediate_checkpoint,
+                adapter_only=self._save_adapter_weights_only,
             )
 
     def concatenated_forward(
@@ -639,6 +645,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     policy_rejected_logits,
                 ) = self.concatenated_forward(self._model, batch)
 
+                policy_chosen_logits_mean = policy_chosen_logits.detach().mean()
+                policy_rejected_logits_mean = policy_rejected_logits.detach().mean()
+
+                # deleting logits here helps reduce (peak) memory usage - we only need them for metric logging
+                del policy_chosen_logits, policy_rejected_logits
+
                 with torch.no_grad(), disable_adapter(self._model):
                     (
                         reference_chosen_log_probs,
@@ -672,7 +684,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     loss_to_log = running_loss.item()
                     pbar.update(1)
                     pbar.set_description(
-                        f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
+                        f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
                     )
 
                     # Log per-step metrics
@@ -697,10 +709,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                             "log_probs/chosen": policy_chosen_log_probs.detach()
                             .mean()
                             .cpu(),
-                            "logits/rejected": policy_rejected_logits.detach()
-                            .mean()
-                            .cpu(),
-                            "logits/chosen": policy_chosen_logits.detach().mean().cpu(),
+                            "logits/rejected": policy_rejected_logits_mean.cpu(),
+                            "logits/chosen": policy_chosen_logits_mean.cpu(),
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(utils.get_memory_stats(device=self._device))

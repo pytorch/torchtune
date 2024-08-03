@@ -106,7 +106,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         if (
             cfg.get("fsdp_cpu_offload", False)
-            and cfg.get("fused", False)
+            and cfg.optimizer.get("fused", False)
             and not utils.torch_version_ge("2.4.0")
         ):
             raise RuntimeError(
@@ -523,6 +523,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 logits = logits.transpose(1, 2)
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
+                # free logits otherwise it peaks backward memory
+                del logits
 
                 loss = loss / self._gradient_accumulation_steps
                 running_loss += loss
@@ -539,7 +541,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     loss_to_log = running_loss.item()
                     pbar.update(1)
                     pbar.set_description(
-                        f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
+                        f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
                     )
 
                     # Log per-step metrics
