@@ -118,7 +118,7 @@ ways in which torchtune interoperates with the surrounding ecosystem.
 .. note::
 
   To be state-dict "invariant" in this way, the ``load_checkpoint`` and ``save_checkpoint`` methods of each checkpointer
-  make use of weight convertors which correctly map weights between checkpoint formats. For example, when loading weights
+  make use of weight converters which correctly map weights between checkpoint formats. For example, when loading weights
   from HuggingFace, we apply a permutation to certain weights on load and save to ensure checkpoints behave exactly the same.
   To further illustrate this, the llama family of models uses a
   `generic weight converter function <https://github.com/pytorch/torchtune/blob/898670f0eb58f956b5228e5a55ccac4ea0efaff8/torchtune/models/convert_weights.py#L113>`_
