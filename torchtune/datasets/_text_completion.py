@@ -90,8 +90,11 @@ def text_completion_dataset(
 
     Args:
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
-        source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
+        source (str): path to dataset repository on Hugging Face. For local datasets,
+            define source as the data file type (e.g. "json", "csv", "text") and pass
+            in the filepath in ``data_files``. See Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
+            for more details.
         column (str): name of column in the sample that contains the text data. This is typically required
             for Hugging Face datasets or tabular data. For local datasets with a single column, use the default "text",
             which is what is assigned by Hugging Face datasets when loaded into memory. Default is "text".
