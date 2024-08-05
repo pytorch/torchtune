@@ -98,24 +98,6 @@ def get_rewards_ppo(
     return total_reward, kl, kl_reward
 
 
-def whiten(x: torch.Tensor, shift_mean: bool = True) -> torch.Tensor:
-    """
-    Whitens (normalizes) the input tensor.
-
-    Args:
-        x (torch.Tensor): input tensor.
-        shift_mean (bool): whether to shift the normalized tensor back to its original mean. Default True.
-
-    Returns:
-        torch.Tensor: The whitened tensor.
-    """
-    mean, var = x.mean(), x.var()
-    whitened = (x - mean) * torch.rsqrt(var + 1e-8)
-    if shift_mean:
-        whitened += mean
-    return whitened
-
-
 def masked_mean(
     x: torch.Tensor, mask: torch.Tensor, dim: Optional[int] = None
 ) -> torch.Tensor:
@@ -169,22 +151,25 @@ def masked_var(
     return var
 
 
-def masked_whiten(
-    x: torch.Tensor, mask: torch.Tensor, shift_mean: bool = True
+def whiten(
+    x: torch.Tensor, mask: Optional[torch.Tensor] = None, shift_mean: bool = True
 ) -> torch.Tensor:
     """
-    Whiten (normalises) values with masked values. Taken from https://github.com/huggingface/trl/blob/main/trl/core.py
+    Whiten (normalises) values, optionally with masked values. Taken from https://github.com/huggingface/trl/blob/main/trl/core.py
     Args:
         x (torch.Tensor): The input tensor.
-        mask (torch.Tensor): The bool mask tensor, where True indicates the corresponding value in ``x``
-            should participate in the mean calculation.
+        mask (Optional[torch.Tensor]): The bool mask tensor, where True indicates the corresponding value in ``x``
+            should participate in the mean calculation. Default None.
         shift_mean (bool): Whether to shift normalised values by the mean.
 
     Returns:
         torch.Tensor: The whitened tensor.
     """
-    mean = masked_mean(x, mask)
-    var = masked_var(x, mask) if mask.any() else x.var()
+    if mask is not None:
+        mean = masked_mean(x, mask)
+        var = masked_var(x, mask) if mask.any() else x.var()
+    else:
+        mean, var = x.mean(), x.var()
     whitened = (x - mean) * torch.rsqrt(var + 1e-8)
     if shift_mean:
         whitened += mean
@@ -200,7 +185,7 @@ def estimate_advantages(
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Estimates the advantages and returns for the PPO algorithm using Generalized Advantage Estimation
-    https://arxiv.org/pdf/1506.02438.pdf.
+    https://arxiv.org/pdf/1506.02438.pdf
 
     Args:
         values (torch.Tensor): The predicted values for each state. Shape: (b, reponse_len)
@@ -230,7 +215,7 @@ def estimate_advantages(
         # exponentially discounted temporal difference error:
         # delta_t = r_t + gamma * V(s_{t+1}) - V(s_t)
         delta = rewards[:, t] + gamma * next_values - values[:, t]
-        # GAE-Lambda advantage discouting saved for the next iteration
+        # GAE-Lambda advantage discounting saved for the next iteration
         # as A_t = delta_t + gamma * lambda * A_{t+1} + ...
         last_gae_lam = delta + gamma * lmbda * last_gae_lam
         advantages_reversed.append(last_gae_lam)
@@ -244,7 +229,8 @@ def estimate_advantages(
 
     # normalize advantages across the batch of trajectories to reduce variance
     if masks is not None:
-        advantages = masked_whiten(advantages, masks)
+        advantages = whiten(advantages, mask=masks)
+        advantages[~masks] = 0.0
     else:
         advantages = whiten(advantages)
 

@@ -20,10 +20,57 @@ def truncate_sequence_at_first_stop_token(
         sequences (torch.Tensor): tensor of shape [batch_size, sequence_length] or [sequence_length].
         stop_tokens (torch.Tensor): tensor containing stop tokens.
         fill_value (int): value to pad the sequence with after the first stop token, usually ``pad_id``.
+
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: A tuple of two tensors with the same shape as ``sequences``:
             - padding_mask (torch.Tensor): a bool tensor where True indicates the token has been truncated.
             - sequences (torch.Tensor) a tensor of truncated and padded sequences.
+
+    Example:
+        >>> stop_token_ids = torch.tensor([2, 869])
+        >>> fill_value = 0
+        >>> sequences = torch.tensor(
+        >>>     [
+        >>>         [869, 30, 869],
+        >>>         [2, 30, 869],
+        >>>         [869, 30, 2],
+        >>>         [50, 30, 869],
+        >>>         [13, 30, 2],
+        >>>         [13, 30, 5],
+        >>>         [13, 2, 20],
+        >>>         [13, 2, 2],
+        >>>         [2, 2, 2],
+        >>>     ]
+        >>> )
+        >>> eos_mask, truncated_sequences = rlhf.truncate_sequence_at_first_stop_token(
+        >>>     sequences, stop_token_ids, fill_value
+        >>> )
+        >>> eos_mask
+        >>> torch.tensor([
+        >>>         [False, True, True],
+        >>>         [False, True, True],
+        >>>         [False, True, True],
+        >>>         [False, False, False],
+        >>>         [False, False, False],
+        >>>         [False, False, False],
+        >>>         [False, False, True],
+        >>>         [False, False, True],
+        >>>         [False, True, True],
+        >>>     ]
+        >>> )
+        >>> truncated_sequences
+        >>> torch.tensor([
+        >>>         [869, 0, 0],
+        >>>         [2, 0, 0],
+        >>>         [869, 0, 0],
+        >>>         [50, 30, 869],
+        >>>         [13, 30, 2],
+        >>>         [13, 30, 5],
+        >>>         [13, 2, 0],
+        >>>         [13, 2, 0],
+        >>>         [2, 0, 0],
+        >>>     ]
+        >>> )
     """
     eos_mask = torch.isin(sequences, stop_tokens)
     seq_lens = torch.cumsum(eos_mask, dim=1)
@@ -56,7 +103,7 @@ def query_response_logits_to_response_logits(
     query_response_logits: torch.Tensor, context_length: int
 ) -> torch.Tensor:
     """
-    Converts logits estimated over a query-generated-response pair logits to logits for the response.
+    Converts logits estimated over a (query, response) pair to logits for the response.
 
     See the excalidraw linked in TRL's PPOV2 for a visual explanation
         https://github.com/huggingface/trl/blob/747612f9d3063de56b6524e5feb0c9feab21d4c4/trl/trainer/ppov2_trainer.py#L358

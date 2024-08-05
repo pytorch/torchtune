@@ -9,6 +9,8 @@ from ._generation import (
     generate_with_logits,
     get_causal_mask,
 )
+
+from ._types import PPOStats, Trajectory
 from .collate import left_padded_collate, padded_collate_dpo
 from .rewards import (
     estimate_advantages,
@@ -16,7 +18,6 @@ from .rewards import (
     get_rewards_ppo,
     masked_mean,
     masked_var,
-    masked_whiten,
     whiten,
 )
 from .sequence_processing import (
@@ -38,7 +39,8 @@ __all__ = [
     "estimate_advantages",
     "get_rewards_ppo",
     "whiten",
-    "masked_whiten",
     "masked_mean",
     "masked_var",
+    "PPOStats",
+    "Trajectory",
 ]

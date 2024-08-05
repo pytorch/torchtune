@@ -9,7 +9,7 @@ import os
 import sys
 from functools import partial
 from itertools import chain
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 from warnings import warn
 
 import torch
@@ -20,33 +20,12 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.datasets import ConcatDataset
 from torchtune.modules import rlhf
+from torchtune.modules.rlhf import PPOStats, Trajectory
 from torchtune.recipe_interfaces import FTRecipeInterface
 from tqdm import tqdm
 
 
 log = utils.get_logger("DEBUG")
-
-Checkpointer = Union[
-    utils.FullModelHFCheckpointer,
-    utils.FullModelMetaCheckpointer,
-    utils.FullModelTorchTuneCheckpointer,
-]
-Trajectory = NamedTuple(
-    "Trajectory",
-    [
-        ("query_responses", torch.Tensor),
-        ("logprobs", torch.Tensor),
-        ("ref_logprobs", torch.Tensor),
-        ("values", torch.Tensor),
-        ("masks", torch.Tensor),
-        ("position_ids", torch.Tensor),
-        ("response_padding_masks", torch.Tensor),
-        ("value_padding_masks", torch.Tensor),
-        ("value_seq_idxs", torch.Tensor),
-        ("scores", torch.Tensor),
-        ("seq_lens", torch.Tensor),
-    ],
-)
 
 
 class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
@@ -83,7 +62,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             controlled using the ``gradient_accumulation_steps`` flag.
 
             For example: with ``ppo_batch_size``=32 and ``gradient_accumulation_steps``=16, each backward pass during
-            PPO optmization uses a 'micro batch size' of 2.
+            PPO optimization uses a 'micro batch size' of 2.
 
             Gradient accumulation is especially useful when you are memory constrained. In this case,
             accumulating gradients might give you better training speed than enabling activation
@@ -98,7 +77,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             This paramater can provide significant performance gains, since there the number of optimization steps
             scales with ``ppo_epochs`` and ``batch_size``. Depending on the maximum sequence length sampled from the dataset,
             we've found that setting ``ppo_batch_size`` to the highest you can fit in memory, and `optimizer_in_bwd=True` to
-            provide significant speedups and memory savings.
+            provide significant memory savings.
 
         - Lower precision optimizers. This recipe supports lower-precision optimizers from the bitsandbytes
             library (https://huggingface.co/docs/bitsandbytes/main/en/index). We've tested the recipe with
@@ -181,15 +160,11 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # load policy checkpoints
         policy_model_checkpoint_dict = self._policy_checkpointer.load_checkpoint()
-        ref_policy_state_dict = ref_policy_checkpointer.load_checkpoint()[
-            utils.MODEL_KEY
-        ]
+        ref_policy_state_dict = ref_policy_checkpointer.load_checkpoint()
 
         # load reward and value model checkpoints
-        value_model_checkpoint_dict = self._value_checkpointer.load_checkpoint()[
-            utils.MODEL_KEY
-        ]
-        reward_model_state_dict = reward_checkpointer.load_checkpoint()[utils.MODEL_KEY]
+        value_model_checkpoint_dict = self._value_checkpointer.load_checkpoint()
+        reward_model_state_dict = reward_checkpointer.load_checkpoint()
 
         # update recipe state
         # ``_setup_model`` handles initialization and loading the state dict. This method
@@ -208,9 +183,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             compile_model=self._model_compile,
             policy_state_dict=policy_model_checkpoint_dict[utils.MODEL_KEY],
-            ref_policy_state_dict=ref_policy_state_dict,
-            value_model_state_dict=value_model_checkpoint_dict,
-            reward_model_state_dict=reward_model_state_dict,
+            ref_policy_state_dict=ref_policy_state_dict[utils.MODEL_KEY],
+            value_model_state_dict=value_model_checkpoint_dict[utils.MODEL_KEY],
+            reward_model_state_dict=reward_model_state_dict[utils.MODEL_KEY],
         )
 
         # setup tokenizer
@@ -341,7 +316,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._total_steps = cfg.num_steps // self.batch_size
         batches_per_epoch = max(
             1, len(self._dataloader)
-        )  # when we only have a single batch in the dataser
+        )  # when we only have a single batch in the dataset
 
         self._total_epochs = math.ceil(self._total_steps / batches_per_epoch)
         if self._total_steps == 0:
@@ -372,7 +347,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         ref_policy_cfg: DictConfig,
         value_cfg: DictConfig,
         reward_cfg: DictConfig,
-    ) -> Tuple[Checkpointer, Checkpointer, Checkpointer, Checkpointer]:
+    ) -> Tuple[
+        utils.Checkpointer, utils.Checkpointer, utils.Checkpointer, utils.Checkpointer
+    ]:
         """
         Sets up checkpointers for policy, reference policy, value, and reward models.
         Only the policy checkpoint handles recipe state for resuming from checkpoints.
@@ -684,35 +661,27 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
     def generate_trajectory(self, input_ids: torch.Tensor) -> Trajectory:
         """
         Generates a trajectory given the current policy and value models, the reference policy model, the reward model,
-        and batch of inputs.
+        and batch of inputs. This is done over the following steps:
+
+        1: Generate responses, and logits corresponding to the responses using the current policy,
+            generating (query, response) pairs.
+        2. Estimate logprobs of the generated responses using the current policy.
+        3. Estimate values from the generated responses using the current value function.
+        4. Replace any tokens in the response after the first stop token (usually EOS token) with padding,
+            producting truncated responses.
+        5. Run the reward model on the (query, truncated-response) pairs.
+        6. Mask out all the invalid values in the trajectory due to padding tokens.
 
         Args:
             input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
 
         Returns:
-            Trajectory (NamedTuple): A collection of tensors comprising the trajectory for the current minibatch:
-            - query_responses (torch.Tensor): input ids-generated responses pairs
-                shape [b, context_length + max_generated_tokens]
-            - logprobs (torch.Tensor): log probabilities of the generated responses with shape [b, max_generated_tokens]
-            - ref_logprobs (torch.Tensor): log probabilities of the generated responses using the reference policy
-                shape [b, max_generated_tokens]
-            - values (torch.Tensor): value estimates of the generated responses with shape [b, max_generated_tokens]
-            - masks (torch.Tensor): attention masks for input ids-generated responses pairs
-                shape [b, context_length + max_generated_tokens, context_length + max_generated_tokens]
-            - position_ids (torch.Tensor): position IDs for input ids-generated responses pairs
-                shape [b, context_length + max_generated_tokens]
-            - response_padding_masks (torch.Tensor): padding masks for the truncated and padded generated responses
-                shape [b, max_generated_tokens]
-            - value_padding_masks (torch.Tensor): padding masks for the values with
-                shape [b, max_generated_tokens]
-            - value_seq_idxs (torch.Tensor): indexes of the token
-                after the last valid (non-padding) token in the responses with shape [b]
-            - scores (torch.Tensor): scores from the reward model with shape [b]
-
+            Trajectory: An instance of :class:`~torchtune.modules.rlhf.Trajectory` comprising
+                the current trajectory.
         """
         batch_size, context_length = input_ids.shape
 
-        # step 1: generate responses, and logits corresponding to the responses using the policy
+        # step 1: generate responses, and logits corresponding to the responses using the current policy
         query_responses, logits = rlhf.generate_with_logits(
             model=self._policy_model,
             prompt=input_ids,
@@ -735,13 +704,13 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         del query_response_padding_masks
 
-        # step 2. estimate logprobs of the generated responses using the current policy
+        # step 2. estimate logprobs of the responses using the current policy
         logits = logits[:, context_length - 1 :]
         logprobs = rlhf.logits_to_logprobs(logits, responses, self._temperature)
 
         del logits
 
-        # step 2.1 estimate logprobs of the generated responses using the reference policy
+        # step 2.1 estimate logprobs of the responses using the reference policy
         ref_logits = self._ref_policy_model(
             query_responses, input_pos=position_ids, mask=masks
         )
@@ -752,18 +721,19 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         del ref_logits
 
-        # step 3. estimate values from the generated responses using the value function
+        # step 3. estimate values from the responses using the value function
         values = self._value_model(query_responses, input_pos=position_ids, mask=masks)
         values = rlhf.query_response_logits_to_response_logits(
             values, context_length
         ).squeeze(-1)
 
-        # step 4. replace any tokens in the response after the first stop token (usually EOS token) with padding
+        # step 4. replace any tokens in the responses after the first stop token (usually EOS token) with padding
+        # resulting in truncated responses
         response_padding_masks, responses = rlhf.truncate_sequence_at_first_stop_token(
             responses, self._stop_token_ids, self._tokenizer.pad_id
         )
 
-        # step 5. run the reward model on the query truncated-response pairs
+        # step 5. run the reward model on the (query, truncated-response) pairs
         scores = self._reward_model(
             torch.cat([input_ids, responses], dim=1),
             input_pos=position_ids,
@@ -772,11 +742,13 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         del responses
 
-        # step 5.1 the reward scores from the reward model are the logits for the last non-padding token in each query+response pair
+        # step 5.1 the scores from the reward model are the logits for the last non-padding token in
+        # each (query, truncated-response) pair
         seq_lens = utils.get_unmasked_sequence_lengths(response_padding_masks)
         scores = scores[torch.arange(batch_size), seq_lens + context_length].squeeze(-1)
 
-        # step 5.2 if configured, apply any penalties for sequences without EOS tokens or shorter than a certain length
+        # step 5.2 if configured, apply any penalties for sequences without EOS tokens
+        # or shorter than a certain length
         if self._penalise_no_eos or self._min_response_length:
             reward_penalty_mask = rlhf.get_reward_penalty_mask(
                 response_padding_masks,
@@ -820,14 +792,15 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
     def generate_trajectory_batched(self, input_ids: torch.Tensor) -> Trajectory:
         """
-        Generates a `self.batch_size` batch of trajectories using `self._forward_batch_size` batch sizes.
-        See `generate_trajectory` for more details.
+        Generates a ``self.batch_size`` batch of trajectories using `self._forward_batch_size` batch sizes.
+        See ``generate_trajectory`` for more details.
 
         Args:
             input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
 
         Returns:
-            Trajectory (NamedTuple): A collection of tensors comprising the current trajectory.
+            Trajectory: An instance of :class:`~torchtune.modules.rlhf.Trajectory`, comprising
+                the current trajectory.
         """
         trajectories: List[Trajectory] = []
         with torch.no_grad():
@@ -844,7 +817,8 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         if self._model_compile:
             log.info(
-                "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
+                "NOTE: torch.compile is enabled and model is compiled in first forward."
+                "Expect a relatively slow first iteration."
             )
         # zero out the gradients before starting training
         if not self._optimizer_in_bwd:
@@ -886,18 +860,15 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     self._lmbda,
                     masks=~trajectory.response_padding_masks,
                 )
-                advantages[trajectory.response_padding_masks] = 0.0
 
                 # step 4. optimise using the PPO objective over multiple epochs
-                ppo_stats = [
-                    [],
-                ] * 6
+                ppo_stats: List[PPOStats] = []
                 for _ in range(self._ppo_epochs):
                     batch_idxs = torch.randperm(self.batch_size, device=self._device)
                     for i in range(0, self.batch_size, self._ppo_batch_size):
                         mini_batch_idxs = batch_idxs[i : i + self._ppo_batch_size]
 
-                        batch_ppo_stats = [0] * 6
+                        batch_ppo_stats: List[PPOStats] = []
                         for j in range(
                             0, self._ppo_batch_size, self._ppo_backward_batch_size
                         ):
@@ -915,29 +886,17 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                                     trajectory,
                                 )
                             )
-
-                            backward_ppo_stats = self._ppo_step(
-                                batch_trajectory,
-                                advantages[backward_batch_idxs],
-                                returns[backward_batch_idxs],
-                                context_length,
-                            )
-
-                            batch_ppo_stats = [
-                                stat + bstat
-                                for stat, bstat in zip(
-                                    batch_ppo_stats, backward_ppo_stats
+                            batch_ppo_stats.append(
+                                self._ppo_step(
+                                    batch_trajectory,
+                                    advantages[backward_batch_idxs],
+                                    returns[backward_batch_idxs],
+                                    context_length,
                                 )
-                            ]
-
+                            )
                             del batch_trajectory
 
-                        ppo_stats = [
-                            ppo_stat + [batch_ppo_stat]
-                            for ppo_stat, batch_ppo_stat in zip(
-                                ppo_stats, batch_ppo_stats
-                            )
-                        ]
+                        ppo_stats.append(PPOStats(*map(sum, zip(*batch_ppo_stats))))
 
                         if not self._optimizer_in_bwd:
                             self._optimizer.step()
@@ -950,9 +909,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 if self._steps_run % self._log_every_n_steps == 0:
                     self.log_metrics(
                         trajectory,
+                        PPOStats(*map(torch.stack, zip(*ppo_stats))),
                         kl,
                         kl_rewards,
-                        *map(torch.tensor, ppo_stats),
                     )
                 self.cleanup_after_step(trajectory, advantages, returns, kl, kl_rewards)
                 pbar.update(1)
@@ -975,14 +934,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         advantages: torch.Tensor,
         returns: torch.Tensor,
         context_length: int,
-    ) -> Tuple[
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor,
-    ]:
+    ) -> PPOStats:
         """
         Perform a single PPO optimisation step over a batch of trajectories and corresponding advantages and returns.
 
@@ -993,13 +945,14 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             context_length (int): input ids sequence length
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-                loss: Actor-critic combined policy and value loss
-                policy_loss: PPO policy loss
-                value_loss: Clipped critic value loss
-                approx_policy_kls: Average estimated KL divergence between the policy before and after the optimisation step
-                ratios: Logprob ratios between the current policy being optimised, and the policy used to generate the trajectory
-                clipfrac: Fraction of samples where the policy ratio has been clipped in the PPO objective
+            PPOStats: An instance of :class:`~torchtune.modules.rlhf.PPOStats`, a dataclass containing:
+               - loss (torch.Tensor): The total PPO loss.
+               - policy_loss (torch.Tensor): The policy function loss.
+               - value_loss (torch.Tensor): The value function loss.
+               - ratios (torch.Tensor): The ratio between the current and old policy probabilities.
+               - clipfrac (torch.Tensor): The fraction of ratios that were clipped.
+               - approx_policy_kls: Average estimated KL divergence between the policy before and after the optimisation step.
+
         """
         # estimate logprobs from the policy at the current optimisation step
         pi_logits = self._policy_model(
@@ -1044,34 +997,26 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         loss /= self._gradient_accumulation_steps
         loss.backward()
 
-        policy_loss /= self._gradient_accumulation_steps
-        value_loss /= self._gradient_accumulation_steps
-
         with torch.no_grad():
             approx_policy_kls = (
                 0.5 * (pi_logprobs - trajectory.logprobs).pow(2)
             ).mean()
 
-        return (
+        return PPOStats(
             loss,
-            policy_loss,
-            value_loss,
-            approx_policy_kls / self._gradient_accumulation_steps,
+            policy_loss / self._gradient_accumulation_steps,
+            value_loss / self._gradient_accumulation_steps,
             ratios / self._gradient_accumulation_steps,
             clipfrac / self._gradient_accumulation_steps,
+            approx_policy_kls / self._gradient_accumulation_steps,
         )
 
     def log_metrics(
         self,
         trajectory: Trajectory,
+        ppo_stats: PPOStats,
         kl: torch.Tensor,
         kl_rewards: torch.Tensor,
-        loss: torch.Tensor,
-        policy_loss: torch.Tensor,
-        value_loss: torch.Tensor,
-        approx_policy_kls: torch.Tensor,
-        ratios: torch.Tensor,
-        clipfrac: torch.Tensor,
     ) -> None:
         """
         Log metrics and statistics for the current step to the metric logger.
@@ -1082,12 +1027,12 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             "rlhf_reward": trajectory.scores.mean() + kl_rewards.sum(1).mean(),
             "kl": kl.sum(1).mean(),
             "kl_reward": kl_rewards.sum(1).mean(),
-            "loss": loss.mean(),
-            "policy_loss": policy_loss.mean(),
-            "value_loss": value_loss.mean(),
-            "approx_policy_kl": approx_policy_kls.mean(),
-            "clipfrac": clipfrac.mean(),
-            "ratios": ratios.mean(),
+            "loss": ppo_stats.loss.mean(),
+            "policy_loss": ppo_stats.policy_loss.mean(),
+            "value_loss": ppo_stats.value_loss.mean(),
+            "clipfrac": ppo_stats.clipfrac.mean(),
+            "ratios": ppo_stats.ratios.mean(),
+            "approx_policy_kl": ppo_stats.approx_policy_kls.mean(),
             "response_lengths": trajectory.seq_lens.float().mean(),
         }
         if self._device.type == "cuda" and self._log_peak_memory_stats:

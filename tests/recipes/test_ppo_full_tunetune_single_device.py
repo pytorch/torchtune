@@ -49,6 +49,86 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         ] + dummy_text_completion_alpaca_dataset_config()
 
     @pytest.mark.integration_test
+    def test_loss(self, tmpdir, monkeypatch):
+
+        reward_ckpt = "llama2_reward_hf"
+        policy_ckpt = "llama2_hf"
+        reward_ckpt_path = Path(CKPT_MODEL_PATHS[reward_ckpt])
+        policy_ckpt_path = Path(CKPT_MODEL_PATHS[policy_ckpt])
+
+        ckpt_dir = policy_ckpt_path.parent
+        log_file = gen_log_file_name(tmpdir)
+        policy_tmpdir = (tmpdir / "policy").mkdir()
+        value_tmpdir = (tmpdir / "value").mkdir()
+
+        cmd_1 = f"""
+        tune run ppo_full_finetune_single_device \
+            --config mistral/7B_full_ppo_low_memory \
+            output_dir={tmpdir} \
+            checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[{policy_ckpt_path}]\
+            checkpointer.output_dir={policy_tmpdir} \
+            checkpointer.model_type=LLAMA2 \
+
+            ref_policy_checkpointer.checkpoint_dir='{ckpt_dir}' \
+            ref_policy_checkpointer.checkpoint_files=[{policy_ckpt_path}]\
+
+            value_checkpointer.checkpoint_dir='{ckpt_dir}' \
+            value_checkpointer.checkpoint_files=[{reward_ckpt_path}]\
+            value_checkpointer.output_dir={value_tmpdir} \
+
+            reward_checkpointer.checkpoint_dir='{ckpt_dir}' \
+            reward_checkpointer.checkpoint_files=[{reward_ckpt_path}]\
+
+            metric_logger._component_=torchtune.utils.metric_logging.DiskLogger \
+            metric_logger.filename={log_file} \
+        """.split()
+
+        model_config = llama2_test_config()
+        model_config = [k.replace("model.", "policy_model.") for k in model_config]
+        model_config += ["policy_model.intermediate_dim=null"]
+
+        reward_and_value_model_config = llama2_classifier_test_config()
+        reward_and_value_model_config = [
+            k.replace("model.", "reward_and_value_model.")
+            for k in reward_and_value_model_config
+        ]
+        reward_and_value_model_config += [
+            "reward_and_value_model.intermediate_dim=null"
+        ]
+        cmd_1 = (
+            cmd_1
+            + self._get_test_config_overrides()
+            + model_config
+            + reward_and_value_model_config
+        )
+
+        monkeypatch.setattr(sys, "argv", cmd_1)
+        with pytest.raises(SystemExit, match=""):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        loss_values = get_loss_values_from_metric_logger(log_file)
+        expected_loss_values = [
+            1.006727933883667,
+            0.918060302734375,
+            0.8866757750511169,
+            1.0741612911224365,
+            0.9787940979003906,
+            0.9536716938018799,
+            1.0302741527557373,
+            0.935436487197876,
+            0.9483770132064819,
+            0.9790613651275635,
+            0.8944345116615295,
+            0.8462684750556946,
+        ]
+
+        torch.testing.assert_close(
+            loss_values, expected_loss_values, atol=1e-4, rtol=1e-5
+        )
+
+    @pytest.mark.integration_test
     def test_training_state_on_resume(self, tmpdir, monkeypatch):
         """Test whether the recipe state correctly saved and restored after training."""
 

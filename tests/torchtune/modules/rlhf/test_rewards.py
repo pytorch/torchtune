@@ -99,7 +99,7 @@ class TestWhiten:
         expected = (x - expected_mean) / (torch.sqrt(expected_var) + 1e-8)
         expected += expected_mean
 
-        output = rlhf.masked_whiten(x, mask)
+        output = rlhf.whiten(x, mask=mask)
 
         torch.testing.assert_close(output, expected, rtol=1e-4, atol=1e-4)
 
@@ -211,7 +211,9 @@ class TestEstimateAdvantages:
 
         # see `torchtune.modules.rlhf.estimate_advantages`
         expected_advantages = returns - values
-        expected_advantages = rlhf.masked_whiten(expected_advantages, masks)
+        expected_advantages = rlhf.whiten(expected_advantages, mask=masks)
+        expected_advantages[..., -1] = 0.0
+
         advantages, _ = rlhf.estimate_advantages(
             values, rewards, gamma, lmbda, masks=masks
         )

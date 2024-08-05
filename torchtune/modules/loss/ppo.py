@@ -16,7 +16,7 @@ class PPOLoss(nn.Module):
     Proximal Policy Optimization (PPO) Loss module.
     This implementation uses the following references:
 
-    https://arxiv.org/abs/1707.06347
+    https://arxiv.org/abs/1707.06347 eqn. 7
 
     https://github.com/vwxyzjn/lm-human-preference-details/blob/ccc19538e817e98a60d3253242ac15e2a562cb49/lm_human_preference_details/train_policy_accelerate.py#L719
 
@@ -52,6 +52,7 @@ class PPOLoss(nn.Module):
         value_padding_masks: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
+
         Forward pass of the PPO loss module.
 
         Args:
@@ -67,13 +68,12 @@ class PPOLoss(nn.Module):
                 where True indicates the corresponding loss values should participage in value loss calculation.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: A tuple containing:
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: A tuple of five tensors:
                 - loss: The total PPO loss.
                 - policy_loss: The policy function loss.
                 - value_loss: The value function loss.
                 - ratios: The ratio between the current and old policy probabilities.
                 - clipfrac: The fraction of ratios that were clipped.
-
 
         """
         ratios = torch.exp(pi_logprobs - pi_old_logprobs)

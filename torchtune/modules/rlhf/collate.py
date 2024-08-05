@@ -22,8 +22,21 @@ def left_padded_collate(
     Args:
         batch (List[Dict[str, List[int]]]): A list of dictionaries containing inputs.
         padding_idx (int): The padding index. Defaults to 0.
+
     Returns:
         torch.Tensor: The padded tensor of input ids with shape [batch_size, max_seq_len].
+
+    Example:
+        >>> padding_idx = -8
+        >>> batch = [
+        >>>     {"tokens": [1, 2] },
+        >>>     {"tokens": [3] },
+        >>>     {"tokens": [4, 5, 6, 7]},
+        >>> ]
+        >>> left_padded_collate(batch, padding_idx)
+        >>> tensor([[-8, -8,  1,  2],
+        >>>         [-8, -8, -8,  3],
+        >>>         [ 4,  5,  6,  7]])
 
     """
     pad_toks = pad_sequence(

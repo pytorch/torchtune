@@ -6,17 +6,16 @@
 import torch
 
 
-def get_unmasked_sequence_lengths(
-    mask: torch.Tensor, dtype: torch.dtype = torch.long
-) -> torch.Tensor:
+def get_unmasked_sequence_lengths(mask: torch.Tensor) -> torch.Tensor:
     """
     Returns the sequence lengths for each batch element, excluding masked tokens.
     Args:
         mask (torch.Tensor): Boolean mask with shape [b x s], where True indicates a value to be masked out
             - this is usually a mask for padding tokens, where True indicates a padding token
-        dtype (torch.dtype): dtype to cast the returned idxs to
+
     Returns:
         Tensor: Sequence indexes logits with shape [b]
+
     Notation used for tensor shapes:
         - b: batch size
         - s: sequence length
@@ -32,10 +31,12 @@ def get_unmasked_sequence_lengths(
     """
     # calculate per-batch-element sequence lengths by finding last valid tokens
     if mask.any():
-        sequence_lengths = (~mask).sum(-1).sub(1).clip(0).to(mask.device, dtype=dtype)
+        sequence_lengths = (
+            (~mask).sum(-1).sub(1).clip(0).to(mask.device, dtype=torch.long)
+        )
     else:
         sequence_lengths = torch.full(
-            (mask.shape[0],), mask.shape[1] - 1, dtype=dtype, device=mask.device
+            (mask.shape[0],), mask.shape[1] - 1, dtype=torch.long, device=mask.device
         )
 
     return sequence_lengths
