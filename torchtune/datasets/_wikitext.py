@@ -49,7 +49,8 @@ def wikitext_dataset(
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
     Returns:
-        TextCompletionDataset: the configured TextCompletionDataset
+        Union[TextCompletionDataset, PackedDataset]: the configured :class:`~torchtune.datasets.TextCompletionDataset`
+            or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``
     """
 
     return text_completion_dataset(

@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
@@ -26,8 +26,9 @@ class TextCompletionDataset(Dataset):
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
             for more details.
         column (str): name of column in the sample that contains the text data. This is typically required
-            for Hugging Face datasets or tabular data. For local datasets with a single column, use the default "text",
-            which is what is assigned by Hugging Face datasets when loaded into memory. Default is "text".
+            for Hugging Face datasets or tabular data. For local datasets with a single column
+            (e.g. unstructured txt files), use the default "text" which is used by Hugging Face datasets
+            when loaded into memory. Default is "text".
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
@@ -81,7 +82,7 @@ def text_completion_dataset(
     packed: bool = False,
     split_across_pack: bool = True,
     **load_dataset_kwargs: Dict[str, Any],
-) -> TextCompletionDataset:
+) -> Union[TextCompletionDataset, PackedDataset]:
     """
     Build a configurable dataset from a freeform, unstructured text corpus similar
     to datasets used in pre-training. This method should be
@@ -96,8 +97,9 @@ def text_completion_dataset(
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
             for more details.
         column (str): name of column in the sample that contains the text data. This is typically required
-            for Hugging Face datasets or tabular data. For local datasets with a single column, use the default "text",
-            which is what is assigned by Hugging Face datasets when loaded into memory. Default is "text".
+            for Hugging Face datasets or tabular data. For local datasets with a single column
+            (e.g. unstructured txt files), use the default "text" which is used by Hugging Face datasets
+            when loaded into memory. Default is "text".
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
@@ -132,7 +134,7 @@ def text_completion_dataset(
             packed: False
 
     Returns:
-        TextCompletionDataset or PackedDataset: the configured :class:`~torchtune.datasets.TextCompletionDataset`
+        Union[TextCompletionDataset, PackedDataset]: the configured :class:`~torchtune.datasets.TextCompletionDataset`
             or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``
     """
     ds = TextCompletionDataset(
