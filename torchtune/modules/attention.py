@@ -4,10 +4,91 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import logging
 from typing import Optional
+
+import torch
 
 from torch import nn, Tensor
 from torchtune.modules.kv_cache import KVCache
+from torchtune.utils._version import torch_version_ge
+from torchtune.utils.attention_bias import _MaskType
+from torchtune.utils.logging import get_logger, log_once
+
+_log: logging.Logger = get_logger()
+
+
+if torch_version_ge("2.5.0"):
+    from torch.nn.attention.flex_attention import BlockMask, flex_attention
+
+    flex_attention_compiled = torch.compile(flex_attention, dynamic=False)
+
+    def _attention_call(
+        q: Tensor,
+        k: Tensor,
+        v: Tensor,
+        mask: _MaskType,
+        dropout_p: float,
+        is_causal: bool,
+    ) -> Tensor:
+
+        # Flex attention uses the BlockMask
+        # (https://github.com/pytorch/pytorch/blob/main/torch/nn/attention/flex_attention.py#L168)
+        # instead of a traditional boolean tensor mask. If this is passed in,
+        # we assume the user wants to use flex attention instead of traditional SDPA.
+        # This will use flash attention under the hood with support for custom masks.
+        # Currently, it is used when sample packing is enabled (see torchtune.datasets.PackedDataset)
+        if isinstance(mask, BlockMask):
+            log_once(
+                _log,
+                "Using flex attention for attention computation since a BlockMask was passed in.",
+                level=logging.DEBUG,
+            )
+            return flex_attention_compiled(
+                q,
+                k,
+                v,
+                block_mask=mask,
+            )
+        # If mask is a standard boolean tensor or None, then use SDPA
+        else:
+            # shape: [b, 1, s, s]
+            if mask is not None:
+                mask = mask[:, None, :, :]
+
+            # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
+            return nn.functional.scaled_dot_product_attention(
+                q,
+                k,
+                v,
+                attn_mask=mask,
+                dropout_p=dropout_p,
+                is_causal=is_causal,
+            )
+
+else:
+
+    def _attention_call(
+        q: Tensor,
+        k: Tensor,
+        v: Tensor,
+        mask: _MaskType,
+        dropout_p: float,
+        is_causal: bool,
+    ) -> Tensor:
+        # shape: [b, 1, s, s]
+        if mask is not None:
+            mask = mask[:, None, :, :]
+
+        # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
+        return nn.functional.scaled_dot_product_attention(
+            q,
+            k,
+            v,
+            attn_mask=mask,
+            dropout_p=dropout_p,
+            is_causal=is_causal,
+        )
 
 
 class CausalSelfAttention(nn.Module):
@@ -121,43 +202,9 @@ class CausalSelfAttention(nn.Module):
         self,
         x: Tensor,
         *,
-        mask: Optional[Tensor] = None,
+        mask: _MaskType = None,
         input_pos: Optional[Tensor] = None,
     ) -> Tensor:
-        """
-        Args:
-            x (Tensor): input tensor with shape
-                [batch_size x seq_length x embed_dim]
-            mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask
-                with shape [batch_size x seq_length x seq_length]. This is applied after
-                the query-key multiplication and before the softmax. A value of True in row i
-                and column j means token i attends to token j. A value of False means token i
-                does not attend to token j. If no mask is specified, a causal mask
-                is used by default. Default is None.
-            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
-                of each token. During training, this is used to indicate the positions
-                of each token relative to its sample when packed, shape [b x s].
-                During inference, this indicates the position of the current token.
-                If none, assume the index of the token is its position id. Default is None.
-
-        Returns:
-            Tensor: output tensor with attention applied
-
-        Raises:
-            ValueError: if seq_len of x is bigger than max_seq_len
-
-        Notation used for tensor shapes:
-            - b: batch size
-            - s: sequence length
-            - n_h: num heads
-            - n_kv: num kv heads
-            - d: embed dim
-            - h_d: head dim
-
-        TODO:
-            - Return the attention weights
-            - Make application of positional embeddings optional
-        """
         # input has shape [b, s, d]
         bsz, seq_len, _ = x.shape
 
@@ -210,16 +257,11 @@ class CausalSelfAttention(nn.Module):
         if self.kv_cache is not None:
             k, v = self.kv_cache.update(input_pos, k, v)
 
-        # shape: [b, 1, s, s]
-        if mask is not None:
-            mask = mask[:, None, :, :]
-
-        # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
-        output = nn.functional.scaled_dot_product_attention(
+        output = _attention_call(
             q,
             k,
             v,
-            attn_mask=mask,
+            mask=mask,
             dropout_p=self.attn_dropout,
             is_causal=self.kv_cache is None and mask is None,
         )

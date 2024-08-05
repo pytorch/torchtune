@@ -448,14 +448,15 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             dataset=ds,
             sampler=sampler,
             batch_size=batch_size,
-            collate_fn=(
-                partial(
-                    utils.padded_collate,
-                    padding_idx=self._tokenizer.pad_id,
-                    ignore_idx=self._loss_fn.ignore_index,
-                )
-                if not packed
-                else None
+            collate_fn=partial(
+                utils.padded_collate,
+                padding_idx=self._tokenizer.pad_id,
+                ignore_idx=self._loss_fn.ignore_index,
+            )
+            if not packed
+            else partial(
+                utils.padded_collate_packed,
+                device=self._device,
             ),
         )
 

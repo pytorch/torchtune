@@ -417,7 +417,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 ignore_idx=self._loss_fn.ignore_index,
             )
             if not packed
-            else None,
+            else partial(
+                utils.padded_collate_packed,
+                device=self._device,
+            ),
         )
 
         if self._is_rank_zero:
