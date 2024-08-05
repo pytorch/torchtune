@@ -61,6 +61,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         policy_tmpdir = (tmpdir / "policy").mkdir()
         value_tmpdir = (tmpdir / "value").mkdir()
 
+        write_hf_ckpt_config(ckpt_dir)
         cmd_1 = f"""
         tune run ppo_full_finetune_single_device \
             --config mistral/7B_full_ppo_low_memory \
@@ -110,20 +111,19 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = [
-            1.006727933883667,
-            0.918060302734375,
-            0.8866757750511169,
-            1.0741612911224365,
-            0.9787940979003906,
-            0.9536716938018799,
-            1.0302741527557373,
-            0.935436487197876,
-            0.9483770132064819,
-            0.9790613651275635,
-            0.8944345116615295,
-            0.8462684750556946,
+            1.0403,
+            0.9495,
+            0.9084,
+            1.0494,
+            0.9609,
+            0.8846,
+            1.0282,
+            0.9390,
+            0.8915,
+            1.0166,
+            0.9231,
+            0.9352,
         ]
-
         torch.testing.assert_close(
             loss_values, expected_loss_values, atol=1e-4, rtol=1e-5
         )
