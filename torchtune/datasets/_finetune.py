@@ -14,7 +14,7 @@ from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, PromptTemplate
 from torchtune.modules.transforms import Transform
 
 
-class FinetuneDataset(Dataset):
+class SFTDataset(Dataset):
     """
     Primary class for creating any dataset for supervised fine-tuning either from
     Hugging Face Hub, local files, or remote files. This class supports instruct,
@@ -84,7 +84,7 @@ class FinetuneDataset(Dataset):
             of messages are stored in the ``"messages"`` key.
         model_transform (Transform): callable that applies model-specific pre-processing to the sample after the list of
             messages is created from ``message_transform``. This includes tokenization and any modality-specific
-            transforms.
+            transforms. It is expected to return at minimum ``"tokens"`` and ``"mask"`` keys.
         prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
             to add structured text around the actual messages. The structured text is used in three scenarios:
 

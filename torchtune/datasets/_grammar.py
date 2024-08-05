@@ -13,7 +13,7 @@ from torchtune.data._prompt_templates import (
     GrammarErrorCorrectionTemplate,
     PromptTemplate,
 )
-from torchtune.datasets._finetune import FinetuneDataset
+from torchtune.datasets._finetune import SFTDataset
 from torchtune.datasets._packed import PackedDataset
 from torchtune.modules.transforms import Transform
 
@@ -74,7 +74,7 @@ def grammar_dataset(
     message_transform = InputOutputToMessages(
         train_on_input=train_on_input, column_map=column_map
     )
-    ds = FinetuneDataset(
+    ds = SFTDataset(
         source=source,
         message_transform=message_transform,
         model_transform=model_transform,

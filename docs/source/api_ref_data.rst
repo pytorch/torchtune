@@ -24,7 +24,7 @@ and models.
     SummarizeTemplate
     StackExchangedPairedTemplate
     PromptTemplate
-    CustomPromptTemplate
+    PromptTemplateInterface
 
     ChatFormat
     ChatMLFormat

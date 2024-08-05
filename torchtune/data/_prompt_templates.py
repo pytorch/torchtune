@@ -9,7 +9,7 @@ from typing import Dict, List, Protocol, Tuple
 from torchtune.data import Message, Role
 
 
-class PromptTemplate(Protocol):
+class PromptTemplateInterface(Protocol):
     """
     Interface for prompt templates. Each prompt template can include structured
     text for system, user, and assistant roles that are prepended or appended to
@@ -37,7 +37,7 @@ class PromptTemplate(Protocol):
         pass
 
 
-class CustomPromptTemplate(PromptTemplate):
+class PromptTemplate(PromptTemplateInterface):
     """
     Quickly define a custom prompt template by passing in a dictionary mapping role to
     the prepend and append tags. For example, to achieve the following prompt
@@ -121,7 +121,7 @@ class CustomPromptTemplate(PromptTemplate):
 
 
 GrammarErrorCorrectionTemplate = partial(
-    CustomPromptTemplate,
+    PromptTemplate,
     template={
         "user": ("Correct this to standard English: ", "\n---\nCorrected: "),
     },
@@ -133,10 +133,10 @@ A prompt template for grammar error correction tasks::
     ---
     Corrected: {assistant_message}
 
-Please see :class:`~torchtune.data.CustomPromptTemplate` for full API arguments.
+Please see :class:`~torchtune.data.PromptTemplate` for full API arguments.
 """
 SummarizeTemplate = partial(
-    CustomPromptTemplate,
+    PromptTemplate,
     template={
         "user": ("Summarize this dialogue:\n", "\n---\nSummary:\n"),
     },
@@ -150,5 +150,5 @@ A prompt template for summarization tasks::
     Summary:
     {assistant_message}
 
-Please see :class:`~torchtune.data.CustomPromptTemplate` for full API arguments.
+Please see :class:`~torchtune.data.PromptTemplate` for full API arguments.
 """

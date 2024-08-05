@@ -9,7 +9,7 @@ from typing import Dict, Optional
 
 from torchtune.data import InputOutputToMessages
 from torchtune.data._prompt_templates import PromptTemplate, SummarizeTemplate
-from torchtune.datasets._finetune import FinetuneDataset
+from torchtune.datasets._finetune import SFTDataset
 from torchtune.datasets._packed import PackedDataset
 from torchtune.modules.transforms import Transform
 
@@ -23,7 +23,7 @@ def samsum_dataset(
     train_on_input: bool = False,
     packed: bool = False,
     split: str = "train",
-) -> FinetuneDataset:
+) -> SFTDataset:
     """
     Support for summarization datasets and their variants from Hugging Face Datasets.
     An example is the `SAMsum dataset <https://huggingface.co/datasets/samsum>`_.
@@ -70,7 +70,7 @@ def samsum_dataset(
     message_transform = InputOutputToMessages(
         train_on_input=train_on_input, column_map=column_map
     )
-    ds = FinetuneDataset(
+    ds = SFTDataset(
         source=source,
         message_transform=message_transform,
         model_transform=model_transform,
