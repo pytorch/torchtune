@@ -1,0 +1,9 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.modules.rlhf
+
+
+estimate_advantages
+===================
+
+.. autofunction:: estimate_advantages

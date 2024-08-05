@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.utils &mdash; torchtune main documentation</title>
+  <title>truncate_sequence_at_first_stop_token &mdash; torchtune main documentation</title>
   
 
   
@@ -27,22 +27,22 @@
 
   
 
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <!-- <link rel="stylesheet" href="_static/pygments.css" type="text/css" /> -->
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
-  <link rel="stylesheet" href="_static/sg_gallery.css" type="text/css" />
-  <link rel="stylesheet" href="_static/sg_gallery-binder.css" type="text/css" />
-  <link rel="stylesheet" href="_static/sg_gallery-dataframe.css" type="text/css" />
-  <link rel="stylesheet" href="_static/sg_gallery-rendered-html.css" type="text/css" />
-  <link rel="stylesheet" href="_static/tabs.css" type="text/css" />
-  <link rel="stylesheet" href="_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
-  <link rel="stylesheet" href="_static/css/custom_torchtune.css" type="text/css" />
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="FullModelHFCheckpointer" href="generated/torchtune.utils.FullModelHFCheckpointer.html" />
-    <link rel="prev" title="padded_collate_dpo" href="generated/torchtune.modules.rlhf.padded_collate_dpo.html" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="left_padded_collate" href="torchtune.modules.rlhf.left_padded_collate.html" />
+    <link rel="prev" title="get_rewards_ppo" href="torchtune.modules.rlhf.get_rewards_ppo.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -53,16 +53,16 @@
   
 
   
-  <script src="_static/js/modernizr.min.js"></script>
+  <script src="../_static/js/modernizr.min.js"></script>
 
   <!-- Preload the theme fonts -->
 
-<link rel="preload" href="_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
 
 <!-- Preload the katex fonts -->
 
@@ -282,7 +282,7 @@
 
 
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
     <input type="text" name="q" placeholder="Search Docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -299,36 +299,36 @@
             
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="overview.html">torchtune Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="install.html">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tune_cli.html">torchtune CLI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tune_cli.html">torchtune CLI</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="deep_dives/configs.html">All About Configs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All About Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="api_ref_config.html">torchtune.config</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_ref_data.html">torchtune.data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_ref_datasets.html">torchtune.datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_ref_models.html">torchtune.models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_ref_modules.html">torchtune.modules</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">torchtune.utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -361,7 +361,7 @@
   <ul class="pytorch-breadcrumbs">
     
       <li>
-        <a href="index.html">
+        <a href="../index.html">
           
             Docs
           
@@ -369,13 +369,15 @@
       </li>
 
         
-      <li>torchtune.utils</li>
+          <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
+        
+      <li>truncate_sequence_at_first_stop_token</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="_sources/api_ref_utilities.rst.txt" rel="nofollow"><img src="_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.modules.rlhf.truncate_sequence_at_first_stop_token.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -405,169 +407,83 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="torchtune-utils">
-<h1>torchtune.utils<a class="headerlink" href="#torchtune-utils" title="Permalink to this heading">¶</a></h1>
-<section id="checkpointing">
-<span id="checkpointing-label"></span><h2>Checkpointing<a class="headerlink" href="#checkpointing" title="Permalink to this heading">¶</a></h2>
-<p>torchtune offers checkpointers to allow seamless transitioning between checkpoint formats for training and interoperability with the rest of the ecosystem. For a comprehensive overview of
-checkpointing, please see the <a class="reference internal" href="deep_dives/checkpointer.html#understand-checkpointer"><span class="std std-ref">checkpointing deep-dive</span></a>.</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.FullModelHFCheckpointer.html#torchtune.utils.FullModelHFCheckpointer" title="torchtune.utils.FullModelHFCheckpointer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FullModelHFCheckpointer</span></code></a></p></td>
-<td><p>Checkpointer which reads and writes checkpoints in HF's format.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.FullModelMetaCheckpointer.html#torchtune.utils.FullModelMetaCheckpointer" title="torchtune.utils.FullModelMetaCheckpointer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FullModelMetaCheckpointer</span></code></a></p></td>
-<td><p>Checkpointer which reads and writes checkpoints in Meta's format.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.FullModelTorchTuneCheckpointer.html#torchtune.utils.FullModelTorchTuneCheckpointer" title="torchtune.utils.FullModelTorchTuneCheckpointer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FullModelTorchTuneCheckpointer</span></code></a></p></td>
-<td><p>Checkpointer which reads and writes checkpoints in a format compatible with torchtune.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.ModelType.html#torchtune.utils.ModelType" title="torchtune.utils.ModelType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ModelType</span></code></a></p></td>
-<td><p>ModelType is used by the checkpointer to distinguish between different model architectures.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="distributed">
-<span id="dist-label"></span><h2>Distributed<a class="headerlink" href="#distributed" title="Permalink to this heading">¶</a></h2>
-<p>Utilities for enabling and working with distributed training.</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.FSDPPolicyType.html#torchtune.utils.FSDPPolicyType" title="torchtune.utils.FSDPPolicyType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FSDPPolicyType</span></code></a></p></td>
-<td><p>A datatype for a function that can be used as an FSDP wrapping policy.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.init_distributed.html#torchtune.utils.init_distributed" title="torchtune.utils.init_distributed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_distributed</span></code></a></p></td>
-<td><p>Initialize process group required for <code class="docutils literal notranslate"><span class="pre">torch.distributed</span></code>.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.is_distributed.html#torchtune.utils.is_distributed" title="torchtune.utils.is_distributed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_distributed</span></code></a></p></td>
-<td><p>Check if all environment variables required to initialize torch.distributed are set and distributed is properly installed.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.get_world_size_and_rank.html#torchtune.utils.get_world_size_and_rank" title="torchtune.utils.get_world_size_and_rank"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_world_size_and_rank</span></code></a></p></td>
-<td><p>Function that gets the current world size (aka total number of ranks) and rank number of the current process in the default process group.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.get_full_finetune_fsdp_wrap_policy.html#torchtune.utils.get_full_finetune_fsdp_wrap_policy" title="torchtune.utils.get_full_finetune_fsdp_wrap_policy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_full_finetune_fsdp_wrap_policy</span></code></a></p></td>
-<td><p>Retrieves an FSDP wrapping policy based on the specified flags <code class="docutils literal notranslate"><span class="pre">memory_efficient_fsdp_wrap</span></code> and <code class="docutils literal notranslate"><span class="pre">modules_to_wrap</span></code>.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.lora_fsdp_wrap_policy.html#torchtune.utils.lora_fsdp_wrap_policy" title="torchtune.utils.lora_fsdp_wrap_policy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lora_fsdp_wrap_policy</span></code></a></p></td>
-<td><p>A default policy for wrapping models trained with LoRA using FSDP.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="reduced-precision">
-<span id="mp-label"></span><h2>Reduced Precision<a class="headerlink" href="#reduced-precision" title="Permalink to this heading">¶</a></h2>
-<p>Utilities for working in a reduced precision setting.</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.get_dtype.html#torchtune.utils.get_dtype" title="torchtune.utils.get_dtype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_dtype</span></code></a></p></td>
-<td><p>Get the torch.dtype corresponding to the given precision string.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.set_default_dtype.html#torchtune.utils.set_default_dtype" title="torchtune.utils.set_default_dtype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_default_dtype</span></code></a></p></td>
-<td><p>Context manager to set torch's default dtype.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.validate_expected_param_dtype.html#torchtune.utils.validate_expected_param_dtype" title="torchtune.utils.validate_expected_param_dtype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_expected_param_dtype</span></code></a></p></td>
-<td><p>Validates that all input parameters have the expected dtype.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.get_quantizer_mode.html#torchtune.utils.get_quantizer_mode" title="torchtune.utils.get_quantizer_mode"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_quantizer_mode</span></code></a></p></td>
-<td><p>Given a quantizer object, returns a string that specifies the type of quantization.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="memory-management">
-<span id="ac-label"></span><h2>Memory Management<a class="headerlink" href="#memory-management" title="Permalink to this heading">¶</a></h2>
-<p>Utilities to reduce memory consumption during training.</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.set_activation_checkpointing.html#torchtune.utils.set_activation_checkpointing" title="torchtune.utils.set_activation_checkpointing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_activation_checkpointing</span></code></a></p></td>
-<td><p>Utility to apply activation checkpointing to the passed-in model.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.OptimizerInBackwardWrapper.html#torchtune.utils.OptimizerInBackwardWrapper" title="torchtune.utils.OptimizerInBackwardWrapper"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OptimizerInBackwardWrapper</span></code></a></p></td>
-<td><p>A bare-bones class meant for checkpoint save and load for optimizers running in backward.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.create_optim_in_bwd_wrapper.html#torchtune.utils.create_optim_in_bwd_wrapper" title="torchtune.utils.create_optim_in_bwd_wrapper"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_optim_in_bwd_wrapper</span></code></a></p></td>
-<td><p>Create a wrapper for optimizer step running in backward.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.register_optim_in_bwd_hooks.html#torchtune.utils.register_optim_in_bwd_hooks" title="torchtune.utils.register_optim_in_bwd_hooks"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_optim_in_bwd_hooks</span></code></a></p></td>
-<td><p>Register hooks for optimizer step running in backward.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="performance-and-profiling">
-<span id="perf-profiling-label"></span><h2>Performance and Profiling<a class="headerlink" href="#performance-and-profiling" title="Permalink to this heading">¶</a></h2>
-<p>torchtune provides utilities to profile and debug the memory and performance
-of your finetuning job.</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.get_memory_stats.html#torchtune.utils.get_memory_stats" title="torchtune.utils.get_memory_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_memory_stats</span></code></a></p></td>
-<td><p>Computes a memory summary for the passed in device.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.log_memory_stats.html#torchtune.utils.log_memory_stats" title="torchtune.utils.log_memory_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">log_memory_stats</span></code></a></p></td>
-<td><p>Logs a dict containing memory stats to the logger.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.setup_torch_profiler.html#torchtune.utils.setup_torch_profiler" title="torchtune.utils.setup_torch_profiler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup_torch_profiler</span></code></a></p></td>
-<td><p>Sets up <a class="reference external" href="https://pytorch.org/docs/stable/profiler.html#torch.profiler.profile" title="(in PyTorch v2.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">profile</span></code></a> and returns the profiler config with post-setup updates.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="metric-logging">
-<span id="metric-logging-label"></span><h2>Metric Logging<a class="headerlink" href="#metric-logging" title="Permalink to this heading">¶</a></h2>
-<p>Various logging utilities.</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.metric_logging.WandBLogger.html#torchtune.utils.metric_logging.WandBLogger" title="torchtune.utils.metric_logging.WandBLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.WandBLogger</span></code></a></p></td>
-<td><p>Logger for use w/ Weights and Biases application (<a class="reference external" href="https://wandb.ai/">https://wandb.ai/</a>).</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.metric_logging.TensorBoardLogger.html#torchtune.utils.metric_logging.TensorBoardLogger" title="torchtune.utils.metric_logging.TensorBoardLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.TensorBoardLogger</span></code></a></p></td>
-<td><p>Logger for use w/ PyTorch's implementation of TensorBoard (<a class="reference external" href="https://pytorch.org/docs/stable/tensorboard.html">https://pytorch.org/docs/stable/tensorboard.html</a>).</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.metric_logging.StdoutLogger.html#torchtune.utils.metric_logging.StdoutLogger" title="torchtune.utils.metric_logging.StdoutLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.StdoutLogger</span></code></a></p></td>
-<td><p>Logger to standard output.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.metric_logging.DiskLogger.html#torchtune.utils.metric_logging.DiskLogger" title="torchtune.utils.metric_logging.DiskLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.DiskLogger</span></code></a></p></td>
-<td><p>Logger to disk.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="data">
-<h2>Data<a class="headerlink" href="#data" title="Permalink to this heading">¶</a></h2>
-<p>Utilities for working with data and datasets.</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.padded_collate.html#torchtune.utils.padded_collate" title="torchtune.utils.padded_collate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">padded_collate</span></code></a></p></td>
-<td><p>Pad a batch of sequences to the longest sequence length in the batch, and convert integer lists to tensors.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="miscellaneous">
-<span id="gen-label"></span><h2>Miscellaneous<a class="headerlink" href="#miscellaneous" title="Permalink to this heading">¶</a></h2>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.get_logger.html#torchtune.utils.get_logger" title="torchtune.utils.get_logger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_logger</span></code></a></p></td>
-<td><p>Get a logger with a stream handler.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.get_device.html#torchtune.utils.get_device" title="torchtune.utils.get_device"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_device</span></code></a></p></td>
-<td><p>Function that takes an optional device string, verifies it's correct and available given the machine and distributed settings, and returns a torch.device.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.set_seed.html#torchtune.utils.set_seed" title="torchtune.utils.set_seed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_seed</span></code></a></p></td>
-<td><p>Function that sets seed for pseudo-random number generators across commonly used libraries.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.generate.html#torchtune.utils.generate" title="torchtune.utils.generate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate</span></code></a></p></td>
-<td><p>Generates tokens from a model conditioned on a prompt.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.torch_version_ge.html#torchtune.utils.torch_version_ge" title="torchtune.utils.torch_version_ge"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch_version_ge</span></code></a></p></td>
-<td><p>Check if torch version is greater than or equal to the given version.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.TuneRecipeArgumentParser.html#torchtune.utils.TuneRecipeArgumentParser" title="torchtune.utils.TuneRecipeArgumentParser"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TuneRecipeArgumentParser</span></code></a></p></td>
-<td><p>A helpful utility subclass of the <code class="docutils literal notranslate"><span class="pre">argparse.ArgumentParser</span></code> that adds a builtin argument &quot;config&quot;.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
+  <section id="truncate-sequence-at-first-stop-token">
+<h1>truncate_sequence_at_first_stop_token<a class="headerlink" href="#truncate-sequence-at-first-stop-token" title="Permalink to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="torchtune.modules.rlhf.truncate_sequence_at_first_stop_token">
+<span class="sig-prename descclassname"><span class="pre">torchtune.modules.rlhf.</span></span><span class="sig-name descname"><span class="pre">truncate_sequence_at_first_stop_token</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sequences</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop_tokens</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">fill_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/modules/rlhf/sequence_processing.html#truncate_sequence_at_first_stop_token"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.rlhf.truncate_sequence_at_first_stop_token" title="Permalink to this definition">¶</a></dt>
+<dd><p>Truncates sequence(s) after the first stop token and pads with <code class="docutils literal notranslate"><span class="pre">fill_value</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sequences</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – tensor of shape [batch_size, sequence_length] or [sequence_length].</p></li>
+<li><p><strong>stop_tokens</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – tensor containing stop tokens.</p></li>
+<li><p><strong>fill_value</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – value to pad the sequence with after the first stop token, usually <code class="docutils literal notranslate"><span class="pre">pad_id</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A tuple of two tensors with the same shape as <code class="docutils literal notranslate"><span class="pre">sequences</span></code>:</dt><dd><ul class="simple">
+<li><p>padding_mask (torch.Tensor): a bool tensor where True indicates the token has been truncated.</p></li>
+<li><p>sequences (torch.Tensor) a tensor of truncated and padded sequences.</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)">torch.Tensor</a>, <a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)">torch.Tensor</a>]</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">stop_token_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">869</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fill_value</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sequences</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="p">[</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="mi">869</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">869</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">869</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="mi">869</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="mi">50</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">869</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="mi">13</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="mi">13</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="mi">13</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="mi">13</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">eos_mask</span><span class="p">,</span> <span class="n">truncated_sequences</span> <span class="o">=</span> <span class="n">rlhf</span><span class="o">.</span><span class="n">truncate_sequence_at_first_stop_token</span><span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">sequences</span><span class="p">,</span> <span class="n">stop_token_ids</span><span class="p">,</span> <span class="n">fill_value</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">eos_mask</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">truncated_sequences</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="mi">869</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="mi">869</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="mi">50</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">869</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="mi">13</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="mi">13</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="mi">13</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="mi">13</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
 </section>
 
 
@@ -578,10 +494,10 @@ of your finetuning job.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="generated/torchtune.utils.FullModelHFCheckpointer.html" class="btn btn-neutral float-right" title="FullModelHFCheckpointer" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.modules.rlhf.left_padded_collate.html" class="btn btn-neutral float-right" title="left_padded_collate" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="generated/torchtune.modules.rlhf.padded_collate_dpo.html" class="btn btn-neutral" title="padded_collate_dpo" accesskey="p" rel="prev"><img src="_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.modules.rlhf.get_rewards_ppo.html" class="btn btn-neutral" title="get_rewards_ppo" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -613,17 +529,7 @@ of your finetuning job.</p>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">torchtune.utils</a><ul>
-<li><a class="reference internal" href="#checkpointing">Checkpointing</a></li>
-<li><a class="reference internal" href="#distributed">Distributed</a></li>
-<li><a class="reference internal" href="#reduced-precision">Reduced Precision</a></li>
-<li><a class="reference internal" href="#memory-management">Memory Management</a></li>
-<li><a class="reference internal" href="#performance-and-profiling">Performance and Profiling</a></li>
-<li><a class="reference internal" href="#metric-logging">Metric Logging</a></li>
-<li><a class="reference internal" href="#data">Data</a></li>
-<li><a class="reference internal" href="#miscellaneous">Miscellaneous</a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#">truncate_sequence_at_first_stop_token</a></li>
 </ul>
 
             </div>
@@ -638,23 +544,23 @@ of your finetuning job.</p>
   
 
      
-       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-         <script src="_static/jquery.js"></script>
-         <script src="_static/underscore.js"></script>
-         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-         <script src="_static/doctools.js"></script>
-         <script src="_static/clipboard.min.js"></script>
-         <script src="_static/copybutton.js"></script>
-         <script src="_static/design-tabs.js"></script>
+       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+         <script src="../_static/jquery.js"></script>
+         <script src="../_static/underscore.js"></script>
+         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../_static/doctools.js"></script>
+         <script src="../_static/clipboard.min.js"></script>
+         <script src="../_static/copybutton.js"></script>
+         <script src="../_static/design-tabs.js"></script>
      
 
   
 
-  <script type="text/javascript" src="_static/js/vendor/popper.min.js"></script>
-  <script type="text/javascript" src="_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
-  <script type="text/javascript" src="_static/js/theme.js"></script>
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
 
   <script type="text/javascript">
       jQuery(function () {
@@ -769,7 +675,7 @@ of your finetuning job.</p>
   <div class="cookie-banner-wrapper">
   <div class="container">
     <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
-    <img class="close-button" src="_static/images/pytorch-x.svg">
+    <img class="close-button" src="../_static/images/pytorch-x.svg">
   </div>
 </div>
 
@@ -902,7 +808,7 @@ of your finetuning job.</p>
 
   <!-- End Mobile Menu -->
 
-  <script type="text/javascript" src="_static/js/vendor/anchor.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/anchor.min.js"></script>
 
   <script type="text/javascript">
     $(document).ready(function() {

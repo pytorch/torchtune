@@ -518,13 +518,16 @@ model specific tokenizers.</p>
 <h2>Loss<a class="headerlink" href="#loss" title="Permalink to this heading">¶</a></h2>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.loss.DPOLoss.html#torchtune.modules.loss.DPOLoss" title="torchtune.modules.loss.DPOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss.DPOLoss</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.loss.PPOLoss.html#torchtune.modules.loss.PPOLoss" title="torchtune.modules.loss.PPOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss.PPOLoss</span></code></a></p></td>
+<td><p>Proximal Policy Optimization (PPO) Loss module.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.loss.DPOLoss.html#torchtune.modules.loss.DPOLoss" title="torchtune.modules.loss.DPOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss.DPOLoss</span></code></a></p></td>
 <td><p>Direct Preference Optimization (DPO) Loss module: <a class="reference external" href="https://arxiv.org/abs/2305.18290">https://arxiv.org/abs/2305.18290</a>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.loss.RSOLoss.html#torchtune.modules.loss.RSOLoss" title="torchtune.modules.loss.RSOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss.RSOLoss</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.loss.RSOLoss.html#torchtune.modules.loss.RSOLoss" title="torchtune.modules.loss.RSOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss.RSOLoss</span></code></a></p></td>
 <td><p>Statistical Rejection Sampling Optimization (RSO) or &quot;hinge&quot; loss module: <a class="reference external" href="https://arxiv.org/abs/2309.06657">https://arxiv.org/abs/2309.06657</a>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.loss.IPOLoss.html#torchtune.modules.loss.IPOLoss" title="torchtune.modules.loss.IPOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss.IPOLoss</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.loss.IPOLoss.html#torchtune.modules.loss.IPOLoss" title="torchtune.modules.loss.IPOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss.IPOLoss</span></code></a></p></td>
 <td><p>Identity Preference Optimisation (IPO) Loss module: <a class="reference external" href="https://arxiv.org/abs/2310.12036">https://arxiv.org/abs/2310.12036</a>.</p></td>
 </tr>
 </tbody>
@@ -549,6 +552,29 @@ model specific tokenizers.</p>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.transforms.VisionCrossAttentionMask.html#torchtune.modules.transforms.VisionCrossAttentionMask" title="torchtune.modules.transforms.VisionCrossAttentionMask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transforms.VisionCrossAttentionMask</span></code></a></p></td>
 <td><p>Computes the cross-attention mask for text + image inputs.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="reinforcement-learning-from-human-feedback-rlhf">
+<h2>Reinforcement Learning From Human Feedback (RLHF)<a class="headerlink" href="#reinforcement-learning-from-human-feedback-rlhf" title="Permalink to this heading">¶</a></h2>
+<p>Components for RLHF algorithms like PPO.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.estimate_advantages.html#torchtune.modules.rlhf.estimate_advantages" title="torchtune.modules.rlhf.estimate_advantages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.estimate_advantages</span></code></a></p></td>
+<td><p>Estimates the advantages and returns for the PPO algorithm using Generalized Advantage Estimation <a class="reference external" href="https://arxiv.org/pdf/1506.02438.pdf">https://arxiv.org/pdf/1506.02438.pdf</a></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.get_rewards_ppo.html#torchtune.modules.rlhf.get_rewards_ppo" title="torchtune.modules.rlhf.get_rewards_ppo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.get_rewards_ppo</span></code></a></p></td>
+<td><p>Calculates PPO rewards for the given scores, logprobs, and reference logprobs.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.truncate_sequence_at_first_stop_token.html#torchtune.modules.rlhf.truncate_sequence_at_first_stop_token" title="torchtune.modules.rlhf.truncate_sequence_at_first_stop_token"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.truncate_sequence_at_first_stop_token</span></code></a></p></td>
+<td><p>Truncates sequence(s) after the first stop token and pads with <code class="docutils literal notranslate"><span class="pre">fill_value</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.left_padded_collate.html#torchtune.modules.rlhf.left_padded_collate" title="torchtune.modules.rlhf.left_padded_collate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.left_padded_collate</span></code></a></p></td>
+<td><p>Pads a batch of sequences with left padding to the maximum sequence length in the batch.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.padded_collate_dpo.html#torchtune.modules.rlhf.padded_collate_dpo" title="torchtune.modules.rlhf.padded_collate_dpo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.padded_collate_dpo</span></code></a></p></td>
+<td><p>Pad a batch of sequences for Direct Preference Optimization (DPO).</p></td>
 </tr>
 </tbody>
 </table>
@@ -606,6 +632,7 @@ model specific tokenizers.</p>
 <li><a class="reference internal" href="#module-utilities">Module Utilities</a></li>
 <li><a class="reference internal" href="#loss">Loss</a></li>
 <li><a class="reference internal" href="#vision-transforms">Vision Transforms</a></li>
+<li><a class="reference internal" href="#reinforcement-learning-from-human-feedback-rlhf">Reinforcement Learning From Human Feedback (RLHF)</a></li>
 </ul>
 </li>
 </ul>

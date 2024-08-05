@@ -406,7 +406,7 @@
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
@@ -424,7 +424,7 @@
 <span class="sd">    convert integer lists to tensors.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        batch (List[Dict[str, List[int]]]): A list of tuples containing input, label pairs.</span>
+<span class="sd">        batch (List[Dict[str, List[int]]]): A list of dictionaries containing input, label pairs.</span>
 <span class="sd">        padding_idx (int): Padding index for input ids. Defaults to 0.</span>
 <span class="sd">        ignore_idx (int): Padding index for labels. Defaults to -100.</span>
 
@@ -472,70 +472,6 @@
             <span class="n">value</span><span class="o">=</span><span class="n">padding_idx</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">input_ids</span><span class="o">.</span><span class="n">long</span><span class="p">(),</span> <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="o">.</span><span class="n">long</span><span class="p">()}</span></div>
-
-
-<div class="viewcode-block" id="padded_collate_dpo"><a class="viewcode-back" href="../../../generated/torchtune.utils.padded_collate_dpo.html#torchtune.utils.padded_collate_dpo">[docs]</a><span class="k">def</span> <span class="nf">padded_collate_dpo</span><span class="p">(</span>
-    <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span>
-    <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
-    <span class="n">ignore_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Pad a batch of sequences for Direct Preference Optimization (DPO).</span>
-
-<span class="sd">    This function takes a batch of sequences, where each sequence is represented</span>
-<span class="sd">    as a dictionary with multiple key-value pairs. Each key corresponds to a different</span>
-<span class="sd">    sequence component, such as input_ids or labels.</span>
-
-<span class="sd">    This function will throw an AssertionError if:</span>
-<span class="sd">        - the length of chosen_input_ids and rejected_input_ids differ.</span>
-<span class="sd">        - the length of chosen_labels and rejected_labels differ.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        batch (List[Dict[str, List[int]]]): A list of dictionaries, where each dictionary</span>
-<span class="sd">            represents a sequence with multiple components, &#39;chosen_input_ids&#39;,</span>
-<span class="sd">            &#39;chosen_labels&#39;, &#39;rejected_input_ids&#39;, and &#39;rejected_labels&#39; are required.</span>
-<span class="sd">        padding_idx (int): Padding index for input ids. Defaults to 0.</span>
-<span class="sd">        ignore_idx (int): Padding index for labels. Defaults to -100.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        Tuple[torch.Tensor, torch.Tensor]: A tuple containing concatenated and padded</span>
-<span class="sd">        input ids and labels.</span>
-
-<span class="sd">    Example:</span>
-<span class="sd">        &gt;&gt;&gt; batch = [</span>
-<span class="sd">        &gt;&gt;&gt;    {&#39;chosen_input_ids&#39;: [1, 2, 3], &#39;rejected_input_ids&#39;: [4, 5],</span>
-<span class="sd">        &gt;&gt;&gt;      &#39;chosen_labels&#39;: [6, 7, 8], &#39;rejected_labels&#39;: [9, 10]},</span>
-<span class="sd">        &gt;&gt;&gt;    {&#39;chosen_input_ids&#39;: [11, 12], &#39;rejected_input_ids&#39;: [13, 14, 15],</span>
-<span class="sd">        &gt;&gt;&gt;      &#39;chosen_labels&#39;: [16, 17], &#39;rejected_labels&#39;: [18, 19, 20]},</span>
-<span class="sd">        &gt;&gt;&gt; ]</span>
-<span class="sd">        &gt;&gt;&gt; padded_collate_dpo(batch)</span>
-<span class="sd">        &gt;&gt;&gt; (tensor([[ 1,  2,  3],</span>
-<span class="sd">        &gt;&gt;&gt;          [11, 12,  0],</span>
-<span class="sd">        &gt;&gt;&gt;          [ 4,  5,  0],</span>
-<span class="sd">        &gt;&gt;&gt;          [13, 14, 15]]),</span>
-<span class="sd">        &gt;&gt;&gt;  tensor([[ 6,  7,  8],</span>
-<span class="sd">        &gt;&gt;&gt;          [16, 17, -100],</span>
-<span class="sd">        &gt;&gt;&gt;          [ 9, 10, -100],</span>
-<span class="sd">        &gt;&gt;&gt;          [18, 19, 20]]))</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">chosen_input_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">ex</span><span class="p">[</span><span class="s2">&quot;chosen_input_ids&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">ex</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
-    <span class="n">rejected_input_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">ex</span><span class="p">[</span><span class="s2">&quot;rejected_input_ids&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">ex</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
-    <span class="n">chosen_labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">ex</span><span class="p">[</span><span class="s2">&quot;chosen_labels&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">ex</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
-    <span class="n">rejected_labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">ex</span><span class="p">[</span><span class="s2">&quot;rejected_labels&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">ex</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
-
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">chosen_input_ids</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">rejected_input_ids</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">chosen_labels</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">rejected_labels</span><span class="p">)</span>
-
-    <span class="n">to_pad_input_ids</span> <span class="o">=</span> <span class="n">chosen_input_ids</span> <span class="o">+</span> <span class="n">rejected_input_ids</span>
-    <span class="n">to_pad_labels</span> <span class="o">=</span> <span class="n">chosen_labels</span> <span class="o">+</span> <span class="n">rejected_labels</span>
-
-    <span class="n">concatenated_input_ids</span> <span class="o">=</span> <span class="n">pad_sequence</span><span class="p">(</span>
-        <span class="n">to_pad_input_ids</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="n">padding_idx</span>
-    <span class="p">)</span>
-    <span class="n">concatenated_labels</span> <span class="o">=</span> <span class="n">pad_sequence</span><span class="p">(</span>
-        <span class="n">to_pad_labels</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="n">ignore_idx</span>
-    <span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">concatenated_input_ids</span><span class="p">,</span> <span class="n">concatenated_labels</span></div>
 </pre></div>
 
              </article>
