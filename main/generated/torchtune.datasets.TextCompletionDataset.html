@@ -424,8 +424,9 @@ in the filepath in <code class="docutils literal notranslate"><span class="pre">
 (<a class="reference external" href="https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path">https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path</a>)
 for more details.</p></li>
 <li><p><strong>column</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – name of column in the sample that contains the text data. This is typically required
-for Hugging Face datasets or tabular data. For local datasets with a single column, use the default “text”,
-which is what is assigned by Hugging Face datasets when loaded into memory. Default is “text”.</p></li>
+for Hugging Face datasets or tabular data. For local datasets with a single column
+(e.g. unstructured txt files), use the default “text” which is used by Hugging Face datasets
+when loaded into memory. Default is “text”.</p></li>
 <li><p><strong>max_seq_len</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – Maximum number of tokens in the returned input and label token id lists.
 Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
 and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.</p></li>

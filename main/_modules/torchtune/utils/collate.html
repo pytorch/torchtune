@@ -471,7 +471,7 @@
             <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">labels_seq_len</span> <span class="o">-</span> <span class="n">input_ids_seq_len</span><span class="p">),</span>
             <span class="n">value</span><span class="o">=</span><span class="n">padding_idx</span><span class="p">,</span>
         <span class="p">)</span>
-    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">input_ids</span><span class="p">,</span> <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="p">}</span></div>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">input_ids</span><span class="o">.</span><span class="n">long</span><span class="p">(),</span> <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="o">.</span><span class="n">long</span><span class="p">()}</span></div>
 
 
 <div class="viewcode-block" id="padded_collate_dpo"><a class="viewcode-back" href="../../../generated/torchtune.utils.padded_collate_dpo.html#torchtune.utils.padded_collate_dpo">[docs]</a><span class="k">def</span> <span class="nf">padded_collate_dpo</span><span class="p">(</span>
