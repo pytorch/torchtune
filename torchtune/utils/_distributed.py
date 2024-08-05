@@ -364,13 +364,19 @@ def get_full_model_state_dict(
     trainable_only: bool = False,
 ) -> Dict[str, Any]:
     """
-    Converting sharded state dict into a full state dict on cpu
-    Returning non-empty result on rank0 to avoid peaking cpu memory
+    Converting sharded state dict into a full state dict on CPU
+    Returning non-empty result on rank0 to avoid peaking CPU memory
 
     Args:
         model (FSDPModule): wrapped module
         is_rank_zero (bool): flag to check if the process is on rank 0
         trainable_only (bool): flag to only return state dict of trainable parameters
+
+    Raises:
+        AssertionError: if the model contains NF4Tensor and the model is not wrapped with FSDP
+
+    Returns:
+        Dict[str, Any]: State dict on CPU
     """
     # [Warning] FSDPModel.state_dict converts all Parameter Tensors to DTensors
     sharded_sd = model.state_dict()

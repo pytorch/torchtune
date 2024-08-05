@@ -541,7 +541,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 epoch=epoch,
                 intermediate_checkpoint=intermediate_checkpoint,
                 adapter_only=not merge_checkpoint,
-            ) 
+            )
 
     def train(self) -> None:
         """
