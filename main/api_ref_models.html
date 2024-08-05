@@ -416,7 +416,7 @@
 </pre></div>
 </div>
 <p>To download the Llama3-70B-Instruct model:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Meta-Llama-3-70B-Instruct<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;original/consolidated*&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Meta-Llama-3-70B-Instruct<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;original/consolidated*&quot;</span><span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
 </pre></div>
 </div>
 <p>To download the Llama3.1 weights of the above models, you can instead download from <cite>Meta-Llama-3.1-8B-Instruct</cite>
@@ -597,7 +597,7 @@ or <cite>Meta-Llama-3.1-70B-Instruct</cite>.</p>
 <h2>phi-3<a class="headerlink" href="#phi-3" title="Permalink to this heading">¶</a></h2>
 <p>Models from the <a class="reference external" href="https://news.microsoft.com/source/features/ai/the-phi-3-small-language-models-with-big-potential/">Phi-3 mini family</a>.</p>
 <p>To download the Phi-3 Mini 4k instruct model:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>microsoft/Phi-3-mini-4k-instruct<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>microsoft/Phi-3-mini-4k-instruct<span class="w"> </span>--ignore-patterns<span class="w"> </span>None<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
 </pre></div>
 </div>
 <table class="autosummary longtable docutils align-default">
@@ -685,11 +685,11 @@ or <cite>Meta-Llama-3.1-70B-Instruct</cite>.</p>
 <p>Models of size 2B and 7B from the <a class="reference external" href="https://blog.google/technology/developers/gemma-open-models/">Gemma family</a>.</p>
 <p>Request Access on <a class="reference external" href="https://huggingface.co/google/gemma-2b">Hugging Face</a>.</p>
 <p>To download the Gemma 2B model:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>google/gemma-2b<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>google/gemma-2b<span class="w"> </span>--ignore-patterns<span class="w"> </span>None<span class="w">  </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
 </pre></div>
 </div>
 <p>To download the Gemma 7B model:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>google/gemma-7b<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;gemma-7b.gguf&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>google/gemma-7b<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;gemma-7b.gguf&quot;</span><span class="w">  </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
 </pre></div>
 </div>
 <table class="autosummary longtable docutils align-default">
