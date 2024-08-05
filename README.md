@@ -282,7 +282,7 @@ torchtune embodies PyTorch’s design philosophy [[details](https://pytorch.org/
 
 ### Native PyTorch
 
-torchtune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (e.g: Hugging Face Datasets, EleutherAI Eval Harness), all of the core functionality is written in PyTorch.
+torchtune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (e.g. Hugging Face Datasets, EleutherAI Eval Harness), all of the core functionality is written in PyTorch.
 
 ### Simplicity and Extensibility
 
