@@ -182,10 +182,6 @@ _ALL_RECIPES = [
         file_path="ppo_full_finetune_single_device.py",
         configs=[
             Config(
-                name="llama2/1B_full_ppo",
-                file_path="llama2/1B_full_ppo.yaml",
-            ),
-            Config(
                 name="mistral/7B_full_ppo_low_memory",
                 file_path="mistral/7B_full_ppo_low_memory.yaml",
             ),
