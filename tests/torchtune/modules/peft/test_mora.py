@@ -109,7 +109,9 @@ class TestMoRALinear:
                 quantize_base=True,
             )
 
-    @pytest.mark.parametrize("dtype", [torch.float32, torch.bfloat16]) # [torch.bfloat16, torch.float32])
+    @pytest.mark.parametrize(
+        "dtype", [torch.float32, torch.bfloat16]
+    )  # [torch.bfloat16, torch.float32])
     def test_qmora_parity(self, dtype):
         with utils.set_default_dtype(dtype):
             qmora_linear = MoRALinear(

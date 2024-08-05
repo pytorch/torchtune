@@ -31,10 +31,7 @@ from torchtune.modules.peft.lora import (
     _lora_b_init_params,
     LoRALinear,
 )
-from torchtune.modules.peft.mora import (
-    _mora_init_params,
-    MoRALinear,
-)
+from torchtune.modules.peft.mora import _mora_init_params, MoRALinear
 
 from torchtune.utils._device import get_device
 from torchtune.utils.logging import get_logger
@@ -248,7 +245,7 @@ def prepare_model_for_fsdp_with_meta_device(model: nn.Module) -> nn.Module:
 
         if isinstance(v, MoRALinear):
             v.lora_a.reset_parameters = _mora_init_params.__get__(v.lora_a)
-           # v.lora_b.reset_parameters = _lora_b_init_params.__get__(v.lora_b)
+        # v.lora_b.reset_parameters = _lora_b_init_params.__get__(v.lora_b)
     return model
 
 

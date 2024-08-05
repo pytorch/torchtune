@@ -6,8 +6,9 @@
 import math
 from typing import List
 
-import torch.nn.functional as F
 import torch
+
+import torch.nn.functional as F
 
 from torch import nn, Tensor
 
@@ -17,9 +18,11 @@ from torchtune.modules.peft.peft_utils import AdapterModule
 
 
 class MoRALinear(nn.Module, AdapterModule):
-    """MoRA linear layer as introduced in `MoRA: High-Rank Updating for Parameter-Efficient Fine-Tuning <https://arxiv.org/abs/2405.12130>`_.
+    """MoRA linear layer as introduced in `MoRA: High-Rank Updating for
+    Parameter-Efficient Fine-Tuning <https://arxiv.org/abs/2405.12130>`_.
 
-    MoRA replaces the low-rank approximation matrices A and B with a square matrix, resulting in a higher rank trainable layer. In a linear layer instead of
+    MoRA replaces the low-rank approximation matrices A and B with a square matrix,
+    resulting in a higher rank trainable layer. In a linear layer instead of
     :math:`x \\mapsto W_0x` a LoRALinear layer is defined as
     :math:`x \\mapsto W_0x + (\\alpha / r)BAx`, where :math:`r` is the rank of
     the matrices :math:`A` and :math:`B` and :math:`\\alpha` is a scaling factor.
@@ -65,7 +68,9 @@ class MoRALinear(nn.Module, AdapterModule):
             "bias", nn.Parameter(bias) if bias is not None else None
         )
         self.dropout = nn.Dropout(p=dropout)
-        self.lora_a = nn.Linear(in_features=self.rank, out_features=self.rank, bias=False)
+        self.lora_a = nn.Linear(
+            in_features=self.rank, out_features=self.rank, bias=False
+        )
         # self.lora_b = nn.Linear(in_features=self.rank, out_features=self.rank, bias=False)
         self.cos, self.sin = self.precompute_freqs(self.rank)
         self.merged = False
@@ -109,22 +114,23 @@ class MoRALinear(nn.Module, AdapterModule):
         """
         # NOTE: this function has to be updated if the names of "lora_a" and "lora_b"
         # in this module change.
-        adapter_params = ["lora_a.weight",]   # "lora_b.weight"]
+        adapter_params = [
+            "lora_a.weight",
+        ]  # "lora_b.weight"]
         return adapter_params
 
     def precompute_freqs(self, r: int, base: int = 10000):
-        in_f = self.in_dim 
+        in_f = self.in_dim
         rb1 = in_f // r if in_f % r == 0 else in_f // r + 1
         inv_freq = 1.0 / (base ** (torch.arange(0, r, 2).float() / r))
         t = torch.arange(rb1)
         freqs = torch.outer(t, inv_freq)
         emb = torch.cat((freqs, freqs), dim=-1)
         return emb.cos().unsqueeze(0), emb.sin().unsqueeze(0)
-        
 
     def _apply_mora(self, x):
         """
-        Taken from the paper author's github (Apache 2 License): 
+        Taken from the paper author's github (Apache 2 License):
         https://github.com/kongds/MoRA/blob/0ff64b144e60b54fe7c0ff7b4e76c99c949e923d/peft-mora/src/peft/tuners/lora/layer.py#L229
         """
         r = self.rank
@@ -136,9 +142,9 @@ class MoRALinear(nn.Module, AdapterModule):
             x = torch.cat([x, x[..., :pad_size]], dim=-1)
             sum_inter += 1
         in_x = x.view(*x.shape[:-1], sum_inter, r)
-        if not hasattr(self, 'cos') and not hasattr(self, 'sin'):
+        if not hasattr(self, "cos") and not hasattr(self, "sin"):
             self.cos, self.sin = self.precompute_freqs(r)
-        rh_in_x = torch.cat((-in_x[..., r // 2:], in_x[..., :r // 2]), dim=-1)
+        rh_in_x = torch.cat((-in_x[..., r // 2 :], in_x[..., : r // 2]), dim=-1)
         in_x = in_x * self.cos + rh_in_x * self.sin
         out_x = self.lora_a(in_x.to(self.lora_a.weight.dtype))
         out_x = out_x.view(*x.shape[:-1], -1)[..., :out_f]
@@ -146,9 +152,8 @@ class MoRALinear(nn.Module, AdapterModule):
             repeat_time = out_f // out_x.shape[-1]
             if out_f % out_x.shape[-1] != 0:
                 repeat_time += 1
-            out_x = torch.cat([out_x]*repeat_time, dim=-1)[..., :out_f]
+            out_x = torch.cat([out_x] * repeat_time, dim=-1)[..., :out_f]
         return out_x
-
 
     def forward(self, x: Tensor) -> Tensor:
         """
@@ -175,6 +180,7 @@ def _mora_init_params(x: nn.Linear) -> None:
     Initialize MoRA weights to zeros.
     """
     nn.init.zeros_(x.weight)
+
 
 # possible cleaner implementation of ROPE
 # def precompute_freqs_cis(seq_len: int, n_elem: int, base: int = 10000) -> Tensor:
