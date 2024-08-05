@@ -23,7 +23,7 @@ To download the Llama3-70B-Instruct model:
 
 .. code-block:: bash
 
-    tune download meta-llama/Meta-Llama-3-70B-Instruct --hf-token <HF_TOKEN> --ignore-patterns "original/consolidated*"
+    tune download meta-llama/Meta-Llama-3-70B-Instruct --ignore-patterns "original/consolidated*" --hf-token <HF_TOKEN>
 
 To download the Llama3.1 weights of the above models, you can instead download from `Meta-Llama-3.1-8B-Instruct`
 or `Meta-Llama-3.1-70B-Instruct`.
@@ -143,7 +143,7 @@ To download the Phi-3 Mini 4k instruct model:
 
 .. code-block:: bash
 
-    tune download microsoft/Phi-3-mini-4k-instruct --hf-token <HF_TOKEN> --ignore-patterns None
+    tune download microsoft/Phi-3-mini-4k-instruct --ignore-patterns None --hf-token <HF_TOKEN>
 
 .. autosummary::
     :toctree: generated/
@@ -200,13 +200,13 @@ To download the Gemma 2B model:
 
 .. code-block:: bash
 
-    tune download google/gemma-2b --hf-token <HF_TOKEN> --ignore-patterns None
+    tune download google/gemma-2b --ignore-patterns None  --hf-token <HF_TOKEN>
 
 To download the Gemma 7B model:
 
 .. code-block:: bash
 
-    tune download google/gemma-7b --hf-token <HF_TOKEN> --ignore-patterns "gemma-7b.gguf"
+    tune download google/gemma-7b --ignore-patterns "gemma-7b.gguf"  --hf-token <HF_TOKEN>
 
 .. autosummary::
     :toctree: generated/
