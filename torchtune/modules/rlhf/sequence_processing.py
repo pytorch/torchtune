@@ -87,7 +87,7 @@ def logits_to_logprobs(
 
     Args:
         logits (torch.Tensor): The logits tensor of shape [b, response_length, vocab_size].
-        sequences (torch.Tensor): The responses tensor of shape [b, response_length].
+        sequences (torch.Tensor): The corresponding tokens of shape [b, response_length].
         temperature (float): The temperature to scale the logits. Default 1.0
     Returns:
         torch.Tensor: The log probabilities corresponding to each token in ``sequences``. Shape [b, response_length].
@@ -99,18 +99,16 @@ def logits_to_logprobs(
     ).squeeze(-1)
 
 
-def query_response_logits_to_response_logits(
+def truncate_sequence_for_logprobs(
     query_response_logits: torch.Tensor, context_length: int
 ) -> torch.Tensor:
     """
-    Converts logits estimated over a (query, response) pair to logits for the response.
-
-    See the excalidraw linked in TRL's PPOV2 for a visual explanation
-        https://github.com/huggingface/trl/blob/747612f9d3063de56b6524e5feb0c9feab21d4c4/trl/trainer/ppov2_trainer.py#L358
+    Truncates logits generated over a sequence for estimating logprobs over the tokens in the sequence.
+    This assumes the sequence is of the (query, response) format with length (context_length + response_length)
     Args:
         query_response_logits (torch.Tensor): The logits tensor of shape [b, context_length + response_length, vocab_size].
         context_length (int): The length of the context.
 
     Returns:
-        torch.Tensor: The response logits tensor of shape [b, response_length, vocab_size]."""
+        torch.Tensor: The truncated logits for the response with shape [b, response_length, vocab_size]."""
     return query_response_logits[:, context_length - 1 : -1]

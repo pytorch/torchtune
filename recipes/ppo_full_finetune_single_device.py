@@ -714,18 +714,14 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         ref_logits = self._ref_policy_model(
             query_responses, input_pos=position_ids, mask=masks
         )
-        ref_logits = rlhf.query_response_logits_to_response_logits(
-            ref_logits, context_length
-        )
+        ref_logits = rlhf.truncate_sequence_for_logprobs(ref_logits, context_length)
         ref_logprobs = rlhf.logits_to_logprobs(ref_logits, responses, self._temperature)
 
         del ref_logits
 
         # step 3. estimate values from the responses using the value function
         values = self._value_model(query_responses, input_pos=position_ids, mask=masks)
-        values = rlhf.query_response_logits_to_response_logits(
-            values, context_length
-        ).squeeze(-1)
+        values = rlhf.truncate_sequence_for_logprobs(values, context_length).squeeze(-1)
 
         # step 4. replace any tokens in the responses after the first stop token (usually EOS token) with padding
         # resulting in truncated responses
@@ -960,9 +956,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             input_pos=trajectory.position_ids,
             mask=trajectory.masks,
         )
-        pi_logits = rlhf.query_response_logits_to_response_logits(
-            pi_logits, context_length
-        )
+        pi_logits = rlhf.truncate_sequence_for_logprobs(pi_logits, context_length)
         pi_logprobs = rlhf.logits_to_logprobs(
             pi_logits, trajectory.query_responses[:, context_length:], self._temperature
         )
@@ -977,7 +971,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             mask=trajectory.masks,
         )
 
-        phi_values = rlhf.query_response_logits_to_response_logits(
+        phi_values = rlhf.truncate_sequence_for_logprobs(
             phi_values, context_length
         ).squeeze(-1)
         phi_values[trajectory.value_padding_masks] = 0.0

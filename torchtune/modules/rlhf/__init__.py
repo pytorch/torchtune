@@ -22,8 +22,8 @@ from .rewards import (
 )
 from .sequence_processing import (
     logits_to_logprobs,
-    query_response_logits_to_response_logits,
     truncate_sequence_at_first_stop_token,
+    truncate_sequence_for_logprobs,
 )
 
 __all__ = [
@@ -32,7 +32,7 @@ __all__ = [
     "truncate_sequence_at_first_stop_token",
     "get_causal_mask",
     "logits_to_logprobs",
-    "query_response_logits_to_response_logits",
+    "truncate_sequence_for_logprobs",
     "get_reward_penalty_mask",
     "left_padded_collate",
     "padded_collate_dpo",
