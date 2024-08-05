@@ -50,7 +50,7 @@ Delayed fake quantization allows for control over the step after which fake quan
 Empirically, allowing the model to finetune without fake quantization initially allows the
 weight and activation values to stabilize before fake quantizing them, potentially leading
 to improved quantized accuracy. This can be specified through ``fake_quant_after_n_steps``. To
-provide you with an idea of how to roughly configure this parameter, we've tested with
+provide you with an idea of how to roughly configure this parameter, we've achieved best results with
 ``fake_quant_after_n_steps ~= total_steps // 2``.
 
 In the future we plan to support different quantization strategies. For now, note that you'll need at least
@@ -85,4 +85,4 @@ As with all of our recipes, you can also:
 * Use :ref:`lower precision optimizers <glossary_low_precision_opt>`.
 
 
-If you're interested in an overview of our memory optimisation features, check out our  :ref:`memory optimization overview<memory_optimisation_overview_label>`!
+If you're interested in an overview of our memory optimization features, check out our  :ref:`memory optimization overview<memory_optimisation_overview_label>`!
