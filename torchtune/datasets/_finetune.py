@@ -28,16 +28,17 @@ class SFTDataset(Dataset):
     2. If specified, apply a prompt template for the task you are fine-tuning for.
     3. Model-specific transform or tokenization
 
-    All datasets are formatted into :class:`~torchtune.data.Message`s because for
-    fine-tuning, datasets can be considered as "conversations" with the model,
-    or AI assistant. Thus, we can standardize all text content as messages in a conversation assigned to
-    a :class:`~torchtune.data.Role`:
 
-    - system messages contain the system prompt
-    - user messages contain the input prompt into the model
-    - assistant messages are the response of the model and what you actually want
+    All datasets are formatted into a list of :class:`~torchtune.data.Message`
+    because for fine-tuning, datasets can be considered as "conversations" with the model,
+    or AI assistant. Thus, we can standardize all text content as messages in a conversation assigned to
+    a role:
+
+    - ``"system"`` messages contain the system prompt
+    - ``"user"`` messages contain the input prompt into the model
+    - ``"assistant"`` messages are the response of the model and what you actually want
       to train for and compute loss directly against
-    - ipython messages are the return from a tool call
+    - ``"ipython"`` messages are the return from a tool call
 
     Chat datasets are multiple rounds of user-assistant messages. Instruct datasets
     are typically a single round involving a specific instruction and the model's response.
@@ -67,7 +68,7 @@ class SFTDataset(Dataset):
     multimodal datasets requires processing the images in a way specific to the vision
     encoder being used by the model and is agnostic to the specific dataset.
 
-    Tokenization is handled by the ``model_transform``. All :class:`~torchtune.modules.tokenizers.ModelTokenizer`s
+    Tokenization is handled by the ``model_transform``. All :class:`~torchtune.modules.tokenizers.ModelTokenizer`
     can be treated as a ``model_transform`` since it uses the model-specific tokenizer to
     transform the list of messages outputted from the ``message_transform`` into tokens
     used by the model for training. Text-only datasets will simply pass the :class:`~torchtune.modules.tokenizers.ModelTokenizer`
@@ -76,9 +77,9 @@ class SFTDataset(Dataset):
     Args:
         source (str): path to dataset repository on Hugging Face. For local datasets,
             define source as the data file type (e.g. "json", "csv", "text") and pass
-            in the filepath in ``data_files``. See Hugging Face's ``load_dataset``
-            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
-            for more details.
+            in the filepath in ``data_files``. See `Hugging Face's
+            <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
+            ``load_dataset`` for more details.
         message_transform (Transform): callable that keys into the desired fields in the sample
             and converts text content to a list of :class:`~torchtune.data.Message`. It is expected that the final list
             of messages are stored in the ``"messages"`` key.
@@ -91,13 +92,15 @@ class SFTDataset(Dataset):
             - Task-specific templates to gear models for a particular task that it will expect after training
             - Model-specific templates that are required whenever the model is prompted, such as the [INST]
               tags in Llama2 and in Mistral
-            - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
+            - Community standardized templates, such as :class:`~torchtune.data.ChatMLFormat`
 
             The extra text will still get tokenized as normal text, not as special tokens.
         filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
             the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
             details.
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
+            Face's `docs <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
+            for more details.
     """
 
     def __init__(
