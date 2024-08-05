@@ -320,7 +320,7 @@ def validate_missing_and_unexpected_for_lora(
 
     Raises:
         AssertionError: if base_missing contains any base model keys.
-        AssertionError: if base_unexpect is nonempty.
+        AssertionError: if base_unexpected is nonempty.
         AssertionError: if lora_missing contains any LoRA keys.
         AssertionError: if lora_unexpected is nonempty.
     """

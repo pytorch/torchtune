@@ -156,7 +156,6 @@ class _EvalWrapper(HFLM):
             self._model,
             context,
             max_generated_tokens=self.max_gen_toks,
-            pad_id=self._tokenizer.pad_id,
             temperature=temperature,
             top_k=None,  # do_sample is not supported currently
             stop_tokens=self._tokenizer.stop_tokens,
