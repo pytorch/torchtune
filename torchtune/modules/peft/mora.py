@@ -140,7 +140,7 @@ class MoRALinear(nn.Module, AdapterModule):
             self.cos, self.sin = self.precompute_freqs(r)
         rh_in_x = torch.cat((-in_x[..., r // 2:], in_x[..., :r // 2]), dim=-1)
         in_x = in_x * self.cos + rh_in_x * self.sin
-        out_x = self.lora_a(in_x)
+        out_x = self.lora_a(in_x.to(self.lora_a.weight.dtype))
         out_x = out_x.view(*x.shape[:-1], -1)[..., :out_f]
         if out_x.shape[-1] < out_f:
             repeat_time = out_f // out_x.shape[-1]
