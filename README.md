@@ -48,6 +48,7 @@ torchtune currently supports the following models.
 | [Mistral](https://huggingface.co/mistralai)   | 7B [[model](torchtune/models/mistral/_model_builders.py), [configs](recipes/configs/mistral/)] |
 | [Gemma](https://huggingface.co/collections/google/gemma-release-65d5efbccdbb8c4202ec078b)   | 2B, 7B [[model](torchtune/models/gemma/_model_builders.py), [configs](recipes/configs/gemma/)] |
 | [Microsoft Phi3](https://huggingface.co/collections/microsoft/phi-3-6626e15e9585a200d2d761e3) | Mini [[model](torchtune/models/phi3/), [configs](recipes/configs/phi3/)]
+| [Qwen2](https://qwenlm.github.io/blog/qwen2/) | 7B [[model](torchtune/models/qwen2/), [configs](recipes/configs/qwen2/)]
 
 We're always adding new models, but feel free to [file an Issue](https://github.com/pytorch/torchtune/issues/new) if there's a new one you would love to see in torchtune!
 
@@ -61,7 +62,7 @@ torchtune provides the following fine-tuning recipes.
 |------------------------------------|------------------------------------|
 | Distributed Training [1 to 8 GPUs] | Full [[code](recipes/full_finetune_distributed.py), [example](recipes/configs/llama3/8B_full.yaml)], LoRA [[code](recipes/lora_finetune_distributed.py), [example](recipes/configs/llama3/8B_lora.yaml)] |
 | Single Device / Low Memory [1 GPU] | Full [[code](recipes/full_finetune_single_device.py), [example](recipes/configs/llama3/8B_full_single_device.yaml)], LoRA + QLoRA [[code](recipes/lora_finetune_single_device.py), [example](recipes/configs/llama3/8B_lora_single_device.yaml)] |
-| Single Device [1 GPU]              | DPO [[code](recipes/full_finetune_distributed.py), [example](recipes/configs/llama2/7B_lora_dpo_single_device.yaml)]
+| Single Device [1 GPU]              | DPO [[code](recipes/lora_dpo_single_device.py), [example](recipes/configs/llama2/7B_lora_dpo_single_device.yaml)], PPO[[code](recipes/ppo_full_finetune_single_device.py), [example](recipes/configs/mistral/7B_full_ppo_low_memory.yaml)]
 
 &nbsp;
 
@@ -306,6 +307,8 @@ torchtune provides well-tested components with a high-bar on correctness. The li
 
 We really value our community and the contributions made by our wonderful users. We'll use this section to call out some of these contributions! If you'd like to help out as well, please see the [CONTRIBUTING](CONTRIBUTING.md) guide.
 
+- [@SalmanMohammadi](https://github.com/salmanmohammadi) for adding a comprehensive end-to-end recipe for [PPO](recipes/lora_dpo_single_device.py) training to torchtune
+- [@fyabc](https://github.com/fyabc) for adding Qwen2 models, tokenizer, and recipe integration to torchtune
 - [@solitude-alive](https://github.com/solitude-alive) for adding the [Gemma 2B model](torchtune/models/gemma/) to torchtune, including recipe changes, numeric validations of the models and recipe correctness
 - [@yechenzhi](https://github.com/yechenzhi) for adding [DPO](recipes/lora_dpo_single_device.py) to torchtune, including the recipe and config along with correctness checks
 
