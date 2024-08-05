@@ -62,7 +62,7 @@ torchtune provides the following fine-tuning recipes.
 |------------------------------------|------------------------------------|
 | Distributed Training [1 to 8 GPUs] | Full [[code](recipes/full_finetune_distributed.py), [example](recipes/configs/llama3/8B_full.yaml)], LoRA [[code](recipes/lora_finetune_distributed.py), [example](recipes/configs/llama3/8B_lora.yaml)] |
 | Single Device / Low Memory [1 GPU] | Full [[code](recipes/full_finetune_single_device.py), [example](recipes/configs/llama3/8B_full_single_device.yaml)], LoRA + QLoRA [[code](recipes/lora_finetune_single_device.py), [example](recipes/configs/llama3/8B_lora_single_device.yaml)] |
-| Single Device [1 GPU]              | DPO [[code](recipes/lora_dpo_single_device.py), [example](recipes/configs/llama2/7B_lora_dpo_single_device.yaml)], RLHF[[code](recipes/ppo_full_finetune_single_device.py), [example](recipes/configs/mistral/7B_full_ppo_low_memory.yaml)]
+| Single Device [1 GPU]              | DPO [[code](recipes/lora_dpo_single_device.py), [example](recipes/configs/llama2/7B_lora_dpo_single_device.yaml)], RLHF with PPO [[code](recipes/ppo_full_finetune_single_device.py), [example](recipes/configs/mistral/7B_full_ppo_low_memory.yaml)]
 
 &nbsp;
 
