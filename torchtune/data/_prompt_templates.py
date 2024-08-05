@@ -39,7 +39,7 @@ class PromptTemplate(Protocol):
 
 class CustomPromptTemplate(PromptTemplate):
     """
-    Define a quick custom prompt template by passing in a dictionary mapping role to
+    Quickly define a custom prompt template by passing in a dictionary mapping role to
     the prepend and append tags. For example, to achieve the following prompt
     template::
 
@@ -48,7 +48,12 @@ class CustomPromptTemplate(PromptTemplate):
         Assistant: {content}\\n
         Tool: {content}\\n
 
-    You can define the template as follows::
+    You need to pass in a tuple for each role, where ``PREPEND_TAG`` is the string
+    added before the text content and ``APPEND_TAG`` is the string added after::
+
+        template = {role: (PREPEND_TAG, APPEND_TAG)}
+
+    Thus, the template would be defined as follows::
 
         template = {
             "system": ("System: ", "\\n"),
@@ -62,10 +67,12 @@ class CustomPromptTemplate(PromptTemplate):
 
     Note:
         Any tags prepended/appended to the assistant message will be included
-        in the loss calculation. Consider using the append tags for user messages for
-        tags that need to come before the assistant message but should not be included in
-        loss. For more custom masking and prompt templating, you can create your own
-        class based off the :class:`~torchtune.data.PromptTemplate` interface.
+        in the loss calculation. All other prepend/append tags for other roles
+        (system, user, ipython) are, in most cases, not included in loss. Consider using
+        the append tags for user messages for tags that need to come before the
+        assistant message but should not be included in loss. For more custom masking
+        and prompt templating, you can create your own class based off the
+        :class:`~torchtune.data.PromptTemplate` interface.
 
     Args:
         template (Dict[Role, Tuple[str, str]]): a dictionary mapping role to the
