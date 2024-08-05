@@ -143,7 +143,7 @@ To download the Phi-3 Mini 4k instruct model:
 
 .. code-block:: bash
 
-    tune download microsoft/Phi-3-mini-4k-instruct --hf-token <HF_TOKEN> --ignore-patterns ""
+    tune download microsoft/Phi-3-mini-4k-instruct --hf-token <HF_TOKEN> --ignore-patterns None
 
 .. autosummary::
     :toctree: generated/
@@ -200,7 +200,7 @@ To download the Gemma 2B model:
 
 .. code-block:: bash
 
-    tune download google/gemma-2b --hf-token <HF_TOKEN> --ignore-patterns ""
+    tune download google/gemma-2b --hf-token <HF_TOKEN> --ignore-patterns None
 
 To download the Gemma 7B model:
 
