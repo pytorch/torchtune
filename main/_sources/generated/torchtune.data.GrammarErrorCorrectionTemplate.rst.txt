@@ -1,10 +1,6 @@
-﻿.. role:: hidden
-    :class: hidden-section
+﻿torchtune.data.GrammarErrorCorrectionTemplate
+=============================================
+
 .. currentmodule:: torchtune.data
 
-
-GrammarErrorCorrectionTemplate
-==============================
-
-.. autoclass:: GrammarErrorCorrectionTemplate
-    :members:
+.. autodata:: GrammarErrorCorrectionTemplate

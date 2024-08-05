@@ -7,11 +7,10 @@
 <head>
   <meta name="robots" content="noindex">
   <meta charset="utf-8">
-  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
-
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>PreferenceDataset &mdash; torchtune main documentation</title>
+  <title>torchtune.data._prompt_templates &mdash; torchtune main documentation</title>
   
 
   
@@ -27,22 +26,20 @@
 
   
 
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!-- <link rel="stylesheet" href="../_static/pygments.css" type="text/css" /> -->
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sg_gallery-binder.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sg_gallery-dataframe.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sg_gallery-rendered-html.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
-    <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="SFTDataset" href="torchtune.datasets.SFTDataset.html" />
-    <link rel="prev" title="PackedDataset" href="torchtune.datasets.PackedDataset.html" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -53,16 +50,16 @@
   
 
   
-  <script src="../_static/js/modernizr.min.js"></script>
+  <script src="../../../_static/js/modernizr.min.js"></script>
 
   <!-- Preload the theme fonts -->
 
-<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
 
 <!-- Preload the katex fonts -->
 
@@ -282,7 +279,7 @@
 
 
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
     <input type="text" name="q" placeholder="Search Docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -299,36 +296,36 @@
             
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tune_cli.html">torchtune CLI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">torchtune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tune_cli.html">torchtune CLI</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All About Configs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/configs.html">All About Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_data.html">torchtune.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_models.html">torchtune.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -361,7 +358,7 @@
   <ul class="pytorch-breadcrumbs">
     
       <li>
-        <a href="../index.html">
+        <a href="../../../index.html">
           
             Docs
           
@@ -369,16 +366,12 @@
       </li>
 
         
-          <li><a href="../api_ref_datasets.html">torchtune.datasets</a> &gt;</li>
+          <li><a href="../../index.html">Module code</a> &gt;</li>
         
-      <li>PreferenceDataset</li>
+      <li>torchtune.data._prompt_templates</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
-        
-            
-            <a href="../_sources/generated/torchtune.datasets.PreferenceDataset.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
-          
         
       </li>
     
@@ -407,58 +400,167 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="preferencedataset">
-<h1>PreferenceDataset<a class="headerlink" href="#preferencedataset" title="Permalink to this heading">¶</a></h1>
-<dl class="py class">
-<dt class="sig sig-object py" id="torchtune.datasets.PreferenceDataset">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.datasets.</span></span><span class="sig-name descname"><span class="pre">PreferenceDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer" title="torchtune.modules.tokenizers._utils.ModelTokenizer"><span class="pre">ModelTokenizer</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">template</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="torchtune.data.InstructTemplate.html#torchtune.data.InstructTemplate" title="torchtune.data._instruct_templates.InstructTemplate"><span class="pre">InstructTemplate</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.12)"><span class="pre">Callable</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">load_dataset_kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/datasets/_preference.html#PreferenceDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.datasets.PreferenceDataset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Class that supports any custom dataset with instruction-based prompts and a
-configurable template.</p>
-<p>The general flow from loading a sample to tokenized prompt is:
-load sample -&gt; apply transform -&gt; format into template -&gt; tokenize</p>
-<p>If the column/key names differ from the expected names in the <a class="reference internal" href="torchtune.data.InstructTemplate.html#torchtune.data.InstructTemplate" title="torchtune.data.InstructTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">InstructTemplate</span></code></a>,
-then the <code class="docutils literal notranslate"><span class="pre">column_map</span></code> argument can be used to provide this mapping.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>tokenizer</strong> (<a class="reference internal" href="torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer" title="torchtune.modules.tokenizers.ModelTokenizer"><em>ModelTokenizer</em></a>) – Tokenizer used by the model that implements the <code class="docutils literal notranslate"><span class="pre">tokenize_messages</span></code> method.</p></li>
-<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path to dataset repository on Hugging Face. For local datasets,
-define source as the data file type (e.g. “json”, “csv”, “text”) and pass
-in the filepath in <code class="docutils literal notranslate"><span class="pre">data_files</span></code>. See Hugging Face’s <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>
-(<a class="reference external" href="https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path">https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path</a>)
-for more details.</p></li>
-<li><p><strong>template</strong> (<a class="reference internal" href="torchtune.data.InstructTemplate.html#torchtune.data.InstructTemplate" title="torchtune.data.InstructTemplate"><em>InstructTemplate</em></a>) – template used to format the prompt. If the placeholder variable
-names in the template do not match the column/key names in the dataset, use <code class="docutils literal notranslate"><span class="pre">column_map</span></code> to map them.</p></li>
-<li><p><strong>transform</strong> (<em>Optional</em><em>[</em><em>Callable</em><em>]</em>) – transform to apply to the sample before formatting to the template.
-Default is None.</p></li>
-<li><p><strong>column_map</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em><em>]</em>) – a mapping from the expected placeholder names in the template
-to the column/key names in the sample. If None, assume these are identical.</p></li>
-<li><p><strong>max_seq_len</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – Maximum number of tokens in the returned input and label token id lists.
-Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
-and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.</p></li>
-<li><p><strong>**load_dataset_kwargs</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – additional keyword arguments to pass to <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>,
-such as <code class="docutils literal notranslate"><span class="pre">data_files</span></code> or <code class="docutils literal notranslate"><span class="pre">split</span></code>.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
+  <h1>Source code for torchtune.data._prompt_templates</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
+<span class="c1"># All rights reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># This source code is licensed under the BSD-style license found in the</span>
+<span class="c1"># LICENSE file in the root directory of this source tree.</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Tuple</span>
 
-</section>
+<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">Role</span>
 
+
+<div class="viewcode-block" id="PromptTemplateInterface"><a class="viewcode-back" href="../../../generated/torchtune.data.PromptTemplateInterface.html#torchtune.data.PromptTemplateInterface">[docs]</a><span class="k">class</span> <span class="nc">PromptTemplateInterface</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Interface for prompt templates. Each prompt template can include structured</span>
+<span class="sd">    text for system, user, and assistant roles that are prepended or appended to</span>
+<span class="sd">    the message content.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Template should map role to a tuple containing the tag to prepend to the text</span>
+    <span class="c1"># and tag to append to the text. Leave as empty strings to not prepend or append</span>
+    <span class="n">template</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Role</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Format each role&#39;s message(s) according to the prompt template</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            messages (List[Message]): a single conversation, structured as a list</span>
+<span class="sd">                of :class:`~torchtune.data.Message` objects</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The formatted list of messages</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="PromptTemplate"><a class="viewcode-back" href="../../../generated/torchtune.data.PromptTemplate.html#torchtune.data.PromptTemplate">[docs]</a><span class="k">class</span> <span class="nc">PromptTemplate</span><span class="p">(</span><span class="n">PromptTemplateInterface</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Quickly define a custom prompt template by passing in a dictionary mapping role to</span>
+<span class="sd">    the prepend and append tags. For example, to achieve the following prompt</span>
+<span class="sd">    template::</span>
+
+<span class="sd">        System: {content}\\n</span>
+<span class="sd">        User: {content}\\n</span>
+<span class="sd">        Assistant: {content}\\n</span>
+<span class="sd">        Tool: {content}\\n</span>
+
+<span class="sd">    You need to pass in a tuple for each role, where ``PREPEND_TAG`` is the string</span>
+<span class="sd">    added before the text content and ``APPEND_TAG`` is the string added after::</span>
+
+<span class="sd">        template = {role: (PREPEND_TAG, APPEND_TAG)}</span>
+
+<span class="sd">    Thus, the template would be defined as follows::</span>
+
+<span class="sd">        template = {</span>
+<span class="sd">            &quot;system&quot;: (&quot;System: &quot;, &quot;\\n&quot;),</span>
+<span class="sd">            &quot;user&quot;: (&quot;User: &quot;, &quot;\\n&quot;),</span>
+<span class="sd">            &quot;assistant&quot;: (&quot;Assistant: &quot;, &quot;\\n&quot;),</span>
+<span class="sd">            &quot;ipython&quot;: (&quot;Tool: &quot;, &quot;\\n&quot;),</span>
+<span class="sd">        }</span>
+
+<span class="sd">    Once instantiated, you must call the prompt template on a list of messages. It</span>
+<span class="sd">    will return the same list of messages updated with the template.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        Any tags prepended/appended to the assistant message will be included</span>
+<span class="sd">        in the loss calculation. All other prepend/append tags for other roles</span>
+<span class="sd">        (system, user, ipython) are, in most cases, not included in loss. Consider using</span>
+<span class="sd">        the append tags for user messages for tags that need to come before the</span>
+<span class="sd">        assistant message but should not be included in loss. For more custom masking</span>
+<span class="sd">        and prompt templating, you can create your own class based off the</span>
+<span class="sd">        :class:`~torchtune.data.PromptTemplate` interface.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        template (Dict[Role, Tuple[str, str]]): a dictionary mapping role to the</span>
+<span class="sd">            prepend and append tags</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">template</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Role</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template</span> <span class="o">=</span> <span class="n">template</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Format each role&#39;s message(s) according to the prompt template by prepending</span>
+<span class="sd">        and appending the defined tags.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            messages (List[Message]): list of messages to apply the template to</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List[Message]: The formatted list of messages</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">formatted_dialogue</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">:</span>
+                <span class="n">prepend_tag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">[</span><span class="n">message</span><span class="o">.</span><span class="n">role</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">append_tag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">[</span><span class="n">message</span><span class="o">.</span><span class="n">role</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="p">[{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">prepend_tag</span><span class="p">}]</span>
+                    <span class="o">+</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span>
+                    <span class="o">+</span> <span class="p">[{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">append_tag</span><span class="p">}]</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span>
+            <span class="n">formatted_dialogue</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">Message</span><span class="p">(</span>
+                    <span class="n">role</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">role</span><span class="p">,</span>
+                    <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
+                    <span class="n">masked</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">masked</span><span class="p">,</span>
+                    <span class="n">ipython</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">ipython</span><span class="p">,</span>
+                    <span class="n">eot</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">eot</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">formatted_dialogue</span></div>
+
+
+<span class="n">GrammarErrorCorrectionTemplate</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+    <span class="n">PromptTemplate</span><span class="p">,</span>
+    <span class="n">template</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;Correct this to standard English: &quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">---</span><span class="se">\n</span><span class="s2">Corrected: &quot;</span><span class="p">),</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+<span class="n">GrammarErrorCorrectionTemplate</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">A prompt template for grammar error correction tasks::</span>
+
+<span class="s2">    Correct this to standard English: </span><span class="si">{user_message}</span>
+<span class="s2">    ---</span>
+<span class="s2">    Corrected: </span><span class="si">{assistant_message}</span>
+
+<span class="s2">Please see :class:`~torchtune.data.PromptTemplate` for full API arguments.</span>
+<span class="s2">&quot;&quot;&quot;</span>
+<span class="n">SummarizeTemplate</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+    <span class="n">PromptTemplate</span><span class="p">,</span>
+    <span class="n">template</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;Summarize this dialogue:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">---</span><span class="se">\n</span><span class="s2">Summary:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">),</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+<span class="n">SummarizeTemplate</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">A prompt template for summarization tasks::</span>
+
+<span class="s2">    Summarize this dialogue:</span>
+<span class="s2">    </span><span class="si">{user_message}</span>
+<span class="s2">    ---</span>
+<span class="s2">    Summary:</span>
+<span class="s2">    </span><span class="si">{assistant_message}</span>
+
+<span class="s2">Please see :class:`~torchtune.data.PromptTemplate` for full API arguments.</span>
+<span class="s2">&quot;&quot;&quot;</span>
+</pre></div>
 
              </article>
              
             </div>
             <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="torchtune.datasets.SFTDataset.html" class="btn btn-neutral float-right" title="SFTDataset" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
-      
-      
-        <a href="torchtune.datasets.PackedDataset.html" class="btn btn-neutral" title="PackedDataset" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
-      
-    </div>
   
 
   
@@ -487,10 +589,7 @@ such as <code class="docutils literal notranslate"><span class="pre">data_files<
         <div class="pytorch-content-right" id="pytorch-content-right">
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
-              <ul>
-<li><a class="reference internal" href="#">PreferenceDataset</a></li>
-</ul>
-
+              
             </div>
           </div>
         </div>
@@ -503,23 +602,24 @@ such as <code class="docutils literal notranslate"><span class="pre">data_files<
   
 
      
-       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-         <script src="../_static/jquery.js"></script>
-         <script src="../_static/underscore.js"></script>
-         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
-         <script src="../_static/doctools.js"></script>
-         <script src="../_static/clipboard.min.js"></script>
-         <script src="../_static/copybutton.js"></script>
-         <script src="../_static/design-tabs.js"></script>
+       <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+         <script src="../../../_static/jquery.js"></script>
+         <script src="../../../_static/underscore.js"></script>
+         <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../../../_static/doctools.js"></script>
+         <script src="../../../_static/clipboard.min.js"></script>
+         <script src="../../../_static/copybutton.js"></script>
+         <script src="../../../_static/tabs.js"></script>
+         <script src="../../../_static/design-tabs.js"></script>
      
 
   
 
-  <script type="text/javascript" src="../_static/js/vendor/popper.min.js"></script>
-  <script type="text/javascript" src="../_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../../../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../../../_static/js/vendor/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
-  <script type="text/javascript" src="../_static/js/theme.js"></script>
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
 
   <script type="text/javascript">
       jQuery(function () {
@@ -634,7 +734,7 @@ such as <code class="docutils literal notranslate"><span class="pre">data_files<
   <div class="cookie-banner-wrapper">
   <div class="container">
     <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
-    <img class="close-button" src="../_static/images/pytorch-x.svg">
+    <img class="close-button" src="../../../_static/images/pytorch-x.svg">
   </div>
 </div>
 
@@ -767,7 +867,7 @@ such as <code class="docutils literal notranslate"><span class="pre">data_files<
 
   <!-- End Mobile Menu -->
 
-  <script type="text/javascript" src="../_static/js/vendor/anchor.min.js"></script>
+  <script type="text/javascript" src="../../../_static/js/vendor/anchor.min.js"></script>
 
   <script type="text/javascript">
     $(document).ready(function() {

@@ -56,3 +56,4 @@ Class representations for the above dataset builders.
     ConcatDataset
     PackedDataset
     PreferenceDataset
+    SFTDataset

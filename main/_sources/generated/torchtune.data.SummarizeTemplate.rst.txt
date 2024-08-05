@@ -1,10 +1,6 @@
-﻿.. role:: hidden
-    :class: hidden-section
+﻿torchtune.data.SummarizeTemplate
+================================
+
 .. currentmodule:: torchtune.data
 
-
-SummarizeTemplate
-=================
-
-.. autoclass:: SummarizeTemplate
-    :members:
+.. autodata:: SummarizeTemplate

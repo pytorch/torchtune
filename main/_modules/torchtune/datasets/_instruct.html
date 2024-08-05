@@ -513,7 +513,7 @@
         <span class="n">validate_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
 
         <span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span>
-            <span class="n">messages</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span>
+            <span class="n">messages</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens</span>
@@ -524,8 +524,8 @@
 
 
 <div class="viewcode-block" id="instruct_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.instruct_dataset.html#torchtune.datasets.instruct_dataset">[docs]</a><span class="k">def</span> <span class="nf">instruct_dataset</span><span class="p">(</span>
-    <span class="o">*</span><span class="p">,</span>
     <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">template</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>

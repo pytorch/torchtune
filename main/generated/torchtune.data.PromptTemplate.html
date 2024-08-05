@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>PreferenceDataset &mdash; torchtune main documentation</title>
+  <title>PromptTemplate &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="SFTDataset" href="torchtune.datasets.SFTDataset.html" />
-    <link rel="prev" title="PackedDataset" href="torchtune.datasets.PackedDataset.html" />
+    <link rel="next" title="PromptTemplateInterface" href="torchtune.data.PromptTemplateInterface.html" />
+    <link rel="prev" title="StackExchangedPairedTemplate" href="torchtune.data.StackExchangedPairedTemplate.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -324,8 +324,8 @@
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
@@ -369,15 +369,15 @@
       </li>
 
         
-          <li><a href="../api_ref_datasets.html">torchtune.datasets</a> &gt;</li>
+          <li><a href="../api_ref_data.html">torchtune.data</a> &gt;</li>
         
-      <li>PreferenceDataset</li>
+      <li>PromptTemplate</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.datasets.PreferenceDataset.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.data.PromptTemplate.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -407,38 +407,50 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="preferencedataset">
-<h1>PreferenceDataset<a class="headerlink" href="#preferencedataset" title="Permalink to this heading">¶</a></h1>
+  <section id="prompttemplate">
+<h1>PromptTemplate<a class="headerlink" href="#prompttemplate" title="Permalink to this heading">¶</a></h1>
 <dl class="py class">
-<dt class="sig sig-object py" id="torchtune.datasets.PreferenceDataset">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.datasets.</span></span><span class="sig-name descname"><span class="pre">PreferenceDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer" title="torchtune.modules.tokenizers._utils.ModelTokenizer"><span class="pre">ModelTokenizer</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">template</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="torchtune.data.InstructTemplate.html#torchtune.data.InstructTemplate" title="torchtune.data._instruct_templates.InstructTemplate"><span class="pre">InstructTemplate</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.12)"><span class="pre">Callable</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">load_dataset_kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/datasets/_preference.html#PreferenceDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.datasets.PreferenceDataset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Class that supports any custom dataset with instruction-based prompts and a
-configurable template.</p>
-<p>The general flow from loading a sample to tokenized prompt is:
-load sample -&gt; apply transform -&gt; format into template -&gt; tokenize</p>
-<p>If the column/key names differ from the expected names in the <a class="reference internal" href="torchtune.data.InstructTemplate.html#torchtune.data.InstructTemplate" title="torchtune.data.InstructTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">InstructTemplate</span></code></a>,
-then the <code class="docutils literal notranslate"><span class="pre">column_map</span></code> argument can be used to provide this mapping.</p>
+<dt class="sig sig-object py" id="torchtune.data.PromptTemplate">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.data.</span></span><span class="sig-name descname"><span class="pre">PromptTemplate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">template</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.12)"><span class="pre">Literal</span></a><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'system'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'user'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'assistant'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'ipython'</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/data/_prompt_templates.html#PromptTemplate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.data.PromptTemplate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Quickly define a custom prompt template by passing in a dictionary mapping role to
+the prepend and append tags. For example, to achieve the following prompt
+template:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">System</span><span class="p">:</span> <span class="p">{</span><span class="n">content</span><span class="p">}</span>\<span class="n">n</span>
+<span class="n">User</span><span class="p">:</span> <span class="p">{</span><span class="n">content</span><span class="p">}</span>\<span class="n">n</span>
+<span class="n">Assistant</span><span class="p">:</span> <span class="p">{</span><span class="n">content</span><span class="p">}</span>\<span class="n">n</span>
+<span class="n">Tool</span><span class="p">:</span> <span class="p">{</span><span class="n">content</span><span class="p">}</span>\<span class="n">n</span>
+</pre></div>
+</div>
+<p>You need to pass in a tuple for each role, where <code class="docutils literal notranslate"><span class="pre">PREPEND_TAG</span></code> is the string
+added before the text content and <code class="docutils literal notranslate"><span class="pre">APPEND_TAG</span></code> is the string added after:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">template</span> <span class="o">=</span> <span class="p">{</span><span class="n">role</span><span class="p">:</span> <span class="p">(</span><span class="n">PREPEND_TAG</span><span class="p">,</span> <span class="n">APPEND_TAG</span><span class="p">)}</span>
+</pre></div>
+</div>
+<p>Thus, the template would be defined as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">template</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;system&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;System: &quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;User: &quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;assistant&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;Assistant: &quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;ipython&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;Tool: &quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">),</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Once instantiated, you must call the prompt template on a list of messages. It
+will return the same list of messages updated with the template.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Any tags prepended/appended to the assistant message will be included
+in the loss calculation. All other prepend/append tags for other roles
+(system, user, ipython) are, in most cases, not included in loss. Consider using
+the append tags for user messages for tags that need to come before the
+assistant message but should not be included in loss. For more custom masking
+and prompt templating, you can create your own class based off the
+<a class="reference internal" href="#torchtune.data.PromptTemplate" title="torchtune.data.PromptTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">PromptTemplate</span></code></a> interface.</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>tokenizer</strong> (<a class="reference internal" href="torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer" title="torchtune.modules.tokenizers.ModelTokenizer"><em>ModelTokenizer</em></a>) – Tokenizer used by the model that implements the <code class="docutils literal notranslate"><span class="pre">tokenize_messages</span></code> method.</p></li>
-<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path to dataset repository on Hugging Face. For local datasets,
-define source as the data file type (e.g. “json”, “csv”, “text”) and pass
-in the filepath in <code class="docutils literal notranslate"><span class="pre">data_files</span></code>. See Hugging Face’s <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>
-(<a class="reference external" href="https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path">https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path</a>)
-for more details.</p></li>
-<li><p><strong>template</strong> (<a class="reference internal" href="torchtune.data.InstructTemplate.html#torchtune.data.InstructTemplate" title="torchtune.data.InstructTemplate"><em>InstructTemplate</em></a>) – template used to format the prompt. If the placeholder variable
-names in the template do not match the column/key names in the dataset, use <code class="docutils literal notranslate"><span class="pre">column_map</span></code> to map them.</p></li>
-<li><p><strong>transform</strong> (<em>Optional</em><em>[</em><em>Callable</em><em>]</em>) – transform to apply to the sample before formatting to the template.
-Default is None.</p></li>
-<li><p><strong>column_map</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em><em>]</em>) – a mapping from the expected placeholder names in the template
-to the column/key names in the sample. If None, assume these are identical.</p></li>
-<li><p><strong>max_seq_len</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – Maximum number of tokens in the returned input and label token id lists.
-Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
-and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.</p></li>
-<li><p><strong>**load_dataset_kwargs</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – additional keyword arguments to pass to <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>,
-such as <code class="docutils literal notranslate"><span class="pre">data_files</span></code> or <code class="docutils literal notranslate"><span class="pre">split</span></code>.</p></li>
-</ul>
+<dd class="field-odd"><p><strong>template</strong> (<em>Dict</em><em>[</em><em>Role</em><em>, </em><em>Tuple</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em><em>]</em>) – a dictionary mapping role to the
+prepend and append tags</p>
 </dd>
 </dl>
 </dd></dl>
@@ -453,10 +465,10 @@ such as <code class="docutils literal notranslate"><span class="pre">data_files<
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.datasets.SFTDataset.html" class="btn btn-neutral float-right" title="SFTDataset" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.data.PromptTemplateInterface.html" class="btn btn-neutral float-right" title="PromptTemplateInterface" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.datasets.PackedDataset.html" class="btn btn-neutral" title="PackedDataset" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.data.StackExchangedPairedTemplate.html" class="btn btn-neutral" title="StackExchangedPairedTemplate" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -488,7 +500,7 @@ such as <code class="docutils literal notranslate"><span class="pre">data_files<
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">PreferenceDataset</a></li>
+<li><a class="reference internal" href="#">PromptTemplate</a></li>
 </ul>
 
             </div>

@@ -410,16 +410,16 @@
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data._types</span> <span class="kn">import</span> <span class="n">Message</span>
+<span class="kn">from</span> <span class="nn">torchtune.data._messages</span> <span class="kn">import</span> <span class="n">Message</span>
 <span class="kn">from</span> <span class="nn">torchtune.data._utils</span> <span class="kn">import</span> <span class="n">truncate</span>
 
 
-<span class="k">class</span> <span class="nc">BaseTokenizer</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseTokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.BaseTokenizer.html#torchtune.modules.tokenizers.BaseTokenizer">[docs]</a><span class="k">class</span> <span class="nc">BaseTokenizer</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Abstract token encoding model that implements ``encode`` and ``decode`` methods.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<div class="viewcode-block" id="BaseTokenizer.encode"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.BaseTokenizer.html#torchtune.modules.tokenizers.BaseTokenizer.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Given a string, return the encoded list of token ids.</span>
 
@@ -430,9 +430,9 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            List[int]: The encoded list of token ids.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">pass</span>
+        <span class="k">pass</span></div>
 
-    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<div class="viewcode-block" id="BaseTokenizer.decode"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.BaseTokenizer.html#torchtune.modules.tokenizers.BaseTokenizer.decode">[docs]</a>    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Given a list of token ids, return the decoded text, optionally including special tokens.</span>
 
@@ -443,18 +443,19 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            str: The decoded text.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">pass</span>
+        <span class="k">pass</span></div></div>
 
 
-<span class="k">class</span> <span class="nc">ModelTokenizer</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<div class="viewcode-block" id="ModelTokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer">[docs]</a><span class="k">class</span> <span class="nc">ModelTokenizer</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Abstract tokenizer that implements model specific special token logic in</span>
 <span class="sd">    the ``tokenize_messages`` method.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">special_tokens</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
+    <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">tokenize_messages</span><span class="p">(</span>
+<div class="viewcode-block" id="ModelTokenizer.tokenize_messages"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer.tokenize_messages">[docs]</a>    <span class="k">def</span> <span class="nf">tokenize_messages</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -468,7 +469,7 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            Tuple[List[int], List[bool]]: The list of token ids and the list of masks.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">pass</span>
+        <span class="k">pass</span></div></div>
 
 
 <div class="viewcode-block" id="tokenize_messages_no_special_tokens"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.tokenize_messages_no_special_tokens.html#torchtune.modules.tokenizers.tokenize_messages_no_special_tokens">[docs]</a><span class="k">def</span> <span class="nf">tokenize_messages_no_special_tokens</span><span class="p">(</span>

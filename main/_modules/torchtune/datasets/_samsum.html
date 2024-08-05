@@ -407,18 +407,26 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">instruct_dataset</span><span class="p">,</span> <span class="n">InstructDataset</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">ModelTokenizer</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">InputOutputToMessages</span>
+<span class="kn">from</span> <span class="nn">torchtune.data._prompt_templates</span> <span class="kn">import</span> <span class="n">PromptTemplate</span><span class="p">,</span> <span class="n">SummarizeTemplate</span>
+<span class="kn">from</span> <span class="nn">torchtune.datasets._finetune</span> <span class="kn">import</span> <span class="n">SFTDataset</span>
+<span class="kn">from</span> <span class="nn">torchtune.datasets._packed</span> <span class="kn">import</span> <span class="n">PackedDataset</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
 
 
 <div class="viewcode-block" id="samsum_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.samsum_dataset.html#torchtune.datasets.samsum_dataset">[docs]</a><span class="k">def</span> <span class="nf">samsum_dataset</span><span class="p">(</span>
-    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
+    <span class="n">model_transform</span><span class="p">:</span> <span class="n">Transform</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;samsum&quot;</span><span class="p">,</span>
+    <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Samsung/samsum&quot;</span><span class="p">,</span>
+    <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">prompt_template</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PromptTemplate</span><span class="p">]</span> <span class="o">=</span> <span class="n">SummarizeTemplate</span><span class="p">(),</span>
     <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">packed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">split</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InstructDataset</span><span class="p">:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">SFTDataset</span><span class="p">,</span> <span class="n">PackedDataset</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Support for summarization datasets and their variants from Hugging Face Datasets.</span>
 <span class="sd">    An example is the `SAMsum dataset &lt;https://huggingface.co/datasets/samsum&gt;`_.</span>
@@ -435,15 +443,24 @@
 <span class="sd">    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.</span>
-<span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s `load_dataset`.</span>
+<span class="sd">        model_transform (Transform): model specific transform to convert a list of messages</span>
+<span class="sd">            output by the dataset to tokens. This will always be a :class:`~torchtune.modules.tokenizers.ModelTokenizer`.</span>
+<span class="sd">        source (str): path to dataset repository on Hugging Face. For local datasets,</span>
+<span class="sd">            define source as the data file type (e.g. &quot;json&quot;, &quot;csv&quot;, &quot;text&quot;) and pass</span>
+<span class="sd">            in the filepath in ``data_files``. See `Hugging Face&#39;s</span>
+<span class="sd">            &lt;https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path&gt;`_</span>
+<span class="sd">            ``load_dataset`` for more details. Default is ``Samsung/samsum``.</span>
+<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the prompt template</span>
+<span class="sd">            to the new column names in the dataset. If None, assume these are identical.</span>
+<span class="sd">        prompt_template (Optional[PromptTemplate]): optional template used to format the prompt. Default</span>
+<span class="sd">            is :class:`~torchtune.data.GrammarErrorCorrectionTemplate`.</span>
 <span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
 <span class="sd">        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.</span>
 <span class="sd">        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset</span>
 <span class="sd">            of a given split, e.g. ``split=&quot;train[:10%]&quot;``. Default is &quot;train&quot;.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        InstructDataset: dataset configured with source data and template</span>
+<span class="sd">        Union[SFTDataset, PackedDataset]: dataset configured with source data and template</span>
 
 
 <span class="sd">    Example:</span>
@@ -452,16 +469,18 @@
 <span class="sd">        &gt;&gt;&gt;     print(f&quot;Batch size: {len(batch)}&quot;)</span>
 <span class="sd">        &gt;&gt;&gt; Batch size: 8</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">return</span> <span class="n">instruct_dataset</span><span class="p">(</span>
-        <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+    <span class="n">column_map</span> <span class="o">=</span> <span class="n">column_map</span> <span class="ow">or</span> <span class="p">{</span><span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="s2">&quot;dialogue&quot;</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="s2">&quot;summary&quot;</span><span class="p">}</span>
+    <span class="n">message_transform</span> <span class="o">=</span> <span class="n">InputOutputToMessages</span><span class="p">(</span>
+        <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span> <span class="n">column_map</span><span class="o">=</span><span class="n">column_map</span>
+    <span class="p">)</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">SFTDataset</span><span class="p">(</span>
         <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
-        <span class="n">template</span><span class="o">=</span><span class="s2">&quot;torchtune.data.SummarizeTemplate&quot;</span><span class="p">,</span>
-        <span class="n">column_map</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="s2">&quot;summary&quot;</span><span class="p">},</span>
-        <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
-        <span class="n">packed</span><span class="o">=</span><span class="n">packed</span><span class="p">,</span>
+        <span class="n">message_transform</span><span class="o">=</span><span class="n">message_transform</span><span class="p">,</span>
+        <span class="n">model_transform</span><span class="o">=</span><span class="n">model_transform</span><span class="p">,</span>
+        <span class="n">prompt_template</span><span class="o">=</span><span class="n">prompt_template</span><span class="p">,</span>
         <span class="n">split</span><span class="o">=</span><span class="n">split</span><span class="p">,</span>
-    <span class="p">)</span></div>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">PackedDataset</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span> <span class="k">if</span> <span class="n">packed</span> <span class="k">else</span> <span class="n">ds</span></div>
 </pre></div>
 
              </article>

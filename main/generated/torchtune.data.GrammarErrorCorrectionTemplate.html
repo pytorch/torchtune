@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>GrammarErrorCorrectionTemplate &mdash; torchtune main documentation</title>
+  <title>torchtune.data.GrammarErrorCorrectionTemplate &mdash; torchtune main documentation</title>
   
 
   
@@ -41,7 +41,7 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="SummarizeTemplate" href="torchtune.data.SummarizeTemplate.html" />
+    <link rel="next" title="torchtune.data.SummarizeTemplate" href="torchtune.data.SummarizeTemplate.html" />
     <link rel="prev" title="AlpacaInstructTemplate" href="torchtune.data.AlpacaInstructTemplate.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -371,7 +371,7 @@
         
           <li><a href="../api_ref_data.html">torchtune.data</a> &gt;</li>
         
-      <li>GrammarErrorCorrectionTemplate</li>
+      <li>torchtune.data.GrammarErrorCorrectionTemplate</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -407,55 +407,18 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="grammarerrorcorrectiontemplate">
-<h1>GrammarErrorCorrectionTemplate<a class="headerlink" href="#grammarerrorcorrectiontemplate" title="Permalink to this heading">¶</a></h1>
-<dl class="py class">
+  <section id="torchtune-data-grammarerrorcorrectiontemplate">
+<h1>torchtune.data.GrammarErrorCorrectionTemplate<a class="headerlink" href="#torchtune-data-grammarerrorcorrectiontemplate" title="Permalink to this heading">¶</a></h1>
+<dl class="py data">
 <dt class="sig sig-object py" id="torchtune.data.GrammarErrorCorrectionTemplate">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.data.</span></span><span class="sig-name descname"><span class="pre">GrammarErrorCorrectionTemplate</span></span><a class="reference internal" href="../_modules/torchtune/data/_instruct_templates.html#GrammarErrorCorrectionTemplate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.data.GrammarErrorCorrectionTemplate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Prompt template for grammar correction datasets.</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Correct this to standard English: &lt;YOUR SENTENCE HERE&gt;
----
-Corrected:
+<span class="sig-prename descclassname"><span class="pre">torchtune.data.</span></span><span class="sig-name descname"><span class="pre">GrammarErrorCorrectionTemplate</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">functools.partial(&lt;class</span> <span class="pre">'torchtune.data._prompt_templates.PromptTemplate'&gt;,</span> <span class="pre">template={'user':</span> <span class="pre">('Correct</span> <span class="pre">this</span> <span class="pre">to</span> <span class="pre">standard</span> <span class="pre">English:</span> <span class="pre">',</span> <span class="pre">'\n---\nCorrected:</span> <span class="pre">')})</span></em><a class="headerlink" href="#torchtune.data.GrammarErrorCorrectionTemplate" title="Permalink to this definition">¶</a></dt>
+<dd><p>A prompt template for grammar error correction tasks:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Correct</span> <span class="n">this</span> <span class="n">to</span> <span class="n">standard</span> <span class="n">English</span><span class="p">:</span> <span class="p">{</span><span class="n">user_message</span><span class="p">}</span>
+<span class="o">---</span>
+<span class="n">Corrected</span><span class="p">:</span> <span class="p">{</span><span class="n">assistant_message</span><span class="p">}</span>
 </pre></div>
 </div>
-<dl class="py method">
-<dt class="sig sig-object py" id="torchtune.data.GrammarErrorCorrectionTemplate.format">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.12)"><span class="pre">Mapping</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></span><a class="reference internal" href="../_modules/torchtune/data/_instruct_templates.html#GrammarErrorCorrectionTemplate.format"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.data.GrammarErrorCorrectionTemplate.format" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate prompt from sentence.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>sample</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – a single data sample with sentence</p></li>
-<li><p><strong>column_map</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em><em>]</em>) – a mapping from the expected placeholder names
-in the template to the column names in the sample. If None, assume these are identical.</p></li>
-</ul>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Simple sentence</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">GrammarErrorCorrectionTemplate</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sample</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;sentence&quot;</span><span class="p">:</span> <span class="s2">&quot;The quik brown fox jumps the lazy dog&quot;</span><span class="p">})</span>
-<span class="go">Correct this to standard English: The quik brown fox jumps the lazy dog</span>
-<span class="go">---</span>
-<span class="go">Corrected:</span>
-</pre></div>
-</div>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Sentence with column map where the &#39;sentence&#39; key is actually named &#39;input&#39; in the given sample</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">GrammarErrorCorrectionTemplate</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">sample</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="s2">&quot;The quik brown fox jumps the lazy dog&quot;</span><span class="p">},</span>
-<span class="gp">... </span>    <span class="n">column_map</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;sentence&quot;</span><span class="p">:</span> <span class="s2">&quot;input&quot;</span><span class="p">}</span>
-<span class="gp">... </span><span class="p">)</span>
-<span class="go">Correct this to standard English: The quik brown fox jumps the lazy dog</span>
-<span class="go">---</span>
-<span class="go">Corrected:</span>
-</pre></div>
-</div>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>The formatted prompt</p>
-</dd>
-</dl>
-</dd></dl>
-
+<p>Please see <a class="reference internal" href="torchtune.data.PromptTemplate.html#torchtune.data.PromptTemplate" title="torchtune.data.PromptTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">PromptTemplate</span></code></a> for full API arguments.</p>
 </dd></dl>
 
 </section>
@@ -468,7 +431,7 @@ in the template to the column names in the sample. If None, assume these are ide
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.data.SummarizeTemplate.html" class="btn btn-neutral float-right" title="SummarizeTemplate" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.data.SummarizeTemplate.html" class="btn btn-neutral float-right" title="torchtune.data.SummarizeTemplate" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="torchtune.data.AlpacaInstructTemplate.html" class="btn btn-neutral" title="AlpacaInstructTemplate" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
@@ -503,7 +466,7 @@ in the template to the column names in the sample. If None, assume these are ide
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">GrammarErrorCorrectionTemplate</a></li>
+<li><a class="reference internal" href="#">torchtune.data.GrammarErrorCorrectionTemplate</a></li>
 </ul>
 
             </div>

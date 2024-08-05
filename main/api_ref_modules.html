@@ -458,6 +458,12 @@ model specific tokenizers.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.tokenizers.TikTokenBaseTokenizer.html#torchtune.modules.tokenizers.TikTokenBaseTokenizer" title="torchtune.modules.tokenizers.TikTokenBaseTokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tokenizers.TikTokenBaseTokenizer</span></code></a></p></td>
 <td><p>A lightweight wrapper around tiktoken Encoding.</p></td>
 </tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer" title="torchtune.modules.tokenizers.ModelTokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tokenizers.ModelTokenizer</span></code></a></p></td>
+<td><p>Abstract tokenizer that implements model specific special token logic in the <code class="docutils literal notranslate"><span class="pre">tokenize_messages</span></code> method.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.tokenizers.BaseTokenizer.html#torchtune.modules.tokenizers.BaseTokenizer" title="torchtune.modules.tokenizers.BaseTokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tokenizers.BaseTokenizer</span></code></a></p></td>
+<td><p>Abstract token encoding model that implements <code class="docutils literal notranslate"><span class="pre">encode</span></code> and <code class="docutils literal notranslate"><span class="pre">decode</span></code> methods.</p></td>
+</tr>
 </tbody>
 </table>
 </section>
@@ -538,19 +544,22 @@ model specific tokenizers.</p>
 <p>Functions used for preprocessing images.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.transforms.get_canvas_best_fit.html#torchtune.modules.transforms.get_canvas_best_fit" title="torchtune.modules.transforms.get_canvas_best_fit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transforms.get_canvas_best_fit</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.transforms.Transform.html#torchtune.modules.transforms.Transform" title="torchtune.modules.transforms.Transform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transforms.Transform</span></code></a></p></td>
+<td><p>Loose interface for all data and model transforms.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.transforms.get_canvas_best_fit.html#torchtune.modules.transforms.get_canvas_best_fit" title="torchtune.modules.transforms.get_canvas_best_fit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transforms.get_canvas_best_fit</span></code></a></p></td>
 <td><p>Determines the best canvas possible from a list of possible resolutions to resize an image to, without distortion.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.transforms.resize_with_pad.html#torchtune.modules.transforms.resize_with_pad" title="torchtune.modules.transforms.resize_with_pad"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transforms.resize_with_pad</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.transforms.resize_with_pad.html#torchtune.modules.transforms.resize_with_pad" title="torchtune.modules.transforms.resize_with_pad"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transforms.resize_with_pad</span></code></a></p></td>
 <td><p>Resizes and pads an image to target_size without causing distortion.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.transforms.tile_crop.html#torchtune.modules.transforms.tile_crop" title="torchtune.modules.transforms.tile_crop"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transforms.tile_crop</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.transforms.tile_crop.html#torchtune.modules.transforms.tile_crop" title="torchtune.modules.transforms.tile_crop"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transforms.tile_crop</span></code></a></p></td>
 <td><p>Divides a tensor into equally sized tiles.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.transforms.find_supported_resolutions.html#torchtune.modules.transforms.find_supported_resolutions" title="torchtune.modules.transforms.find_supported_resolutions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transforms.find_supported_resolutions</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.transforms.find_supported_resolutions.html#torchtune.modules.transforms.find_supported_resolutions" title="torchtune.modules.transforms.find_supported_resolutions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transforms.find_supported_resolutions</span></code></a></p></td>
 <td><p>Computes all combinations of resolutions, multiple of tile_size, that contain up to max_num_tiles.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.transforms.VisionCrossAttentionMask.html#torchtune.modules.transforms.VisionCrossAttentionMask" title="torchtune.modules.transforms.VisionCrossAttentionMask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transforms.VisionCrossAttentionMask</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.transforms.VisionCrossAttentionMask.html#torchtune.modules.transforms.VisionCrossAttentionMask" title="torchtune.modules.transforms.VisionCrossAttentionMask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transforms.VisionCrossAttentionMask</span></code></a></p></td>
 <td><p>Computes the cross-attention mask for text + image inputs.</p></td>
 </tr>
 </tbody>

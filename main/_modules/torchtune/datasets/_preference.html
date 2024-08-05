@@ -500,14 +500,14 @@
         <span class="c1"># TODO: Trunction differs from original DPO repo</span>
         <span class="c1"># in DPO: first truncate prompts, then responses</span>
         <span class="n">chosen_input_ids</span><span class="p">,</span> <span class="n">c_masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span>
-            <span class="n">chosen_message</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span>
+            <span class="n">chosen_message</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">chosen_labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
             <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">c_masks</span><span class="p">,</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">chosen_input_ids</span><span class="p">)</span>
         <span class="p">)</span>
 
         <span class="n">rejected_input_ids</span><span class="p">,</span> <span class="n">r_masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span>
-            <span class="n">rejected_message</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span>
+            <span class="n">rejected_message</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">rejected_labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
             <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">r_masks</span><span class="p">,</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">rejected_input_ids</span><span class="p">)</span>

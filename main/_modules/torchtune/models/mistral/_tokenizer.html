@@ -407,7 +407,7 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="p">(</span>
@@ -415,16 +415,19 @@
     <span class="n">SentencePieceBaseTokenizer</span><span class="p">,</span>
     <span class="n">tokenize_messages_no_special_tokens</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
 
 <span class="n">WHITESPACE_CHARS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\r</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\v</span><span class="s2">&quot;</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="MistralTokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.MistralTokenizer.html#torchtune.models.mistral.MistralTokenizer">[docs]</a><span class="k">class</span> <span class="nc">MistralTokenizer</span><span class="p">(</span><span class="n">ModelTokenizer</span><span class="p">):</span>
+<div class="viewcode-block" id="MistralTokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.MistralTokenizer.html#torchtune.models.mistral.MistralTokenizer">[docs]</a><span class="k">class</span> <span class="nc">MistralTokenizer</span><span class="p">(</span><span class="n">ModelTokenizer</span><span class="p">,</span> <span class="n">Transform</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Mistral&#39;s implementation of the SentencePiece tokenizer</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        path (str): Path to pretrained tokenizer file.</span>
+<span class="sd">        max_seq_len (Optional[int]): A max sequence length to truncate tokens to.</span>
+<span class="sd">            Default: None</span>
 
 <span class="sd">    Examples:</span>
 <span class="sd">        &gt;&gt;&gt; tokenizer = MistralTokenizer(&quot;/path/to/spm_model&quot;)</span>
@@ -436,6 +439,7 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_spm_model</span> <span class="o">=</span> <span class="n">SentencePieceBaseTokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
@@ -444,6 +448,8 @@
 
         <span class="c1"># During generation, stop when eos_id is encountered</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">stop_tokens</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">max_seq_len</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">eos_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -505,7 +511,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spm_model</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">token_ids</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MistralTokenizer.tokenize_messages"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.MistralTokenizer.html#torchtune.models.mistral.MistralTokenizer.tokenize_messages">[docs]</a>    <span class="k">def</span> <span class="nf">tokenize_messages</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span> <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Tokenize a list of messages one at a time then concatenate them,</span>
 <span class="sd">        returning a list of tokens and a list of masks.</span>
@@ -517,7 +523,7 @@
 <span class="sd">            beginning off the tokenized s2.</span>
 
 <span class="sd">        Example:</span>
-<span class="sd">            &gt;&gt;&gt; tokenizer = MistralTokenizer(tokenizer_path)</span>
+<span class="sd">            &gt;&gt;&gt; tokenizer = MistralTokenizer(tokenizer_path, max_seq_len)</span>
 <span class="sd">            &gt;&gt;&gt; messages = [</span>
 <span class="sd">                Message(role=&quot;system&quot;, content=&quot;system message\n&quot;, masked=True),</span>
 <span class="sd">                Message(role=&quot;user&quot;, content=&quot;user prompt\n&quot;, masked=True),</span>
@@ -525,7 +531,7 @@
 <span class="sd">            ]</span>
 
 <span class="sd">            &gt;&gt;&gt; # tokenize_messages encodes messages separately and concats</span>
-<span class="sd">            &gt;&gt;&gt; tokenizer.tokenize_messages(messages, max_seq_len)[0]</span>
+<span class="sd">            &gt;&gt;&gt; tokenizer.tokenize_messages(messages)[0]</span>
 <span class="sd">            [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]</span>
 
 
@@ -537,8 +543,6 @@
 <span class="sd">        Args:</span>
 <span class="sd">            messages (List[Message]): A list of messages, each containing role, content,</span>
 <span class="sd">                and masked attributes.</span>
-<span class="sd">            max_seq_len (Optional[int]): A max sequence length to truncate tokens to.</span>
-<span class="sd">                Default: None</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Tuple[List[int], List[bool]]: The tokenized messages</span>
@@ -548,8 +552,26 @@
             <span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">,</span>
             <span class="n">bos_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span><span class="p">,</span>
             <span class="n">eos_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">,</span>
-            <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
-        <span class="p">)</span></div></div>
+            <span class="n">max_seq_len</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply ``tokenize_messages`` to the &quot;messages&quot; field in the sample.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            sample (Mapping[str, Any]): A sample with a &quot;messages&quot; field containing</span>
+<span class="sd">                a List[Message] to tokenize</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Mapping[str, Any]: The sample with added &quot;tokens&quot; and &quot;mask&quot; fields</span>
+<span class="sd">                and the &quot;messages&quot; field removed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">messages</span> <span class="o">=</span> <span class="n">sample</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;messages&quot;</span><span class="p">)</span>
+        <span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+        <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tokens</span>
+        <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask</span>
+        <span class="k">return</span> <span class="n">sample</span></div>
 </pre></div>
 
              </article>
