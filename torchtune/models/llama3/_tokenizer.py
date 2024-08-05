@@ -134,6 +134,7 @@ class Llama3Tokenizer(ModelTokenizer):
         self,
         token_ids: List[int],
         truncate_at_eos: bool = True,
+        skip_special_tokens: bool = True,
     ) -> str:
         """
         Decode a list of token ids into a string.
@@ -142,11 +143,17 @@ class Llama3Tokenizer(ModelTokenizer):
             token_ids (List[int]): The list of token ids.
             truncate_at_eos (bool): Whether to truncate the string at the end of
                 sequence token. Default is True.
+            skip_special_tokens (bool): Whether to show or skip special tokens in the decoded string.
+                Default is True.
 
         Returns:
             str: The decoded string.
         """
-        return self.tt_model.decode(token_ids, truncate_at_eos=truncate_at_eos)
+        return self.tt_model.decode(
+            token_ids,
+            truncate_at_eos=truncate_at_eos,
+            skip_special_tokens=skip_special_tokens,
+        )
 
     def _tokenize_header(self, message: Message) -> List[int]:
         """

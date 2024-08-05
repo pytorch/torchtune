@@ -155,7 +155,6 @@ class InferenceRecipe:
                 temperature=cfg.temperature,
                 top_k=cfg.top_k,
                 stop_tokens=self._tokenizer.stop_tokens,
-                pad_id=self._tokenizer.pad_id,
                 custom_generate_next_token=custom_generate_next_token,
             )
             t = time.perf_counter() - t0
@@ -169,7 +168,6 @@ class InferenceRecipe:
             temperature=cfg.temperature,
             top_k=cfg.top_k,
             stop_tokens=self._tokenizer.stop_tokens,
-            pad_id=self._tokenizer.pad_id,
             custom_generate_next_token=custom_generate_next_token,
         )
         t = time.perf_counter() - t0

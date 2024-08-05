@@ -68,4 +68,4 @@ def padded_collate(
             (0, labels_seq_len - input_ids_seq_len),
             value=padding_idx,
         )
-    return {"tokens": input_ids, "labels": labels}
+    return {"tokens": input_ids.long(), "labels": labels.long()}
