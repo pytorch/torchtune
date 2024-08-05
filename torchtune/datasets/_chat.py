@@ -102,7 +102,7 @@ class ChatDataset(Dataset):
             messages = self.chat_format.format(messages)
         validate_messages(messages)
         tokens, mask = self._tokenizer.tokenize_messages(
-            messages, max_seq_len=self.max_seq_len
+            messages,
         )
         # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
         labels = list(np.where(mask, CROSS_ENTROPY_IGNORE_IDX, tokens))
@@ -112,8 +112,8 @@ class ChatDataset(Dataset):
 
 
 def chat_dataset(
-    *,
     tokenizer: ModelTokenizer,
+    *,
     source: str,
     conversation_style: str,
     chat_format: Optional[str] = None,

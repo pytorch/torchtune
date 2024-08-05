@@ -4,10 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from torchtune.data import Message, truncate
 from torchtune.modules.tokenizers import ModelTokenizer, SentencePieceBaseTokenizer
+from torchtune.modules.transforms import Transform
 
 PHI3_SPECIAL_TOKENS = {
     "<|endoftext|>": 32000,
@@ -24,7 +25,7 @@ PHI3_SPECIAL_TOKENS = {
 }
 
 
-class Phi3MiniTokenizer(ModelTokenizer):
+class Phi3MiniTokenizer(ModelTokenizer, Transform):
     """
     SentencePiece tokenizer configured with Phi3 Mini's special tokens.
 
@@ -33,6 +34,8 @@ class Phi3MiniTokenizer(ModelTokenizer):
         special_tokens (Optional[Dict[str, int]]): mapping containing special text tokens and
             their registered token IDs. If left as None, this will be set to the canonical
             Phi3 special tokens.
+        max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
+            Default: None
 
     Examples:
         >>> tokenizer = Phi3MiniTokenizer("/path/to/spm_model")
@@ -45,6 +48,7 @@ class Phi3MiniTokenizer(ModelTokenizer):
         self,
         path: str,
         special_tokens: Optional[Dict[str, int]] = None,
+        max_seq_len: Optional[int] = None,
     ):
         self._spm_model = SentencePieceBaseTokenizer(path)
 
@@ -58,6 +62,8 @@ class Phi3MiniTokenizer(ModelTokenizer):
 
         # During generation, stop when eos_id is encountered
         self.stop_tokens = [self.eos_id]
+
+        self.max_seq_len = max_seq_len
 
     @property
     def vocab_size(self):
@@ -103,7 +109,6 @@ class Phi3MiniTokenizer(ModelTokenizer):
     def tokenize_messages(
         self,
         messages: List[Message],
-        max_seq_len: Optional[int] = None,
         *,
         add_eos: bool = False,
         ignore_system_prompts: bool = True,
@@ -112,7 +117,7 @@ class Phi3MiniTokenizer(ModelTokenizer):
         returning a list of tokens and a list of masks.
 
         Example:
-            >>> tokenizer = Phi3MiniTokenizer(tokenizer_path)
+            >>> tokenizer = Phi3MiniTokenizer(tokenizer_path, max_seq_len)
             >>> messages = [
                 Message(role="system", content="system message\n", masked=True),
                 Message(role="user", content="user prompt\n", masked=True),
@@ -120,7 +125,7 @@ class Phi3MiniTokenizer(ModelTokenizer):
             ]
 
             >>> # tokenize_messages encodes messages separately and concats
-            >>> tokenizer.tokenize_messages(messages, max_seq_len)[0]
+            >>> tokenizer.tokenize_messages(messages)[0]
             [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]
 
             >>> # Same result as encoding the full string in one go
@@ -131,8 +136,6 @@ class Phi3MiniTokenizer(ModelTokenizer):
         Args:
             messages (List[Message]): A list of messages, each containing role, content,
                 and masked attributes.
-            max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
-                Default: None
             add_eos (bool): Whether to append EOS after assistant message, default to False
             ignore_system_prompts (bool): Whether to ignore system prompts. This matches the HF implementation, default to True.
 
@@ -210,12 +213,32 @@ class Phi3MiniTokenizer(ModelTokenizer):
                 start_of_turn = False
 
             # Break out early if we reach max_seq_len
-            if max_seq_len and len(tokenized_messages) >= max_seq_len:
+            if self.max_seq_len and len(tokenized_messages) >= self.max_seq_len:
                 break
 
         # Finally, truncate if necessary
-        if max_seq_len and len(tokenized_messages) >= max_seq_len:
-            tokenized_messages = truncate(tokenized_messages, max_seq_len, self.eos_id)
-            mask = truncate(mask, max_seq_len, message.masked)
+        if self.max_seq_len and len(tokenized_messages) >= self.max_seq_len:
+            tokenized_messages = truncate(
+                tokenized_messages, self.max_seq_len, self.eos_id
+            )
+            mask = truncate(mask, self.max_seq_len, message.masked)
 
         return tokenized_messages, mask
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        """
+        Apply ``tokenize_messages`` to the "messages" field in the sample.
+
+        Args:
+            sample (Mapping[str, Any]): A sample with a "messages" field containing
+                a List[Message] to tokenize
+
+        Returns:
+            Mapping[str, Any]: The sample with added "tokens" and "mask" fields
+                and the "messages" field removed.
+        """
+        messages = sample.pop("messages")
+        tokens, mask = self.tokenize_messages(messages)
+        sample["tokens"] = tokens
+        sample["mask"] = mask
+        return sample

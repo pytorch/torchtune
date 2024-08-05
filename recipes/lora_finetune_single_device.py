@@ -428,13 +428,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
-                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer)
+                config.instantiate(single_cfg_dataset, self._tokenizer)
                 for single_cfg_dataset in cfg_dataset
             ]
             ds = ConcatDataset(datasets=datasets)
             packed = False
         else:
-            ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+            ds = config.instantiate(cfg_dataset, self._tokenizer)
             packed = cfg_dataset.get("packed", False)
 
         sampler = DistributedSampler(

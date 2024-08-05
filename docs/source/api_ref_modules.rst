@@ -35,6 +35,8 @@ model specific tokenizers.
 
     tokenizers.SentencePieceBaseTokenizer
     tokenizers.TikTokenBaseTokenizer
+    tokenizers.ModelTokenizer
+    tokenizers.BaseTokenizer
 
 Tokenizer Utilities
 -------------------
@@ -94,6 +96,7 @@ Functions used for preprocessing images.
    :toctree: generated/
    :nosignatures:
 
+    transforms.Transform
     transforms.get_canvas_best_fit
     transforms.resize_with_pad
     transforms.tile_crop
