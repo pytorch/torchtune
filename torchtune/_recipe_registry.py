@@ -52,16 +52,16 @@ _ALL_RECIPES = [
                 file_path="phi3/mini_full_low_memory.yaml",
             ),
             Config(
-                name="qwen2/7B_full_low_memory",
-                file_path="qwen2/7B_full_low_memory.yaml",
+                name="qwen2/7B_full_single_device",
+                file_path="qwen2/7B_full_single_device.yaml",
             ),
             Config(
-                name="qwen2/0.5B_full_low_memory",
-                file_path="qwen2/0.5B_full_low_memory.yaml",
+                name="qwen2/0.5B_full_single_device",
+                file_path="qwen2/0.5B_full_single_device.yaml",
             ),
             Config(
-                name="qwen2/1.5B_full_low_memory",
-                file_path="qwen2/1.5B_full_low_memory.yaml",
+                name="qwen2/1.5B_full_single_device",
+                file_path="qwen2/1.5B_full_single_device.yaml",
             ),
         ],
         supports_distributed=False,
