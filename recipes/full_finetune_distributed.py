@@ -319,7 +319,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Wrap the model with FSDP. This will ensure that the model is sharded
         # across all available GPUs.
-        print("====self.device: ", self._device)
         model = FSDP(
             module=model,
             auto_wrap_policy=utils.get_full_finetune_fsdp_wrap_policy(

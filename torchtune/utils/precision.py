@@ -20,7 +20,8 @@ PRECISION_STR_TO_DTYPE: Dict[str, torch.dtype] = {
     "fp32": torch.float32,
     "fp64": torch.float64,
 }
-import intel_extension_for_pytorch
+if torch.xpu.is_available():
+    import intel_extension_for_pytorch
 
 
 def _set_float32_precision(precision: str = "high") -> None:

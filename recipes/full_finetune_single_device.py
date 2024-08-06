@@ -97,8 +97,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-        print("=====cfg: ", cfg)
-        print("=====cfg.device: ", cfg.device)
         self._device = utils.get_device(device=cfg.device)
         self._dtype = utils.get_dtype(cfg.dtype, device=self._device)
         # Disable for fp16, as we haven't validated "full" fp16 with this recipe, nor
@@ -261,10 +259,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
     ) -> nn.Module:
         """
         Set up the model including enabling activation checkpointing.
-        """
-        
-        memory_stats = utils.get_memory_stats(device=self._device)
-        
+        """        
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
 
