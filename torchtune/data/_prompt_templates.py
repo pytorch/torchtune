@@ -119,6 +119,7 @@ class PromptTemplate(PromptTemplateInterface):
             )
         return formatted_dialogue
 
+
 class Llama2ChatTemplate(PromptTemplateInterface):
     """
     Prompt template that formats chat data of human and system prompts with appropriate tags
@@ -195,7 +196,7 @@ class Llama2ChatTemplate(PromptTemplateInterface):
 
 class MistralChatTemplate(PromptTemplateInterface):
     """
-    Formats according to `Mistral's instruct model
+    Formats according to Mistral's `instruct model
     <https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1#instruction-format>`_.
 
     It is identical to :class:`~torchtune.data.Llama2ChatTemplate`, except it does not support system
