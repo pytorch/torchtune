@@ -185,7 +185,7 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         for item in message.content:
             if item["type"] == "text":
                 tokenized_body += self.encode(
-                    item["content"], add_bos=False, add_eos=False
+                    item["content"].strip(), add_bos=False, add_eos=False
                 )
             elif item["type"] == "image":
                 tokenized_body += [self.image_id]
