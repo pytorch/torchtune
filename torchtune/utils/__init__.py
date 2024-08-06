@@ -102,4 +102,5 @@ __all__ = [
     "setup_torch_profiler",
     "get_quantizer_mode",
     "generate",
+    "generate_next_token",
 ]
