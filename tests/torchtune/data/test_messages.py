@@ -6,7 +6,11 @@
 
 import pytest
 from tests.test_utils import assert_dialogue_equal
-from torchtune.data._messages import InputOutputToMessages, Message
+from torchtune.data._messages import (
+    ChosenRejectedToMessages,
+    InputOutputToMessages,
+    Message,
+)
 
 
 class TestMessage:
@@ -93,3 +97,56 @@ class TestInputOutputToMessages:
             Message(role="assistant", content="hello world", masked=False, eot=True),
         ]
         assert_dialogue_equal(actual["messages"], expected)
+
+
+class TestChosenRejectedToMessages:
+    @pytest.fixture
+    def sample(self):
+        return {
+            "maybe_prompt": "hello world",
+            "maybe_chosen": "hello world",
+            "maybe_rejected": "bye world",
+        }
+
+    def test_call(self, sample):
+        transform = ChosenRejectedToMessages(
+            column_map={
+                "prompt": "maybe_prompt",
+                "chosen": "maybe_chosen",
+                "rejected": "maybe_rejected",
+            },
+        )
+        actual = transform(sample)
+        expected_chosen = [
+            Message(role="user", content="hello world", masked=True, eot=False),
+            Message(role="assistant", content="hello world", masked=False, eot=True),
+        ]
+        assert_dialogue_equal(actual["chosen"], expected_chosen)
+
+        expected_rejected = [
+            Message(role="user", content="hello world", masked=True, eot=False),
+            Message(role="assistant", content="bye world", masked=False, eot=True),
+        ]
+        assert_dialogue_equal(actual["rejected"], expected_rejected)
+
+    def test_call_train_on_input(self, sample):
+        transform = ChosenRejectedToMessages(
+            column_map={
+                "prompt": "maybe_prompt",
+                "chosen": "maybe_chosen",
+                "rejected": "maybe_rejected",
+            },
+            train_on_input=True,
+        )
+        actual = transform(sample)
+        expected_chosen = [
+            Message(role="user", content="hello world", masked=False, eot=False),
+            Message(role="assistant", content="hello world", masked=False, eot=True),
+        ]
+        assert_dialogue_equal(actual["chosen"], expected_chosen)
+
+        expected_rejected = [
+            Message(role="user", content="hello world", masked=False, eot=False),
+            Message(role="assistant", content="bye world", masked=False, eot=True),
+        ]
+        assert_dialogue_equal(actual["rejected"], expected_rejected)
