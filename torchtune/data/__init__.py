@@ -19,7 +19,10 @@ from torchtune.data._instruct_templates import (
 )
 from torchtune.data._messages import InputOutputToMessages, Message, Role
 from torchtune.data._prompt_templates import (
+    ChatMLTemplate,
     GrammarErrorCorrectionTemplate,
+    Llama2ChatTemplate,
+    MistralChatTemplate,
     PromptTemplate,
     PromptTemplateInterface,
     SummarizeTemplate,
@@ -46,4 +49,7 @@ __all__ = [
     "PromptTemplateInterface",
     "PromptTemplate",
     "InputOutputToMessages",
+    "ChatMLTemplate",
+    "Llama2ChatTemplate",
+    "MistralChatTemplate",
 ]

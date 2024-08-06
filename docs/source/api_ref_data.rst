@@ -25,6 +25,9 @@ and models.
     StackExchangedPairedTemplate
     PromptTemplate
     PromptTemplateInterface
+    ChatMLTemplate
+    Llama2ChatTemplate
+    MistralChatTemplate
 
     ChatFormat
     ChatMLFormat
