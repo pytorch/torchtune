@@ -38,7 +38,7 @@ the building blocks simple.
 """
 
 
-# ------------------ Vanilla Llama3 ------------------
+# ------------------ Vanilla Llama3.1 ------------------
 
 def llama3_1(
     vocab_size: int,
@@ -127,7 +127,7 @@ def llama3_mlp(dim: int, hidden_dim: int) -> FeedForward:
 
 
 
-# ------------------ LoRA Llama3 ------------------
+# ------------------ LoRA Llama3.1 ------------------
 
 
 def lora_llama3_1(
@@ -135,7 +135,7 @@ def lora_llama3_1(
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
     *,
-    # llama3 args
+    # llama3.1 args
     vocab_size: int,
     num_layers: int,
     num_heads: int,
