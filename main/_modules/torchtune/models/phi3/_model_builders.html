@@ -409,6 +409,7 @@
 <span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">TransformerDecoder</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">parse_hf_tokenizer_json</span>
 
 
 <span class="sd">&quot;&quot;&quot;</span>
@@ -441,7 +442,7 @@
         <span class="n">norm_eps</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
     <span class="p">)</span></div>
 
-<div class="viewcode-block" id="phi3_mini_tokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.phi3.phi3_mini_tokenizer.html#torchtune.models.phi3.phi3_mini_tokenizer">[docs]</a><span class="k">def</span> <span class="nf">phi3_mini_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">special_tokens_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Phi3MiniTokenizer</span><span class="p">:</span>
+<div class="viewcode-block" id="phi3_mini_tokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.phi3.phi3_mini_tokenizer.html#torchtune.models.phi3.phi3_mini_tokenizer">[docs]</a><span class="k">def</span> <span class="nf">phi3_mini_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">special_tokens_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Phi3MiniTokenizer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Phi-3 Mini tokenizer.</span>
 <span class="sd">    Ref: https://huggingface.co/microsoft/Phi-3-mini-4k-instruct/blob/main/tokenizer_config.json</span>
 
@@ -450,6 +451,8 @@
 <span class="sd">        special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face</span>
 <span class="sd">            model files that contains all registered special tokens, or a local json file </span>
 <span class="sd">            structured similarly. Default is None to use the canonical Phi3 special tokens.</span>
+<span class="sd">        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,</span>
+<span class="sd">            after which the input will be truncated. Default is None.</span>
 
 <span class="sd">    Note:</span>
 <span class="sd">        This tokenizer includes typical LM EOS and BOS tokens like</span>
@@ -461,7 +464,7 @@
 <span class="sd">        Phi3MiniSentencePieceBaseTokenizer: Instantiation of the SPM tokenizer.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">special_tokens</span> <span class="o">=</span> <span class="n">parse_hf_tokenizer_json</span><span class="p">(</span><span class="n">special_tokens_path</span><span class="p">)</span> <span class="k">if</span> <span class="n">special_tokens_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
-    <span class="k">return</span> <span class="n">Phi3MiniTokenizer</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">special_tokens</span><span class="o">=</span><span class="n">special_tokens</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">Phi3MiniTokenizer</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">special_tokens</span><span class="o">=</span><span class="n">special_tokens</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="lora_phi3_mini"><a class="viewcode-back" href="../../../../generated/torchtune.models.phi3.lora_phi3_mini.html#torchtune.models.phi3.lora_phi3_mini">[docs]</a><span class="k">def</span> <span class="nf">lora_phi3_mini</span><span class="p">(</span>

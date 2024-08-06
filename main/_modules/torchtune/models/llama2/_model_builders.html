@@ -406,7 +406,7 @@
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.models.llama2._component_builders</span> <span class="kn">import</span> <span class="n">llama2</span><span class="p">,</span> <span class="n">lora_llama2</span><span class="p">,</span> <span class="n">llama2_classifier</span><span class="p">,</span> <span class="n">lora_llama2_classifier</span>
@@ -443,17 +443,19 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="llama2_tokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.llama2_tokenizer.html#torchtune.models.llama2.llama2_tokenizer">[docs]</a><span class="k">def</span> <span class="nf">llama2_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Llama2Tokenizer</span><span class="p">:</span>
+<div class="viewcode-block" id="llama2_tokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.llama2_tokenizer.html#torchtune.models.llama2.llama2_tokenizer">[docs]</a><span class="k">def</span> <span class="nf">llama2_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Llama2Tokenizer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Tokenizer for Llama2.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        path (str): path to the tokenizer</span>
+<span class="sd">        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,</span>
+<span class="sd">            after which the input will be truncated. Default is None.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Llama2Tokenizer: Instantiation of the Llama2 tokenizer</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">Llama2Tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">Llama2Tokenizer</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="lora_llama2_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.lora_llama2_7b.html#torchtune.models.llama2.lora_llama2_7b">[docs]</a><span class="k">def</span> <span class="nf">lora_llama2_7b</span><span class="p">(</span>

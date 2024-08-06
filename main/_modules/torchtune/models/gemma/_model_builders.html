@@ -406,7 +406,7 @@
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.models.gemma._component_builders</span> <span class="kn">import</span> <span class="n">gemma</span><span class="p">,</span> <span class="n">lora_gemma</span>
 <span class="kn">from</span> <span class="nn">torchtune.models.gemma.transformer</span> <span class="kn">import</span> <span class="n">GemmaTransformerDecoder</span>
@@ -444,17 +444,19 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="gemma_tokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma.gemma_tokenizer.html#torchtune.models.gemma.gemma_tokenizer">[docs]</a><span class="k">def</span> <span class="nf">gemma_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GemmaTokenizer</span><span class="p">:</span>
+<div class="viewcode-block" id="gemma_tokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma.gemma_tokenizer.html#torchtune.models.gemma.gemma_tokenizer">[docs]</a><span class="k">def</span> <span class="nf">gemma_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GemmaTokenizer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Tokenizer for Gemma.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        path (str): path to the tokenizer</span>
+<span class="sd">        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,</span>
+<span class="sd">            after which the input will be truncated. Default is None.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        GemmaTokenizer: Instantiation of the Gemma tokenizer</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">GemmaTokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">GemmaTokenizer</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="lora_gemma_2b"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma.lora_gemma_2b.html#torchtune.models.gemma.lora_gemma_2b">[docs]</a><span class="k">def</span> <span class="nf">lora_gemma_2b</span><span class="p">(</span>
