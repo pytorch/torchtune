@@ -113,6 +113,20 @@ class Message:
 
 
 class InputOutputToMessages(Transform):
+    """
+    Message transform class that converts a sample with "input" and "output" fields,
+    (or equivalent fields specified in column_map) to user and assistant messages,
+    respectively. This is useful for datasets that have two columns, one containing
+    the user prompt and the other containing the model response.
+
+    Args:
+        train_on_input (bool): Whether the model is trained on the user prompt or not.
+            Default is False.
+        column_map (Optional[Dict[str, str]]): a mapping to change the expected "input"
+            and "output" column names to the actual column names in the dataset. Default is None,
+            keeping the default "input" and "output" column names.
+    """
+
     def __init__(
         self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None
     ):

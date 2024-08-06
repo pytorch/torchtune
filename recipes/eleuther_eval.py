@@ -130,6 +130,12 @@ class _EvalWrapper(HFLM):
     ) -> torch.Tensor:
         curr_batch_size = context.size(0)
 
+        if curr_batch_size > 1:
+            raise ValueError(
+                f"Got a batch size of '{curr_batch_size}'. Batch size > 1 is not supported for "
+                "generation. See https://github.com/pytorch/torchtune/issues/1250 for more info."
+            )
+
         # Setup caches for a given batch size
         # Technically this is not necessary, but it's a good way to ensure that
         # the caches won't error on a different batch size. In addition, caches
@@ -150,7 +156,6 @@ class _EvalWrapper(HFLM):
             self._model,
             context,
             max_generated_tokens=self.max_gen_toks,
-            pad_id=self._tokenizer.pad_id,
             temperature=temperature,
             top_k=None,  # do_sample is not supported currently
             stop_tokens=self._tokenizer.stop_tokens,

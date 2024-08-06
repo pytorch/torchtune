@@ -24,10 +24,11 @@ from torchtune.data._messages import (
     Role,
 )
 from torchtune.data._prompt_templates import (
-    CustomPromptTemplate,
+    PromptTemplateInterface,
     GrammarErrorCorrectionTemplate,
     PromptTemplate,
     SummarizeTemplate,
+    QuestionAnswerTemplate,
 )
 from torchtune.data._utils import truncate, validate_messages
 
@@ -48,8 +49,9 @@ __all__ = [
     "validate_messages",
     "StackExchangedPairedTemplate",
     "Role",
-    "CustomPromptTemplate",
+    "PromptTemplateInterface",
     "PromptTemplate",
     "InputOutputToMessages",
     "ChosenRejectedToMessages",
+    "QuestionAnswerTemplate",
 ]

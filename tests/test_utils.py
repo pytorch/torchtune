@@ -19,7 +19,7 @@ import pytest
 
 import torch
 from torch import nn
-from torchtune.data import ChatFormat, CustomPromptTemplate, Message, truncate
+from torchtune.data import ChatFormat, Message, PromptTemplate, truncate
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
 
@@ -31,6 +31,7 @@ CKPT_MODEL_PATHS = {
     "llama2_tune": "/tmp/test-artifacts/small-ckpt-tune-03082024.pt",
     "llama2_meta": "/tmp/test-artifacts/small-ckpt-meta-03082024.pt",
     "llama2_hf": "/tmp/test-artifacts/small-ckpt-hf-03082024.pt",
+    "llama2_reward_hf": "/tmp/test-artifacts/small-ckpt-hf-reward-07122024.pt",
     "llama3_tune": "/tmp/test-artifacts/small-ckpt-tune-llama3-05052024.pt",
     "llama2_7b": "/tmp/test-artifacts/llama2-7b-torchtune.pt",
 }
@@ -42,6 +43,9 @@ TOKENIZER_PATHS = {
 
 
 class DummyTokenizer(ModelTokenizer, Transform):
+    def __init__(self, max_seq_len: Optional[int] = None):
+        self.max_seq_len = max_seq_len
+
     def encode(self, text, add_bos=True, add_eos=True, **kwargs) -> List[int]:
         words = text.split()
         tokens = [len(word) for word in words]
@@ -52,7 +56,8 @@ class DummyTokenizer(ModelTokenizer, Transform):
         return tokens
 
     def tokenize_messages(
-        self, messages: List[Message], max_seq_len: Optional[int] = None
+        self,
+        messages: List[Message],
     ) -> Tuple[List[int], List[bool]]:
         """
         A simplified version of Llama2Tokenizer's ``tokenize_messages`` for testing purposes.
@@ -95,13 +100,15 @@ class DummyTokenizer(ModelTokenizer, Transform):
                 start_of_turn = False
 
             # Break out early if we reach max_seq_len
-            if max_seq_len and len(tokenized_messages) >= max_seq_len:
+            if self.max_seq_len and len(tokenized_messages) >= self.max_seq_len:
                 break
 
         # Finally, truncate if necessary
-        if max_seq_len:
-            tokenized_messages = truncate(tokenized_messages, max_seq_len, self.eos_id)
-            mask = truncate(mask, max_seq_len, message.masked)
+        if self.max_seq_len:
+            tokenized_messages = truncate(
+                tokenized_messages, self.max_seq_len, self.eos_id
+            )
+            mask = truncate(mask, self.max_seq_len, message.masked)
 
         return tokenized_messages, mask
 
@@ -152,7 +159,7 @@ class DummyChatFormat(ChatFormat):
 
 
 DummyPromptTemplate = partial(
-    CustomPromptTemplate,
+    PromptTemplate,
     template={
         "system": ("System:\n", "\n"),
         "user": ("User:\n", "\n"),

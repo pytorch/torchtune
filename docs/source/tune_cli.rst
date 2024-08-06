@@ -34,6 +34,8 @@ The ``--help`` option is convenient for getting more details about any command. 
 available options and their details. For example, ``tune download --help`` provides more information on how
 to download files using the CLI.
 
+.. _tune_download_label:
+
 Download a model
 ----------------
 
@@ -102,6 +104,8 @@ with matching names. By default we ignore safetensor files, but if you want to i
     built-in recipes or configs. For a list of supported model families and architectures, see :ref:`models<models>`.
 
 
+.. _tune_ls_label:
+
 List built-in recipes and configs
 ---------------------------------
 
@@ -123,11 +127,13 @@ The ``tune ls`` command lists out all the built-in recipes and configs within to
                                              llama3/70B_full
     ...
 
+.. _tune_cp_cli_label:
+
 Copy a built-in recipe or config
 --------------------------------
 
 The ``tune cp <recipe|config> <path>`` command copies built-in recipes and configs to a provided location. This allows you to make a local copy of a library
-recipe or config to edit directly for yourself.
+recipe or config to edit directly for yourself. See :ref:`here <tune_cp_label>` for an example of how to use this command.
 
 .. list-table::
    :widths: 30 60
@@ -200,6 +206,8 @@ Further information on config overrides can be found :ref:`here  <cli_override>`
 .. code-block:: bash
 
   tune run <RECIPE> --config <CONFIG> epochs=1
+
+.. _validate_cli_label:
 
 Validate a config
 -----------------
