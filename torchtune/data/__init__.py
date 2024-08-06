@@ -17,17 +17,11 @@ from torchtune.data._instruct_templates import (
     InstructTemplate,
     StackExchangedPairedTemplate,
 )
-from torchtune.data._messages import (
-    InputOutputToMessages,
-    JSONToMessages,
-    Message,
-    Role,
-    ShareGPTToMessages,
-)
+from torchtune.data._messages import InputOutputToMessages, Message, Role
 from torchtune.data._prompt_templates import (
-    CustomPromptTemplate,
     GrammarErrorCorrectionTemplate,
     PromptTemplate,
+    PromptTemplateInterface,
     SummarizeTemplate,
 )
 from torchtune.data._utils import truncate, validate_messages
@@ -49,9 +43,7 @@ __all__ = [
     "validate_messages",
     "StackExchangedPairedTemplate",
     "Role",
-    "CustomPromptTemplate",
+    "PromptTemplateInterface",
     "PromptTemplate",
     "InputOutputToMessages",
-    "get_openai_messages",
-    "get_sharegpt_messages",
 ]

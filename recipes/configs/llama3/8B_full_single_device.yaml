@@ -72,6 +72,6 @@ dtype: bf16
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
-output_dir: /tmp/alpaca-llama3-finetune
+output_dir: /tmp/full-llama3-finetune
 log_every_n_steps: 1
 log_peak_memory_stats: False

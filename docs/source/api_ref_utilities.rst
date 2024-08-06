@@ -115,7 +115,6 @@ Utilities for working with data and datasets.
     :nosignatures:
 
     padded_collate
-    padded_collate_dpo
 
 .. _gen_label:
 

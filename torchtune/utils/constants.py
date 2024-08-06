@@ -22,3 +22,7 @@ SEED_KEY = "seed"
 # total number of epochs for training; resumed training runs for
 # (total_epochs - epochs_run) number of epochs
 TOTAL_EPOCHS_KEY = "total_epochs"
+# number of steps completed thus far - for PPO
+STEPS_KEY = "steps_run"
+# rng state for ensuring correct training resuming in PPO
+RNG_KEY = "rng_state"
