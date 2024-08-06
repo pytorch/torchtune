@@ -194,7 +194,6 @@ class TestLlama3Tokenizer:
             376,
             110,
             46,
-            32,
             128011,
             1542,
             720,
