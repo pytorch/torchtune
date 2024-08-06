@@ -21,8 +21,7 @@ model:
   _component_: torchtune.models.qwen2.lora_qwen2_1_5b
   lora_attn_modules: ['q_proj', 'v_proj']
   apply_lora_to_mlp: False
-  apply_lora_to_output: False
-  lora_rank: 8
+  lora_rank: 64
   lora_alpha: 16
 
 tokenizer:
@@ -51,8 +50,8 @@ batch_size: 2
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
-  weight_decay: 0.01
-  lr: 3e-4
+  lr: 2e-5
+
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
@@ -63,7 +62,7 @@ loss:
 # Training
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 64
+gradient_accumulation_steps: 1
 compile: False
 
 # Logging
@@ -77,7 +76,7 @@ log_peak_memory_stats: False
 # Environment
 device: cuda
 dtype: bf16
-enable_activation_checkpointing: True
+enable_activation_checkpointing: False
 
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training

@@ -95,8 +95,10 @@ def qwen2_1_5b() -> TiedEmbeddingTransformerDecoder:
 
 
 def qwen2_tokenizer(
-        path: str, merges_file: str = None, special_tokens_path: Optional[str] = None,
-        **kwargs,
+    path: str,
+    merges_file: str = None,
+    special_tokens_path: Optional[str] = None,
+    **kwargs,
 ) -> Qwen2Tokenizer:
     """
     Tokenizer for Qwen2.
@@ -170,7 +172,6 @@ def lora_qwen2_7b(
 def lora_qwen2_0_5b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
-    apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
     lora_dropout: float = 0.05,
@@ -189,8 +190,6 @@ def lora_qwen2_0_5b(
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
             Default: False
-        apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
-            Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         quantize_base (bool): Whether to quantize base model weights
@@ -205,7 +204,7 @@ def lora_qwen2_0_5b(
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
-        apply_lora_to_output=apply_lora_to_output,
+        apply_lora_to_output=False,
         vocab_size=151936,
         num_layers=24,
         num_heads=14,
@@ -227,7 +226,6 @@ def lora_qwen2_0_5b(
 def lora_qwen2_1_5b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
-    apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
     lora_dropout: float = 0.05,
@@ -246,8 +244,6 @@ def lora_qwen2_1_5b(
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
             Default: False
-        apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
-            Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         quantize_base (bool): Whether to quantize base model weights
@@ -262,7 +258,7 @@ def lora_qwen2_1_5b(
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
-        apply_lora_to_output=apply_lora_to_output,
+        apply_lora_to_output=False,
         vocab_size=151936,
         num_layers=28,
         num_heads=12,

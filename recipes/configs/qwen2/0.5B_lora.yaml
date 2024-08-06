@@ -24,7 +24,7 @@ model:
   lora_attn_modules: ['q_proj', 'v_proj']
   apply_lora_to_mlp: False
   apply_lora_to_output: False
-  lora_rank: 8
+  lora_rank: 64
   lora_alpha: 16
 
 tokenizer:
@@ -46,6 +46,7 @@ resume_from_checkpoint: False
 # Dataset and Sampler
 dataset:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
+
 seed: null
 shuffle: True
 batch_size: 2
@@ -54,7 +55,8 @@ batch_size: 2
 optimizer:
   _component_: torch.optim.AdamW
   weight_decay: 0.01
-  lr: 3e-4
+  lr: 2e-5
+
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
@@ -65,13 +67,14 @@ loss:
 # Training
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 32
+gradient_accumulation_steps: 1
 
 # Logging
 output_dir: /tmp/Qwen2-0.5B-Instruct-lora-finetune
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
+
 log_every_n_steps: 1
 log_peak_memory_stats: False
 

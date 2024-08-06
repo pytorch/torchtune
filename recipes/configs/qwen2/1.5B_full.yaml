@@ -46,21 +46,21 @@ resume_from_checkpoint: False
 
 # Fine-tuning arguments
 batch_size: 2
-epochs: 1
+epochs: 3
 optimizer:
   _component_: torch.optim.AdamW
-  lr: 5e-6
+  lr: 2e-5
 loss:
   _component_: torch.nn.CrossEntropyLoss
 max_steps_per_epoch: null
-gradient_accumulation_steps: 16
+gradient_accumulation_steps: 1
 
 
 # Training env
 device: cuda
 
 # Memory management
-enable_activation_checkpointing: True
+enable_activation_checkpointing: False
 memory_efficient_fsdp_wrap: False
 
 # Reduced precision

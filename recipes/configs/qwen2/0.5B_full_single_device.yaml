@@ -48,22 +48,22 @@ resume_from_checkpoint: False
 
 # Fine-tuning arguments
 batch_size: 2
-epochs: 1
+epochs: 3
 optimizer:
-  _component_: bitsandbytes.optim.PagedAdamW
-  lr: 5e-6
-optimizer_in_bwd: True
+  _component_: torch.optim.AdamW
+  lr: 2e-5
+
 loss:
   _component_: torch.nn.CrossEntropyLoss
 max_steps_per_epoch: null
-gradient_accumulation_steps: 16
+gradient_accumulation_steps: 1
 compile: False
 
 # Training environment
 device: cuda
 
 # Memory management
-enable_activation_checkpointing: True
+enable_activation_checkpointing: False
 
 # Reduced precision
 dtype: bf16
