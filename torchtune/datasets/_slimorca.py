@@ -4,12 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
-from torch.utils.data import Dataset
 from torchtune.data import PromptTemplate, ShareGPTToMessages
 
-from torchtune.datasets._finetune import FinetuneDataset
+from torchtune.datasets._finetune import SFTDataset
 from torchtune.datasets._packed import PackedDataset
 from torchtune.modules.transforms import Transform
 
@@ -23,7 +22,7 @@ def slimorca_dataset(
     train_on_input: bool = False,
     packed: bool = False,
     split: str = "train",
-) -> Dataset:
+) -> Union[SFTDataset, PackedDataset]:
     """
     Support for `SlimOrca-style <https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup>`_
     family of conversational datasets.
@@ -39,9 +38,9 @@ def slimorca_dataset(
             output by the dataset to tokens. This will always be a :class:`~torchtune.modules.tokenizers.ModelTokenizer`.
         source (str): path to dataset repository on Hugging Face. For local datasets,
             define source as the data file type (e.g. "json", "csv", "text") and pass
-            in the filepath in ``data_files``. See Hugging Face's ``load_dataset``
-            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
-            for more details. Default is ``Open-Orca/SlimOrca-Dedup``.
+            in the filepath in ``data_files``. See `Hugging Face's
+            <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
+            ``load_dataset`` for more details. Default is ``Open-Orca/SlimOrca-Dedup``.
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the prompt template
             to the new column names in the dataset. If None, assume these are identical.
         prompt_template (Optional[PromptTemplate]): optional template used to format the prompt. Default
@@ -52,7 +51,7 @@ def slimorca_dataset(
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
 
     Returns:
-        Dataset: dataset configured with SlimOrca source data
+        Union[SFTDataset, PackedDataset]: dataset configured with SlimOrca source data
 
     Example:
         >>> ds = slimorca_dataset(tokenizer=tokenizer, max_seq_len=10)
@@ -68,7 +67,7 @@ def slimorca_dataset(
     message_transform = ShareGPTToMessages(
         train_on_input=train_on_input, column_map=column_map
     )
-    ds = FinetuneDataset(
+    ds = SFTDataset(
         source=source,
         message_transform=message_transform,
         model_transform=model_transform,

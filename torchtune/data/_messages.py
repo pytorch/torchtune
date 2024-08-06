@@ -153,6 +153,7 @@ class InputOutputToMessages(Transform):
         ]
         return {"messages": messages}
 
+
 class ShareGPTToMessages(Transform):
     """
     Convert a chat sample adhering to the ShareGPT json structure to torchtune's :class:`~torchtune.data.Message`
