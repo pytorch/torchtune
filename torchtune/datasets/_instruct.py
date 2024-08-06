@@ -110,7 +110,7 @@ class InstructDataset(Dataset):
         validate_messages(messages)
 
         tokens, mask = self._tokenizer.tokenize_messages(
-            messages, max_seq_len=self.max_seq_len
+            messages,
         )
 
         # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
@@ -121,8 +121,8 @@ class InstructDataset(Dataset):
 
 
 def instruct_dataset(
-    *,
     tokenizer: ModelTokenizer,
+    *,
     source: str,
     template: str,
     column_map: Optional[Dict[str, str]] = None,

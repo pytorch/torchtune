@@ -66,7 +66,6 @@ def generate(
     prompt: torch.Tensor,
     *,
     max_generated_tokens: int,
-    pad_id: int = 0,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
     stop_tokens: Optional[List[int]] = None,
@@ -80,7 +79,6 @@ def generate(
         prompt (torch.Tensor): tensor with the token IDs associated with the given prompt,
             with shape either [seq_length] or [bsz x seq_length]
         max_generated_tokens (int): number of tokens to be generated
-        pad_id (int): token ID to use for padding, default 0.
         temperature (float): value to scale the predicted logits by, default 1.0.
         top_k (Optional[int]): If specified, we prune the sampling to only token ids within the top_k probabilities,
             default None.
@@ -179,8 +177,5 @@ def generate(
     # mask out generated tokens in seqs that already hit a stop token
     if stop_tokens is not None:
         generated_tokens = generated_tokens * stop_token_mask
-        # if pad_id is not 0, replace 0 with pad_id
-        if pad_id != 0:
-            generated_tokens[generated_tokens == 0] = pad_id
 
     return generated_tokens.tolist()
