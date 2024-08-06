@@ -3,19 +3,21 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
+
 import math
 from typing import List
 
+import torch
 import torch.nn.functional as F
 
 from torch import nn, Tensor
 
 from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
 from torchtune.modules.low_precision import _register_nf4_dispatch_ops  # noqa: F401
-from torchtune.modules.peft import AdapterModule
+from torchtune.modules.peft.peft_utils import AdapterModule
 
 
-class LoRALinear(nn.Module, AdapterModule):
+class DoRALinear(nn.Module, AdapterModule):
     """LoRA linear layer as introduced in `LoRA: Low-Rank Adaptation of Large Language Models <https://arxiv.org/abs/2106.09685>`_.
 
     LoRA perturbs a given layer via a low-rank approximation where only
@@ -49,33 +51,24 @@ class LoRALinear(nn.Module, AdapterModule):
         quantize_base: bool = False,
     ):
         super().__init__()
+        if use_bias:
+            raise NotImplementedError("DoRALinear does not support using bias")
         self.in_dim = in_dim
-        self.rank = rank
-        self.alpha = alpha
         self.out_dim = out_dim
-        self.use_bias = use_bias
+        self.scaling = alpha / rank
         self._quantize_base = quantize_base
-        weight, bias = self._create_weight_and_bias()
-        # 'self.disabled' is a flag showing whether to turn off LoRA adapters,
-        # this can be used in DPO for treating the lora adapters as the policy model
+        weight = self._create_weight()
+        self.register_parameter("weight", nn.Parameter(weight))
+
+        # 'self.disabled' is a flag showing whether to turn off DoRA adapters,
+        # this can be used in DPO for treating the dora adapters as the policy model
         # and disabling it to treat the base model as the reference model
         self.disabled = False
-        self.register_parameter("weight", nn.Parameter(weight))
-        self.register_parameter(
-            "bias", nn.Parameter(bias) if bias is not None else None
-        )
+
         self.dropout = nn.Dropout(p=dropout)
         self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=False)
         self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=False)
-        self.merged = False
-        # Note: FSDP's meta device initialization contract assumes that a module's
-        # reset_parameters method only initializes its own parameters (i.e. no child
-        # params are initialized, as is done in initialize_parameters below).
-        # For that reason, we patch reset_parameters directly on lora_a and lora_b submodules
-        # when using meta device. This is done in
-        # torchtune.utils.prepare_model_for_fsdp_with_meta_device.
-        # See this issue for more details: https://github.com/pytorch/pytorch/issues/104187.
-        # Without meta device, we only need the following:
+        self.magnitude = nn.Parameter(torch.empty(out_dim))
         self.initialize_parameters()
 
     def initialize_parameters(self):
@@ -84,22 +77,26 @@ class LoRALinear(nn.Module, AdapterModule):
         nn.init.kaiming_uniform_(self.lora_a.weight, a=math.sqrt(5))
         nn.init.zeros_(self.lora_b.weight)
 
-    def _create_weight_and_bias(self):
+    def initialize_dora_magnitude(self):
+        """
+        DoRA initializes the magnitude vector such that its outputs are initially
+        identical to standard LoRA's outputs.
+        """
+        base_weight = self.weight.to(self.lora_a.weight.dtype)
+        lora_weight = self.lora_b.weight @ self.lora_a.weight
+        weight = base_weight + self.scaling * lora_weight
+        magnitude = torch.linalg.norm(weight, dim=1)
+        self.magnitude = nn.Parameter(magnitude)
+
+    def _create_weight(self):
         """
         Creates a linear weight and bias tensor, using NF4 dtype if we're quantizing
         (indicated via quantize_base=True).
         """
-        in_dim, out_dim, use_bias = self.in_dim, self.out_dim, self.use_bias
-        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
+        in_dim, out_dim = self.in_dim, self.out_dim
+        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=False)
         weight = linear.weight if not self._quantize_base else to_nf4(linear.weight)
-        bias = None
-        if self.use_bias:
-            if self._quantize_base:
-                raise NotImplementedError(
-                    "Quantized LoRALinear does not support bias at the moment."
-                )
-            bias = linear.bias
-        return weight, bias
+        return weight
 
     def adapter_params(self) -> List[str]:
         """
@@ -108,7 +105,8 @@ class LoRALinear(nn.Module, AdapterModule):
         """
         # NOTE: this function has to be updated if the names of "lora_a" and "lora_b"
         # in this module change.
-        adapter_params = ["lora_a.weight", "lora_b.weight"]
+        # TODO: need to add back magnitude, but causing initial check to error out cause it's not defined yet
+        adapter_params = ["lora_a.weight", "lora_b.weight", "magnitude"]
         return adapter_params
 
     def forward(self, x: Tensor) -> Tensor:
@@ -118,14 +116,29 @@ class LoRALinear(nn.Module, AdapterModule):
 
         Returns:
             Tensor: output tensor with shape ``(..., out_dim)``
-
         """
         if self._quantize_base:
-            out = linear_nf4(input=x, weight=self.weight)
+            base_out = linear_nf4(input=x, weight=self.weight)
         else:
-            out = F.linear(x, self.weight, self.bias)
+            base_out = F.linear(x, self.weight)
         if self.disabled:
-            return out
-        lora_out = self.lora_a(self.dropout(x))
-        lora_out = (self.alpha / self.rank) * self.lora_b(lora_out)
-        return out + lora_out
+            return base_out
+
+        x = self.dropout(x)
+
+        # Can't use raw matmul since FSDP hooks are attached to __call__
+        # Instead follow the approach in https://github.com/huggingface/peft/pull/1806
+        x_eye = torch.eye(
+            self.lora_a.weight.shape[1], device=self.lora_a.weight.device, dtype=x.dtype
+        )
+        lora_weight = self.lora_b(self.lora_a(x_eye)).T
+
+        weight = self.weight.to(x.dtype) + self.scaling * lora_weight
+        weight_norm = torch.linalg.norm(weight, dim=1).detach()
+        mag_norm_scale = (self.magnitude / weight_norm).view(1, -1)
+        lora_out = self.lora_a(x)
+        lora_out = self.scaling * self.lora_b(lora_out)
+        dora_out = (mag_norm_scale - 1) * base_out + mag_norm_scale * lora_out
+        return dora_out
+
+        return self.lora(x, base_out, self.weight)

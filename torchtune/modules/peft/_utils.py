@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import contextlib
-import functools
 from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set
 
 import torch
@@ -347,10 +346,11 @@ def validate_missing_and_unexpected_for_lora(
     lora_modules = get_lora_module_names(
         lora_attn_modules, apply_lora_to_mlp, apply_lora_to_output
     )
-    # todo: maybe parametrize this?
-    is_lora_param = lambda x: (
-        any([".".join([k, "lora"]) in x for k in lora_modules])
-        or any([".".join([k, "magnitude"]) in x for k in lora_modules])
+    is_lora_param = lambda x: any(
+        [
+            ".".join([k, "lora"]) in x or ".".join([k, "magnitude"]) in x
+            for k in lora_modules
+        ]
     )
 
     if base_missing:
@@ -367,18 +367,12 @@ def validate_missing_and_unexpected_for_lora(
         raise AssertionError("Unexpected key loading adapter")
 
 
-def notify_base_params_loaded(model: nn.Module, device: torch.device):
+def load_dora_magnitudes(model: nn.Module) -> None:
     """
-    Notify all submodules in a LoRA model that the base model's parameters have been
-    loaded, in case they need to do additional initialization (e.g. initialization of
-    the DoRA magnitude vector).
-
-    Args:
-        model (nn.Module): the LoRA model.
+    For DoRA magnitude we use setattr to move from meta device
     """
-    model.apply(functools.partial(_notify_base_params_loaded, device=device))
-
-
-def _notify_base_params_loaded(module, device):
-    if hasattr(module, "initialize_dora_magnitude"):
-        module.initialize_dora_magnitude(device)
+    dora_parents = {
+        n: p for n, p in model.named_modules() if hasattr(p, "adapter_params")
+    }
+    sd = {f"{n}.magnitude": p.magnitude for n, p in dora_parents.items()}
+    model.load_state_dict(sd, strict=False, assign=True)
