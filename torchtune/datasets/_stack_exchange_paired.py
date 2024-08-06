@@ -38,7 +38,7 @@ def stack_exchange_paired_dataset(
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the prompt template
             to the new column names in the dataset. If None, assume these are identical.
         prompt_template (Optional[PromptTemplate]): optional template used to format the prompt. Default
-            is :class:`~torchtune.data.GrammarErrorCorrectionTemplate`.
+            is :class:`~torchtune.data.QuestionAnswerTemplate`.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
@@ -46,6 +46,12 @@ def stack_exchange_paired_dataset(
     Returns:
         PreferenceDataset: The preference dataset built from source paired data.
     """
+
+    column_map = column_map or {
+        "prompt": "question",
+        "chosen": "response_j",
+        "rejected": "response_k",
+    }
 
     def _filter(x):
         return (
@@ -55,11 +61,6 @@ def stack_exchange_paired_dataset(
             <= tokenizer.max_seq_len
         )
 
-    column_map = column_map or {
-        "prompt": "question",
-        "chosen": "response_j",
-        "rejected": "response_k",
-    }
     message_transform = ChosenRejectedToMessages(
         train_on_input=train_on_input, column_map=column_map
     )
@@ -69,7 +70,7 @@ def stack_exchange_paired_dataset(
         message_transform=message_transform,
         tokenizer=tokenizer,
         prompt_template=prompt_template,
-        filter_fn=_filter,
+        filter_fn=_filter if tokenizer.max_seq_len is not None else None,
         split=split,
         data_dir="data/rl",
     )

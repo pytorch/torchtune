@@ -159,7 +159,7 @@ class ChosenRejectedToMessages(Transform):
         self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None
     ):
         self.train_on_input = train_on_input
-        self.column_map = column_map
+        self._column_map = column_map
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         column_map = self._column_map or {}
@@ -168,12 +168,16 @@ class ChosenRejectedToMessages(Transform):
         key_rejected = column_map.get("rejected", "rejected")
 
         chosen_messages = [
-            Message(role="user", content=sample[key_prompt], masked=True),
+            Message(
+                role="user", content=sample[key_prompt], masked=not self.train_on_input
+            ),
             Message(role="assistant", content=sample[key_chosen]),
         ]
 
         rejected_messages = [
-            Message(role="user", content=sample[key_prompt], masked=True),
+            Message(
+                role="user", content=sample[key_prompt], masked=not self.train_on_input
+            ),
             Message(role="assistant", content=sample[key_rejected]),
         ]
 
