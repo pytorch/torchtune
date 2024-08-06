@@ -69,7 +69,7 @@ for one epoch on a common instruct dataset for illustrative purposes. The basic 
 .. note::
     To see a full list of recipes and their corresponding configs, simply run ``tune ls`` from the command line.
 
-We can also add command-line overrides as needed, e.g.
+We can also add :ref:`command-line overrides <cli_override>` as needed, e.g.
 
 .. code-block:: bash
 
@@ -78,15 +78,15 @@ We can also add command-line overrides as needed, e.g.
         tokenizer.path=<checkpoint_dir>/tokenizer.model \
         checkpointer.output_dir=<checkpoint_dir>
 
-This will load the Llama3-8B-Instruct checkpoint and tokenizer from ``<checkpoint_dir>`` used in the ``tune download`` command above,
+This will load the Llama3-8B-Instruct checkpoint and tokenizer from ``<checkpoint_dir>`` used in the :ref:`tune download <tune_download_label>` command above,
 then save a final checkpoint in the same directory following the original format. For more details on the
 checkpoint formats supported in torchtune, see our :ref:`checkpointing deep-dive <understand_checkpointer>`.
 
 .. note::
-    To see the full set of configurable parameters for this (and other) configs we can use ``tune cp`` to copy (and modify)
-    the default config. ``tune cp`` can be used with recipe scripts too, in case you want to make more custom changes
-    that cannot be achieved by directly modifying existing configurable parameters. For more on ``tune cp`` see the section on
-    :ref:`modifying configs <tune_cp_label>`.
+    To see the full set of configurable parameters for this (and other) configs we can use :ref:`tune cp <tune_cp_cli_label>` to copy (and modify)
+    the default config. :ref:`tune cp <tune_cp_cli_label>` can be used with recipe scripts too, in case you want to make more custom changes
+    that cannot be achieved by directly modifying existing configurable parameters. For more on :ref:`tune cp <tune_cp_cli_label>` see the section on
+    :ref:`modifying configs <tune_cp_label>` in our ":ref:`finetune_llama_label`" tutorial.
 
 Once training is complete, the model checkpoints will be saved and their locations will be logged. For
 LoRA fine-tuning, the final checkpoint will contain the merged weights, and a copy of just the (much smaller) LoRA weights
@@ -104,6 +104,8 @@ For example, on two devices:
     tune run --nproc_per_node 2 lora_finetune_distributed --config llama3/8B_lora
 
 Finally, if we want to use even less memory, we can leverage torchtune's QLoRA recipe via:
+
+.. TODO (SalmanMohammadi) ref qlora recipe page
 
 .. code-block:: bash
 
@@ -129,7 +131,7 @@ for model evaluation on common benchmark tasks.
 .. note::
     Make sure you've first installed the evaluation harness via :code:`pip install "lm_eval==0.4.*"`.
 
-For this tutorial we'll use the ``truthfulqa_mc2`` task from the harness.
+For this tutorial we'll use the `truthfulqa_mc2 <https://github.com/sylinrl/TruthfulQA>`_ task from the harness.
 This task measures a model's propensity to be truthful when answering questions and
 measures the model's zero-shot accuracy on a question followed by one or more true
 responses and one or more false responses. First, let's copy the config so we can point the YAML
@@ -181,6 +183,8 @@ Try it for yourself and see what accuracy your model gets!
 
 Generating text with our fine-tuned Llama3 model
 ------------------------------------------------
+
+.. TODO (SalmanMohammadi) ref generate recipe page
 
 Next, let's look at one other way we can evaluate our model: generating text! torchtune provides a
 `recipe for generation <https://github.com/pytorch/torchtune/blob/main/recipes/generate.py>`_ as well.

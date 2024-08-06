@@ -97,14 +97,14 @@ class PreferenceDataset(Dataset):
         # TODO: Trunction differs from original DPO repo
         # in DPO: first truncate prompts, then responses
         chosen_input_ids, c_masks = self._tokenizer.tokenize_messages(
-            chosen_message, self.max_seq_len
+            chosen_message,
         )
         chosen_labels = list(
             np.where(c_masks, CROSS_ENTROPY_IGNORE_IDX, chosen_input_ids)
         )
 
         rejected_input_ids, r_masks = self._tokenizer.tokenize_messages(
-            rejected_message, self.max_seq_len
+            rejected_message,
         )
         rejected_labels = list(
             np.where(r_masks, CROSS_ENTROPY_IGNORE_IDX, rejected_input_ids)
