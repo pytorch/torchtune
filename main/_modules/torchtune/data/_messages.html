@@ -515,7 +515,7 @@
             <span class="p">)</span></div>
 
 
-<span class="k">class</span> <span class="nc">InputOutputToMessages</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
+<div class="viewcode-block" id="InputOutputToMessages"><a class="viewcode-back" href="../../../generated/torchtune.data.InputOutputToMessages.html#torchtune.data.InputOutputToMessages">[docs]</a><span class="k">class</span> <span class="nc">InputOutputToMessages</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Message transform class that converts a sample with &quot;input&quot; and &quot;output&quot; fields,</span>
 <span class="sd">    (or equivalent fields specified in column_map) to user and assistant messages,</span>
@@ -554,7 +554,131 @@
                 <span class="n">eot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="p">),</span>
         <span class="p">]</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">messages</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">messages</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="ShareGPTToMessages"><a class="viewcode-back" href="../../../generated/torchtune.data.ShareGPTToMessages.html#torchtune.data.ShareGPTToMessages">[docs]</a><span class="k">class</span> <span class="nc">ShareGPTToMessages</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert a chat sample adhering to the ShareGPT json structure to torchtune&#39;s :class:`~torchtune.data.Message`</span>
+<span class="sd">    structure.</span>
+
+<span class="sd">    ShareGPT follows::</span>
+
+<span class="sd">        {</span>
+<span class="sd">            &quot;conversations&quot;: [</span>
+<span class="sd">                {</span>
+<span class="sd">                    &quot;from&quot;: &lt;system|human|gpt&gt;,</span>
+<span class="sd">                    &quot;value&quot;: &lt;message&gt;,</span>
+<span class="sd">                },</span>
+<span class="sd">                ...</span>
+<span class="sd">            ]</span>
+<span class="sd">        }</span>
+
+<span class="sd">    :class:`~torchtune.data.Message` follows::</span>
+
+<span class="sd">        [</span>
+<span class="sd">            {</span>
+<span class="sd">                &quot;role&quot;: &lt;system|user|assistant&gt;,</span>
+<span class="sd">                &quot;content&quot;: &lt;message&gt;,</span>
+<span class="sd">            },</span>
+<span class="sd">            ...</span>
+<span class="sd">        ]</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        train_on_input (bool): whether the prompt should remain unmasked. Default: False</span>
+<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected columns (&quot;conversations&quot;)</span>
+<span class="sd">            to the new column names in the dataset. If None, assume these are identical.</span>
+<span class="sd">            Default is None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="o">=</span> <span class="n">train_on_input</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">column_map</span> <span class="o">=</span> <span class="n">column_map</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a list of Message objects from the provided sample dict.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            sample (Mapping[str, Any]): a single data sample with &quot;messages&quot; field pointing</span>
+<span class="sd">                to a list of dict messages.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List[Message]: A list of messages with &quot;role&quot; and &quot;content&quot; fields.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">role_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;system&quot;</span><span class="p">:</span> <span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="s2">&quot;human&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;gpt&quot;</span><span class="p">:</span> <span class="s2">&quot;assistant&quot;</span><span class="p">}</span>
+
+        <span class="n">messages</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;conversations&quot;</span><span class="p">]:</span>
+            <span class="n">role</span> <span class="o">=</span> <span class="n">role_map</span><span class="p">[</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;from&quot;</span><span class="p">]]</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span>
+            <span class="n">masked</span> <span class="o">=</span> <span class="p">(</span><span class="n">role</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span><span class="p">)</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="n">role</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="n">masked</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">messages</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="JSONToMessages"><a class="viewcode-back" href="../../../generated/torchtune.data.JSONToMessages.html#torchtune.data.JSONToMessages">[docs]</a><span class="k">class</span> <span class="nc">JSONToMessages</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert a chat sample with identical json structure to torchtune&#39;s :class:`~torchtune.data.Message`</span>
+<span class="sd">    structure. This transform simply creates Message dataclasses from the provided jsons.</span>
+
+<span class="sd">    For example::</span>
+
+<span class="sd">        {</span>
+<span class="sd">            &quot;messages&quot;: [</span>
+<span class="sd">                {</span>
+<span class="sd">                    &quot;role&quot;: &lt;system|user|assistant&gt;,</span>
+<span class="sd">                    &quot;content&quot;: &lt;message&gt;,</span>
+<span class="sd">                },</span>
+<span class="sd">                ...</span>
+<span class="sd">            ]</span>
+<span class="sd">        }</span>
+
+<span class="sd">    :class:`~torchtune.data.Message` follows::</span>
+
+<span class="sd">        [</span>
+<span class="sd">            {</span>
+<span class="sd">                &quot;role&quot;: &lt;system|user|assistant&gt;,</span>
+<span class="sd">                &quot;content&quot;: &lt;message&gt;,</span>
+<span class="sd">            },</span>
+<span class="sd">            ...</span>
+<span class="sd">        ]</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        train_on_input (bool): whether the prompt should remain unmasked. Default: False</span>
+<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected columns (&quot;messages&quot;)</span>
+<span class="sd">            to the new column names in the dataset. If None, assume these are identical.</span>
+<span class="sd">            Default is None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="o">=</span> <span class="n">train_on_input</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">column_map</span> <span class="o">=</span> <span class="n">column_map</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a list of Message objects from the provided sample dict.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            sample (Mapping[str, Any]): a single data sample with &quot;messages&quot; field pointing</span>
+<span class="sd">                to a list of dict messages.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List[Message]: A list of messages with &quot;role&quot; and &quot;content&quot; fields.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">updated_messages</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;messages&quot;</span><span class="p">]:</span>
+            <span class="n">message</span><span class="p">[</span><span class="s2">&quot;masked&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+                <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span>
+            <span class="p">)</span>
+            <span class="n">updated_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Message</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">message</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">updated_messages</span><span class="p">}</span></div>
 </pre></div>
 
              </article>

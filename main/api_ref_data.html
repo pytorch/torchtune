@@ -476,8 +476,25 @@ and models.</p>
 </tbody>
 </table>
 </section>
-<section id="helper-funcs">
-<h2>Helper funcs<a class="headerlink" href="#helper-funcs" title="Permalink to this heading">¶</a></h2>
+<section id="message-transforms">
+<h2>Message transforms<a class="headerlink" href="#message-transforms" title="Permalink to this heading">¶</a></h2>
+<p>Converts data from common schema and conversation JSON formats into a list of torchtune <a class="reference internal" href="generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a>.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.data.InputOutputToMessages.html#torchtune.data.InputOutputToMessages" title="torchtune.data.InputOutputToMessages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InputOutputToMessages</span></code></a></p></td>
+<td><p>Message transform class that converts a sample with &quot;input&quot; and &quot;output&quot; fields, (or equivalent fields specified in column_map) to user and assistant messages, respectively.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.data.ShareGPTToMessages.html#torchtune.data.ShareGPTToMessages" title="torchtune.data.ShareGPTToMessages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShareGPTToMessages</span></code></a></p></td>
+<td><p>Convert a chat sample adhering to the ShareGPT json structure to torchtune's <a class="reference internal" href="generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> structure.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.data.JSONToMessages.html#torchtune.data.JSONToMessages" title="torchtune.data.JSONToMessages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">JSONToMessages</span></code></a></p></td>
+<td><p>Convert a chat sample with identical json structure to torchtune's <a class="reference internal" href="generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> structure.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="helper-functions">
+<h2>Helper functions<a class="headerlink" href="#helper-functions" title="Permalink to this heading">¶</a></h2>
 <p>Miscellaneous helper functions used in modifying data.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
@@ -539,7 +556,8 @@ and models.</p>
 <li><a class="reference internal" href="#text-templates">Text templates</a></li>
 <li><a class="reference internal" href="#types">Types</a></li>
 <li><a class="reference internal" href="#converters">Converters</a></li>
-<li><a class="reference internal" href="#helper-funcs">Helper funcs</a></li>
+<li><a class="reference internal" href="#message-transforms">Message transforms</a></li>
+<li><a class="reference internal" href="#helper-functions">Helper functions</a></li>
 </ul>
 </li>
 </ul>
