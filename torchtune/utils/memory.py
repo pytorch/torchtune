@@ -17,11 +17,11 @@ from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
 )
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torchtune.utils.logging import get_logger
+from torchtune import utils
 
 _log: logging.Logger = get_logger()
 
 ACWrapPolicyType: Type = Union[Set[Type], Callable[[nn.Module, bool, int], bool]]
-
 
 def set_activation_checkpointing(
     model: nn.Module, auto_wrap_policy: ACWrapPolicyType, **kwargs
@@ -45,15 +45,14 @@ def set_activation_checkpointing(
 
 def cleanup_before_training() -> None:
     """
-    Call gc collect, empty CUDA cache, and reset peak memory stats.
+    Call gc collect, empty CUDA or XPU cache, and reset peak memory stats.
     """
+    device = utils.get_device()
+    device_handle = utils.get_device_handle(device)
+    
     gc.collect()
-    if torch.xpu.is_available():
-        torch.xpu.empty_cache()
-        torch.xpu.reset_peak_memory_stats()
-    else:        
-        torch.cuda.empty_cache()
-        torch.cuda.reset_peak_memory_stats()
+    device_handle.empty_cache()
+    device_handle.reset_peak_memory_stats()
 
 
 class OptimizerInBackwardWrapper:
@@ -204,29 +203,22 @@ def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
         and peak memory reserved. This dict is useful for logging memory stats.
 
     Raises:
-        ValueError: If the passed-in device is not CUDA.
+        ValueError: If the passed-in device is CPU.
     """
-    if torch.xpu.is_available():
-        peak_memory_active = torch.xpu.memory_stats().get("active_bytes.all.peak", 0) / 1e9
-        peak_mem_alloc = torch.xpu.max_memory_allocated(device) / 1e9
-        peak_mem_reserved = torch.xpu.max_memory_reserved(device) / 1e9
+    if device.type == "cpu":
+        raise ValueError(
+            f"Logging memory stats is not supported on CPU devices."
+        )
+    
+    device_handle = utils.get_device_handle(device)
+    
+    peak_memory_active = device_handle.memory_stats().get("active_bytes.all.peak", 0) / 1e9
+    peak_mem_alloc = device_handle.max_memory_allocated(device) / 1e9
+    peak_mem_reserved = device_handle.max_memory_reserved(device) / 1e9
 
     if reset_stats:
-        torch.xpu.reset_peak_memory_stats(device)
+        device_handle.reset_peak_memory_stats(device)
         
-    else:
-        if device.type != "cuda":
-            raise ValueError(
-                f"Logging memory stats is only supported on CUDA devices, got {device}"
-            )
-
-        peak_memory_active = torch.cuda.memory_stats().get("active_bytes.all.peak", 0) / 1e9
-        peak_mem_alloc = torch.cuda.max_memory_allocated(device) / 1e9
-        peak_mem_reserved = torch.cuda.max_memory_reserved(device) / 1e9
-
-        if reset_stats:
-            torch.cuda.reset_peak_memory_stats(device)
-
     memory_stats = {
         "peak_memory_active": peak_memory_active,
         "peak_memory_alloc": peak_mem_alloc,

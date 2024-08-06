@@ -58,13 +58,12 @@ def verify_bf16_support() -> bool:
     """
     if torch.cuda.is_available():
         return (
-            torch.cuda.is_available()
-            and torch.cuda.is_bf16_supported()
+            torch.cuda.is_bf16_supported()
             and torch.distributed.is_nccl_available()
             and torch.cuda.nccl.version() >= (2, 10)
         )
     elif torch.xpu.is_available():
-        return True
+        return torch.xpu.is_bf16_supported()
     return False
 
 

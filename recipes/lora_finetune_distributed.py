@@ -37,8 +37,9 @@ from torchtune.modules.peft.peft_utils import (
 from torchtune.recipe_interfaces import FTRecipeInterface
 
 from tqdm import tqdm
-import intel_extension_for_pytorch
-import oneccl_bindings_for_pytorch
+if torch.xpu.is_available():
+    import intel_extension_for_pytorch
+    import oneccl_bindings_for_pytorch
 
 log = utils.get_logger("DEBUG")
 
@@ -124,7 +125,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
-        self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", True)
 
         # training attributes
         self._enable_activation_checkpointing = cfg.enable_activation_checkpointing

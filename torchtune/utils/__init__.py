@@ -11,7 +11,7 @@ from ._checkpointing import (  # noqa
     ModelType,
 )
 
-from ._device import get_device
+from ._device import get_device, get_device_handle
 from ._distributed import (  # noqa
     contains_fsdp,
     FSDPPolicyType,

@@ -29,7 +29,8 @@ from torchtune.modules.peft.peft_utils import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from tqdm import tqdm
-import intel_extension_for_pytorch
+if torch.xpu.is_available():
+    import intel_extension_for_pytorch
 
 log = utils.get_logger("DEBUG")
 
@@ -100,6 +101,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     def __init__(self, cfg: DictConfig) -> None:
 
         self._device = utils.get_device(device=cfg.device)
+        self._device_handle = utils.get_device_handle(device=self._device)
         # Reduced precision logic
         self._dtype = utils.get_dtype(cfg.dtype, device=self._device)
         # fp16 precision is explicitly disabled as it is not supported in this
@@ -109,15 +111,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 "fp16 precision is not supported in this recipe. Please use fp32 or bf16."
             )
             
-        if torch.cuda.is_available():
-        # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
-            if (
-                self._dtype == torch.bfloat16
-                and self._device != torch.device("cpu")
-                and not torch.cuda.is_bf16_supported()
-            ):
-                raise RuntimeError("Full bf16 training is not supported on this hardware.")
-        
+        # For CUDA or XPU devices, check if the HW supports bf16 if bf16 is specified.
+        if (
+            self._dtype == torch.bfloat16
+            and self._device != torch.device("cpu")
+            and not self._device_handle.is_bf16_supported()
+        ):
+            raise RuntimeError("Full bf16 training is not supported on this hardware.")
+    
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
@@ -544,10 +545,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 "lr": self._optimizer.param_groups[0]["lr"],
                                 "tokens_per_second_per_gpu": num_tokens / time_per_step,
                             }
-                            if (
-                                self._device.type == "cuda"
-                                and self._log_peak_memory_stats
-                            ):
+                            if self._log_peak_memory_stats:
                                 log_dict.update(
                                     utils.get_memory_stats(device=self._device)
                                 )

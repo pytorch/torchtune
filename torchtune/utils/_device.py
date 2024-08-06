@@ -5,10 +5,50 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
-from typing import Optional
+from typing import Any, Optional, cast
 
 import torch
-import intel_extension_for_pytorch
+if torch.xpu.is_available():
+    import intel_extension_for_pytorch
+
+class _DeviceHandle:
+    """
+    This is a simple abstraction for computing devices,
+    which enables custom backends that implement CUDA-like
+    semantics.
+    """
+
+    def __init__(self, device: torch.device, backend: Any = None):
+        if backend is None:
+            try:
+                self.__backend = getattr(torch, device.type)
+                self.__device = device
+            except AttributeError as exc:
+                raise AttributeError(
+                    f"Device '{device}' does not have a corresponding backend registered as 'torch.{device.type}'."
+                ) from exc
+        else:
+            self.__backend = backend
+
+    @classmethod
+    def from_device(cls, device: torch.device) -> "_DeviceHandle":
+        """
+        Return an device handle corresponding to the device, and through this handle,
+        operations with the same semantics as CUDA can be performed on the device.
+        Just return torch.cuda if the device is cuda to make attribute-access faster.
+        Custom backend must first register a module with the same name with {device.type} on torch.
+        """
+        if device.type == "cuda":
+            return cast(_DeviceHandle, torch.cuda)
+        return cls(device)
+
+    def __getattr__(self, __name: str) -> Any:
+        try:
+            return getattr(self.__backend, __name)
+        except AttributeError as exc:
+            raise AttributeError(
+                f"Custom backend '{self.__device.type}' not implement 'torch.{self.__device.type}.{__name}'"
+            ) from exc
 
 
 def _get_local_rank() -> Optional[int]:
@@ -23,8 +63,8 @@ def _get_local_rank() -> Optional[int]:
     return local_rank
 
 
-def _setup_cuda_device(device: torch.device) -> torch.device:
-    """Function that sets the CUDA device and infers the cuda
+def _setup_device(device: torch.device) -> torch.device:
+    """Function that sets the CUDA or XPU device and infers the cuda or xpu
     index if not set.
 
     Args:
@@ -45,19 +85,12 @@ def _setup_cuda_device(device: torch.device) -> torch.device:
     
     print("=====device: ", device)
     # Ensure index is available before setting device
-    if torch.xpu.is_available():
-        if device.index >= torch.xpu.device_count():
+    device_handle = get_device_handle(device)
+    if device.index >= device_handle.device_count():
             raise RuntimeError(
                 "The local rank is larger than the number of available GPUs."
             )
-        torch.xpu.set_device(device)
-    else:
-        if device.index >= torch.cuda.device_count():
-            raise RuntimeError(
-                "The local rank is larger than the number of available GPUs."
-            )
-        torch.cuda.set_device(device)
-    
+    device_handle.set_device(device)
     
     return device
 
@@ -65,13 +98,15 @@ def _setup_cuda_device(device: torch.device) -> torch.device:
 def _get_device_type_from_env() -> str:
     """Function that gets the torch.device based on the current machine.
 
-    This currently only supports CPU, CUDA.
+    This currently only supports CPU, CUDA, XPU.
 
     Returns:
         device
     """
     if torch.cuda.is_available():
         device = "cuda"
+    elif torch.xpu.is_available():
+        device = 'xpu'
     else:
         device = "cpu"
     return device
@@ -94,7 +129,7 @@ def _validate_device_from_env(device: torch.device) -> None:
     local_rank = _get_local_rank()
 
     # Check if the device index is correct
-    if device.type == "cuda" and local_rank is not None:
+    if device.type in ["cuda", "xpu"] and local_rank is not None:
         # Ensure device index matches assigned index when distributed training
         if device.index != local_rank:
             raise RuntimeError(
@@ -126,8 +161,12 @@ def get_device(device: Optional[str] = None) -> torch.device:
     """
     if device is None:
         device = _get_device_type_from_env()
+        
     device = torch.device(device)
     if device.type == "cuda" or "xpu":
-        device = _setup_cuda_device(device)
+        device = _setup_device(device)
     _validate_device_from_env(device)
     return device
+
+def get_device_handle(device: Optional[str] = None):
+    return _DeviceHandle.from_device(device)
