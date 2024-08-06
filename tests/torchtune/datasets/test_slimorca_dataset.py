@@ -20,7 +20,7 @@ class TestSlimOrcaDataset:
     def tokenizer(self):
         return DummyTokenizer()
 
-    @patch("torchtune.datasets._finetune.load_dataset")
+    @patch("torchtune.datasets._sft.load_dataset")
     @pytest.mark.parametrize("train_on_input", [True, False])
     def test_dataset_get_item(self, mock_load_dataset, train_on_input, tokenizer):
         # Sample data from slimorca dataset
