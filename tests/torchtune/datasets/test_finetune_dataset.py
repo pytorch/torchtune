@@ -11,7 +11,7 @@ import pytest
 from tests.test_utils import DummyPromptTemplate, DummyTokenizer
 from torchtune.data import Message
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.datasets._finetune import SFTDataset
+from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.transforms import Transform
 
 
@@ -53,7 +53,7 @@ class TestSFTDataset:
             },
         ]
 
-    @mock.patch("torchtune.datasets._finetune.load_dataset")
+    @mock.patch("torchtune.datasets._sft.load_dataset")
     def test_get_item(self, mock_load_dataset, dialogue):
         mock_load_dataset.return_value = dialogue
         expected_tokenized_prompts = [

@@ -20,7 +20,7 @@ class TestGrammarDataset:
     def tokenizer(self):
         return DummyTokenizer()
 
-    @patch("torchtune.datasets._finetune.load_dataset")
+    @patch("torchtune.datasets._sft.load_dataset")
     def test_label_no_masking(self, load_dataset, tokenizer):
         """
         Test whether the input and the labels are correctly created when the input is not masked.
@@ -70,7 +70,7 @@ class TestGrammarDataset:
         ]
         assert labels == input
 
-    @patch("torchtune.datasets._finetune.load_dataset")
+    @patch("torchtune.datasets._sft.load_dataset")
     def test_label_masking(self, load_dataset, tokenizer):
         """
         Test whether the input and the labels are correctly created when the input is masked.
