@@ -9,8 +9,8 @@ from typing import Dict, Optional, Union
 
 from torchtune.data import InputOutputToMessages
 from torchtune.data._prompt_templates import PromptTemplate, SummarizeTemplate
-from torchtune.datasets._finetune import SFTDataset
 from torchtune.datasets._packed import PackedDataset
+from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.transforms import Transform
 
 
