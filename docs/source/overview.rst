@@ -39,15 +39,17 @@ As you go through the tutorials and code, there are two concepts which will help
 
 **Configs.** YAML files which help you configure training settings (dataset, model, chekckpoint) and
 hyperparameters (batch size, learning rate) without modifying code.
-See the :ref:`All About Configs deep-dive <config_tutorial_label>` for more information.
+See the ":ref:`All About Configs<config_tutorial_label>`" deep-dive for more information.
 
 **Recipes.** Recipes can be thought of
 as targeted end-to-end pipelines for training and optionally evaluating LLMs.
 Each recipe implements a training method (eg: full fine-tuning) with a set of meaningful
 features (eg: FSDP + Activation Checkpointing + Gradient Accumulation + Reduced Precision training)
-applied to a given model family (eg: Llama2). See the :ref:`What Are Recipes? deep-dive<recipe_deepdive>` for more information.
+applied to a given model family (eg: Llama2). See the ":ref:`What Are Recipes?<recipe_deepdive>`" deep-dive for more information.
 
 |
+
+.. _design_principles_label:
 
 Design Principles
 -----------------
@@ -56,7 +58,8 @@ torchtune embodies `PyTorch’s design philosophy <https://pytorch.org/docs/stab
 
 **Native PyTorch**
 
-torchtune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: Hugging Face Datasets, EleutherAI Eval Harness), all of the core functionality is written in PyTorch.
+torchtune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: `Hugging Face Datasets <https://huggingface.co/docs/datasets/en/index>`_,
+`EleutherAI's Eval Harness <https://github.com/EleutherAI/lm-evaluation-harness>`_), all of the core functionality is written in PyTorch.
 
 
 **Simplicity and Extensibility**

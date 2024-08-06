@@ -142,7 +142,11 @@ class Download(Subcommand):
                 f"Repository '{args.repo_id}' not found on the Hugging Face Hub."
             )
         except Exception as e:
-            self._parser.error(e)
+            import traceback
+
+            tb = traceback.format_exc()
+            msg = f"Failed to download {args.repo_id} with error: '{e}' and traceback: {tb}"
+            self._parser.error(msg)
 
         print(
             "Successfully downloaded model repo and wrote to the following locations:",

@@ -9,7 +9,7 @@ from typing import Dict, List, Protocol, Tuple
 from torchtune.data import Message, Role
 
 
-class PromptTemplate(Protocol):
+class PromptTemplateInterface(Protocol):
     """
     Interface for prompt templates. Each prompt template can include structured
     text for system, user, and assistant roles that are prepended or appended to
@@ -37,7 +37,89 @@ class PromptTemplate(Protocol):
         pass
 
 
-class Llama2ChatTemplate(PromptTemplate):
+class PromptTemplate(PromptTemplateInterface):
+    """
+    Quickly define a custom prompt template by passing in a dictionary mapping role to
+    the prepend and append tags. For example, to achieve the following prompt
+    template::
+
+        System: {content}\\n
+        User: {content}\\n
+        Assistant: {content}\\n
+        Tool: {content}\\n
+
+    You need to pass in a tuple for each role, where ``PREPEND_TAG`` is the string
+    added before the text content and ``APPEND_TAG`` is the string added after::
+
+        template = {role: (PREPEND_TAG, APPEND_TAG)}
+
+    Thus, the template would be defined as follows::
+
+        template = {
+            "system": ("System: ", "\\n"),
+            "user": ("User: ", "\\n"),
+            "assistant": ("Assistant: ", "\\n"),
+            "ipython": ("Tool: ", "\\n"),
+        }
+
+    Once instantiated, you must call the prompt template on a list of messages. It
+    will return the same list of messages updated with the template.
+
+    Note:
+        Any tags prepended/appended to the assistant message will be included
+        in the loss calculation. All other prepend/append tags for other roles
+        (system, user, ipython) are, in most cases, not included in loss. Consider using
+        the append tags for user messages for tags that need to come before the
+        assistant message but should not be included in loss. For more custom masking
+        and prompt templating, you can create your own class based off the
+        :class:`~torchtune.data.PromptTemplate` interface.
+
+    Args:
+        template (Dict[Role, Tuple[str, str]]): a dictionary mapping role to the
+            prepend and append tags
+    """
+
+    def __init__(
+        self,
+        template: Dict[Role, Tuple[str, str]],
+    ):
+        self.template = template
+
+    def __call__(self, messages: List[Message]) -> List[Message]:
+        """
+        Format each role's message(s) according to the prompt template by prepending
+        and appending the defined tags.
+
+        Args:
+            messages (List[Message]): list of messages to apply the template to
+
+        Returns:
+            List[Message]: The formatted list of messages
+        """
+        formatted_dialogue = []
+        for message in messages:
+            if message.role in self.template:
+                prepend_tag = self.template[message.role][0]
+                append_tag = self.template[message.role][1]
+                content = (
+                    [{"type": "text", "content": prepend_tag}]
+                    + message.content
+                    + [{"type": "text", "content": append_tag}]
+                )
+            else:
+                content = message.content
+            formatted_dialogue.append(
+                Message(
+                    role=message.role,
+                    content=content,
+                    masked=message.masked,
+                    ipython=message.ipython,
+                    eot=message.eot,
+                ),
+            )
+        return formatted_dialogue
+
+class Llama2ChatTemplate(PromptTemplateInterface):
     """
     Prompt template that formats chat data of human and system prompts with appropriate tags
     used in Llama2 pre-training. Taken from Meta's official `Llama inference
@@ -111,7 +193,7 @@ class Llama2ChatTemplate(PromptTemplate):
         return formatted_dialogue
 
 
-class MistralChatTemplate(PromptTemplate):
+class MistralChatTemplate(PromptTemplateInterface):
     """
     Formats according to `Mistral's instruct model
     <https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1#instruction-format>`_.
@@ -179,7 +261,7 @@ class MistralChatTemplate(PromptTemplate):
         return formatted_dialogue
 
 
-class ChatMLTemplate(PromptTemplate):
+class ChatMLTemplate(PromptTemplateInterface):
     """
     OpenAI's `Chat Markup Language
     <https://github.com/MicrosoftDocs/azure-docs/blob/772c14eeabfa0c0c561d5c2d34ef19341f528b7b/articles/ai-services/openai/how-to/chat-markup-language.md>`_
@@ -238,84 +320,8 @@ class ChatMLTemplate(PromptTemplate):
         return formatted_dialogue
 
 
-class CustomPromptTemplate(PromptTemplate):
-    """
-    Define a quick custom prompt template by passing in a dictionary mapping role to
-    the prepend and append tags. For example, to achieve the following prompt
-    template::
-
-        System: {content}\\n
-        User: {content}\\n
-        Assistant: {content}\\n
-        Tool: {content}\\n
-
-    You can define the template as follows::
-
-        template = {
-            "system": ("System: ", "\\n"),
-            "user": ("User: ", "\\n"),
-            "assistant": ("Assistant: ", "\\n"),
-            "ipython": ("Tool: ", "\\n"),
-        }
-
-    Once instantiated, you must call the prompt template on a list of messages. It
-    will return the same list of messages updated with the template.
-
-    Note:
-        Any tags prepended/appended to the assistant message will be included
-        in the loss calculation. Consider using the append tags for user messages for
-        tags that need to come before the assistant message but should not be included in
-        loss. For more custom masking and prompt templating, you can create your own
-        class based off the :class:`~torchtune.data.PromptTemplate` interface.
-
-    Args:
-        template (Dict[Role, Tuple[str, str]]): a dictionary mapping role to the
-            prepend and append tags
-    """
-
-    def __init__(
-        self,
-        template: Dict[Role, Tuple[str, str]],
-    ):
-        self.template = template
-
-    def __call__(self, messages: List[Message]) -> List[Message]:
-        """
-        Format each role's message(s) according to the prompt template by prepending
-        and appending the defined tags.
-
-        Args:
-            messages (List[Message]): list of messages to apply the template to
-
-        Returns:
-            List[Message]: The formatted list of messages
-        """
-        formatted_dialogue = []
-        for message in messages:
-            if message.role in self.template:
-                prepend_tag = self.template[message.role][0]
-                append_tag = self.template[message.role][1]
-                content = (
-                    [{"type": "text", "content": prepend_tag}]
-                    + message.content
-                    + [{"type": "text", "content": append_tag}]
-                )
-            else:
-                content = message.content
-            formatted_dialogue.append(
-                Message(
-                    role=message.role,
-                    content=content,
-                    masked=message.masked,
-                    ipython=message.ipython,
-                    eot=message.eot,
-                ),
-            )
-        return formatted_dialogue
-
-
 GrammarErrorCorrectionTemplate = partial(
-    CustomPromptTemplate,
+    PromptTemplate,
     template={
         "user": ("Correct this to standard English: ", "\n---\nCorrected: "),
     },
@@ -327,10 +333,10 @@ A prompt template for grammar error correction tasks::
     ---
     Corrected: {assistant_message}
 
-Please see :class:`~torchtune.data.CustomPromptTemplate` for full API arguments.
+Please see :class:`~torchtune.data.PromptTemplate` for full API arguments.
 """
 SummarizeTemplate = partial(
-    CustomPromptTemplate,
+    PromptTemplate,
     template={
         "user": ("Summarize this dialogue:\n", "\n---\nSummary:\n"),
     },
@@ -344,5 +350,5 @@ A prompt template for summarization tasks::
     Summary:
     {assistant_message}
 
-Please see :class:`~torchtune.data.CustomPromptTemplate` for full API arguments.
+Please see :class:`~torchtune.data.PromptTemplate` for full API arguments.
 """

@@ -317,13 +317,13 @@ object.
         )
 
 .. note::
-    You can pass in any keyword argument for :code:`load_dataset` into all our
+    You can pass in any keyword argument for `load_dataset <https://huggingface.co/docs/datasets/v2.20.0/en/package_reference/loading_methods#datasets.load_dataset>`_ into all our
     Dataset classes and they will honor them. This is useful for common parameters
     such as specifying the data split with :code:`split` or configuration with
     :code:`name`
 
 Now we're ready to start fine-tuning! We'll use the built-in LoRA single device recipe.
-Use the :code:`tune cp` command to get a copy of the :code:`8B_lora_single_device.yaml`
+Use the :ref:`tune cp <tune_cp_cli_label>` command to get a copy of the :code:`8B_lora_single_device.yaml`
 config and update it to use your new dataset. Create a new folder for your project
 and make sure the dataset builder and message converter are saved in that directory,
 then specify it in the config.
