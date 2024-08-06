@@ -63,10 +63,12 @@ Converts data from common schema and conversation JSON formats into a list of to
     :nosignatures:
 
     InputOutputToMessages
+    ShareGPTToMessages
+    JSONToMessages
     ChosenRejectedToMessages
 
-Helper funcs
-------------
+Helper functions
+----------------
 
 Miscellaneous helper functions used in modifying data.
 

@@ -14,10 +14,12 @@ from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._converters import get_openai_messages, get_sharegpt_messages
 from torchtune.data._instruct_templates import AlpacaInstructTemplate, InstructTemplate
 from torchtune.data._messages import (
-    ChosenRejectedToMessages,
     InputOutputToMessages,
+    JSONToMessages,
     Message,
     Role,
+    ShareGPTToMessages,
+    ChosenRejectedToMessages,
 )
 from torchtune.data._prompt_templates import (
     GrammarErrorCorrectionTemplate,
@@ -38,8 +40,8 @@ __all__ = [
     "Llama2ChatFormat",
     "MistralChatFormat",
     "ChatMLFormat",
-    "get_openai_messages",
-    "get_sharegpt_messages",
+    "JSONToMessages",
+    "ShareGPTToMessages",
     "truncate",
     "Message",
     "validate_messages",
@@ -47,6 +49,11 @@ __all__ = [
     "PromptTemplateInterface",
     "PromptTemplate",
     "InputOutputToMessages",
+<<<<<<< HEAD
     "ChosenRejectedToMessages",
     "QuestionAnswerTemplate",
+=======
+    "get_openai_messages",
+    "get_sharegpt_messages",
+>>>>>>> main
 ]
