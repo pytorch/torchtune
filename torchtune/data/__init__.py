@@ -25,6 +25,7 @@ from torchtune.data._messages import (
     ShareGPTToMessages,
 )
 from torchtune.data._prompt_templates import (
+    ChatMLTemplate,
     GrammarErrorCorrectionTemplate,
     PromptTemplate,
     PromptTemplateInterface,
@@ -52,6 +53,7 @@ __all__ = [
     "PromptTemplateInterface",
     "PromptTemplate",
     "InputOutputToMessages",
+    "ChatMLTemplate",
     "get_openai_messages",
     "get_sharegpt_messages",
 ]

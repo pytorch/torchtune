@@ -41,6 +41,38 @@ TOKENIZER_PATHS = {
     "llama3": "/tmp/test-artifacts/tokenizer_llama3.model",
 }
 
+# Taken from Open-Orca/SlimOrca-Dedup on Hugging Face:
+# https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup
+CHAT_SAMPLE = {
+    "system": "You are an AI assistant. User will you give you a task. Your goal is to complete the task as faithfully as you can. While performing the task think step-by-step and justify your steps.",  # noqa: B950
+    "user": "Please briefly summarize this news article:\n\nAOL.com Video - Father Lets 8-Year-Old Drive On Icy Road\n\nDescription:Would you let your 8-year-old drive your car? How about on an icy road? Well one father in Russia did just that, and recorded the entire thing. To her credit, the child seemed to be doing a great job. (0:44)\n\nTags: 8-year-old driver , caught on camera , child driver , pix11\n\nSummary:",  # noqa: B950
+    "assistant": "A father in Russia allowed his 8-year-old child to drive his car on an icy road and recorded the event. The child appeared to be handling the situation well, showcasing their driving skills despite the challenging conditions.",  # noqa: B950
+}
+
+MESSAGE_SAMPLE_TRAIN_ON_INPUT = [
+    Message(
+        role="system",
+        content=CHAT_SAMPLE["system"],
+    ),
+    Message(
+        role="user",
+        content=CHAT_SAMPLE["user"],
+    ),
+    Message(
+        role="assistant",
+        content=CHAT_SAMPLE["assistant"],
+    ),
+]
+
+MESSAGE_SAMPLE = [
+    Message(role="system", content=CHAT_SAMPLE["system"], masked=True),
+    Message(role="user", content=CHAT_SAMPLE["user"], masked=True),
+    Message(
+        role="assistant",
+        content=CHAT_SAMPLE["assistant"],
+    ),
+]
+
 
 class DummyTokenizer(ModelTokenizer, Transform):
     def __init__(self, max_seq_len: Optional[int] = None):

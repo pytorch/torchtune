@@ -92,7 +92,7 @@ class SFTDataset(Dataset):
             - Task-specific templates to gear models for a particular task that it will expect after training
             - Model-specific templates that are required whenever the model is prompted, such as the [INST]
               tags in Llama2 and in Mistral
-            - Community standardized templates, such as :class:`~torchtune.data.ChatMLFormat`
+            - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
 
             The extra text will still get tokenized as normal text, not as special tokens.
         filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
