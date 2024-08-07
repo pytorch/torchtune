@@ -16,10 +16,7 @@ from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune import training
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 from torchtune.modules.peft import LoRALinear
-from torchtune.modules.peft.peft_utils import (
-    get_merged_lora_ckpt,
-    notify_base_params_loaded,
-)
+from torchtune.modules.peft.peft_utils import get_merged_lora_ckpt, load_dora_magnitudes
 from torchtune.utils.seed import set_seed
 
 RANK = 4
@@ -266,7 +263,7 @@ class TestLoRALinear:
         # such that its outputs are initially identical to standard LoRA's outputs.
         # Verify that this is true.
         assert not _dora_is_the_same_as_lora()
-        notify_base_params_loaded(module)
+        load_dora_magnitudes(module)
         assert _dora_is_the_same_as_lora()
 
         def _compare_params():
