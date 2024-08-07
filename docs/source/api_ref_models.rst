@@ -142,7 +142,7 @@ To download the Qwen2 1.5B model, for example:
 
 .. code-block:: bash
 
-    tune download Qwen/Qwen2-0.5B-Instruct --output-dir /tmp/Qwen2-0.5B-Instruct --ignore-patterns None
+    tune download Qwen/Qwen2-1.5B-Instruct --output-dir /tmp/Qwen2-1.5B-Instruct --ignore-patterns None
 
 .. autosummary::
     :toctree: generated/
