@@ -147,7 +147,8 @@ To download the Qwen2 1.5B model, for example:
 .. autosummary::
     :toctree: generated/
     :nosignatures:
-
+    qwen2.qwen2
+    qwen2.lora_qwen2
     qwen2.qwen2_7b
     qwen2.qwen2_0_5b
     qwen2.qwen2_1_5b
