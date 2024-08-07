@@ -51,11 +51,10 @@ resume_from_checkpoint: False
 batch_size: 4
 epochs: 3
 optimizer:
-  _component_: torch.optim.AdamW
+  _component_: bitsandbytes.optim.PagedAdamW
   lr: 2e-5
-  fused: true
-optimizer_in_bwd: false
-optimizer_offload: true
+optimizer_in_bwd: true
+optimizer_offload: false
 loss:
   _component_: torch.nn.CrossEntropyLoss
 max_steps_per_epoch: null
