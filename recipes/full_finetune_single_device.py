@@ -215,6 +215,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
             optimizer_in_bwd=cfg.optimizer_in_bwd,
+            optimizer_offload=cfg.optimizer_offload,
             opt_state_dict=(
                 ckpt_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None
             ),
@@ -287,11 +288,15 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self,
         cfg_optimizer: DictConfig,
         optimizer_in_bwd: bool = False,
+        optimizer_offload: bool = False,
         opt_state_dict: Optional[Dict[str, Any]] = None,
     ) -> Optional[Optimizer]:
         """
         Set up the optimizer. This method also handles loading the optimizer state_dict, if specified.
         """
+        if optimizer_in_bwd and optimizer_offload:
+            raise ValueError(f"optimizer_in_bwd and optimizer_offload cannot be true at the same time.")
+
         if optimizer_in_bwd:
             # Maintain a dict of optims for every parameter.
             optim_dict = {
@@ -317,6 +322,15 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     ) from e
             log.info("In-backward optimizers are set up.")
             return None
+        elif optimizer_offload:
+            from torchao.prototype.low_bit_optim import CPUOffloadOptimizer
+
+            optimizer = CPUOffloadOptimizer(
+                self._model.parameters(),
+                optimizer_class=partial(config.instantiate, cfg_optimizer),
+                offload_gradients=True,
+            )
+            return optimizer
         else:
             optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
 
