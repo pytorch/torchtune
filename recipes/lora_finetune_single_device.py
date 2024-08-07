@@ -29,6 +29,8 @@ from torchtune.modules.peft.peft_utils import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from tqdm import tqdm
+if torch.xpu.is_available():
+    import intel_extension_for_pytorch
 
 log = utils.get_logger("DEBUG")
 
@@ -109,7 +111,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 "fp16 precision is not supported in this recipe. Please use fp32 or bf16."
             )
             
-        # For CUDA-semantics devices, check if the HW supports bf16 if bf16 is specified.
+        # For CUDA or XPU devices, check if the HW supports bf16 if bf16 is specified.
         if (
             self._dtype == torch.bfloat16
             and self._device != torch.device("cpu")
@@ -324,7 +326,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             log.info("Compiling model with torch.compile...")
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
             model.compile(backend=backend)
-        if self._device.type == "cuda" or "xpu":
+        if self._device.type == "cuda":
             memory_stats = utils.get_memory_stats(device=self._device)
             utils.log_memory_stats(memory_stats)
         return model
@@ -491,7 +493,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         == self.max_steps_per_epoch
                     ):
                         break
-                    
+
                     if self._profiler_enabled:
                         self._profiler.step()
 

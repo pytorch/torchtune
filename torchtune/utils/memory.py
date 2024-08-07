@@ -45,7 +45,7 @@ def set_activation_checkpointing(
 
 def cleanup_before_training() -> None:
     """
-    Call gc collect, empty CUDA-like device cache, and reset peak memory stats.
+    Call gc collect, empty CUDA or XPU cache, and reset peak memory stats.
     """
     device = utils.get_device()
     device_handle = utils.get_device_handle(device)
@@ -190,24 +190,24 @@ def register_optim_in_bwd_hooks(
 def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
     """
     Computes a memory summary for the passed in device. If ``reset_stats`` is ``True``, this will
-    also reset peak memory tracking of CUDA-semantics devices. This is useful to get data around relative use of peak
+    also reset CUDA's peak memory tracking. This is useful to get data around relative use of peak
     memory (e.g. peak memory during model init, during forward, etc) and optimize memory for
     individual sections of training.
 
     Args:
-        device (torch.device): Device to get memory summary for. CUDA-semantics devices are supported.
-        reset_stats (bool): Whether to reset peak memory tracking of CUDA-semantics devices.
+        device (torch.device): Device to get memory summary for. Only CUDA devices are supported.
+        reset_stats (bool): Whether to reset CUDA's peak memory tracking.
 
     Returns:
         Dict[str, float]: A dictionary containing the peak memory active, peak memory allocated,
         and peak memory reserved. This dict is useful for logging memory stats.
 
     Raises:
-        ValueError:  If the passed-in device is not CUDA-semantics (CUDA or XPU) devices.
+        ValueError: If the passed-in device is CPU.
     """
     if device.type == "cpu":
         raise ValueError(
-            f"Logging memory stats is only supported on CPU devices."
+            f"Logging memory stats is not supported on CPU devices."
         )
     
     device_handle = utils.get_device_handle(device)

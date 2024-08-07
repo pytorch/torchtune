@@ -108,7 +108,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-        self._device = utils.get_device(device=cfg.device)    
+        self._device = utils.get_device(device=cfg.device)
         self._dtype = utils.get_dtype(cfg.dtype, device=self._device)
 
         if self._dtype == torch.float16:
