@@ -23,8 +23,6 @@ from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 
 from tqdm import tqdm
-if torch.xpu.is_available():
-    import intel_extension_for_pytorch
 
 
 log = utils.get_logger("DEBUG")
@@ -279,7 +277,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             log.info("Compiling model with torch.compile...")
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
             model.compile(backend=backend)
-        if self._device.type == "cuda":
+        if self._device.type == "cuda" or "xpu":
             memory_stats = utils.get_memory_stats(device=self._device)
             utils.log_memory_stats(memory_stats)
 
@@ -431,7 +429,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     == self.max_steps_per_epoch
                 ):
                     break
-
+                
                 # Both are shape [b, s]
                 tokens, labels = batch["tokens"], batch["labels"]
                 # Get the attention mask and position ids from the dataset if they
