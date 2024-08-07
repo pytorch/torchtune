@@ -133,6 +133,31 @@ To download the CodeLlama-7B model:
     code_llama2.lora_code_llama2_70b
     code_llama2.qlora_code_llama2_70b
 
+qwen-2
+------
+
+Models of size 0.5B, 1.5B, and 7B from the `Qwen2 family <https://huggingface.co/collections/Qwen/qwen2-6659360b33528ced941e557f>`_.
+
+To download the Qwen2 1.5B model, for example:
+
+.. code-block:: bash
+
+    tune download Qwen/Qwen2-1.5B-Instruct --output-dir /tmp/Qwen2-1.5B-Instruct --ignore-patterns None
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    qwen2.qwen2
+    qwen2.lora_qwen2
+    qwen2.qwen2_7b
+    qwen2.qwen2_0_5b
+    qwen2.qwen2_1_5b
+    qwen2.lora_qwen2_7b
+    qwen2.lora_qwen2_0_5b
+    qwen2.lora_qwen2_1_5b
+    qwen2.qwen2_tokenizer
+    qwen2.Qwen2Tokenizer
 
 phi-3
 -----
