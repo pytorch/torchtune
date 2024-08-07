@@ -331,7 +331,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             optimizer = CPUOffloadOptimizer(
                 self._model.parameters(),
                 optimizer_class=partial(config.instantiate, cfg_optimizer),
-                offload_gradients=True,
+                offload_gradients=True,  # not compatible with gradient accumulation
             )
             return optimizer
         else:
