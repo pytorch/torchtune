@@ -10,8 +10,8 @@ from typing import Any, Dict, Mapping, Optional
 
 from torch.utils.data import Dataset
 from torchtune.data import Message
-from torchtune.datasets._finetune import FinetuneDataset
 from torchtune.datasets._packed import PackedDataset
+from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.transforms import Transform
 
 
@@ -117,7 +117,7 @@ def alpaca_dataset(
     message_transform = AlpacaToMessages(
         train_on_input=train_on_input, column_map=column_map
     )
-    ds = FinetuneDataset(
+    ds = SFTDataset(
         source=source,
         message_transform=message_transform,
         model_transform=model_transform,

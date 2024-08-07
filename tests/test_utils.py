@@ -19,11 +19,7 @@ import pytest
 
 import torch
 from torch import nn
-<<<<<<< HEAD
-from torchtune.data import ChatFormat, CustomPromptTemplate, Message, truncate
-=======
 from torchtune.data import ChatFormat, Message, PromptTemplate, truncate
->>>>>>> main
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
 
@@ -163,11 +159,7 @@ class DummyChatFormat(ChatFormat):
 
 
 DummyPromptTemplate = partial(
-<<<<<<< HEAD
-    CustomPromptTemplate,
-=======
     PromptTemplate,
->>>>>>> main
     template={
         "system": ("System:\n", "\n"),
         "user": ("User:\n", "\n"),

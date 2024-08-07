@@ -16,8 +16,9 @@ from torchtune.datasets import slimorca_dataset
 
 
 class TestSlimOrcaDataset:
-    def tokenizer(self, max_seq_len=None):
-        return DummyTokenizer(max_seq_len=max_seq_len)
+    @pytest.fixture
+    def tokenizer(self):
+        return DummyTokenizer()
 
     @patch("torchtune.datasets._sft.load_dataset")
     @pytest.mark.parametrize("train_on_input", [True, False])
