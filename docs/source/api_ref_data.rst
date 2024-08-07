@@ -26,8 +26,6 @@ and models.
     PromptTemplate
     PromptTemplateInterface
     ChatMLTemplate
-    Llama2ChatTemplate
-    MistralChatTemplate
 
     ChatFormat
     ChatMLFormat

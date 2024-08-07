@@ -19,10 +19,12 @@ from ._model_builders import (
     qlora_mistral_7b,
     qlora_mistral_reward_7b,
 )
+from ._prompt_template import MistralChatTemplate
 from ._tokenizer import MistralTokenizer
 
 __all__ = [
     "MistralTokenizer",
+    "MistralChatTemplate",
     "lora_mistral",
     "lora_mistral_classifier",
     "mistral",

@@ -27,8 +27,6 @@ from torchtune.data._messages import (
 from torchtune.data._prompt_templates import (
     ChatMLTemplate,
     GrammarErrorCorrectionTemplate,
-    Llama2ChatTemplate,
-    MistralChatTemplate,
     PromptTemplate,
     PromptTemplateInterface,
     SummarizeTemplate,
@@ -56,8 +54,6 @@ __all__ = [
     "PromptTemplate",
     "InputOutputToMessages",
     "ChatMLTemplate",
-    "Llama2ChatTemplate",
-    "MistralChatTemplate",
     "get_openai_messages",
     "get_sharegpt_messages",
 ]

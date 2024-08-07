@@ -104,6 +104,7 @@ To download the Llama2-70B model:
     llama2.llama2_reward_7b
     llama2.lora_llama2_reward_7b
     llama2.qlora_llama2_reward_7b
+    llama2.Llama2ChatTemplate
 
 
 code llama
@@ -187,6 +188,7 @@ To download the Mistral 7B v0.1 model:
     mistral.qlora_mistral_reward_7b
     mistral.mistral_tokenizer
     mistral.MistralTokenizer
+    mistral.MistralChatTemplate
 
 
 gemma
