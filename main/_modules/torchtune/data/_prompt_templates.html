@@ -523,6 +523,65 @@
         <span class="k">return</span> <span class="n">formatted_dialogue</span></div>
 
 
+<div class="viewcode-block" id="ChatMLTemplate"><a class="viewcode-back" href="../../../generated/torchtune.data.ChatMLTemplate.html#torchtune.data.ChatMLTemplate">[docs]</a><span class="k">class</span> <span class="nc">ChatMLTemplate</span><span class="p">(</span><span class="n">PromptTemplateInterface</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    OpenAI&#39;s `Chat Markup Language</span>
+<span class="sd">    &lt;https://github.com/MicrosoftDocs/azure-docs/blob/772c14eeabfa0c0c561d5c2d34ef19341f528b7b/articles/ai-services/openai/how-to/chat-markup-language.md&gt;`_</span>
+<span class="sd">    used by their chat models.</span>
+
+<span class="sd">    It is the default chat template used by Hugging Face models.</span>
+
+<span class="sd">    .. code-block:: text</span>
+
+<span class="sd">        &lt;|im_start|&gt;system</span>
+<span class="sd">        Provide some context and/or instructions to the model.&lt;|im_end|&gt;</span>
+<span class="sd">        &lt;|im_start|&gt;user</span>
+<span class="sd">        The user’s message goes here&lt;|im_end|&gt;</span>
+<span class="sd">        &lt;|im_start|&gt;assistant</span>
+<span class="sd">        The assistant’s response goes here&lt;|im_end|&gt;</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">template</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;system&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;&lt;|im_start|&gt;system</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;|im_end|&gt;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;&lt;|im_start|&gt;user</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;|im_end|&gt;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;assistant&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;&lt;|im_start|&gt;assistant</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;|im_end|&gt;&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;ipython&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Format user, assistant, and system messages with appropriate tags.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            messages (List[Message]): a single conversation, structured as a list</span>
+<span class="sd">                of `Message` objects</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The formatted list of messages</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">formatted_dialogue</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">[{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">[</span><span class="n">message</span><span class="o">.</span><span class="n">role</span><span class="p">][</span><span class="mi">0</span><span class="p">]}]</span>
+                <span class="o">+</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span>
+                <span class="o">+</span> <span class="p">[{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">[</span><span class="n">message</span><span class="o">.</span><span class="n">role</span><span class="p">][</span><span class="mi">1</span><span class="p">]}]</span>
+            <span class="p">)</span>
+            <span class="n">formatted_dialogue</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">Message</span><span class="p">(</span>
+                    <span class="n">role</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">role</span><span class="p">,</span>
+                    <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
+                    <span class="n">masked</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">masked</span><span class="p">,</span>
+                    <span class="n">ipython</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">ipython</span><span class="p">,</span>
+                    <span class="n">eot</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">eot</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">formatted_dialogue</span></div>
+
+
 <span class="n">GrammarErrorCorrectionTemplate</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
     <span class="n">PromptTemplate</span><span class="p">,</span>
     <span class="n">template</span><span class="o">=</span><span class="p">{</span>
