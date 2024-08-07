@@ -63,7 +63,7 @@ def llama3_70b() -> TransformerDecoder:
     )
 
 
-def llama3_tokenizer(path: str, special_tokens_path: Optional[str] = None) -> Llama3Tokenizer:
+def llama3_tokenizer(path: str, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None) -> Llama3Tokenizer:
     """
     Tokenizer for Llama3.
 
@@ -72,12 +72,14 @@ def llama3_tokenizer(path: str, special_tokens_path: Optional[str] = None) -> Ll
         special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
             model files that contains all registered special tokens, or a local json file 
             structured similarly. Default is None to use the canonical Llama3 special tokens.
+        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
+            after which the input will be truncated. Default is None.
     
     Returns:
         Llama3Tokenizer: Instantiation of the Llama3 tokenizer
     """
     special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    return Llama3Tokenizer(path=path, special_tokens=special_tokens)
+    return Llama3Tokenizer(path=path, special_tokens=special_tokens, max_seq_len=max_seq_len)
 
 
 def lora_llama3_8b(

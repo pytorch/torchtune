@@ -11,7 +11,7 @@ import pytest
 from tests.test_utils import DummyPromptTemplate, DummyTokenizer
 from torchtune.data import Message
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.datasets._finetune import FinetuneDataset
+from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.transforms import Transform
 
 
@@ -22,7 +22,7 @@ class ToDummyMessages(Transform):
         return {"messages": messages}
 
 
-class TestFinetuneDataset:
+class TestSFTDataset:
     @pytest.fixture
     def dialogue(self):
         return [
@@ -53,7 +53,7 @@ class TestFinetuneDataset:
             },
         ]
 
-    @mock.patch("torchtune.datasets._finetune.load_dataset")
+    @mock.patch("torchtune.datasets._sft.load_dataset")
     def test_get_item(self, mock_load_dataset, dialogue):
         mock_load_dataset.return_value = dialogue
         expected_tokenized_prompts = [
@@ -97,7 +97,7 @@ class TestFinetuneDataset:
             + [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[1]
             + [10, 1, 6, -1]
         ]
-        ds = FinetuneDataset(
+        ds = SFTDataset(
             source="iam/agoofy/goober",
             message_transform=ToDummyMessages(),
             model_transform=DummyTokenizer(),

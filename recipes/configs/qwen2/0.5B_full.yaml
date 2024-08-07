@@ -1,0 +1,75 @@
+# Config for multi-device full finetuning in full_finetune_distributed.py
+# using a Qwen2 0.5B model
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download Qwen/Qwen2-0.5B-Instruct --output-dir /tmp/Qwen2-0.5B-Instruct --ignore-patterns ""
+#
+# To launch on 4 devices, run the following command from root:
+#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config qwen2/0.5B_full
+#
+# You can add specific overrides through the command line. For example
+# to override the checkpointer directory while launching training
+# you can run:
+#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config qwen2/0.5B_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#
+# This config works best when the model is being fine-tuned on 2+ GPUs.
+# Single device full finetuning requires more memory optimizations. It's
+# best to use 0.5B_full.yaml for those cases
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.qwen2.qwen2_tokenizer
+  path: /tmp/Qwen2-0.5B-Instruct/vocab.json
+  merges_file: /tmp/Qwen2-0.5B-Instruct/merges.txt
+
+# Dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+seed: null
+shuffle: True
+
+# Model Arguments
+model:
+  _component_: torchtune.models.qwen2.qwen2_0_5b
+
+checkpointer:
+  _component_: torchtune.utils.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Qwen2-0.5B-Instruct
+  checkpoint_files: [
+    model.safetensors
+  ]
+  recipe_checkpoint: null
+  output_dir: /tmp/Qwen2-0.5B-Instruct-finetune
+  model_type: QWEN2
+resume_from_checkpoint: False
+
+# Fine-tuning arguments
+batch_size: 2
+epochs: 1
+optimizer:
+  _component_: torch.optim.AdamW
+  lr: 5e-6
+loss:
+  _component_: torch.nn.CrossEntropyLoss
+max_steps_per_epoch: null
+gradient_accumulation_steps: 16
+
+
+# Training env
+device: cuda
+
+# Memory management
+enable_activation_checkpointing: True
+memory_efficient_fsdp_wrap: False
+
+# Reduced precision
+dtype: bf16
+
+# Logging
+metric_logger:
+  _component_: torchtune.utils.metric_logging.DiskLogger
+  log_dir: ${output_dir}
+output_dir: /tmp/Qwen2-0.5B-Instruct-finetune
+log_every_n_steps: 1
+log_peak_memory_stats: False

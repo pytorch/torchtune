@@ -5,16 +5,15 @@
 # LICENSE file in the root directory of this source tree.
 
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
-from torch.utils.data import Dataset
 from torchtune.data import InputOutputToMessages
 from torchtune.data._prompt_templates import (
     GrammarErrorCorrectionTemplate,
     PromptTemplate,
 )
-from torchtune.datasets._finetune import FinetuneDataset
 from torchtune.datasets._packed import PackedDataset
+from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.transforms import Transform
 
 
@@ -27,7 +26,7 @@ def grammar_dataset(
     train_on_input: bool = False,
     packed: bool = False,
     split: str = "train",
-) -> Dataset:
+) -> Union[SFTDataset, PackedDataset]:
     """
     Support for grammar correction datasets and their variants from Hugging Face Datasets.
     Here is an `example <https://huggingface.co/datasets/liweili/c4_200m>`_ of a grammar correction dataset.
@@ -48,9 +47,9 @@ def grammar_dataset(
             output by the dataset to tokens. This will always be a :class:`~torchtune.modules.tokenizers.ModelTokenizer`.
         source (str): path to dataset repository on Hugging Face. For local datasets,
             define source as the data file type (e.g. "json", "csv", "text") and pass
-            in the filepath in ``data_files``. See Hugging Face's ``load_dataset``
-            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
-            for more details. Default is ``liweili/c4_200m``.
+            in the filepath in ``data_files``. See `Hugging Face's
+            <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
+            ``load_dataset`` for more details. Default is ``liweili/c4_200m``.
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the prompt template
             to the new column names in the dataset. If None, assume these are identical.
         prompt_template (Optional[PromptTemplate]): optional template used to format the prompt. Default
@@ -61,7 +60,7 @@ def grammar_dataset(
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
 
     Returns:
-        InstructDataset: dataset configured with source data and template
+        Union[SFTDataset, PackedDataset]: dataset configured with source data and template
 
 
     Example:
@@ -74,7 +73,7 @@ def grammar_dataset(
     message_transform = InputOutputToMessages(
         train_on_input=train_on_input, column_map=column_map
     )
-    ds = FinetuneDataset(
+    ds = SFTDataset(
         source=source,
         message_transform=message_transform,
         model_transform=model_transform,

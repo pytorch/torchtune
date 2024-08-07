@@ -41,6 +41,8 @@ __all__ = [
     "llama2_70b",
     "llama2_7b",
     "llama2_tokenizer",
+    "lora_llama2",
+    "llama2_classifier",
     "lora_llama2_13b",
     "lora_llama2_70b",
     "lora_llama2_7b",

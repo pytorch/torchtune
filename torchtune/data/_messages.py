@@ -113,6 +113,20 @@ class Message:
 
 
 class InputOutputToMessages(Transform):
+    """
+    Message transform class that converts a sample with "input" and "output" fields,
+    (or equivalent fields specified in column_map) to user and assistant messages,
+    respectively. This is useful for datasets that have two columns, one containing
+    the user prompt and the other containing the model response.
+
+    Args:
+        train_on_input (bool): Whether the model is trained on the user prompt or not.
+            Default is False.
+        column_map (Optional[Dict[str, str]]): a mapping to change the expected "input"
+            and "output" column names to the actual column names in the dataset. Default is None,
+            keeping the default "input" and "output" column names.
+    """
+
     def __init__(
         self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None
     ):
@@ -138,3 +152,127 @@ class InputOutputToMessages(Transform):
             ),
         ]
         return {"messages": messages}
+
+
+class ShareGPTToMessages(Transform):
+    """
+    Convert a chat sample adhering to the ShareGPT json structure to torchtune's :class:`~torchtune.data.Message`
+    structure.
+
+    ShareGPT follows::
+
+        {
+            "conversations": [
+                {
+                    "from": <system|human|gpt>,
+                    "value": <message>,
+                },
+                ...
+            ]
+        }
+
+    :class:`~torchtune.data.Message` follows::
+
+        [
+            {
+                "role": <system|user|assistant>,
+                "content": <message>,
+            },
+            ...
+        ]
+
+    Args:
+        train_on_input (bool): whether the prompt should remain unmasked. Default: False
+        column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("conversations")
+            to the new column names in the dataset. If None, assume these are identical.
+            Default is None.
+    """
+
+    def __init__(
+        self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None
+    ):
+        self.train_on_input = train_on_input
+        self.column_map = column_map
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        """
+        Return a list of Message objects from the provided sample dict.
+
+        Args:
+            sample (Mapping[str, Any]): a single data sample with "messages" field pointing
+                to a list of dict messages.
+
+        Returns:
+            List[Message]: A list of messages with "role" and "content" fields.
+        """
+        role_map = {"system": "system", "human": "user", "gpt": "assistant"}
+
+        messages = []
+        for message in sample["conversations"]:
+            role = role_map[message["from"]]
+            content = message["value"]
+            masked = (role != "assistant") and (not self.train_on_input)
+            messages.append(Message(role=role, content=content, masked=masked))
+
+        return {"messages": messages}
+
+
+class JSONToMessages(Transform):
+    """
+    Convert a chat sample with identical json structure to torchtune's :class:`~torchtune.data.Message`
+    structure. This transform simply creates Message dataclasses from the provided jsons.
+
+    For example::
+
+        {
+            "messages": [
+                {
+                    "role": <system|user|assistant>,
+                    "content": <message>,
+                },
+                ...
+            ]
+        }
+
+    :class:`~torchtune.data.Message` follows::
+
+        [
+            {
+                "role": <system|user|assistant>,
+                "content": <message>,
+            },
+            ...
+        ]
+
+    Args:
+        train_on_input (bool): whether the prompt should remain unmasked. Default: False
+        column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("messages")
+            to the new column names in the dataset. If None, assume these are identical.
+            Default is None.
+    """
+
+    def __init__(
+        self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None
+    ):
+        self.train_on_input = train_on_input
+        self.column_map = column_map
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        """
+        Return a list of Message objects from the provided sample dict.
+
+        Args:
+            sample (Mapping[str, Any]): a single data sample with "messages" field pointing
+                to a list of dict messages.
+
+        Returns:
+            List[Message]: A list of messages with "role" and "content" fields.
+        """
+        updated_messages = []
+        for message in sample["messages"]:
+            message["masked"] = (message["role"] != "assistant") and (
+                not self.train_on_input
+            )
+            updated_messages.append(Message.from_dict(message))
+
+        return {"messages": updated_messages}
