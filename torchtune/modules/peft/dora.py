@@ -38,6 +38,9 @@ class DoRALinear(nn.Module, AdapterModule):
             Default: False
         quantize_base (bool): Whether to quantize base linear weight or not.
             Default: False
+
+    Raises:
+        NotImplementedError: If use_bias is enabled.
     """
 
     def __init__(
