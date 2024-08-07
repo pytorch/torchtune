@@ -161,7 +161,6 @@ def get_device(device: Optional[str] = None) -> torch.device:
     """
     if device is None:
         device = _get_device_type_from_env()
-        
     device = torch.device(device)
     if device.type == "cuda" or "xpu":
         device = _setup_device(device)

@@ -218,7 +218,6 @@ def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
 
     if reset_stats:
         device_handle.reset_peak_memory_stats(device)
-        
     memory_stats = {
         "peak_memory_active": peak_memory_active,
         "peak_memory_alloc": peak_mem_alloc,

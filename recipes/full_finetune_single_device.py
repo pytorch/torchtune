@@ -259,7 +259,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
     ) -> nn.Module:
         """
         Set up the model including enabling activation checkpointing.
-        """        
+        """
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
 
@@ -431,7 +431,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     == self.max_steps_per_epoch
                 ):
                     break
-
+                
                 # Both are shape [b, s]
                 tokens, labels = batch["tokens"], batch["labels"]
                 # Get the attention mask and position ids from the dataset if they

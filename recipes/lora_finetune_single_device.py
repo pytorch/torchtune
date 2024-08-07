@@ -110,7 +110,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             raise ValueError(
                 "fp16 precision is not supported in this recipe. Please use fp32 or bf16."
             )
-            
         # For CUDA or XPU devices, check if the HW supports bf16 if bf16 is specified.
         if (
             self._dtype == torch.bfloat16
@@ -118,7 +117,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             and not self._device_handle.is_bf16_supported()
         ):
             raise RuntimeError("Full bf16 training is not supported on this hardware.")
-    
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
@@ -493,7 +491,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         == self.max_steps_per_epoch
                     ):
                         break
-
+                    
                     if self._profiler_enabled:
                         self._profiler.step()
 
