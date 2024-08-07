@@ -7,6 +7,8 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Mapping, Optional
 
+from torchtune.utils.logging import deprecated
+
 
 class InstructTemplate(ABC):
     """
@@ -37,6 +39,7 @@ class InstructTemplate(ABC):
         pass
 
 
+@deprecated()
 class AlpacaInstructTemplate(InstructTemplate):
     """
     Prompt template for Alpaca-style datasets. Template prompt changes slightly depending
@@ -130,6 +133,7 @@ class AlpacaInstructTemplate(InstructTemplate):
         return prompt
 
 
+@deprecated(msg="Please use `torchtune.data.QuestionAnswerTemplate` instead.")
 class StackExchangedPairedTemplate(InstructTemplate):
     """
     Prompt template for preference datasets similar to StackExchangedPaired.

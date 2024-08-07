@@ -21,8 +21,10 @@ from torchtune.data import (
 )
 from torchtune.datasets._packed import PackedDataset
 from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.utils.logging import deprecated
 
 
+@deprecated(msg="Please use `torchtune.datasets.SFTDataset` for custom chat data.")
 class ChatDataset(Dataset):
     """
     Class that supports any custom dataset with multiturn conversations.
