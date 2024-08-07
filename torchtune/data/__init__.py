@@ -13,7 +13,6 @@ from torchtune.data._chat_formats import (
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._converters import get_openai_messages, get_sharegpt_messages
 from torchtune.data._instruct_templates import (
-    AlpacaInstructTemplate,
     InstructTemplate,
     StackExchangedPairedTemplate,
 )
@@ -33,7 +32,6 @@ from torchtune.data._prompt_templates import (
 from torchtune.data._utils import truncate, validate_messages
 
 __all__ = [
-    "AlpacaInstructTemplate",
     "ChatFormat",
     "CROSS_ENTROPY_IGNORE_IDX",
     "GrammarErrorCorrectionTemplate",
