@@ -186,6 +186,7 @@ class TestChosenRejectedToMessages:
         ]
         assert_dialogue_equal(actual["rejected"], expected_rejected)
 
+
 class TestShareGPTToMessages:
     samples = {
         "conversations": [

@@ -182,7 +182,7 @@ class ChosenRejectedToMessages(Transform):
         ]
 
         return {"chosen": chosen_messages, "rejected": rejected_messages}
-        
+
 
 class ShareGPTToMessages(Transform):
     """
