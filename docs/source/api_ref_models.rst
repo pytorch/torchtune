@@ -136,7 +136,7 @@ To download the CodeLlama-7B model:
 qwen-2
 ------
 
-Models from the `Qwen2 small model family <https://huggingface.co/collections/Qwen/qwen2-6659360b33528ced941e557f>`_.
+Models of size 0.5B, 1.5B, and 7B from the `Qwen2 family <https://huggingface.co/collections/Qwen/qwen2-6659360b33528ced941e557f>`_.
 
 To download the Qwen2 1.5B model, for example:
 
