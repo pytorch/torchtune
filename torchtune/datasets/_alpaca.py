@@ -6,9 +6,8 @@
 
 from functools import partial
 
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional, Union
 
-from torch.utils.data import Dataset
 from torchtune.data import Message
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
@@ -16,8 +15,24 @@ from torchtune.modules.transforms import Transform
 
 
 class AlpacaToMessages(Transform):
+    """
+    Message transform class for Alpaca-style datasets with "instruction", "input", and "output"
+    (or equivalent fields specified in column_map) columns. User messages are formed from the
+    instruction + input columns and assistant messages are formed from the output column. Prompt
+    templating is conditional on the presence of the "input" column, and thus is handled directly
+    in this transform class instead of a dedicated :class:`~torchtune.data.PromptTemplate` class
+    due to this custom logic.
+
+    Args:
+        train_on_input (bool): Whether the model is trained on the user prompt or not.
+            Default is True.
+        column_map (Optional[Dict[str, str]]): a mapping to change the expected "instruction", "input",
+            and "output" column names to the actual column names in the dataset. Default is None,
+            keeping the default column names.
+    """
+
     def __init__(
-        self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None
+        self, train_on_input: bool = True, column_map: Optional[Dict[str, str]] = None
     ):
         self.train_on_input = train_on_input
         self.column_map = column_map
@@ -74,7 +89,7 @@ def alpaca_dataset(
     train_on_input: bool = True,
     packed: bool = False,
     split: str = "train",
-) -> Dataset:
+) -> Union[SFTDataset, PackedDataset]:
     """
     Support for family of Alpaca-style datasets from Hugging Face Datasets using
     the `data input format <https://huggingface.co/datasets/tatsu-lab/alpaca#data-instances>`_
@@ -96,19 +111,20 @@ def alpaca_dataset(
             in the filepath in ``data_files``. See Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
             for more details. Default is ``tatsu-lab/alpaca``.
-        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the prompt template
-            to the new column names in the dataset. If None, assume these are identical.
+        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the message transform
+            :class:`~torchtune.data.AlpacaToMessages` to the new column names in the dataset. If None, use
+            the default column names ``"instruction``, ``"input"``, and ``"output"`` in ``tatsu-lab/alpaca``.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
 
     Returns:
-        Dataset: dataset configured with source data and template
+        Union[SFTDataset, PackedDataset]: dataset configured with source data and transform
 
 
     Example:
-        >>> alpaca_ds = alpaca_dataset(tokenizer=tokenizer)
+        >>> alpaca_ds = alpaca_dataset(model_transform=tokenizer)
         >>> for batch in Dataloader(alpaca_ds, batch_size=8):
         >>>     print(f"Batch size: {len(batch)}")
         >>> Batch size: 8

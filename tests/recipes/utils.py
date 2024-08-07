@@ -11,6 +11,8 @@ from typing import List
 
 import torch
 from torch.utils.data import Dataset
+from torchtune.datasets import AlpacaToMessages, SFTDataset
+from torchtune.modules.transforms import Transform
 
 CKPT_COMPONENT_MAP = {
     "tune": "torchtune.utils.FullModelTorchTuneCheckpointer",
@@ -49,15 +51,21 @@ def get_assets_path():
     return Path(__file__).parent.parent / "assets"
 
 
+def dummy_alpaca_dataset(model_transform: Transform, train_on_input: bool = True):
+    return SFTDataset(
+        source="json",
+        message_transform=AlpacaToMessages(train_on_input=train_on_input),
+        model_transform=model_transform,
+        prompt_template=None,
+        data_files=os.path.join(get_assets_path(), "alpaca_tiny.json"),
+        split="train",
+    )
+
+
 def dummy_alpaca_dataset_config():
-    data_files = os.path.join(get_assets_path(), "alpaca_tiny.json")
-    out = [
-        "dataset._component_=torchtune.datasets.alpaca_dataset",
-        "dataset.source='json'",
-        f"dataset.data_files={data_files}",
-        "dataset.split='train'",
+    return [
+        "dataset._component_=tests.recipes.utils.dummy_alpaca_dataset",
     ]
-    return out
 
 
 def dummy_text_completion_alpaca_dataset_config():
@@ -126,7 +134,6 @@ def lora_llama2_test_config(
     lora_alpha: float = 16,
     quantize_base: bool = False,
 ) -> List[str]:
-    lora_attn_modules_str = "['" + "','".join([x for x in lora_attn_modules]) + "']"
     return [
         # Note: we explicitly use _component_ so that we can also call
         # config.instantiate directly for easier comparison
@@ -156,7 +163,6 @@ def lora_llama3_test_config(
     lora_alpha: float = 16,
     quantize_base: bool = False,
 ) -> List[str]:
-    lora_attn_modules_str = "['" + "','".join([x for x in lora_attn_modules]) + "']"
     return [
         # Note: we explicitly use _component_ so that we can also call
         # config.instantiate directly for easier comparison
