@@ -63,23 +63,6 @@ def llama3_1_70b() -> TransformerDecoder:
     )
 
 
-def llama3_tokenizer(path: str, special_tokens_path: Optional[str] = None) -> Llama3Tokenizer:
-    """
-    Tokenizer for Llama3 and Llama3.1.
-
-    Args:
-        path (str): path to the tokenizer
-        special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
-            model files that contains all registered special tokens, or a local json file 
-            structured similarly. Default is None to use the canonical Llama3 special tokens.
-    
-    Returns:
-        Llama3Tokenizer: Instantiation of the Llama3/Llama3.1 tokenizer
-    """
-    special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    return Llama3Tokenizer(path=path, special_tokens=special_tokens)
-
-
 def lora_llama3_1_8b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,

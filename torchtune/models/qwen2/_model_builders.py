@@ -95,8 +95,7 @@ def qwen2_1_5b() -> TiedEmbeddingTransformerDecoder:
 
 
 def qwen2_tokenizer(
-        path: str, merges_file: str = None, special_tokens_path: Optional[str] = None,
-        **kwargs,
+    path: str, merges_file: str = None, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None, **kwargs,
 ) -> Qwen2Tokenizer:
     """
     Tokenizer for Qwen2.
@@ -107,12 +106,14 @@ def qwen2_tokenizer(
         special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
             model files that contains all registered special tokens, or a local json file
             structured similarly. Default is None to use the canonical Qwen2 special tokens.
+        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
+            after which the input will be truncated. Default is None.
 
     Returns:
         Qwen2Tokenizer: Instantiation of the Qwen2 tokenizer
     """
     special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    return Qwen2Tokenizer(path=path, merges_file=merges_file, special_tokens=special_tokens, **kwargs)
+    return Qwen2Tokenizer(path=path, merges_file=merges_file, special_tokens=special_tokens, max_seq_len=max_seq_len, **kwargs)
 
 
 def lora_qwen2_7b(

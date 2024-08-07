@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List
+from typing import List, Optional
 
 from torchtune.models.gemma._component_builders import gemma, lora_gemma
 from torchtune.models.gemma.transformer import GemmaTransformerDecoder
@@ -41,17 +41,19 @@ def gemma_2b() -> GemmaTransformerDecoder:
     )
 
 
-def gemma_tokenizer(path: str) -> GemmaTokenizer:
+def gemma_tokenizer(path: str, max_seq_len: Optional[int] = None) -> GemmaTokenizer:
     """
     Tokenizer for Gemma.
 
     Args:
         path (str): path to the tokenizer
+        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
+            after which the input will be truncated. Default is None.
 
     Returns:
         GemmaTokenizer: Instantiation of the Gemma tokenizer
     """
-    return GemmaTokenizer(path)
+    return GemmaTokenizer(path=path, max_seq_len=max_seq_len)
 
 
 def lora_gemma_2b(
