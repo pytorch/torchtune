@@ -44,22 +44,6 @@ using a variety of :ref:`memory optimization features <memory_optimization_overv
 This includes continued pre-training, and various supervised funetuning paradigms, which can be customized through our datasets. Check out our
 :ref:`dataset tutorial <dataset_tutorial_label>` for more information.
 
-Don't see a config for a model you're interested in? Not to worry, you can configure an existing recipe for the model you're interested in. For instance,
-to adapt the ``llama2/lora_dpo_single_device`` config for Llama3.1:
-
-.. code-block:: bash
-
-  tune run lora_dpo_single_device \
-  --config=llama2/lora_dpo_single_device \
-  model=torchtune.models.llama3.llama3_1_8b \
-  model.lora_attn_modules=['q_proj', 'v_proj'] \
-  model.apply_lora_to_mlp=False \
-  model.apply_lora_to_output=False \
-  model.lora_rank=8 \
-  model.lora_alpha=16 \
-  tokenizer=torchtune.models.llama3.llama3_tokenizer
-
-
 Our supervised fine-tuning recipes include:
 
 * :ref:`Single-device <lora_finetune_recipe_label>` LoRA fine-tuning.
