@@ -28,6 +28,7 @@ from torchtune import config, modules, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets import ConcatDataset
 from torchtune.modules import rlhf
+from torchtune.modules.loss import SimPOLoss
 from torchtune.modules.peft.peft_utils import (
     disable_adapter,
     get_adapter_params,
@@ -36,7 +37,6 @@ from torchtune.modules.peft.peft_utils import (
     validate_state_dict_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
-
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -244,9 +244,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             else None,
         )
 
-        self._loss_fn = self._setup_loss_fn(
-            cfg.loss, use_average_logprobs=cfg.get("use_average_logprobs", False)
-        )
+        self._loss_fn = config.instantiate(cfg.loss)
+        log.info("Loss function is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -280,47 +279,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             num_training_steps=self.total_epochs * self._steps_per_epoch,
             last_epoch=self.global_step - 1,
         )
-
-    def _setup_loss_fn(
-        self, cfg_loss: DictConfig, use_average_logprobs: bool = False
-    ) -> nn.Module:
-        """
-        Sets up loss function based on available supported 'direct preference optimization' style losses.
-        We also perform an additional check to guide users towards correctly setting hyperparameters
-        Raises:
-            ValueError: If the loss type is not supported.
-        """
-        valid_reference_based_loss_types = ["DPOLoss", "RSOLoss", "IPOLoss"]
-        valid_reference_free_loss_types = ["SimPOLoss"]
-
-        # verify loss is one of the supported types
-        if any(
-            f"torchtune.modules.loss.{loss_type}" == cfg_loss._component_
-            for loss_type in valid_reference_based_loss_types
-        ):
-            self._loss_type = "reference_based"
-        elif any(
-            f"torchtune.modules.loss.{loss_type}" == cfg_loss._component_
-            for loss_type in valid_reference_free_loss_types
-        ):
-            self._loss_type = "reference_free"
-        else:
-            raise ValueError(
-                f"Loss type must be one of {valid_reference_based_loss_types + valid_reference_free_loss_types }, but found "
-                f"{cfg_loss._component_}."
-            )
-
-        if (
-            not use_average_logprobs
-            and cfg_loss._component_ == "torchtune.modules.loss.SimPOLoss"
-        ):
-            warn(
-                "Using SimPOLoss with use_average_logprobs=False may lead to unexpected behavior."
-                "Please set use_average_logprobs=True."
-            )
-        self._use_average_logprobs = use_average_logprobs
-        log.info("Loss function is initialized.")
-        return config.instantiate(cfg_loss)
 
     def _setup_model(
         self,
@@ -601,7 +559,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         all_log_probs = rlhf.get_batch_log_probs(
             all_logits,
             concatenated_labels,
-            return_average_logprobs=self._use_average_logprobs,
+            # see :class:`~torchtune.modules.loss.dpo.SimPOLoss`
+            return_average_logprobs=isinstance(self._loss_fn, SimPOLoss),
         )
 
         chosen_log_probs = all_log_probs[:len_chosen]
@@ -647,6 +606,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
                 # batch is input_ids, labels
                 num_tokens += batch[0].numel()
+
                 (
                     policy_chosen_log_probs,
                     policy_rejected_log_probs,
@@ -654,11 +614,13 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     policy_rejected_logits,
                 ) = self.concatenated_forward(self._model, batch)
 
-                loss_args = (policy_chosen_log_probs, policy_rejected_log_probs)
-
-                # reference based losses (e.g. DPO) explicitly regularize the objective fn based on
-                # the reference model's output - reference-free losses (such as SimPO) don't require this.
-                if self._loss_type == "reference_based":
+                if isinstance(self._loss_fn, SimPOLoss):
+                    loss, chosen_rewards, rejected_rewards = self._loss_fn(
+                        policy_chosen_log_probs, policy_rejected_log_probs
+                    )
+                else:
+                    # reference based losses (e.g. DPO) explicitly regularize the objective fn based on
+                    # the reference model's output - reference-free losses (such as SimPO) don't require this.
                     with torch.no_grad(), disable_adapter(self._model):
                         (
                             reference_chosen_log_probs,
@@ -666,14 +628,13 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                             _,
                             _,
                         ) = self.concatenated_forward(self._model, batch)
-                    loss_args += (
+                    loss, chosen_rewards, rejected_rewards = self._loss_fn(
+                        policy_chosen_log_probs,
+                        policy_rejected_log_probs,
                         reference_chosen_log_probs,
                         reference_rejected_log_probs,
                     )
 
-                loss, chosen_rewards, rejected_rewards = self._loss_fn(
-                    *loss_args,
-                )
                 loss = loss.mean()
                 reward_accuracies = (chosen_rewards > rejected_rewards).float()
 
@@ -693,7 +654,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     loss_to_log = running_loss.item()
                     pbar.update(1)
                     pbar.set_description(
-                        f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
+                        f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
                     )
 
                     # Log per-step metrics
