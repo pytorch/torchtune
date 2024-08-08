@@ -480,98 +480,100 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         running_loss = 0
         num_tokens = 0
 
-        with self._profiler as prof:
-            # self.epochs_run should be non-zero when we're resuming from a checkpoint
-            for curr_epoch in range(self.epochs_run, self.total_epochs):
-                # Update the sampler to ensure data is correctly shuffled across epochs
-                # in case shuffle is True
-                self._sampler.set_epoch(curr_epoch)
+        self._profiler.start()
+        # self.epochs_run should be non-zero when we're resuming from a checkpoint
+        for curr_epoch in range(self.epochs_run, self.total_epochs):
+            # Update the sampler to ensure data is correctly shuffled across epochs
+            # in case shuffle is True
+            self._sampler.set_epoch(curr_epoch)
 
-                pbar = tqdm(total=self._steps_per_epoch)
-                for idx, batch in enumerate(self._dataloader):
-                    if (
-                        self.max_steps_per_epoch is not None
-                        and (idx // self._gradient_accumulation_steps)
-                        == self.max_steps_per_epoch
-                    ):
-                        break
+            pbar = tqdm(total=self._steps_per_epoch)
+            for idx, batch in enumerate(self._dataloader):
+                if (
+                    self.max_steps_per_epoch is not None
+                    and (idx // self._gradient_accumulation_steps)
+                    == self.max_steps_per_epoch
+                ):
+                    break
 
-                    # Both are shape [b, s]
-                    tokens, labels = batch["tokens"], batch["labels"]
-                    # Get the attention mask and position ids from the dataset if they
-                    # exist. Currently, only sample packing in PackedDataset returns these
-                    mask = batch.get("mask", None)  # shape [b, s, s]
-                    input_pos = batch.get("input_pos", None)  # shape [b, s]
+                # Both are shape [b, s]
+                tokens, labels = batch["tokens"], batch["labels"]
+                # Get the attention mask and position ids from the dataset if they
+                # exist. Currently, only sample packing in PackedDataset returns these
+                mask = batch.get("mask", None)  # shape [b, s, s]
+                input_pos = batch.get("input_pos", None)  # shape [b, s]
 
-                    tokens = tokens.to(self._device)
-                    num_tokens += tokens.numel()
-                    labels = labels.to(self._device)
-                    mask = mask.to(self._device) if mask is not None else None
-                    input_pos = (
-                        input_pos.to(self._device) if input_pos is not None else None
+                tokens = tokens.to(self._device)
+                num_tokens += tokens.numel()
+                labels = labels.to(self._device)
+                mask = mask.to(self._device) if mask is not None else None
+                input_pos = (
+                    input_pos.to(self._device) if input_pos is not None else None
+                )
+
+                logits = self._model(tokens, mask=mask, input_pos=input_pos)
+                # Shift so that tokens < n predict n
+                logits = logits[..., :-1, :].contiguous()
+                labels = labels[..., 1:].contiguous()
+                logits = logits.transpose(1, 2)
+                # Compute loss
+                loss = self._loss_fn(logits, labels)
+                # free logits otherwise it peaks backward memory
+                del logits
+
+                loss = loss / self._gradient_accumulation_steps
+                running_loss += loss
+                loss.backward()
+
+                # Step with optimizer
+                if (idx + 1) % self._gradient_accumulation_steps == 0:
+                    if not self._optimizer_in_bwd:
+                        self._optimizer.step()
+                        self._optimizer.zero_grad(set_to_none=True)
+
+                    self.global_step += 1
+
+                    loss_to_log = running_loss.item()
+                    pbar.update(1)
+                    pbar.set_description(
+                        f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
                     )
 
-                    logits = self._model(tokens, mask=mask, input_pos=input_pos)
-                    # Shift so that tokens < n predict n
-                    logits = logits[..., :-1, :].contiguous()
-                    labels = labels[..., 1:].contiguous()
-                    logits = logits.transpose(1, 2)
-                    # Compute loss
-                    loss = self._loss_fn(logits, labels)
-                    # free logits otherwise it peaks backward memory
-                    del logits
-
-                    loss = loss / self._gradient_accumulation_steps
-                    running_loss += loss
-                    loss.backward()
-
-                    # Step with optimizer
-                    if (idx + 1) % self._gradient_accumulation_steps == 0:
-                        if not self._optimizer_in_bwd:
-                            self._optimizer.step()
-                            self._optimizer.zero_grad(set_to_none=True)
-
-                        self.global_step += 1
-
-                        loss_to_log = running_loss.item()
-                        pbar.update(1)
-                        pbar.set_description(
-                            f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
+                    # Log per-step metrics
+                    if self.global_step % self._log_every_n_steps == 0:
+                        time_per_step = time.perf_counter() - t0
+                        log_dict = {
+                            "loss": loss_to_log,
+                            # NOTE: for optim in backward, this assumes all optimizers have the same LR. This is currently
+                            # true since we don't expose the ability to configure this yet.
+                            "lr": (
+                                self._optim_ckpt_wrapper.get_optim_key("lr")
+                                if self._optimizer_in_bwd
+                                else self._optimizer.param_groups[0]["lr"]
+                            ),
+                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                        }
+                        if self._device.type == "cuda" and self._log_peak_memory_stats:
+                            log_dict.update(utils.get_memory_stats(device=self._device))
+                        self._metric_logger.log_dict(
+                            log_dict,
+                            step=self.global_step,
                         )
 
-                        # Log per-step metrics
-                        if self.global_step % self._log_every_n_steps == 0:
-                            time_per_step = time.perf_counter() - t0
-                            log_dict = {
-                                "loss": loss_to_log,
-                                # NOTE: for optim in backward, this assumes all optimizers have the same LR. This is currently
-                                # true since we don't expose the ability to configure this yet.
-                                "lr": (
-                                    self._optim_ckpt_wrapper.get_optim_key("lr")
-                                    if self._optimizer_in_bwd
-                                    else self._optimizer.param_groups[0]["lr"]
-                                ),
-                                "tokens_per_second_per_gpu": num_tokens / time_per_step,
-                            }
-                            if self._device.type == "cuda" and self._log_peak_memory_stats:
-                                log_dict.update(utils.get_memory_stats(device=self._device))
-                            self._metric_logger.log_dict(
-                                log_dict,
-                                step=self.global_step,
-                            )
+                    # Reset running stats for the next step
+                    running_loss = 0
+                    num_tokens = 0
+                    t0 = time.perf_counter()
 
-                        # Reset running stats for the next step
-                        running_loss = 0
-                        num_tokens = 0
-                        t0 = time.perf_counter()
+                # Step the profiler
+                # Note we are stepping each batch, which might not include optimizer step in the trace
+                # if the schedule cycle doesn't align with gradient accumulation.
+                self._profiler.step()
 
-                    # Step the profiler
-                    # Note we are stepping each batch, which might not include optimizer step in the trace
-                    # if the schedule cycle doesn't align with gradient accumulation.
-                    prof.step()
+            self.epochs_run += 1
+            self.save_checkpoint(epoch=curr_epoch)
 
-                self.epochs_run += 1
-                self.save_checkpoint(epoch=curr_epoch)
+        self._profiler.stop()
 
     def cleanup(self) -> None:
         self._metric_logger.close()
