@@ -21,7 +21,7 @@ jobs:
     with:
       package-type: wheel
       os: linux
-      channel: stable
+      channel: release
       test-infra-repository: pytorch/test-infra
       test-infra-ref: main
       with-cuda: enable
