@@ -28,22 +28,26 @@ An example Comet workspace from a torchtune fine-tuning run can be seen in the s
   You can install it via pip:
 
   .. code-block:: bash
-    comet init --api-key
+
+    comet login
+
 Metric Logger
 -------------
 
 The only change you need to make is to add the metric logger to your config. Comet will log the metrics and model checkpoints for you.
 
 .. code-block:: yaml
+
     # enable logging to the built-in CometLogger
     metric_logger:
       _component_: torchtune.utils.metric_logging.CometLogger
       # the Comet project to log to
       project: comet-examples-torchtune
       experiment_name: my-experiment-name
+
 We automatically grab the config from the recipe you are running and log it to Comet. You can find it in the Comet Hyperparameters tab and the actual file in the :code:`Assets & Artifacts` tab.
 
 .. note::
 
   Click on this sample `Comet project to see how it will looks like after fine-tuning <https://www.comet.com/examples/comet-example-torchtune-mistral/>`_.
-  The config used to train the models can be found `here <https://www.comet.com/examples/comet-example-torchtune-mistral/79dffc6e42424b33adfee6dd439ff47f?experiment-tab=params>`_.
+  The config used to train the models can be found `here <https://www.comet.com/examples/comet-example-torchtune-mistral/0aabcd062de548bbbd30912544aaa41a?experiment-tab=params>`_.
