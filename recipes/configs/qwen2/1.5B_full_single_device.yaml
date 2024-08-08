@@ -28,6 +28,7 @@ tokenizer:
 # Dataset
 dataset:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
+
 seed: null
 shuffle: True
 
@@ -48,13 +49,16 @@ resume_from_checkpoint: False
 
 # Fine-tuning arguments
 batch_size: 2
-epochs: 3
+epochs: 1
 optimizer:
-  _component_: torch.optim.AdamW
+  _component_: bitsandbytes.optim.PagedAdamW8bit
   lr: 2e-5
+
+optimizer_in_bwd: True
 
 loss:
   _component_: torch.nn.CrossEntropyLoss
+
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
 compile: False
@@ -63,7 +67,7 @@ compile: False
 device: cuda
 
 # Memory management
-enable_activation_checkpointing: False
+enable_activation_checkpointing: True
 
 # Reduced precision
 dtype: bf16
