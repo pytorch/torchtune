@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List
+from typing import List, Optional
 
 from torchtune.models.mistral._component_builders import (
     mistral,
@@ -46,17 +46,19 @@ def mistral_7b() -> TransformerDecoder:
     )
 
 
-def mistral_tokenizer(path: str) -> MistralTokenizer:
+def mistral_tokenizer(path: str, max_seq_len: Optional[int] = None) -> MistralTokenizer:
     """
     Tokenizer for Mistral models.
 
     Args:
         path (str): path to the tokenizer
+        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
+            after which the input will be truncated. Default is None.
 
     Returns:
         MistralTokenizer: Instantiation of the Mistral tokenizer
     """
-    return MistralTokenizer(path)
+    return MistralTokenizer(path=path, max_seq_len=max_seq_len)
 
 
 def lora_mistral_7b(

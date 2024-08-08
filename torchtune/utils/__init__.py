@@ -29,7 +29,7 @@ from ._distributed import (  # noqa
     set_torch_num_threads,
     validate_no_params_on_meta_device,
 )
-from ._generation import generate
+from ._generation import generate, generate_next_token  # noqa
 from ._profiler import (
     DEFAULT_PROFILE_DIR,
     DEFAULT_PROFILER_ACTIVITIES,
@@ -102,4 +102,5 @@ __all__ = [
     "setup_torch_profiler",
     "get_quantizer_mode",
     "generate",
+    "generate_next_token",
 ]

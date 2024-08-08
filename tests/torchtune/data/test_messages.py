@@ -5,8 +5,18 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
-from tests.test_utils import assert_dialogue_equal
-from torchtune.data._messages import InputOutputToMessages, Message
+from tests.test_utils import (
+    assert_dialogue_equal,
+    CHAT_SAMPLE,
+    MESSAGE_SAMPLE,
+    MESSAGE_SAMPLE_TRAIN_ON_INPUT,
+)
+from torchtune.data._messages import (
+    InputOutputToMessages,
+    JSONToMessages,
+    Message,
+    ShareGPTToMessages,
+)
 
 
 class TestMessage:
@@ -93,3 +103,65 @@ class TestInputOutputToMessages:
             Message(role="assistant", content="hello world", masked=False, eot=True),
         ]
         assert_dialogue_equal(actual["messages"], expected)
+
+
+class TestShareGPTToMessages:
+    samples = {
+        "conversations": [
+            {
+                "from": "system",
+                "value": CHAT_SAMPLE["system"],
+            },
+            {
+                "from": "human",
+                "value": CHAT_SAMPLE["user"],
+            },
+            {
+                "from": "gpt",
+                "value": CHAT_SAMPLE["assistant"],
+            },
+        ]
+    }
+
+    def test_call(self):
+        transform = ShareGPTToMessages()
+        converted_messages = transform(self.samples)
+        assert_dialogue_equal(converted_messages["messages"], MESSAGE_SAMPLE)
+
+    def test_call_train_on_input(self):
+        transform = ShareGPTToMessages(train_on_input=True)
+        converted_messages = transform(self.samples)
+        assert_dialogue_equal(
+            converted_messages["messages"], MESSAGE_SAMPLE_TRAIN_ON_INPUT
+        )
+
+
+class TestJSONToMessages:
+    samples = {
+        "messages": [
+            {
+                "role": "system",
+                "content": CHAT_SAMPLE["system"],
+            },
+            {
+                "role": "user",
+                "content": CHAT_SAMPLE["user"],
+            },
+            {
+                "role": "assistant",
+                "content": CHAT_SAMPLE["assistant"],
+            },
+        ],
+    }
+
+    def test_call(self):
+        transform = JSONToMessages()
+        converted_messages = transform(self.samples)
+        assert_dialogue_equal(converted_messages["messages"], MESSAGE_SAMPLE)
+
+    def test_call_train_on_input(self):
+        transform = JSONToMessages(train_on_input=True)
+        converted_messages = transform(self.samples)
+        assert_dialogue_equal(
+            converted_messages["messages"], MESSAGE_SAMPLE_TRAIN_ON_INPUT
+        )
