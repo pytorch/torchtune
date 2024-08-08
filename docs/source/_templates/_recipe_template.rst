@@ -55,7 +55,7 @@ Most of you will want to twist, pull, and bop all the different levers, buttons,
 There are <> levers to pull when working with <>, specifically:
 
 .. and for lora/qlora recipes
-This recipe supports :ref:`Parameter efficient fine-tuning (PEFT) <glossary_peft>`. To understand the different
+This recipe is an example of :ref:`Parameter efficient fine-tuning (PEFT) <glossary_peft>`. To understand the different
 levers you can pull, see our documentation for the different PEFT training paradigms we support:
 
 * :ref:`glossary_lora`
@@ -82,4 +82,4 @@ As with all of our recipes, you can also:
 .. * `glossary_distrib`
 
 
-If you're interested in an overview of our memory optimization features, check out our  :ref:`memory optimization overview<memory_optimisation_overview_label>`!
+If you're interested in an overview of our memory optimization features, check out our  :ref:`memory optimization overview<memory_optimization_overview_label>`!

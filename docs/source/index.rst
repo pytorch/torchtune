@@ -100,7 +100,7 @@ torchtune tutorials.
 .. toctree::
    :glob:
    :maxdepth: 1
-   :caption: Recipes
+   :caption: Finetuning Recipes
    :hidden:
 
    recipes/recipes_overview
@@ -120,7 +120,7 @@ torchtune tutorials.
    tutorials/e2e_flow
    tutorials/datasets
    tutorials/chat
-   tutorials/memory_optimisations
+   tutorials/memory_optimizations
 
 .. toctree::
    :glob:

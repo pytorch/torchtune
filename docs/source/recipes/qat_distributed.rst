@@ -10,6 +10,11 @@ This works by :ref:`simulating quantization numerics during fine-tuning <what_is
 compute overheads during training, our tests found that QAT significantly reduced performance degradation in evaluations of
 quantized model, without compromising on model size reduction gains.
 
+.. note::
+
+  The `PyTorch blogpost <https://pytorch.org/blog/quantization-aware-training/>`_ on QAT provides further insight into how QAT works.
+
+
 Interested in using this recipe? Check out some of our tutorials which show how it is used:
 
 * :ref:`qat_finetune_label`
@@ -34,7 +39,7 @@ in just two steps:
     --ignore-patterns "original/consolidated.00.pth" \
     --HF_TOKEN <HF_TOKEN>
 
-    tune run --nproc_per_node 4 qat_distributed \
+    tune run --nproc_per_node 6 qat_distributed \
     --config llama3/8B_qat_full
 
 .. note::
@@ -44,8 +49,7 @@ in just two steps:
 Most of you will want to twist, pull, and bop all the different levers, buttons, and knobs we expose in our recipes. Check out our
 :ref:`configs tutorial <config_tutorial_label>` to learn how to customize recipes to suit your needs.
 
-Currently, the main lever you can pull for QAT is by using delayed fake quantization:
-
+Currently, the main lever you can pull for QAT is by using *delayed fake quantization*.
 Delayed fake quantization allows for control over the step after which fake quantization occurs.
 Empirically, allowing the model to finetune without fake quantization initially allows the
 weight and activation values to stabilize before fake quantizing them, potentially leading
@@ -85,4 +89,4 @@ As with all of our recipes, you can also:
 * Use :ref:`lower precision optimizers <glossary_low_precision_opt>`.
 
 
-If you're interested in an overview of our memory optimization features, check out our  :ref:`memory optimization overview<memory_optimisation_overview_label>`!
+If you're interested in an overview of our memory optimization features, check out our  :ref:`memory optimization overview<memory_optimization_overview_label>`!
