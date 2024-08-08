@@ -321,14 +321,27 @@ class TensorBoardLogger(MetricLoggerInterface):
 
 class CometLogger(MetricLoggerInterface):
     """Logger for use w/ Comet (https://www.comet.com/site/).
+    For more information about arguments expected by Comet, see
+    https://www.comet.com/docs/v2/guides/experiment-management/configure-sdk/#for-the-experiment.
 
     Args:
-        project_name (Optional[str]): Comet.ml project name. Defaults to Uncategorized.
-        workspace (Optional[str]): Comet.ml workspace name. If not provided, uses the default workspace.
+        api_key (Optional[str]): Comet API key. It's recommended to configure the API Key from the environment.
+        workspace (Optional[str]): Comet workspace name. If not provided, uses the default workspace.
+        project (Optional[str]): Comet project name. Defaults to Uncategorized.
+        experiment_name (Optional[str]): The name for comet experiment to be used for logging.
+        experiment_key (Optional[str]): The key for comet experiment to be used for logging. Must be an alphanumeric
+            string whose length is between 32 and 50 characters.
+        online (Optional[bool]): If True, the data will be logged to Comet server, otherwise it will be stored locally
+            in offline experiment. Default is `True`.
+        mode (Optional[str]): Control how the Comet experiment is started. "get": Continue logging to an existing
+            experiment identified by the `experiment_key` value. "create": Always creates of a new experiment, useful
+            for HPO sweeps. "get_or_create" (default): Starts a fresh experiment if required, or persists logging to
+            an existing one.
         experiment_name (Optional[str]): Name of the experiment. If not provided, Comet will auto-generate a name.
         tags (Optional[List[str]]): Tags to associate with the experiment.
         log_code (bool): Whether to log the source code. Defaults to True.
-        **kwargs: Additional arguments to pass to comet_ml.Experiment.
+        **kwargs: additional arguments to pass to Comet.start. See
+            https://www.comet.com/docs/v2/api-and-sdk/python-sdk/reference/Experiment-Creation/#comet_ml.ExperimentConfig
 
     Example:
         >>> from torchtune.utils.metric_logging import CometLogger
@@ -350,8 +363,12 @@ class CometLogger(MetricLoggerInterface):
 
     def __init__(
         self,
-        project: Optional[str] = None,
+        api_key: Optional[str] = None,
         workspace: Optional[str] = None,
+        project: Optional[str] = None,
+        experiment_key: Optional[str] = None,
+        mode: Optional[str] = None,
+        online: Optional[bool] = None,
         experiment_name: Optional[str] = None,
         tags: Optional[List[str]] = None,
         log_code: bool = True,
@@ -369,8 +386,12 @@ class CometLogger(MetricLoggerInterface):
 
         if self.rank == 0:
             self.experiment = comet_ml.start(
-                project=project,
+                api_key=api_key,
                 workspace=workspace,
+                project=project,
+                experiment_key=experiment_key,
+                mode=mode,
+                online=online,
                 experiment_config=comet_ml.ExperimentConfig(
                     log_code=log_code, tags=tags, name=experiment_name, **kwargs
                 ),
