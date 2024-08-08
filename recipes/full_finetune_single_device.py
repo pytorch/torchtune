@@ -8,7 +8,7 @@ import os
 import sys
 import time
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Union
 from warnings import warn
 
 import torch
@@ -21,6 +21,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.utils import DummyProfiler, PROFILER_KEY
 
 from tqdm import tqdm
 
@@ -248,6 +249,70 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
 
+        # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
+        # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
+        self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
+
+    def _setup_profiler(
+        self, cfg_profiler: Optional[DictConfig]
+    ) -> Union[torch.profiler.profile, DummyProfiler]:
+        """
+        Parses the `profiler` section of top-level `cfg` and sets up profiler
+
+        Args:
+            cfg_profiler (DictConfig): `profiler` section of the top-level `cfg` (the main config passed to `recipe.main`)
+
+        Returns:
+            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
+            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
+            that the instrumented training loop does not need to be changed profiling is disabled.
+
+        The profiler config can be provided in configs under the `profiler` key with the following layout:
+
+        .. code-block:: yaml
+            profiler:
+                enabled: bool
+
+                #Output directory of trace artifacts
+                output_dir: str
+
+            #`torch.profiler.ProfilerActivity` types to trace
+            cpu: bool
+            cuda: bool
+
+                #Trace options
+                profile_memory: bool
+                with_stack: bool
+                record_shapes: bool
+                with_flops: bool
+
+            # `torch.profiler.schedule` options:
+            # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+            wait_steps: int
+            warmup_steps: int
+            active_steps: int
+            num_cycles: int
+        """
+
+        # Missing profiler section in config, assume disabled
+        if cfg_profiler is None:
+            cfg_profiler = DictConfig({"enabled": False})
+
+        # Check that component is included and set correctly
+        if cfg_profiler.get("_component_", None) is None:
+            cfg_profiler["_component_"] = "torchtune.utils.setup_torch_profiler"
+        else:
+            assert (
+                cfg_profiler.get("_component_")
+                == "torchtune.utils.setup_torch_profiler"
+            ), "Only torch profiler supported currently: component must be `torchtune.utils.setup_torch_profiler`"
+
+        profiler, profiler_cfg = config.instantiate(cfg_profiler)
+
+        log.info(f" Profiler config after instantiation: {profiler_cfg}")
+
+        return profiler
+
     def _setup_model(
         self,
         cfg_model: DictConfig,
@@ -415,92 +480,98 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         running_loss = 0
         num_tokens = 0
 
-        # self.epochs_run should be non-zero when we're resuming from a checkpoint
-        for curr_epoch in range(self.epochs_run, self.total_epochs):
-            # Update the sampler to ensure data is correctly shuffled across epochs
-            # in case shuffle is True
-            self._sampler.set_epoch(curr_epoch)
+        with self._profiler as prof:
+            # self.epochs_run should be non-zero when we're resuming from a checkpoint
+            for curr_epoch in range(self.epochs_run, self.total_epochs):
+                # Update the sampler to ensure data is correctly shuffled across epochs
+                # in case shuffle is True
+                self._sampler.set_epoch(curr_epoch)
 
-            pbar = tqdm(total=self._steps_per_epoch)
-            for idx, batch in enumerate(self._dataloader):
-                if (
-                    self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
-                ):
-                    break
+                pbar = tqdm(total=self._steps_per_epoch)
+                for idx, batch in enumerate(self._dataloader):
+                    if (
+                        self.max_steps_per_epoch is not None
+                        and (idx // self._gradient_accumulation_steps)
+                        == self.max_steps_per_epoch
+                    ):
+                        break
 
-                # Both are shape [b, s]
-                tokens, labels = batch["tokens"], batch["labels"]
-                # Get the attention mask and position ids from the dataset if they
-                # exist. Currently, only sample packing in PackedDataset returns these
-                mask = batch.get("mask", None)  # shape [b, s, s]
-                input_pos = batch.get("input_pos", None)  # shape [b, s]
+                    # Both are shape [b, s]
+                    tokens, labels = batch["tokens"], batch["labels"]
+                    # Get the attention mask and position ids from the dataset if they
+                    # exist. Currently, only sample packing in PackedDataset returns these
+                    mask = batch.get("mask", None)  # shape [b, s, s]
+                    input_pos = batch.get("input_pos", None)  # shape [b, s]
 
-                tokens = tokens.to(self._device)
-                num_tokens += tokens.numel()
-                labels = labels.to(self._device)
-                mask = mask.to(self._device) if mask is not None else None
-                input_pos = (
-                    input_pos.to(self._device) if input_pos is not None else None
-                )
-
-                logits = self._model(tokens, mask=mask, input_pos=input_pos)
-                # Shift so that tokens < n predict n
-                logits = logits[..., :-1, :].contiguous()
-                labels = labels[..., 1:].contiguous()
-                logits = logits.transpose(1, 2)
-                # Compute loss
-                loss = self._loss_fn(logits, labels)
-                # free logits otherwise it peaks backward memory
-                del logits
-
-                loss = loss / self._gradient_accumulation_steps
-                running_loss += loss
-                loss.backward()
-
-                # Step with optimizer
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    if not self._optimizer_in_bwd:
-                        self._optimizer.step()
-                        self._optimizer.zero_grad(set_to_none=True)
-
-                    self.global_step += 1
-
-                    loss_to_log = running_loss.item()
-                    pbar.update(1)
-                    pbar.set_description(
-                        f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
+                    tokens = tokens.to(self._device)
+                    num_tokens += tokens.numel()
+                    labels = labels.to(self._device)
+                    mask = mask.to(self._device) if mask is not None else None
+                    input_pos = (
+                        input_pos.to(self._device) if input_pos is not None else None
                     )
 
-                    # Log per-step metrics
-                    if self.global_step % self._log_every_n_steps == 0:
-                        time_per_step = time.perf_counter() - t0
-                        log_dict = {
-                            "loss": loss_to_log,
-                            # NOTE: for optim in backward, this assumes all optimizers have the same LR. This is currently
-                            # true since we don't expose the ability to configure this yet.
-                            "lr": (
-                                self._optim_ckpt_wrapper.get_optim_key("lr")
-                                if self._optimizer_in_bwd
-                                else self._optimizer.param_groups[0]["lr"]
-                            ),
-                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
-                        }
-                        if self._device.type == "cuda" and self._log_peak_memory_stats:
-                            log_dict.update(utils.get_memory_stats(device=self._device))
-                        self._metric_logger.log_dict(
-                            log_dict,
-                            step=self.global_step,
+                    logits = self._model(tokens, mask=mask, input_pos=input_pos)
+                    # Shift so that tokens < n predict n
+                    logits = logits[..., :-1, :].contiguous()
+                    labels = labels[..., 1:].contiguous()
+                    logits = logits.transpose(1, 2)
+                    # Compute loss
+                    loss = self._loss_fn(logits, labels)
+                    # free logits otherwise it peaks backward memory
+                    del logits
+
+                    loss = loss / self._gradient_accumulation_steps
+                    running_loss += loss
+                    loss.backward()
+
+                    # Step with optimizer
+                    if (idx + 1) % self._gradient_accumulation_steps == 0:
+                        if not self._optimizer_in_bwd:
+                            self._optimizer.step()
+                            self._optimizer.zero_grad(set_to_none=True)
+
+                        self.global_step += 1
+
+                        loss_to_log = running_loss.item()
+                        pbar.update(1)
+                        pbar.set_description(
+                            f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
                         )
 
-                    # Reset running stats for the next step
-                    running_loss = 0
-                    num_tokens = 0
-                    t0 = time.perf_counter()
+                        # Log per-step metrics
+                        if self.global_step % self._log_every_n_steps == 0:
+                            time_per_step = time.perf_counter() - t0
+                            log_dict = {
+                                "loss": loss_to_log,
+                                # NOTE: for optim in backward, this assumes all optimizers have the same LR. This is currently
+                                # true since we don't expose the ability to configure this yet.
+                                "lr": (
+                                    self._optim_ckpt_wrapper.get_optim_key("lr")
+                                    if self._optimizer_in_bwd
+                                    else self._optimizer.param_groups[0]["lr"]
+                                ),
+                                "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                            }
+                            if self._device.type == "cuda" and self._log_peak_memory_stats:
+                                log_dict.update(utils.get_memory_stats(device=self._device))
+                            self._metric_logger.log_dict(
+                                log_dict,
+                                step=self.global_step,
+                            )
 
-            self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
+                        # Reset running stats for the next step
+                        running_loss = 0
+                        num_tokens = 0
+                        t0 = time.perf_counter()
+
+                    # Step the profiler
+                    # Note we are stepping each batch, which might not include optimizer step in the trace
+                    # if the schedule cycle doesn't align with gradient accumulation.
+                    prof.step()
+
+                self.epochs_run += 1
+                self.save_checkpoint(epoch=curr_epoch)
 
     def cleanup(self) -> None:
         self._metric_logger.close()

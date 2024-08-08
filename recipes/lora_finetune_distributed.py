@@ -276,7 +276,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
 
     def _setup_profiler(
-        self, cfg_profiler: DictConfig
+        self, cfg_profiler: Optional[DictConfig]
     ) -> Union[torch.profiler.profile, DummyProfiler]:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
