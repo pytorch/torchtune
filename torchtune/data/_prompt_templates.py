@@ -120,6 +120,65 @@ class PromptTemplate(PromptTemplateInterface):
         return formatted_dialogue
 
 
+class ChatMLTemplate(PromptTemplateInterface):
+    """
+    OpenAI's `Chat Markup Language
+    <https://github.com/MicrosoftDocs/azure-docs/blob/772c14eeabfa0c0c561d5c2d34ef19341f528b7b/articles/ai-services/openai/how-to/chat-markup-language.md>`_
+    used by their chat models.
+
+    It is the default chat template used by Hugging Face models.
+
+    .. code-block:: text
+
+        <|im_start|>system
+        Provide some context and/or instructions to the model.<|im_end|>
+        <|im_start|>user
+        The user’s message goes here<|im_end|>
+        <|im_start|>assistant
+        The assistant’s response goes here<|im_end|>
+
+    """
+
+    template = {
+        "system": ("<|im_start|>system\n", "<|im_end|>\n"),
+        "user": ("<|im_start|>user\n", "<|im_end|>\n"),
+        "assistant": ("<|im_start|>assistant\n", "<|im_end|>"),
+        "ipython": ("", ""),
+    }
+
+    def __call__(
+        self,
+        messages: List[Message],
+    ) -> List[Message]:
+        """
+        Format user, assistant, and system messages with appropriate tags.
+
+        Args:
+            messages (List[Message]): a single conversation, structured as a list
+                of `Message` objects
+
+        Returns:
+            The formatted list of messages
+        """
+        formatted_dialogue = []
+        for message in messages:
+            content = (
+                [{"type": "text", "content": self.template[message.role][0]}]
+                + message.content
+                + [{"type": "text", "content": self.template[message.role][1]}]
+            )
+            formatted_dialogue.append(
+                Message(
+                    role=message.role,
+                    content=content,
+                    masked=message.masked,
+                    ipython=message.ipython,
+                    eot=message.eot,
+                ),
+            )
+        return formatted_dialogue
+
+
 GrammarErrorCorrectionTemplate = partial(
     PromptTemplate,
     template={

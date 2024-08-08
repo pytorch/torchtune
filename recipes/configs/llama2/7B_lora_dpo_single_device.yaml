@@ -70,6 +70,7 @@ loss:
 epochs: 1
 max_steps_per_epoch: 1000
 gradient_accumulation_steps: 16
+compile: False
 
 # Logging
 output_dir: /tmp/lora_dpo_output/

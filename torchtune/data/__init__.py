@@ -22,6 +22,7 @@ from torchtune.data._messages import (
     ChosenRejectedToMessages,
 )
 from torchtune.data._prompt_templates import (
+    ChatMLTemplate,
     GrammarErrorCorrectionTemplate,
     PromptTemplate,
     PromptTemplateInterface,
@@ -49,11 +50,9 @@ __all__ = [
     "PromptTemplateInterface",
     "PromptTemplate",
     "InputOutputToMessages",
-<<<<<<< HEAD
     "ChosenRejectedToMessages",
     "QuestionAnswerTemplate",
-=======
+    "ChatMLTemplate",
     "get_openai_messages",
     "get_sharegpt_messages",
->>>>>>> main
 ]

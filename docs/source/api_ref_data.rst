@@ -25,6 +25,7 @@ and models.
     StackExchangedPairedTemplate
     PromptTemplate
     PromptTemplateInterface
+    ChatMLTemplate
 
     ChatFormat
     ChatMLFormat
