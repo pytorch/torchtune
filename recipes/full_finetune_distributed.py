@@ -27,6 +27,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.utils.activations import apply_selective_activation_checkpointing
 
 from tqdm import tqdm
 
