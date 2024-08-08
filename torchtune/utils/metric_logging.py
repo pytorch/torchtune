@@ -342,15 +342,15 @@ class CometLogger(MetricLoggerInterface):
 
     Note:
         This logger requires the comet_ml package to be installed.
-        You can install it with `pip install comet_ml`.
+        You can install it with ``pip install comet_ml``.
         You need to set up your Comet.ml API key before using this logger.
         You can do this by setting the COMET_API_KEY environment variable
-        or by calling `comet_ml.login()` with your API key.
+        or by calling ``comet_ml.login()`` with your API key.
     """
 
     def __init__(
         self,
-        project_name: Optional[str] = None,
+        project: Optional[str] = None,
         workspace: Optional[str] = None,
         experiment_name: Optional[str] = None,
         tags: Optional[List[str]] = None,
@@ -369,7 +369,7 @@ class CometLogger(MetricLoggerInterface):
 
         if self.rank == 0:
             self.experiment = comet_ml.start(
-                project_name=project_name,
+                project_name=project,
                 workspace=workspace,
                 experiment_config=comet_ml.ExperimentConfig(
                     log_code=log_code, tags=tags, name=experiment_name, **kwargs
