@@ -321,7 +321,8 @@ class TensorBoardLogger(MetricLoggerInterface):
 
 class CometLogger(MetricLoggerInterface):
     """Logger for use w/ Comet (https://www.comet.com/site/).
-
+    Comet is an experiment tracking tool that helps ML teams track, debug,
+    compare, and reproduce their model training runs.
 
     For more information about arguments expected by Comet, see
     https://www.comet.com/docs/v2/guides/experiment-management/configure-sdk/#for-the-experiment.
