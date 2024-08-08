@@ -89,10 +89,10 @@ class Qwen2Tokenizer(ModelTokenizer):
         errors (str): Paradigm to follow when decoding bytes to UTF-8. Defaults to "replace".
             See [bytes.decode](https://docs.python.org/3/library/stdtypes.html#bytes.decode) for more information.
         unk_token (Optional[str]): The unknown token. A token that is not in the vocabulary cannot be converted
-            to an ID and is set to be this token instead. Defaults to "<|endoftext|>".
+            to an ID and is set to be this token instead. Defaults to ``<|endoftext|>``.
         bos_token (Optional[str]): The beginning of sequence token. Defaults to None.
-        eos_token (str): The end of sequence token. Defaults to "<|endoftext|>".
-        pad_token (Optional[str]): The token used for padding. Defaults to "<|endoftext|>".
+        eos_token (str): The end of sequence token. Defaults to ``<|endoftext|>``.
+        pad_token (Optional[str]): The token used for padding. Defaults to ``<|endoftext|>``.
         bpe_cache_size (int): BPE token cache size in Qwen2Tokenizer.
             NOTE: large cache size will speed up tokenization, but the cache object will get really
             large for long running processes (esp. for texts of language that do not use space between
