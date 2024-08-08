@@ -369,7 +369,7 @@ class CometLogger(MetricLoggerInterface):
 
         if self.rank == 0:
             self.experiment = comet_ml.start(
-                project_name=project,
+                project=project,
                 workspace=workspace,
                 experiment_config=comet_ml.ExperimentConfig(
                     log_code=log_code, tags=tags, name=experiment_name, **kwargs
