@@ -98,6 +98,7 @@ def qwen2_tokenizer(
     path: str,
     merges_file: str = None,
     special_tokens_path: Optional[str] = None,
+    max_seq_len: Optional[int] = None,
     **kwargs,
 ) -> Qwen2Tokenizer:
     """
@@ -109,7 +110,8 @@ def qwen2_tokenizer(
         special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
             model files that contains all registered special tokens, or a local json file
             structured similarly. Default is None to use the canonical Qwen2 special tokens.
-
+        max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
+            Default: None
     Returns:
         Qwen2Tokenizer: Instantiation of the Qwen2 tokenizer
     """
