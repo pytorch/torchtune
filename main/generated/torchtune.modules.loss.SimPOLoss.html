@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Transform &mdash; torchtune main documentation</title>
+  <title>SimPOLoss &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="get_canvas_best_fit" href="torchtune.modules.transforms.get_canvas_best_fit.html" />
-    <link rel="prev" title="SimPOLoss" href="torchtune.modules.loss.SimPOLoss.html" />
+    <link rel="next" title="Transform" href="torchtune.modules.transforms.Transform.html" />
+    <link rel="prev" title="IPOLoss" href="torchtune.modules.loss.IPOLoss.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -371,13 +371,13 @@
         
           <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
         
-      <li>Transform</li>
+      <li>SimPOLoss</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.modules.transforms.Transform.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.modules.loss.SimPOLoss.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -407,13 +407,61 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="transform">
-<h1>Transform<a class="headerlink" href="#transform" title="Permalink to this heading">¶</a></h1>
+  <section id="simpoloss">
+<h1>SimPOLoss<a class="headerlink" href="#simpoloss" title="Permalink to this heading">¶</a></h1>
 <dl class="py class">
-<dt class="sig sig-object py" id="torchtune.modules.transforms.Transform">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.transforms.</span></span><span class="sig-name descname"><span class="pre">Transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/transforms/_transforms.html#Transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.transforms.Transform" title="Permalink to this definition">¶</a></dt>
-<dd><p>Loose interface for all data and model transforms. Transforms operate at the
-sample level and perform operations on a sample dict, returning the updated dict.</p>
+<dt class="sig sig-object py" id="torchtune.modules.loss.SimPOLoss">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.loss.</span></span><span class="sig-name descname"><span class="pre">SimPOLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_smoothing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/loss/dpo.html#SimPOLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.loss.SimPOLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>SimPO: Simple Preference Optimization with a Reference-Free Reward: <a class="reference external" href="https://arxiv.org/abs/2405.14734">https://arxiv.org/abs/2405.14734</a>.
+Intuition from the paper:</p>
+<blockquote>
+<div><p>The effectiveness of SimPO is attributed to a key design: using the average log probability of a sequence as
+the implicit reward. Additionally, we introduce a target reward margin to the Bradley-Terry objective to
+encourage a larger margin between the winning and losing responses, further enhancing the algorithm’s performance.</p>
+</div></blockquote>
+<p>Based on the TRL implementation:
+<a class="reference external" href="https://github.com/huggingface/trl/blob/98ad01ddfd1e1b67ec018014b83cba40e0caea66/trl/trainer/cpo_trainer.py#L603">https://github.com/huggingface/trl/blob/98ad01ddfd1e1b67ec018014b83cba40e0caea66/trl/trainer/cpo_trainer.py#L603</a></p>
+<p>SimPO is pretty much identitcal to DPO but uses average logprobs to eliminate the need for a reference model to regularize
+the policy during training. It also uses a target reward margin to guide the policy towards better responses.
+This is kind of the same intuition in:class:<cite>~torchtune.modules.loss.IPO</cite>, but instead of optimizing against a margin
+between the reference policy and policy models, we’re optimizing against a margin between the chosen and rejected responses.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>beta</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Equivalent temperature scaling parameter to DPO loss, typically in the range of 2.0 to 2.5. Default is 2.0.</p></li>
+<li><p><strong>gamma</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Target reward margin hyperparameter, typically we have <code class="docutils literal notranslate"><span class="pre">gamma</span> <span class="pre">in</span> <span class="pre">(0,</span> <span class="pre">1.5]</span></code>.
+Default is 0.5.</p></li>
+<li><p><strong>label_smoothing</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Parameter encoding uncertainty about the labels. Default is 0.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.modules.loss.SimPOLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">policy_chosen_logps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">policy_rejected_logps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/modules/loss/dpo.html#SimPOLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.loss.SimPOLoss.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the SimPO loss for a batch chosen and rejected average log probabilities.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>policy_chosen_logps</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – Average log probabilities of the policy model
+for the chosen responses with shape [b,].</p></li>
+<li><p><strong>policy_rejected_logps</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – Average log probabilities of the policy model
+for the rejected responses with shape [b,].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>losses: The SimPO loss for each example in the batch.</p></li>
+<li><p>chosen_rewards: Rewards for the chosen responses.</p></li>
+<li><p>rejected_rewards: Rewards for the rejected responses.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)">torch.Tensor</a>, <a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)">torch.Tensor</a>, <a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)">torch.Tensor</a>]; A tuple of three tensors with shape [b,]</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -426,10 +474,10 @@ sample level and perform operations on a sample dict, returning the updated dict
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.modules.transforms.get_canvas_best_fit.html" class="btn btn-neutral float-right" title="get_canvas_best_fit" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.modules.transforms.Transform.html" class="btn btn-neutral float-right" title="Transform" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.modules.loss.SimPOLoss.html" class="btn btn-neutral" title="SimPOLoss" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.modules.loss.IPOLoss.html" class="btn btn-neutral" title="IPOLoss" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -461,7 +509,7 @@ sample level and perform operations on a sample dict, returning the updated dict
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">Transform</a></li>
+<li><a class="reference internal" href="#">SimPOLoss</a></li>
 </ul>
 
             </div>
