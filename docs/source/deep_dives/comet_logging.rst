@@ -14,7 +14,7 @@ This deep-dive will guide you through how to set up logging to Comet in torchtun
       * How to use the :class:`~torchtune.utils.metric_logging.CometLogger`
       * How to log configs, metrics, and model checkpoints to Comet
 
-Torchtune supports logging your training runs to `Comet <https://www.comet.com/site/?utm_source=torchtune&utm_medium=docs&utm_content=docs>`_.
+torchtune supports logging your training runs to `Comet <https://www.comet.com/site/?utm_source=torchtune&utm_medium=docs&utm_content=docs>`_.
 An example Comet workspace from a torchtune fine-tuning run can be seen in the screenshot below.
 
 .. image:: ../_static/img/comet_torchtune_project.png
@@ -26,6 +26,13 @@ An example Comet workspace from a torchtune fine-tuning run can be seen in the s
 
   You will need to install the :code:`comet_ml` package to use this feature.
   You can install it via pip:
+
+  .. code-block:: bash
+
+    pip install comet_ml
+
+
+  You will also likely need to login to Comet in order to start logging data. You can do it through the command line with:
 
   .. code-block:: bash
 
@@ -49,5 +56,5 @@ We automatically grab the config from the recipe you are running and log it to C
 
 .. note::
 
-  Click on this sample `Comet project to see how it will looks like after fine-tuning <https://www.comet.com/examples/comet-example-torchtune-mistral/>`_.
+  Click on this sample `Comet project to see the logged metrics after fine-tuning <https://www.comet.com/examples/comet-example-torchtune-mistral/>`_.
   The config used to train the models can be found `here <https://www.comet.com/examples/comet-example-torchtune-mistral/0aabcd062de548bbbd30912544aaa41a?experiment-tab=params>`_.

@@ -321,6 +321,8 @@ class TensorBoardLogger(MetricLoggerInterface):
 
 class CometLogger(MetricLoggerInterface):
     """Logger for use w/ Comet (https://www.comet.com/site/).
+
+
     For more information about arguments expected by Comet, see
     https://www.comet.com/docs/v2/guides/experiment-management/configure-sdk/#for-the-experiment.
 
@@ -331,16 +333,16 @@ class CometLogger(MetricLoggerInterface):
         experiment_name (Optional[str]): The name for comet experiment to be used for logging.
         experiment_key (Optional[str]): The key for comet experiment to be used for logging. Must be an alphanumeric
             string whose length is between 32 and 50 characters.
-        mode (Optional[str]): Control how the Comet experiment is started. "get": Continue logging to an existing
-            experiment identified by the `experiment_key` value. "create": Always creates of a new experiment, useful
-            for HPO sweeps. "get_or_create" (default): Starts a fresh experiment if required, or persists logging to
+        mode (Optional[str]): Control how the Comet experiment is started. "get"; Continue logging to an existing
+            experiment identified by the ``experiment_key`` value. "create"; Always creates of a new experiment, useful
+            for HPO sweeps. "get_or_create" (default); Starts a fresh experiment if required, or persists logging to
             an existing one.
         online (Optional[bool]): If True, the data will be logged to Comet server, otherwise it will be stored locally
-            in offline experiment. Default is `True`.
+            in an offline experiment. Default is ``True``.
         experiment_name (Optional[str]): Name of the experiment. If not provided, Comet will auto-generate a name.
         tags (Optional[List[str]]): Tags to associate with the experiment.
         log_code (bool): Whether to log the source code. Defaults to True.
-        **kwargs: additional arguments to pass to Comet.start. See
+        **kwargs: additional arguments to pass to ``comet_ml.start``. See
             https://www.comet.com/docs/v2/api-and-sdk/python-sdk/reference/Experiment-Creation/#comet_ml.ExperimentConfig
 
     Example:
@@ -351,7 +353,7 @@ class CometLogger(MetricLoggerInterface):
         >>> logger.close()
 
     Raises:
-        ImportError: If `comet_ml` package is not installed.
+        ImportError: If ``comet_ml`` package is not installed.
 
     Note:
         This logger requires the comet_ml package to be installed.
