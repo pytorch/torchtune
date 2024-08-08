@@ -431,7 +431,7 @@ class CometLogger(MetricLoggerInterface):
         )
         OmegaConf.save(config, output_config_fname)
 
-        self._experiment.log_asset(
+        self.experiment.log_asset(
             output_config_fname, file_name="torchtune_config.yaml"
         )
 
