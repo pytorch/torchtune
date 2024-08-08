@@ -4,10 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from torchtune.data import Message, truncate
 from torchtune.modules.tokenizers import ModelTokenizer, TikTokenBaseTokenizer
+from torchtune.modules.transforms import Transform
 
 
 CL100K_PATTERN = r"""(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"""  # noqa
@@ -38,7 +39,7 @@ RESERVED_TOKENS = {
 LLAMA3_SPECIAL_TOKENS = {**SPECIAL_TOKENS, **RESERVED_TOKENS}
 
 
-class Llama3Tokenizer(ModelTokenizer):
+class Llama3Tokenizer(ModelTokenizer, Transform):
     """
     tiktoken tokenizer configured with Llama3 Instruct's special tokens, as described in
     https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3
@@ -48,6 +49,8 @@ class Llama3Tokenizer(ModelTokenizer):
         special_tokens (Optional[Dict[str, int]]): mapping containing special text tokens and
             their registered token IDs. If left as None, this will be set to the canonical
             Llama3 special tokens.
+        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
+            after which the input will be truncated. Default is None.
 
     Examples:
         >>> tokenizer = Llama3Tokenizer("/path/to/tt_model")
@@ -60,6 +63,7 @@ class Llama3Tokenizer(ModelTokenizer):
         self,
         path: str,
         special_tokens: Optional[Dict[str, int]] = None,
+        max_seq_len: Optional[int] = None,
     ):
         self.special_tokens = (
             special_tokens if special_tokens is not None else LLAMA3_SPECIAL_TOKENS
@@ -95,6 +99,7 @@ class Llama3Tokenizer(ModelTokenizer):
             eos_id=self.eos_id,
             special_tokens=self.special_tokens,
         )
+        self.max_seq_len = max_seq_len
 
     def _validate_special_tokens(
         self,
@@ -134,6 +139,7 @@ class Llama3Tokenizer(ModelTokenizer):
         self,
         token_ids: List[int],
         truncate_at_eos: bool = True,
+        skip_special_tokens: bool = True,
     ) -> str:
         """
         Decode a list of token ids into a string.
@@ -142,11 +148,17 @@ class Llama3Tokenizer(ModelTokenizer):
             token_ids (List[int]): The list of token ids.
             truncate_at_eos (bool): Whether to truncate the string at the end of
                 sequence token. Default is True.
+            skip_special_tokens (bool): Whether to show or skip special tokens in the decoded string.
+                Default is True.
 
         Returns:
             str: The decoded string.
         """
-        return self.tt_model.decode(token_ids, truncate_at_eos=truncate_at_eos)
+        return self.tt_model.decode(
+            token_ids,
+            truncate_at_eos=truncate_at_eos,
+            skip_special_tokens=skip_special_tokens,
+        )
 
     def _tokenize_header(self, message: Message) -> List[int]:
         """
@@ -216,7 +228,6 @@ class Llama3Tokenizer(ModelTokenizer):
     def tokenize_messages(
         self,
         messages: List[Message],
-        max_seq_len: Optional[int] = None,
         add_eos: bool = True,
     ) -> Tuple[List[int], List[bool]]:
         """
@@ -224,7 +235,7 @@ class Llama3Tokenizer(ModelTokenizer):
 
         Args:
             messages (List[Message]): The list of messages to tokenize.
-            max_seq_len (Optional[int]): The maximum sequence length.
+            add_eos (bool): Wether to add the tokenizer's eos_id. Default True.
 
         Returns:
             Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
@@ -237,14 +248,32 @@ class Llama3Tokenizer(ModelTokenizer):
 
             tokens = tokens + tokenized_message
             mask = mask + ([message.masked] * len(tokenized_message))
-            if max_seq_len and len(tokens) >= max_seq_len:
+            if self.max_seq_len and len(tokens) >= self.max_seq_len:
                 break
 
         if add_eos:
             tokens = tokens + [self.eos_id]
             mask = mask + [True]
-        if max_seq_len:
-            tokens = truncate(tokens, max_seq_len, self.eos_id)
-            mask = truncate(mask, max_seq_len, True)
+        if self.max_seq_len:
+            tokens = truncate(tokens, self.max_seq_len, self.eos_id)
+            mask = truncate(mask, self.max_seq_len, True)
 
         return tokens, mask
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        """
+        Apply ``tokenize_messages`` to the "messages" field in the sample.
+
+        Args:
+            sample (Mapping[str, Any]): A sample with a "messages" field containing
+                a List[Message] to tokenize
+
+        Returns:
+            Mapping[str, Any]: The sample with added "tokens" and "mask" fields
+                and the "messages" field removed.
+        """
+        messages = sample.pop("messages")
+        tokens, mask = self.tokenize_messages(messages)
+        sample["tokens"] = tokens
+        sample["mask"] = mask
+        return sample

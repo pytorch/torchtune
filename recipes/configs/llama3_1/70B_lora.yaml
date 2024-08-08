@@ -60,6 +60,7 @@ checkpointer:
   output_dir: /tmp/Meta-Llama-3.1-70B-Instruct/
   model_type: LLAMA3
 resume_from_checkpoint: False
+save_adapter_weights_only: False
 
 # Dataset and Sampler
 dataset:
@@ -86,7 +87,7 @@ max_steps_per_epoch: null
 gradient_accumulation_steps: 1
 
 # Logging
-output_dir: /tmp/lora_finetune_output
+output_dir: /tmp/lora-llama3_1-finetune-output
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}

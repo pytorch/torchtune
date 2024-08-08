@@ -14,19 +14,19 @@ from torchtune.datasets import slimorca_dataset
 
 
 class TestSlimOrcaDataset:
-    @pytest.fixture
-    def tokenizer(self):
-        return DummyTokenizer()
+    def tokenizer(self, max_seq_len=None):
+        return DummyTokenizer(max_seq_len=max_seq_len)
 
     @patch("torchtune.datasets._chat.load_dataset")
-    def test_value_error(self, load_dataset, tokenizer):
+    def test_value_error(self, load_dataset):
         load_dataset.return_value = []
         with pytest.raises(ValueError):
-            slimorca_dataset(tokenizer=tokenizer, max_seq_len=3)
+            slimorca_dataset(tokenizer=self.tokenizer, max_seq_len=3)
 
     @patch("torchtune.datasets._chat.load_dataset")
     @pytest.mark.parametrize("max_seq_len", [128, 512, 1024, 4096])
-    def test_dataset_get_item(self, load_dataset, tokenizer, max_seq_len):
+    def test_dataset_get_item(self, load_dataset, max_seq_len):
+        tokenizer = self.tokenizer(max_seq_len=max_seq_len)
         # Sample data from slimorca dataset
         load_dataset.return_value = Dataset.from_list(
             [

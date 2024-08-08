@@ -288,7 +288,7 @@ class SimPOLoss(nn.Module):
             policy_chosen_logps (torch.Tensor): Average log probabilities of the policy model
                 for the chosen responses with shape [b,].
             policy_rejected_logps (torch.Tensor): Average log probabilities of the policy model
-            for the rejected responses with shape [b,].
+                for the rejected responses with shape [b,].
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor, torch.Tensor]; A tuple of three tensors with shape [b,]:

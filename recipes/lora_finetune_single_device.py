@@ -128,8 +128,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
-
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
@@ -276,7 +276,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         Parses the `profiler` section of top-level `cfg` and sets up profiler
 
         Args:
-            cfg_profiler: DictConfig - `profiler` section of the top-level `cfg` (the main config passed to `recipe.main`)
+            cfg_profiler (DictConfig): `profiler` section of the top-level `cfg` (the main config passed to `recipe.main`)
 
         Returns:
             profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
@@ -428,13 +428,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
-                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer)
+                config.instantiate(single_cfg_dataset, self._tokenizer)
                 for single_cfg_dataset in cfg_dataset
             ]
             ds = ConcatDataset(datasets=datasets)
             packed = False
         else:
-            ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+            ds = config.instantiate(cfg_dataset, self._tokenizer)
             packed = cfg_dataset.get("packed", False)
 
         sampler = DistributedSampler(
@@ -448,13 +448,15 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             dataset=ds,
             sampler=sampler,
             batch_size=batch_size,
-            collate_fn=partial(
-                utils.padded_collate,
-                padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
-            )
-            if not packed
-            else None,
+            collate_fn=(
+                partial(
+                    utils.padded_collate,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else None
+            ),
         )
 
         log.info("Dataset and Sampler are initialized.")
@@ -468,14 +470,15 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         - Merged weights with key MODEL_KEY
         - Adapter weights with key ADAPTER_KEY
         - Relevant recipe state if training is not complete
+        - If the `self._save_adapter_weights_only` option is True, the checkpointer will save only the adapter weights
 
-        Checkpointer will save the merged weights, adapter weights and recipe state in
-        different checkpoint files. To correctly resume from training, the adapter weights
-        and recipe state must be provided along with the base model weights.
+        To correctly resume from training, the adapter weights and recipe state must be provided along with the base model weights.
         """
         ckpt_dict = {}
+
+        intermediate_checkpoint = epoch + 1 < self.total_epochs
         # if training is in-progress, checkpoint the optimizer state as well
-        if epoch + 1 < self.total_epochs:
+        if intermediate_checkpoint:
             ckpt_dict.update(
                 {
                     utils.OPT_KEY: self._optimizer.state_dict(),
@@ -514,10 +517,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             "peft_type": "LORA",
         }
         ckpt_dict.update({utils.ADAPTER_CONFIG: adapter_config})
+
         self._checkpointer.save_checkpoint(
             ckpt_dict,
             epoch=epoch,
-            intermediate_checkpoint=(epoch + 1 < self.total_epochs),
+            intermediate_checkpoint=intermediate_checkpoint,
+            adapter_only=self._save_adapter_weights_only,
         )
 
     def train(self) -> None:
@@ -573,6 +578,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     logits = logits.transpose(1, 2)
                     # Compute loss
                     loss = self._loss_fn(logits, labels)
+                    # free logits otherwise it peaks backward memory
+                    del logits
+
                     loss = loss / self._gradient_accumulation_steps
                     running_loss += loss
                     loss.backward()
@@ -588,7 +596,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         loss_to_log = running_loss.item()
                         pbar.update(1)
                         pbar.set_description(
-                            f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
+                            f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
                         )
 
                         # Log per-step metrics

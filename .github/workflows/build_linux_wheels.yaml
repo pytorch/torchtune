@@ -42,3 +42,4 @@ jobs:
       pre-script: .github/scripts/pre_build_script.sh
       trigger-event: ${{ github.event_name }}
       build-platform: 'python-build-package'
+      pip-install-torch-extra-args: torchvision

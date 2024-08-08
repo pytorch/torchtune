@@ -4,6 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from typing import Any, Tuple
+
 import torch
 from torch import nn
 
@@ -37,10 +39,12 @@ class TokenPositionalEmbedding(nn.Module):
             * torch.randn((patch_grid_size**2 + 1, embed_dim))  # +1 for CLS token
         )
 
-    def forward(self, x: torch.Tensor, *args) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, *args: Tuple[Any]) -> torch.Tensor:
         """
         Args:
             x (torch.Tensor): Tensor with shape (..., n_tokens, embed_dim)
+            *args (Tuple[Any]): Optional args.
+
         Returns:
             torch.Tensor: The input tensor with added positional embeddings.
         """

@@ -8,6 +8,7 @@
 
 &nbsp;
 
+> [!NOTE]
 > **July 2024**: torchtune has updated model weights for Llama3.1 in source and nightly builds! Check out our configs for both the [8B and 70B versions](recipes/configs/llama3_1/) of the model. LoRA, QLoRA, and full finetune methods are supported. Support for QLoRA 405B will be added soon.
 
 ## Introduction
@@ -47,6 +48,7 @@ torchtune currently supports the following models.
 | [Mistral](https://huggingface.co/mistralai)   | 7B [[model](torchtune/models/mistral/_model_builders.py), [configs](recipes/configs/mistral/)] |
 | [Gemma](https://huggingface.co/collections/google/gemma-release-65d5efbccdbb8c4202ec078b)   | 2B, 7B [[model](torchtune/models/gemma/_model_builders.py), [configs](recipes/configs/gemma/)] |
 | [Microsoft Phi3](https://huggingface.co/collections/microsoft/phi-3-6626e15e9585a200d2d761e3) | Mini [[model](torchtune/models/phi3/), [configs](recipes/configs/phi3/)]
+| [Qwen2](https://qwenlm.github.io/blog/qwen2/) | 7B [[model](torchtune/models/qwen2/), [configs](recipes/configs/qwen2/)]
 
 We're always adding new models, but feel free to [file an Issue](https://github.com/pytorch/torchtune/issues/new) if there's a new one you would love to see in torchtune!
 
@@ -60,7 +62,7 @@ torchtune provides the following fine-tuning recipes.
 |------------------------------------|------------------------------------|
 | Distributed Training [1 to 8 GPUs] | Full [[code](recipes/full_finetune_distributed.py), [example](recipes/configs/llama3/8B_full.yaml)], LoRA [[code](recipes/lora_finetune_distributed.py), [example](recipes/configs/llama3/8B_lora.yaml)] |
 | Single Device / Low Memory [1 GPU] | Full [[code](recipes/full_finetune_single_device.py), [example](recipes/configs/llama3/8B_full_single_device.yaml)], LoRA + QLoRA [[code](recipes/lora_finetune_single_device.py), [example](recipes/configs/llama3/8B_lora_single_device.yaml)] |
-| Single Device [1 GPU]              | DPO [[code](recipes/full_finetune_distributed.py), [example](recipes/configs/llama2/7B_lora_dpo_single_device.yaml)]
+| Single Device [1 GPU]              | DPO [[code](recipes/lora_dpo_single_device.py), [example](recipes/configs/llama2/7B_lora_dpo_single_device.yaml)], RLHF with PPO [[code](recipes/ppo_full_finetune_single_device.py), [example](recipes/configs/mistral/7B_full_ppo_low_memory.yaml)]
 
 &nbsp;
 
@@ -280,7 +282,7 @@ torchtune embodies PyTorch’s design philosophy [[details](https://pytorch.org/
 
 ### Native PyTorch
 
-torchtune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: Hugging Face Datasets, EleutherAI Eval Harness), all of the core functionality is written in PyTorch.
+torchtune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (e.g. Hugging Face Datasets, EleutherAI Eval Harness), all of the core functionality is written in PyTorch.
 
 ### Simplicity and Extensibility
 
@@ -305,8 +307,10 @@ torchtune provides well-tested components with a high-bar on correctness. The li
 
 We really value our community and the contributions made by our wonderful users. We'll use this section to call out some of these contributions! If you'd like to help out as well, please see the [CONTRIBUTING](CONTRIBUTING.md) guide.
 
+- [@SalmanMohammadi](https://github.com/salmanmohammadi) for adding a comprehensive end-to-end recipe for [Reinforcement Learning from Human Feedback (RLHF)](recipes/ppo_full_finetune_single_device.py) finetuning with PPO to torchtune
+- [@fyabc](https://github.com/fyabc) for adding Qwen2 models, tokenizer, and recipe integration to torchtune
 - [@solitude-alive](https://github.com/solitude-alive) for adding the [Gemma 2B model](torchtune/models/gemma/) to torchtune, including recipe changes, numeric validations of the models and recipe correctness
-- [@yechenzhi](https://github.com/yechenzhi) for adding [DPO](recipes/lora_dpo_single_device.py) to torchtune, including the recipe and config along with correctness checks
+- [@yechenzhi](https://github.com/yechenzhi) for adding [Direct Preference Optimization (DPO)](recipes/lora_dpo_single_device.py) to torchtune, including the recipe and config along with correctness checks
 
 
 &nbsp;

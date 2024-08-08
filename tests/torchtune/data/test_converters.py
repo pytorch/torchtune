@@ -6,7 +6,7 @@
 
 from tests.test_utils import assert_dialogue_equal
 from torchtune.data import get_openai_messages, get_sharegpt_messages
-from torchtune.data._types import Message
+from torchtune.data._messages import Message
 
 # Taken from Open-Orca/SlimOrca-Dedup on Hugging Face:
 # https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup

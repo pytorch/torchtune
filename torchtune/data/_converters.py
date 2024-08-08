@@ -6,7 +6,7 @@
 
 from typing import Any, List, Mapping
 
-from torchtune.data._types import Message
+from torchtune.data._messages import Message
 
 
 def get_sharegpt_messages(
