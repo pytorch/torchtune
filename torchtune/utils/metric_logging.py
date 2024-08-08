@@ -384,6 +384,11 @@ class CometLogger(MetricLoggerInterface):
 
         _, self.rank = get_world_size_and_rank()
 
+        # Declare it early so further methods don't crash in case of
+        # Experiment Creation failure due to mis-named configuration for
+        # example
+        self.experiment = None
+
         if self.rank == 0:
             self.experiment = comet_ml.start(
                 api_key=api_key,
@@ -396,8 +401,6 @@ class CometLogger(MetricLoggerInterface):
                     log_code=log_code, tags=tags, name=experiment_name, **kwargs
                 ),
             )
-        else:
-            self.experiment = None
 
     def log(self, name: str, data: Scalar, step: int) -> None:
         if self.experiment is not None:
@@ -411,6 +414,26 @@ class CometLogger(MetricLoggerInterface):
         if self.experiment is not None:
             resolved = OmegaConf.to_container(config, resolve=True)
             self.experiment.log_parameters(resolved)
+
+            # Also try to save the config as a file
+            try:
+                _log_config_as_file(config)
+            except Exception as e:
+                log.warning(f"Error saving Config to disk.\nError: \n{e}.")
+                return
+
+    def _log_config_as_file(self, config: DictConfig):
+        output_config_fname = Path(
+            os.path.join(
+                config.checkpointer.checkpoint_dir,
+                "torchtune_config.yaml",
+            )
+        )
+        OmegaConf.save(config, output_config_fname)
+
+        self._experiment.log_asset(
+            output_config_fname, file_name="torchtune_config.yaml"
+        )
 
     def close(self) -> None:
         if self.experiment is not None:
