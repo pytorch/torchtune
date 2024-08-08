@@ -300,11 +300,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Shard the model with FSDP
         for m in reversed(list(model.modules())):
-            # TransformerDecoderLayer is wrapped by CheckpointWrapper
-            # when enable_activation_checkpointing
-            if enable_activation_checkpointing:
-                if isinstance(m, CheckpointWrapper):
-                    fully_shard(m, **fsdp_kwargs)
             # For large vocab size, we can additionally shard
             # the token embeddings and output projections individually
             if memory_efficient_fsdp_wrap:
@@ -312,6 +307,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     fully_shard(m, **fsdp_kwargs)
                 if isinstance(m, modules.TransformerDecoder):
                     fully_shard(m.output, **fsdp_kwargs)
+            # TransformerDecoderLayer is wrapped by CheckpointWrapper
+            # when enable_activation_checkpointing
+            if enable_activation_checkpointing:
+                if isinstance(m, CheckpointWrapper):
+                    fully_shard(m, **fsdp_kwargs)
             else:
                 if isinstance(m, modules.TransformerDecoderLayer):
                     fully_shard(m, **fsdp_kwargs)
@@ -409,7 +409,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         """
         Checkpoint the state of the recipe. The constructed checkpoint state dict
         contains the following information:
-        - Model weights with key MODEL_KEY
+        - Model weights with key utils.MODEL_KEY
         - Relevant recipe state if training is not complete
 
         Checkpointer will save the model weights and recipe state in
