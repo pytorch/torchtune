@@ -17,8 +17,15 @@ from torchtune.data._instruct_templates import (
     InstructTemplate,
     StackExchangedPairedTemplate,
 )
-from torchtune.data._messages import InputOutputToMessages, Message, Role
+from torchtune.data._messages import (
+    InputOutputToMessages,
+    JSONToMessages,
+    Message,
+    Role,
+    ShareGPTToMessages,
+)
 from torchtune.data._prompt_templates import (
+    ChatMLTemplate,
     GrammarErrorCorrectionTemplate,
     PromptTemplate,
     PromptTemplateInterface,
@@ -36,8 +43,8 @@ __all__ = [
     "Llama2ChatFormat",
     "MistralChatFormat",
     "ChatMLFormat",
-    "get_openai_messages",
-    "get_sharegpt_messages",
+    "JSONToMessages",
+    "ShareGPTToMessages",
     "truncate",
     "Message",
     "validate_messages",
@@ -46,4 +53,7 @@ __all__ = [
     "PromptTemplateInterface",
     "PromptTemplate",
     "InputOutputToMessages",
+    "ChatMLTemplate",
+    "get_openai_messages",
+    "get_sharegpt_messages",
 ]

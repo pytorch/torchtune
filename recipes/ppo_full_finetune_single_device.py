@@ -489,7 +489,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Compile model, if enabled.
         if compile_model:
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-            log.info("Compiling models torch.compile...")
+            log.info("Compiling models with torch.compile...")
 
             policy_model.compile(backend=backend)
             reward_model.compile(backend=backend)
@@ -909,7 +909,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         kl,
                         kl_rewards,
                     )
-                self.cleanup_after_step(trajectory, advantages, returns, kl, kl_rewards)
+                self.cleanup_after_step(
+                    trajectory, ppo_stats, advantages, returns, kl, kl_rewards
+                )
                 pbar.update(1)
                 if self._steps_run == self._total_steps:
                     training_completed = True
@@ -941,7 +943,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             context_length (int): input ids sequence length
 
         Returns:
-            PPOStats: An instance of :class:`~torchtune.modules.rlhf.PPOStats`, a dataclass containing:
+            PPOStats: An instance of :class:`~torchtune.modules.rlhf.PPOStats`, a NamedTuple containing:
                - loss (torch.Tensor): The total PPO loss.
                - policy_loss (torch.Tensor): The policy function loss.
                - value_loss (torch.Tensor): The value function loss.
@@ -1037,6 +1039,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
     def cleanup_after_step(
         self,
         trajectory: Trajectory,
+        ppo_stats: PPOStats,
         advantages: torch.Tensor,
         returns: torch.Tensor,
         kl: torch.Tensor,
@@ -1049,6 +1052,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         for v in trajectory:
             del v
         del trajectory
+        for v in ppo_stats:
+            del v
+        del ppo_stats
         del advantages
         del returns
         del kl

@@ -116,7 +116,7 @@ def qwen2_tokenizer(
         Qwen2Tokenizer: Instantiation of the Qwen2 tokenizer
     """
     special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    return Qwen2Tokenizer(path=path, merges_file=merges_file, special_tokens=special_tokens, **kwargs)
+    return Qwen2Tokenizer(path=path, merges_file=merges_file, special_tokens=special_tokens, max_seq_len=max_seq_len, **kwargs)
 
 
 def lora_qwen2_7b(
