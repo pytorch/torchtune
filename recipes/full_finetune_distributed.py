@@ -17,7 +17,7 @@ from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
-from torch.distributed._composable.fsdp import fully_shard
+from torch.distributed._composable.fsdp import CPUOffloadPolicy, fully_shard
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     CheckpointWrapper,
 )
@@ -40,7 +40,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
     distributed training and can be run on a single node (1 to 8 GPUs).
 
     Features:
-        - FSDP. Supported using PyTorch's FSDP APIs. DDP is currently not supported. Traning on CPU is not
+        - FSDP. Supported using PyTorch's FSDP APIs. DDP is currently not supported. Training on CPU is not
             supported.
 
         - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
@@ -70,18 +70,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             checkpointing.
 
         - Checkpointing. Model weights are checkpointed both at the end of each epoch and at the end of
-            training. Currently we checkpoint both the adapter weights (trainable params only) and the
-            complete merged weights (adapter weights added back to the base model). For more details
-            please take a look at our LoRA tutorial
-            (https://pytorch.org/torchtune/main/tutorials/lora_finetune.html).
+            training. Optimizer state and recipe state (seed, total_epochs, number of epochs run etc) are
+            only saved at the end of a given epoch and used in case of resuming training.
 
-            Optimizer State and recipe state (seed, total_epochs, number of epochs run etc) are
-            only saved at the end of a given epoch and used in case of resuming training. Resuming
-            training is controlled by the ``resume_from_checkpoint`` flag. Mid-epoch checkpointing is
+            Resuming training is controlled by the ``resume_from_checkpoint`` flag. Mid-epoch checkpointing is
             currently not supported.
 
             For more details on the checkpointer, please take a look at
-            our checkpointer deepdive (https://pytorch.org/torchtune/main/tutorials/checkpointer.html).
+            our checkpointer deepdive (https://pytorch.org/torchtune/main/deep_dives/checkpointer.html).
 
         - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
 
@@ -93,7 +89,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
     Raises:
         ValueError: If ``dtype`` is set to fp16.
-        ValueError: If world_size is 1
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
     """
 
@@ -195,7 +190,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
     def setup(self, cfg: DictConfig) -> None:
         """
         Setup the recipe state. This includes recipe state (if resume_from_checkpoint is True),
-        model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
+        model, tokenizer, loss, optimizer, sampler, and dataloader.
         """
         if self._is_rank_zero:
             self._metric_logger = config.instantiate(cfg.metric_logger)
@@ -226,7 +221,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._loss_fn = config.instantiate(cfg.loss)
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
-        # setup after all of these are setup
+        # setup after both of these are initialized
         self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
@@ -235,11 +230,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Finally update the recipe state which can only be correctly set after all of the
         # other components have been initialized and updated.
-
+        #
         # Number of training steps in each epoch depends on the number of batches produced
-        # by the dataloader and the max_steps_per_epoch param set by the user and is used
-        # for logging and tracking training state. This should be computed after the dataloader
-        # has been setup
+        # by the dataloader, the max_steps_per_epoch param set by the user and the
+        # gradient_accumulation_steps param. This value is used for logging and tracking
+        # training state. The computation should happen after the dataloader has been setup
         self._steps_per_epoch = (
             len(self._dataloader) // self._gradient_accumulation_steps
         )
@@ -301,13 +296,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         fsdp_kwargs = {}
         if fsdp_cpu_offload:
-            from torch.distributed._composable.fsdp import CPUOffloadPolicy
-
             fsdp_kwargs["offload_policy"] = CPUOffloadPolicy()
+
+        # Shard the model with FSDP
+        for m in reversed(list(model.modules())):
             # TransformerDecoderLayer is wrapped by CheckpointWrapper
             # when enable_activation_checkpointing
-
-        for m in reversed(list(model.modules())):
             if enable_activation_checkpointing:
                 if isinstance(m, CheckpointWrapper):
                     fully_shard(m, **fsdp_kwargs)
@@ -360,7 +354,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             )
 
         if self._is_rank_zero:
-            log.info("Optimizer and loss are initialized.")
+            log.info("Optimizer is initialized.")
         return optimizer
 
     def _setup_data(
@@ -390,7 +384,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         sampler = DistributedSampler(
             ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
         )
-
         dataloader = DataLoader(
             dataset=ds,
             batch_size=batch_size,
@@ -416,13 +409,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         """
         Checkpoint the state of the recipe. The constructed checkpoint state dict
         contains the following information:
-        - Merged weights with key MODEL_KEY
-        - Adapter weights with key ADAPTER_KEY
+        - Model weights with key MODEL_KEY
         - Relevant recipe state if training is not complete
 
-        Checkpointer will save the merged weights, adapter weights and recipe state in
-        different checkpoint files. To correctly resume from training, the adapter weights
-        and recipe state must be provided along with the base model weights.
+        Checkpointer will save the model weights and recipe state in
+        different checkpoint files. To correctly resume training from an intermediate checkpoint,
+        the model weights and recipe state must be provided.
         """
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
