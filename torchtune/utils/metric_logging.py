@@ -417,7 +417,7 @@ class CometLogger(MetricLoggerInterface):
 
             # Also try to save the config as a file
             try:
-                _log_config_as_file(config)
+                self._log_config_as_file(config)
             except Exception as e:
                 log.warning(f"Error saving Config to disk.\nError: \n{e}.")
                 return
