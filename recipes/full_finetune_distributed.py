@@ -584,6 +584,10 @@ def recipe_main(cfg: DictConfig) -> None:
         )
     os.environ["TORCH_NCCL_AVOID_RECORD_STREAMS"] = "1"
     init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
+    if cfg.get("fsdp_cpu_offload", False):
+        # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
+        # speed up when benchmarking fused AdamW on CPU
+        utils.set_torch_num_threads()
 
     config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
 
