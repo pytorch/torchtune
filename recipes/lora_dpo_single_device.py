@@ -458,6 +458,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         all_log_probs = rlhf.get_batch_log_probs(
             all_logits,
             concatenated_labels,
+            # see :class:`~torchtune.modules.loss.dpo.SimPOLoss`
             return_average_logprobs=isinstance(self._loss_fn, SimPOLoss),
         )
 
