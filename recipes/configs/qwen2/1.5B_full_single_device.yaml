@@ -51,7 +51,7 @@ resume_from_checkpoint: False
 batch_size: 2
 epochs: 1
 optimizer:
-  _component_: bitsandbytes.optim.PagedAdamW8bit
+  _component_: bitsandbytes.optim.PagedAdamW
   lr: 2e-5
 
 optimizer_in_bwd: True
