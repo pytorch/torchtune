@@ -358,7 +358,7 @@ class CometLogger(MetricLoggerInterface):
         **kwargs,
     ):
         try:
-            from comet_ml import Experiment
+            import comet_ml
         except ImportError as e:
             raise ImportError(
                 "``comet_ml`` package not found. Please install comet_ml using `pip install comet_ml` to use CometLogger."
@@ -368,16 +368,13 @@ class CometLogger(MetricLoggerInterface):
         _, self.rank = get_world_size_and_rank()
 
         if self.rank == 0:
-            self.experiment = Experiment(
+            self.experiment = comet_ml.start(
                 project_name=project_name,
                 workspace=workspace,
-                log_code=log_code,
-                **kwargs,
+                experiment_config=comet_ml.ExperimentConfig(
+                    log_code=log_code, tags=tags, name=experiment_name, **kwargs
+                ),
             )
-            if experiment_name:
-                self.experiment.set_name(experiment_name)
-            if tags:
-                self.experiment.add_tags(tags)
         else:
             self.experiment = None
 
