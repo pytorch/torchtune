@@ -634,8 +634,8 @@ To quantize the fine-tuned model after installing torchao we can run the followi
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># we also support `int8_weight_only()` and `int8_dynamic_activation_int8_weight()`, see</span>
 <span class="c1"># https://github.com/pytorch/ao/tree/main/torchao/quantization#other-available-quantization-techniques</span>
 <span class="c1"># for a full list of techniques that we support</span>
-<span class="kn">from</span> <span class="nn">torchao.quantization.quant_api</span> <span class="kn">import</span> <span class="n">quantize</span>\<span class="n">_</span><span class="p">,</span> <span class="n">int4_weight_only</span>
-<span class="n">quantize</span>\<span class="n">_</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">int4_weight_only</span><span class="p">())</span>
+<span class="kn">from</span> <span class="nn">torchao.quantization.quant_api</span> <span class="kn">import</span> <span class="n">quantize_</span><span class="p">,</span> <span class="n">int4_weight_only</span>
+<span class="n">quantize_</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">int4_weight_only</span><span class="p">())</span>
 </pre></div>
 </div>
 <p>After quantization, we rely on torch.compile for speedups. For more details, please see <a class="reference external" href="https://github.com/pytorch/ao/blob/main/torchao/quantization/README.md#quantization-flow-example">this example usage</a>.</p>
