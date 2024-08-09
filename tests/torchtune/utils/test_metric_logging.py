@@ -170,8 +170,8 @@ class TestWandBLogger:
 
 class TestCometLogger:
     def test_log(self) -> None:
-        with patch("comet_ml.Experiment") as mock_experiment:
-            logger = CometLogger(project_name="test_project")
+        with patch("comet_ml.start") as mock_experiment:
+            logger = CometLogger(project="test_project")
             for i in range(5):
                 logger.log("test_log", float(i) ** 2, i)
             logger.close()
@@ -183,8 +183,8 @@ class TestCometLogger:
                 )
 
     def test_log_dict(self) -> None:
-        with patch("comet_ml.Experiment") as mock_experiment:
-            logger = CometLogger(project_name="test_project")
+        with patch("comet_ml.start") as mock_experiment:
+            logger = CometLogger(project="test_project")
             metric_dict = {f"log_dict_{i}": float(i) ** 2 for i in range(5)}
             logger.log_dict(metric_dict, 1)
             logger.close()
@@ -194,8 +194,8 @@ class TestCometLogger:
             )
 
     def test_log_config(self) -> None:
-        with patch("comet_ml.Experiment") as mock_experiment:
-            logger = CometLogger(project_name="test_project")
+        with patch("comet_ml.start") as mock_experiment:
+            logger = CometLogger(project="test_project")
             cfg = OmegaConf.create({"a": 1, "b": 2})
             logger.log_config(cfg)
             mock_experiment.return_value.log_parameters.assert_called_with(cfg)
