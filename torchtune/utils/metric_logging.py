@@ -328,7 +328,7 @@ class CometLogger(MetricLoggerInterface):
     https://www.comet.com/docs/v2/guides/experiment-management/configure-sdk/#for-the-experiment.
 
     Args:
-        api_key (Optional[str]): Comet API key. It's recommended to configure the API Key from the environment.
+        api_key (Optional[str]): Comet API key. It's recommended to configure the API Key with `comet login`.
         workspace (Optional[str]): Comet workspace name. If not provided, uses the default workspace.
         project (Optional[str]): Comet project name. Defaults to Uncategorized.
         experiment_name (Optional[str]): The name for comet experiment to be used for logging.
@@ -360,8 +360,8 @@ class CometLogger(MetricLoggerInterface):
         This logger requires the comet_ml package to be installed.
         You can install it with ``pip install comet_ml``.
         You need to set up your Comet.ml API key before using this logger.
-        You can do this by setting the COMET_API_KEY environment variable
-        or by calling ``comet_ml.login()`` with your API key.
+        You can do this by calling ``comet login`` in your terminal.
+        You can also set it as the `COMET_API_KEY` environment variable.
     """
 
     def __init__(
