@@ -89,6 +89,7 @@ def lora_llama3_8b(
     lora_rank: int = 8,
     lora_alpha: float = 16,
     quantize_base: bool = False,
+    use_dora: bool = False,
 ) -> TransformerDecoder:
     """
     Builder for creating a Llama3 8B model with LoRA enabled.
@@ -108,6 +109,8 @@ def lora_llama3_8b(
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         quantize_base (bool): Whether to quantize base model weights
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
 
     Returns:
         TransformerDecoder: Instantiation of Llama3 8B model with LoRA applied
@@ -130,6 +133,7 @@ def lora_llama3_8b(
         lora_alpha=lora_alpha,
         lora_dropout=0.05,
         quantize_base=quantize_base,
+        use_dora=use_dora,
     )
 
 
@@ -140,6 +144,7 @@ def lora_llama3_70b(
     lora_rank: int = 8,
     lora_alpha: float = 16,
     quantize_base: bool = False,
+    use_dora: bool = False,
 ) -> TransformerDecoder:
     """
     Builder for creating a Llama3 70B model with LoRA enabled.
@@ -159,6 +164,8 @@ def lora_llama3_70b(
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         quantize_base (bool): Whether to quantize base model weights
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
 
     Returns:
         TransformerDecoder: Instantiation of Llama3 70B model with LoRA applied
@@ -181,6 +188,7 @@ def lora_llama3_70b(
         lora_alpha=lora_alpha,
         lora_dropout=0.05,
         quantize_base=quantize_base,
+        use_dora=use_dora,
     )
 
 

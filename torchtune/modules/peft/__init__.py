@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from .dora import DoRALinear
 from .lora import LoRALinear
 from .peft_utils import (  # noqa
     AdapterModule,
@@ -16,6 +17,7 @@ from .peft_utils import (  # noqa
 )
 
 __all__ = [
+    "DoRALinear",
     "LoRALinear",
     "AdapterModule",
     "get_adapter_params",
