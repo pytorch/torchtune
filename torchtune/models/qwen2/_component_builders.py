@@ -139,28 +139,28 @@ def qwen2_mlp(dim: int, hidden_dim: int) -> FeedForward:
 
 
 def lora_qwen2(
-        lora_attn_modules: List[LORA_ATTN_MODULES],
-        apply_lora_to_mlp: bool = False,
-        apply_lora_to_output: bool = False,
-        *,
-        # qwen2 args
-        vocab_size: int,
-        num_layers: int,
-        num_heads: int,
-        num_kv_heads: int,
-        embed_dim: int,
-        intermediate_dim: int,
-        max_seq_len: int,
-        attn_dropout: float = 0.0,
-        norm_eps: float = 1e-5,
-        rope_base: float = 1_000_000.0,
-        tie_word_embeddings: bool = False,
-        # LoRA args
-        lora_rank: int,
-        lora_alpha: float,
-        lora_dropout: float = 0.0,
-        # Quantization args
-        quantize_base: bool = False,
+    lora_attn_modules: List[LORA_ATTN_MODULES],
+    apply_lora_to_mlp: bool = False,
+    apply_lora_to_output: bool = False,
+    *,
+    # qwen2 args
+    vocab_size: int,
+    num_layers: int,
+    num_heads: int,
+    num_kv_heads: int,
+    embed_dim: int,
+    intermediate_dim: int,
+    max_seq_len: int,
+    attn_dropout: float = 0.0,
+    norm_eps: float = 1e-5,
+    rope_base: float = 1_000_000.0,
+    tie_word_embeddings: bool = False,
+    # LoRA args
+    lora_rank: int,
+    lora_alpha: float,
+    lora_dropout: float = 0.0,
+    # Quantization args
+    quantize_base: bool = False,
 ) -> Union[TransformerDecoder, TiedEmbeddingTransformerDecoder]:
     """
     Return a version of Qwen2 (an instance of :func:`~torchtune.models.qwen2.transformer.Qwen2TransformerDecoder`)
@@ -202,6 +202,9 @@ def lora_qwen2(
         TransformerDecoder: Instantiation of Qwen2 model with LoRA applied to
         a subset of the attention projections in each layer.
 
+    Raises:
+        ValueError: if ``apply_lora_to_output`` and ``tie_word_embeddings``.
+
     """
 
     self_attn = lora_qwen2_self_attention(
@@ -240,6 +243,11 @@ def lora_qwen2(
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
     if tie_word_embeddings:
+        if apply_lora_to_output:
+            raise ValueError(
+                "apply_lora_to_output is incompatible with tie_word_embeddings,"
+                " as there would be no output to apply lora to!"
+            )
         output_proj = None
     else:
         # TODO: quantize_base is not applied to final output_proj currently.
@@ -335,9 +343,7 @@ def lora_qwen2_self_attention(
         ValueError: If lora_modules arg is an empty list
     """
     if not lora_modules:
-        raise ValueError(
-            f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules"
-        )
+        raise ValueError(f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules")
 
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads

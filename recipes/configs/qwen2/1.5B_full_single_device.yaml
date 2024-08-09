@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download Qwen/Qwen2-1.5B-Instruct --output-dir /tmp/Qwen2-1.5B-Instruct --ignore-patterns ""
+#   tune download Qwen/Qwen2-1.5B-Instruct --output-dir /tmp/Qwen2-1.5B-Instruct --ignore-patterns None
 #
 # The default config uses an optimizer from bitsandbytes. If you do not have it installed,
 # you can install it with
@@ -28,6 +28,7 @@ tokenizer:
 # Dataset
 dataset:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
+
 seed: null
 shuffle: True
 
@@ -51,12 +52,15 @@ batch_size: 2
 epochs: 1
 optimizer:
   _component_: bitsandbytes.optim.PagedAdamW
-  lr: 5e-6
+  lr: 2e-5
+
 optimizer_in_bwd: True
+
 loss:
   _component_: torch.nn.CrossEntropyLoss
+
 max_steps_per_epoch: null
-gradient_accumulation_steps: 16
+gradient_accumulation_steps: 1
 compile: False
 
 # Training environment

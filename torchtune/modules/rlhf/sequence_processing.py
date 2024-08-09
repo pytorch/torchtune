@@ -8,6 +8,8 @@ from typing import Tuple
 
 import torch
 import torch.nn.functional as F
+from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.modules import rlhf
 
 
 def truncate_sequence_at_first_stop_token(
@@ -97,6 +99,49 @@ def logits_to_logprobs(
         2,
         sequences.unsqueeze(-1),
     ).squeeze(-1)
+
+
+def get_batch_log_probs(
+    logits: torch.FloatTensor,
+    labels: torch.LongTensor,
+    label_pad_token_id: int = CROSS_ENTROPY_IGNORE_IDX,
+    return_average_logprobs: bool = False,
+) -> torch.FloatTensor:
+    """
+    Calculate log probabilities based on provided logits and labels.
+
+    Args:
+        logits (torch.FloatTensor): direct logits output of the model of shape (b, s, v)
+        labels (torch.LongTensor): ground-truth labels to compute log probs with, shape (b, s).
+            Label tokens with a value of label_pad_token_id are ignored.
+        label_pad_token_id (int): token id to ignore in labels.
+        return_average_logprobs (bool): If True, return the average log probs across the sequence. Default
+            is False. See https://github.com/eric-mitchell/direct-preference-optimization/blob/f8b8c0f49dc92a430bae41585f9d467d3618fe2f/trainers.py#L96 # noqa
+
+    Returns:
+        Calculated log probs of shape (b, )
+
+    Raises:
+        ValueError: If logits and labels have different shapes.
+    """
+
+    if logits.shape[:-1] != labels.shape:
+        raise ValueError(
+            "Logits (batch and sequence length dim) and labels must have the same shape."
+        )
+
+    labels = labels[:, 1:].clone()
+    logits = logits[:, :-1, :]
+    loss_mask = labels != label_pad_token_id
+
+    labels[labels == label_pad_token_id] = 0
+    # take log-likelihood of the labels given our model
+    per_token_log_probs = logits_to_logprobs(logits, labels, temperature=1.0)
+
+    if return_average_logprobs:
+        return rlhf.masked_mean(per_token_log_probs, loss_mask, dim=-1)
+    else:
+        return (per_token_log_probs * loss_mask).sum(-1)
 
 
 def truncate_sequence_for_logprobs(
