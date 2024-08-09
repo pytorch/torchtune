@@ -498,7 +498,11 @@
 
 
 <div class="viewcode-block" id="qwen2_tokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2.qwen2_tokenizer.html#torchtune.models.qwen2.qwen2_tokenizer">[docs]</a><span class="k">def</span> <span class="nf">qwen2_tokenizer</span><span class="p">(</span>
-    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">merges_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">special_tokens_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">merges_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">special_tokens_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Qwen2Tokenizer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Tokenizer for Qwen2.</span>
@@ -509,9 +513,8 @@
 <span class="sd">        special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face</span>
 <span class="sd">            model files that contains all registered special tokens, or a local json file</span>
 <span class="sd">            structured similarly. Default is None to use the canonical Qwen2 special tokens.</span>
-<span class="sd">        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,</span>
-<span class="sd">            after which the input will be truncated. Default is None.</span>
-
+<span class="sd">        max_seq_len (Optional[int]): A max sequence length to truncate tokens to.</span>
+<span class="sd">            Default: None</span>
 <span class="sd">    Returns:</span>
 <span class="sd">        Qwen2Tokenizer: Instantiation of the Qwen2 tokenizer</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -574,7 +577,6 @@
 <div class="viewcode-block" id="lora_qwen2_0_5b"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2.lora_qwen2_0_5b.html#torchtune.models.qwen2.lora_qwen2_0_5b">[docs]</a><span class="k">def</span> <span class="nf">lora_qwen2_0_5b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
     <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
     <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
@@ -593,8 +595,6 @@
 <span class="sd">            ``{&quot;q_proj&quot;, &quot;k_proj&quot;, &quot;v_proj&quot;, &quot;output_proj&quot;}``.</span>
 <span class="sd">        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.</span>
 <span class="sd">            Default: False</span>
-<span class="sd">        apply_lora_to_output (bool): whether to apply LoRA to the model&#39;s final output projection.</span>
-<span class="sd">            Default: False</span>
 <span class="sd">        lora_rank (int): rank of each low-rank approximation</span>
 <span class="sd">        lora_alpha (float): scaling factor for the low-rank approximation</span>
 <span class="sd">        quantize_base (bool): Whether to quantize base model weights</span>
@@ -609,7 +609,7 @@
     <span class="k">return</span> <span class="n">lora_qwen2</span><span class="p">(</span>
         <span class="n">lora_attn_modules</span><span class="o">=</span><span class="n">lora_attn_modules</span><span class="p">,</span>
         <span class="n">apply_lora_to_mlp</span><span class="o">=</span><span class="n">apply_lora_to_mlp</span><span class="p">,</span>
-        <span class="n">apply_lora_to_output</span><span class="o">=</span><span class="n">apply_lora_to_output</span><span class="p">,</span>
+        <span class="n">apply_lora_to_output</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">vocab_size</span><span class="o">=</span><span class="mi">151936</span><span class="p">,</span>
         <span class="n">num_layers</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span>
         <span class="n">num_heads</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
@@ -631,7 +631,6 @@
 <div class="viewcode-block" id="lora_qwen2_1_5b"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2.lora_qwen2_1_5b.html#torchtune.models.qwen2.lora_qwen2_1_5b">[docs]</a><span class="k">def</span> <span class="nf">lora_qwen2_1_5b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
     <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
     <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
@@ -650,8 +649,6 @@
 <span class="sd">            ``{&quot;q_proj&quot;, &quot;k_proj&quot;, &quot;v_proj&quot;, &quot;output_proj&quot;}``.</span>
 <span class="sd">        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.</span>
 <span class="sd">            Default: False</span>
-<span class="sd">        apply_lora_to_output (bool): whether to apply LoRA to the model&#39;s final output projection.</span>
-<span class="sd">            Default: False</span>
 <span class="sd">        lora_rank (int): rank of each low-rank approximation</span>
 <span class="sd">        lora_alpha (float): scaling factor for the low-rank approximation</span>
 <span class="sd">        quantize_base (bool): Whether to quantize base model weights</span>
@@ -666,7 +663,7 @@
     <span class="k">return</span> <span class="n">lora_qwen2</span><span class="p">(</span>
         <span class="n">lora_attn_modules</span><span class="o">=</span><span class="n">lora_attn_modules</span><span class="p">,</span>
         <span class="n">apply_lora_to_mlp</span><span class="o">=</span><span class="n">apply_lora_to_mlp</span><span class="p">,</span>
-        <span class="n">apply_lora_to_output</span><span class="o">=</span><span class="n">apply_lora_to_output</span><span class="p">,</span>
+        <span class="n">apply_lora_to_output</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">vocab_size</span><span class="o">=</span><span class="mi">151936</span><span class="p">,</span>
         <span class="n">num_layers</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span>
         <span class="n">num_heads</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>

@@ -542,28 +542,28 @@
 
 
 <div class="viewcode-block" id="lora_qwen2"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2.lora_qwen2.html#torchtune.models.qwen2.lora_qwen2">[docs]</a><span class="k">def</span> <span class="nf">lora_qwen2</span><span class="p">(</span>
-        <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
-        <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="c1"># qwen2 args</span>
-        <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">num_kv_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">intermediate_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">attn_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
-        <span class="n">norm_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
-        <span class="n">rope_base</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1_000_000.0</span><span class="p">,</span>
-        <span class="n">tie_word_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="c1"># LoRA args</span>
-        <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
-        <span class="c1"># Quantization args</span>
-        <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
+    <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="c1"># qwen2 args</span>
+    <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">num_kv_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">intermediate_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">attn_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">norm_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
+    <span class="n">rope_base</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1_000_000.0</span><span class="p">,</span>
+    <span class="n">tie_word_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="c1"># LoRA args</span>
+    <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="c1"># Quantization args</span>
+    <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">TransformerDecoder</span><span class="p">,</span> <span class="n">TiedEmbeddingTransformerDecoder</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a version of Qwen2 (an instance of :func:`~torchtune.models.qwen2.transformer.Qwen2TransformerDecoder`)</span>
@@ -605,6 +605,9 @@
 <span class="sd">        TransformerDecoder: Instantiation of Qwen2 model with LoRA applied to</span>
 <span class="sd">        a subset of the attention projections in each layer.</span>
 
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: if ``apply_lora_to_output`` and ``tie_word_embeddings``.</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">self_attn</span> <span class="o">=</span> <span class="n">lora_qwen2_self_attention</span><span class="p">(</span>
@@ -643,6 +646,11 @@
     <span class="n">tok_embeddings</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">tie_word_embeddings</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">apply_lora_to_output</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;apply_lora_to_output is incompatible with tie_word_embeddings,&quot;</span>
+                <span class="s2">&quot; as there would be no output to apply lora to!&quot;</span>
+            <span class="p">)</span>
         <span class="n">output_proj</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># TODO: quantize_base is not applied to final output_proj currently.</span>
@@ -738,9 +746,7 @@
 <span class="sd">        ValueError: If lora_modules arg is an empty list</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">lora_modules</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Must pass one or more of </span><span class="si">{</span><span class="n">LORA_ATTN_MODULES</span><span class="si">}</span><span class="s2"> as lora_modules&quot;</span>
-        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Must pass one or more of </span><span class="si">{</span><span class="n">LORA_ATTN_MODULES</span><span class="si">}</span><span class="s2"> as lora_modules&quot;</span><span class="p">)</span>
 
     <span class="n">head_dim</span> <span class="o">=</span> <span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads</span>
     <span class="n">num_kv_heads</span> <span class="o">=</span> <span class="n">num_kv_heads</span> <span class="k">if</span> <span class="n">num_kv_heads</span> <span class="k">else</span> <span class="n">num_heads</span>

@@ -486,7 +486,7 @@ The <code class="docutils literal notranslate"><span class="pre">tune</span> <sp
 <p>Some checkpoint directories can be very large and it can eat up a lot of bandwith and local storage to download the all of the files every time, even if you might
 not need a lot of them. This is especially common when the same checkpoint exists in different formats. You can specify patterns to ignore to prevent downloading files
 with matching names. By default we ignore safetensor files, but if you want to include all files you can pass in an empty string.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Meta-Llama-3-8B-Instruct<span class="w"> </span>--hf-token<span class="w"> </span>&lt;TOKEN&gt;<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Meta-Llama-3-8B-Instruct<span class="w"> </span>--hf-token<span class="w"> </span>&lt;TOKEN&gt;<span class="w"> </span>--ignore-patterns<span class="w"> </span>None
 Successfully<span class="w"> </span>downloaded<span class="w"> </span>model<span class="w"> </span>repo<span class="w"> </span>and<span class="w"> </span>wrote<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>following<span class="w"> </span>locations:
 ./model/config.json
 ./model/README.md
