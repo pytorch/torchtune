@@ -35,16 +35,6 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
-def model_loss(model, tokens, mask, input_pos, labels, loss_fn):
-    logits = model(tokens, mask=mask, input_pos=input_pos)
-    # Shift so that tokens < n predict n
-    logits = logits[..., :-1, :].contiguous()
-    labels = labels[..., 1:].contiguous()
-    logits = logits.transpose(1, 2)
-    # Compute loss
-    return loss_fn(logits, labels)
-
-
 class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
     LoRA finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe is optimized
@@ -394,10 +384,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         if compile_model:
             log.info("Compiling model with torch.compile...")
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-            # model.compile(backend=backend)
-            self._model_loss = torch.compile(model_loss, backend=backend)
-        else:
-            self._model_loss = model_loss
+            self._loss_step_original = self._loss_step
+            self._loss_step = torch.compile(self._loss_step, backend=backend)
 
         if self._device.type == "cuda":
             memory_stats = utils.get_memory_stats(device=self._device)
@@ -540,6 +528,23 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             adapter_only=self._save_adapter_weights_only,
         )
 
+    def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
+        # Both are shape [b, s]
+        tokens, labels = batch["tokens"], batch["labels"]
+        # Get the attention mask and position ids from the dataset if they
+        # exist. Currently, only sample packing in PackedDataset returns these
+        mask = batch.get("mask", None)  # shape [b, s, s]
+        input_pos = batch.get("input_pos", None)  # shape [b, s]
+
+        logits = self._model(tokens, mask=mask, input_pos=input_pos)
+        # Shift so that tokens < n predict n
+        logits = logits[..., :-1, :].contiguous()
+        labels = labels[..., 1:].contiguous()
+        logits = logits.transpose(1, 2)
+        # Compute loss
+        loss = self._loss_fn(logits, labels)
+        return loss
+
     def train(self) -> None:
         """
         The core training loop.
@@ -571,29 +576,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     ):
                         break
 
-                    # Both are shape [b, s]
-                    tokens, labels = batch["tokens"], batch["labels"]
-                    # Get the attention mask and position ids from the dataset if they
-                    # exist. Currently, only sample packing in PackedDataset returns these
-                    mask = batch.get("mask", None)  # shape [b, s, s]
-                    input_pos = batch.get("input_pos", None)  # shape [b, s]
+                    batch = {k: v.to(self._device) for k, v in batch.items()}
+                    num_tokens += batch["tokens"].numel()
 
-                    tokens = tokens.to(self._device)
-                    num_tokens += tokens.numel()
-                    labels = labels.to(self._device)
-                    mask = mask.to(self._device) if mask is not None else None
-                    input_pos = (
-                        input_pos.to(self._device) if input_pos is not None else None
-                    )
-
-                    # logits = self._model(tokens, mask=mask, input_pos=input_pos)
-                    # # Shift so that tokens < n predict n
-                    # logits = logits[..., :-1, :].contiguous()
-                    # labels = labels[..., 1:].contiguous()
-                    # logits = logits.transpose(1, 2)
-                    # # Compute loss
-                    # loss = self._loss_fn(logits, labels)
-                    loss = self._model_loss(self._model, tokens, mask, input_pos, labels, self._loss_fn)
+                    loss = self._loss_step(batch)
                     loss = loss / self._gradient_accumulation_steps
                     running_loss += loss
                     loss.backward()
