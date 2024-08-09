@@ -92,7 +92,7 @@ with matching names. By default we ignore safetensor files, but if you want to i
 
 .. code-block:: bash
 
-    $ tune download meta-llama/Meta-Llama-3-8B-Instruct --hf-token <TOKEN> --ignore-patterns ""
+    $ tune download meta-llama/Meta-Llama-3-8B-Instruct --hf-token <TOKEN> --ignore-patterns None
     Successfully downloaded model repo and wrote to the following locations:
     ./model/config.json
     ./model/README.md
