@@ -8,7 +8,7 @@ import sys
 import time
 from pathlib import Path
 
-from typing import List, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 from numpy import ndarray
 from omegaconf import DictConfig, OmegaConf
@@ -333,10 +333,10 @@ class CometLogger(MetricLoggerInterface):
         project (Optional[str]): Comet project name. Defaults to Uncategorized.
         experiment_key (Optional[str]): The key for comet experiment to be used for logging. Must be an alphanumeric
             string whose length is between 32 and 50 characters.
-        mode (Optional[str]): Control how the Comet experiment is started. "get"; Continue logging to an existing
-            experiment identified by the ``experiment_key`` value. "create"; Always creates of a new experiment, useful
-            for HPO sweeps. "get_or_create" (default); Starts a fresh experiment if required, or persists logging to
-            an existing one.
+        mode (Optional[str]): Control how the Comet experiment is started. ``"get_or_create"``: Starts a fresh
+            experiment if required, or persists logging to an existing one. ``"get"``: Continue logging to an existing
+            experiment identified by the ``experiment_key`` value. ``"create"``: Always creates of a new experiment,
+            useful for HPO sweeps.
         online (Optional[bool]): If True, the data will be logged to Comet server, otherwise it will be stored locally
             in an offline experiment. Default is ``True``.
         experiment_name (Optional[str]): Name of the experiment. If not provided, Comet will auto-generate a name.
