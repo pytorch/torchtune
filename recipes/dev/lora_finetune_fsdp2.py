@@ -359,6 +359,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # Ensure no params and buffers are on meta device
         utils.validate_no_params_on_meta_device(model)
 
+        backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+        model.compile(backend=backend)
+
         if self._is_rank_zero:
             log.info(
                 f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
