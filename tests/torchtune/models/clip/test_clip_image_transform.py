@@ -12,6 +12,9 @@ import torch
 from tests.test_utils import assert_expected
 
 from torchtune.models.clip._transforms import CLIPImageTransform
+from torchtune.models.clip.inference._transforms import (
+    CLIPImageTransform as CLIPImageTransformInference,
+)
 from torchtune.utils.seed import set_seed
 
 
@@ -73,6 +76,18 @@ class TestCLIPImageTransform:
             resample="bilinear",
             resize_to_max_canvas=params["resize_to_max_canvas"],
         )
+
+        image_transform_inference = CLIPImageTransformInference(
+            image_mean=None,
+            image_std=None,
+            tile_size=224,
+            possible_resolutions=None,
+            max_num_tiles=4,
+            resample="bilinear",
+            resize_to_max_canvas=params["resize_to_max_canvas"],
+            antialias=True,
+        )
+
         # Generate a deterministic image using np.arange for reproducibility
         image_size = params["image_size"]
         image = (
@@ -86,6 +101,15 @@ class TestCLIPImageTransform:
         output = image_transform(image=image)
         output_image = output["image"]
         output_ar = output["aspect_ratio"]
+
+        inference_output = image_transform_inference(image=image)
+        inference_output_image = inference_output["image"]
+        inference_output_ar = inference_output["aspect_ratio"]
+
+        # Check output is the same across CLIPImageTransform and CLIPImageTransformInference.
+        assert torch.allclose(output_image, inference_output_image)
+        assert output_ar[0] == inference_output_ar[0]
+        assert output_ar[1] == inference_output_ar[1]
 
         # Check if the output shape matches the expected shape
         assert (
