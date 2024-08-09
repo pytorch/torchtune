@@ -7,8 +7,12 @@
 from typing import Any, List, Mapping
 
 from torchtune.data._messages import Message
+from torchtune.utils.logging import deprecated
 
 
+@deprecated(
+    msg="Please use `torchtune.data.ShareGPTToMessages` with `torchtune.datasets.SFTDataset` instead."
+)
 def get_sharegpt_messages(
     sample: Mapping[str, Any], train_on_input: bool = False
 ) -> List[Message]:
@@ -62,6 +66,9 @@ def get_sharegpt_messages(
     return messages
 
 
+@deprecated(
+    msg="Please use `torchtune.data.JSONToMessages` with `torchtune.datasets.SFTDataset` instead."
+)
 def get_openai_messages(
     sample: Mapping[str, Any],
     train_on_input: bool = False,
