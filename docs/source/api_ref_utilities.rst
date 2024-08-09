@@ -100,6 +100,7 @@ Various logging utilities.
     :toctree: generated/
     :nosignatures:
 
+    metric_logging.CometLogger
     metric_logging.WandBLogger
     metric_logging.TensorBoardLogger
     metric_logging.StdoutLogger

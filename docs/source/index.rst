@@ -118,6 +118,7 @@ torchtune tutorials.
    :hidden:
 
    deep_dives/checkpointer
+   deep_dives/comet_logging
    deep_dives/configs
    deep_dives/recipe_deepdive
    deep_dives/wandb_logging
