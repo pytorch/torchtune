@@ -6,8 +6,12 @@
 
 from typing import Optional
 
+import torch
 from torch import nn, Tensor
 from torchtune.modules.kv_cache import KVCache
+from torchtune.utils.logging import get_logger
+
+logger = get_logger("DEBUG")
 
 
 class CausalSelfAttention(nn.Module):
@@ -118,29 +122,28 @@ class CausalSelfAttention(nn.Module):
         self.pos_embeddings = pos_embeddings
 
     def setup_cache(self, batch_size: int, dtype: torch.dtype) -> None:
-        """Setup key value caches for attention calculation.
+        """Setup key value caches for attention calculation. If called
+        after kv_cache is already setup, this will be skipped.
 
         Args:
             batch_size (int): batch size for the caches.
             dtype (torch.dtype): dtype for the caches.
-
-        Raises:
-            RuntimeError: if called when kv_cache is already setup.
         """
         # Don't overwrite user defined kv_cache from init
         if self.kv_cache is not None:
-            raise RuntimeError(
-                "Key value caches are already setup. You cannot call ``setup_caches()`` twice."
+            logger.warning(
+                "Key value caches are already setup. You cannot call ``setup_caches()`` twice. Skipping."
             )
-        self.kv_cache = KVCache(
-            batch_size=batch_size,
-            max_seq_len=self.max_seq_len,
-            num_heads=self.num_heads,
-            head_dim=self.head_dim,
-            dtype=dtype,
-        )
+        else:
+            self.kv_cache = KVCache(
+                batch_size=batch_size,
+                max_seq_len=self.max_seq_len,
+                num_heads=self.num_heads,
+                head_dim=self.head_dim,
+                dtype=dtype,
+            )
 
-    def reset_caches(self):
+    def reset_cache(self):
         """Reset the key value caches."""
         if self.kv_cache is None:
             raise RuntimeError(

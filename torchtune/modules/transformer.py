@@ -45,11 +45,12 @@ class TransformerDecoderLayer(nn.Module):
         """
         self.attn.setup_cache(batch_size, dtype)
 
+    @property
     def cache_enabled(self) -> bool:
         """Check if the key value caches are setup."""
         return self.attn.kv_cache is not None
 
-    def reset_caches(self):
+    def reset_cache(self):
         """Reset the key value caches."""
         self.attn.reset_cache()
 
@@ -181,7 +182,7 @@ class TransformerDecoder(nn.Module):
 
     def caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""
-        return self.layers[0].cache_enabled()
+        return self.layers[0].cache_enabled
 
     def reset_caches(self):
         """Reset the key value caches."""
@@ -325,7 +326,7 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
 
     def caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""
-        return self.layers[0].cache_enabled()
+        return self.layers[0].cache_enabled
 
     def reset_caches(self):
         """Reset the key value caches."""
