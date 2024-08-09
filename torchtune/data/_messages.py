@@ -206,9 +206,11 @@ class ShareGPTToMessages(Transform):
             List[Message]: A list of messages with "role" and "content" fields.
         """
         role_map = {"system": "system", "human": "user", "gpt": "assistant"}
+        column_map = self.column_map or {}
+        key_conversations = column_map.get("conversations", "conversations")
 
         messages = []
-        for message in sample["conversations"]:
+        for message in sample[key_conversations]:
             role = role_map[message["from"]]
             content = message["value"]
             masked = (role != "assistant") and (not self.train_on_input)
@@ -268,8 +270,10 @@ class JSONToMessages(Transform):
         Returns:
             List[Message]: A list of messages with "role" and "content" fields.
         """
+        column_map = self.column_map or {}
+        key_messages = column_map.get("messages", "messages")
         updated_messages = []
-        for message in sample["messages"]:
+        for message in sample[key_messages]:
             message["masked"] = (message["role"] != "assistant") and (
                 not self.train_on_input
             )
