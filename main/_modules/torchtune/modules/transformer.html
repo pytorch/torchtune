@@ -413,7 +413,7 @@
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span><span class="p">,</span> <span class="n">Tensor</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">CausalSelfAttention</span><span class="p">,</span> <span class="n">KVCache</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">CausalSelfAttention</span>
 
 
 <div class="viewcode-block" id="TransformerDecoderLayer"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer">[docs]</a><span class="k">class</span> <span class="nc">TransformerDecoderLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
@@ -438,6 +438,24 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">attn</span> <span class="o">=</span> <span class="n">attn</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mlp_norm</span> <span class="o">=</span> <span class="n">mlp_norm</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span> <span class="o">=</span> <span class="n">mlp</span>
+
+<div class="viewcode-block" id="TransformerDecoderLayer.setup_cache"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer.setup_cache">[docs]</a>    <span class="k">def</span> <span class="nf">setup_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Setup key value caches for attention calculation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            batch_size (int): batch size for the caches.</span>
+<span class="sd">            dtype (torch.dtype): dtype for the caches.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">setup_cache</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cache_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the key value caches are setup.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="TransformerDecoderLayer.reset_cache"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer.reset_cache">[docs]</a>    <span class="k">def</span> <span class="nf">reset_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the key value caches.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">reset_cache</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="TransformerDecoderLayer.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -557,13 +575,7 @@
 <span class="sd">            dtype (torch.dtype): dtype for the caches.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
-            <span class="n">layer</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span> <span class="o">=</span> <span class="n">KVCache</span><span class="p">(</span>
-                <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
-                <span class="n">max_seq_len</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span>
-                <span class="n">num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
-                <span class="n">head_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span><span class="p">,</span>
-                <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">setup_cache</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
 
         <span class="c1"># causal_mask is used during inference to ensure we&#39;re attending</span>
         <span class="c1"># to the right tokens</span>
@@ -573,7 +585,7 @@
 
 <div class="viewcode-block" id="TransformerDecoder.caches_are_enabled"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.caches_are_enabled">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the key value caches are setup.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cache_enabled</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder.reset_caches"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.reset_caches">[docs]</a>    <span class="k">def</span> <span class="nf">reset_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the key value caches.&quot;&quot;&quot;</span>
@@ -583,7 +595,7 @@
             <span class="p">)</span>
 
         <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
-            <span class="n">layer</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span></div>
+            <span class="n">layer</span><span class="o">.</span><span class="n">reset_cache</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -707,13 +719,7 @@
 <span class="sd">            dtype (torch.dtype): dtype for the caches.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
-            <span class="n">layer</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span> <span class="o">=</span> <span class="n">KVCache</span><span class="p">(</span>
-                <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
-                <span class="n">max_seq_len</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span>
-                <span class="n">num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
-                <span class="n">head_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span><span class="p">,</span>
-                <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">setup_cache</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
 
         <span class="c1"># causal_mask is used during inference to ensure we&#39;re attending</span>
         <span class="c1"># to the right tokens</span>
@@ -723,7 +729,7 @@
 
     <span class="k">def</span> <span class="nf">caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the key value caches are setup.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cache_enabled</span>
 
     <span class="k">def</span> <span class="nf">reset_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the key value caches.&quot;&quot;&quot;</span>
@@ -733,7 +739,7 @@
             <span class="p">)</span>
 
         <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
-            <span class="n">layer</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">reset_cache</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
