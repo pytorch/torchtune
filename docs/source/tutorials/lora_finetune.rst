@@ -301,6 +301,7 @@ A comparison of the (smoothed) loss curves between this run and our baseline ove
     to generate similar loss curves, but you will need to install W&B and setup an account separately. For more details on
     using W&B in torchtune, see our ":ref:`wandb_logging`" recipe.
 
+.. _lora_tutorial_memory_tradeoff_label:
 
 Trading off memory and model performance with LoRA
 --------------------------------------------------

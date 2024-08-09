@@ -66,13 +66,12 @@ Each recipe consists of three components:
 
 .. note::
 
+  Check out our :ref:`recipes index<recipes_overview_label>` to see all the fine-tuning techniques we support.
   To learn more about the concept of "recipes", check out our technical deep-dive: :ref:`recipe_deepdive`.
 
 torchtune provides built-in recipes for finetuning on single device, on multiple devices with `FSDP <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/>`_,
-using memory efficient techniques like `LoRA <https://arxiv.org/abs/2106.09685>`_, and more! You can view all built-in recipes `on GitHub <https://github.com/pytorch/torchtune/tree/main/recipes>`_. You can also utilize the
-:ref:`tune ls <tune_ls_label>` command to print out all recipes and corresponding configs.
-
-.. TODO (SalmanMohammadi) point to recipe index page here.
+using memory efficient techniques like `LoRA <https://arxiv.org/abs/2106.09685>`_, and more! Check out all our built-in recipes in our :ref:`recipe index<recipes_overview_label>`. You can also utilize the
+:code:`tune ls` command to print out all recipes and corresponding configs.
 
 .. code-block:: bash
 

@@ -66,6 +66,8 @@ Each API and class should be clearly documented. Well-documented code is easier 
 
 Documentation is written in [RST](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html) format.
 
+If you've contributed a new recipe, please ensure you've created a corresponding recipe doc file in [the recipes directory](docs/source/recipes), and updated the [recipe overview page](docs/source/recipes/recipes_overview.rst), and the [index sidebar](docs/source/index.rst). You can find a template to fill in [here](docs/source/_templates/_recipe_template.rst).
+
 ### Adding a new class/method to the API References
 Once you've added an API that is meant to be exposed publically, you should add it to the appropriate rst file. For example, any new API within the [configs/](torchtune/configs)
 directory should be added to `api_ref_configs.rst`, [data/](torchtune/data) should be added to `api_ref_data.rst`, [datasets](torchtune/datasets) should be added to

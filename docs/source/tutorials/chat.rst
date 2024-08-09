@@ -1,3 +1,5 @@
+.. _chat_tutorial_label:
+
 =================================
 Fine-tuning Llama3 with Chat Data
 =================================
