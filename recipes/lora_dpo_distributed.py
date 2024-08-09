@@ -49,8 +49,11 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
     in the TRL library: https://github.com/huggingface/trl/blob/main/trl/trainer/dpo_trainer.py#L65
 
     Features:
-        - FSDP. Supported using PyTorch's FSDP APIs. DDP is currently not supported. Traning on CPU is not
-            supported.
+        - FSDP. Supported using PyTorch's FSDP APIs. This can be parameterized using the
+            ``fsdp_sharding_strategy`` config option. You can pass any value supported by
+            torch.distributed.fsdp.ShardingStrategy
+            (https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.ShardingStrategy).
+            For example, in your config, simply pass ``fsdp_sharding=NO_SHARD`` for DDP.
 
         - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
             flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
