@@ -289,6 +289,7 @@ def load_from_full_model_state_dict(
     full_sd: Dict[str, Any],
     device: torch.device,
     is_rank_zero: bool,
+    strict: bool = False,
 ):
     """
     Converting full state dict into a sharded state dict
@@ -355,7 +356,7 @@ def load_from_full_model_state_dict(
             )
         sharded_sd[param_name] = nn.Parameter(sharded_tensor)
     # choose `assign=True` since we cannot call `copy_` on meta tensor
-    return model.load_state_dict(sharded_sd, strict=False, assign=True)
+    return model.load_state_dict(sharded_sd, strict=strict, assign=True)
 
 
 def get_full_model_state_dict(
