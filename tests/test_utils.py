@@ -10,16 +10,18 @@ import re
 import sys
 import unittest
 from contextlib import contextmanager
+from functools import partial
 from io import StringIO
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, TextIO, Tuple, Union
 
 import pytest
 
 import torch
 from torch import nn
-from torchtune.data import ChatFormat, Message, truncate
+from torchtune.data import ChatFormat, Message, PromptTemplate, truncate
 from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.modules.transforms import Transform
 
 skip_if_cuda_not_available = unittest.skipIf(
     not torch.cuda.is_available(), "CUDA is not available"
@@ -29,6 +31,7 @@ CKPT_MODEL_PATHS = {
     "llama2_tune": "/tmp/test-artifacts/small-ckpt-tune-03082024.pt",
     "llama2_meta": "/tmp/test-artifacts/small-ckpt-meta-03082024.pt",
     "llama2_hf": "/tmp/test-artifacts/small-ckpt-hf-03082024.pt",
+    "llama2_reward_hf": "/tmp/test-artifacts/small-ckpt-hf-reward-07122024.pt",
     "llama3_tune": "/tmp/test-artifacts/small-ckpt-tune-llama3-05052024.pt",
     "llama2_7b": "/tmp/test-artifacts/llama2-7b-torchtune.pt",
 }
@@ -38,8 +41,43 @@ TOKENIZER_PATHS = {
     "llama3": "/tmp/test-artifacts/tokenizer_llama3.model",
 }
 
+# Taken from Open-Orca/SlimOrca-Dedup on Hugging Face:
+# https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup
+CHAT_SAMPLE = {
+    "system": "You are an AI assistant. User will you give you a task. Your goal is to complete the task as faithfully as you can. While performing the task think step-by-step and justify your steps.",  # noqa: B950
+    "user": "Please briefly summarize this news article:\n\nAOL.com Video - Father Lets 8-Year-Old Drive On Icy Road\n\nDescription:Would you let your 8-year-old drive your car? How about on an icy road? Well one father in Russia did just that, and recorded the entire thing. To her credit, the child seemed to be doing a great job. (0:44)\n\nTags: 8-year-old driver , caught on camera , child driver , pix11\n\nSummary:",  # noqa: B950
+    "assistant": "A father in Russia allowed his 8-year-old child to drive his car on an icy road and recorded the event. The child appeared to be handling the situation well, showcasing their driving skills despite the challenging conditions.",  # noqa: B950
+}
 
-class DummyTokenizer(ModelTokenizer):
+MESSAGE_SAMPLE_TRAIN_ON_INPUT = [
+    Message(
+        role="system",
+        content=CHAT_SAMPLE["system"],
+    ),
+    Message(
+        role="user",
+        content=CHAT_SAMPLE["user"],
+    ),
+    Message(
+        role="assistant",
+        content=CHAT_SAMPLE["assistant"],
+    ),
+]
+
+MESSAGE_SAMPLE = [
+    Message(role="system", content=CHAT_SAMPLE["system"], masked=True),
+    Message(role="user", content=CHAT_SAMPLE["user"], masked=True),
+    Message(
+        role="assistant",
+        content=CHAT_SAMPLE["assistant"],
+    ),
+]
+
+
+class DummyTokenizer(ModelTokenizer, Transform):
+    def __init__(self, max_seq_len: Optional[int] = None):
+        self.max_seq_len = max_seq_len
+
     def encode(self, text, add_bos=True, add_eos=True, **kwargs) -> List[int]:
         words = text.split()
         tokens = [len(word) for word in words]
@@ -50,7 +88,8 @@ class DummyTokenizer(ModelTokenizer):
         return tokens
 
     def tokenize_messages(
-        self, messages: List[Message], max_seq_len: Optional[int] = None
+        self,
+        messages: List[Message],
     ) -> Tuple[List[int], List[bool]]:
         """
         A simplified version of Llama2Tokenizer's ``tokenize_messages`` for testing purposes.
@@ -69,15 +108,16 @@ class DummyTokenizer(ModelTokenizer):
                 mask.append(message.masked)
 
             # Tokenize current message, append with masks
+            tokens = []
             for item in message.content:
                 if item["type"] == "text":
-                    tokens = self.encode(
+                    tokens = tokens + self.encode(
                         item["content"],
                         add_bos=False,
                         add_eos=False,
                     )
                 elif item["type"] == "image":
-                    tokens = [self.image_id]
+                    tokens = tokens + [self.image_id]
 
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
@@ -92,15 +132,24 @@ class DummyTokenizer(ModelTokenizer):
                 start_of_turn = False
 
             # Break out early if we reach max_seq_len
-            if max_seq_len and len(tokenized_messages) >= max_seq_len:
+            if self.max_seq_len and len(tokenized_messages) >= self.max_seq_len:
                 break
 
         # Finally, truncate if necessary
-        if max_seq_len:
-            tokenized_messages = truncate(tokenized_messages, max_seq_len, self.eos_id)
-            mask = truncate(mask, max_seq_len, message.masked)
+        if self.max_seq_len:
+            tokenized_messages = truncate(
+                tokenized_messages, self.max_seq_len, self.eos_id
+            )
+            mask = truncate(mask, self.max_seq_len, message.masked)
 
         return tokenized_messages, mask
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        messages = sample.pop("messages")
+        tokens, mask = self.tokenize_messages(messages)
+        sample["tokens"] = tokens
+        sample["mask"] = mask
+        return sample
 
     @property
     def eos_id(self):
@@ -139,6 +188,16 @@ class DummyChatFormat(ChatFormat):
                 Message(role=message.role, content=content, masked=message.masked),
             )
         return formatted_dialogue
+
+
+DummyPromptTemplate = partial(
+    PromptTemplate,
+    template={
+        "system": ("System:\n", "\n"),
+        "user": ("User:\n", "\n"),
+        "assistant": ("Assistant:\n", "\n"),
+    },
+)
 
 
 def get_assets_path():

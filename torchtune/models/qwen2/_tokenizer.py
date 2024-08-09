@@ -84,13 +84,15 @@ class Qwen2Tokenizer(ModelTokenizer):
             merges.txt contains all BPE merge operations, and this file is required to split a single word into
             byte-level BPE tokens.
         special_tokens (Optional[Dict[str, int]]): Special tokens to add to the tokenizer. Default is None.
+        max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
+            Default: None
         errors (str): Paradigm to follow when decoding bytes to UTF-8. Defaults to "replace".
             See [bytes.decode](https://docs.python.org/3/library/stdtypes.html#bytes.decode) for more information.
         unk_token (Optional[str]): The unknown token. A token that is not in the vocabulary cannot be converted
-            to an ID and is set to be this token instead. Defaults to "<|endoftext|>".
+            to an ID and is set to be this token instead. Defaults to ``<|endoftext|>``.
         bos_token (Optional[str]): The beginning of sequence token. Defaults to None.
-        eos_token (str): The end of sequence token. Defaults to "<|endoftext|>".
-        pad_token (Optional[str]): The token used for padding. Defaults to "<|endoftext|>".
+        eos_token (str): The end of sequence token. Defaults to ``<|endoftext|>``.
+        pad_token (Optional[str]): The token used for padding. Defaults to ``<|endoftext|>``.
         bpe_cache_size (int): BPE token cache size in Qwen2Tokenizer.
             NOTE: large cache size will speed up tokenization, but the cache object will get really
             large for long running processes (esp. for texts of language that do not use space between
@@ -120,6 +122,7 @@ class Qwen2Tokenizer(ModelTokenizer):
         path: str,
         merges_file: str,
         special_tokens: Optional[Dict[str, int]] = None,
+        max_seq_len: Optional[int] = None,
         *,
         errors: str = "replace",
         unk_token: Optional[str] = ENDOFTEXT,
@@ -165,6 +168,8 @@ class Qwen2Tokenizer(ModelTokenizer):
         self._pattern_split_special_tokens = re.compile(
             r"(\L<options>)", options=self.special_tokens.keys()
         )
+
+        self.max_seq_len = max_seq_len
 
     def _bpe_without_cache(self, token):
         word = tuple(token)
@@ -320,7 +325,6 @@ class Qwen2Tokenizer(ModelTokenizer):
     def tokenize_messages(
         self,
         messages: List[Message],
-        max_seq_len: Optional[int] = None,
         apply_chat_template: bool = True,
     ) -> Tuple[List[int], List[bool]]:
         """
@@ -329,7 +333,6 @@ class Qwen2Tokenizer(ModelTokenizer):
 
         Args:
             messages (List[Message]): The message list to tokenize.
-            max_seq_len (Optional[int]): The maximum sequence length.
             apply_chat_template (bool): Whether to apply Qwen2 chat template.
 
         Returns:
@@ -354,7 +357,7 @@ class Qwen2Tokenizer(ModelTokenizer):
             tokens.extend(tokenized_message)
             mask.extend([message.masked] * len(tokenized_message))
 
-            if max_seq_len and len(tokens) >= max_seq_len:
+            if self.max_seq_len and len(tokens) >= self.max_seq_len:
                 break
 
         if not is_generation:
@@ -363,7 +366,7 @@ class Qwen2Tokenizer(ModelTokenizer):
             if messages:
                 last_message_masked = messages[-1].masked
             mask = mask + [last_message_masked]
-        if max_seq_len:
-            tokens = truncate(tokens, max_seq_len, self.eos_id)
-            mask = truncate(mask, max_seq_len, True)
+        if self.max_seq_len:
+            tokens = truncate(tokens, self.max_seq_len, self.eos_id)
+            mask = truncate(mask, self.max_seq_len, True)
         return tokens, mask

@@ -23,7 +23,7 @@ class TestWikiTextDataset:
         # Sample data from wikitext dataset
         load_dataset.return_value = [
             {
-                "text": "Bart , like the rest of his family , has yellow skin . "
+                "page": "Bart , like the rest of his family , has yellow skin . "
                 "Bart usually wears a red T @-@ shirt , blue shorts and blue trainers . "
                 "When the Simpson family goes to church in the episodes , or to school "
                 "events or shows , Bart wears a blue suit with a white shirt , a purple "

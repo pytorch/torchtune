@@ -7,7 +7,7 @@
 import json
 from typing import Any, Dict, List, Optional, Protocol, Tuple
 
-from torchtune.data._types import Message
+from torchtune.data._messages import Message
 from torchtune.data._utils import truncate
 
 
@@ -50,6 +50,7 @@ class ModelTokenizer(Protocol):
     """
 
     special_tokens: Dict[str, int]
+    max_seq_len: Optional[int]
 
     def tokenize_messages(
         self, messages: List[Message], **kwargs: Dict[str, Any]

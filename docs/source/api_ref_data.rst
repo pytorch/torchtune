@@ -23,6 +23,9 @@ and models.
     GrammarErrorCorrectionTemplate
     SummarizeTemplate
     StackExchangedPairedTemplate
+    PromptTemplate
+    PromptTemplateInterface
+    ChatMLTemplate
 
     ChatFormat
     ChatMLFormat
@@ -51,8 +54,21 @@ Converts data from common JSON formats into a torchtune :class:`Message`.
     get_sharegpt_messages
     get_openai_messages
 
-Helper funcs
-------------
+Message transforms
+------------------
+
+Converts data from common schema and conversation JSON formats into a list of torchtune :class:`Message`.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    InputOutputToMessages
+    ShareGPTToMessages
+    JSONToMessages
+
+Helper functions
+----------------
 
 Miscellaneous helper functions used in modifying data.
 

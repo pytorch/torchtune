@@ -3,12 +3,14 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
+from collections import Counter
 from unittest.mock import patch
 
 import pytest
 from datasets import Dataset
 
 from tests.test_utils import DummyTokenizer
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
 from torchtune.datasets import slimorca_dataset
 
@@ -18,17 +20,11 @@ class TestSlimOrcaDataset:
     def tokenizer(self):
         return DummyTokenizer()
 
-    @patch("torchtune.datasets._chat.load_dataset")
-    def test_value_error(self, load_dataset, tokenizer):
-        load_dataset.return_value = []
-        with pytest.raises(ValueError):
-            slimorca_dataset(tokenizer=tokenizer, max_seq_len=3)
-
-    @patch("torchtune.datasets._chat.load_dataset")
-    @pytest.mark.parametrize("max_seq_len", [128, 512, 1024, 4096])
-    def test_dataset_get_item(self, load_dataset, tokenizer, max_seq_len):
+    @patch("torchtune.datasets._sft.load_dataset")
+    @pytest.mark.parametrize("train_on_input", [True, False])
+    def test_dataset_get_item(self, mock_load_dataset, train_on_input, tokenizer):
         # Sample data from slimorca dataset
-        load_dataset.return_value = Dataset.from_list(
+        mock_load_dataset.return_value = Dataset.from_list(
             [
                 {
                     "conversations": [
@@ -49,14 +45,32 @@ class TestSlimOrcaDataset:
             ]
         )
         ds = slimorca_dataset(
-            tokenizer=tokenizer,
-            max_seq_len=max_seq_len,
-            train_on_input=(max_seq_len == 128),
+            model_transform=tokenizer,
+            train_on_input=train_on_input,
         )
-        input, label = ds[0]["tokens"], ds[0]["labels"]
-        assert len(input) <= max_seq_len
-        assert len(label) <= max_seq_len
-        assert len(input) == len(label)
-        assert input[0] == tokenizer.bos_id
-        assert input[-1] == tokenizer.eos_id
-        assert label[-1] == tokenizer.eos_id
+        # Generate the input and labels
+        input, labels = ds[0]["tokens"], ds[0]["labels"]
+
+        expected_counts = {
+            3: 28,
+            2: 20,
+            4: 20,
+            5: 20,
+            6: 17,
+            10: 8,
+            1: 7,
+            8: 7,
+            7: 7,
+            9: 2,
+            11: 2,
+            0: 1,
+            12: 1,
+            17: 1,
+            -1: 1,
+        }
+        assert Counter(input) == expected_counts
+        if train_on_input:
+            assert Counter(labels) == expected_counts
+        else:
+            # Check that the input is masked
+            assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 104
