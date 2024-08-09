@@ -7,11 +7,10 @@
 <head>
   <meta name="robots" content="noindex">
   <meta charset="utf-8">
-  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
-
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>resize_with_pad &mdash; torchtune main documentation</title>
+  <title>torchtune.modules.transforms.vision_utils.get_inscribed_size &mdash; torchtune main documentation</title>
   
 
   
@@ -27,22 +26,20 @@
 
   
 
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!-- <link rel="stylesheet" href="../_static/pygments.css" type="text/css" /> -->
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sg_gallery-binder.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sg_gallery-dataframe.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sg_gallery-rendered-html.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
-    <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="tile_crop" href="torchtune.modules.transforms.tile_crop.html" />
-    <link rel="prev" title="get_inscribed_size" href="torchtune.modules.transforms.get_inscribed_size.html" />
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/tabs.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -53,16 +50,16 @@
   
 
   
-  <script src="../_static/js/modernizr.min.js"></script>
+  <script src="../../../../../_static/js/modernizr.min.js"></script>
 
   <!-- Preload the theme fonts -->
 
-<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
 
 <!-- Preload the katex fonts -->
 
@@ -282,7 +279,7 @@
 
 
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
     <input type="text" name="q" placeholder="Search Docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -299,36 +296,36 @@
             
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tune_cli.html">torchtune CLI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../overview.html">torchtune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tune_cli.html">torchtune CLI</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All About Configs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../deep_dives/configs.html">All About Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_data.html">torchtune.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_models.html">torchtune.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -361,7 +358,7 @@
   <ul class="pytorch-breadcrumbs">
     
       <li>
-        <a href="../index.html">
+        <a href="../../../../../index.html">
           
             Docs
           
@@ -369,16 +366,12 @@
       </li>
 
         
-          <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
+          <li><a href="../../../../index.html">Module code</a> &gt;</li>
         
-      <li>resize_with_pad</li>
+      <li>torchtune.modules.transforms.vision_utils.get_inscribed_size</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
-        
-            
-            <a href="../_sources/generated/torchtune.modules.transforms.resize_with_pad.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
-          
         
       </li>
     
@@ -407,77 +400,91 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="resize-with-pad">
-<h1>resize_with_pad<a class="headerlink" href="#resize-with-pad" title="Permalink to this heading">¶</a></h1>
-<dl class="py function">
-<dt class="sig sig-object py" id="torchtune.modules.transforms.resize_with_pad">
-<span class="sig-prename descclassname"><span class="pre">torchtune.modules.transforms.</span></span><span class="sig-name descname"><span class="pre">resize_with_pad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">InterpolationMode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/transforms/vision_utils/resize_with_pad.html#resize_with_pad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.transforms.resize_with_pad" title="Permalink to this definition">¶</a></dt>
-<dd><p>Resizes and pads an image to target_size without causing distortion.
-The user can set max_size to limit upscaling when target_size exceeds image_size.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>image</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – The input image tensor in the format […, H, W].</p></li>
-<li><p><strong>target_size</strong> (<em>Tuple</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – The desired resolution to fit the image into in the format [height, width].</p></li>
-<li><p><strong>resample</strong> (<em>torchvision.transforms.InterpolationMode</em>) – Resampling method used when resizing images.
-Supports torchvision.transforms.InterpolationMode.NEAREST, InterpolationMode.NEAREST_EXACT,
-InterpolationMode.BILINEAR and InterpolationMode.BICUBIC.</p></li>
-<li><p><strong>max_size</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – The maximum size to upscale the image to.
-If None, will upscale up to target_size.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The resized and padded image tensor in the format […, H, W].</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)">torch.Tensor</a></p>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<p>Example 1: The image will be upscaled from (300, 800) to (448, 1194), since 448 is the limiting side,
-and then padded from (448, 1194) to (448, 1344).</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">max_size</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">image</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="mi">800</span><span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">target_size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">448</span><span class="p">,</span> <span class="mi">1344</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">resample</span> <span class="o">=</span> <span class="n">torchvision</span><span class="o">.</span><span class="n">transforms</span><span class="o">.</span><span class="n">InterpolationMode</span><span class="o">.</span><span class="n">BILINEAR</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">output</span> <span class="o">=</span> <span class="n">resize_with_pad</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">target_size</span><span class="p">,</span> <span class="n">resample</span><span class="p">,</span> <span class="n">max_size</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Example 2: The image will stay as is, since 800 &gt; 600, and then padded from (300, 800) to (448, 1344).</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">max_size</span> <span class="o">=</span> <span class="mi">600</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">image</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="mi">800</span><span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">target_size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">448</span><span class="p">,</span> <span class="mi">1344</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">resample</span> <span class="o">=</span> <span class="n">torchvision</span><span class="o">.</span><span class="n">transforms</span><span class="o">.</span><span class="n">InterpolationMode</span><span class="o">.</span><span class="n">BILINEAR</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">output</span> <span class="o">=</span> <span class="n">resize_with_pad</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">target_size</span><span class="p">,</span> <span class="n">resample</span><span class="p">,</span> <span class="n">max_size</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Example 3: The image will be downscaled from (500, 1000) to (224, 448),
-and padded from (224, 448) to (448, 448).</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">max_size</span> <span class="o">=</span> <span class="mi">600</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">image</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">1000</span><span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">target_size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">448</span><span class="p">,</span> <span class="mi">488</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">resample</span> <span class="o">=</span> <span class="n">torchvision</span><span class="o">.</span><span class="n">transforms</span><span class="o">.</span><span class="n">InterpolationMode</span><span class="o">.</span><span class="n">BILINEAR</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">output</span> <span class="o">=</span> <span class="n">resize_with_pad</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">target_size</span><span class="p">,</span> <span class="n">resample</span><span class="p">,</span> <span class="n">max_size</span><span class="p">)</span>
-</pre></div>
-</div>
-</dd></dl>
+  <h1>Source code for torchtune.modules.transforms.vision_utils.get_inscribed_size</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
+<span class="c1"># All rights reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># This source code is licensed under the BSD-style license found in the</span>
+<span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-</section>
+<span class="kn">import</span> <span class="nn">logging</span>
 
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_inscribed_size"><a class="viewcode-back" href="../../../../../generated/torchtune.modules.transforms.get_inscribed_size.html#torchtune.modules.transforms.get_inscribed_size">[docs]</a><span class="k">def</span> <span class="nf">get_inscribed_size</span><span class="p">(</span>
+    <span class="n">image_size</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">target_size</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">max_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the size of an image, if it was resized to be inscribed within the target_size.</span>
+<span class="sd">    It is upscaled or downscaled such that one size is equal to the target_size, and the second</span>
+<span class="sd">    size is less than or equal to the target_size.</span>
+
+<span class="sd">    The user can set max_size to limit upscaling along the larger dimension when target_size exceeds</span>
+<span class="sd">    the image_size.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        image_size (Tuple[int]): The size of the image, in the form [height, width].</span>
+<span class="sd">        target_size (Tuple[int]): The desired resolution to fit the image into, in the format [height, width].</span>
+<span class="sd">        max_size (Optional[int]): The maximum size to upscale the image to.</span>
+<span class="sd">            If None, will upscale to target size.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple[int]: The resize dimensions for the image, in the format [height, width].</span>
+
+<span class="sd">    Examples:</span>
+
+<span class="sd">        Example 1: The image will be upscaled from (300, 800) to (448, 1194), since 448 is the limiting side.</span>
+
+<span class="sd">            &gt;&gt;&gt; max_size = None</span>
+<span class="sd">            &gt;&gt;&gt; image_size = (300, 800)</span>
+<span class="sd">            &gt;&gt;&gt; target_size = (448, 1344)</span>
+<span class="sd">            &gt;&gt;&gt; output = get_inscribed_size(image_size, target_size, max_size)</span>
+
+<span class="sd">        Example 2: The image will stay as is, since 800 &gt; 600.</span>
+
+<span class="sd">            &gt;&gt;&gt; max_size = 600</span>
+<span class="sd">            &gt;&gt;&gt; image_size = (300, 800)</span>
+<span class="sd">            &gt;&gt;&gt; target_size = (448, 1344)</span>
+<span class="sd">            &gt;&gt;&gt; output = get_inscribed_size(image_size, target_size, max_size)</span>
+
+<span class="sd">        Example 3: The image will be downscaled from (500, 1000) to (224, 448).</span>
+
+<span class="sd">            &gt;&gt;&gt; max_size = 600</span>
+<span class="sd">            &gt;&gt;&gt; image_size = (500, 1000)</span>
+<span class="sd">            &gt;&gt;&gt; target_size = (448, 488)</span>
+<span class="sd">            &gt;&gt;&gt; output = get_inscribed_size(image_size, target_size, max_size)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">image_size</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;Image size must be a list of length 2.&quot;</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_size</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;Canvas size must be a list of length 2.&quot;</span>
+
+    <span class="n">image_height</span><span class="p">,</span> <span class="n">image_width</span> <span class="o">=</span> <span class="n">image_size</span>
+
+    <span class="c1"># Bound target_size with max_size.</span>
+    <span class="k">if</span> <span class="n">max_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">target_height</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">image_height</span><span class="p">,</span> <span class="n">max_size</span><span class="p">),</span> <span class="n">target_size</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">target_width</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">image_width</span><span class="p">,</span> <span class="n">max_size</span><span class="p">),</span> <span class="n">target_size</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">target_height</span><span class="p">,</span> <span class="n">target_width</span> <span class="o">=</span> <span class="n">target_size</span>
+
+    <span class="c1"># Calculate the largest aspect ratio preserving size that fits target_size.</span>
+    <span class="n">scale_h</span> <span class="o">=</span> <span class="n">target_height</span> <span class="o">/</span> <span class="n">image_height</span>
+    <span class="n">scale_w</span> <span class="o">=</span> <span class="n">target_width</span> <span class="o">/</span> <span class="n">image_width</span>
+
+    <span class="n">resize_height</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">image_height</span> <span class="o">*</span> <span class="n">scale_w</span><span class="p">),</span> <span class="n">target_height</span><span class="p">)</span>
+    <span class="n">resize_width</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">image_width</span> <span class="o">*</span> <span class="n">scale_h</span><span class="p">),</span> <span class="n">target_width</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">resize_height</span><span class="p">,</span> <span class="n">resize_width</span><span class="p">)</span></div>
+</pre></div>
 
              </article>
              
             </div>
             <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="torchtune.modules.transforms.tile_crop.html" class="btn btn-neutral float-right" title="tile_crop" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
-      
-      
-        <a href="torchtune.modules.transforms.get_inscribed_size.html" class="btn btn-neutral" title="get_inscribed_size" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
-      
-    </div>
   
 
   
@@ -506,10 +513,7 @@ and padded from (224, 448) to (448, 448).</p>
         <div class="pytorch-content-right" id="pytorch-content-right">
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
-              <ul>
-<li><a class="reference internal" href="#">resize_with_pad</a></li>
-</ul>
-
+              
             </div>
           </div>
         </div>
@@ -522,23 +526,24 @@ and padded from (224, 448) to (448, 448).</p>
   
 
      
-       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-         <script src="../_static/jquery.js"></script>
-         <script src="../_static/underscore.js"></script>
-         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
-         <script src="../_static/doctools.js"></script>
-         <script src="../_static/clipboard.min.js"></script>
-         <script src="../_static/copybutton.js"></script>
-         <script src="../_static/design-tabs.js"></script>
+       <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+         <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
+         <script src="../../../../../_static/jquery.js"></script>
+         <script src="../../../../../_static/underscore.js"></script>
+         <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../../../../../_static/doctools.js"></script>
+         <script src="../../../../../_static/clipboard.min.js"></script>
+         <script src="../../../../../_static/copybutton.js"></script>
+         <script src="../../../../../_static/tabs.js"></script>
+         <script src="../../../../../_static/design-tabs.js"></script>
      
 
   
 
-  <script type="text/javascript" src="../_static/js/vendor/popper.min.js"></script>
-  <script type="text/javascript" src="../_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../../../../../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../../../../../_static/js/vendor/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
-  <script type="text/javascript" src="../_static/js/theme.js"></script>
+  <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
 
   <script type="text/javascript">
       jQuery(function () {
@@ -653,7 +658,7 @@ and padded from (224, 448) to (448, 448).</p>
   <div class="cookie-banner-wrapper">
   <div class="container">
     <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
-    <img class="close-button" src="../_static/images/pytorch-x.svg">
+    <img class="close-button" src="../../../../../_static/images/pytorch-x.svg">
   </div>
 </div>
 
@@ -786,7 +791,7 @@ and padded from (224, 448) to (448, 448).</p>
 
   <!-- End Mobile Menu -->
 
-  <script type="text/javascript" src="../_static/js/vendor/anchor.min.js"></script>
+  <script type="text/javascript" src="../../../../../_static/js/vendor/anchor.min.js"></script>
 
   <script type="text/javascript">
     $(document).ready(function() {

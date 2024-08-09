@@ -424,11 +424,11 @@
     <span class="n">image</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">target_size</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
     <span class="n">resample</span><span class="p">:</span> <span class="n">torchvision</span><span class="o">.</span><span class="n">transforms</span><span class="o">.</span><span class="n">InterpolationMode</span><span class="p">,</span>
-    <span class="n">max_upscaling_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">max_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Resizes and pads an image to target_size without causing distortion.</span>
-<span class="sd">    The user can set max_upscaling_size to limit upscaling when target_size exceeds image_size.</span>
+<span class="sd">    The user can set max_size to limit upscaling when target_size exceeds image_size.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        image (torch.Tensor): The input image tensor in the format [..., H, W].</span>
@@ -436,7 +436,7 @@
 <span class="sd">        resample (torchvision.transforms.InterpolationMode): Resampling method used when resizing images.</span>
 <span class="sd">            Supports torchvision.transforms.InterpolationMode.NEAREST, InterpolationMode.NEAREST_EXACT,</span>
 <span class="sd">            InterpolationMode.BILINEAR and InterpolationMode.BICUBIC.</span>
-<span class="sd">        max_upscaling_size (Optional[int]): The maximum size to upscale the image to.</span>
+<span class="sd">        max_size (Optional[int]): The maximum size to upscale the image to.</span>
 <span class="sd">            If None, will upscale up to target_size.</span>
 
 <span class="sd">    Returns:</span>
@@ -447,38 +447,38 @@
 <span class="sd">        Example 1: The image will be upscaled from (300, 800) to (448, 1194), since 448 is the limiting side,</span>
 <span class="sd">        and then padded from (448, 1194) to (448, 1344).</span>
 
-<span class="sd">            &gt;&gt;&gt; max_upscaling_size = None</span>
+<span class="sd">            &gt;&gt;&gt; max_size = None</span>
 <span class="sd">            &gt;&gt;&gt; image = torch.rand([3, 300, 800])</span>
 <span class="sd">            &gt;&gt;&gt; target_size = (448, 1344)</span>
 <span class="sd">            &gt;&gt;&gt; resample = torchvision.transforms.InterpolationMode.BILINEAR</span>
-<span class="sd">            &gt;&gt;&gt; output = resize_with_pad(image, target_size, resample, max_upscaling_size)</span>
+<span class="sd">            &gt;&gt;&gt; output = resize_with_pad(image, target_size, resample, max_size)</span>
 
 <span class="sd">        Example 2: The image will stay as is, since 800 &gt; 600, and then padded from (300, 800) to (448, 1344).</span>
 
-<span class="sd">            &gt;&gt;&gt; max_upscaling_size = 600</span>
+<span class="sd">            &gt;&gt;&gt; max_size = 600</span>
 <span class="sd">            &gt;&gt;&gt; image = torch.rand([3, 300, 800])</span>
 <span class="sd">            &gt;&gt;&gt; target_size = (448, 1344)</span>
 <span class="sd">            &gt;&gt;&gt; resample = torchvision.transforms.InterpolationMode.BILINEAR</span>
-<span class="sd">            &gt;&gt;&gt; output = resize_with_pad(image, target_size, resample, max_upscaling_size)</span>
+<span class="sd">            &gt;&gt;&gt; output = resize_with_pad(image, target_size, resample, max_size)</span>
 
 <span class="sd">        Example 3: The image will be downscaled from (500, 1000) to (224, 448),</span>
 <span class="sd">        and padded from (224, 448) to (448, 448).</span>
 
-<span class="sd">            &gt;&gt;&gt; max_upscaling_size = 600</span>
+<span class="sd">            &gt;&gt;&gt; max_size = 600</span>
 <span class="sd">            &gt;&gt;&gt; image = torch.rand([3, 500, 1000])</span>
 <span class="sd">            &gt;&gt;&gt; target_size = (448, 488)</span>
 <span class="sd">            &gt;&gt;&gt; resample = torchvision.transforms.InterpolationMode.BILINEAR</span>
-<span class="sd">            &gt;&gt;&gt; output = resize_with_pad(image, target_size, resample, max_upscaling_size)</span>
+<span class="sd">            &gt;&gt;&gt; output = resize_with_pad(image, target_size, resample, max_size)</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">image_height</span><span class="p">,</span> <span class="n">image_width</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
     <span class="n">image_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">image_height</span><span class="p">,</span> <span class="n">image_width</span><span class="p">)</span>
 
-    <span class="c1"># If target_size requires upscaling, we might want to limit the upscaling to max_upscaling_size</span>
-    <span class="k">if</span> <span class="n">max_upscaling_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">new_target_height</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">image_height</span><span class="p">,</span> <span class="n">max_upscaling_size</span><span class="p">),</span> <span class="n">target_size</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-        <span class="n">new_target_width</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">image_width</span><span class="p">,</span> <span class="n">max_upscaling_size</span><span class="p">),</span> <span class="n">target_size</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="c1"># If target_size requires upscaling, we might want to limit the upscaling to max_size</span>
+    <span class="k">if</span> <span class="n">max_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">new_target_height</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">image_height</span><span class="p">,</span> <span class="n">max_size</span><span class="p">),</span> <span class="n">target_size</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">new_target_width</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">image_width</span><span class="p">,</span> <span class="n">max_size</span><span class="p">),</span> <span class="n">target_size</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="n">target_size_resize</span> <span class="o">=</span> <span class="p">(</span><span class="n">new_target_height</span><span class="p">,</span> <span class="n">new_target_width</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">target_size_resize</span> <span class="o">=</span> <span class="n">target_size</span>

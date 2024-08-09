@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>resize_with_pad &mdash; torchtune main documentation</title>
+  <title>get_inscribed_size &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="tile_crop" href="torchtune.modules.transforms.tile_crop.html" />
-    <link rel="prev" title="get_inscribed_size" href="torchtune.modules.transforms.get_inscribed_size.html" />
+    <link rel="next" title="resize_with_pad" href="torchtune.modules.transforms.resize_with_pad.html" />
+    <link rel="prev" title="get_canvas_best_fit" href="torchtune.modules.transforms.get_canvas_best_fit.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -371,13 +371,13 @@
         
           <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
         
-      <li>resize_with_pad</li>
+      <li>get_inscribed_size</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.modules.transforms.resize_with_pad.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.modules.transforms.get_inscribed_size.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -407,57 +407,52 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="resize-with-pad">
-<h1>resize_with_pad<a class="headerlink" href="#resize-with-pad" title="Permalink to this heading">¶</a></h1>
+  <section id="get-inscribed-size">
+<h1>get_inscribed_size<a class="headerlink" href="#get-inscribed-size" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.modules.transforms.resize_with_pad">
-<span class="sig-prename descclassname"><span class="pre">torchtune.modules.transforms.</span></span><span class="sig-name descname"><span class="pre">resize_with_pad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">InterpolationMode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/transforms/vision_utils/resize_with_pad.html#resize_with_pad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.transforms.resize_with_pad" title="Permalink to this definition">¶</a></dt>
-<dd><p>Resizes and pads an image to target_size without causing distortion.
-The user can set max_size to limit upscaling when target_size exceeds image_size.</p>
+<dt class="sig sig-object py" id="torchtune.modules.transforms.get_inscribed_size">
+<span class="sig-prename descclassname"><span class="pre">torchtune.modules.transforms.</span></span><span class="sig-name descname"><span class="pre">get_inscribed_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/modules/transforms/vision_utils/get_inscribed_size.html#get_inscribed_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.transforms.get_inscribed_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the size of an image, if it was resized to be inscribed within the target_size.
+It is upscaled or downscaled such that one size is equal to the target_size, and the second
+size is less than or equal to the target_size.</p>
+<p>The user can set max_size to limit upscaling along the larger dimension when target_size exceeds
+the image_size.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>image</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – The input image tensor in the format […, H, W].</p></li>
-<li><p><strong>target_size</strong> (<em>Tuple</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – The desired resolution to fit the image into in the format [height, width].</p></li>
-<li><p><strong>resample</strong> (<em>torchvision.transforms.InterpolationMode</em>) – Resampling method used when resizing images.
-Supports torchvision.transforms.InterpolationMode.NEAREST, InterpolationMode.NEAREST_EXACT,
-InterpolationMode.BILINEAR and InterpolationMode.BICUBIC.</p></li>
+<li><p><strong>image_size</strong> (<em>Tuple</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – The size of the image, in the form [height, width].</p></li>
+<li><p><strong>target_size</strong> (<em>Tuple</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – The desired resolution to fit the image into, in the format [height, width].</p></li>
 <li><p><strong>max_size</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – The maximum size to upscale the image to.
-If None, will upscale up to target_size.</p></li>
+If None, will upscale to target size.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The resized and padded image tensor in the format […, H, W].</p>
+<dd class="field-even"><p>The resize dimensions for the image, in the format [height, width].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)">torch.Tensor</a></p>
+<dd class="field-odd"><p>Tuple[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)">int</a>]</p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>
-<p>Example 1: The image will be upscaled from (300, 800) to (448, 1194), since 448 is the limiting side,
-and then padded from (448, 1194) to (448, 1344).</p>
+<p>Example 1: The image will be upscaled from (300, 800) to (448, 1194), since 448 is the limiting side.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">max_size</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">image</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="mi">800</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">image_size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">300</span><span class="p">,</span> <span class="mi">800</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">target_size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">448</span><span class="p">,</span> <span class="mi">1344</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">resample</span> <span class="o">=</span> <span class="n">torchvision</span><span class="o">.</span><span class="n">transforms</span><span class="o">.</span><span class="n">InterpolationMode</span><span class="o">.</span><span class="n">BILINEAR</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">output</span> <span class="o">=</span> <span class="n">resize_with_pad</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">target_size</span><span class="p">,</span> <span class="n">resample</span><span class="p">,</span> <span class="n">max_size</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">output</span> <span class="o">=</span> <span class="n">get_inscribed_size</span><span class="p">(</span><span class="n">image_size</span><span class="p">,</span> <span class="n">target_size</span><span class="p">,</span> <span class="n">max_size</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Example 2: The image will stay as is, since 800 &gt; 600, and then padded from (300, 800) to (448, 1344).</p>
+<p>Example 2: The image will stay as is, since 800 &gt; 600.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">max_size</span> <span class="o">=</span> <span class="mi">600</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">image</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="mi">800</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">image_size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">300</span><span class="p">,</span> <span class="mi">800</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">target_size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">448</span><span class="p">,</span> <span class="mi">1344</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">resample</span> <span class="o">=</span> <span class="n">torchvision</span><span class="o">.</span><span class="n">transforms</span><span class="o">.</span><span class="n">InterpolationMode</span><span class="o">.</span><span class="n">BILINEAR</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">output</span> <span class="o">=</span> <span class="n">resize_with_pad</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">target_size</span><span class="p">,</span> <span class="n">resample</span><span class="p">,</span> <span class="n">max_size</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">output</span> <span class="o">=</span> <span class="n">get_inscribed_size</span><span class="p">(</span><span class="n">image_size</span><span class="p">,</span> <span class="n">target_size</span><span class="p">,</span> <span class="n">max_size</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Example 3: The image will be downscaled from (500, 1000) to (224, 448),
-and padded from (224, 448) to (448, 448).</p>
+<p>Example 3: The image will be downscaled from (500, 1000) to (224, 448).</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">max_size</span> <span class="o">=</span> <span class="mi">600</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">image</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">1000</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">image_size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">target_size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">448</span><span class="p">,</span> <span class="mi">488</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">resample</span> <span class="o">=</span> <span class="n">torchvision</span><span class="o">.</span><span class="n">transforms</span><span class="o">.</span><span class="n">InterpolationMode</span><span class="o">.</span><span class="n">BILINEAR</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">output</span> <span class="o">=</span> <span class="n">resize_with_pad</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">target_size</span><span class="p">,</span> <span class="n">resample</span><span class="p">,</span> <span class="n">max_size</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">output</span> <span class="o">=</span> <span class="n">get_inscribed_size</span><span class="p">(</span><span class="n">image_size</span><span class="p">,</span> <span class="n">target_size</span><span class="p">,</span> <span class="n">max_size</span><span class="p">)</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -472,10 +467,10 @@ and padded from (224, 448) to (448, 448).</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.modules.transforms.tile_crop.html" class="btn btn-neutral float-right" title="tile_crop" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.modules.transforms.resize_with_pad.html" class="btn btn-neutral float-right" title="resize_with_pad" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.modules.transforms.get_inscribed_size.html" class="btn btn-neutral" title="get_inscribed_size" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.modules.transforms.get_canvas_best_fit.html" class="btn btn-neutral" title="get_canvas_best_fit" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -507,7 +502,7 @@ and padded from (224, 448) to (448, 448).</p>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">resize_with_pad</a></li>
+<li><a class="reference internal" href="#">get_inscribed_size</a></li>
 </ul>
 
             </div>
