@@ -151,6 +151,8 @@ Run Evaluation using EleutherAI's Eval Harness
 
 We've fine-tuned a model. But how well does this model really do? Let's run some Evaluations!
 
+.. TODO (SalmanMohammadi) ref eval recipe docs
+
 torchtune integrates with
 `EleutherAI's evaluation harness <https://github.com/EleutherAI/lm-evaluation-harness>`_.
 An example of this is available through the
@@ -169,7 +171,7 @@ will be easier than overriding all of these elements through the CLI.
 
     tune cp eleuther_evaluation ./custom_eval_config.yaml \
 
-For this tutorial we'll use the ``truthfulqa_mc2`` task from the harness.
+For this tutorial we'll use the `truthfulqa_mc2 <https://github.com/sylinrl/TruthfulQA>`_ task from the harness.
 This task measures a model's propensity to be truthful when answering questions and
 measures the model's zero-shot accuracy on a question followed by one or more true
 responses and one or more false responses. Let's first run a baseline without fine-tuning.
@@ -422,7 +424,7 @@ Uploading your model to the Hugging Face Hub
 --------------------------------------------
 
 Your new model is working great and you want to share it with the world. The easiest way to do this
-is utilizing the ``huggingface-cli`` command, which works seamlessly with torchtune. Simply point the CLI
+is utilizing the `huggingface-cli <https://huggingface.co/docs/huggingface_hub/en/guides/cli>`_ command, which works seamlessly with torchtune. Simply point the CLI
 to your finetuned model directory like so:
 
 .. code-block:: bash

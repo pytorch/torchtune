@@ -329,7 +329,7 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
 
     def reset_caches(self):
         """Reset the key value caches."""
-        if self.layers[0].attn.kv_cache is None:
+        if not self.caches_are_enabled():
             raise RuntimeError(
                 "Key value caches are not setup. Call ``setup_caches()`` first."
             )
