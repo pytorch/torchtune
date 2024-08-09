@@ -86,6 +86,7 @@ Loss
    loss.DPOLoss
    loss.RSOLoss
    loss.IPOLoss
+   loss.SimPOLoss
 
 
 Vision Transforms
