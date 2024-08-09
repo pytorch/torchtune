@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --hf-token <HF_TOKEN> --ignore-patterns ""
+#   tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --ignore-patterns None --hf-token <HF_TOKEN>
 #
 # Run this config on 4 GPUs using the following:
 #  tune run --nproc_per_node 4 full_finetune_distributed --config phi3/mini_full
@@ -17,22 +17,16 @@
 # Single device full finetuning requires more memory optimizations. It's
 # best to use mini_low_memory.yaml for those cases
 
+# Model arguments
+model:
+  _component_: torchtune.models.phi3.phi3_mini
+
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.phi3.phi3_mini_tokenizer
   path: /tmp/Phi-3-mini-4k-instruct/tokenizer.model
 
-# Dataset
-dataset:
-  _component_: torchtune.datasets.alpaca_cleaned_dataset
-  max_seq_len: 4096
-seed: null
-shuffle: True
-
-# Model Arguments
-model:
-  _component_: torchtune.models.phi3.phi3_mini
-
+# Checkpointer
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Phi-3-mini-4k-instruct
@@ -45,16 +39,22 @@ checkpointer:
   model_type: PHI3_MINI
 resume_from_checkpoint: False
 
+# Dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+seed: null
+shuffle: True
+
 # Fine-tuning arguments
-batch_size: 2
 epochs: 1
+max_steps_per_epoch: null
+batch_size: 2
+gradient_accumulation_steps: 16
 optimizer:
   _component_: torch.optim.AdamW
   lr: 5e-6
 loss:
   _component_: torch.nn.CrossEntropyLoss
-max_steps_per_epoch: null
-gradient_accumulation_steps: 16
 
 # Training env
 device: cuda
@@ -62,13 +62,12 @@ device: cuda
 # Memory management
 enable_activation_checkpointing: True
 memory_efficient_fsdp_wrap: False
-
-# Reduced precision
 dtype: bf16
 
 # Logging
+output_dir: /tmp/phi3_full_finetune_output
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
-  log_dir: ${output_dir}
-output_dir: /tmp/Phi-3-mini-4k-instruct
+  log_dir: /tmp/Phi-3-mini-4k-instruct/logs
 log_every_n_steps: 1
+log_peak_memory_stats: False

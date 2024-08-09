@@ -35,12 +35,6 @@ class ConcatDataset(Dataset):
         datasets (List[Dataset]): A list of datasets to concatenate. Each dataset must be an instance of a class
             derived from :class:`~torch.utils.data.Dataset`.
 
-    Attributes:
-        _datasets (List[Dataset]): Stores the list of datasets passed during initialization.
-        _len (int): The total combined length of all datasets.
-        _indexes (List[Tuple[int, int, int]]): A list of tuples where each tuple contains the starting index, the
-            ending index, and the dataset index for quick lookup and access during indexing operations.
-
     Examples:
         >>> dataset1 = MyCustomDataset(params1)
         >>> dataset2 = MyCustomDataset(params2)
@@ -69,9 +63,9 @@ class ConcatDataset(Dataset):
     """
 
     def __init__(self, datasets: List[Dataset]):
-        self._datasets = datasets
-        self._len = sum(len(dataset) for dataset in datasets)
-        self._indexes = []
+        self._datasets: List[Dataset] = datasets
+        self._len: int = sum(len(dataset) for dataset in datasets)
+        self._indexes: List[Tuple[int, int, int]] = []
 
         # Calculate distribution of indexes in all datasets
         cumulative_index = 0
@@ -79,9 +73,6 @@ class ConcatDataset(Dataset):
             next_cumulative_index = cumulative_index + len(dataset)
             self._indexes.append((cumulative_index, next_cumulative_index, idx))
             cumulative_index = next_cumulative_index
-
-        log.debug(f"Datasets summary length: {self._len}")
-        log.debug(f"Datasets indexes: {self._indexes}")
 
     def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
         for start, stop, dataset_index in self._indexes:

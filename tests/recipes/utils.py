@@ -20,7 +20,7 @@ CKPT_COMPONENT_MAP = {
 
 
 class DummyDataset(Dataset):
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         self._data = torch.LongTensor(
             [
                 [0, 2, 4, 2, 5, 6, 7, 8, 9, 1, 2, 4, 3, 3, 5, 6, 8, 2, 1, 1],
@@ -61,9 +61,41 @@ def dummy_alpaca_dataset_config():
     return out
 
 
+def dummy_text_completion_alpaca_dataset_config():
+    """
+    Constructs a minimal text-completion-style dataset from ``alpaca_tiny.json``.
+    This is used for testing PPO fine-tuning.
+    """
+    data_files = os.path.join(get_assets_path(), "alpaca_tiny.json")
+    out = [
+        "dataset._component_=torchtune.datasets.text_completion_dataset",
+        "dataset.source='json'",
+        f"dataset.data_files={data_files}",
+        "dataset.column='instruction'",
+        "dataset.split='train[:10%]'",  # 10% of the dataset gets us 8 batches
+        "dataset.max_seq_len=64",
+        "dataset.add_eos=False",
+    ]
+    return out
+
+
 def llama2_test_config() -> List[str]:
     return [
         "model._component_=torchtune.models.llama2.llama2",
+        "model.vocab_size=32_000",
+        "model.num_layers=4",
+        "model.num_heads=16",
+        "model.embed_dim=256",
+        "model.max_seq_len=2048",
+        "model.norm_eps=1e-5",
+        "model.num_kv_heads=8",
+    ]
+
+
+def llama2_classifier_test_config() -> List[str]:
+    return [
+        "model._component_=torchtune.models.llama2.llama2_classifier",
+        "model.num_classes=1",
         "model.vocab_size=32_000",
         "model.num_layers=4",
         "model.num_heads=16",

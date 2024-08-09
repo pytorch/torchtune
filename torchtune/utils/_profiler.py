@@ -54,9 +54,9 @@ def _warn(msg: str):
 
 def trace_handler(
     prof: torch.profiler.profile,
-    output_dir,
-    metric="self_cuda_time_total",
-    row_limit=25,
+    output_dir: str,
+    metric: str = "self_cuda_time_total",
+    row_limit: int = 25,
 ):
     """
     Handles export of artifacts from ``torch.profiler.profile``.
@@ -78,11 +78,10 @@ def trace_handler(
     See profiler documentation (https://pytorch.org/docs/stable/profiler.html#torch.profiler.profile) for more details
 
     Args:
-        prof: torch.profiler.profile
-        output_dir: str - directory to store artifacts
-        metric: str - metric to order trace event table by, see ``torch.profiler.profile.key_averages().table`` for
-        additional metrics
-        row_limit: int - number of rows to display in trace event table
+        prof (torch.profiler.profile): instance of torch profiler to use
+        output_dir (str):  directory to store artifacts
+        metric (str): metric to order trace event table by, see ``torch.profiler.profile.key_averages().table`` for
+        row_limit (int): number of rows to display in trace event table
 
     """
     world_size, rank = get_world_size_and_rank()

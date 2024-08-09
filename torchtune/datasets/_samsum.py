@@ -4,18 +4,26 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.datasets import instruct_dataset, InstructDataset
-from torchtune.modules.tokenizers import ModelTokenizer
+
+from typing import Dict, Optional, Union
+
+from torchtune.data import InputOutputToMessages
+from torchtune.data._prompt_templates import PromptTemplate, SummarizeTemplate
+from torchtune.datasets._packed import PackedDataset
+from torchtune.datasets._sft import SFTDataset
+from torchtune.modules.transforms import Transform
 
 
 def samsum_dataset(
-    tokenizer: ModelTokenizer,
+    model_transform: Transform,
     *,
-    source: str = "samsum",
+    source: str = "Samsung/samsum",
+    column_map: Optional[Dict[str, str]] = None,
+    prompt_template: Optional[PromptTemplate] = SummarizeTemplate(),
     train_on_input: bool = False,
     packed: bool = False,
     split: str = "train",
-) -> InstructDataset:
+) -> Union[SFTDataset, PackedDataset]:
     """
     Support for summarization datasets and their variants from Hugging Face Datasets.
     An example is the `SAMsum dataset <https://huggingface.co/datasets/samsum>`_.
@@ -32,15 +40,24 @@ def samsum_dataset(
     - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)
 
     Args:
-        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
-        source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`.
+        model_transform (Transform): model specific transform to convert a list of messages
+            output by the dataset to tokens. This will always be a :class:`~torchtune.modules.tokenizers.ModelTokenizer`.
+        source (str): path to dataset repository on Hugging Face. For local datasets,
+            define source as the data file type (e.g. "json", "csv", "text") and pass
+            in the filepath in ``data_files``. See `Hugging Face's
+            <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
+            ``load_dataset`` for more details. Default is ``Samsung/samsum``.
+        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the prompt template
+            to the new column names in the dataset. If None, assume these are identical.
+        prompt_template (Optional[PromptTemplate]): optional template used to format the prompt. Default
+            is :class:`~torchtune.data.GrammarErrorCorrectionTemplate`.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
 
     Returns:
-        InstructDataset: dataset configured with source data and template
+        Union[SFTDataset, PackedDataset]: dataset configured with source data and template
 
 
     Example:
@@ -49,13 +66,15 @@ def samsum_dataset(
         >>>     print(f"Batch size: {len(batch)}")
         >>> Batch size: 8
     """
-
-    return instruct_dataset(
-        tokenizer=tokenizer,
+    column_map = column_map or {"input": "dialogue", "output": "summary"}
+    message_transform = InputOutputToMessages(
+        train_on_input=train_on_input, column_map=column_map
+    )
+    ds = SFTDataset(
         source=source,
-        template="torchtune.data.SummarizeTemplate",
-        column_map={"output": "summary"},
-        train_on_input=train_on_input,
-        packed=packed,
+        message_transform=message_transform,
+        model_transform=model_transform,
+        prompt_template=prompt_template,
         split=split,
     )
+    return PackedDataset(ds) if packed else ds

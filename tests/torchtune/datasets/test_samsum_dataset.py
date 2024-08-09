@@ -20,7 +20,7 @@ class TestSamsumDataset:
     def tokenizer(self):
         return DummyTokenizer()
 
-    @patch("torchtune.datasets._instruct.load_dataset")
+    @patch("torchtune.datasets._sft.load_dataset")
     def test_label_no_masking(self, load_dataset, tokenizer):
         """
         Test whether the input and the labels are correctly created when the input is not masked.
@@ -37,15 +37,46 @@ class TestSamsumDataset:
             ]
         )
 
-        samsum_ds = samsum_dataset(tokenizer=tokenizer, train_on_input=True)
+        samsum_ds = samsum_dataset(model_transform=tokenizer, train_on_input=True)
         input, labels = samsum_ds[0]["tokens"], samsum_ds[0]["labels"]
 
-        assert len(input) == len(labels)
-        assert labels[-1] == tokenizer.eos_id
-        assert input[0] == tokenizer.bos_id
-        assert CROSS_ENTROPY_IGNORE_IDX not in labels
+        assert input == [
+            0,
+            9,
+            4,
+            9,
+            7,
+            1,
+            5,
+            8,
+            2,
+            3,
+            4,
+            5,
+            6,
+            5,
+            7,
+            4,
+            5,
+            3,
+            8,
+            3,
+            3,
+            8,
+            6,
+            5,
+            7,
+            3,
+            4,
+            5,
+            5,
+            4,
+            9,
+            -1,
+        ]
+        assert labels == input
 
-    @patch("torchtune.datasets._instruct.load_dataset")
+    @patch("torchtune.datasets._sft.load_dataset")
     def test_label_masking(self, load_dataset, tokenizer):
         """
         Test whether the input and the labels are correctly created when the input is masked.
@@ -62,18 +93,43 @@ class TestSamsumDataset:
             ]
         )
 
-        samsum_ds = samsum_dataset(tokenizer=tokenizer)
-
-        # Extract the prompt and tokenize it; we'll need this to test whether we're masking the
-        # input correctly
-        sample = samsum_ds._data[0]
-        prompt = samsum_ds.template.format(sample=sample)
-        encoded_prompt = tokenizer.encode(text=prompt, add_bos=True, add_eos=False)
+        samsum_ds = samsum_dataset(model_transform=tokenizer)
 
         # Generate the input and labels
         input, labels = samsum_ds[0]["tokens"], samsum_ds[0]["labels"]
 
-        assert len(input) == len(labels)
-        assert labels[-1] == tokenizer.eos_id
-        assert input[0] == tokenizer.bos_id
-        assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == len(encoded_prompt)
+        assert input == [
+            0,
+            9,
+            4,
+            9,
+            7,
+            1,
+            5,
+            8,
+            2,
+            3,
+            4,
+            5,
+            6,
+            5,
+            7,
+            4,
+            5,
+            3,
+            8,
+            3,
+            3,
+            8,
+            6,
+            5,
+            7,
+            3,
+            4,
+            5,
+            5,
+            4,
+            9,
+            -1,
+        ]
+        assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 22

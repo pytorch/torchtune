@@ -176,6 +176,7 @@ def tune_to_hf(
         num_heads (int): Number of heads in the model.
         num_kv_heads (int): Number of heads in the key/value projection layers.
         dim (int): Dimension of the model.
+        head_dim (int): Dimension of model attention heads. Default None.
 
     Returns:
         Dict[str, torch.Tensor]: State dict in HF's format.

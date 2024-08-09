@@ -27,6 +27,8 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets import ConcatDataset
+from torchtune.modules import rlhf
+from torchtune.modules.loss import SimPOLoss
 from torchtune.modules.peft.peft_utils import (
     disable_adapter,
     get_adapter_params,
@@ -35,7 +37,6 @@ from torchtune.modules.peft.peft_utils import (
     validate_state_dict_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
-
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -97,7 +98,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         - :class:`~torchtune.modules.loss.DPOLoss`: Direct Preference Optimization (DPO).
         - :class:`~torchtune.modules.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
         - :class:`~torchtune.modules.loss.IPO`: Identity Preference Optimization (IPO).
-
+        - :class:`~torchtune.modules.loss.SimPOLoss`: Simple Preference Optimization (SimPO).
 
     For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
     has example commands for how to kick-off training.
@@ -141,8 +142,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
-
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
@@ -244,6 +245,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
+        log.info("Loss function is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -449,7 +451,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             batch_size=batch_size,
             sampler=sampler,
             collate_fn=partial(
-                utils.padded_collate_dpo,
+                rlhf.padded_collate_dpo,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=CROSS_ENTROPY_IGNORE_IDX,
             ),
@@ -470,10 +472,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         - Merged weights with key MODEL_KEY
         - Adapter weights with key ADAPTER_KEY
         - Relevant recipe state if training is not complete
+        - If the `self._save_adapter_weights_only` option is True, the checkpointer will save only the adapter weights
 
-        Checkpointer will save the merged weights, adapter weights and recipe state in
-        different checkpoint files. To correctly resume from training, the adapter weights
-        and recipe state must be provided along with the base model weights.
+        To correctly resume from training, the adapter weights and recipe state must be provided along with the base model weights.
         """
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
@@ -530,6 +531,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 checkpoint_dict,
                 epoch=epoch,
                 intermediate_checkpoint=intermediate_checkpoint,
+                adapter_only=self._save_adapter_weights_only,
             )
 
     def concatenated_forward(
@@ -554,7 +556,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         all_logits = model(concatenated_input_ids)
 
-        all_log_probs = self.get_batch_log_probs(all_logits, concatenated_labels)
+        all_log_probs = rlhf.get_batch_log_probs(
+            all_logits,
+            concatenated_labels,
+            # see :class:`~torchtune.modules.loss.dpo.SimPOLoss`
+            return_average_logprobs=isinstance(self._loss_fn, SimPOLoss),
+        )
 
         chosen_log_probs = all_log_probs[:len_chosen]
         rejected_log_probs = all_log_probs[len_chosen:]
@@ -563,45 +570,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         rejected_logits = all_logits[len_chosen:]
 
         return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits)
-
-    @staticmethod
-    def get_batch_log_probs(
-        logits: torch.FloatTensor,
-        labels: torch.LongTensor,
-        label_pad_token_id: int = CROSS_ENTROPY_IGNORE_IDX,
-    ) -> torch.FloatTensor:
-        """
-        Calculate log probabilities based on provided logits and labels.
-
-        Args:
-            logits (torch.FloatTensor): direct logits output of the model of shape (b, s, v)
-            labels (torch.LongTensor): ground-truth labels to compute log probs with, shape (b, s).
-                Label tokens with a value of label_pad_token_id are ignored.
-            label_pad_token_id (int): token id to ignore in labels.
-
-        Returns:
-            Calculated log probs of shape (b, )
-
-        Raises:
-            ValueError: If logits and labels have different shapes.
-        """
-
-        if logits.shape[:-1] != labels.shape:
-            raise ValueError(
-                "Logits (batch and sequence length dim) and labels must have the same shape."
-            )
-
-        labels = labels[:, 1:].clone()
-        logits = logits[:, :-1, :]
-        loss_mask = labels != label_pad_token_id
-
-        labels[labels == label_pad_token_id] = 0
-        # take log-likelihood of the labels given our model
-        per_token_log_probs = torch.gather(
-            logits.log_softmax(-1), dim=2, index=labels.unsqueeze(2)
-        ).squeeze(2)
-
-        return (per_token_log_probs * loss_mask).sum(-1)
 
     def train(self) -> None:
         """
@@ -638,6 +606,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
                 # batch is input_ids, labels
                 num_tokens += batch[0].numel()
+
                 (
                     policy_chosen_log_probs,
                     policy_rejected_log_probs,
@@ -645,20 +614,27 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     policy_rejected_logits,
                 ) = self.concatenated_forward(self._model, batch)
 
-                with torch.no_grad(), disable_adapter(self._model):
-                    (
+                if isinstance(self._loss_fn, SimPOLoss):
+                    loss, chosen_rewards, rejected_rewards = self._loss_fn(
+                        policy_chosen_log_probs, policy_rejected_log_probs
+                    )
+                else:
+                    # reference based losses (e.g. DPO) explicitly regularize the objective fn based on
+                    # the reference model's output - reference-free losses (such as SimPO) don't require this.
+                    with torch.no_grad(), disable_adapter(self._model):
+                        (
+                            reference_chosen_log_probs,
+                            reference_rejected_log_probs,
+                            _,
+                            _,
+                        ) = self.concatenated_forward(self._model, batch)
+                    loss, chosen_rewards, rejected_rewards = self._loss_fn(
+                        policy_chosen_log_probs,
+                        policy_rejected_log_probs,
                         reference_chosen_log_probs,
                         reference_rejected_log_probs,
-                        _,
-                        _,
-                    ) = self.concatenated_forward(self._model, batch)
+                    )
 
-                loss, chosen_rewards, rejected_rewards = self._loss_fn(
-                    policy_chosen_log_probs,
-                    policy_rejected_log_probs,
-                    reference_chosen_log_probs,
-                    reference_rejected_log_probs,
-                )
                 loss = loss.mean()
                 reward_accuracies = (chosen_rewards > rejected_rewards).float()
 
@@ -678,7 +654,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     loss_to_log = running_loss.item()
                     pbar.update(1)
                     pbar.set_description(
-                        f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
+                        f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
                     )
 
                     # Log per-step metrics
@@ -703,10 +679,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                             "log_probs/chosen": policy_chosen_log_probs.detach()
                             .mean()
                             .cpu(),
-                            "logits/rejected": policy_rejected_logits.detach()
-                            .mean()
-                            .cpu(),
-                            "logits/chosen": policy_chosen_logits.detach().mean().cpu(),
+                            "logits/rejected": policy_rejected_logits_mean.cpu(),
+                            "logits/chosen": policy_chosen_logits_mean.cpu(),
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(utils.get_memory_stats(device=self._device))

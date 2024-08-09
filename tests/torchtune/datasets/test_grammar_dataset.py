@@ -20,7 +20,7 @@ class TestGrammarDataset:
     def tokenizer(self):
         return DummyTokenizer()
 
-    @patch("torchtune.datasets._instruct.load_dataset")
+    @patch("torchtune.datasets._sft.load_dataset")
     def test_label_no_masking(self, load_dataset, tokenizer):
         """
         Test whether the input and the labels are correctly created when the input is not masked.
@@ -36,15 +36,41 @@ class TestGrammarDataset:
             ]
         )
 
-        grammar_ds = grammar_dataset(tokenizer=tokenizer, train_on_input=True)
+        grammar_ds = grammar_dataset(model_transform=tokenizer, train_on_input=True)
         input, labels = grammar_ds[0]["tokens"], grammar_ds[0]["labels"]
 
-        assert len(input) == len(labels)
-        assert labels[-1] == tokenizer.eos_id
-        assert input[0] == tokenizer.bos_id
-        assert CROSS_ENTROPY_IGNORE_IDX not in labels
+        assert input == [
+            0,
+            7,
+            4,
+            2,
+            8,
+            8,
+            7,
+            2,
+            3,
+            6,
+            4,
+            8,
+            5,
+            8,
+            5,
+            3,
+            10,
+            7,
+            4,
+            3,
+            6,
+            4,
+            8,
+            9,
+            2,
+            9,
+            -1,
+        ]
+        assert labels == input
 
-    @patch("torchtune.datasets._instruct.load_dataset")
+    @patch("torchtune.datasets._sft.load_dataset")
     def test_label_masking(self, load_dataset, tokenizer):
         """
         Test whether the input and the labels are correctly created when the input is masked.
@@ -60,20 +86,39 @@ class TestGrammarDataset:
             ]
         )
 
-        grammar_ds = grammar_dataset(tokenizer=tokenizer)
-
-        # Extract the prompt and tokenize it; we'll need this to test whether we're masking the
-        # input correctly
-        sample = grammar_ds._data[0]
-        prompt = grammar_ds.template.format(
-            sample=sample, column_map={"sentence": "input"}
-        )
-        encoded_prompt = tokenizer.encode(text=prompt, add_bos=True, add_eos=False)
+        grammar_ds = grammar_dataset(model_transform=tokenizer)
 
         # Generate the input and labels
         input, labels = grammar_ds[0]["tokens"], grammar_ds[0]["labels"]
 
-        assert len(input) == len(labels)
-        assert labels[-1] == tokenizer.eos_id
-        assert input[0] == tokenizer.bos_id
-        assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == len(encoded_prompt)
+        assert input == [
+            0,
+            7,
+            4,
+            2,
+            8,
+            8,
+            7,
+            2,
+            3,
+            6,
+            4,
+            8,
+            5,
+            8,
+            5,
+            3,
+            10,
+            7,
+            4,
+            3,
+            6,
+            4,
+            8,
+            9,
+            2,
+            9,
+            -1,
+        ]
+        # Check that the input is masked
+        assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 17

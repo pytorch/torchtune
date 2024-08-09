@@ -39,19 +39,27 @@ class InstructDataset(Dataset):
 
     Args:
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
-        source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
+        source (str): path to dataset repository on Hugging Face. For local datasets,
+            define source as the data file type (e.g. "json", "csv", "text") and pass
+            in the filepath in ``data_files``. See Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
+            for more details.
         template (InstructTemplate): template used to format the prompt. If the placeholder variable
             names in the template do not match the column/key names in the dataset, use ``column_map`` to map them.
         transform (Optional[Callable]): transform to apply to the sample before formatting to the template.
             Default is None.
         column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names in the template
             to the column/key names in the sample. If None, assume these are identical.
+            The output column can be indicated using the ``output`` key mapping.
+            If no placeholder for the ``output`` column is provided in ``column_map`` it is assumed to be ``output``.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
+            such as ``data_files`` or ``split``.
+    Raises:
+        ValueError: If ``template`` is not an instance of :class:`torchtune.data.InstructTemplate`
     """
 
     def __init__(
@@ -102,7 +110,7 @@ class InstructDataset(Dataset):
         validate_messages(messages)
 
         tokens, mask = self._tokenizer.tokenize_messages(
-            messages, max_seq_len=self.max_seq_len
+            messages,
         )
 
         # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
@@ -113,8 +121,8 @@ class InstructDataset(Dataset):
 
 
 def instruct_dataset(
-    *,
     tokenizer: ModelTokenizer,
+    *,
     source: str,
     template: str,
     column_map: Optional[Dict[str, str]] = None,
@@ -130,8 +138,11 @@ def instruct_dataset(
 
     Args:
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
-        source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
+        source (str): path to dataset repository on Hugging Face. For local datasets,
+            define source as the data file type (e.g. "json", "csv", "text") and pass
+            in the filepath in ``data_files``. See Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
+            for more details.
         template (str): full import path of class used to format the prompt. If the placeholder variable
             names in the template do not match the column/key names in the dataset, use ``column_map`` to map them.
         column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names in the template
@@ -141,7 +152,8 @@ def instruct_dataset(
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
+            such as ``data_files`` or ``split``.
 
     Examples:
         >>> from torchtune.datasets import instruct_dataset

@@ -28,8 +28,11 @@ class PreferenceDataset(Dataset):
 
     Args:
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
-        source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
+        source (str): path to dataset repository on Hugging Face. For local datasets,
+            define source as the data file type (e.g. "json", "csv", "text") and pass
+            in the filepath in ``data_files``. See Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
+            for more details.
         template (InstructTemplate): template used to format the prompt. If the placeholder variable
             names in the template do not match the column/key names in the dataset, use ``column_map`` to map them.
         transform (Optional[Callable]): transform to apply to the sample before formatting to the template.
@@ -39,7 +42,8 @@ class PreferenceDataset(Dataset):
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
+            such as ``data_files`` or ``split``.
     """
 
     def __init__(
@@ -93,14 +97,14 @@ class PreferenceDataset(Dataset):
         # TODO: Trunction differs from original DPO repo
         # in DPO: first truncate prompts, then responses
         chosen_input_ids, c_masks = self._tokenizer.tokenize_messages(
-            chosen_message, self.max_seq_len
+            chosen_message,
         )
         chosen_labels = list(
             np.where(c_masks, CROSS_ENTROPY_IGNORE_IDX, chosen_input_ids)
         )
 
         rejected_input_ids, r_masks = self._tokenizer.tokenize_messages(
-            rejected_message, self.max_seq_len
+            rejected_message,
         )
         rejected_labels = list(
             np.where(r_masks, CROSS_ENTROPY_IGNORE_IDX, rejected_input_ids)

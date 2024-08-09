@@ -48,6 +48,7 @@ checkpointer:
   output_dir: /tmp/gemma-7b/
   model_type: GEMMA
 resume_from_checkpoint: False
+save_adapter_weights_only: False
 
 optimizer:
   _component_: torch.optim.AdamW

@@ -5,9 +5,9 @@
 # LICENSE file in the root directory of this source tree.
 
 import json
-from typing import Dict, List, Optional, Protocol, Tuple
+from typing import Any, Dict, List, Optional, Protocol, Tuple
 
-from torchtune.data._types import Message
+from torchtune.data._messages import Message
 from torchtune.data._utils import truncate
 
 
@@ -16,24 +16,26 @@ class BaseTokenizer(Protocol):
     Abstract token encoding model that implements ``encode`` and ``decode`` methods.
     """
 
-    def encode(self, text: str, **kwargs) -> List[int]:
+    def encode(self, text: str, **kwargs: Dict[str, Any]) -> List[int]:
         """
         Given a string, return the encoded list of token ids.
 
         Args:
             text (str): The text to encode.
+            **kwargs (Dict[str, Any]): kwargs.
 
         Returns:
             List[int]: The encoded list of token ids.
         """
         pass
 
-    def decode(self, token_ids: List[int], **kwargs) -> str:
+    def decode(self, token_ids: List[int], **kwargs: Dict[str, Any]) -> str:
         """
         Given a list of token ids, return the decoded text, optionally including special tokens.
 
         Args:
             token_ids (List[int]): The list of token ids to decode.
+            **kwargs (Dict[str, Any]): kwargs.
 
         Returns:
             str: The decoded text.
@@ -48,9 +50,10 @@ class ModelTokenizer(Protocol):
     """
 
     special_tokens: Dict[str, int]
+    max_seq_len: Optional[int]
 
     def tokenize_messages(
-        self, messages: List[Message], **kwargs
+        self, messages: List[Message], **kwargs: Dict[str, Any]
     ) -> Tuple[List[int], List[bool]]:
         """
         Given a list of messages, return a list of tokens and list of masks for
@@ -58,6 +61,7 @@ class ModelTokenizer(Protocol):
 
         Args:
             messages (List[Message]): The list of messages to tokenize.
+            **kwargs (Dict[str, Any]): kwargs.
 
         Returns:
             Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
@@ -99,13 +103,19 @@ def tokenize_messages_no_special_tokens(
 
 
     Args:
+        tokenizer (ModelTokenizer): Tokenizer to encode messages with.
         messages (List[Message]): A list of messages, each containing role, content,
             and masked attributes.
+        bos_id (int): Beggining-of-sequence token id.
+        eos_id (int): End-of-sequence token id.
         max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
             Default: None
 
     Returns:
-        Tuple[List[int], List[bool]]: The tokenized messages
+        Tuple[List[int], List[bool]]: The tokenized messages.
+
+    Raises:
+        RuntimeError: if any message in ``messages`` does not satisfy ``message['type'] == 'text'``.
     """
     start_of_turn = True
     end_of_turn = False
