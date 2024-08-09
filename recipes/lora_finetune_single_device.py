@@ -528,7 +528,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             adapter_only=self._save_adapter_weights_only,
         )
 
-    def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
+    def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
         # Both are shape [b, s]
         tokens, labels = batch["tokens"], batch["labels"]
         # Get the attention mask and position ids from the dataset if they
