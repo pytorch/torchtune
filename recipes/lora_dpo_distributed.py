@@ -28,6 +28,7 @@ from torchtune import config, modules, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets import ConcatDataset
 from torchtune.modules import rlhf
+from torchtune.modules.loss import SimPOLoss
 from torchtune.modules.peft.peft_utils import (
     disable_adapter,
     get_adapter_params,
@@ -36,7 +37,6 @@ from torchtune.modules.peft.peft_utils import (
     validate_state_dict_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
-
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -49,8 +49,11 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
     in the TRL library: https://github.com/huggingface/trl/blob/main/trl/trainer/dpo_trainer.py#L65
 
     Features:
-        - FSDP. Supported using PyTorch's FSDP APIs. DDP is currently not supported. Traning on CPU is not
-            supported.
+        - FSDP. Supported using PyTorch's FSDP APIs. This can be parameterized using the
+            ``fsdp_sharding_strategy`` config option. You can pass any value supported by
+            torch.distributed.fsdp.ShardingStrategy
+            (https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.ShardingStrategy).
+            For example, in your config, simply pass ``fsdp_sharding=NO_SHARD`` for DDP.
 
         - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
             flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
@@ -98,7 +101,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         - :class:`~torchtune.modules.loss.DPOLoss`: Direct Preference Optimization (DPO).
         - :class:`~torchtune.modules.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
         - :class:`~torchtune.modules.loss.IPO`: Identity Preference Optimization (IPO).
-
+        - :class:`~torchtune.modules.loss.SimPOLoss`: Simple Preference Optimization (SimPO).
 
     For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
     has example commands for how to kick-off training.
@@ -145,6 +148,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        self._fsdp_sharding_strategy = torch.distributed.fsdp.ShardingStrategy[
+            cfg.get("fsdp_sharding_strategy", "FULL_SHARD")
+        ]
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -245,6 +251,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
+        log.info("Loss function is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -355,7 +362,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             auto_wrap_policy=utils.lora_fsdp_wrap_policy(
                 modules_to_wrap={modules.TransformerDecoderLayer}
             ),
-            sharding_strategy=torch.distributed.fsdp.ShardingStrategy.FULL_SHARD,
+            sharding_strategy=self._fsdp_sharding_strategy,
             device_id=self._device,
             # this recipe does not currently support mixed precision training
             mixed_precision=None,
@@ -555,7 +562,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         all_logits = model(concatenated_input_ids)
 
-        all_log_probs = self.get_batch_log_probs(all_logits, concatenated_labels)
+        all_log_probs = rlhf.get_batch_log_probs(
+            all_logits,
+            concatenated_labels,
+            # see :class:`~torchtune.modules.loss.dpo.SimPOLoss`
+            return_average_logprobs=isinstance(self._loss_fn, SimPOLoss),
+        )
 
         chosen_log_probs = all_log_probs[:len_chosen]
         rejected_log_probs = all_log_probs[len_chosen:]
@@ -564,45 +576,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         rejected_logits = all_logits[len_chosen:]
 
         return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits)
-
-    @staticmethod
-    def get_batch_log_probs(
-        logits: torch.FloatTensor,
-        labels: torch.LongTensor,
-        label_pad_token_id: int = CROSS_ENTROPY_IGNORE_IDX,
-    ) -> torch.FloatTensor:
-        """
-        Calculate log probabilities based on provided logits and labels.
-
-        Args:
-            logits (torch.FloatTensor): direct logits output of the model of shape (b, s, v)
-            labels (torch.LongTensor): ground-truth labels to compute log probs with, shape (b, s).
-                Label tokens with a value of label_pad_token_id are ignored.
-            label_pad_token_id (int): token id to ignore in labels.
-
-        Returns:
-            Calculated log probs of shape (b, )
-
-        Raises:
-            ValueError: If logits and labels have different shapes.
-        """
-
-        if logits.shape[:-1] != labels.shape:
-            raise ValueError(
-                "Logits (batch and sequence length dim) and labels must have the same shape."
-            )
-
-        labels = labels[:, 1:].clone()
-        logits = logits[:, :-1, :]
-        loss_mask = labels != label_pad_token_id
-
-        labels[labels == label_pad_token_id] = 0
-        # take log-likelihood of the labels given our model
-        per_token_log_probs = torch.gather(
-            logits.log_softmax(-1), dim=2, index=labels.unsqueeze(2)
-        ).squeeze(2)
-
-        return (per_token_log_probs * loss_mask).sum(-1)
 
     def train(self) -> None:
         """
@@ -639,6 +612,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
                 # batch is input_ids, labels
                 num_tokens += batch[0].numel()
+
                 (
                     policy_chosen_log_probs,
                     policy_rejected_log_probs,
@@ -646,26 +620,27 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     policy_rejected_logits,
                 ) = self.concatenated_forward(self._model, batch)
 
-                policy_chosen_logits_mean = policy_chosen_logits.detach().mean()
-                policy_rejected_logits_mean = policy_rejected_logits.detach().mean()
-
-                # deleting logits here helps reduce (peak) memory usage - we only need them for metric logging
-                del policy_chosen_logits, policy_rejected_logits
-
-                with torch.no_grad(), disable_adapter(self._model):
-                    (
+                if isinstance(self._loss_fn, SimPOLoss):
+                    loss, chosen_rewards, rejected_rewards = self._loss_fn(
+                        policy_chosen_log_probs, policy_rejected_log_probs
+                    )
+                else:
+                    # reference based losses (e.g. DPO) explicitly regularize the objective fn based on
+                    # the reference model's output - reference-free losses (such as SimPO) don't require this.
+                    with torch.no_grad(), disable_adapter(self._model):
+                        (
+                            reference_chosen_log_probs,
+                            reference_rejected_log_probs,
+                            _,
+                            _,
+                        ) = self.concatenated_forward(self._model, batch)
+                    loss, chosen_rewards, rejected_rewards = self._loss_fn(
+                        policy_chosen_log_probs,
+                        policy_rejected_log_probs,
                         reference_chosen_log_probs,
                         reference_rejected_log_probs,
-                        _,
-                        _,
-                    ) = self.concatenated_forward(self._model, batch)
+                    )
 
-                loss, chosen_rewards, rejected_rewards = self._loss_fn(
-                    policy_chosen_log_probs,
-                    policy_rejected_log_probs,
-                    reference_chosen_log_probs,
-                    reference_rejected_log_probs,
-                )
                 loss = loss.mean()
                 reward_accuracies = (chosen_rewards > rejected_rewards).float()
 

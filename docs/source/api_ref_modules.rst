@@ -86,6 +86,7 @@ Loss
    loss.DPOLoss
    loss.RSOLoss
    loss.IPOLoss
+   loss.SimPOLoss
 
 
 Vision Transforms
@@ -98,6 +99,7 @@ Functions used for preprocessing images.
 
     transforms.Transform
     transforms.get_canvas_best_fit
+    transforms.get_inscribed_size
     transforms.resize_with_pad
     transforms.tile_crop
     transforms.find_supported_resolutions

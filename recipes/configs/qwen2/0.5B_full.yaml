@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download Qwen/Qwen2-0.5B-Instruct --output-dir /tmp/Qwen2-0.5B-Instruct --ignore-patterns ""
+#   tune download Qwen/Qwen2-0.5B-Instruct --output-dir /tmp/Qwen2-0.5B-Instruct --ignore-patterns None
 #
 # To launch on 4 devices, run the following command from root:
 #   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config qwen2/0.5B_full
@@ -49,7 +49,7 @@ batch_size: 2
 epochs: 1
 optimizer:
   _component_: torch.optim.AdamW
-  lr: 5e-6
+  lr: 2e-5
 loss:
   _component_: torch.nn.CrossEntropyLoss
 max_steps_per_epoch: null
