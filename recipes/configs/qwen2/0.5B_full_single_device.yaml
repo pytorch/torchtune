@@ -3,11 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download Qwen/Qwen2-0.5B-Instruct --output-dir /tmp/Qwen2-0.5B-Instruct --ignore-patterns ""
-#
-# The default config uses an optimizer from bitsandbytes. If you do not have it installed,
-# you can install it with
-#   pip install bitsandbytes
+#   tune download Qwen/Qwen2-0.5B-Instruct --output-dir /tmp/Qwen2-0.5B-Instruct --ignore-patterns None
 #
 # To launch on a single device, run the following command from root:
 #   tune run full_finetune_single_device --config qwen2/0.5B_full_single_device
@@ -50,13 +46,15 @@ resume_from_checkpoint: False
 batch_size: 2
 epochs: 1
 optimizer:
-  _component_: bitsandbytes.optim.PagedAdamW
-  lr: 5e-6
-optimizer_in_bwd: True
+  _component_: torch.optim.AdamW
+  lr: 2e-5
+
 loss:
   _component_: torch.nn.CrossEntropyLoss
+optimizer_in_bwd: False
+
 max_steps_per_epoch: null
-gradient_accumulation_steps: 16
+gradient_accumulation_steps: 8
 compile: False
 
 # Training environment

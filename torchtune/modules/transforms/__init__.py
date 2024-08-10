@@ -9,14 +9,21 @@ from torchtune.modules.transforms.vision_utils.get_canvas_best_fit import (  # n
     find_supported_resolutions,
     get_canvas_best_fit,
 )
+
+from torchtune.modules.transforms.vision_utils.get_inscribed_size import (  # noqa
+    get_inscribed_size,
+)
+
 from torchtune.modules.transforms.vision_utils.resize_with_pad import (  # noqa
     resize_with_pad,
 )
+
 from torchtune.modules.transforms.vision_utils.tile_crop import tile_crop  # noqa
 
 __all__ = [
     "Transform",
     "get_canvas_best_fit",
+    "get_inscribed_size",
     "resize_with_pad",
     "tile_crop",
     "find_supported_resolutions",

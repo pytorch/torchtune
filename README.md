@@ -48,7 +48,7 @@ torchtune currently supports the following models.
 | [Mistral](https://huggingface.co/mistralai)   | 7B [[model](torchtune/models/mistral/_model_builders.py), [configs](recipes/configs/mistral/)] |
 | [Gemma](https://huggingface.co/collections/google/gemma-release-65d5efbccdbb8c4202ec078b)   | 2B, 7B [[model](torchtune/models/gemma/_model_builders.py), [configs](recipes/configs/gemma/)] |
 | [Microsoft Phi3](https://huggingface.co/collections/microsoft/phi-3-6626e15e9585a200d2d761e3) | Mini [[model](torchtune/models/phi3/), [configs](recipes/configs/phi3/)]
-| [Qwen2](https://qwenlm.github.io/blog/qwen2/) | 7B [[model](torchtune/models/qwen2/), [configs](recipes/configs/qwen2/)]
+| [Qwen2](https://qwenlm.github.io/blog/qwen2/) | 0.5B, 1.5B, 7B [[model](torchtune/models/qwen2/), [configs](recipes/configs/qwen2/)]
 
 We're always adding new models, but feel free to [file an Issue](https://github.com/pytorch/torchtune/issues/new) if there's a new one you would love to see in torchtune!
 
