@@ -4,12 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
 import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from warnings import warn
 
 import torch
@@ -17,10 +16,6 @@ from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
-from torch.distributed._composable.fsdp import CPUOffloadPolicy, fully_shard
-from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
-    CheckpointWrapper,
-)
 
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
@@ -189,7 +184,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
     def setup(self, cfg: DictConfig) -> None:
         """
-        Setup the recipe state. This includes recipe state (if resume_from_checkpoint is True),
+        Setup the recipe. This includes training state (if resume_from_checkpoint is True),
         model, tokenizer, loss, optimizer, sampler, and dataloader.
         """
         if self._is_rank_zero:
@@ -203,8 +198,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
-            memory_efficient_fsdp_wrap=cfg.get("memory_efficient_fsdp_wrap", False),
+            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
+            reshard_after_forward=cfg.get("reshard_after_forward", True),
             model_state_dict=checkpoint_dict[utils.MODEL_KEY],
             ac_mode=cfg.get("ac_mode", None),
             ac_option=cfg.get("ac_option", None),
@@ -249,8 +245,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
-        memory_efficient_fsdp_wrap: bool,
+        custom_sharded_layers: Optional[List[str]],
         fsdp_cpu_offload: bool,
+        reshard_after_forward: bool,
         model_state_dict: Dict[str, Any],
         ac_mode: Optional[str] = None,
         ac_option: Optional[int] = None,
@@ -261,7 +258,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
               the right dtype
            b. All ranks calls ``load_state_dict`` without peaking CPU RAMs since
               full state dicts are loaded with ``torch.load(mmap=True)``
-           c. We register (pre-)forward hooks with ``fully_shard`` instead of wrapping `nn.Module`
         """
 
         if self._is_rank_zero:
@@ -279,9 +275,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # ac_mode and ac_option together control selective AC. This is only enabled
         # when these are set AND ``enable_activation_checkpointing`` is set to False
         # We'll clean this up as soon as testing of AC is complete
-        ac_mode = ac_mode
-        ac_option = ac_option
-
         if (not enable_activation_checkpointing) and (ac_mode is not None):
             apply_selective_activation_checkpointing(
                 model,
@@ -294,35 +287,44 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
 
-        fsdp_kwargs = {}
-        if fsdp_cpu_offload:
-            fsdp_kwargs["offload_policy"] = CPUOffloadPolicy()
+        # For FSDP sharding, we can condition on either the module or its name
+        # Shard conditions should be callables taking name (relative to model root)
+        # and the module itself and returning a bool on whether to shard the given module
+        fsdp_shard_conditions = []
 
-        # Shard the model with FSDP
-        for m in reversed(list(model.modules())):
-            # For large vocab size, we can additionally shard
-            # the token embeddings and output projections individually
-            if memory_efficient_fsdp_wrap:
-                if isinstance(m, nn.Embedding):
-                    fully_shard(m, **fsdp_kwargs)
-                if isinstance(m, modules.TransformerDecoder):
-                    fully_shard(m.output, **fsdp_kwargs)
-            # TransformerDecoderLayer is wrapped by CheckpointWrapper
-            # when enable_activation_checkpointing
-            if enable_activation_checkpointing:
-                if isinstance(m, CheckpointWrapper):
-                    fully_shard(m, **fsdp_kwargs)
-            else:
-                if isinstance(m, modules.TransformerDecoderLayer):
-                    fully_shard(m, **fsdp_kwargs)
-        fully_shard(model, **fsdp_kwargs)
+        # Shard transformer decoder layers (or AC-wrapped versions)
+        # Alternatively we could condition on the module type (TransformerDecoder or CheckpointWrapper)
+        # But directly using the name is more concise
+        def _is_layer_fqn(s: str) -> bool:
+            """
+            Return True for layers.i and False for all other module names
+            Covers sharding for both AC-wrapped and non-AC-wrapped modules in one shot
+            """
+            s_list = s.split(".")
+            return len(s_list) == 2 and s_list[0] == "layers" and str.isdigit(s_list[1])
+
+        fsdp_shard_conditions = [lambda n, m: _is_layer_fqn(n)]
+
+        # If wrapping any layers separately, we can add another shard condition
+        # A layer will be sharded if any of the fsdp_shard_conditions are met
+        if custom_sharded_layers:
+            fsdp_shard_conditions += [lambda n, m: n in custom_sharded_layers]
+
+        utils.shard_model(
+            model=model,
+            shard_conditions=fsdp_shard_conditions,
+            cpu_offload=fsdp_cpu_offload,
+            reshard_after_forward=reshard_after_forward,
+        )
 
         with utils.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
                 # RoPE is not covered in state dict
-                if isinstance(m, modules.RotaryPositionalEmbeddings):
-                    m.reset_parameters()
+                if hasattr(m, "rope_init"):
+                    m.rope_init()
 
+        # This method will convert the full model state dict into a sharded state
+        # dict and load into the model
         utils.load_from_full_model_state_dict(
             model, model_state_dict, self._device, self._is_rank_zero, strict=True
         )
@@ -582,7 +584,6 @@ def recipe_main(cfg: DictConfig) -> None:
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
-    os.environ["TORCH_NCCL_AVOID_RECORD_STREAMS"] = "1"
     init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
     if cfg.get("fsdp_cpu_offload", False):
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x

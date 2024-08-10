@@ -61,7 +61,7 @@ class TestLlama3ScaledRoPE:
 
     def test_cache_equality(self, input, rope) -> None:
         # Have to explicitly call _rope_init() to initialize theta matrix
-        rope._rope_init()
+        rope.rope_init()
         cache = rope.cache
 
         assert_expected(cache.mean(), self.EXPECTED_FREQS_CIS_MEAN, atol=1e-4)
