@@ -259,8 +259,9 @@ This is enabled through a novel  4-bit NormalFloat (NF4) data type proposed by t
 parameter memory usage whilst retaining model accuracy.
 
 When considering using QLoRA to reduce memory usage, it's worth noting that QLoRA prevents accuracy degradation during quantization
-by up-casting quantized parameters to the original, higher precision datatype, during model forward passes - this up-casting may
-incur penalties to training speed. The :ref:`relevant section <qlora_compile_label>` in our QLoRA tutorial demonstrate the usage of ``torch.compile`` to address this.
+by up-casting quantized parameters to the original higher precision datatype during model forward passes - this up-casting may
+incur penalties to training speed. The :ref:`relevant section <qlora_compile_label>` in our QLoRA tutorial demonstrates the usage of ``torch.compile``
+to address this by speeding up training.
 
 *Sounds great! How do I use it?*
 
