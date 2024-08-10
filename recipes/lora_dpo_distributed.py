@@ -49,8 +49,11 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
     in the TRL library: https://github.com/huggingface/trl/blob/main/trl/trainer/dpo_trainer.py#L65
 
     Features:
-        - FSDP. Supported using PyTorch's FSDP APIs. DDP is currently not supported. Traning on CPU is not
-            supported.
+        - FSDP. Supported using PyTorch's FSDP APIs. This can be parameterized using the
+            ``fsdp_sharding_strategy`` config option. You can pass any value supported by
+            torch.distributed.fsdp.ShardingStrategy
+            (https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.ShardingStrategy).
+            For example, in your config, simply pass ``fsdp_sharding=NO_SHARD`` for DDP.
 
         - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
             flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
@@ -145,6 +148,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        self._fsdp_sharding_strategy = torch.distributed.fsdp.ShardingStrategy[
+            cfg.get("fsdp_sharding_strategy", "FULL_SHARD")
+        ]
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -356,7 +362,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             auto_wrap_policy=utils.lora_fsdp_wrap_policy(
                 modules_to_wrap={modules.TransformerDecoderLayer}
             ),
-            sharding_strategy=torch.distributed.fsdp.ShardingStrategy.FULL_SHARD,
+            sharding_strategy=self._fsdp_sharding_strategy,
             device_id=self._device,
             # this recipe does not currently support mixed precision training
             mixed_precision=None,

@@ -44,8 +44,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
     distributed training and can be run on a single node (1 to 8 GPUs).
 
     Features:
-        - FSDP. Supported using PyTorch's FSDP APIs. DDP is currently not supported. Training on CPU
-            is not supported.
+        - FSDP. Supported using PyTorch's FSDP APIs. This can be parameterized using the
+            ``fsdp_sharding_strategy`` config option. You can pass any value supported by
+            torch.distributed.fsdp.ShardingStrategy
+            (https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.ShardingStrategy).
+            For example, in your config, simply pass ``fsdp_sharding=NO_SHARD`` for DDP.
 
         - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
             flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
@@ -127,6 +130,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        self._fsdp_sharding_strategy = torch.distributed.fsdp.ShardingStrategy[
+            cfg.get("fsdp_sharding_strategy", "FULL_SHARD")
+        ]
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -389,7 +395,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 modules_to_wrap={modules.TransformerDecoderLayer},
             ),
             cpu_offload=CPUOffload(offload_params=fsdp_cpu_offload),
-            sharding_strategy=torch.distributed.fsdp.ShardingStrategy.FULL_SHARD,
+            sharding_strategy=self._fsdp_sharding_strategy,
             device_id=self._device,
             # this recipe does not currently support mixed precision training
             mixed_precision=None,
