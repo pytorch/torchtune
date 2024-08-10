@@ -9,6 +9,7 @@ from torchtune.datasets._chat import chat_dataset, ChatDataset
 from torchtune.datasets._cnn_dailymail import cnn_dailymail_articles_dataset
 from torchtune.datasets._concat import ConcatDataset
 from torchtune.datasets._grammar import grammar_dataset
+from torchtune.datasets._hh_rlhf_helpful import hh_rlhf_helpful_dataset
 from torchtune.datasets._instruct import instruct_dataset, InstructDataset
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._preference import PreferenceDataset
@@ -41,4 +42,5 @@ __all__ = [
     "wikitext_dataset",
     "PreferenceDataset",
     "SFTDataset",
+    "hh_rlhf_helpful_dataset",
 ]

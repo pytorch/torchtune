@@ -110,15 +110,19 @@ class TestChosenRejectedToMessages:
     @pytest.fixture
     def sample(self):
         return {
-            "maybe_prompt": "hello world",
-            "maybe_chosen": "hello world",
-            "maybe_rejected": "bye world",
+            "maybe_chosen": [
+                {"role": "user", "content": "hello world"},
+                {"role": "assistant", "content": "hello world"},
+            ],
+            "maybe_rejected": [
+                {"role": "user", "content": "hello world"},
+                {"role": "assistant", "content": "bye world"},
+            ],
         }
 
     def test_call(self, sample):
         transform = ChosenRejectedToMessages(
             column_map={
-                "prompt": "maybe_prompt",
                 "chosen": "maybe_chosen",
                 "rejected": "maybe_rejected",
             },
@@ -139,7 +143,6 @@ class TestChosenRejectedToMessages:
     def test_call_train_on_input(self, sample):
         transform = ChosenRejectedToMessages(
             column_map={
-                "prompt": "maybe_prompt",
                 "chosen": "maybe_chosen",
                 "rejected": "maybe_rejected",
             },

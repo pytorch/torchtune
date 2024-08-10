@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 import numpy as np
 from datasets import load_dataset
@@ -78,9 +78,6 @@ class PreferenceDataset(Dataset):
             - Community standardized templates, such as :class:`~torchtune.data.ChatMLFormat`
 
             The extra text will still get tokenized as normal text, not as special tokens.
-        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
-            the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
-            details.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
             Face's `API ref <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset>`_
             for more details.
@@ -93,15 +90,12 @@ class PreferenceDataset(Dataset):
         message_transform: Transform,
         tokenizer: ModelTokenizer,
         prompt_template: Optional[PromptTemplate] = None,
-        filter_fn: Optional[Callable] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._tokenizer = tokenizer
         self._prompt_template = prompt_template
         self._message_transform = message_transform
         self._data = load_dataset(source, **load_dataset_kwargs)
-        if filter_fn is not None:
-            self._data = self._data.filter(filter_fn)
 
     def __len__(self):
         return len(self._data)

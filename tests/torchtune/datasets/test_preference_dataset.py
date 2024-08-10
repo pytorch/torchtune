@@ -30,7 +30,7 @@ class ToDummyPreferenceMessages(Transform):
         return {"chosen": chosen_messages, "rejected": rejected_messages}
 
 
-class TestSFTDataset:
+class TestPreferenceDataset:
     @pytest.fixture
     def dialogue(self):
         return [

@@ -163,23 +163,22 @@ class ChosenRejectedToMessages(Transform):
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         column_map = self._column_map or {}
-        key_prompt = column_map.get("prompt", "prompt")
         key_chosen = column_map.get("chosen", "chosen")
         key_rejected = column_map.get("rejected", "rejected")
 
-        chosen_messages = [
-            Message(
-                role="user", content=sample[key_prompt], masked=not self.train_on_input
-            ),
-            Message(role="assistant", content=sample[key_chosen]),
-        ]
+        chosen_messages = []
+        for message in sample[key_chosen]:
+            message["masked"] = (message["role"] != "assistant") and (
+                not self.train_on_input
+            )
+            chosen_messages.append(Message.from_dict(message))
 
-        rejected_messages = [
-            Message(
-                role="user", content=sample[key_prompt], masked=not self.train_on_input
-            ),
-            Message(role="assistant", content=sample[key_rejected]),
-        ]
+        rejected_messages = []
+        for message in sample[key_rejected]:
+            message["masked"] = (message["role"] != "assistant") and (
+                not self.train_on_input
+            )
+            rejected_messages.append(Message.from_dict(message))
 
         return {"chosen": chosen_messages, "rejected": rejected_messages}
 
