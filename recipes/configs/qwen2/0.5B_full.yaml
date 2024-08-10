@@ -60,7 +60,7 @@ gradient_accumulation_steps: 16
 device: cuda
 
 # Memory management
-enable_activation_checkpointing: True
+enable_activation_checkpointing: False
 
 # Reduced precision
 dtype: bf16
