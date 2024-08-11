@@ -66,7 +66,9 @@ class TestLoRA7BDistributedFinetuneEval:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         out = capsys.readouterr().out
-        search_results = re.search(r"acc(?:_norm)?\s*\|?\s*([\d.]+)", out.strip())
+        search_results = re.search(
+            r"acc(?:_norm)?\s*\|?\s*(?:\↑\s*\|?)?([\d.]+)", out.strip()
+        )
         assert search_results is not None
         acc_result = float(search_results.group(1))
         assert acc_result >= 0.4
