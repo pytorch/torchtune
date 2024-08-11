@@ -4,6 +4,7 @@ on:
   schedule:
     # Runs at midnight every day
     - cron:  '0 0 * * *'
+  pull_request: # TODO: remove (just for testing)
 
 concurrency:
   group: regression-test-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}

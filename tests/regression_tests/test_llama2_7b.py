@@ -50,7 +50,7 @@ class TestLoRA7BDistributedFinetuneEval:
         runpy.run_path(TUNE_PATH, run_name="__main__")
         eval_cmd = f"""
         tune run eleuther_eval \
-            --config eleuther_eval \
+            --config eleuther_evaluation \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{tmpdir}' \
