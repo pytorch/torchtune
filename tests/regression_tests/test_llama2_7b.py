@@ -27,7 +27,7 @@ EVAL_CONFIG_PATH = Path.joinpath(
 @gpu_test(gpu_count=2)
 class TestLoRA7BDistributedFinetuneEval:
     @pytest.mark.slow_integration_test
-    def test_finetune_and_eval(self, tmpdir, caplog, monkeypatch):
+    def test_finetune_and_eval(self, tmpdir, capsys, monkeypatch):
 
         ckpt_path = Path(CKPT_MODEL_PATHS[CKPT])
         ckpt_dir = ckpt_path.parent
@@ -65,8 +65,8 @@ class TestLoRA7BDistributedFinetuneEval:
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        err_log = caplog.messages[-1]
-        log_search_results = re.search(r"'acc,none': (\d+\.\d+)", err_log)
-        assert log_search_results is not None
-        acc_result = float(log_search_results.group(1))
+        out = capsys.readouterr().out
+        search_results = re.search(r"acc(?:_norm)?\s*\|?\s*([\d.]+)", out.strip())
+        assert search_results is not None
+        acc_result = float(search_results.group(1))
         assert acc_result >= 0.4
