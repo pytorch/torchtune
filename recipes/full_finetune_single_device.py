@@ -28,6 +28,8 @@ from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
 
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 
 class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
@@ -424,13 +426,15 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
-            collate_fn=partial(
-                utils.padded_collate,
-                padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
-            )
-            if not packed
-            else None,
+            collate_fn=(
+                partial(
+                    utils.padded_collate,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else None
+            ),
         )
 
         log.info("Dataset and Sampler are initialized.")

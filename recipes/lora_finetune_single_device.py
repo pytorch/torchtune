@@ -34,6 +34,8 @@ from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
 
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 
 class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
