@@ -29,8 +29,6 @@ __all__ = [
     "lora_mistral_classifier",
     "mistral",
     "mistral_classifier",
-    "mistral_reward_hf_to_tune",
-    "mistral_reward_tune_to_hf",
     "lora_mistral_7b",
     "lora_mistral_reward_7b",
     "mistral_7b",

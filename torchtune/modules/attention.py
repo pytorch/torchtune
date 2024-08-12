@@ -4,14 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import logging
 from typing import Optional
 
 import torch
 from torch import nn, Tensor
 from torchtune.modules.kv_cache import KVCache
-from torchtune.utils.logging import get_logger
 
-logger = get_logger("DEBUG")
+logger = logging.getLogger(__name__)
 
 
 class MultiHeadedAttention(nn.Module):
