@@ -58,7 +58,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
     The following losses are supported in this recipe:
         - :class:`~torchtune.modules.rlhf.loss.DPOLoss`: Direct Preference Optimization (DPO).
         - :class:`~torchtune.modules.rlhf.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
-        - :class:`~torchtune.modules.rlhf.loss.IPO`: Identity Preference Optimization (IPO).
+        - :class:`~torchtune.modules.rlhf.loss.IPOLoss`: Identity Preference Optimization (IPO).
         - :class:`~torchtune.modules.rlhf.loss.SimPOLoss`: Simple Preference Optimization (SimPO).
 
     Assumptions:
