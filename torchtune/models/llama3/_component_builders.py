@@ -253,12 +253,14 @@ def lora_llama3(
         output=output_proj,
     )
 
-    if quantize_base:
-        # For QLoRA, we reparametrize 4-bit tensors to bf16, and offload to CPU on the fly
-        # so as to not increase peak memory
-        model._register_state_dict_hook(
-            partial(reparametrize_as_dtype_state_dict_post_hook, offload_to_cpu=True)
-        )
+    # Registering this hook will cause OOM on colab
+    # We do the corresponding logic in lora_finetune_single_device.py:save_checkpoint
+    # if quantize_base:
+    #     # For QLoRA, we reparametrize 4-bit tensors to bf16, and offload to CPU on the fly
+    #     # so as to not increase peak memory
+    #     model._register_state_dict_hook(
+    #         partial(reparametrize_as_dtype_state_dict_post_hook, offload_to_cpu=True)
+    #     )
 
     return model
 

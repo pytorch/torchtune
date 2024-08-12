@@ -9,6 +9,9 @@ from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set
 
 import torch
 from torch import nn
+from torch import bfloat16
+
+from torchao.dtypes.nf4tensor import NF4Tensor
 
 # Modules from MultiHeadAttention that LoRA can be applied to
 LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
@@ -222,6 +225,8 @@ def get_merged_lora_ckpt(
     state_dict: Dict[str, Any],
     rank: int,
     alpha: float,
+    state_dict: Dict[str, Any], rank: int, alpha: float,
+    dest_state_dict: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
     Merge LoRA weights into the base model format for efficient inference.
@@ -239,6 +244,8 @@ def get_merged_lora_ckpt(
     Returns:
         Dict[str, Any]: The merged state dict.
     """
+    if dest_state_dict:
+        state_dict = dest_state_dict
     lora_modules = _get_lora_modules(state_dict)
     for module in lora_modules:
         lora_a_weight = state_dict[f"{module}.lora_a.weight"]
