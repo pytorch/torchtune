@@ -11,15 +11,18 @@ Modeling Components and Building Blocks
     :toctree: generated/
     :nosignatures:
 
-    CausalSelfAttention
+    MultiHeadedAttention
     FeedForward
     KVCache
     get_cosine_schedule_with_warmup
     RotaryPositionalEmbeddings
     RMSNorm
     Fp32LayerNorm
-    TransformerDecoderLayer
+    TanhGate
+    TransformerSelfAttentionLayer
+    TransformerCrossAttentionLayer
     TransformerDecoder
+    TiedEmbeddingTransformerDecoder
     VisionTransformer
 
 Base Tokenizers

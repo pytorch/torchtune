@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import copy
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import torch
 import torch.nn.functional as F
