@@ -255,7 +255,7 @@ class SimPOLoss(nn.Module):
 
     SimPO is pretty much identitcal to DPO but uses average logprobs to eliminate the need for a reference model to regularize
     the policy during training. It also uses a target reward margin to guide the policy towards better responses.
-    This is kind of the same intuition in:class:`~torchtune.modules.loss.IPO`, but instead of optimizing against a margin
+    This is kind of the same intuition in:class:`~torchtune.modules.rlhf.loss.IPO`, but instead of optimizing against a margin
     between the reference policy and policy models, we're optimizing against a margin between the chosen and rejected responses.
 
     Args:

@@ -19,7 +19,7 @@
 # Model Arguments
 model:
   _component_: torchtune.models.llama2.lora_llama2_7b
-  lora_attn_modules: ['q_proj', 'v_proj']
+  lora_attn_modules: ["q_proj", "v_proj"]
   apply_lora_to_mlp: False
   apply_lora_to_output: False
   lora_rank: 8
@@ -34,10 +34,8 @@ tokenizer:
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Llama-2-7b-hf
-  checkpoint_files: [
-    pytorch_model-00001-of-00002.bin,
-    pytorch_model-00002-of-00002.bin
-  ]
+  checkpoint_files:
+    [pytorch_model-00001-of-00002.bin, pytorch_model-00002-of-00002.bin]
   adapter_checkpoint: null
   recipe_checkpoint: null
   output_dir: /tmp/Llama-2-7b-hf
@@ -63,7 +61,7 @@ lr_scheduler:
   num_warmup_steps: 100
 
 loss:
-  _component_: torchtune.modules.loss.DPOLoss
+  _component_: torchtune.modules.rlhf.loss.DPOLoss
   beta: 0.1
   label_smoothing: 0
 

@@ -82,11 +82,11 @@ Loss
    :toctree: generated/
    :nosignatures:
 
-   loss.PPOLoss
-   loss.DPOLoss
-   loss.RSOLoss
-   loss.IPOLoss
-   loss.SimPOLoss
+   rlhf.loss.PPOLoss
+   rlhf.loss.DPOLoss
+   rlhf.loss.RSOLoss
+   rlhf.loss.IPOLoss
+   rlhf.loss.SimPOLoss
 
 
 Vision Transforms
