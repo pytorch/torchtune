@@ -334,10 +334,11 @@ class CometLogger(MetricLoggerInterface):
         experiment_key (Optional[str]): The key for comet experiment to be used for logging. This is used either to
             append data to an Existing Experiment or to control the ID of new experiments (for example to match another
             ID). Must be an alphanumeric string whose length is between 32 and 50 characters.
-        mode (Optional[str]): Control how the Comet experiment is started. ``"get_or_create"``: Starts a fresh
-            experiment if required, or persists logging to an existing one. ``"get"``: Continue logging to an existing
-            experiment identified by the ``experiment_key`` value. ``"create"``: Always creates of a new experiment,
-            useful for HPO sweeps.
+        mode (Optional[str]): Control how the Comet experiment is started.
+
+            * ``"get_or_create"``: Starts a fresh experiment if required, or persists logging to an existing one.
+            * ``"get"``: Continue logging to an existing experiment identified by the ``experiment_key`` value.
+            * ``"create"``: Always creates of a new experiment, useful for HPO sweeps.
         online (Optional[bool]): If True, the data will be logged to Comet server, otherwise it will be stored locally
             in an offline experiment. Default is ``True``.
         experiment_name (Optional[str]): Name of the experiment. If not provided, Comet will auto-generate a name.
