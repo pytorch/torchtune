@@ -22,8 +22,6 @@ from torchtune import config, modules, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets import ConcatDataset
 from torchtune.modules import rlhf
-
-from torchtune.modules.rlhf.loss import SimPOLoss
 from torchtune.modules.peft.peft_utils import (
     disable_adapter,
     get_adapter_params,
@@ -32,6 +30,8 @@ from torchtune.modules.peft.peft_utils import (
     validate_missing_and_unexpected_for_lora,
     validate_state_dict_for_lora,
 )
+
+from torchtune.modules.rlhf.loss import SimPOLoss
 from torchtune.recipe_interfaces import FTRecipeInterface
 from tqdm import tqdm
 
