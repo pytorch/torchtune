@@ -8,7 +8,7 @@ import sys
 import time
 from pathlib import Path
 
-from typing import Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 from numpy import ndarray
 from omegaconf import DictConfig, OmegaConf
@@ -317,3 +317,131 @@ class TensorBoardLogger(MetricLoggerInterface):
         if self._writer:
             self._writer.close()
             self._writer = None
+
+
+class CometLogger(MetricLoggerInterface):
+    """Logger for use w/ Comet (https://www.comet.com/site/).
+    Comet is an experiment tracking tool that helps ML teams track, debug,
+    compare, and reproduce their model training runs.
+
+    For more information about arguments expected by Comet, see
+    https://www.comet.com/docs/v2/guides/experiment-management/configure-sdk/#for-the-experiment.
+
+    Args:
+        api_key (Optional[str]): Comet API key. It's recommended to configure the API Key with `comet login`.
+        workspace (Optional[str]): Comet workspace name. If not provided, uses the default workspace.
+        project (Optional[str]): Comet project name. Defaults to Uncategorized.
+        experiment_key (Optional[str]): The key for comet experiment to be used for logging. This is used either to
+            append data to an Existing Experiment or to control the ID of new experiments (for example to match another
+            ID). Must be an alphanumeric string whose length is between 32 and 50 characters.
+        mode (Optional[str]): Control how the Comet experiment is started.
+
+            * ``"get_or_create"``: Starts a fresh experiment if required, or persists logging to an existing one.
+            * ``"get"``: Continue logging to an existing experiment identified by the ``experiment_key`` value.
+            * ``"create"``: Always creates of a new experiment, useful for HPO sweeps.
+        online (Optional[bool]): If True, the data will be logged to Comet server, otherwise it will be stored locally
+            in an offline experiment. Default is ``True``.
+        experiment_name (Optional[str]): Name of the experiment. If not provided, Comet will auto-generate a name.
+        tags (Optional[List[str]]): Tags to associate with the experiment.
+        log_code (bool): Whether to log the source code. Defaults to True.
+        **kwargs (Dict[str, Any]): additional arguments to pass to ``comet_ml.start``. See
+            https://www.comet.com/docs/v2/api-and-sdk/python-sdk/reference/Experiment-Creation/#comet_ml.ExperimentConfig
+
+    Example:
+        >>> from torchtune.utils.metric_logging import CometLogger
+        >>> logger = CometLogger(project_name="my_project", workspace="my_workspace")
+        >>> logger.log("my_metric", 1.0, 1)
+        >>> logger.log_dict({"my_metric": 1.0}, 1)
+        >>> logger.close()
+
+    Raises:
+        ImportError: If ``comet_ml`` package is not installed.
+
+    Note:
+        This logger requires the comet_ml package to be installed.
+        You can install it with ``pip install comet_ml``.
+        You need to set up your Comet.ml API key before using this logger.
+        You can do this by calling ``comet login`` in your terminal.
+        You can also set it as the `COMET_API_KEY` environment variable.
+    """
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        workspace: Optional[str] = None,
+        project: Optional[str] = None,
+        experiment_key: Optional[str] = None,
+        mode: Optional[str] = None,
+        online: Optional[bool] = None,
+        experiment_name: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        log_code: bool = True,
+        **kwargs: Dict[str, Any],
+    ):
+        try:
+            import comet_ml
+        except ImportError as e:
+            raise ImportError(
+                "``comet_ml`` package not found. Please install comet_ml using `pip install comet_ml` to use CometLogger."
+                "Alternatively, use the ``StdoutLogger``, which can be specified by setting metric_logger_type='stdout'."
+            ) from e
+
+        _, self.rank = get_world_size_and_rank()
+
+        # Declare it early so further methods don't crash in case of
+        # Experiment Creation failure due to mis-named configuration for
+        # example
+        self.experiment = None
+
+        if self.rank == 0:
+            self.experiment = comet_ml.start(
+                api_key=api_key,
+                workspace=workspace,
+                project=project,
+                experiment_key=experiment_key,
+                mode=mode,
+                online=online,
+                experiment_config=comet_ml.ExperimentConfig(
+                    log_code=log_code, tags=tags, name=experiment_name, **kwargs
+                ),
+            )
+
+    def log(self, name: str, data: Scalar, step: int) -> None:
+        if self.experiment is not None:
+            self.experiment.log_metric(name, data, step=step)
+
+    def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
+        if self.experiment is not None:
+            self.experiment.log_metrics(payload, step=step)
+
+    def log_config(self, config: DictConfig) -> None:
+        if self.experiment is not None:
+            resolved = OmegaConf.to_container(config, resolve=True)
+            self.experiment.log_parameters(resolved)
+
+            # Also try to save the config as a file
+            try:
+                self._log_config_as_file(config)
+            except Exception as e:
+                log.warning(f"Error saving Config to disk.\nError: \n{e}.")
+                return
+
+    def _log_config_as_file(self, config: DictConfig):
+        output_config_fname = Path(
+            os.path.join(
+                config.checkpointer.checkpoint_dir,
+                "torchtune_config.yaml",
+            )
+        )
+        OmegaConf.save(config, output_config_fname)
+
+        self.experiment.log_asset(
+            output_config_fname, file_name="torchtune_config.yaml"
+        )
+
+    def close(self) -> None:
+        if self.experiment is not None:
+            self.experiment.end()
+
+    def __del__(self) -> None:
+        self.close()
