@@ -314,6 +314,7 @@
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deep_dives/configs.html">All About Configs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
@@ -478,9 +479,11 @@
 </li>
       <li><a href="generated/torchtune.models.clip.clip_vision_encoder.html#torchtune.models.clip.clip_vision_encoder">clip_vision_encoder() (in module torchtune.models.clip)</a>
 </li>
-      <li><a href="generated/torchtune.utils.metric_logging.DiskLogger.html#torchtune.utils.metric_logging.DiskLogger.close">close() (torchtune.utils.metric_logging.DiskLogger method)</a>
+      <li><a href="generated/torchtune.utils.metric_logging.CometLogger.html#torchtune.utils.metric_logging.CometLogger.close">close() (torchtune.utils.metric_logging.CometLogger method)</a>
 
       <ul>
+        <li><a href="generated/torchtune.utils.metric_logging.DiskLogger.html#torchtune.utils.metric_logging.DiskLogger.close">(torchtune.utils.metric_logging.DiskLogger method)</a>
+</li>
         <li><a href="generated/torchtune.utils.metric_logging.StdoutLogger.html#torchtune.utils.metric_logging.StdoutLogger.close">(torchtune.utils.metric_logging.StdoutLogger method)</a>
 </li>
         <li><a href="generated/torchtune.utils.metric_logging.TensorBoardLogger.html#torchtune.utils.metric_logging.TensorBoardLogger.close">(torchtune.utils.metric_logging.TensorBoardLogger method)</a>
@@ -497,6 +500,8 @@
       <li><a href="generated/torchtune.models.code_llama2.code_llama2_70b.html#torchtune.models.code_llama2.code_llama2_70b">code_llama2_70b() (in module torchtune.models.code_llama2)</a>
 </li>
       <li><a href="generated/torchtune.models.code_llama2.code_llama2_7b.html#torchtune.models.code_llama2.code_llama2_7b">code_llama2_7b() (in module torchtune.models.code_llama2)</a>
+</li>
+      <li><a href="generated/torchtune.utils.metric_logging.CometLogger.html#torchtune.utils.metric_logging.CometLogger">CometLogger (class in torchtune.utils.metric_logging)</a>
 </li>
       <li><a href="generated/torchtune.datasets.ConcatDataset.html#torchtune.datasets.ConcatDataset">ConcatDataset (class in torchtune.datasets)</a>
 </li>
@@ -778,9 +783,11 @@
       </ul></li>
       <li><a href="generated/torchtune.utils.OptimizerInBackwardWrapper.html#torchtune.utils.OptimizerInBackwardWrapper.load_state_dict">load_state_dict() (torchtune.utils.OptimizerInBackwardWrapper method)</a>
 </li>
-      <li><a href="generated/torchtune.utils.metric_logging.DiskLogger.html#torchtune.utils.metric_logging.DiskLogger.log">log() (torchtune.utils.metric_logging.DiskLogger method)</a>
+      <li><a href="generated/torchtune.utils.metric_logging.CometLogger.html#torchtune.utils.metric_logging.CometLogger.log">log() (torchtune.utils.metric_logging.CometLogger method)</a>
 
       <ul>
+        <li><a href="generated/torchtune.utils.metric_logging.DiskLogger.html#torchtune.utils.metric_logging.DiskLogger.log">(torchtune.utils.metric_logging.DiskLogger method)</a>
+</li>
         <li><a href="generated/torchtune.utils.metric_logging.StdoutLogger.html#torchtune.utils.metric_logging.StdoutLogger.log">(torchtune.utils.metric_logging.StdoutLogger method)</a>
 </li>
         <li><a href="generated/torchtune.utils.metric_logging.TensorBoardLogger.html#torchtune.utils.metric_logging.TensorBoardLogger.log">(torchtune.utils.metric_logging.TensorBoardLogger method)</a>
@@ -791,12 +798,16 @@
       <li><a href="generated/torchtune.config.log_config.html#torchtune.config.log_config">log_config() (in module torchtune.config)</a>
 
       <ul>
+        <li><a href="generated/torchtune.utils.metric_logging.CometLogger.html#torchtune.utils.metric_logging.CometLogger.log_config">(torchtune.utils.metric_logging.CometLogger method)</a>
+</li>
         <li><a href="generated/torchtune.utils.metric_logging.WandBLogger.html#torchtune.utils.metric_logging.WandBLogger.log_config">(torchtune.utils.metric_logging.WandBLogger method)</a>
 </li>
       </ul></li>
-      <li><a href="generated/torchtune.utils.metric_logging.DiskLogger.html#torchtune.utils.metric_logging.DiskLogger.log_dict">log_dict() (torchtune.utils.metric_logging.DiskLogger method)</a>
+      <li><a href="generated/torchtune.utils.metric_logging.CometLogger.html#torchtune.utils.metric_logging.CometLogger.log_dict">log_dict() (torchtune.utils.metric_logging.CometLogger method)</a>
 
       <ul>
+        <li><a href="generated/torchtune.utils.metric_logging.DiskLogger.html#torchtune.utils.metric_logging.DiskLogger.log_dict">(torchtune.utils.metric_logging.DiskLogger method)</a>
+</li>
         <li><a href="generated/torchtune.utils.metric_logging.StdoutLogger.html#torchtune.utils.metric_logging.StdoutLogger.log_dict">(torchtune.utils.metric_logging.StdoutLogger method)</a>
 </li>
         <li><a href="generated/torchtune.utils.metric_logging.TensorBoardLogger.html#torchtune.utils.metric_logging.TensorBoardLogger.log_dict">(torchtune.utils.metric_logging.TensorBoardLogger method)</a>

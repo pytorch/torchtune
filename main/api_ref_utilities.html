@@ -317,6 +317,7 @@
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deep_dives/configs.html">All About Configs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
@@ -517,16 +518,19 @@ of your finetuning job.</p>
 <p>Various logging utilities.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.metric_logging.WandBLogger.html#torchtune.utils.metric_logging.WandBLogger" title="torchtune.utils.metric_logging.WandBLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.WandBLogger</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.metric_logging.CometLogger.html#torchtune.utils.metric_logging.CometLogger" title="torchtune.utils.metric_logging.CometLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.CometLogger</span></code></a></p></td>
+<td><p>Logger for use w/ Comet (<a class="reference external" href="https://www.comet.com/site/">https://www.comet.com/site/</a>).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.metric_logging.WandBLogger.html#torchtune.utils.metric_logging.WandBLogger" title="torchtune.utils.metric_logging.WandBLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.WandBLogger</span></code></a></p></td>
 <td><p>Logger for use w/ Weights and Biases application (<a class="reference external" href="https://wandb.ai/">https://wandb.ai/</a>).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.metric_logging.TensorBoardLogger.html#torchtune.utils.metric_logging.TensorBoardLogger" title="torchtune.utils.metric_logging.TensorBoardLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.TensorBoardLogger</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.metric_logging.TensorBoardLogger.html#torchtune.utils.metric_logging.TensorBoardLogger" title="torchtune.utils.metric_logging.TensorBoardLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.TensorBoardLogger</span></code></a></p></td>
 <td><p>Logger for use w/ PyTorch's implementation of TensorBoard (<a class="reference external" href="https://pytorch.org/docs/stable/tensorboard.html">https://pytorch.org/docs/stable/tensorboard.html</a>).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.metric_logging.StdoutLogger.html#torchtune.utils.metric_logging.StdoutLogger" title="torchtune.utils.metric_logging.StdoutLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.StdoutLogger</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.metric_logging.StdoutLogger.html#torchtune.utils.metric_logging.StdoutLogger" title="torchtune.utils.metric_logging.StdoutLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.StdoutLogger</span></code></a></p></td>
 <td><p>Logger to standard output.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.metric_logging.DiskLogger.html#torchtune.utils.metric_logging.DiskLogger" title="torchtune.utils.metric_logging.DiskLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.DiskLogger</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.metric_logging.DiskLogger.html#torchtune.utils.metric_logging.DiskLogger" title="torchtune.utils.metric_logging.DiskLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.DiskLogger</span></code></a></p></td>
 <td><p>Logger to disk.</p></td>
 </tr>
 </tbody>

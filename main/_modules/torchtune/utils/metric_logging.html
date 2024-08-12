@@ -314,6 +314,7 @@
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/configs.html">All About Configs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
@@ -411,7 +412,7 @@
 <span class="kn">import</span> <span class="nn">time</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">ndarray</span>
 <span class="kn">from</span> <span class="nn">omegaconf</span> <span class="kn">import</span> <span class="n">DictConfig</span><span class="p">,</span> <span class="n">OmegaConf</span>
@@ -720,6 +721,134 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span> <span class="o">=</span> <span class="kc">None</span></div></div>
+
+
+<div class="viewcode-block" id="CometLogger"><a class="viewcode-back" href="../../../generated/torchtune.utils.metric_logging.CometLogger.html#torchtune.utils.metric_logging.CometLogger">[docs]</a><span class="k">class</span> <span class="nc">CometLogger</span><span class="p">(</span><span class="n">MetricLoggerInterface</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Logger for use w/ Comet (https://www.comet.com/site/).</span>
+<span class="sd">    Comet is an experiment tracking tool that helps ML teams track, debug,</span>
+<span class="sd">    compare, and reproduce their model training runs.</span>
+
+<span class="sd">    For more information about arguments expected by Comet, see</span>
+<span class="sd">    https://www.comet.com/docs/v2/guides/experiment-management/configure-sdk/#for-the-experiment.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        api_key (Optional[str]): Comet API key. It&#39;s recommended to configure the API Key with `comet login`.</span>
+<span class="sd">        workspace (Optional[str]): Comet workspace name. If not provided, uses the default workspace.</span>
+<span class="sd">        project (Optional[str]): Comet project name. Defaults to Uncategorized.</span>
+<span class="sd">        experiment_key (Optional[str]): The key for comet experiment to be used for logging. This is used either to</span>
+<span class="sd">            append data to an Existing Experiment or to control the ID of new experiments (for example to match another</span>
+<span class="sd">            ID). Must be an alphanumeric string whose length is between 32 and 50 characters.</span>
+<span class="sd">        mode (Optional[str]): Control how the Comet experiment is started.</span>
+
+<span class="sd">            * ``&quot;get_or_create&quot;``: Starts a fresh experiment if required, or persists logging to an existing one.</span>
+<span class="sd">            * ``&quot;get&quot;``: Continue logging to an existing experiment identified by the ``experiment_key`` value.</span>
+<span class="sd">            * ``&quot;create&quot;``: Always creates of a new experiment, useful for HPO sweeps.</span>
+<span class="sd">        online (Optional[bool]): If True, the data will be logged to Comet server, otherwise it will be stored locally</span>
+<span class="sd">            in an offline experiment. Default is ``True``.</span>
+<span class="sd">        experiment_name (Optional[str]): Name of the experiment. If not provided, Comet will auto-generate a name.</span>
+<span class="sd">        tags (Optional[List[str]]): Tags to associate with the experiment.</span>
+<span class="sd">        log_code (bool): Whether to log the source code. Defaults to True.</span>
+<span class="sd">        **kwargs (Dict[str, Any]): additional arguments to pass to ``comet_ml.start``. See</span>
+<span class="sd">            https://www.comet.com/docs/v2/api-and-sdk/python-sdk/reference/Experiment-Creation/#comet_ml.ExperimentConfig</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; from torchtune.utils.metric_logging import CometLogger</span>
+<span class="sd">        &gt;&gt;&gt; logger = CometLogger(project_name=&quot;my_project&quot;, workspace=&quot;my_workspace&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; logger.log(&quot;my_metric&quot;, 1.0, 1)</span>
+<span class="sd">        &gt;&gt;&gt; logger.log_dict({&quot;my_metric&quot;: 1.0}, 1)</span>
+<span class="sd">        &gt;&gt;&gt; logger.close()</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ImportError: If ``comet_ml`` package is not installed.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        This logger requires the comet_ml package to be installed.</span>
+<span class="sd">        You can install it with ``pip install comet_ml``.</span>
+<span class="sd">        You need to set up your Comet.ml API key before using this logger.</span>
+<span class="sd">        You can do this by calling ``comet login`` in your terminal.</span>
+<span class="sd">        You can also set it as the `COMET_API_KEY` environment variable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">api_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">workspace</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">project</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">experiment_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">mode</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">online</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">experiment_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tags</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">log_code</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">comet_ml</span>
+        <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+                <span class="s2">&quot;``comet_ml`` package not found. Please install comet_ml using `pip install comet_ml` to use CometLogger.&quot;</span>
+                <span class="s2">&quot;Alternatively, use the ``StdoutLogger``, which can be specified by setting metric_logger_type=&#39;stdout&#39;.&quot;</span>
+            <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+
+        <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="n">get_world_size_and_rank</span><span class="p">()</span>
+
+        <span class="c1"># Declare it early so further methods don&#39;t crash in case of</span>
+        <span class="c1"># Experiment Creation failure due to mis-named configuration for</span>
+        <span class="c1"># example</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span> <span class="o">=</span> <span class="n">comet_ml</span><span class="o">.</span><span class="n">start</span><span class="p">(</span>
+                <span class="n">api_key</span><span class="o">=</span><span class="n">api_key</span><span class="p">,</span>
+                <span class="n">workspace</span><span class="o">=</span><span class="n">workspace</span><span class="p">,</span>
+                <span class="n">project</span><span class="o">=</span><span class="n">project</span><span class="p">,</span>
+                <span class="n">experiment_key</span><span class="o">=</span><span class="n">experiment_key</span><span class="p">,</span>
+                <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span>
+                <span class="n">online</span><span class="o">=</span><span class="n">online</span><span class="p">,</span>
+                <span class="n">experiment_config</span><span class="o">=</span><span class="n">comet_ml</span><span class="o">.</span><span class="n">ExperimentConfig</span><span class="p">(</span>
+                    <span class="n">log_code</span><span class="o">=</span><span class="n">log_code</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="n">tags</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">experiment_name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="CometLogger.log"><a class="viewcode-back" href="../../../generated/torchtune.utils.metric_logging.CometLogger.html#torchtune.utils.metric_logging.CometLogger.log">[docs]</a>    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span><span class="o">.</span><span class="n">log_metric</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">step</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CometLogger.log_dict"><a class="viewcode-back" href="../../../generated/torchtune.utils.metric_logging.CometLogger.html#torchtune.utils.metric_logging.CometLogger.log_dict">[docs]</a>    <span class="k">def</span> <span class="nf">log_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">],</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span><span class="o">.</span><span class="n">log_metrics</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">step</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CometLogger.log_config"><a class="viewcode-back" href="../../../generated/torchtune.utils.metric_logging.CometLogger.html#torchtune.utils.metric_logging.CometLogger.log_config">[docs]</a>    <span class="k">def</span> <span class="nf">log_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">resolved</span> <span class="o">=</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">to_container</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">resolve</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span><span class="o">.</span><span class="n">log_parameters</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span>
+
+            <span class="c1"># Also try to save the config as a file</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_log_config_as_file</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error saving Config to disk.</span><span class="se">\n</span><span class="s2">Error: </span><span class="se">\n</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+                <span class="k">return</span></div>
+
+    <span class="k">def</span> <span class="nf">_log_config_as_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">):</span>
+        <span class="n">output_config_fname</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">checkpoint_dir</span><span class="p">,</span>
+                <span class="s2">&quot;torchtune_config.yaml&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">OmegaConf</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">output_config_fname</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span><span class="o">.</span><span class="n">log_asset</span><span class="p">(</span>
+            <span class="n">output_config_fname</span><span class="p">,</span> <span class="n">file_name</span><span class="o">=</span><span class="s2">&quot;torchtune_config.yaml&quot;</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="CometLogger.close"><a class="viewcode-back" href="../../../generated/torchtune.utils.metric_logging.CometLogger.html#torchtune.utils.metric_logging.CometLogger.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span><span class="o">.</span><span class="n">end</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
 </pre></div>
 
              </article>
