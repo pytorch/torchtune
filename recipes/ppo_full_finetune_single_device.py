@@ -426,24 +426,15 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         policy_model.load_state_dict(policy_state_dict)
         ref_policy_model.load_state_dict(ref_policy_state_dict)
 
-        reward_missing, reward_unexpected = reward_model.load_state_dict(
-            reward_model_state_dict, strict=False
+        utils.update_state_dict_for_classifier(
+            reward_model_state_dict, reward_model.named_parameters()
         )
-        value_missing, value_unexpected = value_model.load_state_dict(
-            value_model_state_dict, strict=False
+        reward_model.load_state_dict(reward_model_state_dict)
+
+        utils.update_state_dict_for_classifier(
+            value_model_state_dict, reward_model.named_parameters()
         )
-
-        # some extra validation for HF classifier checkpoints with a `score.bias` present
-        assert (
-            reward_missing == value_missing == []
-        ), f"Missing keys in reward ({reward_missing}) and value model ({value_missing}) state dicts."
-
-        if reward_unexpected or value_unexpected:
-            # the only unexpected keys should be when pre-trained HF models were saved with
-            # bias=True in final classification layers. This happens when training a reward model with TRL.
-            assert (
-                reward_unexpected == value_unexpected == ["output.bias"]
-            ), f"Unexpected keys in reward ({reward_unexpected}) and value model ({value_unexpected}) state dicts."
+        value_model.load_state_dict(value_model_state_dict)
 
         # Validate models were loaded in with the expected dtype.
         utils.validate_expected_param_dtype(

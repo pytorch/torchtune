@@ -41,6 +41,8 @@ def update_state_dict_for_classifier(
         raise AssertionError(
             "Expected output.weight in state_dict, but it wasn't found."
         )
+    if "output.bias" in state_dict:
+        state_dict.pop("output.bias")
     if state_dict["output.weight"].shape != output_weight[0][1].shape:
         warn(
             f"Found output.weight with shape {state_dict['output.weight'].shape} "
