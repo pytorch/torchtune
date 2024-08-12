@@ -46,8 +46,8 @@ def update_state_dict_for_classifier(
         state_dict.pop("output.bias")
     if state_dict["output.weight"].shape != output_weight[0][1].shape:
         warn(
-            f"Found output.weight with shape {state_dict['output.weight'].shape} "
+            f"Found output.weight with {state_dict['output.weight'].shape} "
             f"in checkpoint. This will be overwritten with model's output.weight "
-            f"with shape {output_weight[0][1].shape}"
+            f"with {output_weight[0][1].shape}"
         )
         state_dict["output.weight"] = output_weight[0][1]
