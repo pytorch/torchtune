@@ -14,10 +14,10 @@ from torchtune.modules.transformer import TransformerDecoder, TiedEmbeddingTrans
 from torchtune.models.qwen2._positional_embeddings import Qwen2RotaryPositionalEmbeddings
 
 from torchtune.modules import (
-    CausalSelfAttention,
+    MultiHeadedAttention,
     FeedForward,
     RMSNorm,
-    TransformerDecoderLayer,
+    TransformerSelfAttentionLayer,
 )
 
 
@@ -29,7 +29,7 @@ Component builders for the Qwen2 model and popular variants such as LoRA.
 torchtune provides composable building blocks. Builder functions help
 stitch these building blocks into higher-level components. This design has
 two benefits:
-- The building blocks themselves are very flexible. For example, ``CausalSelfAttention``
+- The building blocks themselves are very flexible. For example, ``MultiHeadedAttention``
 can take either nn.Linear or nn.LoRALinear for ``q_proj``.
 - Builder functions expose a set of configurable params which keep the constructors of
 the building blocks simple.
@@ -52,7 +52,7 @@ def qwen2(
     """
     Build the decoder associated with the Qwen2 model. This includes:
     - Token embeddings
-    - num_layers number of TransformerDecoderLayer blocks
+    - num_layers number of TransformerSelfAttentionLayer blocks
     - RMS Norm layer applied to the output of the transformer
     - Final projection into token space
 
@@ -82,7 +82,7 @@ def qwen2(
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
 
     rope = Qwen2RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = CausalSelfAttention(
+    self_attn = MultiHeadedAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -97,7 +97,7 @@ def qwen2(
         attn_dropout=attn_dropout,
     )
     mlp = qwen2_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
-    layer = TransformerDecoderLayer(
+    layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
         sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
@@ -108,7 +108,7 @@ def qwen2(
     if output_proj is None:
         return TiedEmbeddingTransformerDecoder(
             tok_embeddings=tok_embeddings,
-            layer=layer,
+            layers=layer,
             num_layers=num_layers,
             max_seq_len=max_seq_len,
             num_heads=num_heads,
@@ -118,7 +118,7 @@ def qwen2(
     else:
         return TransformerDecoder(
             tok_embeddings=tok_embeddings,
-            layer=layer,
+            layers=layer,
             num_layers=num_layers,
             max_seq_len=max_seq_len,
             num_heads=num_heads,
@@ -233,7 +233,7 @@ def lora_qwen2(
     else:
         mlp = qwen2_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
 
-    layer = TransformerDecoderLayer(
+    layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
         sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
@@ -259,7 +259,7 @@ def lora_qwen2(
     if output_proj is None:
         model = TiedEmbeddingTransformerDecoder(
             tok_embeddings=tok_embeddings,
-            layer=layer,
+            layers=layer,
             num_layers=num_layers,
             max_seq_len=max_seq_len,
             num_heads=num_heads,
@@ -269,7 +269,7 @@ def lora_qwen2(
     else:
         model = TransformerDecoder(
             tok_embeddings=tok_embeddings,
-            layer=layer,
+            layers=layer,
             num_layers=num_layers,
             max_seq_len=max_seq_len,
             num_heads=num_heads,
@@ -297,7 +297,7 @@ def lora_qwen2(
 def lora_qwen2_self_attention(
     lora_modules: List[LORA_ATTN_MODULES],
     *,
-    # CausalSelfAttention args
+    # MultiHeadedAttention args
     embed_dim: int,
     num_heads: int,
     num_kv_heads: int,
@@ -309,9 +309,9 @@ def lora_qwen2_self_attention(
     lora_alpha: float,
     lora_dropout: float = 0.0,
     quantize_base: bool = False,
-) -> CausalSelfAttention:
+) -> MultiHeadedAttention:
     """
-    Return an instance of :func:`~torchtune.modules.CausalSelfAttention` with LoRA
+    Return an instance of :func:`~torchtune.modules.MultiHeadedAttention` with LoRA
     applied to a subset of its linear layers
 
     Args:
@@ -336,7 +336,7 @@ def lora_qwen2_self_attention(
             LoRA is being applied to. Default is ``False``.
 
     Returns:
-        CausalSelfAttention: instantiation of self-attention module with LoRA
+        MultiHeadedAttention: instantiation of self-attention module with LoRA
         applied to a subset of Q, K, V, output projections.
 
     Raises:
@@ -399,7 +399,7 @@ def lora_qwen2_self_attention(
         else nn.Linear(embed_dim, embed_dim, bias=False)
     )
     rope = Qwen2RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = CausalSelfAttention(
+    self_attn = MultiHeadedAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,

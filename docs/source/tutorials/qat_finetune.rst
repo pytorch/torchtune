@@ -87,7 +87,7 @@ is ready for fine-tuning.
 .. code-block:: bash
 
   >>> print(model.layers[0].attn)
-  CausalSelfAttention(
+  MultiHeadedAttention(
     (q_proj): Linear(in_features=4096, out_features=4096, bias=False)
     (k_proj): Linear(in_features=4096, out_features=1024, bias=False)
     (v_proj): Linear(in_features=4096, out_features=1024, bias=False)
@@ -96,7 +96,7 @@ is ready for fine-tuning.
   )
 
   >>> print(prepared_model.layers[0].attn)
-  CausalSelfAttention(
+  MultiHeadedAttention(
     (q_proj): Int8DynActInt4WeightQATLinear(in_features=4096, out_features=4096, bias=False)
     (k_proj): Int8DynActInt4WeightQATLinear(in_features=4096, out_features=1024, bias=False)
     (v_proj): Int8DynActInt4WeightQATLinear(in_features=4096, out_features=1024, bias=False)
@@ -121,7 +121,7 @@ used for inference or generation.
 .. code-block:: bash
 
   >>> print(converted_model.layers[0].attn)
-  CausalSelfAttention(
+  MultiHeadedAttention(
     (q_proj): Int8DynActInt4WeightLinear()
     (k_proj): Int8DynActInt4WeightLinear()
     (v_proj): Int8DynActInt4WeightLinear()

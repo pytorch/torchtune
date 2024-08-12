@@ -63,6 +63,8 @@ class MultiHeadedAttention(nn.Module):
         q_norm (Optional[nn.Module]): normalization layer for query, e.g. RMSNorm
         k_norm (Optional[nn.Module]): normalization layer for key, must be set if q_norm is.
         kv_cache (Optional[KVCache]): KVCache object used to cache key and value
+        max_seq_len (int): maximum sequence length supported by the model.
+            This is needed to compute the RoPE Cache. Default: 4096.
         default_causal_mask (bool): sets the default mask to causal when no mask is provided
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
@@ -90,6 +92,7 @@ class MultiHeadedAttention(nn.Module):
         q_norm: Optional[nn.Module] = None,
         k_norm: Optional[nn.Module] = None,
         kv_cache: Optional[KVCache] = None,
+        max_seq_len: int = 4096,
         default_causal_mask: bool = True,
         attn_dropout: float = 0.0,
     ) -> None:
@@ -118,6 +121,7 @@ class MultiHeadedAttention(nn.Module):
         self.embed_dim = embed_dim
         self.attn_dropout = attn_dropout
         self.head_dim = head_dim
+        self.max_seq_len = max_seq_len
         self.is_causal = default_causal_mask
 
         # Set layers
@@ -223,22 +227,22 @@ class MultiHeadedAttention(nn.Module):
         # q: [b, s_x, n_kv, q_per_kv, h_d]
         # k: [b, s_y, n_kv, 1, h_d]
         # v: [b, s_y, n_kv, 1, h_d]
-        q = q.view(bsz, s_x, self.num_kv_heads, q_per_kv, self.head_dim)
-        k = k.view(bsz, s_y, self.num_kv_heads, 1, self.head_dim)
-        v = v.view(bsz, s_y, self.num_kv_heads, 1, self.head_dim)
+        q = q.view(b, s_x, self.num_kv_heads, q_per_kv, self.head_dim)
+        k = k.view(b, s_y, self.num_kv_heads, 1, self.head_dim)
+        v = v.view(b, s_y, self.num_kv_heads, 1, self.head_dim)
 
         # if needed, expand the key and value tensors to have the same shape
         # as the query tensor by copying values across the relevant dim
         if self.num_heads != self.num_kv_heads:
-            k = k.expand(bsz, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
-            v = v.expand(bsz, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
+            k = k.expand(b, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
+            v = v.expand(b, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
 
         # llama applies the RoPE embeddings on tensors with shape
         # [b, s, n_h, h_d]
         # Reshape the tensors before we apply RoPE
-        q = q.reshape(bsz, s_x, -1, self.head_dim)
-        k = k.reshape(bsz, s_y, -1, self.head_dim)
-        v = v.reshape(bsz, s_y, -1, self.head_dim)
+        q = q.reshape(b, s_x, -1, self.head_dim)
+        k = k.reshape(b, s_y, -1, self.head_dim)
+        v = v.reshape(b, s_y, -1, self.head_dim)
 
         # Apply positional embeddings
         if self.pos_embeddings is not None:
@@ -276,5 +280,5 @@ class MultiHeadedAttention(nn.Module):
         )
 
         # reshape the output to be the same shape as the input
-        output = output.transpose(1, 2).contiguous().view(bsz, seq_len, -1)
+        output = output.transpose(1, 2).contiguous().view(b, s_x, -1)
         return self.output_proj(output)

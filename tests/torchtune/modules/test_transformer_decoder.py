@@ -69,7 +69,7 @@ class TestTransformerSelfAttentionLayer:
     @pytest.fixture
     def transformer_layer(
         self, layer_params: Tuple[int, int, int, int]
-    ) -> TransformerDecoderLayer:
+    ) -> TransformerSelfAttentionLayer:
         num_heads, num_kv_heads, embed_dim, max_seq_len = layer_params
         head_dim = embed_dim // num_heads
         rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
@@ -83,10 +83,11 @@ class TestTransformerSelfAttentionLayer:
             v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
             output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
             pos_embeddings=rope,
+            max_seq_len=max_seq_len,
         )
         hidden_dim = scale_hidden_dim_for_mlp(embed_dim)
         mlp = llama2_mlp(dim=embed_dim, hidden_dim=hidden_dim)
-        transformer_layer = TransformerDecoderLayer(
+        transformer_layer = TransformerSelfAttentionLayer(
             attn=self_attn,
             mlp=mlp,
             sa_norm=RMSNorm(dim=embed_dim),
@@ -99,7 +100,7 @@ class TestTransformerSelfAttentionLayer:
         return transformer_layer
 
     def test_forward(
-        self, input: Tensor, transformer_layer: TransformerDecoderLayer
+        self, input: Tensor, transformer_layer: TransformerSelfAttentionLayer
     ) -> None:
         with torch.no_grad():
             output = transformer_layer(input)
@@ -137,13 +138,14 @@ class TestTransformerCrossAttentionLayer:
         num_heads = 32
         num_kv_heads = 8
         embed_dim = 4096
-        return num_heads, num_kv_heads, embed_dim
+        max_seq_len = 4096
+        return num_heads, num_kv_heads, embed_dim, max_seq_len
 
     @pytest.fixture
     def transformer_layer(
         self, layer_params: Tuple[int, int, int, int]
     ) -> TransformerCrossAttentionLayer:
-        num_heads, num_kv_heads, embed_dim = layer_params
+        num_heads, num_kv_heads, embed_dim, max_seq_len = layer_params
         head_dim = embed_dim // num_heads
         attn = MultiHeadedAttention(
             embed_dim=embed_dim,
@@ -157,6 +159,7 @@ class TestTransformerCrossAttentionLayer:
             q_norm=RMSNorm(dim=head_dim, eps=1e-05),
             k_norm=RMSNorm(dim=head_dim, eps=1e-05),
             pos_embeddings=None,
+            max_seq_len=max_seq_len,
             default_causal_mask=False,
             attn_dropout=0.0,
         )
@@ -169,9 +172,9 @@ class TestTransformerCrossAttentionLayer:
         transformer_layer = TransformerCrossAttentionLayer(
             attn=attn,
             mlp=mlp,
-            attn_norm=RMSNorm(dim=embed_dim),
+            ca_norm=RMSNorm(dim=embed_dim),
             mlp_norm=RMSNorm(dim=embed_dim),
-            attn_scale=TanhGate(),
+            ca_scale=TanhGate(),
             mlp_scale=TanhGate(),
         )
         # TODO: fix weight initialization to use fixed_init_model
@@ -196,7 +199,7 @@ class TestTransformerCrossAttentionLayer:
 
 class TestTransformerDecoder:
     """
-    Class for testing our TransformerDecoderLayer implementation.
+    Class for testing our TransformerSelfAttentionLayer implementation.
 
     The expected tensors are computed from the reference implementation
     below by using the same seed, same params and same initialization used

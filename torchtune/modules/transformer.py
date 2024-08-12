@@ -38,9 +38,9 @@ class TransformerSelfAttentionLayer(nn.Module):
         super().__init__()
         self.attn = attn
         self.mlp = mlp
-        self.attn_norm = sa_norm or nn.Identity()
+        self.sa_norm = sa_norm or nn.Identity()
         self.mlp_norm = mlp_norm or nn.Identity()
-        self.attn_scale = sa_scale or nn.Identity()
+        self.sa_scale = sa_scale or nn.Identity()
         self.mlp_scale = mlp_scale or nn.Identity()
 
     def setup_cache(self, batch_size: int, dtype: torch.dtype) -> None:
@@ -96,10 +96,10 @@ class TransformerSelfAttentionLayer(nn.Module):
         # Input tensor and attention output have the same shape
         # [b, s, d]
         # Norm applied before self-attention
-        attn_out = self.attn(self.attn_norm(x), mask=mask, input_pos=input_pos)
+        attn_out = self.attn(self.sa_norm(x), mask=mask, input_pos=input_pos)
 
         # Residual connection; shape: [batch_size, seq_length, embed_dim]
-        h = self.attn_scale(attn_out) + x
+        h = self.sa_scale(attn_out) + x
 
         # Norm applied before the feedforward layer
         mlp_out = self.mlp(self.mlp_norm(h))
@@ -138,9 +138,9 @@ class TransformerCrossAttentionLayer(nn.Module):
         ), "Doesn't support positional embeddings for cross attention, because q and k are different sequences."
         self.attn = attn
         self.mlp = mlp
-        self.attn_norm = ca_norm or nn.Identity()
+        self.ca_norm = ca_norm or nn.Identity()
         self.mlp_norm = mlp_norm or nn.Identity()
-        self.attn_scale = ca_scale or nn.Identity()
+        self.ca_scale = ca_scale or nn.Identity()
         self.mlp_scale = mlp_scale or nn.Identity()
 
     def setup_cache(self, batch_size: int, dtype: torch.dtype) -> None:
@@ -226,12 +226,12 @@ class TransformerCrossAttentionLayer(nn.Module):
         # [b, s, d]
         # Norm applied before self-attention
         # TODO: Add support for sample packing and bring ack input_pos
-        attn_out = self.attn(self.attn_norm(x), encoder_input, mask=encoder_mask)
+        attn_out = self.attn(self.ca_norm(x), encoder_input, mask=encoder_mask)
         if skip_mask is not None:
             attn_out.masked_fill_(skip_mask, 0)
 
         # Residual connection; shape: [batch_size, seq_length, embed_dim]
-        h = self.attn_scale(attn_out) + x
+        h = self.ca_scale(attn_out) + x
 
         # Norm applied before the feedforward layer
         mlp_out = self.mlp(self.mlp_norm(h))
@@ -306,13 +306,16 @@ class TransformerDecoder(nn.Module):
             ), "If num_layers is undefined, it is assumed that a list of layers is provided."
             layers = nn.ModuleList(layers)
         else:
-            assert isinstance(layer, nn.Module), "num_layers is defined"
+            assert isinstance(
+                layers, nn.Module
+            ), "num_layers is defined, layers must be a module"
             layers = _get_clones(layers, num_layers)
 
         self.tok_embeddings = tok_embeddings
         self.layers = layers
         self.norm = norm
         self.output = output
+        self.output_hidden_states = output_hidden_states or []
         self.max_seq_len = max_seq_len
         self.num_heads = num_heads
         self.head_dim = head_dim
@@ -492,12 +495,15 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
             ), "If num_layers is undefined, it is assumed that a list of layers is provided."
             layers = nn.ModuleList(layers)
         else:
-            assert isinstance(layer, nn.Module), "num_layers is defined"
+            assert isinstance(
+                layers, nn.Module
+            ), "num_layers is defined, layers must be a module"
             layers = _get_clones(layers, num_layers)
 
         self.tok_embeddings = tok_embeddings
         self.layers = layers
         self.norm = norm
+        self.output_hidden_states = output_hidden_states or []
         self.max_seq_len = max_seq_len
         self.num_heads = num_heads
         self.head_dim = head_dim
