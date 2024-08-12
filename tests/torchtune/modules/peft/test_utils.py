@@ -12,7 +12,7 @@ import torch
 from torch import nn
 from torchtune.models.llama2 import llama2, lora_llama2
 from torchtune.modules.peft import LoRALinear
-from torchtune.modules.peft.peft_utils import (
+from torchtune.modules.peft._utils import (
     AdapterModule,
     disable_adapter,
     get_adapter_params,

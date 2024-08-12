@@ -24,7 +24,7 @@ from torchtune.datasets import ConcatDataset
 from torchtune.modules import rlhf
 
 from torchtune.modules.loss import SimPOLoss
-from torchtune.modules.peft.peft_utils import (
+from torchtune.modules.peft._utils import (
     disable_adapter,
     get_adapter_params,
     get_merged_lora_ckpt,

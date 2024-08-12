@@ -10,6 +10,7 @@ from ._checkpointing import (  # noqa
     FullModelMetaCheckpointer,
     FullModelTorchTuneCheckpointer,
     ModelType,
+    update_state_dict_for_classifier,
 )
 
 from ._device import get_device
@@ -72,6 +73,7 @@ from .quantization import get_quantizer_mode
 from .seed import set_seed
 
 __all__ = [
+    "update_state_dict_for_classifier",
     "get_memory_stats",
     "FSDPPolicyType",
     "log_memory_stats",
