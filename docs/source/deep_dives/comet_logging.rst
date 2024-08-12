@@ -57,4 +57,4 @@ We automatically grab the config from the recipe you are running and log it to C
 .. note::
 
   Click on this sample `Comet project to see the logged metrics after fine-tuning <https://www.comet.com/examples/comet-example-torchtune-mistral/>`_.
-  The config used to train the models can be found `here <https://www.comet.com/examples/comet-example-torchtune-mistral/0aabcd062de548bbbd30912544aaa41a?experiment-tab=params>`_.
+  The config used to train the models can be found `here <https://www.comet.com/examples/comet-example-torchtune-mistral/fffb3036880e41b5af2df932db4d3578?experiment-tab=params>`_.
