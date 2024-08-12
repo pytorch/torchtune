@@ -331,8 +331,9 @@ class CometLogger(MetricLoggerInterface):
         api_key (Optional[str]): Comet API key. It's recommended to configure the API Key with `comet login`.
         workspace (Optional[str]): Comet workspace name. If not provided, uses the default workspace.
         project (Optional[str]): Comet project name. Defaults to Uncategorized.
-        experiment_key (Optional[str]): The key for comet experiment to be used for logging. Must be an alphanumeric
-            string whose length is between 32 and 50 characters.
+        experiment_key (Optional[str]): The key for comet experiment to be used for logging. This is used either to
+            append data to an Existing Experiment or to control the ID of new experiments (for example to match another
+            ID). Must be an alphanumeric string whose length is between 32 and 50 characters.
         mode (Optional[str]): Control how the Comet experiment is started. ``"get_or_create"``: Starts a fresh
             experiment if required, or persists logging to an existing one. ``"get"``: Continue logging to an existing
             experiment identified by the ``experiment_key`` value. ``"create"``: Always creates of a new experiment,
