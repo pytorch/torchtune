@@ -698,7 +698,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     prof.step()
 
                 self.epochs_run += 1
+                start_save_checkpoint = time.time()
                 self.save_checkpoint(epoch=curr_epoch)
+                log.info("Checkpoint saved in {:.2f} seconds".format(time.time() - start_save_checkpoint))
 
     def cleanup(self) -> None:
         self._metric_logger.close()
