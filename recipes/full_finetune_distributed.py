@@ -32,10 +32,6 @@ from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils.activations import apply_selective_activation_checkpointing
 
 from tqdm import tqdm
-if torch.xpu.is_available():
-    import intel_extension_for_pytorch
-    import oneccl_bindings_for_pytorch
-
 
 log = utils.get_logger("DEBUG")
 
