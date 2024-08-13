@@ -18,10 +18,24 @@ from torchtune.modules.transforms import Transform
 
 class PreferenceDataset(Dataset):
     """
-    Primary class for fine-tuning via RLHF/PPO or DPO methods on a preference dataset
-    sourced from Hugging Face Hub, local files, or remote files. This class requires
-    the dataset to have "chosen" and "rejected" model responses. At a high level, this
-    class will load the data from source and apply the following pre-processing steps
+    Primary class for fine-tuning via preference modelling techniques (e.g. training
+    a preference model for RLHF, or directly optimizing a model through DPO) on a
+    preference dataset sourced from Hugging Face Hub, local files, or remote files. This
+    class requires the dataset to have "chosen" and "rejected" model responses. These are
+    typically either full conversations between user and assistant in separate columns::
+
+        |  chosen                                |  rejected                              |
+        |----------------------------------------|----------------------------------------|
+        | [{"role": "user", "content": Q1},      | [{"role": "user", "content": Q1},      |
+        |  {"role": "assistant", "content": A1}] |  {"role": "assistant", "content": A2}] |
+
+    or a user prompt column with separate chosen and rejected assistant reponses::
+
+        |  prompt  |  chosen  |  rejected  |
+        |----------|----------|------------|
+        |  Q1      |  A1      |  A2        |
+
+    At a high level, this class will load the data from source and apply the following pre-processing steps
     when a sample is retrieved:
 
     1. Dataset-specific transform. This is typically unique to each dataset and extracts
@@ -57,7 +71,6 @@ class PreferenceDataset(Dataset):
     For any custom dataset, use the ``message_transform`` to contain all pre-processing to
     return the list of messages.
 
-
     Args:
         source (str): path to dataset repository on Hugging Face. For local datasets,
             define source as the data file type (e.g. "json", "csv", "text") and pass
@@ -68,6 +81,9 @@ class PreferenceDataset(Dataset):
             and converts text content to a list of :class:`~torchtune.data.Message`. It is expected that the final list
             of messages are stored in the ``"chosen"`` and ``"rejected"`` keys.
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
+            Since PreferenceDataset only supports text data, it requires a
+            :class:`~torchtune.modules.tokenizers.ModelTokenizer` instead of the ``model_transform`` in
+            :class:`~torchtune.datasets.SFTDataset`.
         prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
             to add structured text around the actual messages and is called on both chosen and rejected messages.
             The structured text is used in three scenarios:
@@ -77,7 +93,7 @@ class PreferenceDataset(Dataset):
               tags in Llama2 and in Mistral
             - Community standardized templates, such as :class:`~torchtune.data.ChatMLFormat`
 
-            The extra text will still get tokenized as normal text, not as special tokens.
+            The extra text added by the template will still get tokenized as normal text, not as special tokens.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
             Face's `API ref <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset>`_
             for more details.
@@ -116,18 +132,18 @@ class PreferenceDataset(Dataset):
 
         # TODO: Truncation differs from original DPO repo
         # in DPO: first truncate prompts, then responses
-        chosen_input_ids, c_masks = self._tokenizer.tokenize_messages(
+        chosen_input_ids, chosen_masks = self._tokenizer.tokenize_messages(
             transformed_sample["chosen"],
         )
         chosen_labels = list(
-            np.where(c_masks, CROSS_ENTROPY_IGNORE_IDX, chosen_input_ids)
+            np.where(chosen_masks, CROSS_ENTROPY_IGNORE_IDX, chosen_input_ids)
         )
 
-        rejected_input_ids, r_masks = self._tokenizer.tokenize_messages(
+        rejected_input_ids, rejected_masks = self._tokenizer.tokenize_messages(
             transformed_sample["rejected"],
         )
         rejected_labels = list(
-            np.where(r_masks, CROSS_ENTROPY_IGNORE_IDX, rejected_input_ids)
+            np.where(rejected_masks, CROSS_ENTROPY_IGNORE_IDX, rejected_input_ids)
         )
 
         assert len(chosen_input_ids) == len(chosen_labels)

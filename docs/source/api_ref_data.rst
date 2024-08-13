@@ -22,7 +22,7 @@ and models.
     AlpacaInstructTemplate
     GrammarErrorCorrectionTemplate
     SummarizeTemplate
-    StackExchangedPairedTemplate
+    QuestionAnswerTemplate
     PromptTemplate
     PromptTemplateInterface
     ChatMLTemplate

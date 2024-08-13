@@ -155,6 +155,36 @@ class InputOutputToMessages(Transform):
 
 
 class ChosenRejectedToMessages(Transform):
+    """
+    Transform for converting datasets with "chosen" and "rejected" columns containing
+    conversations to a list of chosen and rejected messages. For example::
+
+        |  chosen                                |  rejected                              |
+        |----------------------------------------|----------------------------------------|
+        | [{"role": "user", "content": Q1},      | [{"role": "user", "content": Q1},      |
+        |  {"role": "assistant", "content": A1}] |  {"role": "assistant", "content": A2}] |
+
+    will be converted to:
+
+    .. code-block:: python
+
+        chosen = [
+            Message(role="user", content="Q1"),
+            Message(role="assistant", content="A1"),
+        ]
+        rejected = [
+            Message(role="user", content="Q1"),
+            Message(role="assistant", content="A2"),
+        ]
+
+    Args:
+        train_on_input (bool): Whether the model is trained on the user prompt or not.
+            Default is False.
+        column_map (Optional[Dict[str, str]]): a mapping to change the expected
+            "chosen" and "rejected" column names to the actual column names in the dataset.
+            Default is None, keeping the default column names.
+    """
+
     def __init__(
         self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None
     ):

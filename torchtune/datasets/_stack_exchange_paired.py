@@ -13,6 +13,35 @@ from torchtune.modules.transforms import Transform
 
 
 class StackExchangePairedToMessages(Transform):
+    """
+    Transform for converting datasets similar to the format in `Stack Exchange Paired dataset
+    <https://huggingface.co/datasets/lvwerra/stack-exchange-paired>`_::
+
+        |  prompt  |  chosen  |  rejected  |
+        |----------|----------|------------|
+        |  Q1      |  A1      |  A2        |
+
+    into a list of chosen and rejected messages:
+
+    .. code-block:: python
+
+        chosen = [
+            Message(role="user", content="Q1"),
+            Message(role="assistant", content="A1"),
+        ]
+        rejected = [
+            Message(role="user", content="Q1"),
+            Message(role="assistant", content="A2"),
+        ]
+
+    Args:
+        train_on_input (bool): Whether the model is trained on the user prompt or not.
+            Default is False.
+        column_map (Optional[Dict[str, str]]): a mapping to change the expected "prompt",
+            "chosen", and "rejected" column names to the actual column names in the dataset.
+            Default is None, keeping the default column names.
+    """
+
     def __init__(
         self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None
     ):
@@ -59,9 +88,9 @@ def stack_exchange_paired_dataset(
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path to dataset repository on Hugging Face. For local datasets,
             define source as the data file type (e.g. "json", "csv", "text") and pass
-            in the filepath in ``data_files``. See Hugging Face's ``load_dataset``
-            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
-            for more details. Default is ``lvwerra/stack-exchange-paired``.
+            in the filepath in ``data_files``. See `Hugging Face's
+            <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
+            ``load_dataset`` for more details. Default is ``lvwerra/stack-exchange-paired``.
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the prompt template
             to the new column names in the dataset. If None, assume these are identical.
         prompt_template (Optional[PromptTemplate]): optional template used to format the prompt. Default
