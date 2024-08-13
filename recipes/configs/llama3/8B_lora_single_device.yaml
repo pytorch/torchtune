@@ -28,23 +28,27 @@ model:
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
+  path: /global/homes/j/jinchuli/projects/datamine/models/Meta-Llama-3-8B-Instruct/original/tokenizer.model
 
 checkpointer:
   _component_: torchtune.utils.FullModelMetaCheckpointer
-  checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/original/
+  checkpoint_dir: /global/homes/j/jinchuli/projects/datamine/models/Meta-Llama-3-8B-Instruct/original/
   checkpoint_files: [
     consolidated.00.pth
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Meta-Llama-3-8B-Instruct/
+  output_dir: /global/homes/j/jinchuli/projects/datamine/models/Meta-Llama-3-8B-Instruct
   model_type: LLAMA3
 resume_from_checkpoint: False
 save_adapter_weights_only: False
 
 # Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.alpaca_cleaned_dataset
+  _component_: torchtune.datasets.instruct_dataset
+  source: json
+  #conversation_style: openai
+  data_files: https://raw.githubusercontent.com/JinchuLi2002/datasets/main/train_aug_13.jsonl
+  #field: data
 seed: null
 shuffle: True
 batch_size: 2
@@ -68,7 +72,7 @@ gradient_accumulation_steps: 64
 compile: False
 
 # Logging
-output_dir: /tmp/lora_finetune_output
+output_dir: ~/projects/datamine/output/lora_finetune_output
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
