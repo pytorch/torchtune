@@ -19,7 +19,6 @@ and models.
     :nosignatures:
 
     InstructTemplate
-    AlpacaInstructTemplate
     GrammarErrorCorrectionTemplate
     SummarizeTemplate
     StackExchangedPairedTemplate
