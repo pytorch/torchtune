@@ -249,7 +249,7 @@ class WandBLogger(MetricLoggerInterface):
 
     def __del__(self) -> None:
         # extra check for when there is an import error
-        if self._wandb and self._wandb.run:
+        if hasattr(self, "_wandb") and self._wandb.run:
             self._wandb.finish()
 
     def close(self) -> None:
