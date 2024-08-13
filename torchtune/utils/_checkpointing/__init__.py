@@ -11,7 +11,7 @@ from ._checkpointer import (  # noqa
     FullModelTorchTuneCheckpointer,
 )
 from ._checkpointer_utils import ModelType  # noqa
-from ._utils import update_state_dict_for_classifier
+from .utils import update_state_dict_for_classifier
 
 Checkpointer = Union[
     FullModelHFCheckpointer,

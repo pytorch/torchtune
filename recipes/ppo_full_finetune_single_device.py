@@ -177,7 +177,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._value_model,
             self._reward_model,
             self._ref_policy_model,
-        ) = self._setup_model(
+        ) = self._setup_models(
             cfg_model=cfg.policy_model,
             cfg_reward_value_model=cfg.reward_and_value_model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
@@ -394,7 +394,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             reward_checkpointer,
         )
 
-    def _setup_model(
+    def _setup_models(
         self,
         cfg_model: DictConfig,
         cfg_reward_value_model: DictConfig,
@@ -426,11 +426,16 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         policy_model.load_state_dict(policy_state_dict)
         ref_policy_model.load_state_dict(ref_policy_state_dict)
 
+        # since we should be loading a classifier checkpoint into
+        # a classifier model, this function should just ensure
+        # output.weight appears in the state_dict and the model's parameters,
+        # and removes output.bias from the state dict if found
         utils.update_state_dict_for_classifier(
             reward_model_state_dict, reward_model.named_parameters()
         )
         reward_model.load_state_dict(reward_model_state_dict)
 
+        # same as above
         utils.update_state_dict_for_classifier(
             value_model_state_dict, reward_model.named_parameters()
         )
