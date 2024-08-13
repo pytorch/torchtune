@@ -27,7 +27,7 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.mistral.mistral_tokenizer
-  path:  /tmp/Mistral-7B-Instruct-v0.2/tokenizer.model
+  path: /tmp/Mistral-7B-Instruct-v0.2/tokenizer.model
 
 # Dataset
 dataset:
@@ -60,11 +60,12 @@ reward_and_value_model:
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Mistral-7B-Instruct-v0.2/
-  checkpoint_files: [
+  checkpoint_files:
+    [
       "pytorch_model-00001-of-00003.bin",
       "pytorch_model-00002-of-00003.bin",
-      "pytorch_model-00003-of-00003.bin"
-  ]
+      "pytorch_model-00003-of-00003.bin",
+    ]
   # this is the only place where you should update `recipe_checkpoint` if resuming training
   recipe_checkpoint: null
   output_dir: ${output_dir}/policy
@@ -75,11 +76,12 @@ checkpointer:
 ref_policy_checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Mistral-7B-Instruct-v0.2/
-  checkpoint_files: [
+  checkpoint_files:
+    [
       "pytorch_model-00001-of-00003.bin",
       "pytorch_model-00002-of-00003.bin",
-      "pytorch_model-00003-of-00003.bin"
-  ]
+      "pytorch_model-00003-of-00003.bin",
+    ]
   output_dir: ${output_dir}/policy
   model_type: MISTRAL
 
@@ -89,11 +91,12 @@ ref_policy_checkpointer:
 value_checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
   checkpoint_dir: /tmp/RM-Mistral-7B/
-  checkpoint_files: [
+  checkpoint_files:
+    [
       "model-00001-of-00003.safetensors",
       "model-00002-of-00003.safetensors",
-      "model-00003-of-00003.safetensors"
-  ]
+      "model-00003-of-00003.safetensors",
+    ]
   output_dir: ${output_dir}/value
   model_type: REWARD
 
@@ -102,14 +105,14 @@ value_checkpointer:
 reward_checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
   checkpoint_dir: /tmp/RM-Mistral-7B/
-  checkpoint_files: [
+  checkpoint_files:
+    [
       "model-00001-of-00003.safetensors",
       "model-00002-of-00003.safetensors",
-      "model-00003-of-00003.safetensors"
-  ]
+      "model-00003-of-00003.safetensors",
+    ]
   output_dir: ${output_dir}/value
   model_type: REWARD
-
 
 resume_from_checkpoint: False
 output_dir: /tmp/mistral7b-ppo-finetune
@@ -138,7 +141,6 @@ enable_activation_checkpointing: True
 # Reduced precision
 dtype: bf16
 
-
 # batch size for forward pass during generation
 forward_batch_size: 16
 max_generated_tokens: 58
@@ -154,9 +156,9 @@ reward_penalty: -3
 
 # tokens to consider as "end of sequence" tokens
 stop_token_ids: [
-  2,  # eos_id
-  28723 # mistral "." token
-]
+    2, # eos_id
+    28723, # mistral "." token
+  ]
 whiten_rewards: False
 
 # GAE hyperparameters
@@ -165,12 +167,11 @@ lmbda: 0.95
 
 # PPO hyperparameters
 loss:
-  _component_: torchtune.modules.loss.PPOLoss
+  _component_: torchtune.modules.rlhf.loss.PPOLoss
   epsilon: 0.2
   value_coeff: 0.1
   value_clip_range: 0.2
 kl_coeff: 0.01
-
 
 # Logging
 metric_logger:
