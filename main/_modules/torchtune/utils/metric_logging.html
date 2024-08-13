@@ -652,7 +652,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_wandb</span><span class="o">.</span><span class="n">log</span><span class="p">({</span><span class="o">**</span><span class="n">payload</span><span class="p">,</span> <span class="s2">&quot;global_step&quot;</span><span class="p">:</span> <span class="n">step</span><span class="p">})</span></div>
 
     <span class="k">def</span> <span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wandb</span><span class="o">.</span><span class="n">run</span><span class="p">:</span>
+        <span class="c1"># extra check for when there is an import error</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_wandb&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wandb</span><span class="o">.</span><span class="n">run</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_wandb</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
 
 <div class="viewcode-block" id="WandBLogger.close"><a class="viewcode-back" href="../../../generated/torchtune.utils.metric_logging.WandBLogger.html#torchtune.utils.metric_logging.WandBLogger.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
