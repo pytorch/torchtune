@@ -53,7 +53,7 @@ dataset:
   #field: data
 seed: null
 shuffle: True
-batch_size: 2
+batch_size: 8
 
 # Optimizer and Scheduler
 optimizer:
@@ -68,7 +68,7 @@ loss:
   _component_: torch.nn.CrossEntropyLoss
 
 # Training
-epochs: 1
+epochs: 50
 max_steps_per_epoch: null
 gradient_accumulation_steps: 64
 compile: False
