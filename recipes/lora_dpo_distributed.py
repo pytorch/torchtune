@@ -623,6 +623,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 policy_chosen_logits_mean = policy_chosen_logits.detach().mean()
                 policy_rejected_logits_mean = policy_rejected_logits.detach().mean()
 
+                # deleting logits here helps reduce (peak) memory usage - we only need them for metric logging
+                del policy_chosen_logits, policy_rejected_logits
+
                 if isinstance(self._loss_fn, SimPOLoss):
                     loss, chosen_rewards, rejected_rewards = self._loss_fn(
                         policy_chosen_log_probs, policy_rejected_log_probs
