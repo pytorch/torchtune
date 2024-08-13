@@ -94,7 +94,7 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True
-memory_efficient_fsdp_wrap: True
+custom_sharded_layers: ['tok_embeddings', 'output']
 fsdp_cpu_offload: True
 
 # Reduced precision

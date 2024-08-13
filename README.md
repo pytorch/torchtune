@@ -30,6 +30,7 @@ torchtune focuses on integrating with popular tools and libraries from the ecosy
 - [PyTorch FSDP](https://pytorch.org/docs/stable/fsdp.html) for distributed training
 - [torchao](https://github.com/pytorch-labs/ao) for lower precision dtypes and [post-training quantization](recipes/quantize.py) techniques
 - [Weights & Biases](https://wandb.ai/site) for [logging](https://pytorch.org/torchtune/main/deep_dives/wandb_logging.html) metrics and checkpoints, and tracking training progress
+- [Comet](https://www.comet.com/site/) as another option for [logging](https://pytorch.org/torchtune/main/deep_dives/comet_logging.html)
 - [ExecuTorch](https://pytorch.org/executorch-overview) for [on-device inference](https://github.com/pytorch/executorch/tree/main/examples/models/llama2#optional-finetuning) using fine-tuned models
 - [bitsandbytes](https://huggingface.co/docs/bitsandbytes/main/en/index) for low memory optimizers for our [single-device recipes](recipes/configs/llama2/7B_full_low_memory.yaml)
 
@@ -48,7 +49,7 @@ torchtune currently supports the following models.
 | [Mistral](https://huggingface.co/mistralai)   | 7B [[model](torchtune/models/mistral/_model_builders.py), [configs](recipes/configs/mistral/)] |
 | [Gemma](https://huggingface.co/collections/google/gemma-release-65d5efbccdbb8c4202ec078b)   | 2B, 7B [[model](torchtune/models/gemma/_model_builders.py), [configs](recipes/configs/gemma/)] |
 | [Microsoft Phi3](https://huggingface.co/collections/microsoft/phi-3-6626e15e9585a200d2d761e3) | Mini [[model](torchtune/models/phi3/), [configs](recipes/configs/phi3/)]
-| [Qwen2](https://qwenlm.github.io/blog/qwen2/) | 7B [[model](torchtune/models/qwen2/), [configs](recipes/configs/qwen2/)]
+| [Qwen2](https://qwenlm.github.io/blog/qwen2/) | 0.5B, 1.5B, 7B [[model](torchtune/models/qwen2/), [configs](recipes/configs/qwen2/)]
 
 We're always adding new models, but feel free to [file an Issue](https://github.com/pytorch/torchtune/issues/new) if there's a new one you would love to see in torchtune!
 
