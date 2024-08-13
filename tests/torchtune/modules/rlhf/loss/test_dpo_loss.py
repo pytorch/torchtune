@@ -6,7 +6,7 @@
 
 import pytest
 import torch
-from torchtune.modules.loss import DPOLoss, IPOLoss, RSOLoss, SimPOLoss
+from torchtune.modules.rlhf.loss import DPOLoss, IPOLoss, RSOLoss, SimPOLoss
 
 
 @pytest.fixture(autouse=True)
