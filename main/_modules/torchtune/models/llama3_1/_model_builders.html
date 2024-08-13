@@ -466,6 +466,24 @@
         <span class="n">rope_base</span><span class="o">=</span><span class="mf">500000.0</span><span class="p">,</span>
     <span class="p">)</span></div>
 
+<div class="viewcode-block" id="llama3_1_405b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_1.llama3_1_405b.html#torchtune.models.llama3_1.llama3_1_405b">[docs]</a><span class="k">def</span> <span class="nf">llama3_1_405b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Builder for creating a Llama3.1 model initialized w/ the default 405B parameter values.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        TransformerDecoder: Instantiation of Llama3.1 405B model</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">llama3_1</span><span class="p">(</span>
+        <span class="n">vocab_size</span><span class="o">=</span><span class="mi">128_256</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="o">=</span><span class="mi">126</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+        <span class="n">num_kv_heads</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+        <span class="n">embed_dim</span><span class="o">=</span><span class="mi">16384</span><span class="p">,</span>
+        <span class="n">max_seq_len</span><span class="o">=</span><span class="mi">8192</span><span class="p">,</span>
+        <span class="n">intermediate_dim</span><span class="o">=</span><span class="mi">53248</span><span class="p">,</span>
+        <span class="n">attn_dropout</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">norm_eps</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+        <span class="n">rope_base</span><span class="o">=</span><span class="mf">500000.0</span><span class="p">,</span>
+    <span class="p">)</span></div>
 
 <div class="viewcode-block" id="lora_llama3_1_8b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_1.lora_llama3_1_8b.html#torchtune.models.llama3_1.lora_llama3_1_8b">[docs]</a><span class="k">def</span> <span class="nf">lora_llama3_1_8b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
