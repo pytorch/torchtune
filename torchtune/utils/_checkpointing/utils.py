@@ -51,10 +51,4 @@ def update_state_dict_for_classifier(
     if "output.bias" in state_dict:
         warn("Found 'output.bias' in state dict - this will not be used!")
         state_dict.pop("output.bias")
-    if not torch.equal(state_dict["output.weight"], output_weight):
-        state_dict["output.weight"] = output_weight
-        warn(
-            f"Found output.weight with {state_dict['output.weight'].shape} "
-            f"in checkpoint. This will be overwritten with model's output.weight "
-            f"with {output_weight[0][1].shape}"
-        )
+    state_dict["output.weight"] = output_weight
