@@ -44,9 +44,9 @@ save_adapter_weights_only: False
 
 # Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.instruct_dataset
+  _component_: torchtune.datasets.chat_dataset
   source: json
-  #conversation_style: openai
+  conversation_style: openai
   data_files: https://raw.githubusercontent.com/JinchuLi2002/datasets/main/train_aug_13.jsonl
   #field: data
 seed: null
