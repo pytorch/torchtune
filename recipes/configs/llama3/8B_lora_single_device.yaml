@@ -48,6 +48,7 @@ dataset:
   source: json
   conversation_style: openai
   data_files: https://raw.githubusercontent.com/JinchuLi2002/datasets/main/train_aug_13.jsonl
+  max_seq_len: 8192
   #field: data
 seed: null
 shuffle: True
