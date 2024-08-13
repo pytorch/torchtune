@@ -28,7 +28,6 @@ from torchtune import config, modules, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets import ConcatDataset
 from torchtune.modules import rlhf
-from torchtune.modules.loss import SimPOLoss
 from torchtune.modules.peft import (
     disable_adapter,
     get_adapter_params,
@@ -36,6 +35,7 @@ from torchtune.modules.peft import (
     set_trainable_params,
     validate_state_dict_for_lora,
 )
+from torchtune.modules.rlhf.loss import SimPOLoss
 from torchtune.recipe_interfaces import FTRecipeInterface
 from tqdm import tqdm
 
@@ -98,10 +98,10 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
 
     The following losses are supported in this recipe:
-        - :class:`~torchtune.modules.loss.DPOLoss`: Direct Preference Optimization (DPO).
-        - :class:`~torchtune.modules.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
-        - :class:`~torchtune.modules.loss.IPO`: Identity Preference Optimization (IPO).
-        - :class:`~torchtune.modules.loss.SimPOLoss`: Simple Preference Optimization (SimPO).
+        - :class:`~torchtune.modules.rlhf.loss.DPOLoss`: Direct Preference Optimization (DPO).
+        - :class:`~torchtune.modules.rlhf.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
+        - :class:`~torchtune.modules.rlhf.loss.IPO`: Identity Preference Optimization (IPO).
+        - :class:`~torchtune.modules.rlhf.loss.SimPOLoss`: Simple Preference Optimization (SimPO).
 
     For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
     has example commands for how to kick-off training.
@@ -565,7 +565,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         all_log_probs = rlhf.get_batch_log_probs(
             all_logits,
             concatenated_labels,
-            # see :class:`~torchtune.modules.loss.dpo.SimPOLoss`
+            # see :class:`~torchtune.modules.rlhf.loss.dpo.SimPOLoss`
             return_average_logprobs=isinstance(self._loss_fn, SimPOLoss),
         )
 
