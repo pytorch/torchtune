@@ -437,7 +437,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # same as above
         utils.update_state_dict_for_classifier(
-            value_model_state_dict, reward_model.named_parameters()
+            value_model_state_dict,value_model.named_parameters()
         )
         value_model.load_state_dict(value_model_state_dict)
 
