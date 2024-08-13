@@ -76,8 +76,10 @@ compile: False
 # Logging
 output_dir: ~/projects/datamine/output/lora_finetune_output
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
-  log_dir: ${output_dir}
+  # _component_: torchtune.utils.metric_logging.DiskLogger
+  # log_dir: ${output_dir}
+  _component_: torchtune.utils.metric_logging.WandBLogger
+  project: Llama3-8B-lora-aug13-1500
 log_every_n_steps: 1
 log_peak_memory_stats: False
 
