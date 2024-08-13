@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>stack_exchanged_paired_dataset &mdash; torchtune main documentation</title>
+  <title>stack_exchange_paired_dataset &mdash; torchtune main documentation</title>
   
 
   
@@ -372,13 +372,13 @@
         
           <li><a href="../api_ref_datasets.html">torchtune.datasets</a> &gt;</li>
         
-      <li>stack_exchanged_paired_dataset</li>
+      <li>stack_exchange_paired_dataset</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.datasets.stack_exchanged_paired_dataset.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.datasets.stack_exchange_paired_dataset.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -408,19 +408,25 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="stack-exchanged-paired-dataset">
-<h1>stack_exchanged_paired_dataset<a class="headerlink" href="#stack-exchanged-paired-dataset" title="Permalink to this heading">¶</a></h1>
+  <section id="stack-exchange-paired-dataset">
+<h1>stack_exchange_paired_dataset<a class="headerlink" href="#stack-exchange-paired-dataset" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.datasets.stack_exchanged_paired_dataset">
-<span class="sig-prename descclassname"><span class="pre">torchtune.datasets.</span></span><span class="sig-name descname"><span class="pre">stack_exchanged_paired_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer" title="torchtune.modules.tokenizers._utils.ModelTokenizer"><span class="pre">ModelTokenizer</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'lvwerra/stack-exchange-paired'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1024</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'train'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.datasets.PreferenceDataset.html#torchtune.datasets.PreferenceDataset" title="torchtune.datasets._preference.PreferenceDataset"><span class="pre">PreferenceDataset</span></a></span></span><a class="reference internal" href="../_modules/torchtune/datasets/_stack_exchanged_paired.html#stack_exchanged_paired_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.datasets.stack_exchanged_paired_dataset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Family of preference datasets similar to <a class="reference external" href="https://huggingface.co/datasets/lvwerra/stack-exchange-paired">StackExchangePaired data</a>.</p>
+<dt class="sig sig-object py" id="torchtune.datasets.stack_exchange_paired_dataset">
+<span class="sig-prename descclassname"><span class="pre">torchtune.datasets.</span></span><span class="sig-name descname"><span class="pre">stack_exchange_paired_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokenizer:</span> <span class="pre">~torchtune.modules.tokenizers._utils.ModelTokenizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'lvwerra/stack-exchange-paired'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_map:</span> <span class="pre">~typing.Optional[~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">str]]</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prompt_template:</span> <span class="pre">~typing.Optional[~torchtune.data._prompt_templates.PromptTemplate]</span> <span class="pre">=</span> <span class="pre">&lt;torchtune.data._prompt_templates.PromptTemplate</span> <span class="pre">object&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_on_input:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'train'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.datasets.PreferenceDataset.html#torchtune.datasets.PreferenceDataset" title="torchtune.datasets._preference.PreferenceDataset"><span class="pre">PreferenceDataset</span></a></span></span><a class="reference internal" href="../_modules/torchtune/datasets/_stack_exchange_paired.html#stack_exchange_paired_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.datasets.stack_exchange_paired_dataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Family of preference datasets similar to the <a class="reference external" href="https://huggingface.co/datasets/lvwerra/stack-exchange-paired">Stack Exchange Paired dataset</a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>tokenizer</strong> (<a class="reference internal" href="torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer" title="torchtune.modules.tokenizers.ModelTokenizer"><em>ModelTokenizer</em></a>) – Tokenizer used by the model that implements the <code class="docutils literal notranslate"><span class="pre">tokenize_messages</span></code> method.</p></li>
-<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path string of dataset, anything supported by Hugging Face’s <cite>load_dataset</cite>.</p></li>
-<li><p><strong>max_seq_len</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Maximum number of tokens in the returned input and label token id lists.
-Default is 1024.</p></li>
+<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path to dataset repository on Hugging Face. For local datasets,
+define source as the data file type (e.g. “json”, “csv”, “text”) and pass
+in the filepath in <code class="docutils literal notranslate"><span class="pre">data_files</span></code>. See <a class="reference external" href="https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path">Hugging Face’s</a>
+<code class="docutils literal notranslate"><span class="pre">load_dataset</span></code> for more details. Default is <code class="docutils literal notranslate"><span class="pre">lvwerra/stack-exchange-paired</span></code>.</p></li>
+<li><p><strong>column_map</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em><em>]</em>) – a mapping from the expected columns in the prompt template
+to the new column names in the dataset. If None, assume these are identical.</p></li>
+<li><p><strong>prompt_template</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="torchtune.data.PromptTemplate.html#torchtune.data.PromptTemplate" title="torchtune.data.PromptTemplate"><em>PromptTemplate</em></a><em>]</em>) – optional template used to format the prompt. Default
+is <a class="reference internal" href="torchtune.data.QuestionAnswerTemplate.html#torchtune.data.QuestionAnswerTemplate" title="torchtune.data.QuestionAnswerTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuestionAnswerTemplate</span></code></a>.</p></li>
+<li><p><strong>train_on_input</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – Whether the model is trained on the prompt or not. Default is False.</p></li>
 <li><p><strong>split</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – <code class="docutils literal notranslate"><span class="pre">split</span></code> argument for <code class="docutils literal notranslate"><span class="pre">datasets.load_dataset</span></code>. You can use this argument to load a subset
 of a given split, e.g. <code class="docutils literal notranslate"><span class="pre">split=&quot;train[:10%]&quot;</span></code>. Default is “train”.</p></li>
 </ul>
@@ -479,7 +485,7 @@ of a given split, e.g. <code class="docutils literal notranslate"><span class="p
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">stack_exchanged_paired_dataset</a></li>
+<li><a class="reference internal" href="#">stack_exchange_paired_dataset</a></li>
 </ul>
 
             </div>

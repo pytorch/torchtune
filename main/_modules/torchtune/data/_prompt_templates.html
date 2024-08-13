@@ -615,6 +615,21 @@
 
 <span class="s2">Please see :class:`~torchtune.data.PromptTemplate` for full API arguments.</span>
 <span class="s2">&quot;&quot;&quot;</span>
+<span class="n">QuestionAnswerTemplate</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+    <span class="n">PromptTemplate</span><span class="p">,</span>
+    <span class="n">template</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;Question: &quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">Answer: &quot;</span><span class="p">),</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+<span class="n">QuestionAnswerTemplate</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">A prompt template for question answering tasks::</span>
+
+<span class="s2">    Question: </span><span class="si">{user_message}</span>
+
+<span class="s2">    Answer: </span><span class="si">{assistant_message}</span>
+
+<span class="s2">Please see :class:`~torchtune.data.PromptTemplate` for full API arguments.</span>
+<span class="s2">&quot;&quot;&quot;</span>
 </pre></div>
 
              </article>

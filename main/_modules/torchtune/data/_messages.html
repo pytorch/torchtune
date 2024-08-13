@@ -558,6 +558,65 @@
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">messages</span><span class="p">}</span></div>
 
 
+<div class="viewcode-block" id="ChosenRejectedToMessages"><a class="viewcode-back" href="../../../generated/torchtune.data.ChosenRejectedToMessages.html#torchtune.data.ChosenRejectedToMessages">[docs]</a><span class="k">class</span> <span class="nc">ChosenRejectedToMessages</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transform for converting datasets with &quot;chosen&quot; and &quot;rejected&quot; columns containing</span>
+<span class="sd">    conversations to a list of chosen and rejected messages. For example::</span>
+
+<span class="sd">        |  chosen                                |  rejected                              |</span>
+<span class="sd">        |----------------------------------------|----------------------------------------|</span>
+<span class="sd">        | [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: Q1},      | [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: Q1},      |</span>
+<span class="sd">        |  {&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: A1}] |  {&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: A2}] |</span>
+
+<span class="sd">    will be converted to:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        chosen = [</span>
+<span class="sd">            Message(role=&quot;user&quot;, content=&quot;Q1&quot;),</span>
+<span class="sd">            Message(role=&quot;assistant&quot;, content=&quot;A1&quot;),</span>
+<span class="sd">        ]</span>
+<span class="sd">        rejected = [</span>
+<span class="sd">            Message(role=&quot;user&quot;, content=&quot;Q1&quot;),</span>
+<span class="sd">            Message(role=&quot;assistant&quot;, content=&quot;A2&quot;),</span>
+<span class="sd">        ]</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        train_on_input (bool): Whether the model is trained on the user prompt or not.</span>
+<span class="sd">            Default is False.</span>
+<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping to change the expected</span>
+<span class="sd">            &quot;chosen&quot; and &quot;rejected&quot; column names to the actual column names in the dataset.</span>
+<span class="sd">            Default is None, keeping the default column names.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="o">=</span> <span class="n">train_on_input</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="n">column_map</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">column_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="n">key_chosen</span> <span class="o">=</span> <span class="n">column_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;chosen&quot;</span><span class="p">,</span> <span class="s2">&quot;chosen&quot;</span><span class="p">)</span>
+        <span class="n">key_rejected</span> <span class="o">=</span> <span class="n">column_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rejected&quot;</span><span class="p">,</span> <span class="s2">&quot;rejected&quot;</span><span class="p">)</span>
+
+        <span class="n">chosen_messages</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">key_chosen</span><span class="p">]:</span>
+            <span class="n">message</span><span class="p">[</span><span class="s2">&quot;masked&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+                <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span>
+            <span class="p">)</span>
+            <span class="n">chosen_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Message</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">message</span><span class="p">))</span>
+
+        <span class="n">rejected_messages</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">key_rejected</span><span class="p">]:</span>
+            <span class="n">message</span><span class="p">[</span><span class="s2">&quot;masked&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+                <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span>
+            <span class="p">)</span>
+            <span class="n">rejected_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Message</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">message</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;chosen&quot;</span><span class="p">:</span> <span class="n">chosen_messages</span><span class="p">,</span> <span class="s2">&quot;rejected&quot;</span><span class="p">:</span> <span class="n">rejected_messages</span><span class="p">}</span></div>
+
+
 <div class="viewcode-block" id="ShareGPTToMessages"><a class="viewcode-back" href="../../../generated/torchtune.data.ShareGPTToMessages.html#torchtune.data.ShareGPTToMessages">[docs]</a><span class="k">class</span> <span class="nc">ShareGPTToMessages</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Convert a chat sample adhering to the ShareGPT json structure to torchtune&#39;s :class:`~torchtune.data.Message`</span>

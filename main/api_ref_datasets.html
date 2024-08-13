@@ -429,8 +429,8 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.slimorca_dataset.html#torchtune.datasets.slimorca_dataset" title="torchtune.datasets.slimorca_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">slimorca_dataset</span></code></a></p></td>
 <td><p>Support for <a class="reference external" href="https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup">SlimOrca-style</a> family of conversational datasets.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.stack_exchanged_paired_dataset.html#torchtune.datasets.stack_exchanged_paired_dataset" title="torchtune.datasets.stack_exchanged_paired_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stack_exchanged_paired_dataset</span></code></a></p></td>
-<td><p>Family of preference datasets similar to <a class="reference external" href="https://huggingface.co/datasets/lvwerra/stack-exchange-paired">StackExchangePaired data</a>.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.stack_exchange_paired_dataset.html#torchtune.datasets.stack_exchange_paired_dataset" title="torchtune.datasets.stack_exchange_paired_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stack_exchange_paired_dataset</span></code></a></p></td>
+<td><p>Family of preference datasets similar to the <a class="reference external" href="https://huggingface.co/datasets/lvwerra/stack-exchange-paired">Stack Exchange Paired dataset</a>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.cnn_dailymail_articles_dataset.html#torchtune.datasets.cnn_dailymail_articles_dataset" title="torchtune.datasets.cnn_dailymail_articles_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cnn_dailymail_articles_dataset</span></code></a></p></td>
 <td><p>Support for family of datasets similar to <a class="reference external" href="https://huggingface.co/datasets/ccdv/cnn_dailymail">CNN / DailyMail</a>, a corpus of news articles.</p></td>
@@ -480,7 +480,7 @@ These are especially useful for specifying from a YAML config.</p>
 <td><p>Performs greedy sample packing on a provided dataset.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.PreferenceDataset.html#torchtune.datasets.PreferenceDataset" title="torchtune.datasets.PreferenceDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PreferenceDataset</span></code></a></p></td>
-<td><p>Class that supports any custom dataset with instruction-based prompts and a configurable template.</p></td>
+<td><p>Primary class for fine-tuning via preference modelling techniques (e.g. training a preference model for RLHF, or directly optimizing a model through DPO) on a preference dataset sourced from Hugging Face Hub, local files, or remote files. This class requires the dataset to have &quot;chosen&quot; and &quot;rejected&quot; model responses. These are typically either full conversations between user and assistant in separate columns::.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.SFTDataset.html#torchtune.datasets.SFTDataset" title="torchtune.datasets.SFTDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SFTDataset</span></code></a></p></td>
 <td><p>Primary class for creating any dataset for supervised fine-tuning either from Hugging Face Hub, local files, or remote files.</p></td>
