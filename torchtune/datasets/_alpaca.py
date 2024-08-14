@@ -69,7 +69,7 @@ class AlpacaToMessages(Transform):
                 role="user",
                 content=prompt,
                 masked=not self.train_on_input,
-                eot=False,
+                eot=True,
             ),
             Message(
                 role="assistant",
@@ -108,9 +108,9 @@ def alpaca_dataset(
             output by the dataset to tokens. This will always be a :class:`~torchtune.modules.tokenizers.ModelTokenizer`.
         source (str): path to dataset repository on Hugging Face. For local datasets,
             define source as the data file type (e.g. "json", "csv", "text") and pass
-            in the filepath in ``data_files``. See Hugging Face's ``load_dataset``
-            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
-            for more details. Default is ``tatsu-lab/alpaca``.
+            in the filepath in ``data_files``. See `Hugging Face's
+            <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
+            ``load_dataset`` for more details. Default is ``tatsu-lab/alpaca``.
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the message transform
             :class:`~torchtune.data.AlpacaToMessages` to the new column names in the dataset. If None, use
             the default column names ``"instruction``, ``"input"``, and ``"output"`` in ``tatsu-lab/alpaca``.

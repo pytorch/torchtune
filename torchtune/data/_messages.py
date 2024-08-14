@@ -41,9 +41,13 @@ class Message:
         masked (bool): whether the message is masked in the sample. If True, do not use
             in loss calculation. Default: False
         ipython (bool): whether the message is a tool call. Default: False
-        eot (bool): whether the message corresponds to the end of a turn. Should be true
-            except in the case of multiple consecutive assistant messages (i.e., tool calls
-            by assistant). Default: True
+        eot (bool): whether the message corresponds to the end of a turn, where control is handed over
+            to the assistant from the user or the user from the assistant. Default: True. Should be true
+            in most cases except for:
+
+            - For multiple consecutive assistant messages (i.e., tool calls
+              by assistant), only the last assistant message will have ``eot=True``
+            - All ipython messages (tool call returns) should set ``eot=False``.
     """
 
     def __init__(
@@ -142,7 +146,7 @@ class InputOutputToMessages(Transform):
                 role="user",
                 content=sample[key_input],
                 masked=not self.train_on_input,
-                eot=False,
+                eot=True,
             ),
             Message(
                 role="assistant",

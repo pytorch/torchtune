@@ -11,8 +11,8 @@ from typing import List
 
 import torch
 from torch.utils.data import Dataset
-from torchtune.datasets._alpaca import AlpacaToMessages
 from torchtune.datasets import SFTDataset
+from torchtune.datasets._alpaca import AlpacaToMessages
 from torchtune.modules.transforms import Transform
 
 CKPT_COMPONENT_MAP = {
