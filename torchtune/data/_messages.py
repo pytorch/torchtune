@@ -117,7 +117,11 @@ class InputOutputToMessages(Transform):
     Message transform class that converts a sample with "input" and "output" fields,
     (or equivalent fields specified in column_map) to user and assistant messages,
     respectively. This is useful for datasets that have two columns, one containing
-    the user prompt and the other containing the model response.
+    the user prompt string and the other containing the model response string::
+
+        |  input          |  output          |
+        |-----------------|------------------|
+        | "user prompt"   | "model response" |
 
     Args:
         train_on_input (bool): Whether the model is trained on the user prompt or not.
