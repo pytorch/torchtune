@@ -6,7 +6,7 @@
 
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
-from torchtune.data import Message, truncate
+from torchtune.data import Message, truncate, PromptTemplate
 from torchtune.modules.tokenizers import ModelTokenizer, TikTokenBaseTokenizer
 from torchtune.modules.transforms import Transform
 
@@ -51,6 +51,15 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
             Llama3 special tokens.
         max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
             after which the input will be truncated. Default is None.
+        prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
+            to add structured text around the actual messages. The structured text is used in three scenarios:
+
+            - Task-specific templates to gear models for a particular task that it will expect after training
+            - Model-specific templates that are required whenever the model is prompted, such as the [INST]
+              tags in Llama2 and in Mistral
+            - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
+
+            The extra text will still get tokenized as normal text, not as special tokens. Default is None.
 
     Examples:
         >>> tokenizer = Llama3Tokenizer("/path/to/tt_model")
@@ -64,6 +73,7 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         path: str,
         special_tokens: Optional[Dict[str, int]] = None,
         max_seq_len: Optional[int] = None,
+        prompt_template: Optional[PromptTemplate] = None,
     ):
         self.special_tokens = (
             special_tokens if special_tokens is not None else LLAMA3_SPECIAL_TOKENS
@@ -100,6 +110,8 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
             special_tokens=self.special_tokens,
         )
         self.max_seq_len = max_seq_len
+
+        self.prompt_template = prompt_template
 
     def _validate_special_tokens(
         self,
@@ -240,10 +252,11 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         Returns:
             Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
         """
+        templated_messages = self.prompt_template(messages) if self.prompt_template is not None else messages
         tokens = [self.bos_id]
         # bos and eos are always masked
         mask = [True]
-        for message in messages:
+        for message in templated_messages:
             tokenized_message = self.tokenize_message(message)
 
             tokens = tokens + tokenized_message

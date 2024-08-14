@@ -6,7 +6,7 @@
 
 from typing import Any, List, Mapping, Optional, Tuple
 
-from torchtune.data import Message
+from torchtune.data import Message, PromptTemplate
 from torchtune.modules.tokenizers import (
     ModelTokenizer,
     SentencePieceBaseTokenizer,
@@ -25,6 +25,15 @@ class GemmaTokenizer(ModelTokenizer, Transform):
         path (str): Path to pretrained tokenizer file.
         max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
             Default: None
+        prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
+            to add structured text around the actual messages. The structured text is used in three scenarios:
+
+            - Task-specific templates to gear models for a particular task that it will expect after training
+            - Model-specific templates that are required whenever the model is prompted, such as the [INST]
+              tags in Llama2 and in Mistral
+            - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
+
+            The extra text will still get tokenized as normal text, not as special tokens. Default is None.
 
     Examples:
         >>> tokenizer = GemmaTokenizer("/path/to/spm_model")
@@ -37,6 +46,7 @@ class GemmaTokenizer(ModelTokenizer, Transform):
         self,
         path: str,
         max_seq_len: Optional[int] = None,
+        prompt_template: Optional[PromptTemplate] = None,
     ):
         self._spm_model = SentencePieceBaseTokenizer(path)
 
@@ -47,6 +57,8 @@ class GemmaTokenizer(ModelTokenizer, Transform):
         self.stop_tokens = [self.eos_id]
 
         self.max_seq_len = max_seq_len
+
+        self.prompt_template = prompt_template
 
     @property
     def eos_id(self):
@@ -117,9 +129,10 @@ class GemmaTokenizer(ModelTokenizer, Transform):
         Returns:
             Tuple[List[int], List[bool]]: The tokenized messages
         """
+        templated_messages = self.prompt_template(messages) if self.prompt_template is not None else messages
         return tokenize_messages_no_special_tokens(
             tokenizer=self,
-            messages=messages,
+            messages=templated_messages,
             bos_id=self.bos_id,
             eos_id=self.eos_id,
             max_seq_len=self.max_seq_len,

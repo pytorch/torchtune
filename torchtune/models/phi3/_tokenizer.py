@@ -6,7 +6,7 @@
 
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
-from torchtune.data import Message, truncate
+from torchtune.data import Message, truncate, PromptTemplate
 from torchtune.modules.tokenizers import ModelTokenizer, SentencePieceBaseTokenizer
 from torchtune.modules.transforms import Transform
 
@@ -36,6 +36,15 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
             Phi3 special tokens.
         max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
             Default: None
+        prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
+            to add structured text around the actual messages. The structured text is used in three scenarios:
+
+            - Task-specific templates to gear models for a particular task that it will expect after training
+            - Model-specific templates that are required whenever the model is prompted, such as the [INST]
+              tags in Llama2 and in Mistral
+            - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
+
+            The extra text will still get tokenized as normal text, not as special tokens. Default is None.
 
     Examples:
         >>> tokenizer = Phi3MiniTokenizer("/path/to/spm_model")
@@ -49,6 +58,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
         path: str,
         special_tokens: Optional[Dict[str, int]] = None,
         max_seq_len: Optional[int] = None,
+        prompt_template: Optional[PromptTemplate] = None,
     ):
         self._spm_model = SentencePieceBaseTokenizer(path)
 
@@ -64,6 +74,8 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
         self.stop_tokens = [self.eos_id]
 
         self.max_seq_len = max_seq_len
+
+        self.prompt_template = prompt_template
 
     @property
     def vocab_size(self):
@@ -145,6 +157,8 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
         Returns:
             Tuple[List[int], List[bool]]: The tokenized messages
         """
+        templated_messages = self.prompt_template(messages) if self.prompt_template is not None else messages
+
         start_of_turn = True
         end_of_turn = False
         tokenized_messages = []
@@ -153,7 +167,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
         # The chat template in HF adds a bunch of newlines
         new_line_token_id = self.encode("\n", add_bos=False, add_eos=False)
 
-        for message in messages:
+        for message in templated_messages:
             # Skip system prompt
             if ignore_system_prompts and message.role == "system":
                 continue

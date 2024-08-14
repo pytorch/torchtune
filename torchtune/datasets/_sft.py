@@ -86,15 +86,6 @@ class SFTDataset(Dataset):
         model_transform (Transform): callable that applies model-specific pre-processing to the sample after the list of
             messages is created from ``message_transform``. This includes tokenization and any modality-specific
             transforms. It is expected to return at minimum ``"tokens"`` and ``"mask"`` keys.
-        prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
-            to add structured text around the actual messages. The structured text is used in three scenarios:
-
-            - Task-specific templates to gear models for a particular task that it will expect after training
-            - Model-specific templates that are required whenever the model is prompted, such as the [INST]
-              tags in Llama2 and in Mistral
-            - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
-
-            The extra text will still get tokenized as normal text, not as special tokens.
         filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
             the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
             details.
