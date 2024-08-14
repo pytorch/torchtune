@@ -11,9 +11,6 @@ from typing import List
 
 import torch
 from torch.utils.data import Dataset
-from torchtune.datasets import SFTDataset
-from torchtune.datasets._alpaca import AlpacaToMessages
-from torchtune.modules.transforms import Transform
 
 CKPT_COMPONENT_MAP = {
     "tune": "torchtune.utils.FullModelTorchTuneCheckpointer",
@@ -52,20 +49,9 @@ def get_assets_path():
     return Path(__file__).parent.parent / "assets"
 
 
-def dummy_alpaca_dataset(model_transform: Transform, train_on_input: bool = True):
-    return SFTDataset(
-        source="json",
-        message_transform=AlpacaToMessages(train_on_input=train_on_input),
-        model_transform=model_transform,
-        prompt_template=None,
-        data_files=os.path.join(get_assets_path(), "alpaca_tiny.json"),
-        split="train",
-    )
-
-
 def dummy_alpaca_dataset_config():
     return [
-        "dataset._component_=tests.recipes.utils.dummy_alpaca_dataset",
+        "dataset._component_=tests.test_utils.dummy_alpaca_dataset",
     ]
 
 

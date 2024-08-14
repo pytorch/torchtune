@@ -20,6 +20,8 @@ import pytest
 import torch
 from torch import nn
 from torchtune.data import ChatFormat, Message, PromptTemplate, truncate
+from torchtune.datasets import SFTDataset
+from torchtune.datasets._alpaca import AlpacaToMessages
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
 
@@ -358,3 +360,14 @@ def assert_dialogue_equal(actual, expected):
     for i in range(len(actual)):
         assert actual[i].role == expected[i].role
         assert actual[i].text_content == expected[i].text_content
+
+
+def dummy_alpaca_dataset(model_transform: Transform, train_on_input: bool = True):
+    return SFTDataset(
+        source="json",
+        message_transform=AlpacaToMessages(train_on_input=train_on_input),
+        model_transform=model_transform,
+        prompt_template=None,
+        data_files=os.path.join(get_assets_path(), "alpaca_tiny.json"),
+        split="train",
+    )
