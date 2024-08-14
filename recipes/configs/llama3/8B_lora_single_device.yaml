@@ -50,6 +50,13 @@ dataset:
   data_files: https://raw.githubusercontent.com/JinchuLi2002/datasets/main/train_aug_13.jsonl
   max_seq_len: 8192
   split: train
+dataset:
+  _component_: torchtune.datasets.chat_dataset
+  source: json
+  conversation_style: openai
+  data_files: https://raw.githubusercontent.com/JinchuLi2002/datasets/main/val_aug_13.jsonl
+  max_seq_len: 8192
+  split: test
   #field: data
 seed: null
 shuffle: True
@@ -59,7 +66,7 @@ batch_size: 4
 optimizer:
   _component_: torch.optim.AdamW
   weight_decay: 0.01
-  lr: 0.0003
+  lr: 0.00003
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
