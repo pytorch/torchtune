@@ -59,7 +59,7 @@ batch_size: 4
 optimizer:
   _component_: torch.optim.AdamW
   weight_decay: 0.01
-  lr: 3e-4
+  lr: 0.0003
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
@@ -70,7 +70,7 @@ loss:
 # Training
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 64
+gradient_accumulation_steps: 1
 compile: False
 
 # Logging
