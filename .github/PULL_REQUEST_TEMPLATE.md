@@ -22,4 +22,7 @@ Please make sure to do each of the following if applicable to your PR. (If you'r
 - [ ] include relevant commands and any other artifacts in this summary (pastes of loss curves, eval results, etc.)
 
 #### UX
-If your function changed a public API, please add a dummy example of what the user experience will look like when calling it. Consider adding it to the docs or function docstring.
+If your function changed a public API, please add a dummy example of what the user experience will look like when calling it.
+
+- [ ] I did not change any public API;
+- [ ] I have added an example to docs or docstrings;
