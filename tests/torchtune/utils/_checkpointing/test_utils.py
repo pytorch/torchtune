@@ -104,3 +104,15 @@ class TestUpdateStateDictForClassifer:
             AssertionError, match="Expected output.weight in model_named_parameters"
         ):
             update_state_dict_for_classifier(llama2_state_dict, named_params)
+
+    def test_no_op_loading_classifier_weights(
+        self, llama2_classifier_model
+    ):
+        # sanity check, nothing should happen here
+        # state dicts should be identical before and after update
+        expected_state_dict = llama2_classifier_model.state_dict().copy()
+        state_dict_to_load = llama2_classifier_model.state_dict().copy()
+
+        update_state_dict_for_classifier(state_dict_to_load, llama2_classifier_model.named_parameters()
+
+        assert state_dict_to_load == expected_state_dict
