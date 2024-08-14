@@ -38,7 +38,7 @@ the building blocks simple.
 """
 
 
-# ------------------ Vanilla Llama3 ------------------
+# ------------------ Vanilla Llama3.1 ------------------
 
 def llama3_1(
     vocab_size: int,

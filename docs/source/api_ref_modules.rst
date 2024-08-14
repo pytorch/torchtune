@@ -78,19 +78,6 @@ These are utilities that are common to and can be used by all modules.
 
    common_utils.reparametrize_as_dtype_state_dict_post_hook
 
-Loss
-------------------
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
-   loss.PPOLoss
-   loss.DPOLoss
-   loss.RSOLoss
-   loss.IPOLoss
-   loss.SimPOLoss
-
 
 Vision Transforms
 ------------------
@@ -121,3 +108,16 @@ Components for RLHF algorithms like PPO.
     rlhf.truncate_sequence_at_first_stop_token
     rlhf.left_padded_collate
     rlhf.padded_collate_dpo
+
+Losses
+^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   rlhf.loss.PPOLoss
+   rlhf.loss.DPOLoss
+   rlhf.loss.RSOLoss
+   rlhf.loss.IPOLoss
+   rlhf.loss.SimPOLoss

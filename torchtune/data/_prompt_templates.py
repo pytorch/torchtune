@@ -211,3 +211,18 @@ A prompt template for summarization tasks::
 
 Please see :class:`~torchtune.data.PromptTemplate` for full API arguments.
 """
+QuestionAnswerTemplate = partial(
+    PromptTemplate,
+    template={
+        "user": ("Question: ", "\n\nAnswer: "),
+    },
+)
+QuestionAnswerTemplate.__doc__ = """
+A prompt template for question answering tasks::
+
+    Question: {user_message}
+
+    Answer: {assistant_message}
+
+Please see :class:`~torchtune.data.PromptTemplate` for full API arguments.
+"""
