@@ -12,7 +12,11 @@ from datasets import Dataset
 from tests.test_utils import assert_dialogue_equal, DummyTokenizer
 from torchtune.data import Message
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.datasets import alpaca_cleaned_dataset, alpaca_dataset, AlpacaToMessages
+from torchtune.datasets._alpaca import (
+    alpaca_cleaned_dataset,
+    alpaca_dataset,
+    AlpacaToMessages,
+)
 
 
 class TestAlpacaDataset:
@@ -121,7 +125,7 @@ class TestAlpacaToMessages:
                 "Write a response that appropriately completes the request.\n\n"
                 "### Instruction:\nhello\n\n### Input:\nworld\n\n### Response:\n",
                 masked=True,
-                eot=False,
+                eot=True,
             ),
             Message(role="assistant", content="hello world", masked=False, eot=True),
         ]
@@ -145,7 +149,7 @@ class TestAlpacaToMessages:
                 "Write a response that appropriately completes the request.\n\n"
                 "### Instruction:\nhello world\n\n### Response:\n",
                 masked=True,
-                eot=False,
+                eot=True,
             ),
             Message(role="assistant", content="hello world", masked=False, eot=True),
         ]
