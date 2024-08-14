@@ -113,6 +113,6 @@ class TestUpdateStateDictForClassifer:
         expected_state_dict = llama2_classifier_model.state_dict().copy()
         state_dict_to_load = llama2_classifier_model.state_dict().copy()
 
-        update_state_dict_for_classifier(state_dict_to_load, llama2_classifier_model.named_parameters()
+        update_state_dict_for_classifier(state_dict_to_load, llama2_classifier_model.named_parameters())
 
         assert state_dict_to_load == expected_state_dict
