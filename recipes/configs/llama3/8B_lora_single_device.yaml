@@ -68,7 +68,7 @@ loss:
   _component_: torch.nn.CrossEntropyLoss
 
 # Training
-epochs: 1
+epochs: 3
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
 compile: False
