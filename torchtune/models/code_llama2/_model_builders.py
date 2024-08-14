@@ -29,7 +29,9 @@ def code_llama2_7b() -> TransformerDecoder:
         embed_dim=4096,
         max_seq_len=16384,
         attn_dropout=0.0,
+        intermediate_dim=11008,
         norm_eps=1e-5,
+        rope_base=1000000.0,
     )
 
 
@@ -111,6 +113,7 @@ def code_llama2_13b() -> TransformerDecoder:
         max_seq_len=16384,
         attn_dropout=0.0,
         norm_eps=1e-5,
+        rope_base=1000000.0,
     )
 
 
@@ -193,6 +196,7 @@ def code_llama2_70b() -> TransformerDecoder:
         max_seq_len=16384,
         attn_dropout=0.0,
         norm_eps=1e-5,
+        rope_base=1000000.0,
     )
 
 
