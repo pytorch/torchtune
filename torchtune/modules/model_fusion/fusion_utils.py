@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import functools
 from typing import List
 
 from torch import nn
@@ -20,6 +21,6 @@ def register_fusion_module(module: nn.Module):
         """
         Return parameters of fusion layer.
         """
-        return list(self.named_parameters().keys())
+        return [k for k, v in self.named_parameters()]
 
-    module.fusion_params = fusion_params
+    module.fusion_params = functools.partial(fusion_params, module)

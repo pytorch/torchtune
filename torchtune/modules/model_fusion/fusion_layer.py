@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List
+from typing import Dict, List
 
 import torch
 from torch import nn, Tensor
@@ -41,25 +41,26 @@ class FusionLayer(nn.Module):
         self.fusion_first = fusion_first
 
         # Keep FusionLayer wrappings out of the state_dict
-        self.register_state_dict_post_hook(FusionLayer._state_dict_hook)
-        # TODO: Switch to register_load_state_dict_pre_hook in v2.5
+        self._register_state_dict_hook(FusionLayer._state_dict_hook)
         self._register_load_state_dict_pre_hook(
             FusionLayer._load_state_dict_hook, with_module=True
         )
+        # TODO: Switch to register_load_state_dict_pre_hook and
+        # register_state_dict_pre_hook after PyTorch v2.5
 
-    def _state_dict_hook(self, destination, prefix, keep_vars):
+    def _state_dict_hook(self, state_dict, *args, **kwargs):
         """Remove "layer" from the original layer in the state_dict
         name. This keeps the orginal state dict name for the layer
         from before fusing with the fusion_layer.
 
         [!Note] This update changes the order of the OrderedDict
         """
-        keys = list(destination.keys())
+        keys = list(state_dict.keys())
         for key in keys:
             if key.startswith("layer"):
                 new_key = key.replace("layer.", "")
-                destination[new_key] = destination[key]
-                del destination[key]
+                state_dict[new_key] = state_dict[key]
+                del state_dict[key]
 
     def _load_state_dict_hook(self, state_dict, *args, **kwargs):
         """Apply extra "layer" prefix to the state_dict key to
@@ -82,9 +83,10 @@ class FusionLayer(nn.Module):
         self.layer.setup_cache(batch_size, dtype)
         self.fusion_layer.setup_cache(batch_size, dtype)
 
+    @property
     def cache_enabled(self) -> bool:
         """Check if the key value caches are setup."""
-        return self.layer.cache_enabled()
+        return self.layer.cache_enabled
 
     def reset_cache(self):
         """Reset both layers' key value caches."""
