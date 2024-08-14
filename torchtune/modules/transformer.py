@@ -120,6 +120,9 @@ class TransformerCrossAttentionLayer(nn.Module):
         mlp_norm (Optional[nn.Module]): Normalization to be applied before the feed-forward layer.
         ca_scale (Optional[nn.Module]): Module to scale cross-attention output.
         mlp_scale (Optional[nn.Module]): Module to scale the feed-forward output.
+
+    Raises:
+        AssertionError: if attn.pos_embeddings is set.
     """
 
     def __init__(
@@ -133,9 +136,11 @@ class TransformerCrossAttentionLayer(nn.Module):
         mlp_scale: Optional[nn.Module] = None,
     ) -> None:
         super().__init__()
-        assert (
-            attn.pos_embeddings is None
-        ), "Doesn't support positional embeddings for cross attention, because q and k are different sequences."
+        if attn.pos_embeddings is not None:
+            raise AssertionError(
+                "Doesn't support positional embeddings for cross attention, \
+                because q and k are different sequences."
+            )
         self.attn = attn
         self.mlp = mlp
         self.ca_norm = ca_norm or nn.Identity()
@@ -167,25 +172,32 @@ class TransformerCrossAttentionLayer(nn.Module):
         a full row of the attention matrix being masked out.
 
         In the example below, the word "the" is masked from every embedding.
+        The False value means a token can't attend to an embedding.
 
         .. code-block:: text
 
             |emb||emb||emb|
-        |The| x    x    x
-        |red|      x
-        |car| x
+        |The| F    F    F
+        |red| T    F    T
+        |car| F    T    T
 
         This results in no inputs into the softmax layer which causes a NaN.
-        The skip mask removes the output of the attention module and
+        The skip mask is used to mask the outputs of attention and
         mlp resulting in the token being skipped.
 
+        The above example would result in a skip mask of: [[True], [False], [False]]
+        which specifies which tokens to fully mask out.
+
         """
+        # no skip_mask if no masking
         if mask is None:
             return None
+        # negate mask and convert to boolean mask
         if mask.dtype == torch.bool:
             mask = ~mask
         else:
             mask = torch.isneginf(mask)
+        # True where all elements in a row are True
         mask = torch.all(mask, dim=-1, keepdim=True)
         return mask
 
@@ -201,10 +213,12 @@ class TransformerCrossAttentionLayer(nn.Module):
         Args:
             x (Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
-            encoder_input (Optional[Tensor]): Optional second input to cross attend with x. Shape
-                [batch_size x seq_length x embed_dim] (seq_length and embed_dim may very from x)
-            encoder_mask (Optional[Tensor]):  Cross attention boolean tensor with shape
-                [batch_size x x_seq_len x encoder_seq_len]
+            encoder_input (Optional[Tensor]): Optional input embeds from the encoder. Shape
+                [batch_size x token_sequence x embed_dim]
+            encoder_mask (Optional[Tensor]):  Boolean tensor defining a relational matrix between
+                tokens and encoder embeddings. A True value at position i,j means token i can attend
+                to embedding j in the decoder. Mask has shape [batch_size x token_sequence x embed_sequence].
+                Default is None.
             **kwargs (Dict): transformer layer inputs not relevant to self attention.
 
         Returns:
@@ -225,7 +239,7 @@ class TransformerCrossAttentionLayer(nn.Module):
         # Input tensor and attention output have the same shape
         # [b, s, d]
         # Norm applied before self-attention
-        # TODO: Add support for sample packing and bring ack input_pos
+        # TODO: Add support for sample packing and bring back input_pos
         attn_out = self.attn(self.ca_norm(x), encoder_input, mask=encoder_mask)
         if skip_mask is not None:
             attn_out.masked_fill_(skip_mask, 0)
@@ -281,6 +295,10 @@ class TransformerDecoder(nn.Module):
             the decoder.
         output_hidden_states (Optional[List[int]]): List of layers (indices) to include in the output
 
+    Raises:
+        AssertionError: num_layers is set and layer is a list
+        AssertionError: num_layers is not set and layer is an nn.Module
+
     Note:
         Arg values are checked for correctness (eg: ``attn_dropout`` belongs to [0,1])
         in the module where they are used. This helps reduces the number of raise
@@ -301,14 +319,14 @@ class TransformerDecoder(nn.Module):
     ) -> None:
         super().__init__()
         if num_layers is None:
-            assert isinstance(
-                layers, List
-            ), "If num_layers is undefined, it is assumed that a list of layers is provided."
+            if isinstance(layers, nn.Module):
+                raise AssertionError(
+                    "If num_layers is undefined, it is assumed that a list of layers is provided."
+                )
             layers = nn.ModuleList(layers)
         else:
-            assert isinstance(
-                layers, nn.Module
-            ), "num_layers is defined, layers must be a module"
+            if not isinstance(layers, nn.Module):
+                raise AssertionError("num_layers is defined, layers must be a module")
             layers = _get_clones(layers, num_layers)
 
         self.tok_embeddings = tok_embeddings
@@ -368,10 +386,10 @@ class TransformerDecoder(nn.Module):
                 before the softmax. A value of True in row i and column j means token i attends
                 to token j. A value of False means token i does not attend to token j. If no
                 mask is specified, a causal mask is used by default. Default is None.
-            encoder_input (Optional[Tensor]): Optional second input to cross attend with x. Shape
-                [batch_size x seq_length x embed_dim] (seq_length and embed_dim may very from x)
-            encoder_mask (Optional[Tensor]):  Cross attention boolean tensor with shape
-                [batch_size x x_seq_len x encoder_seq_len]
+            encoder_input (Optional[Tensor]): Optional input embeds from the encoder. Shape [b x s_e x d_e]
+            encoder_mask (Optional[Tensor]):  Boolean tensor defining a relational matrix between
+                tokens and encoder embeddings. A True value at position i,j means token i can attend
+                to embedding j in the decoder. Mask has shape [b x s x s_e]. Default is None.
             input_pos (Optional[Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
@@ -381,10 +399,10 @@ class TransformerDecoder(nn.Module):
         Note: At the very first step of inference, when the model is provided with a prompt,
         ``input_pos`` would contain the positions of all of the tokens in the prompt
         (eg: ``torch.arange(prompt_length)``). This is because we will need to compute the
-        KV values for each position.M
+        KV values for each position.
 
         Returns:
-            Tensor: output tensor with shape [b x s x v] or a list of layer
+            Union[Tensor, List[Tensor]]: output tensor with shape [b x s x v] or a list of layer
                 output tensors defined by ``output_hidden_states`` with the
                 final output tensor appended to the list.
 
@@ -394,9 +412,11 @@ class TransformerDecoder(nn.Module):
 
         Notation used for tensor shapes:
             - b: batch size
-            - s: sequence length
+            - s: token sequence length
+            - s_e: encoder sequence length
             - v: vocab size
-            - d: embed dim
+            - d: token embed dim
+            - d_e: encoder embed dim
             - m_s: max seq len
         """
         # input tensor of shape [b, s]
@@ -471,6 +491,10 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
             before final MLP.
         output_hidden_states (Optional[List[int]]): List of layers (indices) to include in the output
 
+    Raises:
+        AssertionError: num_layers is set and layer is a list
+        AssertionError: num_layers is not set and layer is an nn.Module
+
     Note:
         Arg values are checked for correctness (eg: ``attn_dropout`` belongs to [0,1])
         in the module where they are used. This helps reduces the number of raise
@@ -490,14 +514,14 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
     ) -> None:
         super().__init__()
         if num_layers is None:
-            assert isinstance(
-                layers, List
-            ), "If num_layers is undefined, it is assumed that a list of layers is provided."
+            if isinstance(layers, nn.Module):
+                raise AssertionError(
+                    "If num_layers is undefined, it is assumed that a list of layers is provided."
+                )
             layers = nn.ModuleList(layers)
         else:
-            assert isinstance(
-                layers, nn.Module
-            ), "num_layers is defined, layers must be a module"
+            if not isinstance(layers, nn.Module):
+                raise AssertionError("num_layers is defined, layers must be a module")
             layers = _get_clones(layers, num_layers)
 
         self.tok_embeddings = tok_embeddings
@@ -556,10 +580,10 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
                 before the softmax. A value of True in row i and column j means token i attends
                 to token j. A value of False means token i does not attend to token j. If no
                 mask is specified, a causal mask is used by default. Default is None.
-            encoder_input (Optional[Tensor]): Optional second input to cross attend with x. Shape
-                [batch_size x seq_length x embed_dim] (seq_length and embed_dim may very from x)
-            encoder_mask (Optional[Tensor]):  Cross attention boolean tensor with shape
-                [batch_size x x_seq_len x encoder_seq_len]
+            encoder_input (Optional[Tensor]): Optional input embeds from the encoder. Shape [b x s_e x d_e]
+            encoder_mask (Optional[Tensor]):  Boolean tensor defining a relational matrix between
+                tokens and encoder embeddings. A True value at position i,j means token i can attend
+                to embedding j in the decoder. Mask has shape [b x s x s_e]. Default is None.
             input_pos (Optional[Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
@@ -581,9 +605,11 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
 
         Notation used for tensor shapes:
             - b: batch size
-            - s: sequence length
+            - s: token sequence length
+            - s_e: encoder sequence length
             - v: vocab size
-            - d: embed dim
+            - d: token embed dim
+            - d_e: encoder embed dim
             - m_s: max seq len
         """
         # input tensor of shape [b, s]

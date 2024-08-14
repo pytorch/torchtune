@@ -60,12 +60,14 @@ class MultiHeadedAttention(nn.Module):
         v_proj (nn.Module): projection layer for value.
         output_proj (nn.Module): projection layer for output.
         pos_embeddings (Optional[nn.Module]): positional embeddings layer, e.g. RotaryPositionalEmbeddings.
-        q_norm (Optional[nn.Module]): normalization layer for query, e.g. RMSNorm
+        q_norm (Optional[nn.Module]): normalization layer for query, e.g. RMSNorm. For decoding, this is applied
+            before updating from kv_cache. This means it will only support token wide normalization and not
+            batch or sequence wide normalization.
         k_norm (Optional[nn.Module]): normalization layer for key, must be set if q_norm is.
         kv_cache (Optional[KVCache]): KVCache object used to cache key and value
         max_seq_len (int): maximum sequence length supported by the model.
             This is needed to compute the RoPE Cache. Default: 4096.
-        default_causal_mask (bool): sets the default mask to causal when no mask is provided
+        is_causal (bool): sets the default mask to causal when no mask is provided
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0.
@@ -93,7 +95,7 @@ class MultiHeadedAttention(nn.Module):
         k_norm: Optional[nn.Module] = None,
         kv_cache: Optional[KVCache] = None,
         max_seq_len: int = 4096,
-        default_causal_mask: bool = True,
+        is_causal: bool = True,
         attn_dropout: float = 0.0,
     ) -> None:
         super().__init__()
@@ -122,7 +124,7 @@ class MultiHeadedAttention(nn.Module):
         self.attn_dropout = attn_dropout
         self.head_dim = head_dim
         self.max_seq_len = max_seq_len
-        self.is_causal = default_causal_mask
+        self.is_causal = is_causal
 
         # Set layers
         self.kv_cache = kv_cache
@@ -174,10 +176,8 @@ class MultiHeadedAttention(nn.Module):
     ) -> Tensor:
         """
         Args:
-            x (Tensor): input tensor with shape
-                [batch_size x seq_length x embed_dim]
-            y (Optional[Tensor]): second input tensor for cross attentin with shape
-                [batch_size x seq_length x embed_dim] (seq_length and embed_dim may very from x)
+            x (Tensor): input tensor with shape [b x s_x x d]
+            y (Optional[Tensor]): second input tensor for cross attention with shape [b x s_y x d]
             mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask
                 with shape [batch_size x seq_length x seq_length]. This is applied after
                 the query-key multiplication and before the softmax. A value of True in row i
