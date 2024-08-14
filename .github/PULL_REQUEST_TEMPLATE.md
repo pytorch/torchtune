@@ -20,3 +20,6 @@ Please make sure to do each of the following if applicable to your PR. (If you'r
 - [ ] run recipe tests via `pytest tests -m integration_test`
 - [ ] manually run any new or modified recipes with sufficient proof of correctness
 - [ ] include relevant commands and any other artifacts in this summary (pastes of loss curves, eval results, etc.)
+
+#### UX
+If your function changed a public API, please add a dummy example of what the user experience will look like when calling it. Consider adding it to the docs or function docstring.
