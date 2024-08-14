@@ -154,6 +154,65 @@ class InputOutputToMessages(Transform):
         return {"messages": messages}
 
 
+class ChosenRejectedToMessages(Transform):
+    """
+    Transform for converting datasets with "chosen" and "rejected" columns containing
+    conversations to a list of chosen and rejected messages. For example::
+
+        |  chosen                                |  rejected                              |
+        |----------------------------------------|----------------------------------------|
+        | [{"role": "user", "content": Q1},      | [{"role": "user", "content": Q1},      |
+        |  {"role": "assistant", "content": A1}] |  {"role": "assistant", "content": A2}] |
+
+    will be converted to:
+
+    .. code-block:: python
+
+        chosen = [
+            Message(role="user", content="Q1"),
+            Message(role="assistant", content="A1"),
+        ]
+        rejected = [
+            Message(role="user", content="Q1"),
+            Message(role="assistant", content="A2"),
+        ]
+
+    Args:
+        train_on_input (bool): Whether the model is trained on the user prompt or not.
+            Default is False.
+        column_map (Optional[Dict[str, str]]): a mapping to change the expected
+            "chosen" and "rejected" column names to the actual column names in the dataset.
+            Default is None, keeping the default column names.
+    """
+
+    def __init__(
+        self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None
+    ):
+        self.train_on_input = train_on_input
+        self._column_map = column_map
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        column_map = self._column_map or {}
+        key_chosen = column_map.get("chosen", "chosen")
+        key_rejected = column_map.get("rejected", "rejected")
+
+        chosen_messages = []
+        for message in sample[key_chosen]:
+            message["masked"] = (message["role"] != "assistant") and (
+                not self.train_on_input
+            )
+            chosen_messages.append(Message.from_dict(message))
+
+        rejected_messages = []
+        for message in sample[key_rejected]:
+            message["masked"] = (message["role"] != "assistant") and (
+                not self.train_on_input
+            )
+            rejected_messages.append(Message.from_dict(message))
+
+        return {"chosen": chosen_messages, "rejected": rejected_messages}
+
+
 class ShareGPTToMessages(Transform):
     """
     Convert a chat sample adhering to the ShareGPT json structure to torchtune's :class:`~torchtune.data.Message`

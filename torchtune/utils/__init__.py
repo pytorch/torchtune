@@ -27,6 +27,7 @@ from ._distributed import (  # noqa
     lora_fsdp_wrap_policy,
     prepare_model_for_fsdp_with_meta_device,
     set_torch_num_threads,
+    shard_model,
     validate_no_params_on_meta_device,
 )
 from ._generation import generate, generate_next_token  # noqa
@@ -103,4 +104,5 @@ __all__ = [
     "get_quantizer_mode",
     "generate",
     "generate_next_token",
+    "shard_model",
 ]
