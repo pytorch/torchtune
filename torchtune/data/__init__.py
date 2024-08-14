@@ -12,11 +12,9 @@ from torchtune.data._chat_formats import (
 )
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._converters import get_openai_messages, get_sharegpt_messages
-from torchtune.data._instruct_templates import (
-    InstructTemplate,
-    StackExchangedPairedTemplate,
-)
+from torchtune.data._instruct_templates import InstructTemplate
 from torchtune.data._messages import (
+    ChosenRejectedToMessages,
     InputOutputToMessages,
     JSONToMessages,
     Message,
@@ -28,6 +26,7 @@ from torchtune.data._prompt_templates import (
     GrammarErrorCorrectionTemplate,
     PromptTemplate,
     PromptTemplateInterface,
+    QuestionAnswerTemplate,
     SummarizeTemplate,
 )
 from torchtune.data._utils import truncate, validate_messages
@@ -46,11 +45,12 @@ __all__ = [
     "truncate",
     "Message",
     "validate_messages",
-    "StackExchangedPairedTemplate",
     "Role",
     "PromptTemplateInterface",
     "PromptTemplate",
     "InputOutputToMessages",
+    "ChosenRejectedToMessages",
+    "QuestionAnswerTemplate",
     "ChatMLTemplate",
     "get_openai_messages",
     "get_sharegpt_messages",

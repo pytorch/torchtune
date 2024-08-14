@@ -62,7 +62,7 @@ def llama3_70b() -> TransformerDecoder:
         rope_base=500000.0,
     )
 
-
+ 
 def llama3_tokenizer(path: str, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None) -> Llama3Tokenizer:
     """
     Tokenizer for Llama3.
