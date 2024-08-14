@@ -152,7 +152,12 @@ def validate_state_dict_for_lora(
     lora_modules = get_lora_module_names(
         lora_attn_modules, apply_lora_to_mlp, apply_lora_to_output
     )
-    is_lora_param = lambda x: any([".".join([k, "lora"]) in x for k in lora_modules])
+    is_lora_param = lambda x: any(
+        [
+            ".".join([k, "lora"]) in x or ".".join([k, "magnitude"]) in x
+            for k in lora_modules
+        ]
+    )
     for k in full_model_state_dict_keys:
         if not is_lora_param(k):
             if base_model_state_dict_keys is not None:
@@ -201,16 +206,15 @@ def _get_lora_modules(state_dict: Dict[str, Any]) -> Set[str]:
     Returns:
         Set[str]: Set of keys in the state dict that correspond to LoRA modules.
     """
-    lora_modules = set()
-    for k in state_dict.keys():
-        if "lora" not in k:
-            continue
-        parts = k.split(".")
-        for i, part in enumerate(parts):
-            if part == "lora":
-                lora_modules.add(".".join(parts[:i]))
-                break
-    return lora_modules
+    lora_keys = [k for k in state_dict.keys() if "lora" in k or "magnitude" in k]
+    return set(
+        [
+            k.replace(".lora_a.weight", "")
+            .replace(".lora_b.weight", "")
+            .replace(".magnitude", "")
+            for k in lora_keys
+        ]
+    )
 
 
 @torch.no_grad
@@ -237,10 +241,10 @@ def get_merged_lora_ckpt(
     """
     lora_modules = _get_lora_modules(state_dict)
     for module in lora_modules:
-        lora_a_weight = state_dict[f"{module}.lora.a.weight"]
-        lora_b_weight = state_dict[f"{module}.lora.b.weight"]
+        lora_a_weight = state_dict[f"{module}.lora_a.weight"]
+        lora_b_weight = state_dict[f"{module}.lora_b.weight"]
         base_weight = state_dict[f"{module}.weight"].to(lora_a_weight.dtype)
-        lora_magnitude = state_dict.get(f"{module}.lora.magnitude", None)
+        lora_magnitude = state_dict.get(f"{module}.magnitude", None)
 
         lora_weight = (alpha / rank) * lora_b_weight @ lora_a_weight
         merged_weight = base_weight + lora_weight
@@ -250,10 +254,10 @@ def get_merged_lora_ckpt(
             merged_weight *= mag_norm_scale
         state_dict[f"{module}.weight"] = merged_weight
 
-        del state_dict[f"{module}.lora.a.weight"]
-        del state_dict[f"{module}.lora.b.weight"]
+        del state_dict[f"{module}.lora_a.weight"]
+        del state_dict[f"{module}.lora_b.weight"]
         if lora_magnitude is not None:
-            del state_dict[f"{module}.lora.magnitude"]
+            del state_dict[f"{module}.magnitude"]
 
     return state_dict
 

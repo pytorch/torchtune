@@ -88,8 +88,8 @@ class DoRALinear(nn.Module, AdapterModule):
         base_weight = self.weight.to(self.lora_a.weight.dtype)
         lora_weight = self.lora_b.weight @ self.lora_a.weight
         weight = base_weight + self.scaling * lora_weight
-        magnitude = torch.linalg.norm(weight, dim=1)
-        self.magnitude = nn.Parameter(magnitude)
+        magnitude = torch.linalg.norm(weight, dim=1).to(weight.dtype)
+        self.magnitude = nn.Parameter(magnitude, requires_grad=True)
 
     def _create_weight(self):
         """
@@ -135,13 +135,11 @@ class DoRALinear(nn.Module, AdapterModule):
             self.lora_a.weight.shape[1], device=self.lora_a.weight.device, dtype=x.dtype
         )
         lora_weight = self.lora_b(self.lora_a(x_eye)).T
-
         weight = self.weight.to(x.dtype) + self.scaling * lora_weight
         weight_norm = torch.linalg.norm(weight, dim=1).detach()
         mag_norm_scale = (self.magnitude / weight_norm).view(1, -1)
         lora_out = self.lora_a(x)
         lora_out = self.scaling * self.lora_b(lora_out)
         dora_out = (mag_norm_scale - 1) * base_out + mag_norm_scale * lora_out
-        return dora_out
 
-        return self.lora(x, base_out, self.weight)
+        return dora_out + base_out

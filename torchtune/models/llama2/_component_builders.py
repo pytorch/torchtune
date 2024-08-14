@@ -22,7 +22,8 @@ from torchtune.modules import (
     TransformerSelfAttentionLayer,
 )
 
-from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
+
+from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 
 """
 Component builders for the Llama2 model and popular variants such as LoRA.
@@ -236,8 +237,9 @@ def lora_llama2(
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
     # TODO: quantize_base is not applied to final output_proj currently.
+    adapter_cls = DoRALinear if use_dora else LoRALinear
     output_proj = (
-        LoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout, use_dora=use_dora)
+        adapter_cls(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout)
         if apply_lora_to_output
         else nn.Linear(embed_dim, vocab_size, bias=False)
     )
@@ -322,15 +324,15 @@ def lora_llama2_self_attention(
 
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
+    adapter_cls = DoRALinear if use_dora else LoRALinear
     q_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             num_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
-            use_dora=use_dora,
         )
         if "q_proj" in lora_modules
         else (
@@ -340,14 +342,13 @@ def lora_llama2_self_attention(
         )
     )
     k_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             num_kv_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
-            use_dora=use_dora,
         )
         if "k_proj" in lora_modules
         else (
@@ -357,14 +358,13 @@ def lora_llama2_self_attention(
         )
     )
     v_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             num_kv_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
-            use_dora=use_dora,
         )
         if "v_proj" in lora_modules
         else (
@@ -374,14 +374,13 @@ def lora_llama2_self_attention(
         )
     )
     output_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             embed_dim,
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
-            use_dora=use_dora,
         )
         if "output_proj" in lora_modules
         else (
@@ -418,32 +417,30 @@ def lora_llama2_mlp(
     use_dora: bool = False,
     quantize_base: bool = False,
 ) -> FeedForward:
-    gate_proj = LoRALinear(
+    adapter_cls = DoRALinear if use_dora else LoRALinear
+    gate_proj = adapter_cls(
         in_dim=dim,
         out_dim=hidden_dim,
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
-        use_dora=use_dora,
     )
-    down_proj = LoRALinear(
+    down_proj = adapter_cls(
         in_dim=hidden_dim,
         out_dim=dim,
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
-        use_dora=use_dora,
     )
-    up_proj = LoRALinear(
+    up_proj = adapter_cls(
         in_dim=dim,
         out_dim=hidden_dim,
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
-        use_dora=use_dora,
     )
     return FeedForward(
         gate_proj=gate_proj,
