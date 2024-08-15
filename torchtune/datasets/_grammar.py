@@ -50,8 +50,9 @@ def grammar_dataset(
             in the filepath in ``data_files``. See `Hugging Face's
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details. Default is ``liweili/c4_200m``.
-        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the prompt template
-            to the new column names in the dataset. If None, assume these are identical.
+        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the message transform
+            :class:`~torchtune.data.InputOutputToMessages` to the new column names in the dataset. If None, use
+            the default column names ``"input"`` and ``"output"``in ``liweili/c4_200m``.
         prompt_template (Optional[PromptTemplate]): optional template used to format the prompt. Default
             is :class:`~torchtune.data.GrammarErrorCorrectionTemplate`.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
@@ -64,7 +65,7 @@ def grammar_dataset(
 
 
     Example:
-        >>> grammar_ds = grammar_dataset(tokenizer=tokenizer)
+        >>> grammar_ds = grammar_dataset(model_transform=tokenizer)
         >>> for batch in Dataloader(grammar_ds, batch_size=8):
         >>>     print(f"Batch size: {len(batch)}")
         >>> Batch size: 8

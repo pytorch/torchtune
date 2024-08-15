@@ -41,8 +41,9 @@ def slimorca_dataset(
             in the filepath in ``data_files``. See `Hugging Face's
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details. Default is ``Open-Orca/SlimOrca-Dedup``.
-        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the prompt template
-            to the new column names in the dataset. If None, assume these are identical.
+        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the message transform
+            :class:`~torchtune.data.ShareGPTToMessages` to the new column names in the dataset. If None, use
+            the default column name ``"conversations"`` in ``Open-Orca/SlimOrca-Dedup``.
         prompt_template (Optional[PromptTemplate]): optional template used to format the prompt. Default
             is None.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
@@ -54,7 +55,7 @@ def slimorca_dataset(
         Union[SFTDataset, PackedDataset]: dataset configured with SlimOrca source data
 
     Example:
-        >>> ds = slimorca_dataset(tokenizer=tokenizer, max_seq_len=10)
+        >>> ds = slimorca_dataset(model_transform=tokenizer)
         >>> for input, label in ds:
         >>>     print(input)
         >>>     print(label)
