@@ -10,9 +10,8 @@ from typing import Dict, List, Optional, Tuple
 
 import regex as re
 
-from torchtune.data import Message, truncate
+from torchtune.data import ChatMLTemplate, Message, PromptTemplate, truncate
 from torchtune.modules.tokenizers import ModelTokenizer
-from torchtune.data import PromptTemplate, ChatMLTemplate
 
 PRETOKENIZE_REGEX = (
     r"(?i:'s|'t|'re|'ve|'m|'ll|'d)|"
@@ -95,7 +94,7 @@ class Qwen2Tokenizer(ModelTokenizer):
               tags in Llama2 and in Mistral
             - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
 
-            The extra text will still get tokenized as normal text, not as special tokens. 
+            The extra text will still get tokenized as normal text, not as special tokens.
             Default is :class:`~torchtune.data.ChatMLTemplate`.
         errors (str): Paradigm to follow when decoding bytes to UTF-8. Defaults to "replace".
             See [bytes.decode](https://docs.python.org/3/library/stdtypes.html#bytes.decode) for more information.
@@ -337,13 +336,17 @@ class Qwen2Tokenizer(ModelTokenizer):
 
         Args:
             messages (List[Message]): The message list to tokenize.
-            add_eos (bool): Wether to add the tokenizer's eos_id at the end of the 
+            add_eos (bool): Wether to add the tokenizer's eos_id at the end of the
                 sequence of messages. Default is True.
 
         Returns:
             Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
         """
-        templated_messages = self.prompt_template(messages) if self.prompt_template is not None else messages
+        templated_messages = (
+            self.prompt_template(messages)
+            if self.prompt_template is not None
+            else messages
+        )
 
         tokenized_messages = []
         mask = []
@@ -357,7 +360,9 @@ class Qwen2Tokenizer(ModelTokenizer):
                         add_eos=False,
                     )
                 else:
-                    raise RuntimeError(f"Unsupported message content type: {item['type']}")
+                    raise RuntimeError(
+                        f"Unsupported message content type: {item['type']}"
+                    )
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
 
@@ -374,5 +379,5 @@ class Qwen2Tokenizer(ModelTokenizer):
         if self.max_seq_len:
             tokens = truncate(tokens, self.max_seq_len, self.eos_id)
             mask = truncate(mask, self.max_seq_len, True)
-        
+
         return tokenized_messages, mask

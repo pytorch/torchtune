@@ -6,10 +6,12 @@
 from functools import partial
 from typing import Dict, List, Protocol, Tuple, Union
 
-from torchtune.data import Message, Role
 from torchtune.config._utils import _get_component_from_path
 
+from torchtune.data import Message, Role
+
 _TemplateType = Union[str, Dict[Role, Tuple[str, str]]]
+
 
 class PromptTemplateInterface(Protocol):
     """
@@ -169,11 +171,12 @@ class ChatMLTemplate(PromptTemplateInterface):
             # If empty assistant message at the end, we are expecting the model
             # to generate the response continuing from the assistant prepend tag,
             # so do not add the append tag.
-            if message.role == "assistant" and index == len(messages) - 1 and len(message.text_content) == 0:
-                content = (
-                    [{"type": "text", "content": prepend_tag}]
-                    + message.content
-                )
+            if (
+                message.role == "assistant"
+                and index == len(messages) - 1
+                and len(message.text_content) == 0
+            ):
+                content = [{"type": "text", "content": prepend_tag}] + message.content
             else:
                 content = (
                     [{"type": "text", "content": prepend_tag}]
@@ -239,6 +242,7 @@ A prompt template for question answering tasks::
 
 Please see :class:`~torchtune.data.PromptTemplate` for full API arguments.
 """
+
 
 def _get_prompt_template(
     prompt_template: _TemplateType,
