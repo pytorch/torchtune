@@ -161,7 +161,7 @@ Let's inspect each of these models a bit more closely.
 
   # Print the first layer's self-attention in the usual Llama2 model
   >>> print(base_model.layers[0].attn)
-  MultiHeadedAttention(
+  MultiHeadAttention(
     (q_proj): Linear(in_features=4096, out_features=4096, bias=False)
     (k_proj): Linear(in_features=4096, out_features=4096, bias=False)
     (v_proj): Linear(in_features=4096, out_features=4096, bias=False)
@@ -171,7 +171,7 @@ Let's inspect each of these models a bit more closely.
 
   # Print the same for Llama2 with LoRA weights
   >>> print(lora_model.layers[0].attn)
-  MultiHeadedAttention(
+  MultiHeadAttention(
     (q_proj): LoRALinear(
       (dropout): Dropout(p=0.0, inplace=False)
       (lora_a): Linear(in_features=4096, out_features=8, bias=False)

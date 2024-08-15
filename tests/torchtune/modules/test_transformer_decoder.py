@@ -20,7 +20,7 @@ from torchtune.models.llama2._component_builders import llama2_mlp
 from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
 from torchtune.modules import (
     FeedForward,
-    MultiHeadedAttention,
+    MultiHeadAttention,
     RMSNorm,
     RotaryPositionalEmbeddings,
     TanhGate,
@@ -73,7 +73,7 @@ class TestTransformerSelfAttentionLayer:
         num_heads, num_kv_heads, embed_dim, max_seq_len = layer_params
         head_dim = embed_dim // num_heads
         rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
-        self_attn = MultiHeadedAttention(
+        self_attn = MultiHeadAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
@@ -147,7 +147,7 @@ class TestTransformerCrossAttentionLayer:
     ) -> TransformerCrossAttentionLayer:
         num_heads, num_kv_heads, embed_dim, max_seq_len = layer_params
         head_dim = embed_dim // num_heads
-        attn = MultiHeadedAttention(
+        attn = MultiHeadAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
@@ -160,7 +160,7 @@ class TestTransformerCrossAttentionLayer:
             k_norm=RMSNorm(dim=head_dim, eps=1e-05),
             pos_embeddings=None,
             max_seq_len=max_seq_len,
-            default_causal_mask=False,
+            is_causal=False,
             attn_dropout=0.0,
         )
         hidden_dim = scale_hidden_dim_for_mlp(embed_dim * 1.25, 1024)

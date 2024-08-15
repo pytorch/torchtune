@@ -13,7 +13,7 @@ from torchtune.models.llama3._model_utils import scale_hidden_dim_for_mlp
 from torchtune.models.llama3_1._position_embeddings import Llama3ScaledRoPE
 
 from torchtune.modules import (
-    MultiHeadedAttention,
+    MultiHeadAttention,
     FeedForward,
     KVCache,
     RMSNorm,
@@ -31,7 +31,7 @@ Component builders for the Llama3.1 model and popular variants such as LoRA.
 torchtune provides composable building blocks. Builder functions help
 stitch these building blocks into higher-level components. This design has
 two benefits:
-- The building blocks themselves are very flexible. For example, ``MultiHeadedAttention``
+- The building blocks themselves are very flexible. For example, ``MultiHeadAttention``
 can take either nn.Linear or nn.LoRALinear for ``q_proj``.
 - Builder functions expose a set of configurable params which keep the constructors of
 the building blocks simple.
@@ -82,7 +82,7 @@ def llama3_1(
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = MultiHeadedAttention(
+    self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -259,7 +259,7 @@ def lora_llama3_1(
 def lora_llama3_1_self_attention(
     lora_modules: List[LORA_ATTN_MODULES],
     *,
-    # MultiHeadedAttention args
+    # MultiHeadAttention args
     embed_dim: int,
     num_heads: int,
     num_kv_heads: int,
@@ -271,9 +271,9 @@ def lora_llama3_1_self_attention(
     lora_alpha: float,
     lora_dropout: float = 0.0,
     quantize_base: bool = False,
-) -> MultiHeadedAttention:
+) -> MultiHeadAttention:
     """
-    Return an instance of :func:`~torchtune.modules.MultiHeadedAttention` with LoRA
+    Return an instance of :func:`~torchtune.modules.MultiHeadAttention` with LoRA
     applied to a subset of its linear layers
 
     Args:
@@ -297,7 +297,7 @@ def lora_llama3_1_self_attention(
             LoRA is being applied to. Default is ``False``.
 
     Returns:
-        MultiHeadedAttention: instantiation of self-attention module with LoRA
+        MultiHeadAttention: instantiation of self-attention module with LoRA
         applied to a subset of Q, K, V, output projections.
 
     Raises:
@@ -359,7 +359,7 @@ def lora_llama3_1_self_attention(
         else nn.Linear(embed_dim, embed_dim, bias=False)
     )
     rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = MultiHeadedAttention(
+    self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,

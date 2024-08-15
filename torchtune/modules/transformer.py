@@ -10,14 +10,14 @@ import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
 
-from torchtune.modules import MultiHeadedAttention
+from torchtune.modules import MultiHeadAttention
 
 
 class TransformerSelfAttentionLayer(nn.Module):
     """Transformer layer derived from the Llama2 model. Normalization is applied before the attention **and** FF layer.
 
     Args:
-        attn (MultiHeadedAttention): Attention module.
+        attn (MultiHeadAttention): Attention module.
         mlp (nn.Module): Feed-forward module.
         sa_norm (Optional[nn.Module]): Normalization to be applied before self-attention.
         mlp_norm (Optional[nn.Module]): Normalization to be applied before the feed-forward layer.
@@ -27,7 +27,7 @@ class TransformerSelfAttentionLayer(nn.Module):
 
     def __init__(
         self,
-        attn: MultiHeadedAttention,
+        attn: MultiHeadAttention,
         mlp: nn.Module,
         *,
         sa_norm: Optional[nn.Module] = None,
@@ -114,7 +114,7 @@ class TransformerCrossAttentionLayer(nn.Module):
        Normalization is applied before the attention **and** FF layer.
 
     Args:
-        attn (MultiHeadedAttention): Attention module.
+        attn (MultiHeadAttention): Attention module.
         mlp (nn.Module): Feed-forward module.
         ca_norm (Optional[nn.Module]): Normalization to be applied before cross-attention.
         mlp_norm (Optional[nn.Module]): Normalization to be applied before the feed-forward layer.
@@ -127,7 +127,7 @@ class TransformerCrossAttentionLayer(nn.Module):
 
     def __init__(
         self,
-        attn: MultiHeadedAttention,
+        attn: MultiHeadAttention,
         mlp: nn.Module,
         *,
         ca_norm: Optional[nn.Module] = None,

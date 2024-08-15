@@ -9,7 +9,7 @@ from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set
 
 from torch import nn
 
-# Modules from MultiHeadedAttention that LoRA can be applied to
+# Modules from MultiHeadAttention that LoRA can be applied to
 LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
 
 

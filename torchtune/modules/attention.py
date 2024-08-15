@@ -14,7 +14,7 @@ from torchtune.modules.kv_cache import KVCache
 logger = logging.getLogger(__name__)
 
 
-class MultiHeadedAttention(nn.Module):
+class MultiHeadAttention(nn.Module):
     """Multi-headed attention layer with support for grouped query
     attention (GQA) introduced in https://arxiv.org/abs/2305.13245v1.
 

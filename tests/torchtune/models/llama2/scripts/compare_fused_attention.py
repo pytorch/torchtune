@@ -9,10 +9,10 @@ from typing import Optional, Tuple
 import torch
 from tests.test_utils import fixed_init_model
 from torch import nn, Tensor
-from torchtune.modules import KVCache, MultiHeadedAttention, RotaryPositionalEmbeddings
+from torchtune.modules import KVCache, MultiHeadAttention, RotaryPositionalEmbeddings
 
 # Copy-paste of fused attention for comparison
-class FusedMultiHeadedAttention(nn.Module):
+class FusedMultiHeadAttention(nn.Module):
     """Multi-headed grouped query self-attention (GQA) layer introduced
     in https://arxiv.org/pdf/2305.13245v1.pdf.
 
@@ -274,7 +274,7 @@ def compare_attn(
     else:
         kv_cache = None
 
-    attn_ref = FusedMultiHeadedAttention(
+    attn_ref = FusedMultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -288,7 +288,7 @@ def compare_attn(
     fixed_init_model(attn_ref)
     attn_ref.eval()
 
-    attn = MultiHeadedAttention(
+    attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,

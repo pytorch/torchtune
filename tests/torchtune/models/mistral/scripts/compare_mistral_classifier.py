@@ -11,7 +11,7 @@ from torch import nn
 from torchtune.models.mistral import mistral_classifier
 from torchtune.models.mistral._component_builders import mistral_mlp
 from torchtune.modules import (
-    MultiHeadedAttention,
+    MultiHeadAttention,
     RMSNorm,
     RotaryPositionalEmbeddings,
     TransformerDecoder,
@@ -68,7 +68,7 @@ def mistral(
     rope = RotaryPositionalEmbeddings(
         dim=head_dim, max_seq_len=max_seq_len, base=rope_base
     )
-    self_attn = MultiHeadedAttention(
+    self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,

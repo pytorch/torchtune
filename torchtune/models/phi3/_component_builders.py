@@ -11,7 +11,7 @@ from torch import nn
 
 from torchtune.models.phi3._position_embeddings import Phi3RotaryPositionalEmbeddings
 from torchtune.modules import (
-    MultiHeadedAttention,
+    MultiHeadAttention,
     FeedForward,
     FrozenNF4Linear,
     RMSNorm,
@@ -30,7 +30,7 @@ Component builders for the Phi3 4K Mini Instruct model.
 torchtune provides composable building blocks. Builder functions help
 stitch these building blocks into higher-level components. This design has
 two benefits:
-- The building blocks themselves are very flexible. For example, ``MultiHeadedAttention``
+- The building blocks themselves are very flexible. For example, ``MultiHeadAttention``
 can take either nn.Linear or nn.LoRALinear for ``q_proj``.
 - Builder functions expose a set of configurable params which keep the constructors of
 the building blocks simple.
@@ -72,7 +72,7 @@ def phi3(
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
 
     rope = Phi3RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = MultiHeadedAttention(
+    self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -250,7 +250,7 @@ def lora_phi3(
 def lora_phi3_self_attention(
     lora_modules: List[LORA_ATTN_MODULES],
     *,
-    # MultiHeadedAttention args
+    # MultiHeadAttention args
     embed_dim: int,
     num_heads: int,
     num_kv_heads: int,
@@ -262,9 +262,9 @@ def lora_phi3_self_attention(
     lora_alpha: float,
     lora_dropout: float = 0.0,
     quantize_base: bool = False,
-) -> MultiHeadedAttention:
+) -> MultiHeadAttention:
     """
-    Return an instance of :func:`~torchtune.modules.MultiHeadedAttention` with LoRA
+    Return an instance of :func:`~torchtune.modules.MultiHeadAttention` with LoRA
     applied to a subset of its linear layers
 
     Args:
@@ -290,7 +290,7 @@ def lora_phi3_self_attention(
             LoRA is being applied to. Default is ``False``.
 
     Returns:
-        MultiHeadedAttention: instantiation of self-attention module with LoRA
+        MultiHeadAttention: instantiation of self-attention module with LoRA
         applied to a subset of Q, K, V, output projections.
 
     Raises:
@@ -368,7 +368,7 @@ def lora_phi3_self_attention(
         )
     )
     rope = Phi3RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = MultiHeadedAttention(
+    self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,

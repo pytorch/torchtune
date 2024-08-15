@@ -10,7 +10,7 @@ from functools import partial
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 
 from torchtune.modules import (
-    MultiHeadedAttention,
+    MultiHeadAttention,
     FeedForward,
     FrozenNF4Linear,
     RotaryPositionalEmbeddings,
@@ -27,7 +27,7 @@ Component builders for the Gemma 2B models and popular variants such as LoRA.
 torchtune provides composable building blocks. Builder functions help
 stitch these building blocks into higher-level components. This design has
 two benefits:
-- The building blocks themselves are very flexible. For example, ``MultiHeadedAttention``
+- The building blocks themselves are very flexible. For example, ``MultiHeadAttention``
 can take either nn.Linear or nn.LoRALinear for ``q_proj``.
 - Builder functions expose a set of configurable params which keep the constructors of
 the building blocks simple.
@@ -79,7 +79,7 @@ def gemma(
         GemmaTransformerDecoder: Instantiation of gemma model.
     """
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_att = MultiHeadedAttention(
+    self_att = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -253,7 +253,7 @@ def lora_gemma(
 def lora_gemma_self_attention(
     lora_modules: List[LORA_ATTN_MODULES],
     *,
-    # MultiHeadedAttention args
+    # MultiHeadAttention args
     embed_dim: int,
     num_heads: int,
     head_dim: int,
@@ -266,7 +266,7 @@ def lora_gemma_self_attention(
     lora_alpha: float,
     lora_dropout: float = 0.0,
     quantize_base: bool = False,
-) -> MultiHeadedAttention:
+) -> MultiHeadAttention:
     if not lora_modules:
         raise ValueError(
             f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules"
@@ -340,7 +340,7 @@ def lora_gemma_self_attention(
     )
 
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = MultiHeadedAttention(
+    self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,

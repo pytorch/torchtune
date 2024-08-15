@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from .attention import MultiHeadedAttention  # noqa
+from .attention import MultiHeadAttention  # noqa
 from .common_utils import reparametrize_as_dtype_state_dict_post_hook
 from .feed_forward import FeedForward  # noqa
 from .kv_cache import KVCache  # noqa
@@ -23,7 +23,7 @@ from .transformer import (  # noqa
 from .vision_transformer import VisionTransformer
 
 __all__ = [
-    "MultiHeadedAttention",
+    "MultiHeadAttention",
     "TanhGate",
     "FeedForward",
     "FrozenNF4Linear",

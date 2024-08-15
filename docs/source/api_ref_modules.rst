@@ -11,7 +11,7 @@ Modeling Components and Building Blocks
     :toctree: generated/
     :nosignatures:
 
-    MultiHeadedAttention
+    MultiHeadAttention
     FeedForward
     KVCache
     get_cosine_schedule_with_warmup
