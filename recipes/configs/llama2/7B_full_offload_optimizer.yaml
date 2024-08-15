@@ -53,8 +53,11 @@ epochs: 3
 optimizer:
   _component_: torchtune.modules.optim.CPUOffloadOptimizer
   optimizer_class: torch.optim.AdamW
+  offload_gradients: True
   lr: 2e-5
   fused: True
+
+# when CPUOffloadOptimizer is used, optimizer_in_bwd should be False
 optimizer_in_bwd: False
 loss:
   _component_: torch.nn.CrossEntropyLoss
