@@ -10,7 +10,7 @@ import numpy as np
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
-from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, PromptTemplate
+from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules.transforms import Transform
 
 
@@ -25,8 +25,7 @@ class SFTDataset(Dataset):
     1. Dataset-specific transform. This is typically unique to each dataset and extracts
        the necessary columns into torchtune's :class:`~torchtune.data.Message` format,
        a standardized API for all model tokenizers.
-    2. If specified, apply a prompt template for the task you are fine-tuning for.
-    3. Model-specific transform or tokenization
+    3. Model-specific transform or tokenization with optional prompt template
 
 
     All datasets are formatted into a list of :class:`~torchtune.data.Message`
@@ -72,7 +71,7 @@ class SFTDataset(Dataset):
     can be treated as a ``model_transform`` since it uses the model-specific tokenizer to
     transform the list of messages outputted from the ``message_transform`` into tokens
     used by the model for training. Text-only datasets will simply pass the :class:`~torchtune.modules.tokenizers.ModelTokenizer`
-    into ``model_transform``.
+    into ``model_transform``. Tokenizers handle prompt templating, if configured.
 
     Args:
         source (str): path to dataset repository on Hugging Face. For local datasets,
@@ -100,12 +99,10 @@ class SFTDataset(Dataset):
         source: str,
         message_transform: Transform,
         model_transform: Transform,
-        prompt_template: Optional[PromptTemplate] = None,
         filter_fn: Optional[Callable] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._message_transform = message_transform
-        self._prompt_template = prompt_template
         self._model_transform = model_transform
 
         self._data = load_dataset(source, **load_dataset_kwargs)
@@ -121,10 +118,6 @@ class SFTDataset(Dataset):
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, Any]:
         transformed_sample = self._message_transform(sample)
-        if self._prompt_template is not None:
-            transformed_sample["messages"] = self._prompt_template(
-                transformed_sample["messages"]
-            )
         tokenized_dict = self._model_transform(transformed_sample)
 
         # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
