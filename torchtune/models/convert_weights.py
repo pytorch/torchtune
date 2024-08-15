@@ -207,8 +207,8 @@ def tune_to_hf(
 
 # Mapping from torchtune LoRA module names to PEFT LoRA module names
 _TO_PEFT_KEYS = {
-    "lora.a": "lora_A",
-    "lora.b": "lora_B",
+    "lora_a": "lora_A",
+    "lora_b": "lora_B",
 }
 
 # Mapping from torchtune module names to target modules for PEFT adapter config
