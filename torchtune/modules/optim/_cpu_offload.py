@@ -11,6 +11,8 @@ try:
         CPUOffloadOptimizer as _CPUOffloadOptimizer,
     )
 
+    _CPU_OFFLOAD_OPTIM_AVAILABLE = True
+
     class CPUOffloadOptimizer(_CPUOffloadOptimizer):
         """Offload optimizer to CPU for single-GPU training. This will reduce GPU memory by the size of optimizer
         state. Optimizer step will be done on CPU.
@@ -35,14 +37,15 @@ try:
             **kwargs,
         ) -> None:
             super().__init__(
-                self,
-                params,
-                _get_component_from_path(optimizer_class),
+                params=params,
+                optimizer_class=_get_component_from_path(optimizer_class),
                 offload_gradients=offload_gradients,
                 **kwargs,
             )
 
 except ImportError:
+
+    _CPU_OFFLOAD_OPTIM_AVAILABLE = False
 
     class CPUOffloadOptimizer:
         def __init__(

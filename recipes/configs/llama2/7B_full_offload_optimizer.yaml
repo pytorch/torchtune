@@ -5,17 +5,17 @@
 # this run:
 #   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --hf-token <HF_TOKEN>
 #
-# The default config uses an optimizer from bitsandbytes. If you do not have it installed,
-# you can install it with
-#   pip install bitsandbytes
+# This config requires torchao>=0.5 (or nightly) for CPU offload optimizer and PyTorch>=2.4
+# for fast CPU fused AdamW. You can install torchao from source with
+#   pip install git+https://github.com/pytorch/ao.git
 #
 # To launch on a single device, run the following command from root:
-#   tune run full_finetune_single_device --config llama2/7B_full_low_memory
+#   tune run full_finetune_single_device --config llama2/7B_full_offload_optimizer
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run full_finetune_single_device --config llama2/7B_full_low_memory checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run full_finetune_single_device --config llama2/7B_full_offload_optimizer checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works only for training on single device.
 
