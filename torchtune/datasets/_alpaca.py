@@ -11,6 +11,7 @@ from typing import Any, Dict, Mapping, Optional, Union
 from torchtune.data import Message
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
+from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
 
 
@@ -82,7 +83,7 @@ class AlpacaToMessages(Transform):
 
 
 def alpaca_dataset(
-    model_transform: Transform,
+    tokenizer: ModelTokenizer,
     *,
     source: str = "tatsu-lab/alpaca",
     column_map: Optional[Dict[str, str]] = None,
@@ -105,8 +106,7 @@ def alpaca_dataset(
     - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)
 
     Args:
-        model_transform (Transform): model specific transform to convert a list of messages
-            output by the dataset to tokens. This will always be a :class:`~torchtune.modules.tokenizers.ModelTokenizer`.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path to dataset repository on Hugging Face. For local datasets,
             define source as the data file type (e.g. "json", "csv", "text") and pass
             in the filepath in ``data_files``. See `Hugging Face's
@@ -126,6 +126,8 @@ def alpaca_dataset(
     Returns:
         Union[SFTDataset, PackedDataset]: dataset configured with source data and transform
 
+    Raises:
+        ValueError: If ``packed`` is True and ``max_seq_len`` is not set on the tokenizer.
 
     Example:
         >>> alpaca_ds = alpaca_dataset(model_transform=tokenizer)
@@ -140,13 +142,18 @@ def alpaca_dataset(
     ds = SFTDataset(
         source=source,
         message_transform=message_transform,
-        model_transform=model_transform,
+        model_transform=tokenizer,
         # Prompt template is covered by the message transform
         prompt_template=None,
         split=split,
         **load_dataset_kwargs,
     )
-    return PackedDataset(ds) if packed else ds
+    if packed:
+        if tokenizer.max_seq_len is None:
+            raise ValueError(
+                "PackedDataset requires a max_seq_len to be set on the tokenizer."
+            )
+        return PackedDataset(ds, max_seq_len=tokenizer.max_seq_len)
 
 
 alpaca_cleaned_dataset = partial(alpaca_dataset, source="yahma/alpaca-cleaned")
