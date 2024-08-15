@@ -52,10 +52,9 @@ def get_assets_path():
 def dummy_alpaca_dataset_config():
     data_files = os.path.join(get_assets_path(), "alpaca_tiny.json")
     out = [
-        "dataset._component_=torchtune.datasets.instruct_dataset",
+        "dataset._component_=torchtune.datasets.alpaca_dataset",
         "dataset.source='json'",
         f"dataset.data_files={data_files}",
-        "dataset.template=torchtune.data.AlpacaInstructTemplate",
         "dataset.split='train'",
     ]
     return out
@@ -127,7 +126,6 @@ def lora_llama2_test_config(
     lora_alpha: float = 16,
     quantize_base: bool = False,
 ) -> List[str]:
-    lora_attn_modules_str = "['" + "','".join([x for x in lora_attn_modules]) + "']"
     return [
         # Note: we explicitly use _component_ so that we can also call
         # config.instantiate directly for easier comparison
@@ -157,7 +155,6 @@ def lora_llama3_test_config(
     lora_alpha: float = 16,
     quantize_base: bool = False,
 ) -> List[str]:
-    lora_attn_modules_str = "['" + "','".join([x for x in lora_attn_modules]) + "']"
     return [
         # Note: we explicitly use _component_ so that we can also call
         # config.instantiate directly for easier comparison
