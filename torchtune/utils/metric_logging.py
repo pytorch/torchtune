@@ -248,7 +248,8 @@ class WandBLogger(MetricLoggerInterface):
             self._wandb.log({**payload, "global_step": step})
 
     def __del__(self) -> None:
-        if self._wandb.run:
+        # extra check for when there is an import error
+        if hasattr(self, "_wandb") and self._wandb.run:
             self._wandb.finish()
 
     def close(self) -> None:

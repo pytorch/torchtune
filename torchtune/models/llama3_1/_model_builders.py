@@ -62,6 +62,24 @@ def llama3_1_70b() -> TransformerDecoder:
         rope_base=500000.0,
     )
 
+def llama3_1_405b() -> TransformerDecoder:
+    """
+    Builder for creating a Llama3.1 model initialized w/ the default 405B parameter values.
+    Returns:
+        TransformerDecoder: Instantiation of Llama3.1 405B model
+    """
+    return llama3_1(
+        vocab_size=128_256,
+        num_layers=126,
+        num_heads=128,
+        num_kv_heads=8,
+        embed_dim=16384,
+        max_seq_len=8192,
+        intermediate_dim=53248,
+        attn_dropout=0.0,
+        norm_eps=1e-5,
+        rope_base=500000.0,
+    )
 
 def lora_llama3_1_8b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
