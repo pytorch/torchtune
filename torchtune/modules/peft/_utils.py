@@ -9,9 +9,6 @@ from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set
 
 import torch
 from torch import nn
-from torch import bfloat16
-
-from torchao.dtypes.nf4tensor import NF4Tensor
 
 # Modules from MultiHeadAttention that LoRA can be applied to
 LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
