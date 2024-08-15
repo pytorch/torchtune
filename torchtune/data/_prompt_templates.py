@@ -163,12 +163,23 @@ class ChatMLTemplate(PromptTemplateInterface):
             The formatted list of messages
         """
         formatted_dialogue = []
-        for message in messages:
-            content = (
-                [{"type": "text", "content": self.template[message.role][0]}]
-                + message.content
-                + [{"type": "text", "content": self.template[message.role][1]}]
-            )
+        for index, message in enumerate(messages):
+            prepend_tag = self.template[message.role][0]
+            append_tag = self.template[message.role][1]
+            # If empty assistant message at the end, we are expecting the model
+            # to generate the response continuing from the assistant prepend tag,
+            # so do not add the append tag.
+            if message.role == "assistant" and index == len(messages) - 1 and len(message.text_content) == 0:
+                content = (
+                    [{"type": "text", "content": prepend_tag}]
+                    + message.content
+                )
+            else:
+                content = (
+                    [{"type": "text", "content": prepend_tag}]
+                    + message.content
+                    + [{"type": "text", "content": append_tag}]
+                )
             formatted_dialogue.append(
                 Message(
                     role=message.role,

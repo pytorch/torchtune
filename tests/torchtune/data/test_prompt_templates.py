@@ -43,6 +43,12 @@ class TestChatMLTemplate:
         actual = ChatMLTemplate()(MESSAGE_SAMPLE)
         assert_dialogue_equal(actual, self.expected_dialogue)
 
+    def test_format_generation(self):
+        messages_generation = MESSAGE_SAMPLE[:2] + [Message(role="assistant", content="")]
+        expected = self.expected_dialogue[:2] + [Message(role="assistant", content="<|im_start|>assistant\n")]
+        actual = ChatMLTemplate()(messages_generation)
+        assert_dialogue_equal(actual, expected)
+
 
 class TestGrammarErrorCorrectionTemplate:
     samples = [
