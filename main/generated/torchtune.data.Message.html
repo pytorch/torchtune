@@ -438,9 +438,15 @@ as follows:</p>
 <li><p><strong>masked</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – whether the message is masked in the sample. If True, do not use
 in loss calculation. Default: False</p></li>
 <li><p><strong>ipython</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – whether the message is a tool call. Default: False</p></li>
-<li><p><strong>eot</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – whether the message corresponds to the end of a turn. Should be true
-except in the case of multiple consecutive assistant messages (i.e., tool calls
-by assistant). Default: True</p></li>
+<li><p><strong>eot</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – <p>whether the message corresponds to the end of a turn, where control is handed over
+to the assistant from the user or the user from the assistant. Default: True. Should be true
+in most cases except for:</p>
+<ul>
+<li><p>For multiple consecutive assistant messages (i.e., tool calls
+by assistant), only the last assistant message will have <code class="docutils literal notranslate"><span class="pre">eot=True</span></code></p></li>
+<li><p>All ipython messages (tool call returns) should set <code class="docutils literal notranslate"><span class="pre">eot=False</span></code>.</p></li>
+</ul>
+</p></li>
 </ul>
 </dd>
 </dl>

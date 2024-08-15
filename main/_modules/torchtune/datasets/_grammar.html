@@ -454,8 +454,9 @@
 <span class="sd">            in the filepath in ``data_files``. See `Hugging Face&#39;s</span>
 <span class="sd">            &lt;https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path&gt;`_</span>
 <span class="sd">            ``load_dataset`` for more details. Default is ``liweili/c4_200m``.</span>
-<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the prompt template</span>
-<span class="sd">            to the new column names in the dataset. If None, assume these are identical.</span>
+<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the message transform</span>
+<span class="sd">            :class:`~torchtune.data.InputOutputToMessages` to the new column names in the dataset. If None, use</span>
+<span class="sd">            the default column names ``&quot;input&quot;`` and ``&quot;output&quot;``in ``liweili/c4_200m``.</span>
 <span class="sd">        prompt_template (Optional[PromptTemplate]): optional template used to format the prompt. Default</span>
 <span class="sd">            is :class:`~torchtune.data.GrammarErrorCorrectionTemplate`.</span>
 <span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
@@ -468,7 +469,7 @@
 
 
 <span class="sd">    Example:</span>
-<span class="sd">        &gt;&gt;&gt; grammar_ds = grammar_dataset(tokenizer=tokenizer)</span>
+<span class="sd">        &gt;&gt;&gt; grammar_ds = grammar_dataset(model_transform=tokenizer)</span>
 <span class="sd">        &gt;&gt;&gt; for batch in Dataloader(grammar_ds, batch_size=8):</span>
 <span class="sd">        &gt;&gt;&gt;     print(f&quot;Batch size: {len(batch)}&quot;)</span>
 <span class="sd">        &gt;&gt;&gt; Batch size: 8</span>

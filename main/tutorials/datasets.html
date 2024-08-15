@@ -610,14 +610,14 @@ are formatted into a prompt template.</p>
 template that guides the model to generate output with a specific goal. Instruct templates
 are simply flavor text that structures your inputs for the model. It is model agnostic
 and is tokenized normally just like any other text, but it can help condition the model
-to respond better to an expected format. For example, the <a class="reference internal" href="../generated/torchtune.data.AlpacaInstructTemplate.html#torchtune.data.AlpacaInstructTemplate" title="torchtune.data.AlpacaInstructTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">AlpacaInstructTemplate</span></code></a>
+to respond better to an expected format. For example, the <code class="xref py py-class docutils literal notranslate"><span class="pre">AlpacaInstructTemplate</span></code>
 structures the data in the following way:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;Below is an instruction that describes a task, paired with an input that provides further context. &quot;</span>
 <span class="s2">&quot;Write a response that appropriately completes the request.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
 <span class="s2">&quot;### Instruction:</span><span class="se">\n</span><span class="si">{instruction}</span><span class="se">\n\n</span><span class="s2">### Input:</span><span class="se">\n</span><span class="si">{input}</span><span class="se">\n\n</span><span class="s2">### Response:</span><span class="se">\n</span><span class="s2">&quot;</span>
 </pre></div>
 </div>
-<p>Here is an example of a sample that is formatted with <a class="reference internal" href="../generated/torchtune.data.AlpacaInstructTemplate.html#torchtune.data.AlpacaInstructTemplate" title="torchtune.data.AlpacaInstructTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">AlpacaInstructTemplate</span></code></a>:</p>
+<p>Here is an example of a sample that is formatted with <code class="xref py py-class docutils literal notranslate"><span class="pre">AlpacaInstructTemplate</span></code>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">AlpacaInstructTemplate</span>
 
 <span class="n">sample</span> <span class="o">=</span> <span class="p">{</span>
