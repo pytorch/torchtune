@@ -45,7 +45,7 @@ class TestAlpacaDataset:
         # mock the call to HF datasets
         load_dataset.return_value = Dataset.from_list([sample])
 
-        alpaca_ds = alpaca_dataset(model_transform=tokenizer)
+        alpaca_ds = alpaca_dataset(tokenizer=tokenizer)
         input, labels = alpaca_ds[0]["tokens"], alpaca_ds[0]["labels"]
 
         assert len(input) == len(labels)
@@ -62,7 +62,7 @@ class TestAlpacaDataset:
         # mock the call to HF datasets
         load_dataset.return_value = Dataset.from_list([sample])
 
-        alpaca_ds = alpaca_dataset(model_transform=tokenizer, train_on_input=False)
+        alpaca_ds = alpaca_dataset(tokenizer=tokenizer, train_on_input=False)
 
         # Generate the input and labels
         input, labels = alpaca_ds[0]["tokens"], alpaca_ds[0]["labels"]
@@ -81,7 +81,7 @@ class TestAlpacaDataset:
         # mock the call to HF datasets
         load_dataset.return_value = Dataset.from_list([sample])
 
-        alpaca_ds = alpaca_cleaned_dataset(model_transform=tokenizer)
+        alpaca_ds = alpaca_cleaned_dataset(tokenizer=tokenizer)
         input, labels = alpaca_ds[0]["tokens"], alpaca_ds[0]["labels"]
 
         assert len(input) == len(labels)

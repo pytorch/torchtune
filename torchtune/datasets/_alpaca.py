@@ -130,7 +130,7 @@ def alpaca_dataset(
         ValueError: If ``packed`` is True and ``max_seq_len`` is not set on the tokenizer.
 
     Example:
-        >>> alpaca_ds = alpaca_dataset(model_transform=tokenizer)
+        >>> alpaca_ds = alpaca_dataset(tokenizer=tokenizer)
         >>> for batch in Dataloader(alpaca_ds, batch_size=8):
         >>>     print(f"Batch size: {len(batch)}")
         >>> Batch size: 8
