@@ -50,9 +50,14 @@ def get_assets_path():
 
 
 def dummy_alpaca_dataset_config():
-    return [
-        "dataset._component_=tests.test_utils.dummy_alpaca_dataset",
+    data_files = os.path.join(get_assets_path(), "alpaca_tiny.json")
+    out = [
+        "dataset._component_=torchtune.datasets.alpaca_dataset",
+        "dataset.source='json'",
+        f"dataset.data_files={data_files}",
+        "dataset.split='train'",
     ]
+    return out
 
 
 def dummy_text_completion_alpaca_dataset_config():

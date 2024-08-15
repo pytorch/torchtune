@@ -89,6 +89,7 @@ def alpaca_dataset(
     train_on_input: bool = True,
     packed: bool = False,
     split: str = "train",
+    **load_dataset_kwargs: Dict[str, Any],
 ) -> Union[SFTDataset, PackedDataset]:
     """
     Support for family of Alpaca-style datasets from Hugging Face Datasets using
@@ -118,6 +119,9 @@ def alpaca_dataset(
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
+            Face's `API ref <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset>`_
+            for more details.
 
     Returns:
         Union[SFTDataset, PackedDataset]: dataset configured with source data and transform
@@ -140,6 +144,7 @@ def alpaca_dataset(
         # Prompt template is covered by the message transform
         prompt_template=None,
         split=split,
+        **load_dataset_kwargs,
     )
     return PackedDataset(ds) if packed else ds
 
