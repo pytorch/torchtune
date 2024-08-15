@@ -249,6 +249,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
 
+        # Setup lr scheduler
+        self._lr_scheduler = self._setup_lr_scheduler(
+            cfg_lr_scheduler=cfg.lr_scheduler,
+            num_training_steps=self.total_epochs * self._steps_per_epoch,
+            last_epoch=self.global_step - 1,
+        )
+
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
@@ -391,6 +398,57 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             log.info("Optimizer is initialized.")
             return optimizer
 
+    def _setup_lr_scheduler(
+        self,
+        cfg_lr_scheduler: DictConfig,
+        num_training_steps: int,
+        last_epoch: int,
+    ) -> Optional[Optimizer]:
+        if self._optimizer_in_bwd:
+            # Get the initial learning rate from the wrapper
+            initial_lr = self._optim_ckpt_wrapper.get_optim_key("lr")
+
+            # Create a dummy optimizer with a single parameter group
+            dummy_optimizer = torch.optim.SGD(
+                [torch.nn.Parameter(torch.tensor([0.0]))], lr=initial_lr
+            )
+
+            # Instantiate the scheduler with the dummy optimizer
+            lr_scheduler = config.instantiate(
+                cfg_lr_scheduler,
+                dummy_optimizer,
+                num_training_steps=num_training_steps,
+                last_epoch=last_epoch,
+            )
+
+            # Store the original step method
+            original_step = lr_scheduler.step
+
+            # Create a custom step function that updates all optimizers
+            def custom_step(epoch=None):
+                if epoch is None:
+                    original_step()
+                else:
+                    original_step(epoch)
+                new_lr = lr_scheduler.get_last_lr()[0]
+                for opt in self._optim_ckpt_wrapper.optim_map.values():
+                    for param_group in opt.param_groups:
+                        param_group["lr"] = new_lr
+
+            # Replace the original step function with our custom one
+            lr_scheduler.step = custom_step
+        else:
+            # Standard case: use the single optimizer
+            lr_scheduler = config.instantiate(
+                cfg_lr_scheduler,
+                self._optimizer,
+                num_training_steps=num_training_steps,
+                last_epoch=last_epoch,
+            )
+
+        log.info("Learning rate scheduler is initialized.")
+        return lr_scheduler
+
     def _setup_data(
         self,
         cfg_dataset: DictConfig,
@@ -532,6 +590,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
 
+                    # Need to fix `lr_scheduler.step()` before `optimizer.step()` warning
+                    self._lr_scheduler.step()
                     self.global_step += 1
 
                     loss_to_log = running_loss.item()
