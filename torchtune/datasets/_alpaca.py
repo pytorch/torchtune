@@ -154,6 +154,7 @@ def alpaca_dataset(
                 "PackedDataset requires a max_seq_len to be set on the tokenizer."
             )
         return PackedDataset(ds, max_seq_len=tokenizer.max_seq_len)
+    return ds
 
 
 alpaca_cleaned_dataset = partial(alpaca_dataset, source="yahma/alpaca-cleaned")
