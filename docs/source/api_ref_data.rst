@@ -22,7 +22,7 @@ and models.
     AlpacaInstructTemplate
     GrammarErrorCorrectionTemplate
     SummarizeTemplate
-    StackExchangedPairedTemplate
+    QuestionAnswerTemplate
     PromptTemplate
     PromptTemplateInterface
     ChatMLTemplate
@@ -66,6 +66,7 @@ Converts data from common schema and conversation JSON formats into a list of to
     InputOutputToMessages
     ShareGPTToMessages
     JSONToMessages
+    ChosenRejectedToMessages
 
 Helper functions
 ----------------
