@@ -27,7 +27,7 @@ class FusionLayer(nn.Module):
     key and the pre-trained checkpoint isn't broken. The new layer parameters are available
     through ``fusion_params`` to separately control if they're trainable or not.
 
-    Example::
+    Example:
         >>> # Original decoder style transformer
         >>> layer = nn.TransformerSelfAttentionLayer(...)
         >>> model = TransformerDecoder(layers=layer, num_layers=32, ...)
@@ -149,7 +149,7 @@ class FusionEmbedding(nn.Module):
 
     Use this as a drop-in replacement for `nn.Embedding` in your model.
 
-    Example::
+    Example:
         >>> embedding = FusionEmbedding(vocab_size=100, fusion_vocab_size=10, embed_dim=128)
         >>> model = TransformerDecoder(tok_embeddings=embedding, ...)
         >>>

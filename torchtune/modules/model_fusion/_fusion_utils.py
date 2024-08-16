@@ -21,10 +21,13 @@ def register_fusion_module(module: nn.Module):
     pre-trained encodings to the decoder's embedding space. This
     is typical with both Deep Fusion and Early Fusion models.
 
-    Example::
+    Example:
         >>> projection_head = FeedForward(...)
         >>> register_fusion_module(projection_head))
         >>> encoder = nn.Sequential(clip_vit_224(), projection_head)
+
+    Args:
+        module (nn.Module): module to add the fusion_params method to
     """
 
     def fusion_params(self) -> List[str]:
