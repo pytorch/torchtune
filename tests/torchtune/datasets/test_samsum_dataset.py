@@ -42,9 +42,6 @@ class TestSamsumDataset:
 
         assert input == [
             0,
-            9,
-            4,
-            9,
             7,
             1,
             5,
@@ -61,8 +58,6 @@ class TestSamsumDataset:
             3,
             8,
             3,
-            3,
-            8,
             6,
             5,
             7,
@@ -100,9 +95,6 @@ class TestSamsumDataset:
 
         assert input == [
             0,
-            9,
-            4,
-            9,
             7,
             1,
             5,
@@ -119,8 +111,6 @@ class TestSamsumDataset:
             3,
             8,
             3,
-            3,
-            8,
             6,
             5,
             7,
@@ -132,4 +122,4 @@ class TestSamsumDataset:
             9,
             -1,
         ]
-        assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 22
+        assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 17

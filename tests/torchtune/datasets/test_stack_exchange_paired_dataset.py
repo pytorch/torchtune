@@ -54,9 +54,9 @@ class TestStackExchangePairedDataset:
             2: 15,
             3: 15,
             1: 13,
-            9: 6,
             5: 6,
-            7: 6,
+            9: 5,
+            7: 5,
             6: 4,
             0: 1,
             8: 1,
@@ -74,7 +74,7 @@ class TestStackExchangePairedDataset:
             assert Counter(sample["chosen_labels"]) == expected_chosen_counts
         else:
             # Check that the input is masked
-            assert sample["chosen_labels"].count(CROSS_ENTROPY_IGNORE_IDX) == 54
+            assert sample["chosen_labels"].count(CROSS_ENTROPY_IGNORE_IDX) == 52
 
         expected_rejected_counts = {
             2: 17,
@@ -82,9 +82,9 @@ class TestStackExchangePairedDataset:
             4: 13,
             1: 9,
             5: 9,
-            7: 6,
             6: 6,
-            9: 4,
+            7: 5,
+            9: 3,
             0: 1,
             8: 1,
             15: 1,
@@ -98,7 +98,7 @@ class TestStackExchangePairedDataset:
             assert Counter(sample["rejected_labels"]) == expected_rejected_counts
         else:
             # Check that the input is masked
-            assert sample["rejected_labels"].count(CROSS_ENTROPY_IGNORE_IDX) == 54
+            assert sample["rejected_labels"].count(CROSS_ENTROPY_IGNORE_IDX) == 52
 
 
 class TestStackExchangePairedToMessages:

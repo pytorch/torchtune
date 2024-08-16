@@ -12,7 +12,13 @@ from typing import Any, Dict, List, Union
 from omegaconf import DictConfig, OmegaConf
 
 from torchtune.config._errors import InstantiationError
-from torchtune.utils import get_logger, get_world_size_and_rank
+from torchtune.data._prompt_templates import (
+    _TemplateType,
+    PromptTemplate,
+    PromptTemplateInterface,
+)
+from torchtune.utils._distributed import get_world_size_and_rank
+from torchtune.utils.logging import get_logger
 
 
 def log_config(recipe_name: str, cfg: DictConfig) -> None:
@@ -213,3 +219,32 @@ def _remove_key_by_dotpath(nested_dict: Dict[str, Any], dotpath: str) -> None:
                 delete_non_component(d, path[0])
 
     recurse_and_delete(nested_dict, path)
+
+
+def _get_prompt_template(
+    prompt_template: _TemplateType,
+) -> PromptTemplateInterface:
+    """
+    Retrieve prompt template from import dotpath or create a custom one with provided
+    template dictionary.
+
+    Args:
+        prompt_template (_TemplateType): optional specified prompt template.
+            If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
+            class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
+            prepend/append tags.
+
+    Returns:
+        PromptTemplateInterface: the specified prompt template
+
+    Raises:
+        ValueError: If a string or dictionary is not passed in
+    """
+    if isinstance(prompt_template, str):
+        return _get_component_from_path(prompt_template)()
+    elif isinstance(prompt_template, dict):
+        return PromptTemplate(prompt_template)
+    else:
+        raise ValueError(
+            f"Prompt template must be a dotpath string or dictionary with custom template, got {type(prompt_template)}"
+        )
