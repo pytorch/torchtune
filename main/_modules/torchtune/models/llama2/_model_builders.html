@@ -415,6 +415,8 @@
 <span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">TransformerDecoder</span>
 <span class="kn">from</span> <span class="nn">torchtune.models.llama2._tokenizer</span> <span class="kn">import</span> <span class="n">Llama2Tokenizer</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span>
+<span class="kn">from</span> <span class="nn">torchtune.data._prompt_templates</span> <span class="kn">import</span> <span class="n">_TemplateType</span>
+<span class="kn">from</span> <span class="nn">torchtune.config._utils</span> <span class="kn">import</span> <span class="n">_get_prompt_template</span>
 
 
 <span class="sd">&quot;&quot;&quot;</span>
@@ -444,7 +446,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="llama2_tokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.llama2_tokenizer.html#torchtune.models.llama2.llama2_tokenizer">[docs]</a><span class="k">def</span> <span class="nf">llama2_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Llama2Tokenizer</span><span class="p">:</span>
+<div class="viewcode-block" id="llama2_tokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.llama2_tokenizer.html#torchtune.models.llama2.llama2_tokenizer">[docs]</a><span class="k">def</span> <span class="nf">llama2_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">prompt_template</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_TemplateType</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;torchtune.models.llama2.Llama2ChatTemplate&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Llama2Tokenizer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Tokenizer for Llama2.</span>
 
@@ -452,11 +454,15 @@
 <span class="sd">        path (str): path to the tokenizer</span>
 <span class="sd">        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,</span>
 <span class="sd">            after which the input will be truncated. Default is None.</span>
+<span class="sd">        prompt_template (Optional[_TemplateType]): optional specified prompt template.</span>
+<span class="sd">            If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`</span>
+<span class="sd">            class. If a dictionary, it is assumed to be a custom prompt template mapping role to the</span>
+<span class="sd">            prepend/append tags. Default is :class:`~torchtune.models.llama2.Llama2ChatTemplate`.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Llama2Tokenizer: Instantiation of the Llama2 tokenizer</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">Llama2Tokenizer</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">Llama2Tokenizer</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">prompt_template</span><span class="o">=</span><span class="n">_get_prompt_template</span><span class="p">(</span><span class="n">prompt_template</span><span class="p">)</span> <span class="k">if</span> <span class="n">prompt_template</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="lora_llama2_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.lora_llama2_7b.html#torchtune.models.llama2.lora_llama2_7b">[docs]</a><span class="k">def</span> <span class="nf">lora_llama2_7b</span><span class="p">(</span>

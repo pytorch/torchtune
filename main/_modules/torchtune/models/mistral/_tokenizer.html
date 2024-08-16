@@ -410,7 +410,8 @@
 
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span>
+<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">PromptTemplate</span>
+<span class="kn">from</span> <span class="nn">torchtune.models.mistral._prompt_template</span> <span class="kn">import</span> <span class="n">MistralChatTemplate</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">ModelTokenizer</span><span class="p">,</span>
     <span class="n">SentencePieceBaseTokenizer</span><span class="p">,</span>
@@ -429,6 +430,16 @@
 <span class="sd">        path (str): Path to pretrained tokenizer file.</span>
 <span class="sd">        max_seq_len (Optional[int]): A max sequence length to truncate tokens to.</span>
 <span class="sd">            Default: None</span>
+<span class="sd">        prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used</span>
+<span class="sd">            to add structured text around the actual messages. The structured text is used in three scenarios:</span>
+
+<span class="sd">            - Task-specific templates to gear models for a particular task that it will expect after training</span>
+<span class="sd">            - Model-specific templates that are required whenever the model is prompted, such as the [INST]</span>
+<span class="sd">              tags in Llama2 and in Mistral</span>
+<span class="sd">            - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`</span>
+
+<span class="sd">            The extra text will still get tokenized as normal text, not as special tokens.</span>
+<span class="sd">            Default is :class:`~torchtune.models.mistral.MistralChatTemplate`.</span>
 
 <span class="sd">    Examples:</span>
 <span class="sd">        &gt;&gt;&gt; tokenizer = MistralTokenizer(&quot;/path/to/spm_model&quot;)</span>
@@ -441,6 +452,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">prompt_template</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PromptTemplate</span><span class="p">]</span> <span class="o">=</span> <span class="n">MistralChatTemplate</span><span class="p">(),</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_spm_model</span> <span class="o">=</span> <span class="n">SentencePieceBaseTokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
@@ -451,6 +463,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">stop_tokens</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">]</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">max_seq_len</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">prompt_template</span> <span class="o">=</span> <span class="n">prompt_template</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">eos_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -548,9 +562,14 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            Tuple[List[int], List[bool]]: The tokenized messages</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">templated_messages</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prompt_template</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prompt_template</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="n">messages</span>
+        <span class="p">)</span>
         <span class="k">return</span> <span class="n">tokenize_messages_no_special_tokens</span><span class="p">(</span>
             <span class="n">tokenizer</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
-            <span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">,</span>
+            <span class="n">messages</span><span class="o">=</span><span class="n">templated_messages</span><span class="p">,</span>
             <span class="n">bos_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span><span class="p">,</span>
             <span class="n">eos_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">,</span>
             <span class="n">max_seq_len</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span>

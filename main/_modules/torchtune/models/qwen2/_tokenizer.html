@@ -410,11 +410,11 @@
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">unicodedata</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">lru_cache</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">regex</span> <span class="k">as</span> <span class="nn">re</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">truncate</span>
+<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">ChatMLTemplate</span><span class="p">,</span> <span class="n">Message</span><span class="p">,</span> <span class="n">PromptTemplate</span><span class="p">,</span> <span class="n">truncate</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">ModelTokenizer</span>
 
 <span class="n">PRETOKENIZE_REGEX</span> <span class="o">=</span> <span class="p">(</span>
@@ -490,6 +490,16 @@
 <span class="sd">        special_tokens (Optional[Dict[str, int]]): Special tokens to add to the tokenizer. Default is None.</span>
 <span class="sd">        max_seq_len (Optional[int]): A max sequence length to truncate tokens to.</span>
 <span class="sd">            Default: None</span>
+<span class="sd">        prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used</span>
+<span class="sd">            to add structured text around the actual messages. The structured text is used in three scenarios:</span>
+
+<span class="sd">            - Task-specific templates to gear models for a particular task that it will expect after training</span>
+<span class="sd">            - Model-specific templates that are required whenever the model is prompted, such as the [INST]</span>
+<span class="sd">              tags in Llama2 and in Mistral</span>
+<span class="sd">            - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`</span>
+
+<span class="sd">            The extra text will still get tokenized as normal text, not as special tokens.</span>
+<span class="sd">            Default is :class:`~torchtune.data.ChatMLTemplate`.</span>
 <span class="sd">        errors (str): Paradigm to follow when decoding bytes to UTF-8. Defaults to &quot;replace&quot;.</span>
 <span class="sd">            See [bytes.decode](https://docs.python.org/3/library/stdtypes.html#bytes.decode) for more information.</span>
 <span class="sd">        unk_token (Optional[str]): The unknown token. A token that is not in the vocabulary cannot be converted</span>
@@ -503,23 +513,12 @@
 <span class="sd">            word, e.g. Chinese); technically not a memory leak but appears as one.</span>
 <span class="sd">            By default, we set the cache size equals to size of the official Qwen2 tokenizer.</span>
 
-<span class="sd">    Attributes:</span>
-<span class="sd">        system (str): Qwen2 system prompt.</span>
-<span class="sd">        user (str): Qwen2 user prompt.</span>
-<span class="sd">        assistant (str): Qwen2 assistant prompt.</span>
-<span class="sd">        assistant_for_generation (str): Qwen2 assistant prompt for generation.</span>
-
 <span class="sd">    Example:</span>
 <span class="sd">        &gt;&gt;&gt; tokenizer = Qwen2Tokenizer(path=&quot;/path/to/vocab.json&quot;, merges_file=&quot;/path/to/merges.txt&quot;)</span>
 <span class="sd">        &gt;&gt;&gt; tokenized_text = tokenizer.encode(&quot;Hello world!&quot;)</span>
 <span class="sd">        &gt;&gt;&gt; print(tokenized_text)</span>
 <span class="sd">        [39, 385, 78, 675, 0, 2000]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">system</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">IM_START</span><span class="si">}</span><span class="s2">system</span><span class="se">\n{{</span><span class="s2">content</span><span class="se">}}</span><span class="si">{</span><span class="n">IM_END</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-    <span class="n">user</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">IM_START</span><span class="si">}</span><span class="s2">user</span><span class="se">\n{{</span><span class="s2">content</span><span class="se">}}</span><span class="si">{</span><span class="n">IM_END</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-    <span class="n">assistant</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">IM_START</span><span class="si">}</span><span class="s2">assistant</span><span class="se">\n{{</span><span class="s2">content</span><span class="se">}}</span><span class="si">{</span><span class="n">IM_END</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-    <span class="n">assistant_for_generation</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">IM_START</span><span class="si">}</span><span class="s2">assistant</span><span class="se">\n</span><span class="s2">&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -528,6 +527,7 @@
         <span class="n">special_tokens</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
+        <span class="n">prompt_template</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PromptTemplate</span><span class="p">]</span> <span class="o">=</span> <span class="n">ChatMLTemplate</span><span class="p">(),</span>
         <span class="n">errors</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;replace&quot;</span><span class="p">,</span>
         <span class="n">unk_token</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">ENDOFTEXT</span><span class="p">,</span>
         <span class="n">bos_token</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -574,6 +574,8 @@
         <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">max_seq_len</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">prompt_template</span> <span class="o">=</span> <span class="n">prompt_template</span>
 
     <span class="k">def</span> <span class="nf">_bpe_without_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">):</span>
         <span class="n">word</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
@@ -729,7 +731,8 @@
 <div class="viewcode-block" id="Qwen2Tokenizer.tokenize_messages"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2.Qwen2Tokenizer.html#torchtune.models.qwen2.Qwen2Tokenizer.tokenize_messages">[docs]</a>    <span class="k">def</span> <span class="nf">tokenize_messages</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
-        <span class="n">apply_chat_template</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">add_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Given a list of messages, return a list of tokens for the concatenated</span>
@@ -737,43 +740,72 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            messages (List[Message]): The message list to tokenize.</span>
-<span class="sd">            apply_chat_template (bool): Whether to apply Qwen2 chat template.</span>
+<span class="sd">            add_eos (bool): Wether to add the tokenizer&#39;s eos_id at the end of the</span>
+<span class="sd">                sequence of messages. Default is True.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Tuple[List[int], List[bool]]: The list of token ids and the list of masks.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">tokens</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">mask</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">is_generation</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">message</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">messages</span><span class="p">):</span>
-            <span class="n">content</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
-            <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;system&quot;</span><span class="p">:</span>
-                <span class="n">content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">text_content</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;user&quot;</span><span class="p">:</span>
-                <span class="n">content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">text_content</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;assistant&quot;</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">index</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">message</span><span class="o">.</span><span class="n">text_content</span><span class="p">:</span>
-                    <span class="n">content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">assistant_for_generation</span>
-                    <span class="n">is_generation</span> <span class="o">=</span> <span class="kc">True</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">assistant</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">text_content</span><span class="p">)</span>
-            <span class="n">tokenized_message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">add_bos</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">add_eos</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-            <span class="n">tokens</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">tokenized_message</span><span class="p">)</span>
-            <span class="n">mask</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">message</span><span class="o">.</span><span class="n">masked</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokenized_message</span><span class="p">))</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">:</span>
+<span class="sd">        Raises:</span>
+<span class="sd">            RuntimeError: If a message contains non-text content</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">templated_messages</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prompt_template</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prompt_template</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="n">messages</span>
+        <span class="p">)</span>
+
+        <span class="n">tokenized_messages</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">message</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">templated_messages</span><span class="p">):</span>
+            <span class="n">tokens</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span>
+                    <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokens</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                        <span class="n">item</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">],</span>
+                        <span class="n">add_bos</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">add_eos</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Unsupported message content type: </span><span class="si">{</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+            <span class="n">tokenized_messages</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
+            <span class="n">mask</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">message</span><span class="o">.</span><span class="n">masked</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">))</span>
+
+            <span class="c1"># If assistant message, append EOS at end</span>
+            <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;assistant&quot;</span> <span class="ow">and</span> <span class="n">add_eos</span><span class="p">:</span>
+                <span class="n">tokenized_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">)</span>
+                <span class="n">mask</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">masked</span><span class="p">)</span>
+
+            <span class="c1"># Break out early if we reach max_seq_len</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokenized_messages</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">:</span>
                 <span class="k">break</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_generation</span><span class="p">:</span>
-            <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokens</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">]</span>
-            <span class="n">last_message_masked</span> <span class="o">=</span> <span class="kc">False</span>
-            <span class="k">if</span> <span class="n">messages</span><span class="p">:</span>
-                <span class="n">last_message_masked</span> <span class="o">=</span> <span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">masked</span>
-            <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">+</span> <span class="p">[</span><span class="n">last_message_masked</span><span class="p">]</span>
+        <span class="c1"># Finally, truncate if necessary</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">:</span>
             <span class="n">tokens</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">tokens</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">)</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span></div></div>
+
+        <span class="k">return</span> <span class="n">tokenized_messages</span><span class="p">,</span> <span class="n">mask</span></div>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply ``tokenize_messages`` to the &quot;messages&quot; field in the sample.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            sample (Mapping[str, Any]): A sample with a &quot;messages&quot; field containing</span>
+<span class="sd">                a List[Message] to tokenize</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Mapping[str, Any]: The sample with added &quot;tokens&quot; and &quot;mask&quot; fields</span>
+<span class="sd">                and the &quot;messages&quot; field removed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">messages</span> <span class="o">=</span> <span class="n">sample</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;messages&quot;</span><span class="p">)</span>
+        <span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+        <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tokens</span>
+        <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask</span>
+        <span class="k">return</span> <span class="n">sample</span></div>
 </pre></div>
 
              </article>

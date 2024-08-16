@@ -412,7 +412,7 @@
 <h1>MistralTokenizer<a class="headerlink" href="#mistraltokenizer" title="Permalink to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="torchtune.models.mistral.MistralTokenizer">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.models.mistral.</span></span><span class="sig-name descname"><span class="pre">MistralTokenizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/models/mistral/_tokenizer.html#MistralTokenizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.mistral.MistralTokenizer" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.models.mistral.</span></span><span class="sig-name descname"><span class="pre">MistralTokenizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path:</span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len:</span> <span class="pre">~typing.Optional[int]</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prompt_template:</span> <span class="pre">~typing.Optional[~torchtune.data._prompt_templates.PromptTemplate]</span> <span class="pre">=</span> <span class="pre">&lt;torchtune.models.mistral._prompt_template.MistralChatTemplate</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/models/mistral/_tokenizer.html#MistralTokenizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.mistral.MistralTokenizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Mistral’s implementation of the SentencePiece tokenizer</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -420,6 +420,17 @@
 <li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Path to pretrained tokenizer file.</p></li>
 <li><p><strong>max_seq_len</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – A max sequence length to truncate tokens to.
 Default: None</p></li>
+<li><p><strong>prompt_template</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="torchtune.data.PromptTemplate.html#torchtune.data.PromptTemplate" title="torchtune.data.PromptTemplate"><em>PromptTemplate</em></a><em>]</em>) – <p>template used to format the messages based on their role. This is used
+to add structured text around the actual messages. The structured text is used in three scenarios:</p>
+<ul>
+<li><p>Task-specific templates to gear models for a particular task that it will expect after training</p></li>
+<li><p>Model-specific templates that are required whenever the model is prompted, such as the [INST]
+tags in Llama2 and in Mistral</p></li>
+<li><p>Community standardized templates, such as <a class="reference internal" href="torchtune.data.ChatMLTemplate.html#torchtune.data.ChatMLTemplate" title="torchtune.data.ChatMLTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChatMLTemplate</span></code></a></p></li>
+</ul>
+<p>The extra text will still get tokenized as normal text, not as special tokens.
+Default is <a class="reference internal" href="torchtune.models.mistral.MistralChatTemplate.html#torchtune.models.mistral.MistralChatTemplate" title="torchtune.models.mistral.MistralChatTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">MistralChatTemplate</span></code></a>.</p>
+</p></li>
 </ul>
 </dd>
 </dl>

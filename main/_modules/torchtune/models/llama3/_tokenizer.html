@@ -410,7 +410,7 @@
 
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">truncate</span>
+<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">PromptTemplate</span><span class="p">,</span> <span class="n">truncate</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">ModelTokenizer</span><span class="p">,</span> <span class="n">TikTokenBaseTokenizer</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
 
@@ -455,6 +455,15 @@
 <span class="sd">            Llama3 special tokens.</span>
 <span class="sd">        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,</span>
 <span class="sd">            after which the input will be truncated. Default is None.</span>
+<span class="sd">        prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used</span>
+<span class="sd">            to add structured text around the actual messages. The structured text is used in three scenarios:</span>
+
+<span class="sd">            - Task-specific templates to gear models for a particular task that it will expect after training</span>
+<span class="sd">            - Model-specific templates that are required whenever the model is prompted, such as the [INST]</span>
+<span class="sd">              tags in Llama2 and in Mistral</span>
+<span class="sd">            - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`</span>
+
+<span class="sd">            The extra text will still get tokenized as normal text, not as special tokens. Default is None.</span>
 
 <span class="sd">    Examples:</span>
 <span class="sd">        &gt;&gt;&gt; tokenizer = Llama3Tokenizer(&quot;/path/to/tt_model&quot;)</span>
@@ -468,6 +477,7 @@
         <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">special_tokens</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">prompt_template</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PromptTemplate</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">special_tokens</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">special_tokens</span> <span class="k">if</span> <span class="n">special_tokens</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">LLAMA3_SPECIAL_TOKENS</span>
@@ -504,6 +514,8 @@
             <span class="n">special_tokens</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">special_tokens</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">max_seq_len</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">prompt_template</span> <span class="o">=</span> <span class="n">prompt_template</span>
 
     <span class="k">def</span> <span class="nf">_validate_special_tokens</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -644,10 +656,15 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            Tuple[List[int], List[bool]]: The list of token ids and the list of masks.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">templated_messages</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prompt_template</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prompt_template</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="n">messages</span>
+        <span class="p">)</span>
         <span class="n">tokens</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span><span class="p">]</span>
         <span class="c1"># bos and eos are always masked</span>
         <span class="n">mask</span> <span class="o">=</span> <span class="p">[</span><span class="kc">True</span><span class="p">]</span>
-        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">templated_messages</span><span class="p">:</span>
             <span class="n">tokenized_message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenize_message</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
 
             <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokens</span> <span class="o">+</span> <span class="n">tokenized_message</span>

@@ -417,7 +417,8 @@
 the <a class="reference external" href="https://huggingface.co/datasets/tatsu-lab/alpaca#data-instances">data input format</a>
 and <a class="reference external" href="https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py#L31">prompt template</a>
 from the original alpaca codebase, where <code class="docutils literal notranslate"><span class="pre">instruction</span></code>, <code class="docutils literal notranslate"><span class="pre">input</span></code>, and <code class="docutils literal notranslate"><span class="pre">output</span></code>
-are fields from the dataset.</p>
+are fields from the dataset. This template is automatically applied independent
+of any prompt template configured in the tokenizer.</p>
 <p>Masking of the prompt during training is controlled by the <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> flag, which is
 set to <code class="docutils literal notranslate"><span class="pre">True</span></code> by <a class="reference external" href="https://github.com/tloen/alpaca-lora/blob/main/finetune.py#L49">default</a>
 - If <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> is True, the prompt is used during training and

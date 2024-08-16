@@ -501,7 +501,8 @@
 <span class="sd">    the `data input format &lt;https://huggingface.co/datasets/tatsu-lab/alpaca#data-instances&gt;`_</span>
 <span class="sd">    and `prompt template &lt;https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py#L31&gt;`_</span>
 <span class="sd">    from the original alpaca codebase, where ``instruction``, ``input``, and ``output``</span>
-<span class="sd">    are fields from the dataset.</span>
+<span class="sd">    are fields from the dataset. This template is automatically applied independent</span>
+<span class="sd">    of any prompt template configured in the tokenizer.</span>
 
 <span class="sd">    Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is</span>
 <span class="sd">    set to ``True`` by `default &lt;https://github.com/tloen/alpaca-lora/blob/main/finetune.py#L49&gt;`_</span>
@@ -547,8 +548,6 @@
         <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
         <span class="n">message_transform</span><span class="o">=</span><span class="n">message_transform</span><span class="p">,</span>
         <span class="n">model_transform</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
-        <span class="c1"># Prompt template is covered by the message transform</span>
-        <span class="n">prompt_template</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">split</span><span class="o">=</span><span class="n">split</span><span class="p">,</span>
         <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">,</span>
     <span class="p">)</span>

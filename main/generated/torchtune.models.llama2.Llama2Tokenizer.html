@@ -412,15 +412,15 @@
 <h1>Llama2Tokenizer<a class="headerlink" href="#llama2tokenizer" title="Permalink to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="torchtune.models.llama2.Llama2Tokenizer">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.models.llama2.</span></span><span class="sig-name descname"><span class="pre">Llama2Tokenizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/models/llama2/_tokenizer.html#Llama2Tokenizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.llama2.Llama2Tokenizer" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.models.llama2.</span></span><span class="sig-name descname"><span class="pre">Llama2Tokenizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path:</span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len:</span> <span class="pre">~typing.Optional[int]</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prompt_template:</span> <span class="pre">~typing.Optional[~torchtune.data._prompt_templates.PromptTemplate]</span> <span class="pre">=</span> <span class="pre">&lt;torchtune.models.llama2._prompt_template.Llama2ChatTemplate</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/models/llama2/_tokenizer.html#Llama2Tokenizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.llama2.Llama2Tokenizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Llama2’s implementation of the SentencePiece tokenizer. Llama2Tokenizer does
 not include any additional special tokens. The prompt template described in
 <a class="reference external" href="https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-2/">https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-2/</a> describes
 [INST][/INST] and &lt;&lt;SYS&gt;&gt;&lt;&lt;/SYS&gt;&gt; as special tokens but these are not registered
 as unique ids and are tokenized as normal text. When using this tokenizer on the
-pre-trained model for inference, it is strongly encouraged to apply the
-<a class="reference internal" href="torchtune.data.Llama2ChatFormat.html#torchtune.data.Llama2ChatFormat" title="torchtune.data.Llama2ChatFormat"><code class="xref py py-class docutils literal notranslate"><span class="pre">Llama2ChatFormat</span></code></a> to your data beforehand to add the
-[INST] and &lt;&lt;SYS&gt;&gt; for optimal performance. For fine-tuning, this is not required.
+pre-trained model for inference, the prompt template
+<a class="reference internal" href="torchtune.models.llama2.Llama2ChatTemplate.html#torchtune.models.llama2.Llama2ChatTemplate" title="torchtune.models.llama2.Llama2ChatTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">Llama2ChatTemplate</span></code></a> is by default applied to your data
+before tokenization to add the [INST] and &lt;&lt;SYS&gt;&gt; tags for optimal performance.
 For more details, see <a class="reference external" href="https://pytorch.org/torchtune/main/tutorials/chat.html#tokenizing-prompt-templates-special-tokens">https://pytorch.org/torchtune/main/tutorials/chat.html#tokenizing-prompt-templates-special-tokens</a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -428,6 +428,17 @@ For more details, see <a class="reference external" href="https://pytorch.org/to
 <li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Path to pretrained SentencePiece tokenizer file.</p></li>
 <li><p><strong>max_seq_len</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – A max sequence length to truncate tokens to.
 Default: None</p></li>
+<li><p><strong>prompt_template</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="torchtune.data.PromptTemplate.html#torchtune.data.PromptTemplate" title="torchtune.data.PromptTemplate"><em>PromptTemplate</em></a><em>]</em>) – <p>template used to format the messages based on their role. This is used
+to add structured text around the actual messages. The structured text is used in three scenarios:</p>
+<ul>
+<li><p>Task-specific templates to gear models for a particular task that it will expect after training</p></li>
+<li><p>Model-specific templates that are required whenever the model is prompted, such as the [INST]
+tags in Llama2 and in Mistral</p></li>
+<li><p>Community standardized templates, such as <a class="reference internal" href="torchtune.data.ChatMLTemplate.html#torchtune.data.ChatMLTemplate" title="torchtune.data.ChatMLTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChatMLTemplate</span></code></a></p></li>
+</ul>
+<p>The extra text will still get tokenized as normal text, not as special tokens.
+Default is <a class="reference internal" href="torchtune.models.llama2.Llama2ChatTemplate.html#torchtune.models.llama2.Llama2ChatTemplate" title="torchtune.models.llama2.Llama2ChatTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">Llama2ChatTemplate</span></code></a>.</p>
+</p></li>
 </ul>
 </dd>
 </dl>
