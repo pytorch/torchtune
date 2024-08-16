@@ -41,7 +41,7 @@ class PreferenceDataset(Dataset):
     1. Dataset-specific transform. This is typically unique to each dataset and extracts
        the necessary prompt and chosen/rejected columns into torchtune's :class:`~torchtune.data.Message`
        format, a standardized API for all model tokenizers.
-    3. Tokenization with optional prompt template if configured
+    2. Tokenization with optional prompt template if configured
 
 
     All datasets are formatted into a list of :class:`~torchtune.data.Message`

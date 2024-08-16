@@ -35,6 +35,7 @@ class TestEleutherEval:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
             limit=10 \
             dtype=fp32 \
             device=cpu \
@@ -95,6 +96,7 @@ class TestEleutherEval:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
             limit=10 \
             dtype=fp32 \
             device=cpu \

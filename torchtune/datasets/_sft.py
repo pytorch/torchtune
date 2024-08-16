@@ -25,7 +25,7 @@ class SFTDataset(Dataset):
     1. Dataset-specific transform. This is typically unique to each dataset and extracts
        the necessary columns into torchtune's :class:`~torchtune.data.Message` format,
        a standardized API for all model tokenizers.
-    3. Model-specific transform or tokenization with optional prompt template
+    2. Model-specific transform or tokenization with optional prompt template
 
 
     All datasets are formatted into a list of :class:`~torchtune.data.Message`
