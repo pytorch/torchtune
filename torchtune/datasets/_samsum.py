@@ -47,10 +47,11 @@ def samsum_dataset(
             in the filepath in ``data_files``. See `Hugging Face's
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details. Default is ``Samsung/samsum``.
-        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the prompt template
-            to the new column names in the dataset. If None, assume these are identical.
+        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the message transform
+            :class:`~torchtune.data.InputOutputToMessages` to the new column names in the dataset. If None, use
+            the default column names ``{"input": "dialogue", "output": "summary"}`` in ``Samsung/samsum``.
         prompt_template (Optional[PromptTemplate]): optional template used to format the prompt. Default
-            is :class:`~torchtune.data.GrammarErrorCorrectionTemplate`.
+            is :class:`~torchtune.data.SummarizeTemplate`.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
@@ -61,7 +62,7 @@ def samsum_dataset(
 
 
     Example:
-        >>> samsum_ds = samsum_dataset(tokenizer=tokenizer)
+        >>> samsum_ds = samsum_dataset(model_transform=tokenizer)
         >>> for batch in Dataloader(samsum_ds, batch_size=8):
         >>>     print(f"Batch size: {len(batch)}")
         >>> Batch size: 8
