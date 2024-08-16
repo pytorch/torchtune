@@ -12,24 +12,54 @@ from torch import nn, Tensor
 
 class FusionEmbedding(nn.Module):
     """Fusion embedding supports training additional special tokens while keeping
-    the original embedding frozen. When fusing new models with a langauge model,
-    there may be some additional tokens needed to support the fused langauge model.
+    the original embedding frozen. When fusing new models with a language model,
+    there may be some additional tokens needed to support the fused language model.
     The FusionEmbedding keeps the original embeddings frozen while learning a much smaller
     second embedding for the additional tokens. During forward this module routes
     the tokens to the appropriate embedding table.
 
     Args:
         vocab_size (int): language model vocab size
-        additional_tokens (int): additional tokens for the fused model
+        fusion_vocab_size (int): additional tokens for the fused model
         embed_dim (int): embedding dimension of the two embedding tables
     """
 
-    def __init__(self, vocab_size: int, additional_tokens: int, embed_dim: int) -> None:
+    def __init__(self, vocab_size: int, fusion_vocab_size: int, embed_dim: int) -> None:
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, embed_dim)
-        self.fusion_embedding = nn.Embedding(additional_tokens, embed_dim)
+        self.fusion_embedding = nn.Embedding(fusion_vocab_size, embed_dim)
         self.dim = embed_dim
+        self.num_embeddings = vocab_size + fusion_vocab_size
         # TODO: Support merging the embeddings after finetuning
+
+        # Keep FusionLayer wrappings out of the state_dict
+        self._register_state_dict_hook(FusionEmbedding._state_dict_hook)
+        self._register_load_state_dict_pre_hook(
+            FusionEmbedding._load_state_dict_hook, with_module=True
+        )
+        # TODO: Switch to register_load_state_dict_pre_hook and
+        # register_state_dict_pre_hook after PyTorch v2.5
+
+    def _state_dict_hook(self, destination, prefix, keep_vars):
+        """Remove "embedding" from the original embedding in the state_dict
+        name. This keeps the orginal state dict name for the embedding
+        from before fusing with the FusionEmbedding.
+
+        [!Note] This update changes the order of the OrderedDict
+        """
+        key = "embedding.weight"
+        new_key = "weight"
+        destination[new_key] = destination[key]
+        del destination[key]
+
+    def _load_state_dict_hook(self, state_dict, *args, **kwargs):
+        """Apply extra "embedding" prefix to the state_dict key to
+        account for the FusionEmbedding wrapping.
+        """
+        key = "weight"
+        new_key = "embedding.weight"
+        state_dict[new_key] = state_dict[key]
+        del state_dict[key]
 
     def fusion_params(self) -> List[str]:
         """
@@ -62,13 +92,16 @@ class FusionEmbedding(nn.Module):
 
         mask = input < vocab_size
         tokens = torch.masked_select(input, mask)
-        additional_tokens = torch.masked_select(input, ~mask) - vocab_size
+        fusion_tokens = torch.masked_select(input, ~mask) - vocab_size
 
+        # [batch_size x num_tokens x embed_dim]
         embeds = self.embedding(tokens)
-        additional_embeds = self.fusion_embedding(additional_tokens)
+        # [batch_size x num_fusion_tokens x embed_dim]
+        fusion_embeds = self.fusion_embedding(fusion_tokens)
 
+        # [batch_size x seq_length x embed_dim]
         out = self._fused_embed(bs, seq_len)
         mask = mask.unsqueeze(-1).expand(bs, seq_len, self.dim)
         out.masked_scatter_(mask, embeds)
-        out.masked_scatter_(~mask, additional_embeds)
+        out.masked_scatter_(~mask, fusion_embeds)
         return out

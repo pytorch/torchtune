@@ -14,12 +14,12 @@ from torchtune.modules import TransformerDecoder
 class DeepFusionModel(nn.Module):
     """DeepFusion is a type of fused model architecture where a pretrained encoder is combined
     with a pretrained decoder (LLM). This is a popular architecture for multimodal models, with
-    a full overview availble in `The Evolution of Multimodal Model Architectures <https://arxiv.org/abs/2405.17927>`_.
+    a full overview available in `The Evolution of Multimodal Model Architectures <https://arxiv.org/abs/2405.17927>`_.
 
-    This module has the same methods and forward signature as TransformerDecoder and can be used
-    interchangeably where TransformerDecoder is. It combines the encoder with the decoder as a
+    This module has the same methods and forward signature as :class:`~torchtune.modules.TransformerDecoder` and can be used
+    interchangeably where :class:`~torchtune.modules.TransformerDecoder` is. It combines the encoder with the decoder as a
     single module for checkpointing and finetuning. It is expected that the encoder and decoder
-    are already defined with any extra learnable "fusion_params"; learnable parameters to help
+    are already defined with any extra learnable ``fusion_params``; learnable parameters to help
     adapt the pre-trained encoder to the pre-trained decoder.
 
     Example::
@@ -110,5 +110,11 @@ class DeepFusionModel(nn.Module):
         # we slice the encoder_mask to only include those same positions
         if input_pos is not None and encoder_mask is not None:
             encoder_mask = encoder_mask[:, input_pos]
-        output = self.decoder(tokens, mask, encoder_embed, encoder_mask, input_pos)
+        output = self.decoder(
+            tokens=tokens,
+            mask=mask,
+            encoder_input=encoder_embed,
+            encoder_mask=encoder_mask,
+            input_pos=input_pos,
+        )
         return output

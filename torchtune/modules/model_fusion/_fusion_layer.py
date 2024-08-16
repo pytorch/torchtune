@@ -16,15 +16,15 @@ class FusionLayer(nn.Module):
     Deep Fusion model architectures combine pretrained encoder models with pretrained
     language models by infusing the encoder outputs into the middle layers of the LLM.
     This allows the language model to interpret the enocder outputs as text and
-    "understand" any modality where you can train an encoder. To enable the language model
+    "understand" any modality for which you can train an encoder. To enable the language model
     to adapt to the encoder outputs, the FusionLayer fuses a new learnable layer to an existing
     decoder (language model) layer. This additional layer can take the encoder embeddings and
     learn to combine them with the token embeddings from the decoder. The module supports fusing
-    the new layer before or after the original, in Flamingo the new layer is fused to the input.
+    the new layer before or after the original, in Flamingo the new layer is fused before the original.
 
-    The original layer is wrapped in FusionLayer such that it maintains it's original state_dict
+    The original layer is wrapped in FusionLayer such that it maintains its original state_dict
     key and the pre-trained checkpoint isn't broken. The new layer parameters are available
-    through fusion_params to separately control if they're trainable or not.
+    through ``fusion_params`` to separately control if they're trainable or not.
 
     Args:
         layer (nn.Module): original decoder layer
@@ -51,7 +51,7 @@ class FusionLayer(nn.Module):
     def _state_dict_hook(self, state_dict, *args, **kwargs):
         """Remove "layer" from the original layer in the state_dict
         name. This keeps the orginal state dict name for the layer
-        from before fusing with the fusion_layer.
+        from before fusing with the FusionLayer.
 
         [!Note] This update changes the order of the OrderedDict
         """

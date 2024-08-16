@@ -65,9 +65,10 @@ PEFT Components
     peft.validate_state_dict_for_lora
     peft.disable_adapter
 
+
 Fusion Components
-_________________
-Components for building models that are a fusion of two+ pre-trained models
+-----------------
+Components for building models that are a fusion of two+ pre-trained models.
 
 .. autosummary::
     :toctree: generated/
@@ -76,7 +77,7 @@ Components for building models that are a fusion of two+ pre-trained models
     model_fusion.DeepFusionModel
     model_fusion.FusionLayer
     model_fusion.FusionEmbedding
-    model_fusion.regsiter_fusion_module
+    model_fusion.register_fusion_module
 
 
 Module Utilities
