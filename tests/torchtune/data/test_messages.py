@@ -88,7 +88,7 @@ class TestInputOutputToMessages:
         )
         actual = transform(sample)
         expected = [
-            Message(role="user", content="hello world", masked=True, eot=False),
+            Message(role="user", content="hello world", masked=True, eot=True),
             Message(role="assistant", content="hello world", masked=False, eot=True),
         ]
         assert_dialogue_equal(actual["messages"], expected)
@@ -100,7 +100,7 @@ class TestInputOutputToMessages:
         )
         actual = transform(sample)
         expected = [
-            Message(role="user", content="hello world", masked=False, eot=False),
+            Message(role="user", content="hello world", masked=False, eot=True),
             Message(role="assistant", content="hello world", masked=False, eot=True),
         ]
         assert_dialogue_equal(actual["messages"], expected)
@@ -129,13 +129,13 @@ class TestChosenRejectedToMessages:
         )
         actual = transform(sample)
         expected_chosen = [
-            Message(role="user", content="hello world", masked=True, eot=False),
+            Message(role="user", content="hello world", masked=True, eot=True),
             Message(role="assistant", content="hello world", masked=False, eot=True),
         ]
         assert_dialogue_equal(actual["chosen"], expected_chosen)
 
         expected_rejected = [
-            Message(role="user", content="hello world", masked=True, eot=False),
+            Message(role="user", content="hello world", masked=True, eot=True),
             Message(role="assistant", content="bye world", masked=False, eot=True),
         ]
         assert_dialogue_equal(actual["rejected"], expected_rejected)
@@ -150,13 +150,13 @@ class TestChosenRejectedToMessages:
         )
         actual = transform(sample)
         expected_chosen = [
-            Message(role="user", content="hello world", masked=False, eot=False),
+            Message(role="user", content="hello world", masked=False, eot=True),
             Message(role="assistant", content="hello world", masked=False, eot=True),
         ]
         assert_dialogue_equal(actual["chosen"], expected_chosen)
 
         expected_rejected = [
-            Message(role="user", content="hello world", masked=False, eot=False),
+            Message(role="user", content="hello world", masked=False, eot=True),
             Message(role="assistant", content="bye world", masked=False, eot=True),
         ]
         assert_dialogue_equal(actual["rejected"], expected_rejected)
