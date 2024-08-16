@@ -464,6 +464,7 @@ class TransformerDecoder(nn.Module):
         output = self.output(h).float()
 
         # Output list if hidden states are requested, otherwise just the output
+        # TODO: always output a list to have a consistent output type
         output = output if not hidden else [*hidden, output]
         return output
 
@@ -657,5 +658,6 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         output = F.linear(h, self.tok_embeddings.weight).float()
 
         # Output list if hidden states are requested, otherwise just the output
+        # TODO: always output a list to have a consistent output type
         output = output if not hidden else [*hidden, output]
         return output
