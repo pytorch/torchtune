@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>reparametrize_as_dtype_state_dict_post_hook &mdash; torchtune main documentation</title>
+  <title>DeepFusionModel &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Transform" href="torchtune.modules.transforms.Transform.html" />
-    <link rel="prev" title="register_fusion_module" href="torchtune.modules.model_fusion.register_fusion_module.html" />
+    <link rel="next" title="FusionLayer" href="torchtune.modules.model_fusion.FusionLayer.html" />
+    <link rel="prev" title="disable_adapter" href="torchtune.modules.peft.disable_adapter.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -372,13 +372,13 @@
         
           <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
         
-      <li>reparametrize_as_dtype_state_dict_post_hook</li>
+      <li>DeepFusionModel</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.modules.model_fusion.DeepFusionModel.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -408,35 +408,136 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="reparametrize-as-dtype-state-dict-post-hook">
-<h1>reparametrize_as_dtype_state_dict_post_hook<a class="headerlink" href="#reparametrize-as-dtype-state-dict-post-hook" title="Permalink to this heading">¶</a></h1>
-<dl class="py function">
-<dt class="sig sig-object py" id="torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook">
-<span class="sig-prename descclassname"><span class="pre">torchtune.modules.common_utils.</span></span><span class="sig-name descname"><span class="pre">reparametrize_as_dtype_state_dict_post_hook</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">state_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="(in PyTorch v2.4)"><span class="pre">dtype</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">torch.bfloat16</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offload_to_cpu</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/common_utils.html#reparametrize_as_dtype_state_dict_post_hook"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook" title="Permalink to this definition">¶</a></dt>
-<dd><p>A state_dict hook that replaces NF4 tensors with their restored
-higher-precision weight and optionally offloads the restored weight to CPU.
-Use this hook to avoid increased peak GPU memory usage during checkpoint
-save when training with QLoRA.</p>
-<p>This function is meant to be used with PyTorch’s <code class="docutils literal notranslate"><span class="pre">nn.Module._register_state_dict_hook</span></code>, i.e.</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="n">MyModule</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="o">.</span><span class="n">_register_state_dict_hook</span><span class="p">(</span><span class="n">reparametrize_as_dtype_state_dict_post_hook</span><span class="p">)</span>
+  <section id="deepfusionmodel">
+<h1>DeepFusionModel<a class="headerlink" href="#deepfusionmodel" title="Permalink to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="torchtune.modules.model_fusion.DeepFusionModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.model_fusion.</span></span><span class="sig-name descname"><span class="pre">DeepFusionModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decoder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.transformer.TransformerDecoder"><span class="pre">TransformerDecoder</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/model_fusion/_fusion.html#DeepFusionModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.model_fusion.DeepFusionModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>DeepFusion is a type of fused model architecture where a pretrained encoder is combined
+with a pretrained decoder (LLM). This is a popular architecture for multimodal models, with
+a full overview available in <a class="reference external" href="https://arxiv.org/abs/2405.17927">The Evolution of Multimodal Model Architectures</a>.</p>
+<p>This module has the same methods and forward signature as <a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.TransformerDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">TransformerDecoder</span></code></a> and can be used
+interchangeably where <a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.TransformerDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">TransformerDecoder</span></code></a> is. It combines the encoder with the decoder as a
+single module for checkpointing and finetuning. It is expected that the encoder and decoder
+are already defined with any extra learnable <code class="docutils literal notranslate"><span class="pre">fusion_params</span></code>; learnable parameters to help
+adapt the pre-trained encoder to the pre-trained decoder.</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># decoder is a TransformerDecoder (e.g. llama3_8b) with fused cross attention layers</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">embed</span> <span class="o">=</span> <span class="n">FusionEmbedding</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">layer</span> <span class="o">=</span> <span class="n">FusionLayer</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">layer</span><span class="o">=</span><span class="n">TransformerSelfAttentionLayer</span><span class="p">(</span><span class="o">...</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">fusion_layer</span><span class="o">=</span><span class="n">TransformerCrossAttentionLayer</span><span class="p">(</span><span class="o">...</span><span class="p">),</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decoder</span> <span class="o">=</span> <span class="n">TransformerDecoder</span><span class="p">(</span><span class="n">tok_embeddings</span><span class="o">=</span><span class="n">embed</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="n">layer</span><span class="p">,</span> <span class="n">num_layers</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># encoder is pre-trained encoder (e.g. clip_vit_224) with an added projection head</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">projection_head</span> <span class="o">=</span> <span class="n">FeedForward</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">register_fusion_module</span><span class="p">(</span><span class="n">projection_head</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">encoder</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">clip_vit_224</span><span class="p">(),</span> <span class="n">projection_head</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># DeepFusionModel combines the encoder and decoder</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">DeepFusionModel</span><span class="p">(</span><span class="n">decoder</span><span class="p">,</span> <span class="n">encoder</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Load full fused checkpoints (e.g. a Flamingo checkpoint)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Or load pretrained individual models (fusion_params are not loaded)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Forward pass</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">output</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">encoder_input</span><span class="p">,</span> <span class="n">encoder_mask</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>If the hook is registered per the above process, this hook will be called _after_ the module’s
-<code class="docutils literal notranslate"><span class="pre">state_dict</span></code> method is called. The hook will replace all <code class="docutils literal notranslate"><span class="pre">NF4Tensor</span></code> instances by unquantizing
-them to the original dtype, and optionally offload the restored weight to CPU.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>nn.Module</em>) – the model to take <code class="docutils literal notranslate"><span class="pre">state_dict()</span></code> on</p></li>
-<li><p><strong>state_dict</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – the state dict to modify</p></li>
-<li><p><strong>*args</strong> (<em>Tuple</em><em>[</em><em>Any</em><em>, </em><em>...</em><em>]</em>) – Unused args passed when running this as a state_dict hook.</p></li>
-<li><p><strong>dtype</strong> (<em>torch.dpython:type</em>) – the dtype to restore the weight to. Default is <code class="docutils literal notranslate"><span class="pre">torch.bfloat16</span></code>.</p></li>
-<li><p><strong>offload_to_cpu</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – whether to offload the restored weight to CPU. Default is <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
-<li><p><strong>**kwargs</strong> (<em>Dict</em><em>[</em><em>Any</em><em>, </em><em>Any</em><em>]</em>) – Unused keyword args passed when running this as a state_dict hook.</p></li>
+<li><p><strong>decoder</strong> (<a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.TransformerDecoder"><em>TransformerDecoder</em></a>) – decoder module</p></li>
+<li><p><strong>encoder</strong> (<em>nn.Module</em>) – encoder module</p></li>
 </ul>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.modules.model_fusion.DeepFusionModel.caches_are_enabled">
+<span class="sig-name descname"><span class="pre">caches_are_enabled</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/model_fusion/_fusion.html#DeepFusionModel.caches_are_enabled"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.model_fusion.DeepFusionModel.caches_are_enabled" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the key value caches are setup.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.modules.model_fusion.DeepFusionModel.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokens</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_mask</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.12)"><span class="pre">Union</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/modules/model_fusion/_fusion.html#DeepFusionModel.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.model_fusion.DeepFusionModel.forward" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tokens</strong> (<em>Tensor</em>) – input tensor with shape [b x s]</p></li>
+<li><p><strong>mask</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Optional boolean tensor which contains the attention mask
+with shape [b x s x s]. This is applied after the query-key multiplication and
+before the softmax. A value of True in row i and column j means token i attends
+to token j. A value of False means token i does not attend to token j. If no
+mask is specified, a causal mask is used by default. Default is None.</p></li>
+<li><p><strong>encoder_input</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – Optional input for the encoder.</p></li>
+<li><p><strong>encoder_mask</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Boolean tensor defining a relational matrix between
+tokens and encoder embeddings. A True value at position i,j means token i can attend
+to embedding j in the decoder. Mask has shape [b x s x s_e]. Default is None.</p></li>
+<li><p><strong>input_pos</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Optional tensor which contains the position ids
+of each token. During training, this is used to indicate the positions
+of each token relative to its sample when packed, shape [b x s].
+During inference, this indicates the position of the current token.
+If none, assume the index of the token is its position id. Default is None.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Note: At the very first step of inference, when the model is provided with a prompt,
+<code class="docutils literal notranslate"><span class="pre">input_pos</span></code> would contain the positions of all of the tokens in the prompt
+(eg: <code class="docutils literal notranslate"><span class="pre">torch.arange(prompt_length)</span></code>). This is because we will need to compute the
+KV values for each position.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>output tensor with shape [b x s x v] or a list of layer</dt><dd><p>output tensors defined by <code class="docutils literal notranslate"><span class="pre">output_hidden_states</span></code> with the
+final output tensor appended to the list.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tensor</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Notation used for tensor shapes:</dt><dd><ul class="simple">
+<li><p>b: batch size</p></li>
+<li><p>s: token sequence length</p></li>
+<li><p>s_e: encoder sequence length</p></li>
+<li><p>v: vocab size</p></li>
+<li><p>d: token embed dim</p></li>
+<li><p>d_e: encoder embed dim</p></li>
+<li><p>m_s: max seq len</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.modules.model_fusion.DeepFusionModel.reset_caches">
+<span class="sig-name descname"><span class="pre">reset_caches</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/model_fusion/_fusion.html#DeepFusionModel.reset_caches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.model_fusion.DeepFusionModel.reset_caches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset the key value caches.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.modules.model_fusion.DeepFusionModel.setup_caches">
+<span class="sig-name descname"><span class="pre">setup_caches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="(in PyTorch v2.4)"><span class="pre">dtype</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/model_fusion/_fusion.html#DeepFusionModel.setup_caches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.model_fusion.DeepFusionModel.setup_caches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Setup key value caches for attention calculation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – batch size for the caches.</p></li>
+<li><p><strong>dtype</strong> (<em>torch.dpython:type</em>) – dtype for the caches.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -449,10 +550,10 @@ them to the original dtype, and optionally offload the restored weight to CPU.</
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.modules.transforms.Transform.html" class="btn btn-neutral float-right" title="Transform" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.modules.model_fusion.FusionLayer.html" class="btn btn-neutral float-right" title="FusionLayer" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.modules.model_fusion.register_fusion_module.html" class="btn btn-neutral" title="register_fusion_module" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.modules.peft.disable_adapter.html" class="btn btn-neutral" title="disable_adapter" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -484,7 +585,7 @@ them to the original dtype, and optionally offload the restored weight to CPU.</
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">reparametrize_as_dtype_state_dict_post_hook</a></li>
+<li><a class="reference internal" href="#">DeepFusionModel</a></li>
 </ul>
 
             </div>

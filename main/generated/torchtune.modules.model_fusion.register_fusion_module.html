@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>reparametrize_as_dtype_state_dict_post_hook &mdash; torchtune main documentation</title>
+  <title>register_fusion_module &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Transform" href="torchtune.modules.transforms.Transform.html" />
-    <link rel="prev" title="register_fusion_module" href="torchtune.modules.model_fusion.register_fusion_module.html" />
+    <link rel="next" title="reparametrize_as_dtype_state_dict_post_hook" href="torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.html" />
+    <link rel="prev" title="FusionEmbedding" href="torchtune.modules.model_fusion.FusionEmbedding.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -372,13 +372,13 @@
         
           <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
         
-      <li>reparametrize_as_dtype_state_dict_post_hook</li>
+      <li>register_fusion_module</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.modules.model_fusion.register_fusion_module.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -408,33 +408,28 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="reparametrize-as-dtype-state-dict-post-hook">
-<h1>reparametrize_as_dtype_state_dict_post_hook<a class="headerlink" href="#reparametrize-as-dtype-state-dict-post-hook" title="Permalink to this heading">¶</a></h1>
+  <section id="register-fusion-module">
+<h1>register_fusion_module<a class="headerlink" href="#register-fusion-module" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook">
-<span class="sig-prename descclassname"><span class="pre">torchtune.modules.common_utils.</span></span><span class="sig-name descname"><span class="pre">reparametrize_as_dtype_state_dict_post_hook</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">state_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="(in PyTorch v2.4)"><span class="pre">dtype</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">torch.bfloat16</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offload_to_cpu</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/common_utils.html#reparametrize_as_dtype_state_dict_post_hook"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook" title="Permalink to this definition">¶</a></dt>
-<dd><p>A state_dict hook that replaces NF4 tensors with their restored
-higher-precision weight and optionally offloads the restored weight to CPU.
-Use this hook to avoid increased peak GPU memory usage during checkpoint
-save when training with QLoRA.</p>
-<p>This function is meant to be used with PyTorch’s <code class="docutils literal notranslate"><span class="pre">nn.Module._register_state_dict_hook</span></code>, i.e.</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="n">MyModule</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="o">.</span><span class="n">_register_state_dict_hook</span><span class="p">(</span><span class="n">reparametrize_as_dtype_state_dict_post_hook</span><span class="p">)</span>
+<dt class="sig sig-object py" id="torchtune.modules.model_fusion.register_fusion_module">
+<span class="sig-prename descclassname"><span class="pre">torchtune.modules.model_fusion.</span></span><span class="sig-name descname"><span class="pre">register_fusion_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/model_fusion/_fusion_utils.html#register_fusion_module"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.model_fusion.register_fusion_module" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add the method fusion_params to an nn.Module that
+marks all of the Modules parameters as fusion params.
+This can be used for a layer or an entire model that is
+added to combine two or more pretrained models.</p>
+<p>For example, you might want to add a projection head
+head onto an encoder to learn a projection from the
+pre-trained encodings to the decoder’s embedding space. This
+is typical with both Deep Fusion and Early Fusion models.</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">projection_head</span> <span class="o">=</span> <span class="n">FeedForward</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">register_fusion_module</span><span class="p">(</span><span class="n">projection_head</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">encoder</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">clip_vit_224</span><span class="p">(),</span> <span class="n">projection_head</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>If the hook is registered per the above process, this hook will be called _after_ the module’s
-<code class="docutils literal notranslate"><span class="pre">state_dict</span></code> method is called. The hook will replace all <code class="docutils literal notranslate"><span class="pre">NF4Tensor</span></code> instances by unquantizing
-them to the original dtype, and optionally offload the restored weight to CPU.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>nn.Module</em>) – the model to take <code class="docutils literal notranslate"><span class="pre">state_dict()</span></code> on</p></li>
-<li><p><strong>state_dict</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – the state dict to modify</p></li>
-<li><p><strong>*args</strong> (<em>Tuple</em><em>[</em><em>Any</em><em>, </em><em>...</em><em>]</em>) – Unused args passed when running this as a state_dict hook.</p></li>
-<li><p><strong>dtype</strong> (<em>torch.dpython:type</em>) – the dtype to restore the weight to. Default is <code class="docutils literal notranslate"><span class="pre">torch.bfloat16</span></code>.</p></li>
-<li><p><strong>offload_to_cpu</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – whether to offload the restored weight to CPU. Default is <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
-<li><p><strong>**kwargs</strong> (<em>Dict</em><em>[</em><em>Any</em><em>, </em><em>Any</em><em>]</em>) – Unused keyword args passed when running this as a state_dict hook.</p></li>
-</ul>
+<dd class="field-odd"><p><strong>module</strong> (<em>nn.Module</em>) – module to add the fusion_params method to</p>
 </dd>
 </dl>
 </dd></dl>
@@ -449,10 +444,10 @@ them to the original dtype, and optionally offload the restored weight to CPU.</
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.modules.transforms.Transform.html" class="btn btn-neutral float-right" title="Transform" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.html" class="btn btn-neutral float-right" title="reparametrize_as_dtype_state_dict_post_hook" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.modules.model_fusion.register_fusion_module.html" class="btn btn-neutral" title="register_fusion_module" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.modules.model_fusion.FusionEmbedding.html" class="btn btn-neutral" title="FusionEmbedding" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -484,7 +479,7 @@ them to the original dtype, and optionally offload the restored weight to CPU.</
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">reparametrize_as_dtype_state_dict_post_hook</a></li>
+<li><a class="reference internal" href="#">register_fusion_module</a></li>
 </ul>
 
             </div>

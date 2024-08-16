@@ -519,6 +519,26 @@ model specific tokenizers.</p>
 </tbody>
 </table>
 </section>
+<section id="fusion-components">
+<h2>Fusion Components<a class="headerlink" href="#fusion-components" title="Permalink to this heading">¶</a></h2>
+<p>Components for building models that are a fusion of two+ pre-trained models.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel" title="torchtune.modules.model_fusion.DeepFusionModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_fusion.DeepFusionModel</span></code></a></p></td>
+<td><p>DeepFusion is a type of fused model architecture where a pretrained encoder is combined with a pretrained decoder (LLM).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer" title="torchtune.modules.model_fusion.FusionLayer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_fusion.FusionLayer</span></code></a></p></td>
+<td><p>Fusion layer as introduced in <a class="reference external" href="https://arxiv.org/abs/2204.14198">Flamingo: a Visual Language Model for Few-Shot Learning</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.model_fusion.FusionEmbedding.html#torchtune.modules.model_fusion.FusionEmbedding" title="torchtune.modules.model_fusion.FusionEmbedding"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_fusion.FusionEmbedding</span></code></a></p></td>
+<td><p>Fusion embedding supports training additional special tokens while keeping the original embedding frozen.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.model_fusion.register_fusion_module.html#torchtune.modules.model_fusion.register_fusion_module" title="torchtune.modules.model_fusion.register_fusion_module"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_fusion.register_fusion_module</span></code></a></p></td>
+<td><p>Add the method fusion_params to an nn.Module that marks all of the Modules parameters as fusion params.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
 <section id="module-utilities">
 <h2>Module Utilities<a class="headerlink" href="#module-utilities" title="Permalink to this heading">¶</a></h2>
 <p>These are utilities that are common to and can be used by all modules.</p>
@@ -654,6 +674,7 @@ model specific tokenizers.</p>
 <li><a class="reference internal" href="#base-tokenizers">Base Tokenizers</a></li>
 <li><a class="reference internal" href="#tokenizer-utilities">Tokenizer Utilities</a></li>
 <li><a class="reference internal" href="#peft-components">PEFT Components</a></li>
+<li><a class="reference internal" href="#fusion-components">Fusion Components</a></li>
 <li><a class="reference internal" href="#module-utilities">Module Utilities</a></li>
 <li><a class="reference internal" href="#vision-transforms">Vision Transforms</a></li>
 <li><a class="reference internal" href="#reinforcement-learning-from-human-feedback-rlhf">Reinforcement Learning From Human Feedback (RLHF)</a><ul>
