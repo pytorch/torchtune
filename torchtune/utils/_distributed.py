@@ -25,7 +25,7 @@ from torch.distributed.fsdp import ShardingStrategy
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
-from torchtune import modules
+from torchtune.modules import TransformerDecoder
 
 from torchtune.utils._device import get_device
 from torchtune.utils.logging import get_logger

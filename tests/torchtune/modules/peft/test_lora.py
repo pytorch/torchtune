@@ -9,14 +9,12 @@ from functools import partial
 import pytest
 
 import torch
-import torch.nn.functional as F
 from tests.test_utils import fixed_init_model
 from torch import nn
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune import training
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 from torchtune.modules.peft import LoRALinear
-from torchtune.modules.peft.peft_utils import get_merged_lora_ckpt, load_dora_magnitudes
 from torchtune.utils.seed import set_seed
 
 RANK = 4
@@ -199,6 +197,7 @@ class TestLoRALinear:
         assert torch.allclose(
             lora_linear.weight.quantized_data, lora_linear_reload.weight.quantized_data
         )
+
 
 class _Wrapper(nn.Module):
     """
