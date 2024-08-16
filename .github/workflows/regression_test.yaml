@@ -6,7 +6,7 @@ on:
     - cron:  '0 0 * * *'
 
 concurrency:
-  group: regression-test-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
+  group: regression-test-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}-${{ matrix.torch-version }}
   cancel-in-progress: true
 
 permissions:
