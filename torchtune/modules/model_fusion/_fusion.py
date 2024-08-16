@@ -32,7 +32,7 @@ class FusionLayer(nn.Module):
         >>> layer = nn.TransformerSelfAttentionLayer(...)
         >>> model = TransformerDecoder(layers=layer, num_layers=32, ...)
         >>>
-        >>> # Fuse a Cross Attention layer to each Self Attention layer to adapt model for an encoder
+        >>> # Fuse a cross attention layer to each self attention layer to adapt for the encoder
         >>> fusion_layer = nn.TransformerCrossAttentionLayer(...)
         >>> fused_layer = FusionLayer(layer, fusion_layer)
         >>> model = TransformerDecoder(layers=fused_layer, num_layers=32, ...)
@@ -264,10 +264,13 @@ class DeepFusionModel(nn.Module):
     adapt the pre-trained encoder to the pre-trained decoder.
 
     Example:
-        >>> # decoder is a TransformerDecoder (e.g. llama3_8b) with cross attention layers fused in
-        >>> embedding = FusionEmbedding(...)
-        >>> layer = FusionLayer(TransformerSelfAttentionLayer(...), fusion_layer=TransformerCrossAttentionLayer(...))
-        >>> decoder = TransformerDecoder(tok_embeddings=embedding, layers=layer, num_layers=32, ...)
+        >>> # decoder is a TransformerDecoder (e.g. llama3_8b) with fused cross attention layers
+        >>> embed = FusionEmbedding(...)
+        >>> layer = FusionLayer(
+        ...     layer=TransformerSelfAttentionLayer(...),
+        ...     fusion_layer=TransformerCrossAttentionLayer(...),
+        ... )
+        >>> decoder = TransformerDecoder(tok_embeddings=embed, layers=layer, num_layers=32, ...)
         >>>
         >>> # encoder is pre-trained encoder (e.g. clip_vit_224) with an added projection head
         >>> projection_head = FeedForward(...)
