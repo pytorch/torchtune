@@ -52,8 +52,8 @@ shuffle: True
 # Fine-tuning arguments
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 64
 batch_size: 2
+gradient_accumulation_steps: 64
 optimizer:
   _component_: torch.optim.AdamW
   weight_decay: 0.01
