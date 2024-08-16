@@ -28,12 +28,12 @@ from torchtune import config, modules, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft.peft_utils import (
+    DoRALinear,
     get_adapter_params,
     get_lora_module_names,
     get_merged_lora_ckpt,
-    DoRALinear,
-    LoRALinear,
     load_dora_magnitudes,
+    LoRALinear,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
@@ -228,9 +228,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=checkpoint_dict[training.OPT_KEY]
-            if self._resume_from_checkpoint
-            else None,
+            opt_state_dict=(
+                checkpoint_dict[training.OPT_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
         )
 
         # initialize loss
@@ -574,7 +576,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 ),
                 "peft_type": "LORA",
             }
-            checkpoint_dict.update({training.ADAPTER_CONFIG: adapter_config})
 
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,

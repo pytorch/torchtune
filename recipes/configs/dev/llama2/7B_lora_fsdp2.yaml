@@ -71,7 +71,7 @@ loss:
 
 # Training
 epochs: 1
-max_steps_per_epoch: null
+max_steps_per_epoch: 1
 gradient_accumulation_steps: 32
 
 # Logging
