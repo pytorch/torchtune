@@ -408,39 +408,46 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 <span class="kn">import</span> <span class="nn">copy</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span><span class="p">,</span> <span class="n">Tensor</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">CausalSelfAttention</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">MultiHeadAttention</span>
 
 
-<div class="viewcode-block" id="TransformerDecoderLayer"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer">[docs]</a><span class="k">class</span> <span class="nc">TransformerDecoderLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="TransformerSelfAttentionLayer"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer">[docs]</a><span class="k">class</span> <span class="nc">TransformerSelfAttentionLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Transformer layer derived from the Llama2 model. Normalization is applied before the attention **and** FF layer.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        attn (CausalSelfAttention): Attention module.</span>
+<span class="sd">        attn (MultiHeadAttention): Attention module.</span>
 <span class="sd">        mlp (nn.Module): Feed-forward module.</span>
-<span class="sd">        sa_norm (nn.Module): Normalization to be applied before self-attention.</span>
-<span class="sd">        mlp_norm (nn.Module): Normalization to be applied before the feed-forward layer.</span>
+<span class="sd">        sa_norm (Optional[nn.Module]): Normalization to be applied before self-attention.</span>
+<span class="sd">        mlp_norm (Optional[nn.Module]): Normalization to be applied before the feed-forward layer.</span>
+<span class="sd">        sa_scale (Optional[nn.Module]): Module to scale self-attention output.</span>
+<span class="sd">        mlp_scale (Optional[nn.Module]): Module to scale the feed-forward output.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">attn</span><span class="p">:</span> <span class="n">CausalSelfAttention</span><span class="p">,</span>
+        <span class="n">attn</span><span class="p">:</span> <span class="n">MultiHeadAttention</span><span class="p">,</span>
         <span class="n">mlp</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
-        <span class="n">sa_norm</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
-        <span class="n">mlp_norm</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">sa_norm</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">mlp_norm</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sa_scale</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">mlp_scale</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">sa_norm</span> <span class="o">=</span> <span class="n">sa_norm</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">attn</span> <span class="o">=</span> <span class="n">attn</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mlp_norm</span> <span class="o">=</span> <span class="n">mlp_norm</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span> <span class="o">=</span> <span class="n">mlp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sa_norm</span> <span class="o">=</span> <span class="n">sa_norm</span> <span class="ow">or</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mlp_norm</span> <span class="o">=</span> <span class="n">mlp_norm</span> <span class="ow">or</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sa_scale</span> <span class="o">=</span> <span class="n">sa_scale</span> <span class="ow">or</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mlp_scale</span> <span class="o">=</span> <span class="n">mlp_scale</span> <span class="ow">or</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
 
-<div class="viewcode-block" id="TransformerDecoderLayer.setup_cache"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer.setup_cache">[docs]</a>    <span class="k">def</span> <span class="nf">setup_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="TransformerSelfAttentionLayer.setup_cache"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer.setup_cache">[docs]</a>    <span class="k">def</span> <span class="nf">setup_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Setup key value caches for attention calculation.</span>
 
 <span class="sd">        Args:</span>
@@ -454,16 +461,17 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the key value caches are setup.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
-<div class="viewcode-block" id="TransformerDecoderLayer.reset_cache"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer.reset_cache">[docs]</a>    <span class="k">def</span> <span class="nf">reset_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="TransformerSelfAttentionLayer.reset_cache"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer.reset_cache">[docs]</a>    <span class="k">def</span> <span class="nf">reset_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the key value caches.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">reset_cache</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="TransformerDecoderLayer.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+<div class="viewcode-block" id="TransformerSelfAttentionLayer.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
@@ -480,6 +488,7 @@
 <span class="sd">                of each token relative to its sample when packed, shape [b x s].</span>
 <span class="sd">                During inference, this indicates the position of the current token.</span>
 <span class="sd">                If none, assume the index of the token is its position id. Default is None.</span>
+<span class="sd">            **kwargs (Dict): transformer layer inputs not relevant to self attention.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Tensor: output tensor with same shape as input</span>
@@ -494,13 +503,161 @@
         <span class="n">attn_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sa_norm</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">)</span>
 
         <span class="c1"># Residual connection; shape: [batch_size, seq_length, embed_dim]</span>
-        <span class="n">h</span> <span class="o">=</span> <span class="n">attn_out</span> <span class="o">+</span> <span class="n">x</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sa_scale</span><span class="p">(</span><span class="n">attn_out</span><span class="p">)</span> <span class="o">+</span> <span class="n">x</span>
 
         <span class="c1"># Norm applied before the feedforward layer</span>
         <span class="n">mlp_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mlp_norm</span><span class="p">(</span><span class="n">h</span><span class="p">))</span>
 
         <span class="c1"># Residual connection; shape: [batch_size, seq_length, embed_dim]</span>
-        <span class="n">out</span> <span class="o">=</span> <span class="n">h</span> <span class="o">+</span> <span class="n">mlp_out</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">h</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp_scale</span><span class="p">(</span><span class="n">mlp_out</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span></div></div>
+
+
+<div class="viewcode-block" id="TransformerCrossAttentionLayer"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer">[docs]</a><span class="k">class</span> <span class="nc">TransformerCrossAttentionLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Cross attention Transformer layer following the same conventions as the TransformerSelfAttentionLayer.</span>
+<span class="sd">       Normalization is applied before the attention **and** FF layer.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        attn (MultiHeadAttention): Attention module.</span>
+<span class="sd">        mlp (nn.Module): Feed-forward module.</span>
+<span class="sd">        ca_norm (Optional[nn.Module]): Normalization to be applied before cross-attention.</span>
+<span class="sd">        mlp_norm (Optional[nn.Module]): Normalization to be applied before the feed-forward layer.</span>
+<span class="sd">        ca_scale (Optional[nn.Module]): Module to scale cross-attention output.</span>
+<span class="sd">        mlp_scale (Optional[nn.Module]): Module to scale the feed-forward output.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        AssertionError: if attn.pos_embeddings is set.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">attn</span><span class="p">:</span> <span class="n">MultiHeadAttention</span><span class="p">,</span>
+        <span class="n">mlp</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">ca_norm</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">mlp_norm</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">ca_scale</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">mlp_scale</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">attn</span><span class="o">.</span><span class="n">pos_embeddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
+                <span class="s2">&quot;Doesn&#39;t support positional embeddings for cross attention, </span><span class="se">\</span>
+<span class="s2">                because q and k are different sequences.&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attn</span> <span class="o">=</span> <span class="n">attn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span> <span class="o">=</span> <span class="n">mlp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ca_norm</span> <span class="o">=</span> <span class="n">ca_norm</span> <span class="ow">or</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mlp_norm</span> <span class="o">=</span> <span class="n">mlp_norm</span> <span class="ow">or</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ca_scale</span> <span class="o">=</span> <span class="n">ca_scale</span> <span class="ow">or</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mlp_scale</span> <span class="o">=</span> <span class="n">mlp_scale</span> <span class="ow">or</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
+
+<div class="viewcode-block" id="TransformerCrossAttentionLayer.setup_cache"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer.setup_cache">[docs]</a>    <span class="k">def</span> <span class="nf">setup_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Setup key value caches for attention calculation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            batch_size (int): batch size for the caches.</span>
+<span class="sd">            dtype (torch.dtype): dtype for the caches.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">setup_cache</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cache_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the key value caches are setup.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="TransformerCrossAttentionLayer.reset_cache"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer.reset_cache">[docs]</a>    <span class="k">def</span> <span class="nf">reset_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the key value caches.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">reset_cache</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">_skip_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Some tokens in x may not attend to any encoder inputs</span>
+<span class="sd">        due to the cross attention mask (encoder_mask). This results in</span>
+<span class="sd">        a full row of the attention matrix being masked out.</span>
+
+<span class="sd">        In the example below, the word &quot;the&quot; is masked from every embedding.</span>
+<span class="sd">        The False value means a token can&#39;t attend to an embedding.</span>
+
+<span class="sd">        .. code-block:: text</span>
+
+<span class="sd">            |emb||emb||emb|</span>
+<span class="sd">        |The| F    F    F</span>
+<span class="sd">        |red| T    F    T</span>
+<span class="sd">        |car| F    T    T</span>
+
+<span class="sd">        This results in no inputs into the softmax layer which causes a NaN.</span>
+<span class="sd">        The skip mask is used to mask the outputs of attention and</span>
+<span class="sd">        mlp resulting in the token being skipped.</span>
+
+<span class="sd">        The above example would result in a skip mask of: [[True], [False], [False]]</span>
+<span class="sd">        which specifies which tokens to fully mask out.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># no skip_mask if no masking</span>
+        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="c1"># negate mask and convert to boolean mask</span>
+        <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">mask</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">isneginf</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+        <span class="c1"># True where all elements in a row are True</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mask</span>
+
+<div class="viewcode-block" id="TransformerCrossAttentionLayer.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">encoder_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">encoder_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            x (Tensor): input tensor with shape</span>
+<span class="sd">                [batch_size x seq_length x embed_dim]</span>
+<span class="sd">            encoder_input (Optional[Tensor]): Optional input embeds from the encoder. Shape</span>
+<span class="sd">                [batch_size x token_sequence x embed_dim]</span>
+<span class="sd">            encoder_mask (Optional[Tensor]):  Boolean tensor defining a relational matrix between</span>
+<span class="sd">                tokens and encoder embeddings. A True value at position i,j means token i can attend</span>
+<span class="sd">                to embedding j in the decoder. Mask has shape [batch_size x token_sequence x embed_sequence].</span>
+<span class="sd">                Default is None.</span>
+<span class="sd">            **kwargs (Dict): transformer layer inputs not relevant to self attention.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: output tensor with same shape as input</span>
+<span class="sd">                [batch_size x seq_length x embed_dim]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># During decoding, it&#39;s possible encoder_input is None because the embeds</span>
+        <span class="c1"># are already stored in the kv cache.</span>
+        <span class="n">empty_cache</span> <span class="o">=</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_enabled</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="c1"># Skip cross attention when no secondary input as it&#39;s primary purpose</span>
+        <span class="c1"># is to attend between x and encoder_input.</span>
+        <span class="k">if</span> <span class="n">encoder_input</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">empty_cache</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span>
+
+        <span class="c1"># A mask of tokens (x) with no encoder_input</span>
+        <span class="n">skip_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_skip_mask</span><span class="p">(</span><span class="n">encoder_mask</span><span class="p">)</span>
+
+        <span class="c1"># Input tensor and attention output have the same shape</span>
+        <span class="c1"># [b, s, d]</span>
+        <span class="c1"># Norm applied before self-attention</span>
+        <span class="c1"># TODO: Add support for sample packing and bring back input_pos</span>
+        <span class="n">attn_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ca_norm</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">encoder_input</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">encoder_mask</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">skip_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">attn_out</span><span class="o">.</span><span class="n">masked_fill_</span><span class="p">(</span><span class="n">skip_mask</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Residual connection; shape: [batch_size, seq_length, embed_dim]</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ca_scale</span><span class="p">(</span><span class="n">attn_out</span><span class="p">)</span> <span class="o">+</span> <span class="n">x</span>
+
+        <span class="c1"># Norm applied before the feedforward layer</span>
+        <span class="n">mlp_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mlp_norm</span><span class="p">(</span><span class="n">h</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">skip_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mlp_out</span><span class="o">.</span><span class="n">masked_fill_</span><span class="p">(</span><span class="n">skip_mask</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Residual connection; shape: [batch_size, seq_length, embed_dim]</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">h</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp_scale</span><span class="p">(</span><span class="n">mlp_out</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">out</span></div></div>
 
 
@@ -526,8 +683,9 @@
 <span class="sd">    Args:</span>
 <span class="sd">        tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move</span>
 <span class="sd">            tokens to an embedding space.</span>
-<span class="sd">        layer (TransformerDecoderLayer): Transformer Decoder layer.</span>
-<span class="sd">        num_layers (int): Number of Transformer Decoder layers.</span>
+<span class="sd">        layers (Union[nn.Module, List[nn.Module]]): Transformer Decoder layer or a list of layers.</span>
+<span class="sd">        num_layers (Optional[int]): Number of Transformer Decoder layers, only define when</span>
+<span class="sd">            layer is not a list.</span>
 <span class="sd">        max_seq_len (int): maximum sequence length the model will be run with, as used</span>
 <span class="sd">            by :func:`~torchtune.modules.KVCache`</span>
 <span class="sd">        num_heads (int): number of query heads. For MHA this is also the</span>
@@ -539,6 +697,11 @@
 <span class="sd">            before final MLP.</span>
 <span class="sd">        output (nn.Linear): Callable that applies a linear transformation to the output of</span>
 <span class="sd">            the decoder.</span>
+<span class="sd">        output_hidden_states (Optional[List[int]]): List of layers (indices) to include in the output</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        AssertionError: num_layers is set and layer is a list</span>
+<span class="sd">        AssertionError: num_layers is not set and layer is an nn.Module</span>
 
 <span class="sd">    Note:</span>
 <span class="sd">        Arg values are checked for correctness (eg: ``attn_dropout`` belongs to [0,1])</span>
@@ -549,20 +712,32 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tok_embeddings</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">,</span>
-        <span class="n">layer</span><span class="p">:</span> <span class="n">TransformerDecoderLayer</span><span class="p">,</span>
-        <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">layers</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]],</span>
+        <span class="n">num_layers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
         <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">head_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">norm</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
         <span class="n">output</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">,</span>
+        <span class="n">output_hidden_states</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">num_layers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
+                    <span class="s2">&quot;If num_layers is undefined, it is assumed that a list of layers is provided.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">layers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span><span class="n">layers</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;num_layers is defined, layers must be a module&quot;</span><span class="p">)</span>
+            <span class="n">layers</span> <span class="o">=</span> <span class="n">_get_clones</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span> <span class="o">=</span> <span class="n">tok_embeddings</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">_get_clones</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">layers</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">norm</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">output</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_hidden_states</span> <span class="o">=</span> <span class="n">output_hidden_states</span> <span class="ow">or</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">max_seq_len</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">num_heads</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span> <span class="o">=</span> <span class="n">head_dim</span>
@@ -603,8 +778,10 @@
         <span class="n">tokens</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">encoder_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">encoder_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
 <span class="sd">            tokens (Tensor): input tensor with shape [b x s]</span>
@@ -613,6 +790,10 @@
 <span class="sd">                before the softmax. A value of True in row i and column j means token i attends</span>
 <span class="sd">                to token j. A value of False means token i does not attend to token j. If no</span>
 <span class="sd">                mask is specified, a causal mask is used by default. Default is None.</span>
+<span class="sd">            encoder_input (Optional[Tensor]): Optional input embeds from the encoder. Shape [b x s_e x d_e]</span>
+<span class="sd">            encoder_mask (Optional[Tensor]):  Boolean tensor defining a relational matrix between</span>
+<span class="sd">                tokens and encoder embeddings. A True value at position i,j means token i can attend</span>
+<span class="sd">                to embedding j in the decoder. Mask has shape [b x s x s_e]. Default is None.</span>
 <span class="sd">            input_pos (Optional[Tensor]): Optional tensor which contains the position ids</span>
 <span class="sd">                of each token. During training, this is used to indicate the positions</span>
 <span class="sd">                of each token relative to its sample when packed, shape [b x s].</span>
@@ -625,18 +806,32 @@
 <span class="sd">        KV values for each position.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Tensor: output tensor with shape [b x s x v]</span>
+<span class="sd">            Union[Tensor, List[Tensor]]: output tensor with shape [b x s x v] or a list of layer</span>
+<span class="sd">                output tensors defined by ``output_hidden_states`` with the</span>
+<span class="sd">                final output tensor appended to the list.</span>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: if causal_mask is set but input_pos is None</span>
+<span class="sd">            ValueError: if seq_len of x is bigger than max_seq_len</span>
 
 <span class="sd">        Notation used for tensor shapes:</span>
 <span class="sd">            - b: batch size</span>
-<span class="sd">            - s: sequence length</span>
+<span class="sd">            - s: token sequence length</span>
+<span class="sd">            - s_e: encoder sequence length</span>
 <span class="sd">            - v: vocab size</span>
-<span class="sd">            - d: embed dim</span>
+<span class="sd">            - d: token embed dim</span>
+<span class="sd">            - d_e: encoder embed dim</span>
 <span class="sd">            - m_s: max seq len</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># input tensor of shape [b, s]</span>
+        <span class="n">bsz</span><span class="p">,</span> <span class="n">seq_len</span> <span class="o">=</span> <span class="n">tokens</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="k">if</span> <span class="n">seq_len</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;seq_len (</span><span class="si">{</span><span class="n">seq_len</span><span class="si">}</span><span class="s2">) of input tensor should be smaller &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;than max_seq_len (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="p">)</span>
+
         <span class="c1"># shape: [b, s, d]</span>
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
 
@@ -653,19 +848,32 @@
             <span class="c1"># in most cases input_pos_len should be 1</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">]</span>
 
-        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="n">hidden</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_hidden_states</span><span class="p">:</span>
+                <span class="n">hidden</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
             <span class="c1"># shape: [b, s, d]</span>
-            <span class="n">h</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">)</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span>
+                <span class="n">h</span><span class="p">,</span>
+                <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
+                <span class="n">encoder_input</span><span class="o">=</span><span class="n">encoder_input</span><span class="p">,</span>
+                <span class="n">encoder_mask</span><span class="o">=</span><span class="n">encoder_mask</span><span class="p">,</span>
+                <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">,</span>
+            <span class="p">)</span>
 
         <span class="c1"># shape: [b, s, d]</span>
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
 
         <span class="c1"># shape: [b, s, out_dim] - out_dim is usually the vocab size</span>
         <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">h</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+
+        <span class="c1"># Output list if hidden states are requested, otherwise just the output</span>
+        <span class="c1"># TODO: always output a list to have a consistent output type</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">output</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">hidden</span> <span class="k">else</span> <span class="p">[</span><span class="o">*</span><span class="n">hidden</span><span class="p">,</span> <span class="n">output</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">output</span></div></div>
 
 
-<span class="k">class</span> <span class="nc">TiedEmbeddingTransformerDecoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="TiedEmbeddingTransformerDecoder"><a class="viewcode-back" href="../../../generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder">[docs]</a><span class="k">class</span> <span class="nc">TiedEmbeddingTransformerDecoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Transformer Decoder with tied embedding weight. A key difference between</span>
 <span class="sd">    this class and :class:`~torchtune.modules.TransformerDecoder`</span>
@@ -674,8 +882,9 @@
 <span class="sd">    Args:</span>
 <span class="sd">        tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move</span>
 <span class="sd">            tokens to an embedding space.</span>
-<span class="sd">        layer (TransformerDecoderLayer): Transformer Decoder layer.</span>
-<span class="sd">        num_layers (int): Number of Transformer Decoder layers.</span>
+<span class="sd">        layers (Union[nn.Module, List[nn.Module]]): Transformer Decoder layer or a list of layers.</span>
+<span class="sd">        num_layers (Optional[int]): Number of Transformer Decoder layers, only define when</span>
+<span class="sd">            layer is not a list.</span>
 <span class="sd">        max_seq_len (int): maximum sequence length the model will be run with, as used</span>
 <span class="sd">            by :func:`~torchtune.modules.KVCache`</span>
 <span class="sd">        num_heads (int): number of query heads. For MHA this is also the</span>
@@ -685,6 +894,11 @@
 <span class="sd">            to setup the :func:`~torchtune.modules.KVCache`</span>
 <span class="sd">        norm (nn.Module): Callable that applies normalization to the output of the decoder,</span>
 <span class="sd">            before final MLP.</span>
+<span class="sd">        output_hidden_states (Optional[List[int]]): List of layers (indices) to include in the output</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        AssertionError: num_layers is set and layer is a list</span>
+<span class="sd">        AssertionError: num_layers is not set and layer is an nn.Module</span>
 
 <span class="sd">    Note:</span>
 <span class="sd">        Arg values are checked for correctness (eg: ``attn_dropout`` belongs to [0,1])</span>
@@ -695,24 +909,36 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tok_embeddings</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">,</span>
-        <span class="n">layer</span><span class="p">:</span> <span class="n">TransformerDecoderLayer</span><span class="p">,</span>
-        <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">layers</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]],</span>
+        <span class="n">num_layers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
         <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">head_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">norm</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+        <span class="n">output_hidden_states</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">num_layers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
+                    <span class="s2">&quot;If num_layers is undefined, it is assumed that a list of layers is provided.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">layers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span><span class="n">layers</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;num_layers is defined, layers must be a module&quot;</span><span class="p">)</span>
+            <span class="n">layers</span> <span class="o">=</span> <span class="n">_get_clones</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span> <span class="o">=</span> <span class="n">tok_embeddings</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">_get_clones</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">layers</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">norm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_hidden_states</span> <span class="o">=</span> <span class="n">output_hidden_states</span> <span class="ow">or</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">max_seq_len</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">num_heads</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span> <span class="o">=</span> <span class="n">head_dim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="k">def</span> <span class="nf">setup_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="TiedEmbeddingTransformerDecoder.setup_caches"><a class="viewcode-back" href="../../../generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.setup_caches">[docs]</a>    <span class="k">def</span> <span class="nf">setup_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Setup key value caches for attention calculation.</span>
 
 <span class="sd">        Args:</span>
@@ -726,13 +952,13 @@
         <span class="c1"># to the right tokens</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tril</span><span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
-        <span class="p">)</span>
+        <span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<div class="viewcode-block" id="TiedEmbeddingTransformerDecoder.caches_are_enabled"><a class="viewcode-back" href="../../../generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.caches_are_enabled">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the key value caches are setup.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cache_enabled</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cache_enabled</span></div>
 
-    <span class="k">def</span> <span class="nf">reset_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="TiedEmbeddingTransformerDecoder.reset_caches"><a class="viewcode-back" href="../../../generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.reset_caches">[docs]</a>    <span class="k">def</span> <span class="nf">reset_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the key value caches.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">():</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
@@ -740,13 +966,15 @@
             <span class="p">)</span>
 
         <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
-            <span class="n">layer</span><span class="o">.</span><span class="n">reset_cache</span><span class="p">()</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">reset_cache</span><span class="p">()</span></div>
 
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+<div class="viewcode-block" id="TiedEmbeddingTransformerDecoder.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tokens</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">encoder_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">encoder_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -757,6 +985,10 @@
 <span class="sd">                before the softmax. A value of True in row i and column j means token i attends</span>
 <span class="sd">                to token j. A value of False means token i does not attend to token j. If no</span>
 <span class="sd">                mask is specified, a causal mask is used by default. Default is None.</span>
+<span class="sd">            encoder_input (Optional[Tensor]): Optional input embeds from the encoder. Shape [b x s_e x d_e]</span>
+<span class="sd">            encoder_mask (Optional[Tensor]):  Boolean tensor defining a relational matrix between</span>
+<span class="sd">                tokens and encoder embeddings. A True value at position i,j means token i can attend</span>
+<span class="sd">                to embedding j in the decoder. Mask has shape [b x s x s_e]. Default is None.</span>
 <span class="sd">            input_pos (Optional[Tensor]): Optional tensor which contains the position ids</span>
 <span class="sd">                of each token. During training, this is used to indicate the positions</span>
 <span class="sd">                of each token relative to its sample when packed, shape [b x s].</span>
@@ -769,20 +1001,30 @@
 <span class="sd">        KV values for each position.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Tensor: output tensor with shape [b x s x v]</span>
+<span class="sd">            Tensor: output tensor with shape [b x s x v] or a list of layer</span>
+<span class="sd">                output tensors defined by ``output_hidden_states`` with the</span>
+<span class="sd">                final output tensor appended to the list.</span>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: if causal_mask is set but input_pos is None</span>
 
 <span class="sd">        Notation used for tensor shapes:</span>
 <span class="sd">            - b: batch size</span>
-<span class="sd">            - s: sequence length</span>
+<span class="sd">            - s: token sequence length</span>
+<span class="sd">            - s_e: encoder sequence length</span>
 <span class="sd">            - v: vocab size</span>
-<span class="sd">            - d: embed dim</span>
+<span class="sd">            - d: token embed dim</span>
+<span class="sd">            - d_e: encoder embed dim</span>
 <span class="sd">            - m_s: max seq len</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># input tensor of shape [b, s]</span>
         <span class="n">bsz</span><span class="p">,</span> <span class="n">seq_len</span> <span class="o">=</span> <span class="n">tokens</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="k">if</span> <span class="n">seq_len</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;seq_len (</span><span class="si">{</span><span class="n">seq_len</span><span class="si">}</span><span class="s2">) of input tensor should be smaller &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;than max_seq_len (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="p">)</span>
 
         <span class="c1"># shape: [b, s, d]</span>
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
@@ -800,16 +1042,29 @@
             <span class="c1"># in most cases input_pos_len should be 1</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">]</span>
 
-        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="n">hidden</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_hidden_states</span><span class="p">:</span>
+                <span class="n">hidden</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
             <span class="c1"># shape: [b, s, d]</span>
-            <span class="n">h</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">)</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span>
+                <span class="n">h</span><span class="p">,</span>
+                <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
+                <span class="n">encoder_input</span><span class="o">=</span><span class="n">encoder_input</span><span class="p">,</span>
+                <span class="n">encoder_mask</span><span class="o">=</span><span class="n">encoder_mask</span><span class="p">,</span>
+                <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">,</span>
+            <span class="p">)</span>
 
         <span class="c1"># shape: [b, s, d]</span>
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
 
         <span class="c1"># shape: [b, s, out_dim] - out_dim is usually the vocab size</span>
         <span class="n">output</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">output</span>
+
+        <span class="c1"># Output list if hidden states are requested, otherwise just the output</span>
+        <span class="c1"># TODO: always output a list to have a consistent output type</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">output</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">hidden</span> <span class="k">else</span> <span class="p">[</span><span class="o">*</span><span class="n">hidden</span><span class="p">,</span> <span class="n">output</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">output</span></div></div>
 </pre></div>
 
              </article>

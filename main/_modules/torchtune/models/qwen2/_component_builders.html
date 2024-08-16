@@ -418,10 +418,10 @@
 <span class="kn">from</span> <span class="nn">torchtune.models.qwen2._positional_embeddings</span> <span class="kn">import</span> <span class="n">Qwen2RotaryPositionalEmbeddings</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">CausalSelfAttention</span><span class="p">,</span>
+    <span class="n">MultiHeadAttention</span><span class="p">,</span>
     <span class="n">FeedForward</span><span class="p">,</span>
     <span class="n">RMSNorm</span><span class="p">,</span>
-    <span class="n">TransformerDecoderLayer</span><span class="p">,</span>
+    <span class="n">TransformerSelfAttentionLayer</span><span class="p">,</span>
 <span class="p">)</span>
 
 
@@ -433,7 +433,7 @@
 <span class="sd">torchtune provides composable building blocks. Builder functions help</span>
 <span class="sd">stitch these building blocks into higher-level components. This design has</span>
 <span class="sd">two benefits:</span>
-<span class="sd">- The building blocks themselves are very flexible. For example, ``CausalSelfAttention``</span>
+<span class="sd">- The building blocks themselves are very flexible. For example, ``MultiHeadAttention``</span>
 <span class="sd">can take either nn.Linear or nn.LoRALinear for ``q_proj``.</span>
 <span class="sd">- Builder functions expose a set of configurable params which keep the constructors of</span>
 <span class="sd">the building blocks simple.</span>
@@ -456,7 +456,7 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Build the decoder associated with the Qwen2 model. This includes:</span>
 <span class="sd">    - Token embeddings</span>
-<span class="sd">    - num_layers number of TransformerDecoderLayer blocks</span>
+<span class="sd">    - num_layers number of TransformerSelfAttentionLayer blocks</span>
 <span class="sd">    - RMS Norm layer applied to the output of the transformer</span>
 <span class="sd">    - Final projection into token space</span>
 
@@ -486,7 +486,7 @@
     <span class="n">num_kv_heads</span> <span class="o">=</span> <span class="n">num_kv_heads</span> <span class="k">if</span> <span class="n">num_kv_heads</span> <span class="k">else</span> <span class="n">num_heads</span>
 
     <span class="n">rope</span> <span class="o">=</span> <span class="n">Qwen2RotaryPositionalEmbeddings</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="n">rope_base</span><span class="p">)</span>
-    <span class="n">self_attn</span> <span class="o">=</span> <span class="n">CausalSelfAttention</span><span class="p">(</span>
+    <span class="n">self_attn</span> <span class="o">=</span> <span class="n">MultiHeadAttention</span><span class="p">(</span>
         <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
         <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
         <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_kv_heads</span><span class="p">,</span>
@@ -501,7 +501,7 @@
         <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">mlp</span> <span class="o">=</span> <span class="n">qwen2_mlp</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="n">intermediate_dim</span><span class="p">)</span>
-    <span class="n">layer</span> <span class="o">=</span> <span class="n">TransformerDecoderLayer</span><span class="p">(</span>
+    <span class="n">layer</span> <span class="o">=</span> <span class="n">TransformerSelfAttentionLayer</span><span class="p">(</span>
         <span class="n">attn</span><span class="o">=</span><span class="n">self_attn</span><span class="p">,</span>
         <span class="n">mlp</span><span class="o">=</span><span class="n">mlp</span><span class="p">,</span>
         <span class="n">sa_norm</span><span class="o">=</span><span class="n">RMSNorm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
@@ -512,7 +512,7 @@
     <span class="k">if</span> <span class="n">output_proj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">TiedEmbeddingTransformerDecoder</span><span class="p">(</span>
             <span class="n">tok_embeddings</span><span class="o">=</span><span class="n">tok_embeddings</span><span class="p">,</span>
-            <span class="n">layer</span><span class="o">=</span><span class="n">layer</span><span class="p">,</span>
+            <span class="n">layers</span><span class="o">=</span><span class="n">layer</span><span class="p">,</span>
             <span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span>
             <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
             <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
@@ -522,7 +522,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">TransformerDecoder</span><span class="p">(</span>
             <span class="n">tok_embeddings</span><span class="o">=</span><span class="n">tok_embeddings</span><span class="p">,</span>
-            <span class="n">layer</span><span class="o">=</span><span class="n">layer</span><span class="p">,</span>
+            <span class="n">layers</span><span class="o">=</span><span class="n">layer</span><span class="p">,</span>
             <span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span>
             <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
             <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
@@ -637,7 +637,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">mlp</span> <span class="o">=</span> <span class="n">qwen2_mlp</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="n">intermediate_dim</span><span class="p">)</span>
 
-    <span class="n">layer</span> <span class="o">=</span> <span class="n">TransformerDecoderLayer</span><span class="p">(</span>
+    <span class="n">layer</span> <span class="o">=</span> <span class="n">TransformerSelfAttentionLayer</span><span class="p">(</span>
         <span class="n">attn</span><span class="o">=</span><span class="n">self_attn</span><span class="p">,</span>
         <span class="n">mlp</span><span class="o">=</span><span class="n">mlp</span><span class="p">,</span>
         <span class="n">sa_norm</span><span class="o">=</span><span class="n">RMSNorm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
@@ -663,7 +663,7 @@
     <span class="k">if</span> <span class="n">output_proj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">model</span> <span class="o">=</span> <span class="n">TiedEmbeddingTransformerDecoder</span><span class="p">(</span>
             <span class="n">tok_embeddings</span><span class="o">=</span><span class="n">tok_embeddings</span><span class="p">,</span>
-            <span class="n">layer</span><span class="o">=</span><span class="n">layer</span><span class="p">,</span>
+            <span class="n">layers</span><span class="o">=</span><span class="n">layer</span><span class="p">,</span>
             <span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span>
             <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
             <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
@@ -673,7 +673,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">model</span> <span class="o">=</span> <span class="n">TransformerDecoder</span><span class="p">(</span>
             <span class="n">tok_embeddings</span><span class="o">=</span><span class="n">tok_embeddings</span><span class="p">,</span>
-            <span class="n">layer</span><span class="o">=</span><span class="n">layer</span><span class="p">,</span>
+            <span class="n">layers</span><span class="o">=</span><span class="n">layer</span><span class="p">,</span>
             <span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span>
             <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
             <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
@@ -701,7 +701,7 @@
 <span class="k">def</span> <span class="nf">lora_qwen2_self_attention</span><span class="p">(</span>
     <span class="n">lora_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="c1"># CausalSelfAttention args</span>
+    <span class="c1"># MultiHeadAttention args</span>
     <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_kv_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -713,9 +713,9 @@
     <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CausalSelfAttention</span><span class="p">:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MultiHeadAttention</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Return an instance of :func:`~torchtune.modules.CausalSelfAttention` with LoRA</span>
+<span class="sd">    Return an instance of :func:`~torchtune.modules.MultiHeadAttention` with LoRA</span>
 <span class="sd">    applied to a subset of its linear layers</span>
 
 <span class="sd">    Args:</span>
@@ -740,7 +740,7 @@
 <span class="sd">            LoRA is being applied to. Default is ``False``.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        CausalSelfAttention: instantiation of self-attention module with LoRA</span>
+<span class="sd">        MultiHeadAttention: instantiation of self-attention module with LoRA</span>
 <span class="sd">        applied to a subset of Q, K, V, output projections.</span>
 
 <span class="sd">    Raises:</span>
@@ -803,7 +803,7 @@
         <span class="k">else</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="p">)</span>
     <span class="n">rope</span> <span class="o">=</span> <span class="n">Qwen2RotaryPositionalEmbeddings</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="n">rope_base</span><span class="p">)</span>
-    <span class="n">self_attn</span> <span class="o">=</span> <span class="n">CausalSelfAttention</span><span class="p">(</span>
+    <span class="n">self_attn</span> <span class="o">=</span> <span class="n">MultiHeadAttention</span><span class="p">(</span>
         <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
         <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
         <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_kv_heads</span><span class="p">,</span>

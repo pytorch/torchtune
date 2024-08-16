@@ -563,7 +563,7 @@ See <a class="reference internal" href="#setting-trainable-params"><span class="
 <p>Let’s inspect each of these models a bit more closely.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Print the first layer&#39;s self-attention in the usual Llama2 model</span>
 &gt;&gt;&gt;<span class="w"> </span>print<span class="o">(</span>base_model.layers<span class="o">[</span><span class="m">0</span><span class="o">]</span>.attn<span class="o">)</span>
-CausalSelfAttention<span class="o">(</span>
+MultiHeadAttention<span class="o">(</span>
 <span class="w">  </span><span class="o">(</span>q_proj<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
 <span class="w">  </span><span class="o">(</span>k_proj<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
 <span class="w">  </span><span class="o">(</span>v_proj<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
@@ -573,7 +573,7 @@ CausalSelfAttention<span class="o">(</span>
 
 <span class="c1"># Print the same for Llama2 with LoRA weights</span>
 &gt;&gt;&gt;<span class="w"> </span>print<span class="o">(</span>lora_model.layers<span class="o">[</span><span class="m">0</span><span class="o">]</span>.attn<span class="o">)</span>
-CausalSelfAttention<span class="o">(</span>
+MultiHeadAttention<span class="o">(</span>
 <span class="w">  </span><span class="o">(</span>q_proj<span class="o">)</span>:<span class="w"> </span>LoRALinear<span class="o">(</span>
 <span class="w">    </span><span class="o">(</span>dropout<span class="o">)</span>:<span class="w"> </span>Dropout<span class="o">(</span><span class="nv">p</span><span class="o">=</span><span class="m">0</span>.0,<span class="w"> </span><span class="nv">inplace</span><span class="o">=</span>False<span class="o">)</span>
 <span class="w">    </span><span class="o">(</span>lora_a<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">8</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>

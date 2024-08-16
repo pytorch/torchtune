@@ -459,12 +459,18 @@
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="generated/torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer.cache_enabled">cache_enabled (torchtune.modules.TransformerDecoderLayer property)</a>
+      <li><a href="generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer.cache_enabled">cache_enabled (torchtune.modules.TransformerCrossAttentionLayer property)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer.cache_enabled">(torchtune.modules.TransformerSelfAttentionLayer property)</a>
 </li>
-      <li><a href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.caches_are_enabled">caches_are_enabled() (torchtune.modules.TransformerDecoder method)</a>
+      </ul></li>
+      <li><a href="generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.caches_are_enabled">caches_are_enabled() (torchtune.modules.TiedEmbeddingTransformerDecoder method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.caches_are_enabled">(torchtune.modules.TransformerDecoder method)</a>
 </li>
-      <li><a href="generated/torchtune.modules.CausalSelfAttention.html#torchtune.modules.CausalSelfAttention">CausalSelfAttention (class in torchtune.modules)</a>
-</li>
+      </ul></li>
       <li><a href="generated/torchtune.datasets.chat_dataset.html#torchtune.datasets.chat_dataset">chat_dataset() (in module torchtune.datasets)</a>
 </li>
       <li><a href="generated/torchtune.datasets.ChatDataset.html#torchtune.datasets.ChatDataset">ChatDataset (class in torchtune.datasets)</a>
@@ -590,11 +596,11 @@
 </li>
         <li><a href="generated/torchtune.models.clip.TokenPositionalEmbedding.html#torchtune.models.clip.TokenPositionalEmbedding.forward">(torchtune.models.clip.TokenPositionalEmbedding method)</a>
 </li>
-        <li><a href="generated/torchtune.modules.CausalSelfAttention.html#torchtune.modules.CausalSelfAttention.forward">(torchtune.modules.CausalSelfAttention method)</a>
-</li>
         <li><a href="generated/torchtune.modules.FeedForward.html#torchtune.modules.FeedForward.forward">(torchtune.modules.FeedForward method)</a>
 </li>
         <li><a href="generated/torchtune.modules.Fp32LayerNorm.html#torchtune.modules.Fp32LayerNorm.forward">(torchtune.modules.Fp32LayerNorm method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention.forward">(torchtune.modules.MultiHeadAttention method)</a>
 </li>
         <li><a href="generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear.forward">(torchtune.modules.peft.LoRALinear method)</a>
 </li>
@@ -612,9 +618,15 @@
 </li>
         <li><a href="generated/torchtune.modules.RotaryPositionalEmbeddings.html#torchtune.modules.RotaryPositionalEmbeddings.forward">(torchtune.modules.RotaryPositionalEmbeddings method)</a>
 </li>
+        <li><a href="generated/torchtune.modules.TanhGate.html#torchtune.modules.TanhGate.forward">(torchtune.modules.TanhGate method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.forward">(torchtune.modules.TiedEmbeddingTransformerDecoder method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer.forward">(torchtune.modules.TransformerCrossAttentionLayer method)</a>
+</li>
         <li><a href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.forward">(torchtune.modules.TransformerDecoder method)</a>
 </li>
-        <li><a href="generated/torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer.forward">(torchtune.modules.TransformerDecoderLayer method)</a>
+        <li><a href="generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer.forward">(torchtune.modules.TransformerSelfAttentionLayer method)</a>
 </li>
         <li><a href="generated/torchtune.modules.VisionTransformer.html#torchtune.modules.VisionTransformer.forward">(torchtune.modules.VisionTransformer method)</a>
 </li>
@@ -891,10 +903,10 @@
 </li>
       <li><a href="generated/torchtune.models.mistral.mistral_reward_7b.html#torchtune.models.mistral.mistral_reward_7b">mistral_reward_7b() (in module torchtune.models.mistral)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.models.mistral.mistral_tokenizer.html#torchtune.models.mistral.mistral_tokenizer">mistral_tokenizer() (in module torchtune.models.mistral)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.data.MistralChatFormat.html#torchtune.data.MistralChatFormat">MistralChatFormat (class in torchtune.data)</a>
 </li>
       <li><a href="generated/torchtune.models.mistral.MistralChatTemplate.html#torchtune.models.mistral.MistralChatTemplate">MistralChatTemplate (class in torchtune.models.mistral)</a>
@@ -904,6 +916,8 @@
       <li><a href="generated/torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer">ModelTokenizer (class in torchtune.modules.tokenizers)</a>
 </li>
       <li><a href="generated/torchtune.utils.ModelType.html#torchtune.utils.ModelType">ModelType (class in torchtune.utils)</a>
+</li>
+      <li><a href="generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention">MultiHeadAttention (class in torchtune.modules)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1015,16 +1029,22 @@
 </li>
       <li><a href="generated/torchtune.modules.KVCache.html#torchtune.modules.KVCache.reset">reset() (torchtune.modules.KVCache method)</a>
 </li>
-      <li><a href="generated/torchtune.modules.CausalSelfAttention.html#torchtune.modules.CausalSelfAttention.reset_cache">reset_cache() (torchtune.modules.CausalSelfAttention method)</a>
+      <li><a href="generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention.reset_cache">reset_cache() (torchtune.modules.MultiHeadAttention method)</a>
 
       <ul>
-        <li><a href="generated/torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer.reset_cache">(torchtune.modules.TransformerDecoderLayer method)</a>
+        <li><a href="generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer.reset_cache">(torchtune.modules.TransformerCrossAttentionLayer method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer.reset_cache">(torchtune.modules.TransformerSelfAttentionLayer method)</a>
 </li>
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.reset_caches">reset_caches() (torchtune.modules.TransformerDecoder method)</a>
+      <li><a href="generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.reset_caches">reset_caches() (torchtune.modules.TiedEmbeddingTransformerDecoder method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.reset_caches">(torchtune.modules.TransformerDecoder method)</a>
 </li>
+      </ul></li>
       <li><a href="generated/torchtune.modules.transforms.resize_with_pad.html#torchtune.modules.transforms.resize_with_pad">resize_with_pad() (in module torchtune.modules.transforms)</a>
 </li>
       <li><a href="generated/torchtune.modules.RMSNorm.html#torchtune.modules.RMSNorm">RMSNorm (class in torchtune.modules)</a>
@@ -1061,16 +1081,22 @@
 </li>
       <li><a href="generated/torchtune.modules.peft.set_trainable_params.html#torchtune.modules.peft.set_trainable_params">set_trainable_params() (in module torchtune.modules.peft)</a>
 </li>
-      <li><a href="generated/torchtune.modules.CausalSelfAttention.html#torchtune.modules.CausalSelfAttention.setup_cache">setup_cache() (torchtune.modules.CausalSelfAttention method)</a>
+      <li><a href="generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention.setup_cache">setup_cache() (torchtune.modules.MultiHeadAttention method)</a>
 
       <ul>
-        <li><a href="generated/torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer.setup_cache">(torchtune.modules.TransformerDecoderLayer method)</a>
+        <li><a href="generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer.setup_cache">(torchtune.modules.TransformerCrossAttentionLayer method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer.setup_cache">(torchtune.modules.TransformerSelfAttentionLayer method)</a>
 </li>
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.setup_caches">setup_caches() (torchtune.modules.TransformerDecoder method)</a>
+      <li><a href="generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.setup_caches">setup_caches() (torchtune.modules.TiedEmbeddingTransformerDecoder method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.setup_caches">(torchtune.modules.TransformerDecoder method)</a>
 </li>
+      </ul></li>
       <li><a href="generated/torchtune.utils.setup_torch_profiler.html#torchtune.utils.setup_torch_profiler">setup_torch_profiler() (in module torchtune.utils)</a>
 </li>
       <li><a href="generated/torchtune.datasets.SFTDataset.html#torchtune.datasets.SFTDataset">SFTDataset (class in torchtune.datasets)</a>
@@ -1095,6 +1121,8 @@
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.modules.TanhGate.html#torchtune.modules.TanhGate">TanhGate (class in torchtune.modules)</a>
+</li>
       <li><a href="generated/torchtune.utils.metric_logging.TensorBoardLogger.html#torchtune.utils.metric_logging.TensorBoardLogger">TensorBoardLogger (class in torchtune.utils.metric_logging)</a>
 </li>
       <li><a href="generated/torchtune.datasets.text_completion_dataset.html#torchtune.datasets.text_completion_dataset">text_completion_dataset() (in module torchtune.datasets)</a>
@@ -1102,6 +1130,8 @@
       <li><a href="generated/torchtune.data.Message.html#torchtune.data.Message.text_content">text_content (torchtune.data.Message property)</a>
 </li>
       <li><a href="generated/torchtune.datasets.TextCompletionDataset.html#torchtune.datasets.TextCompletionDataset">TextCompletionDataset (class in torchtune.datasets)</a>
+</li>
+      <li><a href="generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder">TiedEmbeddingTransformerDecoder (class in torchtune.modules)</a>
 </li>
       <li><a href="generated/torchtune.modules.tokenizers.TikTokenBaseTokenizer.html#torchtune.modules.tokenizers.TikTokenBaseTokenizer">TikTokenBaseTokenizer (class in torchtune.modules.tokenizers)</a>
 </li>
@@ -1139,9 +1169,11 @@
 </li>
       <li><a href="generated/torchtune.modules.transforms.Transform.html#torchtune.modules.transforms.Transform">Transform (class in torchtune.modules.transforms)</a>
 </li>
+      <li><a href="generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer">TransformerCrossAttentionLayer (class in torchtune.modules)</a>
+</li>
       <li><a href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder">TransformerDecoder (class in torchtune.modules)</a>
 </li>
-      <li><a href="generated/torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer">TransformerDecoderLayer (class in torchtune.modules)</a>
+      <li><a href="generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer">TransformerSelfAttentionLayer (class in torchtune.modules)</a>
 </li>
       <li><a href="generated/torchtune.data.truncate.html#torchtune.data.truncate">truncate() (in module torchtune.data)</a>
 </li>

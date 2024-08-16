@@ -41,7 +41,7 @@
   <link rel="stylesheet" href="_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="CausalSelfAttention" href="generated/torchtune.modules.CausalSelfAttention.html" />
+    <link rel="next" title="MultiHeadAttention" href="generated/torchtune.modules.MultiHeadAttention.html" />
     <link rel="prev" title="TilePositionalEmbedding" href="generated/torchtune.models.clip.TilePositionalEmbedding.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -412,8 +412,8 @@
 <h2>Modeling Components and Building Blocks<a class="headerlink" href="#modeling-components-and-building-blocks" title="Permalink to this heading">¶</a></h2>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.CausalSelfAttention.html#torchtune.modules.CausalSelfAttention" title="torchtune.modules.CausalSelfAttention"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CausalSelfAttention</span></code></a></p></td>
-<td><p>Multi-headed grouped query self-attention (GQA) layer introduced in <a class="reference external" href="https://arxiv.org/abs/2305.13245v1">https://arxiv.org/abs/2305.13245v1</a>.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention" title="torchtune.modules.MultiHeadAttention"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MultiHeadAttention</span></code></a></p></td>
+<td><p>Multi-headed attention layer with support for grouped query attention (GQA) introduced in <a class="reference external" href="https://arxiv.org/abs/2305.13245v1">https://arxiv.org/abs/2305.13245v1</a>.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.FeedForward.html#torchtune.modules.FeedForward" title="torchtune.modules.FeedForward"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FeedForward</span></code></a></p></td>
 <td><p>This class implements the feed-forward network derived from Llama2.</p></td>
@@ -433,13 +433,22 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.Fp32LayerNorm.html#torchtune.modules.Fp32LayerNorm" title="torchtune.modules.Fp32LayerNorm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Fp32LayerNorm</span></code></a></p></td>
 <td><p>Wrapper around <a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.LayerNorm.html#torch.nn.LayerNorm" title="(in PyTorch v2.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">LayerNorm</span></code></a> to support mixed-precision training.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer" title="torchtune.modules.TransformerDecoderLayer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerDecoderLayer</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.TanhGate.html#torchtune.modules.TanhGate" title="torchtune.modules.TanhGate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TanhGate</span></code></a></p></td>
+<td><p>Implements a basic learnable gate to scale layer outputs</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer" title="torchtune.modules.TransformerSelfAttentionLayer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerSelfAttentionLayer</span></code></a></p></td>
 <td><p>Transformer layer derived from the Llama2 model.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer" title="torchtune.modules.TransformerCrossAttentionLayer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerCrossAttentionLayer</span></code></a></p></td>
+<td><p>Cross attention Transformer layer following the same conventions as the TransformerSelfAttentionLayer.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.TransformerDecoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerDecoder</span></code></a></p></td>
 <td><p>Transformer Decoder derived from the Llama2 architecture.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.VisionTransformer.html#torchtune.modules.VisionTransformer" title="torchtune.modules.VisionTransformer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VisionTransformer</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder" title="torchtune.modules.TiedEmbeddingTransformerDecoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TiedEmbeddingTransformerDecoder</span></code></a></p></td>
+<td><p>Transformer Decoder with tied embedding weight.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.VisionTransformer.html#torchtune.modules.VisionTransformer" title="torchtune.modules.VisionTransformer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VisionTransformer</span></code></a></p></td>
 <td><p>Implementation of the ViT architecture (<a class="reference external" href="https://arxiv.org/abs/2010.11929">https://arxiv.org/abs/2010.11929</a>), with support for tile-cropped images, outputting of hidden layers and optional CLS projection.</p></td>
 </tr>
 </tbody>
@@ -605,7 +614,7 @@ model specific tokenizers.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="generated/torchtune.modules.CausalSelfAttention.html" class="btn btn-neutral float-right" title="CausalSelfAttention" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="generated/torchtune.modules.MultiHeadAttention.html" class="btn btn-neutral float-right" title="MultiHeadAttention" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="generated/torchtune.models.clip.TilePositionalEmbedding.html" class="btn btn-neutral" title="TilePositionalEmbedding" accesskey="p" rel="prev"><img src="_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>

@@ -495,7 +495,7 @@ Between these two steps, training can proceed exactly as before.</p>
 dynamic per token activations + int4 grouped per channel weights. Now the model
 is ready for fine-tuning.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&gt;&gt;&gt;<span class="w"> </span>print<span class="o">(</span>model.layers<span class="o">[</span><span class="m">0</span><span class="o">]</span>.attn<span class="o">)</span>
-CausalSelfAttention<span class="o">(</span>
+MultiHeadAttention<span class="o">(</span>
 <span class="w">  </span><span class="o">(</span>q_proj<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
 <span class="w">  </span><span class="o">(</span>k_proj<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">1024</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
 <span class="w">  </span><span class="o">(</span>v_proj<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">1024</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
@@ -504,7 +504,7 @@ CausalSelfAttention<span class="o">(</span>
 <span class="o">)</span>
 
 &gt;&gt;&gt;<span class="w"> </span>print<span class="o">(</span>prepared_model.layers<span class="o">[</span><span class="m">0</span><span class="o">]</span>.attn<span class="o">)</span>
-CausalSelfAttention<span class="o">(</span>
+MultiHeadAttention<span class="o">(</span>
 <span class="w">  </span><span class="o">(</span>q_proj<span class="o">)</span>:<span class="w"> </span>Int8DynActInt4WeightQATLinear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
 <span class="w">  </span><span class="o">(</span>k_proj<span class="o">)</span>:<span class="w"> </span>Int8DynActInt4WeightQATLinear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">1024</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
 <span class="w">  </span><span class="o">(</span>v_proj<span class="o">)</span>:<span class="w"> </span>Int8DynActInt4WeightQATLinear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">1024</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
@@ -526,7 +526,7 @@ used for inference or generation.</p>
 </pre></div>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&gt;&gt;&gt;<span class="w"> </span>print<span class="o">(</span>converted_model.layers<span class="o">[</span><span class="m">0</span><span class="o">]</span>.attn<span class="o">)</span>
-CausalSelfAttention<span class="o">(</span>
+MultiHeadAttention<span class="o">(</span>
 <span class="w">  </span><span class="o">(</span>q_proj<span class="o">)</span>:<span class="w"> </span>Int8DynActInt4WeightLinear<span class="o">()</span>
 <span class="w">  </span><span class="o">(</span>k_proj<span class="o">)</span>:<span class="w"> </span>Int8DynActInt4WeightLinear<span class="o">()</span>
 <span class="w">  </span><span class="o">(</span>v_proj<span class="o">)</span>:<span class="w"> </span>Int8DynActInt4WeightLinear<span class="o">()</span>

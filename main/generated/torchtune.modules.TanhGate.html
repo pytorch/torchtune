@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>CausalSelfAttention &mdash; torchtune main documentation</title>
+  <title>TanhGate &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="FeedForward" href="torchtune.modules.FeedForward.html" />
-    <link rel="prev" title="torchtune.modules" href="../api_ref_modules.html" />
+    <link rel="next" title="TransformerSelfAttentionLayer" href="torchtune.modules.TransformerSelfAttentionLayer.html" />
+    <link rel="prev" title="Fp32LayerNorm" href="torchtune.modules.Fp32LayerNorm.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -372,13 +372,13 @@
         
           <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
         
-      <li>CausalSelfAttention</li>
+      <li>TanhGate</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.modules.CausalSelfAttention.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.modules.TanhGate.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -408,137 +408,24 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="causalselfattention">
-<h1>CausalSelfAttention<a class="headerlink" href="#causalselfattention" title="Permalink to this heading">¶</a></h1>
+  <section id="tanhgate">
+<h1>TanhGate<a class="headerlink" href="#tanhgate" title="Permalink to this heading">¶</a></h1>
 <dl class="py class">
-<dt class="sig sig-object py" id="torchtune.modules.CausalSelfAttention">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.</span></span><span class="sig-name descname"><span class="pre">CausalSelfAttention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">embed_dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_heads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_kv_heads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">head_dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_proj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_proj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">v_proj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_proj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_embeddings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">kv_cache</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="torchtune.modules.KVCache.html#torchtune.modules.KVCache" title="torchtune.modules.kv_cache.KVCache"><span class="pre">KVCache</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4096</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attn_dropout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/attention.html#CausalSelfAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.CausalSelfAttention" title="Permalink to this definition">¶</a></dt>
-<dd><p>Multi-headed grouped query self-attention (GQA) layer introduced
-in <a class="reference external" href="https://arxiv.org/abs/2305.13245v1">https://arxiv.org/abs/2305.13245v1</a>.</p>
-<p>GQA is a version of multiheaded attention (MHA) which uses fewer
-key/value heads than query heads by grouping n query heads for each
-key and value head. Multi-Query Attention is an extreme
-version where we have a single key and value head shared by all
-query heads.</p>
-<p>Following is an example of MHA, GQA and MQA with num_heads = 4</p>
-<p>(credit for the documentation:
-<a class="reference external" href="https://github.com/Lightning-AI/lit-gpt/blob/main/lit_gpt/config.py">https://github.com/Lightning-AI/lit-gpt/blob/main/lit_gpt/config.py</a>).</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>┌───┐┌───┐┌───┐┌───┐     ┌───┐    ┌───┐             ┌───┐
-│ v ││ v ││ v ││ v │     │ v │    │ v │             │ v │
-└───┘└───┘└───┘└───┘     └───┘    └───┘             └───┘
-│    │    │    │         │        │                 │
-┌───┐┌───┐┌───┐┌───┐     ┌───┐    ┌───┐             ┌───┐
-│ k ││ k ││ k ││ k │     │ k │    │ k │             │ k │
-└───┘└───┘└───┘└───┘     └───┘    └───┘             └───┘
-│    │    │    │      ┌──┴──┐  ┌──┴──┐      ┌────┬──┴─┬────┐
-┌───┐┌───┐┌───┐┌───┐  ┌───┐┌───┐┌───┐┌───┐  ┌───┐┌───┐┌───┐┌───┐
-│ q ││ q ││ q ││ q │  │ q ││ q ││ q ││ q │  │ q ││ q ││ q ││ q │
-└───┘└───┘└───┘└───┘  └───┘└───┘└───┘└───┘  └───┘└───┘└───┘└───┘
-◀──────────────────▶  ◀──────────────────▶  ◀──────────────────▶
-        MHA                    GQA                   MQA
-n_kv_heads =4          n_kv_heads=2           n_kv_heads=1
-</pre></div>
-</div>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>embed_dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – embedding dimension for the model</p></li>
-<li><p><strong>num_heads</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – number of query heads. For MHA this is also the
-number of heads for key and value</p></li>
-<li><p><strong>num_kv_heads</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – number of key and value heads. User should ensure
-<cite>num_heads</cite> % <cite>num_kv_heads</cite> == 0. For standard MHA set <cite>num_kv_heads</cite> == <cite>num_heads</cite>,
-for GQA <cite>num_kv_heads</cite> &lt; <cite>num_heads</cite>, and for MQA set <cite>num_kv_heads</cite> == 1.</p></li>
-<li><p><strong>head_dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – dimension of each head, calculated by <code class="docutils literal notranslate"><span class="pre">embed_dim</span></code> // <code class="docutils literal notranslate"><span class="pre">num_heads</span></code>.</p></li>
-<li><p><strong>q_proj</strong> (<em>nn.Module</em>) – projection layer for query.</p></li>
-<li><p><strong>k_proj</strong> (<em>nn.Module</em>) – projection layer for key.</p></li>
-<li><p><strong>v_proj</strong> (<em>nn.Module</em>) – projection layer for value.</p></li>
-<li><p><strong>output_proj</strong> (<em>nn.Module</em>) – projection layer for output.</p></li>
-<li><p><strong>pos_embeddings</strong> (<em>nn.Module</em>) – positional embeddings layer, e.g. RotaryPositionalEmbeddings.</p></li>
-<li><p><strong>kv_cache</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="torchtune.modules.KVCache.html#torchtune.modules.KVCache" title="torchtune.modules.KVCache"><em>KVCache</em></a><em>]</em>) – KVCache object used to cache key and value.
-If not specified, then no caching is used.</p></li>
-<li><p><strong>max_seq_len</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – maximum sequence length supported by the model.
-This is needed to compute the RoPE Cache. Default: 4096.</p></li>
-<li><p><strong>attn_dropout</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – dropout value passed onto the
-scaled_dot_product_attention function. This argument is ignored if the
-self.training is False. Default value is 0.0.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If <cite>num_heads</cite> % <cite>num_kv_heads</cite> != 0</p></li>
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If <cite>embed_dim</cite> % <cite>num_heads</cite> != 0</p></li>
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If <cite>attn_dropout</cite> &lt; 0 or &gt; 1</p></li>
-</ul>
-</dd>
-</dl>
+<dt class="sig sig-object py" id="torchtune.modules.TanhGate">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.</span></span><span class="sig-name descname"><span class="pre">TanhGate</span></span><a class="reference internal" href="../_modules/torchtune/modules/tanh_gate.html#TanhGate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.TanhGate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a basic learnable gate to scale layer outputs</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="torchtune.modules.CausalSelfAttention.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/attention.html#CausalSelfAttention.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.CausalSelfAttention.forward" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="torchtune.modules.TanhGate.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/tanh_gate.html#TanhGate.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.TanhGate.forward" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>Tensor</em>) – input tensor with shape
-[batch_size x seq_length x embed_dim]</p></li>
-<li><p><strong>mask</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Optional boolean tensor which contains the attention mask
-with shape [batch_size x seq_length x seq_length]. This is applied after
-the query-key multiplication and before the softmax. A value of True in row i
-and column j means token i attends to token j. A value of False means token i
-does not attend to token j. If no mask is specified, a causal mask
-is used by default. Default is None.</p></li>
-<li><p><strong>input_pos</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Optional tensor which contains the position ids
-of each token. During training, this is used to indicate the positions
-of each token relative to its sample when packed, shape [b x s].
-During inference, this indicates the position of the current token.
-If none, assume the index of the token is its position id. Default is None.</p></li>
-</ul>
+<dd class="field-odd"><p><strong>x</strong> (<em>Tensor</em>) – input tensor to gate</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>output tensor with attention applied</p>
+<dd class="field-even"><p>The output tensor after gating.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – if seq_len of x is bigger than max_seq_len</p>
-</dd>
-</dl>
-<dl class="simple">
-<dt>Notation used for tensor shapes:</dt><dd><ul class="simple">
-<li><p>b: batch size</p></li>
-<li><p>s: sequence length</p></li>
-<li><p>n_h: num heads</p></li>
-<li><p>n_kv: num kv heads</p></li>
-<li><p>d: embed dim</p></li>
-<li><p>h_d: head dim</p></li>
-</ul>
-</dd>
-</dl>
-<div class="admonition-todo admonition" id="id1">
-<p class="admonition-title">Todo</p>
-<ul class="simple">
-<li><p>Return the attention weights</p></li>
-<li><p>Make application of positional embeddings optional</p></li>
-</ul>
-</div>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="torchtune.modules.CausalSelfAttention.reset_cache">
-<span class="sig-name descname"><span class="pre">reset_cache</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/attention.html#CausalSelfAttention.reset_cache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.CausalSelfAttention.reset_cache" title="Permalink to this definition">¶</a></dt>
-<dd><p>Reset the key value caches.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="torchtune.modules.CausalSelfAttention.setup_cache">
-<span class="sig-name descname"><span class="pre">setup_cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="(in PyTorch v2.4)"><span class="pre">dtype</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/attention.html#CausalSelfAttention.setup_cache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.CausalSelfAttention.setup_cache" title="Permalink to this definition">¶</a></dt>
-<dd><p>Setup key value caches for attention calculation. If called
-after kv_cache is already setup, this will be skipped.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – batch size for the caches.</p></li>
-<li><p><strong>dtype</strong> (<em>torch.dpython:type</em>) – dtype for the caches.</p></li>
-</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -555,10 +442,10 @@ after kv_cache is already setup, this will be skipped.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.modules.FeedForward.html" class="btn btn-neutral float-right" title="FeedForward" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.modules.TransformerSelfAttentionLayer.html" class="btn btn-neutral float-right" title="TransformerSelfAttentionLayer" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="../api_ref_modules.html" class="btn btn-neutral" title="torchtune.modules" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.modules.Fp32LayerNorm.html" class="btn btn-neutral" title="Fp32LayerNorm" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -590,7 +477,7 @@ after kv_cache is already setup, this will be skipped.</p>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">CausalSelfAttention</a></li>
+<li><a class="reference internal" href="#">TanhGate</a></li>
 </ul>
 
             </div>
