@@ -41,9 +41,13 @@ class Message:
         masked (bool): whether the message is masked in the sample. If True, do not use
             in loss calculation. Default: False
         ipython (bool): whether the message is a tool call. Default: False
-        eot (bool): whether the message corresponds to the end of a turn. Should be true
-            except in the case of multiple consecutive assistant messages (i.e., tool calls
-            by assistant). Default: True
+        eot (bool): whether the message corresponds to the end of a turn, where control is handed over
+            to the assistant from the user or the user from the assistant. Default: True. Should be true
+            in most cases except for:
+
+            - For multiple consecutive assistant messages (i.e., tool calls
+              by assistant), only the last assistant message will have ``eot=True``
+            - All ipython messages (tool call returns) should set ``eot=False``.
     """
 
     def __init__(
@@ -142,7 +146,7 @@ class InputOutputToMessages(Transform):
                 role="user",
                 content=sample[key_input],
                 masked=not self.train_on_input,
-                eot=False,
+                eot=True,
             ),
             Message(
                 role="assistant",
@@ -265,9 +269,11 @@ class ShareGPTToMessages(Transform):
             List[Message]: A list of messages with "role" and "content" fields.
         """
         role_map = {"system": "system", "human": "user", "gpt": "assistant"}
+        column_map = self.column_map or {}
+        key_conversations = column_map.get("conversations", "conversations")
 
         messages = []
-        for message in sample["conversations"]:
+        for message in sample[key_conversations]:
             role = role_map[message["from"]]
             content = message["value"]
             masked = (role != "assistant") and (not self.train_on_input)
@@ -327,8 +333,10 @@ class JSONToMessages(Transform):
         Returns:
             List[Message]: A list of messages with "role" and "content" fields.
         """
+        column_map = self.column_map or {}
+        key_messages = column_map.get("messages", "messages")
         updated_messages = []
-        for message in sample["messages"]:
+        for message in sample[key_messages]:
             message["masked"] = (message["role"] != "assistant") and (
                 not self.train_on_input
             )
