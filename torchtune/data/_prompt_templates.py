@@ -6,8 +6,6 @@
 from functools import partial
 from typing import Dict, List, Protocol, Tuple, Union
 
-from torchtune.config._utils import _get_component_from_path
-
 from torchtune.data import Message, Role
 
 _TemplateType = Union[str, Dict[Role, Tuple[str, str]]]
@@ -146,7 +144,7 @@ class ChatMLTemplate(PromptTemplateInterface):
     template = {
         "system": ("<|im_start|>system\n", "<|im_end|>\n"),
         "user": ("<|im_start|>user\n", "<|im_end|>\n"),
-        "assistant": ("<|im_start|>assistant\n", "<|im_end|>"),
+        "assistant": ("<|im_start|>assistant\n", "<|im_end|>\n"),
         "ipython": ("", ""),
     }
 
@@ -242,29 +240,3 @@ A prompt template for question answering tasks::
 
 Please see :class:`~torchtune.data.PromptTemplate` for full API arguments.
 """
-
-
-def _get_prompt_template(
-    prompt_template: _TemplateType,
-) -> PromptTemplateInterface:
-    """
-    Retrieve prompt template from import dotpath or create a custom one with provided
-    template dictionary.
-
-    Args:
-        prompt_template (_TemplateType): optional specified prompt template.
-            If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
-            class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
-            prepend/append tags.
-
-    Returns:
-        PromptTemplateInterface: the specified prompt template
-    """
-    if isinstance(prompt_template, str):
-        return _get_component_from_path(prompt_template)()
-    elif isinstance(prompt_template, dict):
-        return PromptTemplate(prompt_template)
-    else:
-        raise ValueError(
-            f"Prompt template must be a dotpath string or dictionary with custom template, got {type(prompt_template)}"
-        )

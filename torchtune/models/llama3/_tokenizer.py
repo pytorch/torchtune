@@ -6,7 +6,7 @@
 
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
-from torchtune.data import Message, truncate, PromptTemplate
+from torchtune.data import Message, PromptTemplate, truncate
 from torchtune.modules.tokenizers import ModelTokenizer, TikTokenBaseTokenizer
 from torchtune.modules.transforms import Transform
 
@@ -252,7 +252,11 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         Returns:
             Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
         """
-        templated_messages = self.prompt_template(messages) if self.prompt_template is not None else messages
+        templated_messages = (
+            self.prompt_template(messages)
+            if self.prompt_template is not None
+            else messages
+        )
         tokens = [self.bos_id]
         # bos and eos are always masked
         mask = [True]

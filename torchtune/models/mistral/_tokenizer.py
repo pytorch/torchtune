@@ -7,13 +7,13 @@
 from typing import Any, List, Mapping, Optional, Tuple
 
 from torchtune.data import Message, PromptTemplate
+from torchtune.models.mistral._prompt_template import MistralChatTemplate
 from torchtune.modules.tokenizers import (
     ModelTokenizer,
     SentencePieceBaseTokenizer,
     tokenize_messages_no_special_tokens,
 )
 from torchtune.modules.transforms import Transform
-from torchtune.models.mistral._prompt_template import MistralChatTemplate
 
 WHITESPACE_CHARS = [" ", "\n", "\t", "\r", "\v"]
 
@@ -34,7 +34,7 @@ class MistralTokenizer(ModelTokenizer, Transform):
               tags in Llama2 and in Mistral
             - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
 
-            The extra text will still get tokenized as normal text, not as special tokens. 
+            The extra text will still get tokenized as normal text, not as special tokens.
             Default is :class:`~torchtune.models.mistral.MistralChatTemplate`.
 
     Examples:
@@ -158,7 +158,11 @@ class MistralTokenizer(ModelTokenizer, Transform):
         Returns:
             Tuple[List[int], List[bool]]: The tokenized messages
         """
-        templated_messages = self.prompt_template(messages) if self.prompt_template is not None else messages
+        templated_messages = (
+            self.prompt_template(messages)
+            if self.prompt_template is not None
+            else messages
+        )
         return tokenize_messages_no_special_tokens(
             tokenizer=self,
             messages=templated_messages,

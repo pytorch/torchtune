@@ -6,7 +6,9 @@
 
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
-from torchtune.data import Message, truncate, PromptTemplate
+from torchtune.data._messages import Message
+from torchtune.data._prompt_templates import PromptTemplate
+from torchtune.data._utils import truncate
 from torchtune.modules.tokenizers import ModelTokenizer, SentencePieceBaseTokenizer
 from torchtune.modules.transforms import Transform
 
@@ -157,7 +159,11 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
         Returns:
             Tuple[List[int], List[bool]]: The tokenized messages
         """
-        templated_messages = self.prompt_template(messages) if self.prompt_template is not None else messages
+        templated_messages = (
+            self.prompt_template(messages)
+            if self.prompt_template is not None
+            else messages
+        )
 
         start_of_turn = True
         end_of_turn = False

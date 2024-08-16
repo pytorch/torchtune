@@ -10,9 +10,9 @@ from torchtune.models.llama2._component_builders import llama2, lora_llama2, lla
 
 from torchtune.modules import TransformerDecoder
 from torchtune.models.llama2._tokenizer import Llama2Tokenizer
-from torchtune.models.llama2._prompt_template import Llama2ChatTemplate
 from torchtune.modules.peft import LORA_ATTN_MODULES
-from torchtune.data._prompt_templates import _TemplateType, _get_prompt_template
+from torchtune.data._prompt_templates import _TemplateType
+from torchtune.config._utils import _get_prompt_template
 
 
 """
@@ -42,7 +42,7 @@ def llama2_7b() -> TransformerDecoder:
     )
 
 
-def llama2_tokenizer(path: str, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = Llama2ChatTemplate()) -> Llama2Tokenizer:
+def llama2_tokenizer(path: str, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = "torchtune.models.llama2.Llama2ChatTemplate") -> Llama2Tokenizer:
     """
     Tokenizer for Llama2.
 

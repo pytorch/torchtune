@@ -7,13 +7,13 @@
 from typing import Any, List, Mapping, Optional, Tuple
 
 from torchtune.data import Message, PromptTemplate
+from torchtune.models.llama2._prompt_template import Llama2ChatTemplate
 from torchtune.modules.tokenizers import (
     ModelTokenizer,
     SentencePieceBaseTokenizer,
     tokenize_messages_no_special_tokens,
 )
 from torchtune.modules.transforms import Transform
-from torchtune.models.llama2._prompt_template import Llama2ChatTemplate
 
 WHITESPACE_CHARS = [" ", "\n", "\t", "\r", "\v"]
 
@@ -26,8 +26,8 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
     [INST][/INST] and <<SYS>><</SYS>> as special tokens but these are not registered
     as unique ids and are tokenized as normal text. When using this tokenizer on the
     pre-trained model for inference, the prompt template
-    :class:`~torchtune.models.llama2.Llama2ChatTemplate` is by default applied to your data 
-    before tokenization to add the [INST] and <<SYS>> tags for optimal performance. 
+    :class:`~torchtune.models.llama2.Llama2ChatTemplate` is by default applied to your data
+    before tokenization to add the [INST] and <<SYS>> tags for optimal performance.
     For more details, see https://pytorch.org/torchtune/main/tutorials/chat.html#tokenizing-prompt-templates-special-tokens.
 
     Args:
@@ -42,7 +42,7 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
               tags in Llama2 and in Mistral
             - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
 
-            The extra text will still get tokenized as normal text, not as special tokens. 
+            The extra text will still get tokenized as normal text, not as special tokens.
             Default is :class:`~torchtune.models.llama2.Llama2ChatTemplate`.
 
     Examples:
@@ -143,7 +143,11 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
         Returns:
             Tuple[List[int], List[bool]]: The tokenized messages
         """
-        templated_messages = self.prompt_template(messages) if self.prompt_template is not None else messages
+        templated_messages = (
+            self.prompt_template(messages)
+            if self.prompt_template is not None
+            else messages
+        )
         return tokenize_messages_no_special_tokens(
             tokenizer=self,
             messages=templated_messages,

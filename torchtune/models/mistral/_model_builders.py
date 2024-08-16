@@ -11,8 +11,8 @@ from torchtune.models.mistral._component_builders import (
     mistral_classifier,
     lora_mistral_classifier,
 )
-from torchtune.models.mistral._prompt_template import MistralChatTemplate
-from torchtune.data._prompt_templates import _TemplateType, _get_prompt_template
+from torchtune.data._prompt_templates import _TemplateType
+from torchtune.config._utils import _get_prompt_template
 
 from torchtune.modules import TransformerDecoder
 from torchtune.models.mistral._tokenizer import MistralTokenizer
@@ -48,7 +48,7 @@ def mistral_7b() -> TransformerDecoder:
     )
 
 
-def mistral_tokenizer(path: str, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = MistralChatTemplate()) -> MistralTokenizer:
+def mistral_tokenizer(path: str, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = "torchtune.models.mistral.MistralChatTemplate") -> MistralTokenizer:
     """
     Tokenizer for Mistral models.
 

@@ -10,7 +10,8 @@ from torchtune.models.qwen2._tokenizer import Qwen2Tokenizer
 from torchtune.modules import TransformerDecoder, TiedEmbeddingTransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from torchtune.modules.tokenizers import parse_hf_tokenizer_json
-from torchtune.data._prompt_templates import _TemplateType, _get_prompt_template, ChatMLTemplate
+from torchtune.data._prompt_templates import _TemplateType
+from torchtune.config._utils import _get_prompt_template
 
 """
 Model builders build specific instantiations using component builders. For example
@@ -100,7 +101,7 @@ def qwen2_tokenizer(
     merges_file: str = None,
     special_tokens_path: Optional[str] = None,
     max_seq_len: Optional[int] = None,
-    prompt_template: Optional[_TemplateType] = ChatMLTemplate(),
+    prompt_template: Optional[_TemplateType] = "torchtune.data.ChatMLTemplate",
     **kwargs,
 ) -> Qwen2Tokenizer:
     """

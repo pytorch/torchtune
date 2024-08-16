@@ -35,7 +35,7 @@ class TestChatMLTemplate:
             role="assistant",
             content="<|im_start|>assistant\nA father in Russia allowed his 8-year-old child to drive his car on an "
             "icy road and recorded the event. The child appeared to be handling the situation well, "
-            "showcasing their driving skills despite the challenging conditions.<|im_end|>",
+            "showcasing their driving skills despite the challenging conditions.<|im_end|>\n",
         ),
     ]
 

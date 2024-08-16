@@ -6,7 +6,7 @@
 import json
 import unicodedata
 from functools import lru_cache
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 import regex as re
 
@@ -341,6 +341,9 @@ class Qwen2Tokenizer(ModelTokenizer):
 
         Returns:
             Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
+
+        Raises:
+            RuntimeError: If a message contains non-text content
         """
         templated_messages = (
             self.prompt_template(messages)
@@ -381,3 +384,21 @@ class Qwen2Tokenizer(ModelTokenizer):
             mask = truncate(mask, self.max_seq_len, True)
 
         return tokenized_messages, mask
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        """
+        Apply ``tokenize_messages`` to the "messages" field in the sample.
+
+        Args:
+            sample (Mapping[str, Any]): A sample with a "messages" field containing
+                a List[Message] to tokenize
+
+        Returns:
+            Mapping[str, Any]: The sample with added "tokens" and "mask" fields
+                and the "messages" field removed.
+        """
+        messages = sample.pop("messages")
+        tokens, mask = self.tokenize_messages(messages)
+        sample["tokens"] = tokens
+        sample["mask"] = mask
+        return sample

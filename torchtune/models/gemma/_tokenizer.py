@@ -129,7 +129,11 @@ class GemmaTokenizer(ModelTokenizer, Transform):
         Returns:
             Tuple[List[int], List[bool]]: The tokenized messages
         """
-        templated_messages = self.prompt_template(messages) if self.prompt_template is not None else messages
+        templated_messages = (
+            self.prompt_template(messages)
+            if self.prompt_template is not None
+            else messages
+        )
         return tokenize_messages_no_special_tokens(
             tokenizer=self,
             messages=templated_messages,
