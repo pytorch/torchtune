@@ -6,7 +6,7 @@
 
 from typing import Any, Dict, Mapping, Optional
 
-from torchtune.data import Message, PromptTemplate, QuestionAnswerTemplate
+from torchtune.data import Message
 from torchtune.datasets._preference import PreferenceDataset
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
@@ -76,13 +76,15 @@ def stack_exchange_paired_dataset(
     *,
     source: str = "lvwerra/stack-exchange-paired",
     column_map: Optional[Dict[str, str]] = None,
-    prompt_template: Optional[PromptTemplate] = QuestionAnswerTemplate(),
     train_on_input: bool = False,
     split: str = "train",
 ) -> PreferenceDataset:
     """
     Family of preference datasets similar to the `Stack Exchange Paired dataset
     <https://huggingface.co/datasets/lvwerra/stack-exchange-paired>`_.
+
+    It is recommended to configure the tokenizer with the :class:`~torchtune.data.QuestionAnswerTemplate`
+    in conjunction with this dataset.
 
     Args:
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
@@ -93,8 +95,6 @@ def stack_exchange_paired_dataset(
             ``load_dataset`` for more details. Default is ``lvwerra/stack-exchange-paired``.
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the prompt template
             to the new column names in the dataset. If None, assume these are identical.
-        prompt_template (Optional[PromptTemplate]): optional template used to format the prompt. Default
-            is :class:`~torchtune.data.QuestionAnswerTemplate`.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
@@ -117,7 +117,6 @@ def stack_exchange_paired_dataset(
         source=source,
         message_transform=message_transform,
         tokenizer=tokenizer,
-        prompt_template=prompt_template,
         split=split,
         data_dir="data/rl",
     )

@@ -6,7 +6,7 @@
 
 from typing import Dict, Optional, Union
 
-from torchtune.data import PromptTemplate, ShareGPTToMessages
+from torchtune.data import ShareGPTToMessages
 from torchtune.datasets._packed import PackedDataset
 
 from torchtune.datasets._sft import SFTDataset
@@ -18,7 +18,6 @@ def slimorca_dataset(
     *,
     source: str = "Open-Orca/SlimOrca-Dedup",
     column_map: Optional[Dict[str, str]] = None,
-    prompt_template: Optional[PromptTemplate] = None,
     train_on_input: bool = False,
     packed: bool = False,
     split: str = "train",
@@ -44,8 +43,6 @@ def slimorca_dataset(
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the message transform
             :class:`~torchtune.data.ShareGPTToMessages` to the new column names in the dataset. If None, use
             the default column name ``"conversations"`` in ``Open-Orca/SlimOrca-Dedup``.
-        prompt_template (Optional[PromptTemplate]): optional template used to format the prompt. Default
-            is None.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
@@ -72,7 +69,6 @@ def slimorca_dataset(
         source=source,
         message_transform=message_transform,
         model_transform=model_transform,
-        prompt_template=prompt_template,
         split=split,
     )
     return PackedDataset(ds) if packed else ds

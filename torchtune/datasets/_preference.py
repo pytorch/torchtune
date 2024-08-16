@@ -4,13 +4,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping
 
 import numpy as np
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
-from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, PromptTemplate
+from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
@@ -41,8 +41,7 @@ class PreferenceDataset(Dataset):
     1. Dataset-specific transform. This is typically unique to each dataset and extracts
        the necessary prompt and chosen/rejected columns into torchtune's :class:`~torchtune.data.Message`
        format, a standardized API for all model tokenizers.
-    2. If specified, apply a prompt template for the task you are fine-tuning for.
-    3. Tokenization
+    2. Tokenization with optional prompt template if configured
 
 
     All datasets are formatted into a list of :class:`~torchtune.data.Message`
@@ -84,16 +83,6 @@ class PreferenceDataset(Dataset):
             Since PreferenceDataset only supports text data, it requires a
             :class:`~torchtune.modules.tokenizers.ModelTokenizer` instead of the ``model_transform`` in
             :class:`~torchtune.datasets.SFTDataset`.
-        prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
-            to add structured text around the actual messages and is called on both chosen and rejected messages.
-            The structured text is used in three scenarios:
-
-            - Task-specific templates to gear models for a particular task that it will expect after training
-            - Model-specific templates that are required whenever the model is prompted, such as the [INST]
-              tags in Llama2 and in Mistral
-            - Community standardized templates, such as :class:`~torchtune.data.ChatMLFormat`
-
-            The extra text added by the template will still get tokenized as normal text, not as special tokens.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
             Face's `API ref <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset>`_
             for more details.
@@ -105,11 +94,9 @@ class PreferenceDataset(Dataset):
         source: str,
         message_transform: Transform,
         tokenizer: ModelTokenizer,
-        prompt_template: Optional[PromptTemplate] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._tokenizer = tokenizer
-        self._prompt_template = prompt_template
         self._message_transform = message_transform
         self._data = load_dataset(source, **load_dataset_kwargs)
 
@@ -122,13 +109,6 @@ class PreferenceDataset(Dataset):
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
         transformed_sample = self._message_transform(sample)
-        if self._prompt_template is not None:
-            transformed_sample["chosen"] = self._prompt_template(
-                transformed_sample["chosen"]
-            )
-            transformed_sample["rejected"] = self._prompt_template(
-                transformed_sample["rejected"]
-            )
 
         # TODO: Truncation differs from original DPO repo
         # in DPO: first truncate prompts, then responses
