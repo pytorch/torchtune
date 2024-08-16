@@ -28,16 +28,16 @@ class FusionLayer(nn.Module):
     through ``fusion_params`` to separately control if they're trainable or not.
 
     Example::
-        # Original decoder style transformer
+        >>> # Original decoder style transformer
         >>> layer = nn.TransformerSelfAttentionLayer(...)
         >>> model = TransformerDecoder(layers=layer, num_layers=32, ...)
-
-        # Fuse a Cross Attention layer to each Self Attention layer to adapt model for an encoder
+        >>>
+        >>> # Fuse a Cross Attention layer to each Self Attention layer to adapt model for an encoder
         >>> fusion_layer = nn.TransformerCrossAttentionLayer(...)
         >>> fused_layer = FusionLayer(layer, fusion_layer)
         >>> model = TransformerDecoder(layers=fused_layer, num_layers=32, ...)
-
-        # Original decoder state_dict still works
+        >>>
+        >>> # Original decoder state_dict still works
         >>> model.load_state_dict(..., strict=False)
 
     Args:
@@ -152,8 +152,8 @@ class FusionEmbedding(nn.Module):
     Example::
         >>> embedding = FusionEmbedding(vocab_size=100, fusion_vocab_size=10, embed_dim=128)
         >>> model = TransformerDecoder(tok_embeddings=embedding, ...)
-
-        # Original model state_dict still works
+        >>>
+        >>> # Original model state_dict still works
         >>> model.load_state_dict(..., strict=False)
 
     .. note::
@@ -263,28 +263,28 @@ class DeepFusionModel(nn.Module):
     are already defined with any extra learnable ``fusion_params``; learnable parameters to help
     adapt the pre-trained encoder to the pre-trained decoder.
 
-    Example::
-        # decoder is a TransformerDecoder (e.g. llama3_8b) with cross attention layers fused in
+    Example:
+        >>> # decoder is a TransformerDecoder (e.g. llama3_8b) with cross attention layers fused in
         >>> embedding = FusionEmbedding(...)
         >>> layer = FusionLayer(TransformerSelfAttentionLayer(...), fusion_layer=TransformerCrossAttentionLayer(...))
         >>> decoder = TransformerDecoder(tok_embeddings=embedding, layers=layer, num_layers=32, ...)
-
-        # encoder is pre-trained encoder (e.g. clip_vit_224) with an added projection head
+        >>>
+        >>> # encoder is pre-trained encoder (e.g. clip_vit_224) with an added projection head
         >>> projection_head = FeedForward(...)
         >>> register_fusion_module(projection_head))
         >>> encoder = nn.Sequential(clip_vit_224(), projection_head)
-
-        # DeepFusionModel combines the encoder and decoder
+        >>>
+        >>> # DeepFusionModel combines the encoder and decoder
         >>> model = DeepFusionModel(decoder, encoder)
-
-        # Load full fused checkpoints (e.g. a Flamingo checkpoint)
+        >>>
+        >>> # Load full fused checkpoints (e.g. a Flamingo checkpoint)
         >>> model.load_state_dict(...)
-
-        # Or load pretrained individual models (fusion_params are not loaded)
+        >>>
+        >>> # Or load pretrained individual models (fusion_params are not loaded)
         >>> model.encoder.load_state_dict(..., strict=False)
         >>> model.decoder.load_state_dict(..., strict=False)
-
-        # Forward pass
+        >>>
+        >>> # Forward pass
         >>> output = model(tokens, mask, encoder_input, encoder_mask, input_pos)
 
     Args:
