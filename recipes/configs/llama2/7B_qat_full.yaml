@@ -65,7 +65,7 @@ enable_activation_checkpointing: True
 memory_efficient_fsdp_wrap: False
 
 # Reduced precision
-dtype: bf16
+dtype: fp32
 
 # Logging
 metric_logger:

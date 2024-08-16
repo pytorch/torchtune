@@ -65,8 +65,8 @@ device: cuda
 enable_activation_checkpointing: True
 memory_efficient_fsdp_wrap: True
 
-# Reduced precision
-dtype: bf16
+# Precision
+dtype: fp32
 
 # Logging
 metric_logger:

@@ -9,7 +9,7 @@ from typing import Callable, Optional
 # importing TORCH_VERSION_AFTER_2_3 because `Int8DynActInt4WeightQuantizer`
 # is only available after 2.3 so we have to guard the pytorch versions to decide
 # the list of supported quantizers
-from torchao.utils import TORCH_VERSION_AFTER_2_3, TORCH_VERSION_AFTER_2_4
+from torchao.utils import TORCH_VERSION_AFTER_2_2, TORCH_VERSION_AFTER_2_3
 
 __all__ = [
     "get_quantizer_mode",
@@ -20,15 +20,19 @@ _quantizer_to_mode = {}
 _quantizer_mode_to_disable_fake_quant = {}
 _quantizer_mode_to_enable_fake_quant = {}
 
-
-if TORCH_VERSION_AFTER_2_3:
+# TODO: bump this after tochao releases >0.4.0
+# Until 0.4.0, this did not include the version. Eg. AFTER_2_2, does not include 2.2.
+# This should be "TORCH_VERSION_AFTER_2_3" after the fix
+# More info here: https://github.com/pytorch/ao/pull/684
+if TORCH_VERSION_AFTER_2_2:
     from torchao.quantization.quant_api import Int8DynActInt4WeightQuantizer
 
     __all__.append("Int8DynActInt4WeightQuantizer")
     _quantizer_to_mode[Int8DynActInt4WeightQuantizer] = "8da4w"
 
-
-if TORCH_VERSION_AFTER_2_4:
+# TODO: see comment above
+# This should be TORCH_VERSION_AFTER_2_4
+if TORCH_VERSION_AFTER_2_3:
     from torchao.quantization.prototype.qat import (
         disable_8da4w_fake_quant,
         enable_8da4w_fake_quant,
