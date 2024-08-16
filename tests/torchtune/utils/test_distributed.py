@@ -217,7 +217,7 @@ class TestLoRAFSDP:
             for m in wrapped_lora.modules():
                 if isinstance(m, LoRALinear):
                     torch.testing.assert_close(
-                        m.lora.b.weight, torch.zeros_like(m.lora.b.weight)
+                        m.lora_b.weight, torch.zeros_like(m.lora_b.weight)
                     )
 
             # Total # FSDP modules should be num_transformer + num_lora + 1
