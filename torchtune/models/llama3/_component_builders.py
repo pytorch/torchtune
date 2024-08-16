@@ -279,7 +279,7 @@ def lora_llama3_self_attention(
     lora_dropout: float = 0.0,
     quantize_base: bool = False,
     use_dora: bool = False,
-) -> CausalSelfAttention:
+) -> MultiHeadAttention:
     """
     Return an instance of :func:`~torchtune.modules.MultiHeadAttention` with LoRA
     applied to a subset of its linear layers
