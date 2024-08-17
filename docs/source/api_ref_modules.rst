@@ -11,15 +11,18 @@ Modeling Components and Building Blocks
     :toctree: generated/
     :nosignatures:
 
-    CausalSelfAttention
+    MultiHeadAttention
     FeedForward
     KVCache
     get_cosine_schedule_with_warmup
     RotaryPositionalEmbeddings
     RMSNorm
     Fp32LayerNorm
-    TransformerDecoderLayer
+    TanhGate
+    TransformerSelfAttentionLayer
+    TransformerCrossAttentionLayer
     TransformerDecoder
+    TiedEmbeddingTransformerDecoder
     VisionTransformer
 
 Base Tokenizers
@@ -64,6 +67,21 @@ PEFT Components
     peft.validate_missing_and_unexpected_for_lora
     peft.validate_state_dict_for_lora
     peft.disable_adapter
+
+
+Fusion Components
+-----------------
+Components for building models that are a fusion of two+ pre-trained models.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    model_fusion.DeepFusionModel
+    model_fusion.FusionLayer
+    model_fusion.FusionEmbedding
+    model_fusion.register_fusion_module
+
 
 Module Utilities
 ------------------

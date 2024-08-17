@@ -8,7 +8,7 @@ from typing import Any, Mapping
 from unittest import mock
 
 import pytest
-from tests.test_utils import DummyPromptTemplate, DummyTokenizer
+from tests.test_utils import DummyTokenizer
 from torchtune.data import Message
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets._preference import PreferenceDataset
@@ -64,13 +64,11 @@ class TestPreferenceDataset:
         return {
             "prompt": [
                 0,
-                5,
                 4,
                 2,
                 4,
             ],
             "chosen": [
-                10,
                 3,
                 6,
                 2,
@@ -78,7 +76,6 @@ class TestPreferenceDataset:
                 -1,
             ],
             "rejected": [
-                10,
                 3,
                 6,
                 2,
@@ -103,7 +100,6 @@ class TestPreferenceDataset:
             source="iam/agoofy/goober",
             message_transform=ToDummyPreferenceMessages(),
             tokenizer=DummyTokenizer(),
-            prompt_template=DummyPromptTemplate(),
         )
         assert len(ds) == 1
         mock_load_dataset.assert_called_once()
