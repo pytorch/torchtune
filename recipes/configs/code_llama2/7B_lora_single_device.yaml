@@ -1,5 +1,5 @@
 # Config for single device full finetuning in full_finetune_single_device.py
-# using a Code-Llama2 7B model
+# using a CodeLlama 7B model
 #
 # This config assumes that you've run the following command before launching
 # this run:
@@ -29,13 +29,7 @@ tokenizer:
   _component_: torchtune.models.llama2.llama2_tokenizer
   path: /tmp/CodeLlama-7b-hf/tokenizer.model
 
-# Dataset
-dataset:
-  _component_: torchtune.datasets.alpaca_cleaned_dataset
-seed: null
-shuffle: True
-
-
+# Checkpointer
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
   checkpoint_dir: /tmp/CodeLlama-7b-hf
@@ -51,45 +45,51 @@ checkpointer:
 resume_from_checkpoint: False
 save_adapter_weights_only: False
 
+# Dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+seed: null
+shuffle: True
+
 # Fine-tuning arguments
-batch_size: 2
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 64
-compile: False
-
+batch_size: 2
+gradient_accumulation_steps: 16
 optimizer:
   _component_: torch.optim.AdamW
   weight_decay: 0.01
   lr: 3e-4
-
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
-
 loss:
   _component_: torch.nn.CrossEntropyLoss
+compile: False
 
-
-# Training environment
+# Training env
 device: cuda
+
+# Memory management
 enable_activation_checkpointing: True
 dtype: bf16
 
 # Logging
+output_dir: /tmp/codellama_lora_finetune_output
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
-  log_dir: ${output_dir}
-output_dir: /tmp/lora_code_llama2_finetune_output
+  log_dir: /tmp/CodeLlama-7b-hf/logs
 log_every_n_steps: 1
 log_peak_memory_stats: False
 
+# Showcase the usage of PyTorch profiler
+# Set enabled to False as it's only needed for debugging training
 profiler:
   _component_: torchtune.utils.setup_torch_profiler
   enabled: False
 
   #Output directory of trace artifacts
-  output_dir: ${output_dir}/profiling_outputs
+  output_dir: /tmp/CodeLlama-7b-hf/profiling_outputs
 
   #`torch.profiler.ProfilerActivity` types to trace
   cpu: True
