@@ -219,6 +219,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             ),
         )
 
+        self.gpu_monitor = None
+        if self._device.type == "cuda":
+            self.gpu_monitor = utils.memory.build_gpu_memory_monitor()
+        self.tps = 0
+        self.mem_pct = 0
+        self.mem_cache_retries = 0
+        self.color = utils.Color
+
         self._tokenizer = config.instantiate(cfg.tokenizer)
         log.info("Tokenizer is initialized from file.")
 
@@ -585,6 +593,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     loss = self._loss_step(batch)
                     loss = loss / self._gradient_accumulation_steps
                     running_loss += loss
+                    # we monitor here as this should be peak memory
+                    if self.gpu_monitor:
+                        (
+                            self.mem_pct,
+                            self.mem_cache_retries,
+                        ) = self.gpu_monitor.get_peak_stats()
+
                     loss.backward()
 
                     # Step with optimizer
@@ -596,14 +611,20 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         self.global_step += 1
 
                         loss_to_log = running_loss.item()
+                        rounded_loss = round(loss_to_log, 5)
                         pbar.update(1)
                         pbar.set_description(
-                            f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
+                            f"{curr_epoch + 1}|{self.global_step}|{self.color.green}Loss: {rounded_loss} "
+                            + f"{self.color.white}| {self.color.blue}TPS: {self.tps} {self.color.white}|"
+                            + f"{self.color.yellow} Mem: {self.mem_pct:.2f}% "
+                            + f"{self.color.white}| {self.color.red} Retries: {self.mem_cache_retries}{self.color.reset}"
                         )
 
                         # Log per-step metrics
                         if self.global_step % self._log_every_n_steps == 0:
                             time_per_step = time.perf_counter() - t0
+                            self.tps = round(num_tokens / time_per_step, 3)
+
                             log_dict = {
                                 "loss": loss_to_log,
                                 "lr": self._optimizer.param_groups[0]["lr"],
