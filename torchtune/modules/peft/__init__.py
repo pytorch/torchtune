@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from .lora import LoRALinear
+from .mora import MoRALinear
 from .peft_utils import (  # noqa
     AdapterModule,
     disable_adapter,
@@ -17,6 +18,7 @@ from .peft_utils import (  # noqa
 
 __all__ = [
     "LoRALinear",
+    "MoRALinear",
     "AdapterModule",
     "get_adapter_params",
     "set_trainable_params",
