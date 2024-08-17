@@ -55,8 +55,9 @@ from .constants import (  # noqa
     STEPS_KEY,
     TOTAL_EPOCHS_KEY,
 )
-from .logging import get_logger
+from .logging import Color, get_logger
 from .memory import (  # noqa
+    build_gpu_memory_monitor,
     cleanup_before_training,
     create_optim_in_bwd_wrapper,
     get_memory_stats,
@@ -78,6 +79,7 @@ __all__ = [
     "get_device",
     "get_dtype",
     "get_logger",
+    "Color",
     "get_world_size_and_rank",
     "init_distributed",
     "is_distributed",
