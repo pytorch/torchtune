@@ -4,6 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
+from pathlib import Path
+from textwrap import dedent
+
 import pytest
 from omegaconf import OmegaConf
 from torchtune.config._errors import InstantiationError
@@ -74,3 +78,53 @@ class TestInstantiate:
         del config.test.dim
         actual = instantiate(config.test, 3)
         assert self.get_dim(actual) == 3
+
+
+ASSETS = Path(__file__).parent.parent.parent / "assets"
+
+
+class TestInstantiateTokenizer:
+    @pytest.mark.parametrize(
+        "max_seq_len, expected_max_seq_len",
+        [
+            ("null", None),
+            ("2341", 2341),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "tokenizer_name, extra_config",
+        [
+            (
+                "torchtune.models.llama2.llama2_tokenizer",
+                f"  path : {ASSETS / 'm.model'}",
+            ),
+            (
+                "torchtune.models.llama3.llama3_tokenizer",
+                f"  path : {ASSETS / 'tiktoken_small.model'}",
+            ),
+            (
+                "torchtune.models.qwen2.qwen2_tokenizer",
+                f"  path: {ASSETS / 'tiny_bpe_vocab.json'}{os.linesep}"
+                f"  merges_file: {ASSETS / 'tiny_bpe_merges.txt'}",
+            ),
+        ],
+    )
+    def test_tokenizer_config(
+        self,
+        tokenizer_name,
+        extra_config,
+        max_seq_len,
+        expected_max_seq_len,
+    ):
+        s = dedent(
+            f"""\
+        tokenizer:
+          _component_: {tokenizer_name}
+          max_seq_len: {max_seq_len}
+        """
+        )
+        s += extra_config
+        config = OmegaConf.create(s)
+
+        tokenizer = instantiate(config.tokenizer)
+        assert tokenizer.max_seq_len == expected_max_seq_len
