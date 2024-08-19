@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.utils.FSDPPolicyType &mdash; torchtune main documentation</title>
+  <title>update_state_dict_for_classifier &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="init_distributed" href="torchtune.utils.init_distributed.html" />
-    <link rel="prev" title="update_state_dict_for_classifier" href="torchtune.utils.update_state_dict_for_classifier.html" />
+    <link rel="next" title="torchtune.utils.FSDPPolicyType" href="torchtune.utils.FSDPPolicyType.html" />
+    <link rel="prev" title="ModelType" href="torchtune.utils.ModelType.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -372,13 +372,13 @@
         
           <li><a href="../api_ref_utilities.html">torchtune.utils</a> &gt;</li>
         
-      <li>torchtune.utils.FSDPPolicyType</li>
+      <li>update_state_dict_for_classifier</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.utils.FSDPPolicyType.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.utils.update_state_dict_for_classifier.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -408,31 +408,49 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="torchtune-utils-fsdppolicytype">
-<h1>torchtune.utils.FSDPPolicyType<a class="headerlink" href="#torchtune-utils-fsdppolicytype" title="Permalink to this heading">¶</a></h1>
-<dl class="py data">
-<dt class="sig sig-object py" id="torchtune.utils.FSDPPolicyType">
-<span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">FSDPPolicyType</span></span><a class="headerlink" href="#torchtune.utils.FSDPPolicyType" title="Permalink to this definition">¶</a></dt>
-<dd><p>A datatype for a function that can be used as an FSDP wrapping policy.
-In particular, this type denotes a function that can accept an nn.Module, a boolean flag, and an integer
-and return a boolean indicating whether the module should be wrapped with FSDP. Objects of this type can
-be directly passed into PyTorch FSDP’s <code class="docutils literal notranslate"><span class="pre">auto_wrap_policy</span></code> argument to specify how FSDP wraps submodules.</p>
-<p>The below function serves as an example of creating and returning a function that obeys the contract of
-<code class="docutils literal notranslate"><span class="pre">FSDPPolicyType</span></code>:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_fsdp_policy</span><span class="p">(</span><span class="n">module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">modules_to_wrap</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="n">Type</span><span class="p">],</span> <span class="n">min_num_params</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-
-    <span class="k">def</span> <span class="nf">my_fsdp_policy</span><span class="p">(</span><span class="n">module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">modules_to_wrap</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="n">Type</span><span class="p">],</span> <span class="n">recurse</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">min_num_params</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">recurse</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">True</span>
-        <span class="c1"># Wrap layers that are of type in ``modules_to_wrap`` and layers with more than min_num_params</span>
-
-        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">modules_to_wrap</span><span class="p">))</span> <span class="ow">or</span> <span class="nb">sum</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">module</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">1000</span>
-
-    <span class="k">return</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">my_fsdp_policy</span><span class="p">,</span> <span class="n">modules_to_wrap</span><span class="o">=</span><span class="n">modules_to_wrap</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Please see documentation of <code class="docutils literal notranslate"><span class="pre">auto_wrap_policy</span></code> at <a class="reference external" href="https://pytorch.org/docs/stable/fsdp.html">https://pytorch.org/docs/stable/fsdp.html</a> for additional details.</p>
-<p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>]</p>
+  <section id="update-state-dict-for-classifier">
+<h1>update_state_dict_for_classifier<a class="headerlink" href="#update-state-dict-for-classifier" title="Permalink to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="torchtune.utils.update_state_dict_for_classifier">
+<span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">update_state_dict_for_classifier</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_named_parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.12)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.parameter.Parameter.html#torch.nn.parameter.Parameter" title="(in PyTorch v2.4)"><span class="pre">Parameter</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_override</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/utils/_checkpointing/utils.html#update_state_dict_for_classifier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.update_state_dict_for_classifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validates the state dict for checkpoint loading for a classifier model.
+To be used prior to a call to <code class="docutils literal notranslate"><span class="pre">model.load_state_dict(state_dict)</span></code>.
+This function will overwrite the <code class="docutils literal notranslate"><span class="pre">output.weight</span></code> in the state-dict
+to be loaded with the <code class="docutils literal notranslate"><span class="pre">output.weight</span></code> in the model if the shapes
+for the <code class="docutils literal notranslate"><span class="pre">output.weight</span></code> do not match. You may also wish to override this behaviour,
+for example, if <code class="docutils literal notranslate"><span class="pre">num_classes</span></code> for your checkpoint and model are the same.</p>
+<p>Concretely, when fine-tuning a classifier model from the checkpoint of a base language model
+which has <code class="docutils literal notranslate"><span class="pre">output.weight</span></code> of shape <code class="docutils literal notranslate"><span class="pre">[vocab_dim,</span> <span class="pre">embed_dim]</span></code>, we overwrite
+the <code class="docutils literal notranslate"><span class="pre">output.weight</span></code> in the state-dict to be loaded with the randomly initialized
+<code class="docutils literal notranslate"><span class="pre">[num_classes,</span> <span class="pre">embed_dim]</span></code> weight in the model. This is done in-place.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>state_dict</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – state dict to be loaded into the classifier model.</p></li>
+<li><p><strong>model_named_parameters</strong> (<em>Iterable</em><em>[</em><em>Tuple</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>torch.nn.Parameter</em><em>]</em><em>]</em>) – model named parameters
+from <code class="docutils literal notranslate"><span class="pre">model.named_parameters()</span></code>.</p></li>
+<li><p><strong>force_override</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – Whether to replace <code class="docutils literal notranslate"><span class="pre">output.weight</span></code> in <code class="docutils literal notranslate"><span class="pre">state_dict</span></code> with the model’s
+<code class="docutils literal notranslate"><span class="pre">output.weight</span></code>, even if the shapes match.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">output.bias</span></code> will be ignored if present in <code class="docutils literal notranslate"><span class="pre">state_dict</span></code></p></li>
+<li><dl class="simple">
+<dt>This function will always replace the <code class="docutils literal notranslate"><span class="pre">output.weight</span></code> in <code class="docutils literal notranslate"><span class="pre">state_dict</span></code>,</dt><dd><p>if <code class="docutils literal notranslate"><span class="pre">output.weight</span> <span class="pre">!=</span> <span class="pre">model.output.weight</span></code>.</p>
+</dd>
+</dl>
+</li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#AssertionError" title="(in Python v3.12)"><strong>AssertionError</strong></a> – if <code class="docutils literal notranslate"><span class="pre">state_dict</span></code> does not contain <code class="docutils literal notranslate"><span class="pre">output.weight</span></code>.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#AssertionError" title="(in Python v3.12)"><strong>AssertionError</strong></a> – if <code class="docutils literal notranslate"><span class="pre">model_named_parameters</span></code> does not contain <code class="docutils literal notranslate"><span class="pre">output.weight</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
@@ -445,10 +463,10 @@ be directly passed into PyTorch FSDP’s <code class="docutils literal notransla
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.utils.init_distributed.html" class="btn btn-neutral float-right" title="init_distributed" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.utils.FSDPPolicyType.html" class="btn btn-neutral float-right" title="torchtune.utils.FSDPPolicyType" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.utils.update_state_dict_for_classifier.html" class="btn btn-neutral" title="update_state_dict_for_classifier" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.utils.ModelType.html" class="btn btn-neutral" title="ModelType" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -480,7 +498,7 @@ be directly passed into PyTorch FSDP’s <code class="docutils literal notransla
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">torchtune.utils.FSDPPolicyType</a></li>
+<li><a class="reference internal" href="#">update_state_dict_for_classifier</a></li>
 </ul>
 
             </div>
