@@ -38,9 +38,9 @@ class Phi3RotaryPositionalEmbeddings(nn.Module):
         self.dim = dim
         self.base = base
         self.max_seq_len = max_seq_len
-        self._rope_init()
+        self.rope_init()
 
-    def _rope_init(self):
+    def rope_init(self):
         theta = 1.0 / (
             self.base
             ** (torch.arange(0, self.dim, 2)[: (self.dim // 2)].float() / self.dim)

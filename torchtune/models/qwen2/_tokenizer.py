@@ -6,11 +6,11 @@
 import json
 import unicodedata
 from functools import lru_cache
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 import regex as re
 
-from torchtune.data import Message, truncate
+from torchtune.data import ChatMLTemplate, Message, PromptTemplate, truncate
 from torchtune.modules.tokenizers import ModelTokenizer
 
 PRETOKENIZE_REGEX = (
@@ -86,6 +86,16 @@ class Qwen2Tokenizer(ModelTokenizer):
         special_tokens (Optional[Dict[str, int]]): Special tokens to add to the tokenizer. Default is None.
         max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
             Default: None
+        prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
+            to add structured text around the actual messages. The structured text is used in three scenarios:
+
+            - Task-specific templates to gear models for a particular task that it will expect after training
+            - Model-specific templates that are required whenever the model is prompted, such as the [INST]
+              tags in Llama2 and in Mistral
+            - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
+
+            The extra text will still get tokenized as normal text, not as special tokens.
+            Default is :class:`~torchtune.data.ChatMLTemplate`.
         errors (str): Paradigm to follow when decoding bytes to UTF-8. Defaults to "replace".
             See [bytes.decode](https://docs.python.org/3/library/stdtypes.html#bytes.decode) for more information.
         unk_token (Optional[str]): The unknown token. A token that is not in the vocabulary cannot be converted
@@ -99,23 +109,12 @@ class Qwen2Tokenizer(ModelTokenizer):
             word, e.g. Chinese); technically not a memory leak but appears as one.
             By default, we set the cache size equals to size of the official Qwen2 tokenizer.
 
-    Attributes:
-        system (str): Qwen2 system prompt.
-        user (str): Qwen2 user prompt.
-        assistant (str): Qwen2 assistant prompt.
-        assistant_for_generation (str): Qwen2 assistant prompt for generation.
-
     Example:
         >>> tokenizer = Qwen2Tokenizer(path="/path/to/vocab.json", merges_file="/path/to/merges.txt")
         >>> tokenized_text = tokenizer.encode("Hello world!")
         >>> print(tokenized_text)
         [39, 385, 78, 675, 0, 2000]
     """
-
-    system: str = f"{IM_START}system\n{{content}}{IM_END}\n"
-    user: str = f"{IM_START}user\n{{content}}{IM_END}\n"
-    assistant: str = f"{IM_START}assistant\n{{content}}{IM_END}\n"
-    assistant_for_generation: str = f"{IM_START}assistant\n"
 
     def __init__(
         self,
@@ -124,6 +123,7 @@ class Qwen2Tokenizer(ModelTokenizer):
         special_tokens: Optional[Dict[str, int]] = None,
         max_seq_len: Optional[int] = None,
         *,
+        prompt_template: Optional[PromptTemplate] = ChatMLTemplate(),
         errors: str = "replace",
         unk_token: Optional[str] = ENDOFTEXT,
         bos_token: Optional[str] = None,
@@ -170,6 +170,8 @@ class Qwen2Tokenizer(ModelTokenizer):
         )
 
         self.max_seq_len = max_seq_len
+
+        self.prompt_template = prompt_template
 
     def _bpe_without_cache(self, token):
         word = tuple(token)
@@ -325,7 +327,8 @@ class Qwen2Tokenizer(ModelTokenizer):
     def tokenize_messages(
         self,
         messages: List[Message],
-        apply_chat_template: bool = True,
+        *,
+        add_eos: bool = True,
     ) -> Tuple[List[int], List[bool]]:
         """
         Given a list of messages, return a list of tokens for the concatenated
@@ -333,40 +336,69 @@ class Qwen2Tokenizer(ModelTokenizer):
 
         Args:
             messages (List[Message]): The message list to tokenize.
-            apply_chat_template (bool): Whether to apply Qwen2 chat template.
+            add_eos (bool): Wether to add the tokenizer's eos_id at the end of the
+                sequence of messages. Default is True.
 
         Returns:
             Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
-        """
-        tokens = []
-        mask = []
-        is_generation = False
-        for index, message in enumerate(messages):
-            content = ""
-            if message.role == "system":
-                content = self.system.format(content=message.text_content)
-            elif message.role == "user":
-                content = self.user.format(content=message.text_content)
-            elif message.role == "assistant":
-                if index == len(messages) - 1 and not message.text_content:
-                    content = self.assistant_for_generation
-                    is_generation = True
-                else:
-                    content = self.assistant.format(content=message.text_content)
-            tokenized_message = self.encode(content, add_bos=False, add_eos=False)
-            tokens.extend(tokenized_message)
-            mask.extend([message.masked] * len(tokenized_message))
 
-            if self.max_seq_len and len(tokens) >= self.max_seq_len:
+        Raises:
+            RuntimeError: If a message contains non-text content
+        """
+        templated_messages = (
+            self.prompt_template(messages)
+            if self.prompt_template is not None
+            else messages
+        )
+
+        tokenized_messages = []
+        mask = []
+        for index, message in enumerate(templated_messages):
+            tokens = []
+            for item in message.content:
+                if item["type"] == "text":
+                    tokens = tokens + self.encode(
+                        item["content"],
+                        add_bos=False,
+                        add_eos=False,
+                    )
+                else:
+                    raise RuntimeError(
+                        f"Unsupported message content type: {item['type']}"
+                    )
+            tokenized_messages.extend(tokens)
+            mask.extend([message.masked] * len(tokens))
+
+            # If assistant message, append EOS at end
+            if message.role == "assistant" and add_eos:
+                tokenized_messages.append(self.eos_id)
+                mask.append(message.masked)
+
+            # Break out early if we reach max_seq_len
+            if self.max_seq_len and len(tokenized_messages) >= self.max_seq_len:
                 break
 
-        if not is_generation:
-            tokens = tokens + [self.eos_id]
-            last_message_masked = False
-            if messages:
-                last_message_masked = messages[-1].masked
-            mask = mask + [last_message_masked]
+        # Finally, truncate if necessary
         if self.max_seq_len:
             tokens = truncate(tokens, self.max_seq_len, self.eos_id)
             mask = truncate(mask, self.max_seq_len, True)
-        return tokens, mask
+
+        return tokenized_messages, mask
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        """
+        Apply ``tokenize_messages`` to the "messages" field in the sample.
+
+        Args:
+            sample (Mapping[str, Any]): A sample with a "messages" field containing
+                a List[Message] to tokenize
+
+        Returns:
+            Mapping[str, Any]: The sample with added "tokens" and "mask" fields
+                and the "messages" field removed.
+        """
+        messages = sample.pop("messages")
+        tokens, mask = self.tokenize_messages(messages)
+        sample["tokens"] = tokens
+        sample["mask"] = mask
+        return sample

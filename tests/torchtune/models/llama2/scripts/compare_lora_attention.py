@@ -14,7 +14,7 @@ from tests.test_utils import fixed_init_model
 from torch import nn
 
 from torchtune.models.llama2._lora_llama2_builders import _lora_llama_self_attention
-from torchtune.modules import CausalSelfAttention, KVCache, RotaryPositionalEmbeddings
+from torchtune.modules import KVCache, MultiHeadAttention, RotaryPositionalEmbeddings
 
 try:
     from peft import inject_adapter_in_model, LoraConfig
@@ -75,7 +75,7 @@ def compare_lora_attention(
         else None
     )
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
-    llama_attn_ref = CausalSelfAttention(
+    llama_attn_ref = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
