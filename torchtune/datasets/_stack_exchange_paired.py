@@ -46,10 +46,10 @@ class StackExchangePairedToMessages(Transform):
         self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None
     ):
         self.train_on_input = train_on_input
-        self.column_map = column_map
+        self._column_map = column_map
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
-        column_map = self.column_map or {}
+        column_map = self._column_map or {}
         key_prompt = column_map.get("prompt", "prompt")
         key_chosen = column_map.get("chosen", "chosen")
         key_rejected = column_map.get("rejected", "rejected")

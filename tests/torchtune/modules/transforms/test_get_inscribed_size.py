@@ -6,7 +6,9 @@
 
 import pytest
 
-from torchtune.modules.transforms import get_inscribed_size
+from torchtune.modules.transforms.vision_utils.get_inscribed_size import (
+    get_inscribed_size,
+)
 
 
 class TestTransforms:
