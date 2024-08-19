@@ -6,6 +6,8 @@
 
 try:
     import bitsandbytes as bnb
+
+    bnb_installed = True
 except ImportError:
     bnb_installed = False
 import pytest
