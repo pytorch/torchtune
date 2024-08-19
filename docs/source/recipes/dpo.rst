@@ -10,16 +10,25 @@ The core principle of DPO retains similarities to PPO (https://arxiv.org/abs/200
 (language) model to align with human preferences, and regularizes the loss function using a baseline
 reference (the frozen, initial language model) to prevent over-fitting to the preference dataset.
 It differs from PPO by optimizing the policy model directly using labelled preference data, rather
-than using an additional reward model to provide feedback.
-This significantly simplifies training and reduces compute overhead.
+than using an additional reward model to provide feedback. This significantly simplifies training and reduces compute overhead.
+
+.. todo link recipe overview
+
+To see the best results when using this recipe, it's helpful to first fine-tune your model with SFT to ensure your model is
+on-distribution for the domain you're interested in. To do this, check out our other fine-tuning recipes which
+support a variety of SFT paradigms.
+
+
+.. image:: /_static/img/dpo_diagram.png
+
+*Figure 1 in the DPO paper. DPO eliminates the need for a reward model using a simple classification objective.*
 
 The best way to get started with our recipes is through the :ref:`cli_label`, which allows you to
 list all our recipes and configs, run recipes, copy configs and recipes, and validate configs
 without touching a line of code!
 
-For example, if you're interested in using this recipe with the latest `Llama models <https://llama.meta.com/>`_, you can fine-tune
+For example, if you're interested in using this recipe with `Llama2 <https://llama.meta.com/>`_, you can fine-tune
 in just two steps:
-
 
 .. note::
 
@@ -34,7 +43,6 @@ in just two steps:
     --HF_TOKEN <HF_TOKEN>
 
     tune run lora_dpo_single_device --config llama2/7B_lora_dpo_single_device
-
 
 
 Most of you will want to twist, pull, and bop all the different levers, buttons, and knobs we expose in our recipes. Check out our
@@ -58,7 +66,7 @@ align language models:
 * :class:`Simple Preference Optimization <torchtune.modules.rlhf.loss.SimPOLoss>` (SimPO) loss [4]_. SimPO simplifies
   preference optimization by using the average log probability of responses as an implicit reward,
   eliminating the need for a reference model, and also introduces a target reward margin to encourage a
-  clear distinction between preferred and non-preferred outputs. Using SimPO should result in slightly
+  clear distinction between preferred and non-preferred outputs. Using SimPO Using SimPO should result in slightly
   faster training than other preference optimization techniques.
 
 To use any of these, simply use the ``loss`` config entry or flag:
