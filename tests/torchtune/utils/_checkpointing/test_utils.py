@@ -4,6 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from copy import deepcopy
+
 import pytest
 import torch
 from torchtune.models.llama2 import llama2, llama2_classifier
@@ -63,9 +65,9 @@ class TestUpdateStateDictForClassifer:
         # grabbing the expected output.weight - the correct outcome here
         # is for all weights aside from output.weight to be loaded in
         # from the base model, so output.weight will remain in its rand init state
-        expected_output_weight = torch.tensor(
-            llama2_classifier_model.state_dict()["output.weight"]
-        )
+        expected_output_weight = llama2_classifier_model.state_dict()[
+            "output.weight"
+        ].clone()
 
         # update the state dict to load with the classifier's output.weight
         update_state_dict_for_classifier(
@@ -77,9 +79,7 @@ class TestUpdateStateDictForClassifer:
 
         # now we can assert that output.weight was unchanged
         output_weight = llama2_classifier_model.state_dict()["output.weight"]
-        torch.testing.assert_close(
-            expected_output_weight, output_weight, atol=0, rtol=0
-        )
+        assert torch.equal(expected_output_weight, output_weight)
 
     def test_assertion_error_when_missing_output_in_state_dict(
         self, llama2_state_dict, llama2_classifier_model
@@ -105,14 +105,44 @@ class TestUpdateStateDictForClassifer:
         ):
             update_state_dict_for_classifier(llama2_state_dict, named_params)
 
-    def test_no_op_loading_classifier_weights(
-        self, llama2_classifier_model
-    ):
-        # sanity check, nothing should happen here
-        # state dicts should be identical before and after update
-        expected_state_dict = llama2_classifier_model.state_dict().copy()
-        state_dict_to_load = llama2_classifier_model.state_dict().copy()
+    def test_loading_classifier_weights(self, llama2_classifier_model):
+        state_dict_to_load = deepcopy(llama2_classifier_model.state_dict())
+        state_dict_to_load["output.weight"] = torch.ones_like(
+            state_dict_to_load["output.weight"]
+        )
 
-        update_state_dict_for_classifier(state_dict_to_load, llama2_classifier_model.named_parameters())
+        update_state_dict_for_classifier(
+            state_dict_to_load, llama2_classifier_model.named_parameters()
+        )
+        llama2_classifier_model.load_state_dict(state_dict_to_load)
 
-        assert state_dict_to_load == expected_state_dict
+        model_state_dict = llama2_classifier_model.state_dict()
+
+        assert set(model_state_dict.keys()) == set(state_dict_to_load.keys())
+        assert torch.equal(
+            model_state_dict["output.weight"],
+            torch.ones_like(model_state_dict["output.weight"]),
+        )
+
+    def test_loading_classifier_weights_force_override(self, llama2_classifier_model):
+        state_dict_to_load = deepcopy(llama2_classifier_model.state_dict())
+        state_dict_to_load["output.weight"] = torch.ones_like(
+            state_dict_to_load["output.weight"]
+        )
+
+        expected_output_weight = llama2_classifier_model.state_dict()[
+            "output.weight"
+        ].clone()
+
+        update_state_dict_for_classifier(
+            state_dict_to_load, llama2_classifier_model.named_parameters(), True
+        )
+        llama2_classifier_model.load_state_dict(state_dict_to_load)
+
+        model_state_dict = llama2_classifier_model.state_dict()
+
+        assert set(model_state_dict.keys()) == set(state_dict_to_load.keys())
+        assert torch.equal(model_state_dict["output.weight"], expected_output_weight)
+
+
+#
