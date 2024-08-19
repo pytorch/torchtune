@@ -129,7 +129,7 @@ class InputOutputToMessages(Transform):
         column_map (Optional[Dict[str, str]]): a mapping to change the expected "input"
             and "output" column names to the actual column names in the dataset. Default is None,
             keeping the default "input" and "output" column names.
-        system_prompt (Optional[str]): if specified, prepend a system message. This can
+        new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Default is None.
     """
 
@@ -137,11 +137,11 @@ class InputOutputToMessages(Transform):
         self,
         train_on_input: bool = False,
         column_map: Optional[Dict[str, str]] = None,
-        system_prompt: Optional[str] = None,
+        new_system_prompt: Optional[str] = None,
     ):
         self.train_on_input = train_on_input
         self.column_map = column_map
-        self.system_prompt = system_prompt
+        self.new_system_prompt = new_system_prompt
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         column_map = self.column_map or {}
@@ -161,10 +161,10 @@ class InputOutputToMessages(Transform):
                 eot=True,
             ),
         ]
-        if self.system_prompt is not None:
+        if self.new_system_prompt is not None:
             messages = [
                 Message(
-                    role="system", content=self.system_prompt, masked=True, eot=True
+                    role="system", content=self.new_system_prompt, masked=True, eot=True
                 )
             ] + messages
         return {"messages": messages}
@@ -202,19 +202,20 @@ class ChosenRejectedToMessages(Transform):
         column_map (Optional[Dict[str, str]]): a mapping to change the expected
             "chosen" and "rejected" column names to the actual column names in the dataset.
             Default is None, keeping the default column names.
-        system_prompt (Optional[str]): if specified, prepend a system message. This can
-            serve as instructions to guide the model response. Default is None.
+        new_system_prompt (Optional[str]): if specified, prepend a system message. This can
+            serve as instructions to guide the model response. Setting this will OVERRIDE any system
+            messages already present in the dataset. Default is None.
     """
 
     def __init__(
         self,
         train_on_input: bool = False,
         column_map: Optional[Dict[str, str]] = None,
-        system_prompt: Optional[str] = None,
+        new_system_prompt: Optional[str] = None,
     ):
         self.train_on_input = train_on_input
         self.column_map = column_map
-        self.system_prompt = system_prompt
+        self.new_system_prompt = new_system_prompt
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         column_map = self.column_map or {}
@@ -235,15 +236,15 @@ class ChosenRejectedToMessages(Transform):
             )
             rejected_messages.append(Message.from_dict(message))
 
-        if self.system_prompt is not None:
+        if self.new_system_prompt is not None:
             chosen_messages = [
                 Message(
-                    role="system", content=self.system_prompt, masked=True, eot=True
+                    role="system", content=self.new_system_prompt, masked=True, eot=True
                 )
             ] + chosen_messages
             rejected_messages = [
                 Message(
-                    role="system", content=self.system_prompt, masked=True, eot=True
+                    role="system", content=self.new_system_prompt, masked=True, eot=True
                 )
             ] + rejected_messages
 
@@ -285,8 +286,8 @@ class ShareGPTToMessages(Transform):
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("conversations")
             to the new column names in the dataset. If None, assume these are identical.
             Default is None.
-        system_prompt (Optional[str]): if specified, prepend a system message. This can
-            serve as instructions to guide the model response. Setting this will override any system
+        new_system_prompt (Optional[str]): if specified, prepend a system message. This can
+            serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
     """
 
@@ -294,11 +295,11 @@ class ShareGPTToMessages(Transform):
         self,
         train_on_input: bool = False,
         column_map: Optional[Dict[str, str]] = None,
-        system_prompt: Optional[str] = None,
+        new_system_prompt: Optional[str] = None,
     ):
         self.train_on_input = train_on_input
         self.column_map = column_map
-        self.system_prompt = system_prompt
+        self.new_system_prompt = new_system_prompt
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         """
@@ -316,15 +317,15 @@ class ShareGPTToMessages(Transform):
         key_conversations = column_map.get("conversations", "conversations")
 
         messages = []
-        if self.system_prompt is not None:
+        if self.new_system_prompt is not None:
             messages.append(
                 Message(
-                    role="system", content=self.system_prompt, masked=True, eot=True
+                    role="system", content=self.new_system_prompt, masked=True, eot=True
                 )
             )
         for message in sample[key_conversations]:
             role = role_map[message["from"]]
-            if role == "system" and self.system_prompt is not None:
+            if role == "system" and self.new_system_prompt is not None:
                 continue
             content = message["value"]
             masked = (role != "assistant") and (not self.train_on_input)
@@ -368,8 +369,8 @@ class JSONToMessages(Transform):
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("messages")
             to the new column names in the dataset. If None, assume these are identical.
             Default is None.
-        system_prompt (Optional[str]): if specified, prepend a system message. This can
-            serve as instructions to guide the model response. Setting this will override any system
+        new_system_prompt (Optional[str]): if specified, prepend a system message. This can
+            serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
     """
 
@@ -377,11 +378,11 @@ class JSONToMessages(Transform):
         self,
         train_on_input: bool = False,
         column_map: Optional[Dict[str, str]] = None,
-        system_prompt: Optional[str] = None,
+        new_system_prompt: Optional[str] = None,
     ):
         self.train_on_input = train_on_input
         self.column_map = column_map
-        self.system_prompt = system_prompt
+        self.new_system_prompt = new_system_prompt
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         """
@@ -397,14 +398,14 @@ class JSONToMessages(Transform):
         column_map = self.column_map or {}
         key_messages = column_map.get("messages", "messages")
         updated_messages = []
-        if self.system_prompt is not None:
+        if self.new_system_prompt is not None:
             updated_messages.append(
                 Message(
-                    role="system", content=self.system_prompt, masked=True, eot=True
+                    role="system", content=self.new_system_prompt, masked=True, eot=True
                 )
             )
         for message in sample[key_messages]:
-            if message["role"] == "system" and self.system_prompt is not None:
+            if message["role"] == "system" and self.new_system_prompt is not None:
                 continue
             message["masked"] = (message["role"] != "assistant") and (
                 not self.train_on_input

@@ -68,7 +68,7 @@ def grammar_dataset(
     message_transform = InputOutputToMessages(
         train_on_input=train_on_input,
         column_map=column_map,
-        system_prompt=system_prompt,
+        new_system_prompt=system_prompt,
     )
     ds = SFTDataset(
         source=source,

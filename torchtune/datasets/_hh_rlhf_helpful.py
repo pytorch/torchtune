@@ -48,7 +48,7 @@ def hh_rlhf_helpful_dataset(
     message_transform = ChosenRejectedToMessages(
         train_on_input=train_on_input,
         column_map=column_map,
-        system_prompt=system_prompt,
+        new_system_prompt=system_prompt,
     )
 
     return PreferenceDataset(

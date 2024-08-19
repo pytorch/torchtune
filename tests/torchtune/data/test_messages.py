@@ -108,7 +108,7 @@ class TestInputOutputToMessages:
     def test_system_prompt(self, sample):
         transform = InputOutputToMessages(
             column_map={"input": "maybe_input", "output": "maybe_output"},
-            system_prompt="you are a robot",
+            new_system_prompt="you are a robot",
         )
         actual = transform(sample)
         expected = [
@@ -180,7 +180,7 @@ class TestChosenRejectedToMessages:
                 "chosen": "maybe_chosen",
                 "rejected": "maybe_rejected",
             },
-            system_prompt="you are a robot",
+            new_system_prompt="you are a robot",
         )
         actual = transform(sample)
         expected_chosen = [
@@ -229,7 +229,7 @@ class TestShareGPTToMessages:
         )
 
     def test_system_prompt(self):
-        transform = ShareGPTToMessages(system_prompt="you are a robot")
+        transform = ShareGPTToMessages(new_system_prompt="you are a robot")
         converted_messages = transform(self.samples)
         assert_dialogue_equal(
             converted_messages["messages"],
@@ -273,7 +273,7 @@ class TestJSONToMessages:
         )
 
     def test_system_prompt(self):
-        transform = JSONToMessages(system_prompt="you are a robot")
+        transform = JSONToMessages(new_system_prompt="you are a robot")
         converted_messages = transform(self.samples)
         assert_dialogue_equal(
             converted_messages["messages"],
