@@ -96,6 +96,7 @@ torchtune tutorials.
    install
    tutorials/first_finetune_tutorial
    tune_cli
+   recipes/dpo
 
 .. toctree::
    :glob:

@@ -13,7 +13,7 @@ import torch.nn.functional as F
 
 class DPOLoss(nn.Module):
     """
-    Direct Preference Optimization (DPO) Loss module: https://arxiv.org/abs/2305.18290.
+    Direct Preference Optimization (DPO) Loss module: https://arxiv.org/abs/2305.18290
     Simply stated from the paper:
 
         Intuitively, the DPO update increases the relative log probability of preferred to dispreferred responses,
@@ -162,7 +162,7 @@ class RSOLoss(nn.Module):
 
 class IPOLoss(nn.Module):
     """
-    Identity Preference Optimisation (IPO) Loss module: https://arxiv.org/abs/2310.12036.
+    Identity Preference Optimization (IPO) Loss module: https://arxiv.org/abs/2310.12036.
     Intuition from the paper:
 
         (Given a policy pi and reference policy, pi_ref)
