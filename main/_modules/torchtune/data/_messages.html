@@ -533,28 +533,40 @@
 <span class="sd">        column_map (Optional[Dict[str, str]]): a mapping to change the expected &quot;input&quot;</span>
 <span class="sd">            and &quot;output&quot; column names to the actual column names in the dataset. Default is None,</span>
 <span class="sd">            keeping the default &quot;input&quot; and &quot;output&quot; column names.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If ``column_map`` is provided and ``input`` not in ``column_map``, or</span>
+<span class="sd">            ``output`` not in ``column_map``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="o">=</span> <span class="n">train_on_input</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">column_map</span> <span class="o">=</span> <span class="n">column_map</span>
+        <span class="k">if</span> <span class="n">column_map</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;input&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">column_map</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Expected a key of &#39;input&#39; in column_map but found </span><span class="si">{</span><span class="n">column_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;output&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">column_map</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Expected a key of &#39;output&#39; in column_map but found </span><span class="si">{</span><span class="n">column_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="n">column_map</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="s2">&quot;output&quot;</span><span class="p">}</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="n">column_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_map</span> <span class="ow">or</span> <span class="p">{}</span>
-        <span class="n">key_input</span> <span class="o">=</span> <span class="n">column_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="s2">&quot;input&quot;</span><span class="p">)</span>
-        <span class="n">key_output</span> <span class="o">=</span> <span class="n">column_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;output&quot;</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">)</span>
         <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">Message</span><span class="p">(</span>
                 <span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
-                <span class="n">content</span><span class="o">=</span><span class="n">sample</span><span class="p">[</span><span class="n">key_input</span><span class="p">],</span>
+                <span class="n">content</span><span class="o">=</span><span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]],</span>
                 <span class="n">masked</span><span class="o">=</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span><span class="p">,</span>
                 <span class="n">eot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="p">),</span>
             <span class="n">Message</span><span class="p">(</span>
                 <span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span>
-                <span class="n">content</span><span class="o">=</span><span class="n">sample</span><span class="p">[</span><span class="n">key_output</span><span class="p">],</span>
+                <span class="n">content</span><span class="o">=</span><span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]],</span>
                 <span class="n">masked</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                 <span class="n">eot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="p">),</span>
@@ -591,28 +603,39 @@
 <span class="sd">        column_map (Optional[Dict[str, str]]): a mapping to change the expected</span>
 <span class="sd">            &quot;chosen&quot; and &quot;rejected&quot; column names to the actual column names in the dataset.</span>
 <span class="sd">            Default is None, keeping the default column names.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If ``column_map`` is provided and ``chosen`` not in ``column_map``, or</span>
+<span class="sd">            ``rejected`` not in ``column_map``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="o">=</span> <span class="n">train_on_input</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="n">column_map</span>
+        <span class="k">if</span> <span class="n">column_map</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;chosen&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">column_map</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Expected a key of &#39;chosen&#39; in column_map but found </span><span class="si">{</span><span class="n">column_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;rejected&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">column_map</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Expected a key of &#39;rejected&#39; in column_map but found </span><span class="si">{</span><span class="n">column_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="n">column_map</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;chosen&quot;</span><span class="p">:</span> <span class="s2">&quot;chosen&quot;</span><span class="p">,</span> <span class="s2">&quot;rejected&quot;</span><span class="p">:</span> <span class="s2">&quot;rejected&quot;</span><span class="p">}</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="n">column_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="ow">or</span> <span class="p">{}</span>
-        <span class="n">key_chosen</span> <span class="o">=</span> <span class="n">column_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;chosen&quot;</span><span class="p">,</span> <span class="s2">&quot;chosen&quot;</span><span class="p">)</span>
-        <span class="n">key_rejected</span> <span class="o">=</span> <span class="n">column_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rejected&quot;</span><span class="p">,</span> <span class="s2">&quot;rejected&quot;</span><span class="p">)</span>
-
         <span class="n">chosen_messages</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">key_chosen</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;chosen&quot;</span><span class="p">]]:</span>
             <span class="n">message</span><span class="p">[</span><span class="s2">&quot;masked&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
                 <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span>
             <span class="p">)</span>
             <span class="n">chosen_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Message</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">message</span><span class="p">))</span>
 
         <span class="n">rejected_messages</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">key_rejected</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;rejected&quot;</span><span class="p">]]:</span>
             <span class="n">message</span><span class="p">[</span><span class="s2">&quot;masked&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
                 <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span>
             <span class="p">)</span>
@@ -653,13 +676,23 @@
 <span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected columns (&quot;conversations&quot;)</span>
 <span class="sd">            to the new column names in the dataset. If None, assume these are identical.</span>
 <span class="sd">            Default is None.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If ``column_map`` is provided and ``conversations`` not in ``column_map``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="o">=</span> <span class="n">train_on_input</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">column_map</span> <span class="o">=</span> <span class="n">column_map</span>
+        <span class="k">if</span> <span class="n">column_map</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;conversations&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">column_map</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Expected a key of &#39;conversations&#39; in column_map but found </span><span class="si">{</span><span class="n">column_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="n">column_map</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;conversations&quot;</span><span class="p">:</span> <span class="s2">&quot;conversations&quot;</span><span class="p">}</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -673,11 +706,8 @@
 <span class="sd">            List[Message]: A list of messages with &quot;role&quot; and &quot;content&quot; fields.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">role_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;system&quot;</span><span class="p">:</span> <span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="s2">&quot;human&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;gpt&quot;</span><span class="p">:</span> <span class="s2">&quot;assistant&quot;</span><span class="p">}</span>
-        <span class="n">column_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_map</span> <span class="ow">or</span> <span class="p">{}</span>
-        <span class="n">key_conversations</span> <span class="o">=</span> <span class="n">column_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;conversations&quot;</span><span class="p">,</span> <span class="s2">&quot;conversations&quot;</span><span class="p">)</span>
-
         <span class="n">messages</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">key_conversations</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;conversations&quot;</span><span class="p">]]:</span>
             <span class="n">role</span> <span class="o">=</span> <span class="n">role_map</span><span class="p">[</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;from&quot;</span><span class="p">]]</span>
             <span class="n">content</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span>
             <span class="n">masked</span> <span class="o">=</span> <span class="p">(</span><span class="n">role</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span><span class="p">)</span>
@@ -718,13 +748,23 @@
 <span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected columns (&quot;messages&quot;)</span>
 <span class="sd">            to the new column names in the dataset. If None, assume these are identical.</span>
 <span class="sd">            Default is None.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If ``column_map`` is provided and ``messages`` not in ``column_map``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="o">=</span> <span class="n">train_on_input</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">column_map</span> <span class="o">=</span> <span class="n">column_map</span>
+        <span class="k">if</span> <span class="n">column_map</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;messages&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">column_map</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Expected a key of &#39;messages&#39; in column_map but found </span><span class="si">{</span><span class="n">column_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="n">column_map</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="s2">&quot;messages&quot;</span><span class="p">}</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -737,10 +777,8 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            List[Message]: A list of messages with &quot;role&quot; and &quot;content&quot; fields.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">column_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_map</span> <span class="ow">or</span> <span class="p">{}</span>
-        <span class="n">key_messages</span> <span class="o">=</span> <span class="n">column_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;messages&quot;</span><span class="p">,</span> <span class="s2">&quot;messages&quot;</span><span class="p">)</span>
         <span class="n">updated_messages</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">key_messages</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;messages&quot;</span><span class="p">]]:</span>
             <span class="n">message</span><span class="p">[</span><span class="s2">&quot;masked&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
                 <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span>
             <span class="p">)</span>
