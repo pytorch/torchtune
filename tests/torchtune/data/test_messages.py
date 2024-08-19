@@ -105,6 +105,19 @@ class TestInputOutputToMessages:
         ]
         assert_dialogue_equal(actual["messages"], expected)
 
+    def test_system_prompt(self, sample):
+        transform = InputOutputToMessages(
+            column_map={"input": "maybe_input", "output": "maybe_output"},
+            system_prompt="you are a robot",
+        )
+        actual = transform(sample)
+        expected = [
+            Message(role="system", content="you are a robot", masked=True, eot=True),
+            Message(role="user", content="hello world", masked=True, eot=True),
+            Message(role="assistant", content="hello world", masked=False, eot=True),
+        ]
+        assert_dialogue_equal(actual["messages"], expected)
+
 
 class TestChosenRejectedToMessages:
     @pytest.fixture
@@ -161,6 +174,29 @@ class TestChosenRejectedToMessages:
         ]
         assert_dialogue_equal(actual["rejected"], expected_rejected)
 
+    def test_system_prompt(self, sample):
+        transform = ChosenRejectedToMessages(
+            column_map={
+                "chosen": "maybe_chosen",
+                "rejected": "maybe_rejected",
+            },
+            system_prompt="you are a robot",
+        )
+        actual = transform(sample)
+        expected_chosen = [
+            Message(role="system", content="you are a robot", masked=True, eot=True),
+            Message(role="user", content="hello world", masked=True, eot=True),
+            Message(role="assistant", content="hello world", masked=False, eot=True),
+        ]
+        assert_dialogue_equal(actual["chosen"], expected_chosen)
+
+        expected_rejected = [
+            Message(role="system", content="you are a robot", masked=True, eot=True),
+            Message(role="user", content="hello world", masked=True, eot=True),
+            Message(role="assistant", content="bye world", masked=False, eot=True),
+        ]
+        assert_dialogue_equal(actual["rejected"], expected_rejected)
+
 
 class TestShareGPTToMessages:
     samples = {
@@ -192,6 +228,19 @@ class TestShareGPTToMessages:
             converted_messages["messages"], MESSAGE_SAMPLE_TRAIN_ON_INPUT
         )
 
+    def test_system_prompt(self):
+        transform = ShareGPTToMessages(system_prompt="you are a robot")
+        converted_messages = transform(self.samples)
+        assert_dialogue_equal(
+            converted_messages["messages"],
+            [
+                Message(
+                    role="system", content="you are a robot", masked=True, eot=True
+                ),
+            ]
+            + MESSAGE_SAMPLE[1:],
+        )
+
 
 class TestJSONToMessages:
     samples = {
@@ -221,4 +270,17 @@ class TestJSONToMessages:
         converted_messages = transform(self.samples)
         assert_dialogue_equal(
             converted_messages["messages"], MESSAGE_SAMPLE_TRAIN_ON_INPUT
+        )
+
+    def test_system_prompt(self):
+        transform = JSONToMessages(system_prompt="you are a robot")
+        converted_messages = transform(self.samples)
+        assert_dialogue_equal(
+            converted_messages["messages"],
+            [
+                Message(
+                    role="system", content="you are a robot", masked=True, eot=True
+                ),
+            ]
+            + MESSAGE_SAMPLE[1:],
         )
