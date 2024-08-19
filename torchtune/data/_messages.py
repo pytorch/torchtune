@@ -247,6 +247,8 @@ class ChosenRejectedToMessages(Transform):
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         chosen_messages = []
         for message in sample[self._column_map["chosen"]]:
+            if message["role"] == "system" and self.new_system_prompt is not None:
+                continue
             message["masked"] = (message["role"] != "assistant") and (
                 not self.train_on_input
             )
@@ -254,6 +256,8 @@ class ChosenRejectedToMessages(Transform):
 
         rejected_messages = []
         for message in sample[self._column_map["rejected"]]:
+            if message["role"] == "system" and self.new_system_prompt is not None:
+                continue
             message["masked"] = (message["role"] != "assistant") and (
                 not self.train_on_input
             )
