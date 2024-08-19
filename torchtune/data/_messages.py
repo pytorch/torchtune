@@ -41,9 +41,13 @@ class Message:
         masked (bool): whether the message is masked in the sample. If True, do not use
             in loss calculation. Default: False
         ipython (bool): whether the message is a tool call. Default: False
-        eot (bool): whether the message corresponds to the end of a turn. Should be true
-            except in the case of multiple consecutive assistant messages (i.e., tool calls
-            by assistant). Default: True
+        eot (bool): whether the message corresponds to the end of a turn, where control is handed over
+            to the assistant from the user or the user from the assistant. Default: True. Should be true
+            in most cases except for:
+
+            - For multiple consecutive assistant messages (i.e., tool calls
+              by assistant), only the last assistant message will have ``eot=True``
+            - All ipython messages (tool call returns) should set ``eot=False``.
     """
 
     def __init__(
@@ -142,7 +146,7 @@ class InputOutputToMessages(Transform):
                 role="user",
                 content=sample[key_input],
                 masked=not self.train_on_input,
-                eot=False,
+                eot=True,
             ),
             Message(
                 role="assistant",
@@ -152,6 +156,65 @@ class InputOutputToMessages(Transform):
             ),
         ]
         return {"messages": messages}
+
+
+class ChosenRejectedToMessages(Transform):
+    """
+    Transform for converting datasets with "chosen" and "rejected" columns containing
+    conversations to a list of chosen and rejected messages. For example::
+
+        |  chosen                                |  rejected                              |
+        |----------------------------------------|----------------------------------------|
+        | [{"role": "user", "content": Q1},      | [{"role": "user", "content": Q1},      |
+        |  {"role": "assistant", "content": A1}] |  {"role": "assistant", "content": A2}] |
+
+    will be converted to:
+
+    .. code-block:: python
+
+        chosen = [
+            Message(role="user", content="Q1"),
+            Message(role="assistant", content="A1"),
+        ]
+        rejected = [
+            Message(role="user", content="Q1"),
+            Message(role="assistant", content="A2"),
+        ]
+
+    Args:
+        train_on_input (bool): Whether the model is trained on the user prompt or not.
+            Default is False.
+        column_map (Optional[Dict[str, str]]): a mapping to change the expected
+            "chosen" and "rejected" column names to the actual column names in the dataset.
+            Default is None, keeping the default column names.
+    """
+
+    def __init__(
+        self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None
+    ):
+        self.train_on_input = train_on_input
+        self._column_map = column_map
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        column_map = self._column_map or {}
+        key_chosen = column_map.get("chosen", "chosen")
+        key_rejected = column_map.get("rejected", "rejected")
+
+        chosen_messages = []
+        for message in sample[key_chosen]:
+            message["masked"] = (message["role"] != "assistant") and (
+                not self.train_on_input
+            )
+            chosen_messages.append(Message.from_dict(message))
+
+        rejected_messages = []
+        for message in sample[key_rejected]:
+            message["masked"] = (message["role"] != "assistant") and (
+                not self.train_on_input
+            )
+            rejected_messages.append(Message.from_dict(message))
+
+        return {"chosen": chosen_messages, "rejected": rejected_messages}
 
 
 class ShareGPTToMessages(Transform):
@@ -206,9 +269,11 @@ class ShareGPTToMessages(Transform):
             List[Message]: A list of messages with "role" and "content" fields.
         """
         role_map = {"system": "system", "human": "user", "gpt": "assistant"}
+        column_map = self.column_map or {}
+        key_conversations = column_map.get("conversations", "conversations")
 
         messages = []
-        for message in sample["conversations"]:
+        for message in sample[key_conversations]:
             role = role_map[message["from"]]
             content = message["value"]
             masked = (role != "assistant") and (not self.train_on_input)
@@ -268,8 +333,10 @@ class JSONToMessages(Transform):
         Returns:
             List[Message]: A list of messages with "role" and "content" fields.
         """
+        column_map = self.column_map or {}
+        key_messages = column_map.get("messages", "messages")
         updated_messages = []
-        for message in sample["messages"]:
+        for message in sample[key_messages]:
             message["masked"] = (message["role"] != "assistant") and (
                 not self.train_on_input
             )

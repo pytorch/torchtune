@@ -357,7 +357,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # original activation checkpointing (full) - flip the condition above
         if enable_activation_checkpointing and ac_mode is None:
             utils.set_activation_checkpointing(
-                model, auto_wrap_policy={modules.TransformerDecoderLayer}
+                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
         # For FSDP sharding, we can condition on either the module or its name

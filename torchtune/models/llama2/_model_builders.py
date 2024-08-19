@@ -11,6 +11,8 @@ from torchtune.models.llama2._component_builders import llama2, lora_llama2, lla
 from torchtune.modules import TransformerDecoder
 from torchtune.models.llama2._tokenizer import Llama2Tokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
+from torchtune.data._prompt_templates import _TemplateType
+from torchtune.config._utils import _get_prompt_template
 
 
 """
@@ -40,7 +42,7 @@ def llama2_7b() -> TransformerDecoder:
     )
 
 
-def llama2_tokenizer(path: str, max_seq_len: Optional[int] = None) -> Llama2Tokenizer:
+def llama2_tokenizer(path: str, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = "torchtune.models.llama2.Llama2ChatTemplate") -> Llama2Tokenizer:
     """
     Tokenizer for Llama2.
 
@@ -48,11 +50,15 @@ def llama2_tokenizer(path: str, max_seq_len: Optional[int] = None) -> Llama2Toke
         path (str): path to the tokenizer
         max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
             after which the input will be truncated. Default is None.
+        prompt_template (Optional[_TemplateType]): optional specified prompt template.
+            If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
+            class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
+            prepend/append tags. Default is :class:`~torchtune.models.llama2.Llama2ChatTemplate`.
 
     Returns:
         Llama2Tokenizer: Instantiation of the Llama2 tokenizer
     """
-    return Llama2Tokenizer(path=path, max_seq_len=max_seq_len)
+    return Llama2Tokenizer(path=path, max_seq_len=max_seq_len, prompt_template=_get_prompt_template(prompt_template) if prompt_template is not None else None)
 
 
 def lora_llama2_7b(

@@ -417,10 +417,10 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
-                policy_model, auto_wrap_policy={modules.TransformerDecoderLayer}
+                policy_model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
             utils.set_activation_checkpointing(
-                value_model, auto_wrap_policy={modules.TransformerDecoderLayer}
+                value_model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
         policy_model.load_state_dict(policy_state_dict)

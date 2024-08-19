@@ -68,7 +68,7 @@ enable_activation_checkpointing: True
 dtype: bf16
 
 # Logging
-output_dir: /tmp/phi3_lora_finetune_output
+output_dir: /tmp/phi3_finetune_output
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: /tmp/Phi-3-mini-4k-instruct/logs
