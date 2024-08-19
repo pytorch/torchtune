@@ -18,23 +18,6 @@ Each recipe consists of three components:
 
   To learn more about the concept of "recipes", check out our technical deep-dive: :ref:`recipe_deepdive`.
 
-.. note::
-
-    You can also utilize the :code:`tune ls` command to print out all recipes and corresponding configs.
-
-    .. code-block:: bash
-
-        $ tune ls
-        RECIPE                                   CONFIG
-        full_finetune_single_device              llama2/7B_full_low_memory
-                                                mistral/7B_full_low_memory
-        full_finetune_distributed                llama2/7B_full
-                                                llama2/13B_full
-                                                mistral/7B_full
-        lora_finetune_single_device              llama2/7B_lora_single_device
-                                                llama2/7B_qlora_single_device
-                                                mistral/7B_lora_single_device
-        ...
 
 Supervised Finetuning
 ---------------------

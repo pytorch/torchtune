@@ -98,6 +98,17 @@ for a gradient update is when using gradient accumulation is:
 
 For example: with ``batch_size=1`` and ``gradient_accumulation_steps=32`` we get a total batch size of 32.
 
+.. note::
+
+  For other components in torchtune which use "steps", such as :ref:`metric logging <metric_logging_label>`, or
+  :func:`learning rate schedulers <torchtune.modules.get_cosine_schedule_with_warmup>`, a "step" is counted as a
+  single update to model parameters, rather than a single model forward pass with the data.
+  Suppose ``gradient_accumulation_steps = 4`` and ``log_every_n_steps = 10``.
+  Metrics would be logged every 10 global steps, which translates to every 40 model forward passes.
+  For this reason, metric logging will appear less frequently when training with gradient accumulation,
+  and progress bars may update more slowly.
+
+
 If you're using one of our distributed recipes, simply multiply by the number of devices:
 
   ``total_batch_size = batch_size * gradient_accumulation_steps * num_devices``
