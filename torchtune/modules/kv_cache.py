@@ -40,8 +40,8 @@ class KVCache(nn.Module):
         self.register_buffer(
             "v_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False
         )
-        self.size = 0
         self.batch_size = batch_size
+        self.dtype = dtype
 
     def reset(self) -> None:
         """Reset the cache to zero."""
@@ -64,11 +64,10 @@ class KVCache(nn.Module):
             Tuple[Tensor, Tensor]: Updated KV cache with key first
         """
         assert input_pos.shape[0] == k_val.shape[2]
-        self.size = input_pos.max().item() + 1
 
         k_out = self.k_cache
         v_out = self.v_cache
-        k_out[:, :, input_pos] = k_val
-        v_out[:, :, input_pos] = v_val
+        k_out[:, :, input_pos] = k_val.to(self.dtype)
+        v_out[:, :, input_pos] = v_val.to(self.dtype)
 
         return k_out, v_out

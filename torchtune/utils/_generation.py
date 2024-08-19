@@ -159,7 +159,7 @@ def generate(
         tokens = custom_generate_next_token(
             model,
             input_pos=curr_input_pos,
-            x=tokens,
+            x=tokens.clone(),
             temperature=temperature,
             top_k=top_k,
         )
