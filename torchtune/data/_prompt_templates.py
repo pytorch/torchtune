@@ -9,6 +9,8 @@ from typing import Dict, List, Protocol, Tuple, Union
 from torchtune.data import Message, Role
 from torchtune.config._utils import _get_component_from_path
 
+_TemplateType = Union[str, Dict[Role, Tuple[str, str]]]
+
 
 class PromptTemplateInterface(Protocol):
     """
@@ -143,7 +145,7 @@ class ChatMLTemplate(PromptTemplateInterface):
     template = {
         "system": ("<|im_start|>system\n", "<|im_end|>\n"),
         "user": ("<|im_start|>user\n", "<|im_end|>\n"),
-        "assistant": ("<|im_start|>assistant\n", "<|im_end|>"),
+        "assistant": ("<|im_start|>assistant\n", "<|im_end|>\n"),
         "ipython": ("", ""),
     }
 
@@ -162,12 +164,24 @@ class ChatMLTemplate(PromptTemplateInterface):
             The formatted list of messages
         """
         formatted_dialogue = []
-        for message in messages:
-            content = (
-                [{"type": "text", "content": self.template[message.role][0]}]
-                + message.content
-                + [{"type": "text", "content": self.template[message.role][1]}]
-            )
+        for index, message in enumerate(messages):
+            prepend_tag = self.template[message.role][0]
+            append_tag = self.template[message.role][1]
+            # If empty assistant message at the end, we are expecting the model
+            # to generate the response continuing from the assistant prepend tag,
+            # so do not add the append tag.
+            if (
+                message.role == "assistant"
+                and index == len(messages) - 1
+                and len(message.text_content) == 0
+            ):
+                content = [{"type": "text", "content": prepend_tag}] + message.content
+            else:
+                content = (
+                    [{"type": "text", "content": prepend_tag}]
+                    + message.content
+                    + [{"type": "text", "content": append_tag}]
+                )
             formatted_dialogue.append(
                 Message(
                     role=message.role,

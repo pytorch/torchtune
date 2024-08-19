@@ -15,8 +15,7 @@ from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune import utils
 from torchtune.models.phi3 import lora_phi3, phi3
 from torchtune.models.phi3._component_builders import lora_phi3_self_attention
-from torchtune.modules.peft import LoRALinear
-from torchtune.modules.peft.peft_utils import get_merged_lora_ckpt
+from torchtune.modules.peft import get_merged_lora_ckpt, LoRALinear
 from torchtune.utils.seed import set_seed
 
 RANK = 4

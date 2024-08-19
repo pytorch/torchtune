@@ -6,7 +6,7 @@
 
 from typing import Dict, Optional, Union, Tuple
 
-from torchtune.data import PromptTemplate, ShareGPTToMessages, Role
+from torchtune.data import ShareGPTToMessages
 from torchtune.datasets._packed import PackedDataset
 
 from torchtune.datasets._sft import SFTDataset
@@ -18,7 +18,6 @@ def slimorca_dataset(
     *,
     source: str = "Open-Orca/SlimOrca-Dedup",
     column_map: Optional[Dict[str, str]] = None,
-    prompt_template: Optional[Dict[Role, Tuple[str, str]]] = None,
     train_on_input: bool = False,
     packed: bool = False,
     split: str = "train",
@@ -40,10 +39,9 @@ def slimorca_dataset(
             in the filepath in ``data_files``, and set ``split="train"``. See `Hugging Face's
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details. Default is ``Open-Orca/SlimOrca-Dedup``.
-        column_map (Optional[Dict[str, str]]): a mapping from the expected column "conversations"
-            to the new column name in the dataset. If None, assume the default "conversations".
-        prompt_template (Optional[Dict[Role, Tuple[str, str]]]): optional template used to format the prompt. 
-            Default is None.
+        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the message transform
+            :class:`~torchtune.data.ShareGPTToMessages` to the new column names in the dataset. If None, use
+            the default column name ``"conversations"`` in ``Open-Orca/SlimOrca-Dedup``.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to tokenizer's ``max_seq_len`` prior to training. Default is False.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
@@ -56,7 +54,7 @@ def slimorca_dataset(
         ValueError: If ``packed=True`` and ``tokenizer.max_seq_len`` is not set.
 
     Example:
-        >>> ds = slimorca_dataset(tokenizer=tokenizer, max_seq_len=10)
+        >>> ds = slimorca_dataset(model_transform=tokenizer)
         >>> for input, label in ds:
         >>>     print(input)
         >>>     print(label)
@@ -65,8 +63,6 @@ def slimorca_dataset(
         >>> [1, 351, 82, 391, 221, 220, 193, 12, 471, ..., 2]
         >>> [-100, -100, -100, -100, -100, -100, -100, -100, 471, ..., 2]
     """
-    template = PromptTemplate(template=prompt_template) if prompt_template is not None else None
-
     message_transform = ShareGPTToMessages(
         train_on_input=train_on_input, column_map=column_map
     )
@@ -74,7 +70,6 @@ def slimorca_dataset(
         source=source,
         message_transform=message_transform,
         model_transform=tokenizer,
-        prompt_template=template,
         split=split,
     )
     if packed:

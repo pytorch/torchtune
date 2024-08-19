@@ -75,6 +75,7 @@ class TestLoRAFinetuneDistributedRecipe:
             checkpointer.model_type=LLAMA2 \
             metric_logger.filename={log_file} \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
@@ -135,6 +136,7 @@ class TestLoRAFinetuneDistributedRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
+            tokenizer.prompt_template=null \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
@@ -156,6 +158,7 @@ class TestLoRAFinetuneDistributedRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
+            tokenizer.prompt_template=null \
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
         """.split()
@@ -202,6 +205,7 @@ class TestLoRAFinetuneDistributedRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
+            tokenizer.prompt_template=null \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]

@@ -22,7 +22,7 @@ from torchtune import config, modules, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets import ConcatDataset
 from torchtune.modules import rlhf
-from torchtune.modules.peft.peft_utils import (
+from torchtune.modules.peft import (
     disable_adapter,
     get_adapter_params,
     get_merged_lora_ckpt,
@@ -268,7 +268,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
-                model, auto_wrap_policy={modules.TransformerDecoderLayer}
+                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
         validate_state_dict_for_lora(

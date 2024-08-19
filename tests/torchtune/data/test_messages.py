@@ -88,7 +88,7 @@ class TestInputOutputToMessages:
         )
         actual = transform(sample)
         expected = [
-            Message(role="user", content="hello world", masked=True, eot=False),
+            Message(role="user", content="hello world", masked=True, eot=True),
             Message(role="assistant", content="hello world", masked=False, eot=True),
         ]
         assert_dialogue_equal(actual["messages"], expected)
@@ -100,10 +100,22 @@ class TestInputOutputToMessages:
         )
         actual = transform(sample)
         expected = [
-            Message(role="user", content="hello world", masked=False, eot=False),
+            Message(role="user", content="hello world", masked=False, eot=True),
             Message(role="assistant", content="hello world", masked=False, eot=True),
         ]
         assert_dialogue_equal(actual["messages"], expected)
+
+    def test_raise_value_error_when_input_not_in_column_map(self):
+        with pytest.raises(ValueError, match="Expected a key of 'input'"):
+            InputOutputToMessages(
+                column_map={"bananas": "maybe_input", "output": "maybe_output"},
+            )
+
+    def test_raise_value_error_when_output_not_in_column_map(self):
+        with pytest.raises(ValueError, match="Expected a key of 'output'"):
+            InputOutputToMessages(
+                column_map={"input": "maybe_input", "bananas": "maybe_output"},
+            )
 
 
 class TestChosenRejectedToMessages:
@@ -129,13 +141,13 @@ class TestChosenRejectedToMessages:
         )
         actual = transform(sample)
         expected_chosen = [
-            Message(role="user", content="hello world", masked=True, eot=False),
+            Message(role="user", content="hello world", masked=True, eot=True),
             Message(role="assistant", content="hello world", masked=False, eot=True),
         ]
         assert_dialogue_equal(actual["chosen"], expected_chosen)
 
         expected_rejected = [
-            Message(role="user", content="hello world", masked=True, eot=False),
+            Message(role="user", content="hello world", masked=True, eot=True),
             Message(role="assistant", content="bye world", masked=False, eot=True),
         ]
         assert_dialogue_equal(actual["rejected"], expected_rejected)
@@ -150,16 +162,28 @@ class TestChosenRejectedToMessages:
         )
         actual = transform(sample)
         expected_chosen = [
-            Message(role="user", content="hello world", masked=False, eot=False),
+            Message(role="user", content="hello world", masked=False, eot=True),
             Message(role="assistant", content="hello world", masked=False, eot=True),
         ]
         assert_dialogue_equal(actual["chosen"], expected_chosen)
 
         expected_rejected = [
-            Message(role="user", content="hello world", masked=False, eot=False),
+            Message(role="user", content="hello world", masked=False, eot=True),
             Message(role="assistant", content="bye world", masked=False, eot=True),
         ]
         assert_dialogue_equal(actual["rejected"], expected_rejected)
+
+    def test_raise_value_error_when_chosen_not_in_column_map(self):
+        with pytest.raises(ValueError, match="Expected a key of 'chosen'"):
+            ChosenRejectedToMessages(
+                column_map={"bananas": "maybe_chosen", "rejected": "maybe_rejected"},
+            )
+
+    def test_raise_value_error_when_rejected_not_in_column_map(self):
+        with pytest.raises(ValueError, match="Expected a key of 'rejected'"):
+            ChosenRejectedToMessages(
+                column_map={"chosen": "maybe_chosen", "bananas": "maybe_rejected"},
+            )
 
 
 class TestShareGPTToMessages:
@@ -192,6 +216,12 @@ class TestShareGPTToMessages:
             converted_messages["messages"], MESSAGE_SAMPLE_TRAIN_ON_INPUT
         )
 
+    def test_raise_value_error_when_conversations_not_in_column_map(self):
+        with pytest.raises(ValueError, match="Expected a key of 'conversations'"):
+            ShareGPTToMessages(
+                column_map={"bananas": "maybe_conversations"},
+            )
+
 
 class TestJSONToMessages:
     samples = {
@@ -222,3 +252,9 @@ class TestJSONToMessages:
         assert_dialogue_equal(
             converted_messages["messages"], MESSAGE_SAMPLE_TRAIN_ON_INPUT
         )
+
+    def test_raise_value_error_when_messages_not_in_column_map(self):
+        with pytest.raises(ValueError, match="Expected a key of 'messages'"):
+            JSONToMessages(
+                column_map={"bananas": "maybe_messages"},
+            )

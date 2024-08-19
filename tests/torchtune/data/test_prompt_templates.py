@@ -35,13 +35,23 @@ class TestChatMLTemplate:
             role="assistant",
             content="<|im_start|>assistant\nA father in Russia allowed his 8-year-old child to drive his car on an "
             "icy road and recorded the event. The child appeared to be handling the situation well, "
-            "showcasing their driving skills despite the challenging conditions.<|im_end|>",
+            "showcasing their driving skills despite the challenging conditions.<|im_end|>\n",
         ),
     ]
 
     def test_format(self):
         actual = ChatMLTemplate()(MESSAGE_SAMPLE)
         assert_dialogue_equal(actual, self.expected_dialogue)
+
+    def test_format_generation(self):
+        messages_generation = MESSAGE_SAMPLE[:2] + [
+            Message(role="assistant", content="")
+        ]
+        expected = self.expected_dialogue[:2] + [
+            Message(role="assistant", content="<|im_start|>assistant\n")
+        ]
+        actual = ChatMLTemplate()(messages_generation)
+        assert_dialogue_equal(actual, expected)
 
 
 class TestGrammarErrorCorrectionTemplate:

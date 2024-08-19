@@ -7,11 +7,7 @@
 
 from typing import Dict, Optional, Union, Tuple
 
-from torchtune.data import InputOutputToMessages, Role
-from torchtune.data._prompt_templates import (
-    GrammarErrorCorrectionTemplate,
-    PromptTemplate,
-)
+from torchtune.data import InputOutputToMessages
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.tokenizers import ModelTokenizer
@@ -22,7 +18,6 @@ def grammar_dataset(
     *,
     source: str = "liweili/c4_200m",
     column_map: Optional[Dict[str, str]] = None,
-    prompt_template: Optional[Dict[Role, Tuple[str, str]]] = None,
     train_on_input: bool = False,
     packed: bool = False,
     split: str = "train",
@@ -31,10 +26,8 @@ def grammar_dataset(
     Support for grammar correction datasets and their variants from Hugging Face Datasets.
     Here is an `example <https://huggingface.co/datasets/liweili/c4_200m>`_ of a grammar correction dataset.
 
-    The prompt template mirrors what is used in the `llama_recipes codebase
-    <https://github.com/meta-llama/llama-recipes/blob/main/src/llama_recipes/datasets/grammar_dataset/grammar_dataset.py#L50>`_
-
-    where ``input`` and ``output`` are fields from the dataset.
+    It is recommended to configure the tokenizer with the :class:`~torchtune.data.GrammarErrorCorrectionTemplate`
+    in conjunction with this dataset.
 
     Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is
     set to ``False`` by default
@@ -49,10 +42,9 @@ def grammar_dataset(
             in the filepath in ``data_files``, and set ``split="train"``. See `Hugging Face's
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details. Default is ``liweili/c4_200m``.
-        column_map (Optional[Dict[str, str]]): a mapping from the expected columns "input" and "output"
-            to the new column names in the dataset. If None, assume these are the default.
-        prompt_template (Optional[Dict[Role, Tuple[str, str]]]): optional template used to format the prompt. If None
-            is specified, :class:`~torchtune.data.GrammarErrorCorrectionTemplate` will be used.
+        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the message transform
+            :class:`~torchtune.data.InputOutputToMessages` to the new column names in the dataset. If None, use
+            the default column names ``"input"`` and ``"output"``in ``liweili/c4_200m``.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to tokenizer's ``max_seq_len`` prior to training. Default is False.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
@@ -65,15 +57,11 @@ def grammar_dataset(
         ValueError: If ``packed=True`` and ``tokenizer.max_seq_len`` is not set.
 
     Example:
-        >>> grammar_ds = grammar_dataset(tokenizer=tokenizer)
+        >>> grammar_ds = grammar_dataset(model_transform=tokenizer)
         >>> for batch in Dataloader(grammar_ds, batch_size=8):
         >>>     print(f"Batch size: {len(batch)}")
         >>> Batch size: 8
     """
-    if prompt_template is None:
-        template = GrammarErrorCorrectionTemplate()
-    else:
-        template = PromptTemplate(template=prompt_template)
 
     message_transform = InputOutputToMessages(
         train_on_input=train_on_input, column_map=column_map
@@ -82,7 +70,6 @@ def grammar_dataset(
         source=source,
         message_transform=message_transform,
         model_transform=tokenizer,
-        prompt_template=template,
         split=split,
     )
     if packed:

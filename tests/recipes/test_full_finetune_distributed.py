@@ -83,6 +83,7 @@ class TestFullFinetuneDistributedRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
+            tokenizer.prompt_template=null \
             metric_logger.filename={log_file} \
         """.split()
         if fsdp_sharding_strategy:
