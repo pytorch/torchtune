@@ -12,6 +12,7 @@ import torchvision
 from PIL import Image
 
 from torchtune.modules.transforms.vision_utils.get_canvas_best_fit import (
+    find_supported_resolutions,
     get_canvas_best_fit,
 )
 from torchtune.modules.transforms.vision_utils.get_inscribed_size import (
