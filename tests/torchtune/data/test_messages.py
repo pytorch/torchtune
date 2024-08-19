@@ -117,6 +117,7 @@ class TestInputOutputToMessages:
             Message(role="assistant", content="hello world", masked=False, eot=True),
         ]
         assert_dialogue_equal(actual["messages"], expected)
+
     def test_raise_value_error_when_input_not_in_column_map(self):
         with pytest.raises(ValueError, match="Expected a key of 'input'"):
             InputOutputToMessages(
@@ -207,6 +208,7 @@ class TestChosenRejectedToMessages:
             Message(role="assistant", content="bye world", masked=False, eot=True),
         ]
         assert_dialogue_equal(actual["rejected"], expected_rejected)
+
     def test_raise_value_error_when_chosen_not_in_column_map(self):
         with pytest.raises(ValueError, match="Expected a key of 'chosen'"):
             ChosenRejectedToMessages(
@@ -262,6 +264,7 @@ class TestShareGPTToMessages:
             ]
             + MESSAGE_SAMPLE[1:],
         )
+
     def test_raise_value_error_when_conversations_not_in_column_map(self):
         with pytest.raises(ValueError, match="Expected a key of 'conversations'"):
             ShareGPTToMessages(
@@ -311,6 +314,7 @@ class TestJSONToMessages:
             ]
             + MESSAGE_SAMPLE[1:],
         )
+
     def test_raise_value_error_when_messages_not_in_column_map(self):
         with pytest.raises(ValueError, match="Expected a key of 'messages'"):
             JSONToMessages(
