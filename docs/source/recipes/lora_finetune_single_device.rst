@@ -42,7 +42,7 @@ in just two steps:
 Most of you will want to twist, pull, and bop all the different levers, buttons, and knobs we expose in our recipes. Check out our
 :ref:`configs tutorial <config_tutorial_label>` to learn how to customize recipes to suit your needs.
 
-This recipe is an example of :ref:`Parameter efficient fine-tuning (PEFT) <glossary_peft>`. To understand the different
+This recipe is an example of parameter efficient fine-tuning (PEFT). To understand the different
 levers you can pull, see our documentation for the different PEFT training paradigms we support:
 
 * :ref:`glossary_lora`.

@@ -55,7 +55,7 @@ Most of you will want to twist, pull, and bop all the different levers, buttons,
 There are <> levers to pull when working with <>, specifically:
 
 .. and for lora/qlora recipes
-This recipe is an example of :ref:`Parameter efficient fine-tuning (PEFT) <glossary_peft>`. To understand the different
+This recipe is an example of parameter efficient fine-tuning (PEFT). To understand the different
 levers you can pull, see our documentation for the different PEFT training paradigms we support:
 
 * :ref:`glossary_lora`
@@ -83,3 +83,16 @@ As with all of our recipes, you can also:
 
 
 If you're interested in an overview of our memory optimization features, check out our  :ref:`memory optimization overview<memory_optimization_overview_label>`!
+
+
+
+.. csv-table:: Memory optimization components
+   :header: "Component", "When to use?"
+   :widths: auto
+
+   ":ref:`glossary_precision`", "You'll usually want to leave this as its default ``bfloat16``. If you're struggling with training stability or accuracy due to precision, ``fp32`` may help."
+   ":ref:`glossary_act_ckpt`", ""
+   "``torch.compile.allow_in_graph``", "The annotated callable goes as is in the TorchDynamo graph. For example, a black-box for TorchDynamo Dynamo.\n\nNote that AOT Autograd will trace through it, so the ``allow_in_graph`` is only a Dynamo-level concept.", "This API is useful for portions of the model which have known TorchDynamo hard-to-support features, like hooks or ``autograd.Function``. However, each usage of ``allow_in_graph`` **must be carefully screened** (no graph breaks, no closures)."
+   "``torch._dynamo.graph_break``", "Adds a graph break. The code before and after the graph break goes through TorchDynamo.", "**Rarely useful for deployment** - If you think you need this, most probably you need either ``disable`` or ``disallow_in_graph``."
+   "``torch.compiler.is_compiling``", "Indicates whether a graph is executed/traced as part of torch.compile() or torch.export()."
+   "``torch.compiler.is_dynamo_compiling``", "Indicates whether a graph is traced via TorchDynamo. It's stricter than torch.compiler.is_compiling() flag, as it would only be set to True when TorchDynamo is used."

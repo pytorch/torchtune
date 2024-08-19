@@ -8,13 +8,28 @@ Memory Optimization Overview
 
 torchtune comes with a host of plug-and-play memory optimization components which give you lots of flexibility
 to ``tune`` our recipes to your hardware. This page provides a brief glossary of these components and how you might use them.
+To make things easy, we've summarized these components in the following table:
+
+.. csv-table:: Memory optimization components
+   :header: "Component", "When to use?"
+   :widths: auto
+
+   ":ref:`glossary_precision`", "You'll usually want to leave this as its default bfloat16. If you're struggling with training stability or accuracy due to precision, fp32 may help."
+   ":ref:`glossary_act_ckpt`", "Use when you're memory constrained and need to handle larger batch sizes. Be aware that it may slow down training speed."
+   ":ref:`glossary_grad_accm`", "Helpful when memory-constrained to simulate larger batch sizes. Often preferable to activation checkpointing for better training speed."
+   ":ref:`glossary_low_precision_opt`", "When you need to further reduce memory usage beyond model and optimizer precision reduction."
+   ":ref:`glossary_opt_in_bwd`", "Best for models with many parameters using stateful optimizers, when gradient memory is large and you don't need gradient accumulation."
+   ":ref:`glossary_lora`", "When you want to significantly reduce the number of trainable parameters, saving gradient and optimizer memory during training."
+   ":ref:`glossary_qlora`", "When you need even more memory savings than LoRA, at the potential cost of some training speed. Useful for very large models or limited hardware."
+
 
 .. note::
 
-  In its current state, this recipe is focused on single-device optimizations. Check in soon as we update this page
+  In its current state, this tutorial is focused on single-device optimizations. Check in soon as we update this page
   for the latest memory optimization features for distributed fine-tuning.
 
 .. _glossary_precision:
+
 
 Model Precision
 ---------------
@@ -31,8 +46,8 @@ We support two data types in torchtune:
 
 * ``fp32``, commonly referred to as "full-precision", uses 4 bytes per model and optimizer parameter.
 * ``bfloat16``, referred to as "half-precision", uses 2 bytes per model and optimizer parameter - effectively half
-  the memory of ``fp32``. Generally, if your hardware supports training with ``bfloat16``, we recommend using it
-  - this is the default setting for our recipes.
+  the memory of ``fp32``, and also improves training speed. Generally, if your hardware supports training with ``bfloat16``,
+  we recommend using it - this is the default setting for our recipes.
 
 .. note::
 
@@ -109,10 +124,8 @@ Lower Precision Optimizers
 *What's going on here?*
 
 In addition to :ref:`reducing model and optimizer precision <glossary_precision>` during training, we can further reduce precision in our optimizer states.
-All of our fine-tuning recipes support lower-precision optimizers from the `bitsandbytes <https://huggingface.co/docs/bitsandbytes/main/en/index>`_ library -
+All of our single-device fine-tuning recipes support lower-precision optimizers from the `bitsandbytes <https://huggingface.co/docs/bitsandbytes/main/en/index>`_ library -
 a good place to start might be the ``AdamW8bit`` and ``PagedAdamW8bit`` optimizers, which we've tested our recipes with.
-
-
 
 *Sounds great! How do I use it?*
 
@@ -202,6 +215,9 @@ which linear layers LoRA should be applied to in the model:
   * ``v_proj`` applies LoRA to the value projection layer.
   * ``output_proj`` applies LoRA to the attention output projection layer.
 
+  Whilst adding more layers to be fine-tuned may improve model accuracy,
+  this will come at the cost of increased memory usage and reduced training speed.
+
 * ``apply_lora_to_mlp: Bool`` applies LoRA to the MLP in each transformer layer.
 * ``apply_lora_to_output: Bool`` applies LoRA to the model's final output projection.
   This is usually a projection to vocabulary space (e.g. in language models), but
@@ -231,11 +247,11 @@ Secondly, parameters which control the scale of the impact of LoRA on the model:
 
 * ``lora_rank: int`` affects the scale of the LoRA decomposition, where ``lora_rank << in_dim`` and ``lora_rank << out_dim``
   \- the dimensions of an arbitrary linear layer in the model. Concretely, ``lora_rank`` reduces the number of gradients stored
-  in a linear fashion from ``in_dim * out_dim`` to ``lora_rank * (in_dim + out_dim)``.
+  in a linear fashion from ``in_dim * out_dim`` to ``lora_rank * (in_dim + out_dim)``. Typically, we have ``lora_rank in [8, 128]``.
 * ``lora_alpha: float`` affects the magnitude of the LoRA updates. A larger alpha results in larger updates to the base model weights
   , potentially at the cost of training stability, conversely, smaller alpha can stabilize training at the cost of slower learning.
   We provide default settings for these parameters which we've tested with all of our models, but we encourage you to adjust them
-  to your specific use case. Typically, one jointly changes ``lora_rank`` and ``lora_alpha`` together.
+  to your specific use case. Typically, one jointly changes ``lora_rank`` and ``lora_alpha`` together, where ``lora_alpha ~= 2*lora_rank``.
 * ``lora_dropout`` introduces dropout in the LoRA layers to help regularize training. We default to 0.0 for all of our models.
 
 As above, these parameters are also specified under the ``model`` flag or config entry.
