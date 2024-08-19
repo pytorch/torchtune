@@ -39,11 +39,11 @@ in just two steps:
     --HF_TOKEN <HF_TOKEN>
 
     tune run <recipe> --config <config> \
-        model._component_=<model_component> \
-        tokenizer._component_=<model_component> \
+        model=<model_component> \
+        tokenizer=<tokenizer> \
         checkpointer ... \
-        logger._component_=torchtune.utils.metric_logging.WandBLogger \
-        dataset ... \
+        logger=torchtune.utils.metric_logging.WandBLogger \
+        dataset= ... \
 
 .. detail the recipe params below. you might want to include these defaults:
 
