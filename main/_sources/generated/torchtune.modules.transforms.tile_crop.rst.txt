@@ -1,9 +1,0 @@
-﻿.. role:: hidden
-    :class: hidden-section
-.. currentmodule:: torchtune.modules.transforms
-
-
-tile_crop
-=========
-
-.. autofunction:: tile_crop

@@ -1,9 +1,0 @@
-﻿.. role:: hidden
-    :class: hidden-section
-.. currentmodule:: torchtune.modules.transforms
-
-
-resize_with_pad
-===============
-
-.. autofunction:: resize_with_pad

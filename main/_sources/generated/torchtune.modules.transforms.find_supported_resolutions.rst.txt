@@ -1,9 +1,0 @@
-﻿.. role:: hidden
-    :class: hidden-section
-.. currentmodule:: torchtune.modules.transforms
-
-
-find_supported_resolutions
-==========================
-
-.. autofunction:: find_supported_resolutions

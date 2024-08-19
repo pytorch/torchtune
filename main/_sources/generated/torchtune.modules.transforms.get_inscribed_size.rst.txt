@@ -1,9 +1,0 @@
-﻿.. role:: hidden
-    :class: hidden-section
-.. currentmodule:: torchtune.modules.transforms
-
-
-get_inscribed_size
-==================
-
-.. autofunction:: get_inscribed_size
