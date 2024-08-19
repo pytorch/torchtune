@@ -280,8 +280,6 @@ class TransformerDecoder(nn.Module):
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move
             tokens to an embedding space.
         layers (Union[nn.Module, List[nn.Module]]): Transformer Decoder layer or a list of layers.
-        num_layers (Optional[int]): Number of Transformer Decoder layers, only define when
-            layer is not a list.
         max_seq_len (int): maximum sequence length the model will be run with, as used
             by :func:`~torchtune.modules.KVCache`
         num_heads (int): number of query heads. For MHA this is also the
@@ -293,6 +291,8 @@ class TransformerDecoder(nn.Module):
             before final MLP.
         output (nn.Linear): Callable that applies a linear transformation to the output of
             the decoder.
+        num_layers (Optional[int]): Number of Transformer Decoder layers, only define when
+            layers is not a list.
         output_hidden_states (Optional[List[int]]): List of layers (indices) to include in the output
 
     Raises:
@@ -307,14 +307,15 @@ class TransformerDecoder(nn.Module):
 
     def __init__(
         self,
+        *,
         tok_embeddings: nn.Embedding,
         layers: Union[nn.Module, List[nn.Module]],
-        num_layers: Optional[int],
         max_seq_len: int,
         num_heads: int,
         head_dim: int,
         norm: nn.Module,
         output: nn.Linear,
+        num_layers: Optional[int] = None,
         output_hidden_states: Optional[List[int]] = None,
     ) -> None:
         super().__init__()
@@ -479,8 +480,6 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move
             tokens to an embedding space.
         layers (Union[nn.Module, List[nn.Module]]): Transformer Decoder layer or a list of layers.
-        num_layers (Optional[int]): Number of Transformer Decoder layers, only define when
-            layer is not a list.
         max_seq_len (int): maximum sequence length the model will be run with, as used
             by :func:`~torchtune.modules.KVCache`
         num_heads (int): number of query heads. For MHA this is also the
@@ -490,6 +489,8 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
             to setup the :func:`~torchtune.modules.KVCache`
         norm (nn.Module): Callable that applies normalization to the output of the decoder,
             before final MLP.
+        num_layers (Optional[int]): Number of Transformer Decoder layers, only define when
+            layers is not a list.
         output_hidden_states (Optional[List[int]]): List of layers (indices) to include in the output
 
     Raises:
@@ -504,13 +505,14 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
 
     def __init__(
         self,
+        *,
         tok_embeddings: nn.Embedding,
         layers: Union[nn.Module, List[nn.Module]],
-        num_layers: Optional[int],
         max_seq_len: int,
         num_heads: int,
         head_dim: int,
         norm: nn.Module,
+        num_layers: Optional[int] = None,
         output_hidden_states: Optional[List[int]] = None,
     ) -> None:
         super().__init__()

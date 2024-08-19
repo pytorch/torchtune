@@ -9,7 +9,7 @@ from typing import List, Optional
 import torch
 
 from torch import nn, Tensor
-from torchtune.modules.fusion_model import register_fusion_module
+from torchtune.modules.model_fusion import register_fusion_module
 from torchtune.modules.transformer import _get_clones
 
 
@@ -33,7 +33,7 @@ class FlamingoProjectionHead(nn.Module):
         num_hidden_inputs: int = 0,
     ) -> None:
         super().__init__()
-        self.layers = _get_clones(layers, num_layers)
+        self.layers = _get_clones(layer, num_layers)
         self.output = output
         self.num_hidden = num_hidden_inputs
 

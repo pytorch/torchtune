@@ -58,44 +58,40 @@ def clip_vision_encoder(
 
     Returns:
         A `VisionTransformer` object.
+
+    Raises:
+        AssertionError: If ``embed_dim`` is not divisible by ``num_heads``.
     """
+    assert embed_dim % num_heads == 0, "embed_dim must be divisible by num_heads"
 
     cls_projection = CLSProjection(embed_dim=embed_dim, cls_output_dim=cls_output_dim) if output_cls_projection else None
-    
-    # transformer block
-    mlp_ratio = 4
-    hidden_dim = int(mlp_ratio * embed_dim)
-    head_dim = embed_dim // num_heads
-    num_kv_heads = num_heads
 
     # transformer layer
     self_attn = MultiHeadAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_heads,
-            head_dim=head_dim,
-            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=True),
-            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True),
-            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True),
+            head_dim=embed_dim // num_heads,
+            q_proj=nn.Linear(embed_dim, embed_dim, bias=True),
+            k_proj=nn.Linear(embed_dim, embed_dim, bias=True),
+            v_proj=nn.Linear(embed_dim, embed_dim, bias=True),
             output_proj=nn.Linear(embed_dim, embed_dim, bias=True),
             pos_embeddings=None,
             attn_dropout=0.0,
             is_causal=False,
-        )
-
+    )
     mlp = clip_mlp(
         in_dim=embed_dim,
-        hidden_dim=int(mlp_ratio * embed_dim),
+        hidden_dim=4 * embed_dim,
         out_dim=embed_dim,
-        activation=torch.nn.SiLU(),
+        activation=nn.SiLU(),
     )
-
     transformer_layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
-        attn_norm=Fp32LayerNorm(embed_dim, eps=1e-5),
-        mlp_norm=Fp32LayerNorm(embed_dim, eps=1e-5),
-        attn_scale=None,
+        sa_norm= Fp32LayerNorm(embed_dim, eps=1e-5),
+        mlp_norm= Fp32LayerNorm(embed_dim, eps=1e-5),
+        sa_scale=None,
         mlp_scale=None,
     )
 
@@ -136,5 +132,5 @@ def clip_mlp(in_dim: int, out_dim: int, hidden_dim: int, activation: nn.Module, 
     Build the MLP layer associated with the clip model.
     """
     gate_proj = nn.Linear(in_dim, hidden_dim) if not quantize_base else FrozenNF4Linear(in_dim, hidden_dim)
-    down_proj = nn.Linear(hidden_dim, out_dim, bias=False) if not quantize_base else FrozenNF4Linear(hidden_dim, out_dim, bias=False)
+    down_proj = nn.Linear(hidden_dim, out_dim) if not quantize_base else FrozenNF4Linear(hidden_dim, out_dim)
     return FeedForward(gate_proj=gate_proj, down_proj=down_proj, up_proj=None, activation=activation)

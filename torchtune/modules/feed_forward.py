@@ -36,8 +36,8 @@ class FeedForward(nn.Module):
         self.activation = activation
 
     def forward(self, x: Tensor) -> Tensor:
-        out = self.activation(self.w1(x))
+        h = self.activation(self.w1(x))
         if self.w3 is not None:
-            out = out * self.w3(x)
-        out = self.w2(out)
-        return out
+            h = h * self.w3(x)
+        h = self.w2(h)
+        return h
