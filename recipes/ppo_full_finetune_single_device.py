@@ -177,7 +177,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._value_model,
             self._reward_model,
             self._ref_policy_model,
-        ) = self._setup_model(
+        ) = self._setup_models(
             cfg_model=cfg.policy_model,
             cfg_reward_value_model=cfg.reward_and_value_model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
@@ -394,7 +394,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             reward_checkpointer,
         )
 
-    def _setup_model(
+    def _setup_models(
         self,
         cfg_model: DictConfig,
         cfg_reward_value_model: DictConfig,
@@ -417,33 +417,29 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
-                policy_model, auto_wrap_policy={modules.TransformerDecoderLayer}
+                policy_model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
             utils.set_activation_checkpointing(
-                value_model, auto_wrap_policy={modules.TransformerDecoderLayer}
+                value_model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
         policy_model.load_state_dict(policy_state_dict)
         ref_policy_model.load_state_dict(ref_policy_state_dict)
 
-        reward_missing, reward_unexpected = reward_model.load_state_dict(
-            reward_model_state_dict, strict=False
+        # since we should be loading a classifier checkpoint into
+        # a classifier model, this function should just ensure
+        # output.weight appears in the state_dict and the model's parameters,
+        # and removes output.bias from the state dict if found
+        utils.update_state_dict_for_classifier(
+            reward_model_state_dict, reward_model.named_parameters()
         )
-        value_missing, value_unexpected = value_model.load_state_dict(
-            value_model_state_dict, strict=False
+        reward_model.load_state_dict(reward_model_state_dict)
+
+        # same as above
+        utils.update_state_dict_for_classifier(
+            value_model_state_dict, value_model.named_parameters()
         )
-
-        # some extra validation for HF classifier checkpoints with a `score.bias` present
-        assert (
-            reward_missing == value_missing == []
-        ), f"Missing keys in reward ({reward_missing}) and value model ({value_missing}) state dicts."
-
-        if reward_unexpected or value_unexpected:
-            # the only unexpected keys should be when pre-trained HF models were saved with
-            # bias=True in final classification layers. This happens when training a reward model with TRL.
-            assert (
-                reward_unexpected == value_unexpected == ["output.bias"]
-            ), f"Unexpected keys in reward ({reward_unexpected}) and value model ({value_unexpected}) state dicts."
+        value_model.load_state_dict(value_model_state_dict)
 
         # Validate models were loaded in with the expected dtype.
         utils.validate_expected_param_dtype(

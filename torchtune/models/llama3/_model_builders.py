@@ -12,6 +12,8 @@ from torchtune.modules import TransformerDecoder
 from torchtune.models.llama3._tokenizer import Llama3Tokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from torchtune.modules.tokenizers import parse_hf_tokenizer_json
+from torchtune.data._prompt_templates import _TemplateType
+from torchtune.config._utils import _get_prompt_template
 
 
 """
@@ -62,8 +64,8 @@ def llama3_70b() -> TransformerDecoder:
         rope_base=500000.0,
     )
 
-
-def llama3_tokenizer(path: str, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None) -> Llama3Tokenizer:
+ 
+def llama3_tokenizer(path: str, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = None) -> Llama3Tokenizer:
     """
     Tokenizer for Llama3.
 
@@ -74,12 +76,17 @@ def llama3_tokenizer(path: str, special_tokens_path: Optional[str] = None, max_s
             structured similarly. Default is None to use the canonical Llama3 special tokens.
         max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
             after which the input will be truncated. Default is None.
+        prompt_template (Optional[_TemplateType]): optional specified prompt template.
+            If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
+            class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
+            prepend/append tags.
     
     Returns:
         Llama3Tokenizer: Instantiation of the Llama3 tokenizer
     """
     special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    return Llama3Tokenizer(path=path, special_tokens=special_tokens, max_seq_len=max_seq_len)
+    template = _get_prompt_template(prompt_template) if prompt_template is not None else None
+    return Llama3Tokenizer(path=path, special_tokens=special_tokens, max_seq_len=max_seq_len, prompt_template=template)
 
 
 def lora_llama3_8b(

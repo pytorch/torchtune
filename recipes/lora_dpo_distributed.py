@@ -28,7 +28,7 @@ from torchtune import config, modules, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets import ConcatDataset
 from torchtune.modules import rlhf
-from torchtune.modules.peft.peft_utils import (
+from torchtune.modules.peft import (
     disable_adapter,
     get_adapter_params,
     get_merged_lora_ckpt,
@@ -360,7 +360,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         model = FSDP(
             module=model,
             auto_wrap_policy=utils.lora_fsdp_wrap_policy(
-                modules_to_wrap={modules.TransformerDecoderLayer}
+                modules_to_wrap={modules.TransformerSelfAttentionLayer}
             ),
             sharding_strategy=self._fsdp_sharding_strategy,
             device_id=self._device,
@@ -383,7 +383,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
-                model, auto_wrap_policy={modules.TransformerDecoderLayer}
+                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
         if self._is_rank_zero:
             memory_stats = utils.get_memory_stats(device=self._device)
@@ -619,6 +619,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     policy_chosen_logits,
                     policy_rejected_logits,
                 ) = self.concatenated_forward(self._model, batch)
+
+                policy_chosen_logits_mean = policy_chosen_logits.detach().mean()
+                policy_rejected_logits_mean = policy_rejected_logits.detach().mean()
+
+                # deleting logits here helps reduce (peak) memory usage - we only need them for metric logging
+                del policy_chosen_logits, policy_rejected_logits
 
                 if isinstance(self._loss_fn, SimPOLoss):
                     loss, chosen_rewards, rejected_rewards = self._loss_fn(

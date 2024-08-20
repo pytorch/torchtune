@@ -27,7 +27,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.datasets import ConcatDataset
-from torchtune.modules.peft.peft_utils import (
+from torchtune.modules.peft import (
     get_adapter_params,
     get_lora_module_names,
     get_merged_lora_ckpt,
@@ -422,7 +422,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         model = FSDP(
             module=model,
             auto_wrap_policy=utils.lora_fsdp_wrap_policy(
-                modules_to_wrap={modules.TransformerDecoderLayer}
+                modules_to_wrap={modules.TransformerSelfAttentionLayer}
             ),
             sharding_strategy=self._fsdp_sharding_strategy,
             device_id=self._device,
@@ -445,7 +445,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
-                model, auto_wrap_policy={modules.TransformerDecoderLayer}
+                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
         if self._is_rank_zero:
             memory_stats = utils.get_memory_stats(device=self._device)
