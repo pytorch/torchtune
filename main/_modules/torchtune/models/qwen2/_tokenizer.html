@@ -784,7 +784,9 @@
 
         <span class="c1"># Finally, truncate if necessary</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">:</span>
-            <span class="n">tokens</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">tokens</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">)</span>
+            <span class="n">tokenized_messages</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span>
+                <span class="n">tokenized_messages</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span>
+            <span class="p">)</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">tokenized_messages</span><span class="p">,</span> <span class="n">mask</span></div>
