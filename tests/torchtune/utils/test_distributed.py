@@ -27,14 +27,8 @@ from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune import modules, utils
 from torchtune.models.llama2._component_builders import llama2, lora_llama2
 from torchtune.models.llama3._component_builders import llama3
-<<<<<<< HEAD
 from torchtune.modules import TransformerSelfAttentionLayer
-from torchtune.modules.peft import get_adapter_params, LoRALinear, set_trainable_params
-=======
-from torchtune.modules import TransformerDecoderLayer
-from torchtune.modules.peft import DoRALinear, LoRALinear
-from torchtune.modules.peft.peft_utils import get_adapter_params, set_trainable_params
->>>>>>> f906811 (wip changes to refactor dora)
+from torchtune.modules.peft.peft_utils import get_adapter_params, DoRALinear, LoRALinear, set_trainable_params
 
 
 class TestDistributed:
@@ -173,7 +167,7 @@ def _get_n_lora_and_tformer_layers(model):
     for module in model.modules():
         if isinstance(module, LoRALinear) or isinstance(module, DoRALinear):
             num_lora += 1
-        if isinstance(module, TransformerDecoderLayer):
+        if isinstance(module, TransformerDecoder):
             num_transformer_layers += 1
 
     return num_lora, num_transformer_layers
@@ -230,7 +224,7 @@ class TestLoRAFSDP:
                     fsdp_submodule.module, DoRALinear
                 ):
                     num_lora -= 1
-                elif isinstance(fsdp_submodule.module, TransformerDecoderLayer):
+                elif isinstance(fsdp_submodule.module, TransformerDecoder):
                     num_transformer_layers -= 1
             assert num_lora == 0
             assert num_transformer_layers == 0

@@ -63,8 +63,8 @@ loss:
 
 # Training
 epochs: 1
-max_steps_per_epoch: 1
-gradient_accumulation_steps: 32
+max_steps_per_epoch: 50
+gradient_accumulation_steps: 1
 
 # Logging
 output_dir: /tmp/dora_finetune_output
