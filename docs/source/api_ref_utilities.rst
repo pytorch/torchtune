@@ -21,6 +21,7 @@ checkpointing, please see the :ref:`checkpointing deep-dive <understand_checkpoi
     FullModelMetaCheckpointer
     FullModelTorchTuneCheckpointer
     ModelType
+    update_state_dict_for_classifier
 
 .. _dist_label:
 

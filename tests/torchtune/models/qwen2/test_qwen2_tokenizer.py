@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from pathlib import Path
+from typing import Optional
 
 import pytest
 
@@ -15,12 +16,13 @@ ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
 
 
 class TestQwen2Tokenizer:
-    def tokenizer(self, template: bool = False):
+    def tokenizer(self, template: bool = False, max_seq_len: Optional[int] = None):
         return qwen2_tokenizer(
             path=str(ASSETS / "tiny_bpe_vocab.json"),
             merges_file=str(ASSETS / "tiny_bpe_merges.txt"),
             special_tokens_path=str(ASSETS / "tiny_bpe_tokenizer.json"),
             prompt_template="torchtune.data.ChatMLTemplate" if template else None,
+            max_seq_len=max_seq_len,
         )
 
     @pytest.fixture
@@ -436,3 +438,10 @@ class TestQwen2Tokenizer:
         expected_mask = [True] * 61 + [False] * 116
         assert expected_tokens == tokens
         assert expected_mask == mask
+
+    def test_tokenize_messages_gt_max_seq_len(self, messages):
+        # Super basic test to make sure max_seq_len is working properly
+        tokenizer = self.tokenizer(template=False, max_seq_len=10)
+        tokens, mask = tokenizer.tokenize_messages(messages)
+        assert len(tokens) == 10
+        assert len(mask) == 10

@@ -103,11 +103,6 @@ Functions used for preprocessing images.
    :nosignatures:
 
     transforms.Transform
-    transforms.get_canvas_best_fit
-    transforms.get_inscribed_size
-    transforms.resize_with_pad
-    transforms.tile_crop
-    transforms.find_supported_resolutions
     transforms.VisionCrossAttentionMask
 
 Reinforcement Learning From Human Feedback (RLHF)

@@ -17,6 +17,7 @@ def hh_rlhf_helpful_dataset(
     source: str = "RLHFlow/HH-RLHF-Helpful-standard",
     column_map: Optional[Dict[str, str]] = None,
     train_on_input: bool = False,
+    new_system_prompt: Optional[str] = None,
     split: str = "train",
 ) -> PreferenceDataset:
     """
@@ -35,6 +36,9 @@ def hh_rlhf_helpful_dataset(
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the prompt template
             to the new column names in the dataset. If None, assume these are identical.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        new_system_prompt (Optional[str]): if specified, prepend a system message to every sample for both chosen
+            and rejected. This can serve as instructions to guide the model response. Setting this will OVERRIDE
+            any system messages already present in the dataset. Default is None.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
 
@@ -43,7 +47,9 @@ def hh_rlhf_helpful_dataset(
     """
 
     message_transform = ChosenRejectedToMessages(
-        train_on_input=train_on_input, column_map=column_map
+        train_on_input=train_on_input,
+        column_map=column_map,
+        new_system_prompt=new_system_prompt,
     )
 
     return PreferenceDataset(
