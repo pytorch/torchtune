@@ -26,11 +26,11 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.datasets import ConcatDataset
-from torchtune.modules.peft import LoRALinear
-from torchtune.modules.peft.peft_utils import (
+from torchtune.modules.peft import (
     get_adapter_params,
     get_lora_module_names,
     get_merged_lora_ckpt,
+    LoRALinear,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
@@ -434,13 +434,15 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
-            collate_fn=partial(
-                utils.padded_collate,
-                padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
-            )
-            if not packed
-            else None,
+            collate_fn=(
+                partial(
+                    utils.padded_collate,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else None
+            ),
         )
 
         if self._is_rank_zero:
