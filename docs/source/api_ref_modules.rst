@@ -11,15 +11,18 @@ Modeling Components and Building Blocks
     :toctree: generated/
     :nosignatures:
 
-    CausalSelfAttention
+    MultiHeadAttention
     FeedForward
     KVCache
     get_cosine_schedule_with_warmup
     RotaryPositionalEmbeddings
     RMSNorm
     Fp32LayerNorm
-    TransformerDecoderLayer
+    TanhGate
+    TransformerSelfAttentionLayer
+    TransformerCrossAttentionLayer
     TransformerDecoder
+    TiedEmbeddingTransformerDecoder
     VisionTransformer
 
 Base Tokenizers
@@ -35,6 +38,8 @@ model specific tokenizers.
 
     tokenizers.SentencePieceBaseTokenizer
     tokenizers.TikTokenBaseTokenizer
+    tokenizers.ModelTokenizer
+    tokenizers.BaseTokenizer
 
 Tokenizer Utilities
 -------------------
@@ -63,6 +68,21 @@ PEFT Components
     peft.validate_state_dict_for_lora
     peft.disable_adapter
 
+
+Fusion Components
+-----------------
+Components for building models that are a fusion of two+ pre-trained models.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    model_fusion.DeepFusionModel
+    model_fusion.FusionLayer
+    model_fusion.FusionEmbedding
+    model_fusion.register_fusion_module
+
+
 Module Utilities
 ------------------
 These are utilities that are common to and can be used by all modules.
@@ -73,17 +93,6 @@ These are utilities that are common to and can be used by all modules.
 
    common_utils.reparametrize_as_dtype_state_dict_post_hook
 
-Loss
-------------------
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
-   loss.DPOLoss
-   loss.RSOLoss
-   loss.IPOLoss
-
 
 Vision Transforms
 ------------------
@@ -93,8 +102,32 @@ Functions used for preprocessing images.
    :toctree: generated/
    :nosignatures:
 
-    transforms.get_canvas_best_fit
-    transforms.resize_with_pad
-    transforms.tile_crop
-    transforms.find_supported_resolutions
+    transforms.Transform
     transforms.VisionCrossAttentionMask
+
+Reinforcement Learning From Human Feedback (RLHF)
+--------------------------------------------------
+Components for RLHF algorithms like PPO.
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+    rlhf.estimate_advantages
+    rlhf.get_rewards_ppo
+    rlhf.truncate_sequence_at_first_stop_token
+    rlhf.left_padded_collate
+    rlhf.padded_collate_dpo
+
+Losses
+^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   rlhf.loss.PPOLoss
+   rlhf.loss.DPOLoss
+   rlhf.loss.RSOLoss
+   rlhf.loss.IPOLoss
+   rlhf.loss.SimPOLoss

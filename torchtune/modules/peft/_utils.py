@@ -9,7 +9,7 @@ from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set
 
 from torch import nn
 
-# Modules from CausalSelfAttention that LoRA can be applied to
+# Modules from MultiHeadAttention that LoRA can be applied to
 LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
 
 
@@ -320,7 +320,7 @@ def validate_missing_and_unexpected_for_lora(
 
     Raises:
         AssertionError: if base_missing contains any base model keys.
-        AssertionError: if base_unexpect is nonempty.
+        AssertionError: if base_unexpected is nonempty.
         AssertionError: if lora_missing contains any LoRA keys.
         AssertionError: if lora_unexpected is nonempty.
     """

@@ -348,7 +348,7 @@ class QATRecipeDistributed(FTRecipeInterface):
             module=model,
             auto_wrap_policy=utils.get_full_finetune_fsdp_wrap_policy(
                 memory_efficient_fsdp_wrap=memory_efficient_fsdp_wrap,
-                modules_to_wrap={modules.TransformerDecoderLayer},
+                modules_to_wrap={modules.TransformerSelfAttentionLayer},
             ),
             cpu_offload=CPUOffload(offload_params=fsdp_cpu_offload),
             sharding_strategy=torch.distributed.fsdp.ShardingStrategy.FULL_SHARD,
@@ -373,7 +373,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         # original activation checkpointing (full) - flip the condition above
         if enable_activation_checkpointing and ac_mode is None:
             utils.set_activation_checkpointing(
-                model, auto_wrap_policy={modules.TransformerDecoderLayer}
+                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
         if self._is_rank_zero:
@@ -419,13 +419,13 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
-                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer)
+                config.instantiate(single_cfg_dataset, self._tokenizer)
                 for single_cfg_dataset in cfg_dataset
             ]
             ds = ConcatDataset(datasets=datasets)
             packed = False
         else:
-            ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+            ds = config.instantiate(cfg_dataset, self._tokenizer)
             packed = cfg_dataset.get("packed", False)
 
         sampler = DistributedSampler(

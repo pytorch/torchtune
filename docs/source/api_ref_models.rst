@@ -23,10 +23,10 @@ To download the Llama3-70B-Instruct model:
 
 .. code-block:: bash
 
-    tune download meta-llama/Meta-Llama-3-70B-Instruct --hf-token <HF_TOKEN> --ignore-patterns "original/consolidated*"
+    tune download meta-llama/Meta-Llama-3-70B-Instruct --ignore-patterns "original/consolidated*" --hf-token <HF_TOKEN>
 
-To download the Llama3.1 weights of the above models, you can instead download from `Meta-Llama-3.1-8B-Instruct`
-or `Meta-Llama-3.1-70B-Instruct`.
+To download the Llama3.1 weights of the above models, you can instead download from `Meta-Llama-3.1-8B-Instruct`,
+`Meta-Llama-3.1-70B-Instruct`, or `Meta-Llama-3.1-405B-Instruct`.
 
 .. autosummary::
     :toctree: generated/
@@ -53,6 +53,7 @@ or `Meta-Llama-3.1-70B-Instruct`.
     llama3_1.llama3_1_70b
     llama3_1.lora_llama3_1_70b
     llama3_1.qlora_llama3_1_70b
+    llama3_1.llama3_1_405b
 
 
 .. note::
@@ -104,6 +105,7 @@ To download the Llama2-70B model:
     llama2.llama2_reward_7b
     llama2.lora_llama2_reward_7b
     llama2.qlora_llama2_reward_7b
+    llama2.Llama2ChatTemplate
 
 
 code llama
@@ -133,6 +135,31 @@ To download the CodeLlama-7B model:
     code_llama2.lora_code_llama2_70b
     code_llama2.qlora_code_llama2_70b
 
+qwen-2
+------
+
+Models of size 0.5B, 1.5B, and 7B from the `Qwen2 family <https://huggingface.co/collections/Qwen/qwen2-6659360b33528ced941e557f>`_.
+
+To download the Qwen2 1.5B model, for example:
+
+.. code-block:: bash
+
+    tune download Qwen/Qwen2-1.5B-Instruct --output-dir /tmp/Qwen2-1.5B-Instruct --ignore-patterns None
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    qwen2.qwen2
+    qwen2.lora_qwen2
+    qwen2.qwen2_7b
+    qwen2.qwen2_0_5b
+    qwen2.qwen2_1_5b
+    qwen2.lora_qwen2_7b
+    qwen2.lora_qwen2_0_5b
+    qwen2.lora_qwen2_1_5b
+    qwen2.qwen2_tokenizer
+    qwen2.Qwen2Tokenizer
 
 phi-3
 -----
@@ -143,7 +170,7 @@ To download the Phi-3 Mini 4k instruct model:
 
 .. code-block:: bash
 
-    tune download microsoft/Phi-3-mini-4k-instruct --hf-token <HF_TOKEN> --ignore-patterns ""
+    tune download microsoft/Phi-3-mini-4k-instruct --ignore-patterns None --hf-token <HF_TOKEN>
 
 .. autosummary::
     :toctree: generated/
@@ -187,6 +214,7 @@ To download the Mistral 7B v0.1 model:
     mistral.qlora_mistral_reward_7b
     mistral.mistral_tokenizer
     mistral.MistralTokenizer
+    mistral.MistralChatTemplate
 
 
 gemma
@@ -200,13 +228,13 @@ To download the Gemma 2B model:
 
 .. code-block:: bash
 
-    tune download google/gemma-2b --hf-token <HF_TOKEN> --ignore-patterns ""
+    tune download google/gemma-2b --ignore-patterns None  --hf-token <HF_TOKEN>
 
 To download the Gemma 7B model:
 
 .. code-block:: bash
 
-    tune download google/gemma-7b --hf-token <HF_TOKEN> --ignore-patterns "gemma-7b.gguf"
+    tune download google/gemma-7b --ignore-patterns "gemma-7b.gguf"  --hf-token <HF_TOKEN>
 
 .. autosummary::
     :toctree: generated/

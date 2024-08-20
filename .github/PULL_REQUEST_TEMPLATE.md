@@ -20,3 +20,11 @@ Please make sure to do each of the following if applicable to your PR. (If you'r
 - [ ] run recipe tests via `pytest tests -m integration_test`
 - [ ] manually run any new or modified recipes with sufficient proof of correctness
 - [ ] include relevant commands and any other artifacts in this summary (pastes of loss curves, eval results, etc.)
+
+#### UX
+If your function changed a public API, please add a dummy example of what the user experience will look like when calling it.
+Example of docstring: https://github.com/pytorch/torchtune/blob/6a7951f1cdd0b56a9746ef5935106989415f50e3/torchtune/modules/vision_transformer.py#L285
+Example in our docs: https://pytorch.org/torchtune/main/tutorials/qat_finetune.html#applying-qat-to-llama3-models
+
+- [ ] I did not change any public API;
+- [ ] I have added an example to docs or docstrings;

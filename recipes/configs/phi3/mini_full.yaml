@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --hf-token <HF_TOKEN> --ignore-patterns ""
+#   tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --ignore-patterns None --hf-token <HF_TOKEN>
 #
 # Run this config on 4 GPUs using the following:
 #  tune run --nproc_per_node 4 full_finetune_distributed --config phi3/mini_full
@@ -61,10 +61,10 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True
-memory_efficient_fsdp_wrap: False
 dtype: bf16
 
 # Logging
+output_dir: /tmp/phi3_finetune_output
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: /tmp/Phi-3-mini-4k-instruct/logs

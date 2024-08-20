@@ -11,12 +11,12 @@ import torch
 
 from torch import nn
 from torchtune.models.llama2 import llama2, lora_llama2
-from torchtune.modules.peft import LoRALinear
-from torchtune.modules.peft.peft_utils import (
+from torchtune.modules.peft import (
     AdapterModule,
     disable_adapter,
     get_adapter_params,
     get_merged_lora_ckpt,
+    LoRALinear,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
     validate_state_dict_for_lora,

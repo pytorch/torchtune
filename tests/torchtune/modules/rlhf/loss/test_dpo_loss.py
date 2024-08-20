@@ -6,7 +6,7 @@
 
 import pytest
 import torch
-from torchtune.modules.loss import DPOLoss, IPOLoss, RSOLoss
+from torchtune.modules.rlhf.loss import DPOLoss, IPOLoss, RSOLoss, SimPOLoss
 
 
 @pytest.fixture(autouse=True)
@@ -32,6 +32,14 @@ class TestDPOLosses:
     def ipo_loss(self):
         return IPOLoss(
             tau=0.1,
+        )
+
+    @pytest.fixture
+    def simpo_loss(self):
+        return SimPOLoss(
+            beta=2.0,
+            gamma=0.5,
+            label_smoothing=0.0,
         )
 
     @pytest.fixture
@@ -117,4 +125,25 @@ class TestDPOLosses:
         """
         expected_losses = torch.tensor([25.0, 25.0, 225.0])
         losses, *_ = ipo_loss(*loss_inputs)
+        torch.testing.assert_close(losses, expected_losses, atol=1e-4, rtol=1e-5)
+
+    def test_simpo_loss(self, simpo_loss, loss_inputs):
+        """
+        here's the maths (see `loss_inputs`):
+        ratios = torch.tensor([-0.4, 20.0, 20.0])
+        gamma_logratios = 0.25
+
+            logits is ratios - gamma_logratios
+
+        logits = torch.tensor([-0.65, 19.75, 19.75])
+        scaled_logits = beta * logits = torch.tensor([-1.3,  39.5, 39.5])
+
+        since label_smoothing is zero, loss is NLL with temperature scaled logits
+        """
+        policy_chosen_logprobs, policy_rejected_logprobs, *_ = loss_inputs
+        exp_scaled_logits = torch.exp(torch.tensor([1.3, -39.5, -39.5]))
+
+        expected_losses = -(1 / (1 + exp_scaled_logits)).log()
+        losses, *_ = simpo_loss(policy_chosen_logprobs, policy_rejected_logprobs)
+
         torch.testing.assert_close(losses, expected_losses, atol=1e-4, rtol=1e-5)

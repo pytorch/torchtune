@@ -14,7 +14,7 @@ import torch
 from torch import randn
 
 from torchtune.models import gemma, llama2, mistral
-from torchtune.modules.peft.peft_utils import (
+from torchtune.modules.peft import (
     get_adapter_params,
     get_lora_module_names,
     validate_missing_and_unexpected_for_lora,

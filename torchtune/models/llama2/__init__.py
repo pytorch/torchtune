@@ -26,10 +26,12 @@ from ._model_builders import (  # noqa
     qlora_llama2_7b,
     qlora_llama2_reward_7b,
 )
+from ._prompt_template import Llama2ChatTemplate
 from ._tokenizer import Llama2Tokenizer
 
 __all__ = [
     "Llama2Tokenizer",
+    "Llama2ChatTemplate",
     "llama2",
     "llama2_classifier",
     "lora_llama2_classifier",
@@ -41,6 +43,8 @@ __all__ = [
     "llama2_70b",
     "llama2_7b",
     "llama2_tokenizer",
+    "lora_llama2",
+    "llama2_classifier",
     "lora_llama2_13b",
     "lora_llama2_70b",
     "lora_llama2_7b",

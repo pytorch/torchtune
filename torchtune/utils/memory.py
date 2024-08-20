@@ -207,9 +207,11 @@ def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
             f"Logging memory stats is only supported on CUDA devices, got {device}"
         )
 
-    peak_memory_active = torch.cuda.memory_stats().get("active_bytes.all.peak", 0) / 1e9
-    peak_mem_alloc = torch.cuda.max_memory_allocated(device) / 1e9
-    peak_mem_reserved = torch.cuda.max_memory_reserved(device) / 1e9
+    peak_memory_active = torch.cuda.memory_stats().get("active_bytes.all.peak", 0) / (
+        1024**3
+    )
+    peak_mem_alloc = torch.cuda.max_memory_allocated(device) / (1024**3)
+    peak_mem_reserved = torch.cuda.max_memory_reserved(device) / (1024**3)
 
     if reset_stats:
         torch.cuda.reset_peak_memory_stats(device)
@@ -234,7 +236,7 @@ def log_memory_stats(stats: Dict[str, float]) -> None:
     """
     _log.info(
         "Memory stats after model init:"
-        f"\n\tGPU peak memory allocation: {stats['peak_memory_alloc']:.2f} GB"
-        f"\n\tGPU peak memory reserved: {stats['peak_memory_reserved']:.2f} GB"
-        f"\n\tGPU peak memory active: {stats['peak_memory_active']:.2f} GB"
+        f"\n\tGPU peak memory allocation: {stats['peak_memory_alloc']:.2f} GiB"
+        f"\n\tGPU peak memory reserved: {stats['peak_memory_reserved']:.2f} GiB"
+        f"\n\tGPU peak memory active: {stats['peak_memory_active']:.2f} GiB"
     )

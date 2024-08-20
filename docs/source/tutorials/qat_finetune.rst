@@ -26,7 +26,7 @@ resulting model, and evaluate your quantized model using torchtune.
 What is QAT?
 ------------
 
-Quantization-Aware Training (QAT) refers to simulating quantization numerics during
+`Quantization-Aware Training <https://pytorch.org/blog/introduction-to-quantization-on-pytorch/#quantization-aware-training>`_ (QAT) refers to simulating quantization numerics during
 training or fine-tuning, with the end goal of ultimately producing a higher quality
 quantized model compared to simple post-training quantization (PTQ). During QAT,
 the weights and/or activations are “fake quantized”, meaning they are transformed
@@ -87,7 +87,7 @@ is ready for fine-tuning.
 .. code-block:: bash
 
   >>> print(model.layers[0].attn)
-  CausalSelfAttention(
+  MultiHeadAttention(
     (q_proj): Linear(in_features=4096, out_features=4096, bias=False)
     (k_proj): Linear(in_features=4096, out_features=1024, bias=False)
     (v_proj): Linear(in_features=4096, out_features=1024, bias=False)
@@ -96,7 +96,7 @@ is ready for fine-tuning.
   )
 
   >>> print(prepared_model.layers[0].attn)
-  CausalSelfAttention(
+  MultiHeadAttention(
     (q_proj): Int8DynActInt4WeightQATLinear(in_features=4096, out_features=4096, bias=False)
     (k_proj): Int8DynActInt4WeightQATLinear(in_features=4096, out_features=1024, bias=False)
     (v_proj): Int8DynActInt4WeightQATLinear(in_features=4096, out_features=1024, bias=False)
@@ -106,7 +106,7 @@ is ready for fine-tuning.
 
 After fine-tuning, we can convert the model to get an actual quantized model.
 If we print the converted model, we’ll see that the QAT linears have been
-swapped with :code:`Int8DynActInt4WeightLinear`, which are the quantized versions
+swapped with `Int8DynActInt4WeightLinear <https://github.com/pytorch/ao/blob/428084356ace4ea94c22a3a9b3d74cff8ee41db3/torchao/quantization/prototype/qat.py#L38>`_, which are the quantized versions
 of the linear layers. This quantized model can then be saved to checkpoint and
 used for inference or generation.
 
@@ -121,7 +121,7 @@ used for inference or generation.
 .. code-block:: bash
 
   >>> print(converted_model.layers[0].attn)
-  CausalSelfAttention(
+  MultiHeadAttention(
     (q_proj): Int8DynActInt4WeightLinear()
     (k_proj): Int8DynActInt4WeightLinear()
     (v_proj): Int8DynActInt4WeightLinear()
@@ -167,7 +167,8 @@ modifications accordingly:
 
 .. note::
 
-  QAT in torchtune is currently not compatible with :code:`memory_efficient_fsdp_wrap`. This is a known issue and will be fixed in a future torchtune version.
+  QAT in torchtune is currently not compatible with `memory_efficient_fsdp_wrap <https://pytorch.org/torchtune/stable/generated/torchtune.utils.get_full_finetune_fsdp_wrap_policy.html#torchtune.utils.get_full_finetune_fsdp_wrap_policy>`_.
+  This is a known issue and will be fixed in a future torchtune version.
 
 Empirically, we observed that disabling fake quantization for the first N steps
 led to better results, presumably because doing so allows the weights to stabilize

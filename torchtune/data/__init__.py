@@ -12,18 +12,26 @@ from torchtune.data._chat_formats import (
 )
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._converters import get_openai_messages, get_sharegpt_messages
-from torchtune.data._instruct_templates import (
-    AlpacaInstructTemplate,
+from torchtune.data._instruct_templates import InstructTemplate
+from torchtune.data._messages import (
+    ChosenRejectedToMessages,
+    InputOutputToMessages,
+    JSONToMessages,
+    Message,
+    Role,
+    ShareGPTToMessages,
+)
+from torchtune.data._prompt_templates import (
+    ChatMLTemplate,
     GrammarErrorCorrectionTemplate,
-    InstructTemplate,
-    StackExchangedPairedTemplate,
+    PromptTemplate,
+    PromptTemplateInterface,
+    QuestionAnswerTemplate,
     SummarizeTemplate,
 )
-from torchtune.data._types import Message, Role
 from torchtune.data._utils import truncate, validate_messages
 
 __all__ = [
-    "AlpacaInstructTemplate",
     "ChatFormat",
     "CROSS_ENTROPY_IGNORE_IDX",
     "GrammarErrorCorrectionTemplate",
@@ -32,11 +40,18 @@ __all__ = [
     "Llama2ChatFormat",
     "MistralChatFormat",
     "ChatMLFormat",
-    "get_openai_messages",
-    "get_sharegpt_messages",
+    "JSONToMessages",
+    "ShareGPTToMessages",
     "truncate",
     "Message",
     "validate_messages",
-    "StackExchangedPairedTemplate",
     "Role",
+    "PromptTemplateInterface",
+    "PromptTemplate",
+    "InputOutputToMessages",
+    "ChosenRejectedToMessages",
+    "QuestionAnswerTemplate",
+    "ChatMLTemplate",
+    "get_openai_messages",
+    "get_sharegpt_messages",
 ]
