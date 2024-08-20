@@ -6,7 +6,7 @@
 
 from typing import Dict, Optional
 
-from torchtune.data import ChosenRejectedToMessages, PromptTemplate
+from torchtune.data import ChosenRejectedToMessages
 from torchtune.datasets._preference import PreferenceDataset
 from torchtune.modules.tokenizers import ModelTokenizer
 
@@ -16,7 +16,6 @@ def hh_rlhf_helpful_dataset(
     *,
     source: str = "RLHFlow/HH-RLHF-Helpful-standard",
     column_map: Optional[Dict[str, str]] = None,
-    prompt_template: Optional[PromptTemplate] = None,
     train_on_input: bool = False,
     split: str = "train",
 ) -> PreferenceDataset:
@@ -35,8 +34,6 @@ def hh_rlhf_helpful_dataset(
             for more details. Default is ``RLHFlow/HH-RLHF-Helpful-standard``.
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the prompt template
             to the new column names in the dataset. If None, assume these are identical.
-        prompt_template (Optional[PromptTemplate]): optional template used to format the prompt. Default
-            is None.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
@@ -53,6 +50,5 @@ def hh_rlhf_helpful_dataset(
         source=source,
         message_transform=message_transform,
         tokenizer=tokenizer,
-        prompt_template=prompt_template,
         split=split,
     )

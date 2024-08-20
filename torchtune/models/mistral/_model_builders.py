@@ -11,6 +11,8 @@ from torchtune.models.mistral._component_builders import (
     mistral_classifier,
     lora_mistral_classifier,
 )
+from torchtune.data._prompt_templates import _TemplateType
+from torchtune.config._utils import _get_prompt_template
 
 from torchtune.modules import TransformerDecoder
 from torchtune.models.mistral._tokenizer import MistralTokenizer
@@ -46,7 +48,7 @@ def mistral_7b() -> TransformerDecoder:
     )
 
 
-def mistral_tokenizer(path: str, max_seq_len: Optional[int] = None) -> MistralTokenizer:
+def mistral_tokenizer(path: str, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = "torchtune.models.mistral.MistralChatTemplate") -> MistralTokenizer:
     """
     Tokenizer for Mistral models.
 
@@ -54,11 +56,15 @@ def mistral_tokenizer(path: str, max_seq_len: Optional[int] = None) -> MistralTo
         path (str): path to the tokenizer
         max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
             after which the input will be truncated. Default is None.
+        prompt_template (Optional[_TemplateType]): optional specified prompt template.
+            If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
+            class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
+            prepend/append tags. Default is :class:`~torchtune.models.mistral.MistralChatTemplate`.
 
     Returns:
         MistralTokenizer: Instantiation of the Mistral tokenizer
     """
-    return MistralTokenizer(path=path, max_seq_len=max_seq_len)
+    return MistralTokenizer(path=path, max_seq_len=max_seq_len, prompt_template=_get_prompt_template(prompt_template) if prompt_template is not None else None)
 
 
 def lora_mistral_7b(

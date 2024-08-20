@@ -86,6 +86,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
+            tokenizer.prompt_template=null \
             metric_logger.filename={log_file} \
             compile={compile} \
         """.split()
@@ -134,6 +135,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2"]
@@ -155,6 +157,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
         """.split()
@@ -180,6 +183,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
             "dtype=fp32",
             "enable_activation_checkpointing=False",
             "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
+            "tokenizer.prompt_template=null",
             "dataset=tests.recipes.utils.DummyDataset",
             "dataset.train_on_input=False",
             "seed=9",
