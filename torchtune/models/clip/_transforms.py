@@ -11,12 +11,12 @@ import torch
 import torchvision
 from PIL import Image
 
-from torchtune.modules.transforms import (
+from torchtune.modules.transforms.vision_utils.get_canvas_best_fit import (
     find_supported_resolutions,
     get_canvas_best_fit,
-    resize_with_pad,
-    tile_crop,
 )
+from torchtune.modules.transforms.vision_utils.resize_with_pad import resize_with_pad
+from torchtune.modules.transforms.vision_utils.tile_crop import tile_crop
 
 from torchvision.transforms.v2 import functional as F
 
