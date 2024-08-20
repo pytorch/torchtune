@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, Optional, Union, Tuple
+from typing import Dict, Optional, Union
 
 from torchtune.data import ShareGPTToMessages
 from torchtune.datasets._packed import PackedDataset
@@ -40,7 +40,8 @@ def slimorca_dataset(
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details. Default is ``Open-Orca/SlimOrca-Dedup``.
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the message transform
-            :class:`~torchtune.data.ShareGPTToMessages` to the new column names in the dataset. If None, use
+            :class:`~torchtune.data.ShareGPTToMessages` to the new column names in the dataset. Key should
+            be "conversations" and value should be the new column name. If None, use
             the default column name ``"conversations"`` in ``Open-Orca/SlimOrca-Dedup``.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to tokenizer's ``max_seq_len`` prior to training. Default is False.

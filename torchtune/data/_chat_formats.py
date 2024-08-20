@@ -8,14 +8,14 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple
 
 from torchtune.data._messages import Message, Role
-from torchtune.utils.logging import deprecated
 
 
-@deprecated(
-    msg="Please use `torchtune.data.PromptTemplateInterface` to define a custom chat template."
-)
 class ChatFormat(ABC):
     """
+    Note:
+        This class is deprecated and will be removed in a future release. Please use
+        :class:`~torchtune.data.PromptTemplate` for custom chat formats.
+
     Interface for chat formats. Each chat format should include tags for system,
     user, and assistant roles that are prepended or appended to the message
     content.

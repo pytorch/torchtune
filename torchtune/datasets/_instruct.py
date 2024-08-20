@@ -4,19 +4,17 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Optional
 
 import numpy as np
 from datasets import load_dataset
 from torch.utils.data import Dataset
 from torchtune.data import (
     CROSS_ENTROPY_IGNORE_IDX,
+    InputOutputToMessages,
     InstructTemplate,
     Message,
     validate_messages,
-    Role,
-    InputOutputToMessages,
-    PromptTemplate,
 )
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
@@ -24,7 +22,9 @@ from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.utils.logging import deprecated
 
 
-@deprecated(msg="Please use `torchtune.datasets.SFTDataset` or :func:`~torchtune.datasets.instruct_dataset` for custom instruct data.")
+@deprecated(
+    msg="Please use `torchtune.datasets.SFTDataset` or :func:`~torchtune.datasets.instruct_dataset` for custom instruct data."
+)
 class InstructDataset(Dataset):
     """
     Note:
@@ -135,31 +135,32 @@ def instruct_dataset(
     *,
     source: str,
     column_map: Optional[Dict[str, str]] = None,
-    prompt_template: Optional[Dict[Role, Tuple[str, str]]] = None,
     train_on_input: bool = False,
     packed: bool = False,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> InstructDataset:
     """
-    Quickly configure a custom dataset with user instruction prompts and model responses
-    and an optional prompt template.
+    Quickly configure a custom dataset with user instruction prompts and model responses.
 
     The dataset should follow this format::
 
         |  input          |  output          |
         |-----------------|------------------|
         | "user prompt"   | "model response" |
-    
+
     If your column names are different, you can use the ``column_map`` parameter to change
-    the expected column names.
+    the expected column names. For example, if your dataset has columns ``"question"`` and
+    ``"answer"`` you can use::
+
+        column_map = {"input": "question", "output": "answer"}
 
     Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is
     set to ``False`` by default
     - If ``train_on_input`` is True, the prompt is used during training and
     contributes to the loss.
     - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)
-    
-    This builder function can be used to configure a custom instruct dataset directly from the yaml config 
+
+    This builder function can be used to configure a custom instruct dataset directly from the yaml config
     as an alternative to :class:`~torchtune.datasets.SFTDataset`, as it is made to be config friendly.
 
     Args:
@@ -170,10 +171,9 @@ def instruct_dataset(
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details.
         column_map (Optional[Dict[str, str]]): a mapping to change the expected "input"
-            and "output" column names to the actual column names in the dataset. Default is None,
-            keeping the default "input" and "output" column names.
-        prompt_template (Optional[Dict[Role, Tuple[str, str]]]): optional template used to format the prompt.
-            Default is None.
+            and "output" column names to the actual column names in the dataset. Keys should be "input" and
+            "output" and values should be the new column names. Default is None, keeping the default "input"
+            and "output" column names.
         train_on_input (bool): Whether the model is trained on the user prompt or not.
             Default is False.
         packed (bool): Whether or not to pack the dataset to tokenizer's ``max_seq_len`` prior to training. Default is False.
@@ -201,10 +201,6 @@ def instruct_dataset(
         ...     tokenizer=tokenizer,
         ...     source="json",
         ...     data_files="my_dataset.json",
-        ...     prompt_template={
-        ...         "user": ("Question: ", " Answer: "),
-        ...         "assistant": ("", ""),
-        ...     },
         ...     column_map={
         ...         "input": "question",
         ...         "output": "answer",
@@ -215,7 +211,7 @@ def instruct_dataset(
         ... )
         >>> tokens = dataset[0]["tokens"]
         >>> tokenizer.decode(tokens)
-        "Question: What time is it in London? Answer: It is 10:00 AM in London."
+        "What time is it in London?It is 10:00 AM in London."
 
     This can also be accomplished via the yaml config::
 
@@ -241,7 +237,6 @@ def instruct_dataset(
     Raises:
         ValueError: If ``packed=True`` and ``tokenizer.max_seq_len`` is not set.
     """
-    template = PromptTemplate(template=prompt_template) if prompt_template is not None else None
 
     message_transform = InputOutputToMessages(
         train_on_input=train_on_input, column_map=column_map
@@ -251,7 +246,6 @@ def instruct_dataset(
         source=source,
         message_transform=message_transform,
         model_transform=tokenizer,
-        prompt_template=template,
     )
     if packed:
         if tokenizer.max_seq_len is None:

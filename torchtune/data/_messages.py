@@ -131,7 +131,8 @@ class InputOutputToMessages(Transform):
         train_on_input (bool): Whether the model is trained on the user prompt or not.
             Default is False.
         column_map (Optional[Dict[str, str]]): a mapping to change the expected "input"
-            and "output" column names to the actual column names in the dataset. Default is None,
+            and "output" column names to the actual column names in the dataset. Keys should
+            be "input" and "output" and values should be the new column names. Default is None,
             keeping the default "input" and "output" column names.
 
     Raises:
@@ -202,6 +203,7 @@ class ChosenRejectedToMessages(Transform):
             Default is False.
         column_map (Optional[Dict[str, str]]): a mapping to change the expected
             "chosen" and "rejected" column names to the actual column names in the dataset.
+            Keys should be "chosen" and "rejected" and values should be the new column names.
             Default is None, keeping the default column names.
 
     Raises:
@@ -274,7 +276,8 @@ class ShareGPTToMessages(Transform):
     Args:
         train_on_input (bool): whether the prompt should remain unmasked. Default: False
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("conversations")
-            to the new column names in the dataset. If None, assume these are identical.
+            to the new column names in the dataset. Key should be "conversations" and value should
+            be the new column name. If None, keep the default "conversations".
             Default is None.
 
     Raises:
@@ -346,7 +349,8 @@ class JSONToMessages(Transform):
     Args:
         train_on_input (bool): whether the prompt should remain unmasked. Default: False
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("messages")
-            to the new column names in the dataset. If None, assume these are identical.
+            to the new column names in the dataset. Key should be "messages" and value should be
+            the new column name. If None, keep the default "messages".
             Default is None.
 
     Raises:
