@@ -16,7 +16,7 @@ ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
 
 
 class TestQwen2Tokenizer:
-    def tokenizer(self, template: bool = False, max_seq_len: Optional[int] = 2048):
+    def tokenizer(self, template: bool = False, max_seq_len: Optional[int] = None):
         return qwen2_tokenizer(
             path=str(ASSETS / "tiny_bpe_vocab.json"),
             merges_file=str(ASSETS / "tiny_bpe_merges.txt"),
