@@ -30,7 +30,7 @@ class InstructDataset(Dataset):
     Note:
         This class is deprecated and will be removed in a future release. Please use
         :class:`~torchtune.datasets.SFTDataset` or :func:`~torchtune.datasets.instruct_dataset`
-        for custom instruct data. The following are equivalent:
+        for custom instruct data.
 
     Class that supports any custom dataset with instruction-based prompts and a
     configurable template.

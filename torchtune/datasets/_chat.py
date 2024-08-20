@@ -30,7 +30,7 @@ class ChatDataset(Dataset):
     Note:
         This class is deprecated and will be removed in a future release. Please use
         :class:`~torchtune.datasets.SFTDataset` or :func:`~torchtune.datasets.chat_dataset`
-        for custom chat data. The following are equivalent:
+        for custom chat data.
 
     Class that supports any custom dataset with multiturn conversations.
 
