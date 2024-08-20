@@ -16,10 +16,10 @@ from torchtune.data import (
     Message,
     validate_messages,
 )
+from torchtune.data._utils import deprecated
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.tokenizers import ModelTokenizer
-from torchtune.utils.logging import deprecated
 
 
 @deprecated(
@@ -242,6 +242,7 @@ def instruct_dataset(
         source=source,
         message_transform=message_transform,
         model_transform=tokenizer,
+        **load_dataset_kwargs,
     )
     if packed:
         if tokenizer.max_seq_len is None:
@@ -249,3 +250,4 @@ def instruct_dataset(
                 "PackedDataset requires a max_seq_len to be set on the tokenizer."
             )
         return PackedDataset(ds, max_seq_len=tokenizer.max_seq_len)
+    return ds

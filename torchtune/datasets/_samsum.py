@@ -86,3 +86,4 @@ def samsum_dataset(
                 "PackedDataset requires a max_seq_len to be set on the tokenizer."
             )
         return PackedDataset(ds, max_seq_len=tokenizer.max_seq_len)
+    return ds
