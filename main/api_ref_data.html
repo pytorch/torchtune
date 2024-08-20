@@ -484,16 +484,16 @@ and models.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.data.InputOutputToMessages.html#torchtune.data.InputOutputToMessages" title="torchtune.data.InputOutputToMessages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InputOutputToMessages</span></code></a></p></td>
-<td><p>Message transform class that converts a sample with &quot;input&quot; and &quot;output&quot; fields, (or equivalent fields specified in column_map) to user and assistant messages, respectively.</p></td>
+<td><p>Message transform class that converts a single sample with &quot;input&quot; and &quot;output&quot; fields, (or equivalent fields specified in column_map) to user and assistant messages, respectively.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.data.ShareGPTToMessages.html#torchtune.data.ShareGPTToMessages" title="torchtune.data.ShareGPTToMessages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShareGPTToMessages</span></code></a></p></td>
-<td><p>Convert a chat sample adhering to the ShareGPT json structure to torchtune's <a class="reference internal" href="generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> structure.</p></td>
+<td><p>Convert a single chat sample adhering to the ShareGPT json structure to torchtune's <a class="reference internal" href="generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> structure.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.data.JSONToMessages.html#torchtune.data.JSONToMessages" title="torchtune.data.JSONToMessages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">JSONToMessages</span></code></a></p></td>
-<td><p>Convert a chat sample with identical json structure to torchtune's <a class="reference internal" href="generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> structure.</p></td>
+<td><p>Convert a single chat sample with identical json structure to torchtune's <a class="reference internal" href="generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> structure.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.data.ChosenRejectedToMessages.html#torchtune.data.ChosenRejectedToMessages" title="torchtune.data.ChosenRejectedToMessages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ChosenRejectedToMessages</span></code></a></p></td>
-<td><p>Transform for converting datasets with &quot;chosen&quot; and &quot;rejected&quot; columns containing conversations to a list of chosen and rejected messages. For example::.</p></td>
+<td><p>Transform for converting a single sample from datasets with &quot;chosen&quot; and &quot;rejected&quot; columns containing conversations to a list of chosen and rejected messages. For example::.</p></td>
 </tr>
 </tbody>
 </table>
