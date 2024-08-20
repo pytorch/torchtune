@@ -179,7 +179,7 @@ class TestVisionTransformer:
         # Target based off of reference nn.TransformerEncoderLayer implementation
         assert_expected(
             torch.stack(hidden_layers, dim=-1).mean(),
-            torch.tensor(8.3112),  # 8.238683700  Old: 6.6938
+            torch.tensor(8.3112),
             atol=1e-3,
             rtol=1e-3,
         )

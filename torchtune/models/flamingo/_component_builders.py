@@ -22,7 +22,7 @@ from torchtune.modules import (
 
 
 """
-Component builders for the Flamingo model and it's constituant models.
+Component builders for the Flamingo model and its constituent models.
 torchtune provides composable building blocks. Builder functions help
 stitch these building blocks into higher-level components. This design has
 two benefits:
@@ -34,6 +34,7 @@ the building blocks simple.
 
 def flamingo_vision_encoder(
     # clip encoder parameters
+    *,
     patch_size: int,
     num_heads: int,
     clip_embed_dim: int,
@@ -48,7 +49,7 @@ def flamingo_vision_encoder(
     in_channels: int = 3,
     ) -> FlamingoEncoder:
     """
-    Build the encoder associated with the CLIP image model with an additonal
+    Build the Flamingo encoder by combing the CLIP image model with an additonal
     projection head fusion module. This includes:
     - Spatial positional encodings
     - CLIP model backbone
@@ -140,10 +141,11 @@ def flamingo_vision_encoder(
         num_hidden_inputs=num_hidden_inputs
     )
 
-    return FlamingoEncoder(encoder=clip, projection_head=projection_head)
+    return FlamingoEncoder(clip=clip, projection_head=projection_head)
 
 
 def flamingo_decoder(
+    *,
     vocab_size: int,
     num_layers: int,
     fusion_interval: int,
