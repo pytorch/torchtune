@@ -9,9 +9,9 @@ from typing import Dict, List, Optional, Union
 import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
+from torchtune.modules import MultiHeadAttention
 
 from torchtune.utils.attention_bias import _MaskType
-from torchtune.modules import MultiHeadAttention
 
 
 class TransformerSelfAttentionLayer(nn.Module):
@@ -66,7 +66,7 @@ class TransformerSelfAttentionLayer(nn.Module):
         self,
         x: Tensor,
         *,
-        mask: _MaskType = None,
+        mask: Optional[_MaskType] = None,
         input_pos: Optional[Tensor] = None,
         **kwargs: Dict,
     ) -> Tensor:
@@ -74,7 +74,7 @@ class TransformerSelfAttentionLayer(nn.Module):
         Args:
             x (Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
-            mask (_MaskType): Optional boolean tensor which contains the attention mask
+            mask (Optional[_MaskType]): Optional boolean tensor which contains the attention mask
                 with shape [batch_size x seq_length x seq_length]. This is applied after
                 the query-key multiplication and before the softmax. A value of True in row i
                 and column j means token i attends to token j. A value of False means token i
@@ -380,7 +380,7 @@ class TransformerDecoder(nn.Module):
         self,
         tokens: Tensor,
         *,
-        mask: _MaskType = None,
+        mask: Optional[_MaskType] = None,
         encoder_input: Optional[Tensor] = None,
         encoder_mask: Optional[Tensor] = None,
         input_pos: Optional[Tensor] = None,
@@ -388,7 +388,7 @@ class TransformerDecoder(nn.Module):
         """
         Args:
             tokens (Tensor): input tensor with shape [b x s]
-            mask (_MaskType): Optional boolean tensor which contains the attention mask
+            mask (Optional[_MaskType]): Optional boolean tensor which contains the attention mask
                 with shape [b x s x s]. This is applied after
                 the query-key multiplication and before the softmax. A value of True in row i
                 and column j means token i attends to token j. A value of False means token i
@@ -578,7 +578,7 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         self,
         tokens: Tensor,
         *,
-        mask: _MaskType = None,
+        mask: Optional[_MaskType] = None,
         encoder_input: Optional[Tensor] = None,
         encoder_mask: Optional[Tensor] = None,
         input_pos: Optional[Tensor] = None,
@@ -586,7 +586,7 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         """
         Args:
             tokens (Tensor): input tensor with shape [b x s]
-            mask (_MaskType): Optional boolean tensor which contains the attention mask
+            mask (Optional[_MaskType]): Optional boolean tensor which contains the attention mask
                 with shape [b x s x s]. This is applied after
                 the query-key multiplication and before the softmax. A value of True in row i
                 and column j means token i attends to token j. A value of False means token i

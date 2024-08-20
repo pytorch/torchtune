@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional, Union
+from typing import Union
 
 import torch
 
@@ -14,9 +14,9 @@ from torchtune.utils._version import torch_version_ge
 if torch_version_ge("2.5.0"):
     from torch.nn.attention.flex_attention import BlockMask, create_block_mask
 
-    _MaskType = Optional[Union[Tensor, BlockMask]]
+    _MaskType = Union[Tensor, BlockMask]
 else:
-    _MaskType = Optional[Tensor]
+    _MaskType = Tensor
 
 
 def _get_document_ids_from_seq_lens(

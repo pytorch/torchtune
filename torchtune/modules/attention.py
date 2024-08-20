@@ -26,7 +26,7 @@ if torch_version_ge("2.5.0"):
         q: Tensor,
         k: Tensor,
         v: Tensor,
-        mask: _MaskType,
+        mask: Optional[_MaskType],
         dropout_p: float,
         is_causal: bool,
     ) -> Tensor:
@@ -71,7 +71,7 @@ else:
         q: Tensor,
         k: Tensor,
         v: Tensor,
-        mask: _MaskType,
+        mask: Optional[_MaskType],
         dropout_p: float,
         is_causal: bool,
     ) -> Tensor:
@@ -88,6 +88,7 @@ else:
             dropout_p=dropout_p,
             is_causal=is_causal,
         )
+
 
 logger = logging.getLogger(__name__)
 
@@ -249,19 +250,21 @@ class MultiHeadAttention(nn.Module):
         x: Tensor,
         y: Optional[Tensor] = None,
         *,
-        mask: _MaskType = None,
+        mask: Optional[_MaskType] = None,
         input_pos: Optional[Tensor] = None,
     ) -> Tensor:
         """
         Args:
             x (Tensor): input tensor with shape [b x s_x x d]
             y (Optional[Tensor]): second input tensor for cross attention with shape [b x s_y x d]
-            mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask
+            mask (Optional[_MaskType]): Optional boolean tensor which contains the attention mask
                 with shape [batch_size x seq_length x seq_length]. This is applied after
                 the query-key multiplication and before the softmax. A value of True in row i
                 and column j means token i attends to token j. A value of False means token i
                 does not attend to token j. If no mask is specified, a causal mask
-                is used by default. Default is None.
+                is used by default. If a BlockMask is passed for document masking in a packed
+                sequence, we use :func:`~torch.nn.attention.flex_attention.flex_attention` when
+                computing attention. Default is None.
             input_pos (Optional[Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
