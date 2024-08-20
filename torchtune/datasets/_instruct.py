@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, List, Mapping, Optional
+from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
 import numpy as np
 from datasets import load_dataset
@@ -138,7 +138,7 @@ def instruct_dataset(
     train_on_input: bool = False,
     packed: bool = False,
     **load_dataset_kwargs: Dict[str, Any],
-) -> InstructDataset:
+) -> Union[SFTDataset, PackedDataset]:
     """
     Quickly configure a custom dataset with user instruction prompts and model responses.
 
@@ -219,10 +219,6 @@ def instruct_dataset(
             _component_: torchtune.datasets.instruct_dataset
             source: json
             data_files: my_dataset.json
-            prompt_template:
-              user:
-              - "Question: "
-              - " Answer: "
             column_map:
               input: question
               output: answer
@@ -231,7 +227,7 @@ def instruct_dataset(
             split: train
 
     Returns:
-        InstructDataset or PackedDataset: the configured :class:`~torchtune.datasets.InstructDataset`
+        SFTDataset or PackedDataset: the configured :class:`~torchtune.datasets.SFTDataset`
             or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``
 
     Raises:
