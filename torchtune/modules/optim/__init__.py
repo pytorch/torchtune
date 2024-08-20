@@ -4,6 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from ._cpu_offload import CPUOffloadOptimizer
+from .cpu_offload import CPUOffloadOptimizer
 
 __all__ = ["CPUOffloadOptimizer"]
