@@ -10,9 +10,7 @@ import torch
 from torchtune.modules.transformer import TransformerDecoder
 
 
-def multinomial_sample_one(
-    probs: torch.Tensor, rng: Optional[torch.Generator] = None
-) -> torch.Tensor:
+def multinomial_sample_one(probs: torch.Tensor, rng: Optional[torch.Generator] = None) -> torch.Tensor:
     """Samples from a multinomial distribution."""
     q = torch.empty_like(probs).exponential_(1, generator=rng)
     return torch.argmax(probs / q, dim=-1, keepdim=True).to(dtype=torch.int)
@@ -94,9 +92,7 @@ def get_causal_mask(
         torch.Tensor: Boolean causal mask with shape [bsz x seq_length x seq_length]
     """
     _, seq_len = padding_mask.shape
-    mask = torch.tril(
-        torch.ones(seq_len, seq_len, device=padding_mask.device, dtype=bool), diagonal=0
-    )
+    mask = torch.tril(torch.ones(seq_len, seq_len, device=padding_mask.device, dtype=bool), diagonal=0)
     mask = mask & (padding_mask[:, None, :] & padding_mask[:, :, None])
     mask.diagonal(dim1=1, dim2=2)[:] = True
     return mask
@@ -112,6 +108,7 @@ def generate_with_logits(
     temperature: float = 1.0,
     top_k: Optional[int] = None,
     rng: Optional[torch.Generator] = None,
+    custom_generate_next_token=None,
 ):
     """
     Generates tokens from a model conditioned on a prompt, and also returns logits for the generations.
@@ -141,10 +138,12 @@ def generate_with_logits(
         torch.Tensor: Generated tokens.
     """
     prompt = prompt.view(1, -1) if prompt.ndim == 1 else prompt
-
+    # if custom_generate_next_token is None:
+    custom_generate_next_token = generate_next_token_with_logits
     _, prompt_length = prompt.size()
     generated_tokens = prompt.clone()
 
+    incremental_decoding = model.caches_are_enabled()
     for i in range(max_generated_tokens):
         padding_masks = generated_tokens == pad_id
         if padding_masks.any():
@@ -153,11 +152,9 @@ def generate_with_logits(
             input_pos = input_pos.to(torch.int)
         else:
             mask = None
-            input_pos = torch.arange(
-                0, prompt_length + i, device=generated_tokens.device
-            )
+            input_pos = torch.arange(0, prompt_length + i, device=generated_tokens.device)
 
-        logits, tokens = generate_next_token_with_logits(
+        logits, tokens = custom_generate_next_token(
             model,
             input_pos=input_pos,
             x=generated_tokens,

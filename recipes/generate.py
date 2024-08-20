@@ -35,8 +35,11 @@ class InferenceRecipe:
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-        self._device = utils.get_device(device=cfg.device)
-        self._dtype = utils.get_dtype(dtype=cfg.dtype, device=self._device)
+
+        self._device = torch.device("mps")
+        self._dtype = torch.bfloat16
+        # self._device = utils.get_device(device=cfg.device)
+        # self._dtype = utils.get_dtype(dtype=cfg.dtype, device=self._device)
         self._quantizer = config.instantiate(cfg.quantizer)
         self._quantization_mode = utils.get_quantizer_mode(self._quantizer)
 
@@ -105,9 +108,7 @@ class InferenceRecipe:
 
         # Should only be chat-style prompt or instruct-style prompt
         if chat_format and instruct_template:
-            raise ValueError(
-                "Cannot pass both chat format and instruct template for generation"
-            )
+            raise ValueError("Cannot pass both chat format and instruct template for generation")
 
         # If instruct template is provided, assert that the prompt is a DictConfig
         # and apply it
@@ -138,15 +139,13 @@ class InferenceRecipe:
         )
         prompt = torch.tensor(tokens, dtype=torch.int, device=self._device)
 
-        custom_generate_next_token = None
+        custom_generate_next_token = torch.compile(utils.generate_next_token, fullgraph=True, backend="aot_eager")
 
         # since quantized model uses torch.compile to get speedup, it needs a warm up / prefill run
         # to get the accurate performance measurement
         if self._quantization_mode is not None:
             logger.info("Starting compilation to improve generation performance ...")
-            custom_generate_next_token = torch.compile(
-                utils.generate_next_token, mode="max-autotune", fullgraph=True
-            )
+            custom_generate_next_token = torch.compile(utils.generate_next_token, mode="max-autotune", fullgraph=True)
             t0 = time.perf_counter()
             _ = utils.generate(
                 model=self._model,
@@ -167,7 +166,7 @@ class InferenceRecipe:
             max_generated_tokens=cfg.max_new_tokens,
             temperature=cfg.temperature,
             top_k=cfg.top_k,
-            stop_tokens=self._tokenizer.stop_tokens,
+            stop_tokens=None,
             custom_generate_next_token=custom_generate_next_token,
         )
         t = time.perf_counter() - t0
@@ -175,19 +174,12 @@ class InferenceRecipe:
         logger.info(self._tokenizer.decode(generated_tokens[0]))
 
         model_size = sum(
-            [
-                p.numel() * p.dtype.itemsize
-                for p in itertools.chain(
-                    self._model.parameters(), self._model.buffers()
-                )
-            ]
+            [p.numel() * p.dtype.itemsize for p in itertools.chain(self._model.parameters(), self._model.buffers())]
         )
 
         tokens_generated = len(generated_tokens[0]) - prompt.size(0)
         tokens_sec = tokens_generated / t
-        logger.info(
-            f"Time for inference: {t:.02f} sec total, {tokens_sec:.02f} tokens/sec"
-        )
+        logger.info(f"Time for inference: {t:.02f} sec total, {tokens_sec:.02f} tokens/sec")
         logger.info(f"Bandwidth achieved: {model_size * tokens_sec / 1e9:.02f} GB/s")
         logger.info(f"Memory used: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
 
