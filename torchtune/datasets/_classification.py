@@ -118,7 +118,9 @@ class ClassificationDataset(Dataset):
             transformed_sample = self._message_transform({"messages": prompt})
             tokens = self._model_transform(transformed_sample)["tokens"]
         else:
-            tokens = self._model_transform.encode(text=prompt, add_bos=True, add_eos=True)
+            tokens = self._model_transform.encode(
+                text=prompt, add_bos=True, add_eos=True
+            )
 
         if self._label_transform is not None:
             label = self._label_transform(label)
