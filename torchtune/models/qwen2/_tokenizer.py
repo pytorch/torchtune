@@ -379,7 +379,7 @@ class Qwen2Tokenizer(ModelTokenizer):
                 break
 
         # Finally, truncate if necessary
-        if self.max_seq_len and len(tokenized_messages) >= self.max_seq_len:
+        if self.max_seq_len:
             tokenized_messages = truncate(
                 tokenized_messages, self.max_seq_len, self.eos_id
             )
