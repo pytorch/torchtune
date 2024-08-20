@@ -4,11 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
-from torchtune.data import PromptTemplate
 
 from torchtune.modules.transforms import Transform
 
@@ -26,44 +25,26 @@ class ClassificationDataset(Dataset):
         | [{"role": "user", "content": Q1},      | 1                                      |
         |  {"role": "assistant", "content": A1}] |                                        |
 
+
     In cases where ``label`` is not integer-encoded by default, you may use a ``label_transform``
     to map from the label column to an integer.
 
     At a high level, this class will load the data from source and apply the following pre-processing steps
     when a sample is retrieved:
 
-    1. Dataset-specific transform (Optional). This is typically unique to each dataset and extracts
+    1. Dataset-specific text transform (Optional). This is typically unique to each dataset and extracts
        the the text column torchtune's :class:`~torchtune.data.Message`
-       format, a standardized API for all model tokenizers. This step is not necessary for
-       unstructured text.
-    2. Tokenization
+       format, a standardized API for all model tokenizers.
+    2. Dataset-specific label transform (Optional). This is also unique to each dataset, and is responsible
+       for converting the "label" column into an integer target for classification. This could
+       be as simple as a mapping e.g. ``{"label_0": 0, "label_1": 1...}``, but may also be used
+       for non-trivial label conversion logic.
+    2. Tokenization of the text column.
 
-
-    All datasets are formatted into a list of :class:`~torchtune.data.Message`
-    because preference datasets can be considered as chosen and rejected "conversations"
-    with the model, or AI assistant. Thus, we can standardize all text content as messages
-    in a conversation assigned to a role:
-
-    - ``"user"`` messages contain the input prompt into the model
-    - ``"assistant"`` messages are the response of the model and what you actually want
-      to train for and compute loss directly against
-
-    The :class:`~torchtune.data.Message` forms the core data unit that all tokenizer
-    APIs expect. The key component of this class that ensures any dataset is transformed
-    into this format is the ``message_transform``. This is a callable class that takes
-    in a sample dictionary - typically a single row from the source dataset - that
-    processes the sample in any configurable way to output a list of messages::
-
-        [
-            Message(
-                role=<system|user|assistant|ipython>,
-                content=<message>,
-            ),
-            ...
-        ]
-
-    For any custom dataset, use the ``message_transform`` to contain all pre-processing to
-    return the list of messages.
+    Similar to :class:`~torchtune.datasets.PreferenceDataset`, classification datasets can be considered
+    as either unstructured text, or arbitrary "conversations" between a user and model, or assistant.
+    See :class:`~torchtune.datasets.PreferenceDataset` for more insight into how conversations are
+    standardized as messages.
 
     Args:
         source (str): path to dataset repository on Hugging Face. For local datasets,
@@ -71,16 +52,22 @@ class ClassificationDataset(Dataset):
             in the filepath in ``data_files``. See `Hugging Face's
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details.
-        message_transform (Transform): callable that keys into the desired fields in the sample
+        model_transform (Transform): callable that applies model-specific pre-processing to the sample after the list of
+            messages is created from ``message_transform``. This includes tokenization and any modality-specific
+            transforms. It is expected to return at minimum ``"tokens"`` and ``"mask"`` keys.
+        message_transform (Optional[Transform]): callable that keys into the desired fields in the sample
             and converts text content to a list of :class:`~torchtune.data.Message`. It is expected that the final list
-            of messages are stored in the ``"chosen"`` and ``"rejected"`` keys.
-        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
-            Since PreferenceDataset only supports text data, it requires a
-            :class:`~torchtune.modules.tokenizers.ModelTokenizer` instead of the ``model_transform`` in
-            :class:`~torchtune.datasets.SFTDataset`.
+            of messages are stored in the ``"messages"`` key.
+        label_transform (Optional[Transform]): callable that converts content in a label column to a classification target.
+        column_map (Optional[Dict[str, str]]): a mapping to change the expected "text" and "label" column names
+            to the actual column names in the dataset. Default is None and set to "text" and "label".
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
             Face's `API ref <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset>`_
             for more details.
+
+    Raises:
+        ValueError: If ``column_map`` is provided and ``text`` not in ``column_map``, or
+            ``label`` not in ``column_map``.
     """
 
     def __init__(
@@ -90,7 +77,7 @@ class ClassificationDataset(Dataset):
         model_transform: Transform,
         message_transform: Optional[Transform] = None,
         label_transform: Optional[Transform] = None,
-        column_map: Dict[str, str] = None,
+        column_map: Optional[Dict[str, str]] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
 
@@ -98,10 +85,21 @@ class ClassificationDataset(Dataset):
         self._model_transform = model_transform
         self._label_transform = label_transform
 
-        self._column_map = column_map or {
-            "text": "text",
-            "label": "label",
-        }
+        if column_map:
+            if "text" not in column_map:
+                raise ValueError(
+                    f"Expected a key of 'text' in column_map but found {column_map.keys()}."
+                )
+            if "label" not in column_map:
+                raise ValueError(
+                    f"Expected a key of 'label' in column_map but found {column_map.keys()}."
+                )
+            self._column_map = column_map
+        else:
+            self._column_map = {
+                "text": "text",
+                "label": "label",
+            }
         self._data = load_dataset(source, **load_dataset_kwargs)
 
     def __len__(self):
