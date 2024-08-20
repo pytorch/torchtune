@@ -32,10 +32,6 @@ _ALL_RECIPES = [
                 file_path="llama2/7B_full_low_memory.yaml",
             ),
             Config(
-                name="llama2/7B_full_offload_optimizer",
-                file_path="llama2/7B_full_offload_optimizer.yaml",
-            ),
-            Config(
                 name="code_llama2/7B_full_low_memory",
                 file_path="code_llama2/7B_full_low_memory.yaml",
             ),
