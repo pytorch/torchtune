@@ -87,9 +87,8 @@ class DoRALinear(nn.Module, AdapterModule):
         """
         base_weight = self.weight.to(self.lora_a.weight.dtype)
         lora_weight = self.lora_b.weight @ self.lora_a.weight
-        weight = base_weight + self.scaling * lora_weight
-        magnitude = torch.linalg.norm(weight, dim=1).to(weight.dtype)
-        self.magnitude = nn.Parameter(magnitude, requires_grad=True)
+        weight_norm = self._get_weight_norm(base_weight, lora_weight)
+        self.magnitude = nn.Parameter(weight_norm, requires_grad=True)
 
     def _create_weight(self):
         """
@@ -100,6 +99,11 @@ class DoRALinear(nn.Module, AdapterModule):
         linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=False)
         weight = linear.weight if not self._quantize_base else to_nf4(linear.weight)
         return weight
+
+    def _get_weight_norm(self, weight, lora_weight):
+        weight = weight + self.scaling * lora_weight
+        weight_norm = torch.linalg.norm(weight, dim=1).to(weight.dtype)
+        return weight_norm
 
     def adapter_params(self) -> List[str]:
         """
@@ -129,17 +133,22 @@ class DoRALinear(nn.Module, AdapterModule):
 
         x = self.dropout(x)
 
+        lora_out = self.lora_b(self.lora_a(x))
         # Can't use raw matmul since FSDP hooks are attached to __call__
         # Instead follow the approach in https://github.com/huggingface/peft/pull/1806
         x_eye = torch.eye(
             self.lora_a.weight.shape[1], device=self.lora_a.weight.device, dtype=x.dtype
         )
         lora_weight = self.lora_b(self.lora_a(x_eye)).T
-        weight = self.weight.to(x.dtype) + self.scaling * lora_weight
-        weight_norm = torch.linalg.norm(weight, dim=1).detach()
-        mag_norm_scale = (self.magnitude / weight_norm).view(1, -1)
-        lora_out = self.lora_a(x)
-        lora_out = self.scaling * self.lora_b(lora_out)
-        dora_out = (mag_norm_scale - 1) * base_out + mag_norm_scale * lora_out
+        # weight = self.weight.to(x.dtype) + self.scaling * lora_weight.detach()
+        magnitude = self.magnitude
+        weight = self.weight.to(x.dtype)
+        weight_norm = self._get_weight_norm(weight, lora_weight.detach())
+        weight_norm = weight_norm.detach()
+        mag_norm_scale = (magnitude / weight_norm).view(1, -1)
+
+        dora_out = (
+            mag_norm_scale - 1
+        ) * base_out + mag_norm_scale * lora_out * self.scaling
 
         return dora_out + base_out

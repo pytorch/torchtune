@@ -352,8 +352,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 fully_shard(m, **fsdp_kwargs)
             if isinstance(m, DoRALinear):
                 fully_shard(m, **fsdp_kwargs)
-            if isinstance(m, DoRALinear):
-                fully_shard(m, **fsdp_kwargs)
             # TransformerSelfAttentionLayer is wrapped by CheckpointWrapper
             # when enable_activation_checkpointing
             if enable_activation_checkpointing:

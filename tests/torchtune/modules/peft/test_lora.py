@@ -197,16 +197,3 @@ class TestLoRALinear:
         assert torch.allclose(
             lora_linear.weight.quantized_data, lora_linear_reload.weight.quantized_data
         )
-
-
-class _Wrapper(nn.Module):
-    """
-    For testing the merged checkpoint which requires that the LoRA layer has a parent.
-    """
-
-    def __init__(self, layer):
-        super().__init__()
-        self.layer = layer
-
-    def forward(self, x):
-        return self.layer(x)
