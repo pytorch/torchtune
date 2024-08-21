@@ -32,7 +32,7 @@ class Llama3ScaledRoPE(nn.Module):
         base (int): The base for the geometric progression used to compute
             the rotation angles
         scale_factor (int): scaling factor for theta. Default: 8
-        low_freq_factor (int): low frequency factor for scaling. Default: 1
+        low_freq_factor (int): low frequency factor for scaling theta. Default: 1
         high_freq_factor (int): high frequency factor for scaling. Default: 4
         old_context_len (int): old context length for scaling theta. Default: 8192
     """
