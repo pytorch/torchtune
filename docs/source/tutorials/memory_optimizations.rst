@@ -17,8 +17,8 @@ To make things easy, we've summarized these components in the following table:
    ":ref:`glossary_precision`", "You'll usually want to leave this as its default ``bfloat16``. If you're struggling with training stability or accuracy due to precision, fp32 may help, but will significantly increase memory usage and decrease training speed."
    ":ref:`glossary_act_ckpt`", "Use when you're memory constrained and need to handle larger batch sizes or longer context lengths. Be aware that it may slow down training speed."
    ":ref:`glossary_grad_accm`", "Helpful when memory-constrained to simulate larger batch sizes. Often preferable to activation checkpointing for better training speed."
-   ":ref:`glossary_low_precision_opt`", "When you need to further reduce memory usage beyond using ``bf16`` by reducing the precision in the optimizer states."
-   ":ref:`glossary_opt_in_bwd`", "Helps reduce memory usage when using stateful optimizers, particularly when full-finetuning large models with high gradient memory usage. This is not compatible with ``gradient_accumulation_steps``, so training may slow down."
+   ":ref:`glossary_low_precision_opt`", "When you need to further reduce memory usage beyond using ``bf16`` by reducing the precision in the optimizer states. Note that lower precision optimizers may reduce training stability/accuracy."
+   ":ref:`glossary_opt_in_bwd`", "Helps reduce memory usage when using stateful optimizers, particularly when full-finetuning large models with high gradient memory usage. This is not compatible with ``gradient_accumulation_steps``, so training may slow down due to reduced model throughput."
    ":ref:`glossary_lora`", "When you want to significantly reduce the number of trainable parameters, saving gradient and optimizer memory during training, and significantly speeding up training."
    ":ref:`glossary_qlora`", "When you need even more memory savings than LoRA, at the potential cost of some training speed. Useful for very large models or limited hardware."
 
