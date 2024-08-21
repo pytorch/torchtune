@@ -28,7 +28,12 @@ from torchtune import modules, utils
 from torchtune.models.llama2._component_builders import llama2, lora_llama2
 from torchtune.models.llama3._component_builders import llama3
 from torchtune.modules import TransformerSelfAttentionLayer
-from torchtune.modules.peft.peft_utils import get_adapter_params, DoRALinear, LoRALinear, set_trainable_params
+from torchtune.modules.peft import (
+    DoRALinear,
+    get_adapter_params,
+    LoRALinear,
+    set_trainable_params,
+)
 
 
 class TestDistributed:
@@ -167,7 +172,7 @@ def _get_n_lora_and_tformer_layers(model):
     for module in model.modules():
         if isinstance(module, LoRALinear) or isinstance(module, DoRALinear):
             num_lora += 1
-        if isinstance(module, TransformerDecoder):
+        if isinstance(module, TransformerSelfAttentionLayer):
             num_transformer_layers += 1
 
     return num_lora, num_transformer_layers

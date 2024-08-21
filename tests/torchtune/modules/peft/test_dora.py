@@ -13,8 +13,12 @@ import torch.nn.functional as F
 from torch import nn
 from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
 from torchtune import utils
-from torchtune.modules.peft import DoRALinear, LoRALinear
-from torchtune.modules.peft.peft_utils import get_merged_lora_ckpt, load_dora_magnitudes
+from torchtune.modules.peft import (
+    DoRALinear,
+    get_merged_lora_ckpt,
+    load_dora_magnitudes,
+    LoRALinear,
+)
 from torchtune.utils.seed import set_seed
 
 RANK = 4

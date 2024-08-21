@@ -27,7 +27,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
-from torchtune.modules.peft.peft_utils import (
+from torchtune.modules.peft import (
     DoRALinear,
     get_adapter_params,
     get_lora_module_names,
