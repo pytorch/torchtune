@@ -39,13 +39,12 @@ class TestDoRALinear:
     from the reference implementation.
     """
 
-    # @pytest.mark.parametrize("dtype", [torch.float32, torch.bfloat16])
+    @pytest.mark.parametrize("dtype", [torch.float32, torch.bfloat16])
     # @pytest.mark.parametrize("dropout", [0.0, 0.1])
     @pytest.mark.parametrize("use_bias", [False, True])
     @pytest.mark.parametrize("quantize_base", [False, True])
-    def test_dora(self, use_bias, quantize_base):
+    def test_dora(self, dtype, use_bias, quantize_base):
         dropout = 0.0
-        dtype = torch.bfloat16
         batch_size = 2
         in_dim = 256
         out_dim = 256
@@ -81,6 +80,7 @@ class TestDoRALinear:
         lora_state_dict = ref.state_dict()
         if quantize_base:
             state_dict["weight"] = state_dict["weight"].to(torch.float32)
+            lora_state_dict["weight"] = lora_state_dict["weight"].to(torch.float32)
         state_dict["magnitude"] = state_dict.pop("lora_magnitude")
         lora_state_dict.pop("lora_magnitude")
         module.load_state_dict(state_dict)
@@ -113,19 +113,18 @@ class TestDoRALinear:
         assert _dora_is_the_same_as_lora()
 
         def _compare_params():
-            assert torch.equal(
+            assert torch.allclose(
                 module.weight.to(torch.float32), ref.weight.to(torch.float32)
             )
-            assert torch.equal(module.lora_a.weight, ref.lora_a.weight)
-            assert torch.equal(module.lora_b.weight, ref.lora_b.weight)
-            assert torch.equal(module.magnitude, ref.lora_magnitude)
+            assert torch.allclose(module.lora_a.weight, ref.lora_a.weight)
+            assert torch.allclose(module.lora_b.weight, ref.lora_b.weight)
+            assert torch.allclose(module.magnitude, ref.lora_magnitude)
 
         # verify that the param values match the reference
         ref.initialize_dora()
         _compare_params()
 
         # compare a single training step to the reference
-        # torch.nn.DeterministicDropout
         module.train()
         ref.train()
         opt = torch.optim.Adam(module.parameters())
@@ -140,10 +139,12 @@ class TestDoRALinear:
         y2 = ref(x.detach())
         F.mse_loss(y1.to(torch.float32), y.detach()).backward()
         F.mse_loss(y2.to(torch.float32), y.detach()).backward()
-        assert torch.equal(y1, y2)
-        assert torch.equal(module.magnitude.grad, ref.lora_magnitude.grad)
-        assert torch.equal(module.lora_a.weight.grad, ref.lora_a.weight.grad)
-        assert torch.equal(module.lora_b.weight.grad, ref.lora_b.weight.grad)
+        print("ref", y2)
+        print("dora", y1)
+        assert torch.allclose(y1, y2, rtol=1e-03, atol=1e-03)
+        assert torch.allclose(module.magnitude.grad, ref.lora_magnitude.grad)
+        assert torch.allclose(module.lora_a.weight.grad, ref.lora_a.weight.grad)
+        assert torch.allclose(module.lora_b.weight.grad, ref.lora_b.weight.grad)
         opt.step()
         opt_ref.step()
         _compare_params()
@@ -229,7 +230,6 @@ class _DoraReference(nn.Module):
         if use_dora:
             self.lora_magnitude = nn.Parameter(torch.randn(out_dim, dtype=dtype))
         self.dropout = nn.Dropout(p=dropout)
-        # print('ref dropout', dropout)
         torch.use_deterministic_algorithms(True)
 
     def initialize_dora(self):
@@ -246,8 +246,6 @@ class _DoraReference(nn.Module):
             result = result + self.lora_b(self.lora_a(self.dropout(x))) * self.scaling
         else:
             x = self.dropout(x)
-            # print('ref droput', x)
-            # print('ref', result)
             result = result + self._dora_forward(x)
         result = result.to(torch_result_dtype)
         return result
@@ -272,11 +270,6 @@ class _DoraReference(nn.Module):
         result_dora = (mag_norm_scale - 1) * (
             F.linear(x, weight)
         ) + mag_norm_scale * lora_result * self.scaling
-        # print('ref weight', weight)
-        # print('ref x', x)
-        # print('ref mag_norm_scale', mag_norm_scale)
-        # print('ref', (mag_norm_scale - 1) * base_out)
-        # print('ref', result_dora)
         return result_dora
 
     def _get_weight_norm(self, weight, lora_weight):

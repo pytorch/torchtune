@@ -19,7 +19,7 @@ from torchtune.modules import (
 from torchtune.models.gemma.rms_norm import GemmaRMSNorm
 from torchtune.models.gemma.transformer import GemmaTransformerDecoder
 
-from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
+from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 
 """
 Component builders for the Gemma 2B models and popular variants such as LoRA.
@@ -279,9 +279,10 @@ def lora_gemma_self_attention(
         )
 
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
+    adapter_cls = DoRALinear if use_dora else LoRALinear
 
     q_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             num_heads * head_dim,
             rank=lora_rank,
@@ -298,7 +299,7 @@ def lora_gemma_self_attention(
         )
     )
     k_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             num_kv_heads * head_dim,
             rank=lora_rank,
@@ -315,7 +316,7 @@ def lora_gemma_self_attention(
         )
     )
     v_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             num_kv_heads * head_dim,
             rank=lora_rank,
@@ -332,7 +333,7 @@ def lora_gemma_self_attention(
         )
     )
     output_proj = (
-        LoRALinear(
+        adapter_cls(
             num_heads * head_dim,
             embed_dim,
             rank=lora_rank,
@@ -376,7 +377,8 @@ def lora_gemma_mlp(
     use_dora: bool = False,
     quantize_base: bool = False,
 ) -> FeedForward:
-    gate_proj = LoRALinear(
+    adapter_cls = DoRALinear if use_dora else LoRALinear
+    gate_proj = adapter_cls(
         in_dim=dim,
         out_dim=hidden_dim,
         rank=lora_rank,
@@ -385,7 +387,7 @@ def lora_gemma_mlp(
         quantize_base=quantize_base,
         use_dora=use_dora,
     )
-    down_proj = LoRALinear(
+    down_proj = adapter_cls(
         in_dim=hidden_dim,
         out_dim=dim,
         rank=lora_rank,
@@ -394,7 +396,7 @@ def lora_gemma_mlp(
         quantize_base=quantize_base,
         use_dora=use_dora,
     )
-    up_proj = LoRALinear(
+    up_proj = adapter_cls(
         in_dim=dim,
         out_dim=hidden_dim,
         rank=lora_rank,

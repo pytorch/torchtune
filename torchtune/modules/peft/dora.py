@@ -140,7 +140,6 @@ class DoRALinear(nn.Module, AdapterModule):
             self.lora_a.weight.shape[1], device=self.lora_a.weight.device, dtype=x.dtype
         )
         lora_weight = self.lora_b(self.lora_a(x_eye)).T
-        # weight = self.weight.to(x.dtype) + self.scaling * lora_weight.detach()
         magnitude = self.magnitude
         weight = self.weight.to(x.dtype)
         weight_norm = self._get_weight_norm(weight, lora_weight.detach())
