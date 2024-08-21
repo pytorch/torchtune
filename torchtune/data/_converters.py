@@ -119,9 +119,4 @@ def get_openai_messages(
         message["masked"] = (message["role"] != "assistant") and (not train_on_input)
         messages.append(Message.from_dict(message))
 
-    def print_messages():
-        for message in messages:
-            print(f'role: {message.role}, content: {message.content}, masked: {message.masked}')
-    print_messages()
-
     return messages
