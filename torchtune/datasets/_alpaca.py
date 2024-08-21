@@ -30,13 +30,24 @@ class AlpacaToMessages(Transform):
         column_map (Optional[Dict[str, str]]): a mapping to change the expected "instruction", "input",
             and "output" column names to the actual column names in the dataset. Default is None,
             keeping the default column names.
+
+    Raises:
+        ValueError: If ``column_map`` is provided and ``input`` not in ``column_map``, or
+            ``output`` not in ``column_map``, or ``instruction`` not in ``column_map``.
     """
 
-    def __init__(
-        self, train_on_input: bool = True, column_map: Optional[Dict[str, str]] = None
-    ):
+    def __init__(self, train_on_input: bool = True, column_map: Optional[Dict[str, str]] = None):
         self.train_on_input = train_on_input
-        self.column_map = column_map
+        if column_map:
+            if "input" not in column_map:
+                raise ValueError(f"Expected a key of 'input' in column_map but found {column_map.keys()}.")
+            if "output" not in column_map:
+                raise ValueError(f"Expected a key of 'output' in column_map but found {column_map.keys()}.")
+            if "instruction" not in column_map:
+                raise ValueError(f"Expected a key of 'instruction' in column_map but found {column_map.keys()}.")
+            self._column_map = column_map
+        else:
+            self._column_map = {"input": "input", "instruction": "instruction", "output": "output"}
         self.template = {
             "prompt_input": (
                 "Below is an instruction that describes a task, paired with an input that provides further context. "
@@ -51,19 +62,12 @@ class AlpacaToMessages(Transform):
         }
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
-        column_map = self.column_map or {}
-        key_input = column_map.get("input", "input")
-        key_instruction = column_map.get("instruction", "instruction")
-        key_output = column_map.get("output", "output")
+        key_input = self._column_map["input"]
 
         if key_input in sample and sample[key_input]:
-            prompt = self.template["prompt_input"].format(
-                instruction=sample[key_instruction], input=sample[key_input]
-            )
+            prompt = self.template["prompt_input"].format(instruction=sample[self.c], input=sample[key_input])
         else:
-            prompt = self.template["prompt_no_input"].format(
-                instruction=sample[key_instruction]
-            )
+            prompt = self.template["prompt_no_input"].format(instruction=sample[self._column_map["instruction"]])
 
         messages = [
             Message(
@@ -74,7 +78,7 @@ class AlpacaToMessages(Transform):
             ),
             Message(
                 role="assistant",
-                content=sample[key_output],
+                content=sample[self._column_map["output"]],
                 masked=False,
                 eot=True,
             ),
@@ -137,9 +141,7 @@ def alpaca_dataset(
         >>> Batch size: 8
     """
 
-    message_transform = AlpacaToMessages(
-        train_on_input=train_on_input, column_map=column_map
-    )
+    message_transform = AlpacaToMessages(train_on_input=train_on_input, column_map=column_map)
     ds = SFTDataset(
         source=source,
         message_transform=message_transform,
@@ -149,9 +151,7 @@ def alpaca_dataset(
     )
     if packed:
         if tokenizer.max_seq_len is None:
-            raise ValueError(
-                "PackedDataset requires a max_seq_len to be set on the tokenizer."
-            )
+            raise ValueError("PackedDataset requires a max_seq_len to be set on the tokenizer.")
         return PackedDataset(ds, max_seq_len=tokenizer.max_seq_len)
     return ds
 

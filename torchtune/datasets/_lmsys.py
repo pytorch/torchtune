@@ -15,10 +15,11 @@ from torchtune.modules.transforms import Transform
 
 class LMSYSModerationLabelTransform(Transform):
     def __init__(self, label_map):
+        
         self.label_map = label_map
 
-    def __call__(self, label_string):
-        return self.label_map[label_string]
+    def __call__(self, labels):
+        
 
 
 def lmsys_chat_dataset(

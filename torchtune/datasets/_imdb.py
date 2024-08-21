@@ -6,10 +6,9 @@
 
 from typing import Any, Dict, Optional
 
-from torchtune.data import StringToIntLabelTransform
+from torchtune.data import MultiClassLabelTransform
 from torchtune.datasets._classification import ClassificationDataset
 from torchtune.modules.tokenizers import ModelTokenizer
-from torchtune.modules.transforms import Transform
 
 
 def imdb_dataset(
@@ -63,7 +62,7 @@ def imdb_dataset(
         >>> Batch size: 8
     """
     label_transform = (
-        StringToIntLabelTransform(label_map=label_map) if label_map else None
+        MultiClassLabelTransform(label_map=label_map) if label_map else None
     )
     return ClassificationDataset(
         source=source,

@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Literal, Mapping, Optional, Union
 from torchtune.modules.transforms import Transform
 
 
-class StringToIntLabelTransform(Transform):
+class MultiClassLabelMap(Transform):
     def __init__(self, label_map):
         self.label_map = label_map
 
