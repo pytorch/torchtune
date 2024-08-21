@@ -59,6 +59,7 @@ class ClassificationDataset(Dataset):
             and converts text content to a list of :class:`~torchtune.data.Message`. It is expected that the final list
             of messages are stored in the ``"messages"`` key.
         label_transform (Optional[Transform]): callable that converts content in a label column to a classification target.
+            This can be an integer, in the case of multi-class, or a list of integers, in the case of multi-label classification.
         column_map (Optional[Dict[str, str]]): a mapping to change the expected "text" and "label" column names
             to the actual column names in the dataset. Default is None and set to "text" and "label".
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
