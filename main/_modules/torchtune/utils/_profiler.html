@@ -468,7 +468,7 @@
 <span class="sd">    The following artifacts are exported:</span>
 <span class="sd">    - chrome / tensorboard trace - viewable through tensorboard or perfetto.dev / chrome::/tracing</span>
 <span class="sd">    - trace event table</span>
-<span class="sd">    - memory timeline if ``profile_memory``</span>
+<span class="sd">    - memory timeline and snapshot.pickle if ``profile_memory``</span>
 <span class="sd">    - stacks if ``with_stack`` (note that ``profile_memory`` requires ``with_stack`` to be ``True``),</span>
 <span class="sd">    viewable as a flamegraph see (https://pytorch.org/docs/stable/profiler.html#torch.profiler._KinetoProfile.export_stacks).</span>
 
@@ -518,6 +518,10 @@
                 <span class="p">)</span>
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="n">log</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; Failed to export memory timeline: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">_dump_snapshot</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">curr_trace_dir</span><span class="si">}</span><span class="s2">/rank</span><span class="si">{</span><span class="n">rank</span><span class="si">}</span><span class="s2">_memory_snapshot.pickle&quot;</span>
+            <span class="p">)</span>
 
     <span class="c1"># Dump stack traces</span>
     <span class="k">if</span> <span class="n">prof</span><span class="o">.</span><span class="n">with_stack</span><span class="p">:</span>
