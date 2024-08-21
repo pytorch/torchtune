@@ -19,6 +19,7 @@ def clip_vision_encoder(
     output_cls_projection: bool = False,
     max_num_tiles: int = 4,
     in_channels: int = 3,
+    hidden_act: torch.nn.Module = torch.nn.SiLU(),
 ) -> VisionTransformer:
     """
     Builds the vision encoder associated with the clip model. This includes:
@@ -63,7 +64,7 @@ def clip_vision_encoder(
         nhead=num_heads, 
         dim_feedforward=int(mlp_ratio * embed_dim), 
         dropout=0.0, 
-        activation=torch.nn.SiLU(), 
+        activation=hidden_act, 
         layer_norm_eps=1e-5, 
         batch_first=True, 
         norm_first=True, 
