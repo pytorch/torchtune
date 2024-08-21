@@ -115,7 +115,9 @@ def trace_handler(
             except Exception as e:
                 log.warn(f" Failed to export memory timeline: {e}")
 
-            torch.cuda.memory._dump_snapshot(f"{curr_trace_dir}/rank{rank}_memory_snapshot.pickle")
+            torch.cuda.memory._dump_snapshot(
+                f"{curr_trace_dir}/rank{rank}_memory_snapshot.pickle"
+            )
 
     # Dump stack traces
     if prof.with_stack:

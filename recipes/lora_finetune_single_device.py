@@ -328,10 +328,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         log.info(f" Profiler config after instantiation: {profiler_cfg}")
 
-        self.profiler_wait_steps = profiler_cfg["wait_steps"]
-        self.profiler_warmup_steps = profiler_cfg["warmup_steps"]
-        self.profiler_active_steps = profiler_cfg["active_steps"]
-        self.profiler_profile_memory = profiler_cfg["profile_memory"]
+        self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
+        if profiler_cfg["enabled"]:
+            self.profiler_wait_steps = profiler_cfg["wait_steps"]
+            self.profiler_warmup_steps = profiler_cfg["warmup_steps"]
+            self.profiler_active_steps = profiler_cfg["active_steps"]
 
         return profiler
 
@@ -584,7 +585,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     ):
                         break
 
-                    if curr_epoch == 0 and self.profiler_profile_memory and idx == self.profiler_wait_steps + self.profiler_warmup_steps:
+                    # Start tracking CUDA memory for active steps for just the first epoch
+                    if (
+                        curr_epoch == 0
+                        and self.profiler_profile_memory
+                        and idx == self.profiler_wait_steps + self.profiler_warmup_steps
+                    ):
                         torch.cuda.memory._record_memory_history()
 
                     batch = {k: v.to(self._device) for k, v in batch.items()}
@@ -634,7 +640,15 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         num_tokens = 0
                         t0 = time.perf_counter()
 
-                    if curr_epoch == 0 and self.profiler_profile_memory and idx == self.profiler_wait_steps + self.profiler_warmup_steps + self.profiler_active_steps:
+                    # Stop tracking CUDA memory now that active steps are complete
+                    if (
+                        curr_epoch == 0
+                        and self.profiler_profile_memory
+                        and idx
+                        == self.profiler_wait_steps
+                        + self.profiler_warmup_steps
+                        + self.profiler_active_steps
+                    ):
                         torch.cuda.memory._record_memory_history(enabled=None)
 
                     # Step the profiler
