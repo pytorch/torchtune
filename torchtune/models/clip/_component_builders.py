@@ -50,6 +50,7 @@ def clip_vision_encoder(
         max_num_tiles (int): The maximum number of tiles that can be processed. This is used to
             determine the size of the positional embeddings.
         in_channels (int): The number of image input channels.
+        hidden_act (torch.nn.Module): The activation function used in the transformer layers.
 
     Returns:
         A `VisionTransformer` object.
