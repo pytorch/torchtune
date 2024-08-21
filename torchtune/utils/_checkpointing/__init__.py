@@ -3,6 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
+from typing import Union
 
 from ._checkpointer import (  # noqa
     FullModelHFCheckpointer,
@@ -10,10 +11,19 @@ from ._checkpointer import (  # noqa
     FullModelTorchTuneCheckpointer,
 )
 from ._checkpointer_utils import ModelType  # noqa
+from .utils import update_state_dict_for_classifier
+
+Checkpointer = Union[
+    FullModelHFCheckpointer,
+    FullModelMetaCheckpointer,
+    FullModelTorchTuneCheckpointer,
+]
 
 __all__ = [
     "FullModelHFCheckpointer",
     "FullModelMetaCheckpointer",
     "FullModelTorchTuneCheckpointer",
     "ModelType",
+    "Checkpointer",
+    "update_state_dict_for_classifier",
 ]

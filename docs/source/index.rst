@@ -65,6 +65,13 @@ torchtune tutorials.
    :tags: finetuning,llama2,qlora
 
 .. customcarditem::
+   :header: Finetuning with QAT in torchtune
+   :card_description: Finetuning of Llama3 using QAT
+   :image: _static/img/generic-pytorch-logo.png
+   :link: tutorials/qat_finetune.html
+   :tags: finetuning,llama3,qat,quantization,evals
+
+.. customcarditem::
    :header: End-to-End Workflow with torchtune
    :card_description: Train, Evaluate, Quantize and then Generate with your LLM.
    :image: _static/img/generic-pytorch-logo.png
@@ -99,6 +106,7 @@ torchtune tutorials.
    tutorials/llama3
    tutorials/lora_finetune
    tutorials/qlora_finetune
+   tutorials/qat_finetune
    tutorials/e2e_flow
    tutorials/datasets
    tutorials/chat
@@ -110,6 +118,7 @@ torchtune tutorials.
    :hidden:
 
    deep_dives/checkpointer
+   deep_dives/comet_logging
    deep_dives/configs
    deep_dives/recipe_deepdive
    deep_dives/wandb_logging

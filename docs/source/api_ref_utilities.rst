@@ -21,6 +21,7 @@ checkpointing, please see the :ref:`checkpointing deep-dive <understand_checkpoi
     FullModelMetaCheckpointer
     FullModelTorchTuneCheckpointer
     ModelType
+    update_state_dict_for_classifier
 
 .. _dist_label:
 
@@ -100,6 +101,7 @@ Various logging utilities.
     :toctree: generated/
     :nosignatures:
 
+    metric_logging.CometLogger
     metric_logging.WandBLogger
     metric_logging.TensorBoardLogger
     metric_logging.StdoutLogger
@@ -115,7 +117,6 @@ Utilities for working with data and datasets.
     :nosignatures:
 
     padded_collate
-    padded_collate_dpo
 
 .. _gen_label:
 

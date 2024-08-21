@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --hf-token <HF_TOKEN> --ignore-patterns ""
+#   tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --ignore-patterns None --hf-token <HF_TOKEN>
 #
 # To launch on a single device, run the following command from root:
 #   tune run lora_finetune_single_device --config phi3/mini_qlora_single_device
@@ -15,7 +15,7 @@
 #
 # This config works only for training on single device.
 
-# Model Arguments
+# Model arguments
 model:
   _component_: torchtune.models.phi3.qlora_phi3_mini
   lora_attn_modules: ['q_proj', 'v_proj', 'k_proj', 'output_proj']
@@ -24,10 +24,12 @@ model:
   lora_rank: 8
   lora_alpha: 16
 
+# Tokenizer
 tokenizer:
   _component_: torchtune.models.phi3.phi3_mini_tokenizer
   path: /tmp/Phi-3-mini-4k-instruct/tokenizer.model
 
+# Checkpointer
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Phi-3-mini-4k-instruct
@@ -39,15 +41,19 @@ checkpointer:
   output_dir: /tmp/Phi-3-mini-4k-instruct
   model_type: PHI3_MINI
 resume_from_checkpoint: False
+save_adapter_weights_only: False
 
-# Dataset and Sampler
+# Dataset
 dataset:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
 seed: null
 shuffle: True
-batch_size: 2
 
-# Optimizer and Scheduler
+# Fine-tuning arguments
+epochs: 1
+max_steps_per_epoch: null
+batch_size: 2
+gradient_accumulation_steps: 16
 optimizer:
   _component_: torch.optim.AdamW
   weight_decay: 0.01
@@ -55,37 +61,33 @@ optimizer:
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
-
 loss:
   _component_: torch.nn.CrossEntropyLoss
-
-# Training
-epochs: 1
-max_steps_per_epoch: null
-gradient_accumulation_steps: 16
 compile: False
 
+# Training env
+device: cuda
+
+# Memory management
+enable_activation_checkpointing: True
+dtype: bf16
+
 # Logging
-output_dir: /tmp/qlora_finetune_output/
+output_dir: /tmp/phi3_qlora_finetune_output
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
-  log_dir: ${output_dir}
+  log_dir: /tmp/Phi-3-mini-4k-instruct/logs
 log_every_n_steps: 1
 log_peak_memory_stats: False
 
-# Environment
-device: cuda
-dtype: bf16
-enable_activation_checkpointing: True
-
-# Show case the usage of pytorch profiler
+# Showcase the usage of PyTorch profiler
 # Set enabled to False as it's only needed for debugging training
 profiler:
   _component_: torchtune.utils.setup_torch_profiler
   enabled: False
 
-  #Output directory of trace artifacts
-  output_dir: ${output_dir}/profiling_outputs
+  # Output directory of trace artifacts
+  output_dir: /tmp/Phi-3-mini-4k-instruct/profiling_outputs
 
   #`torch.profiler.ProfilerActivity` types to trace
   cpu: True

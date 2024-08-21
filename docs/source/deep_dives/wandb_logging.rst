@@ -15,7 +15,7 @@ This deep-dive will guide you through how to set up logging to Weights & Biases
       * How to use the :class:`~torchtune.utils.metric_logging.WandBLogger`
       * How to log configs, metrics, and model checkpoints to W&B
 
-Torchtune supports logging your training runs to `Weights & Biases <https://wandb.ai)>`_.
+torchtune supports logging your training runs to `Weights & Biases <https://wandb.ai)>`_.
 An example W&B workspace from a torchtune fine-tuning run can be seen in the screenshot below.
 
 .. image:: ../_static/img/torchtune_workspace.png

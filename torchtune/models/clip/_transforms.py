@@ -11,12 +11,12 @@ import torch
 import torchvision
 from PIL import Image
 
-from torchtune.modules.transforms import (
+from torchtune.modules.transforms.vision_utils.get_canvas_best_fit import (
     find_supported_resolutions,
     get_canvas_best_fit,
-    resize_with_pad,
-    tile_crop,
 )
+from torchtune.modules.transforms.vision_utils.resize_with_pad import resize_with_pad
+from torchtune.modules.transforms.vision_utils.tile_crop import tile_crop
 
 from torchvision.transforms.v2 import functional as F
 
@@ -50,24 +50,25 @@ class CLIPImageTransform:
 
     Args:
         image_mean (Optional[List[float]]): Mean values of each channel, used for normalization.
-            Should be the same used for the pre-trained model. If None, no normalization is performed.
-        image_std Union[float, List[float]]]): Standard deviation values of each channel, used for normalization.
-            Should be the same used for the pre-trained model. If None, no normalization is performed.
+            Should be the same used for the pre-trained model. If None, no normalization is performed. Default None.
+        image_std (Optional[List[float]]): Standard deviation values of each channel, used for normalization.
+            Should be the same used for the pre-trained model. If None, no normalization is performed. Default None.
         possible_resolutions (Optional[List[Tuple[int, int]]]): List of possible resolutions as tuples (height, width).
             where each tuple represents a possible canvas to fit the image into when calling ``get_canvas_best_fit``.
-            If None, this will be calculated using max_num_tiles and tile_size.
-        tile_size (int): Size of the tiles to divide the image into
+            If None, this will be calculated using max_num_tiles and tile_size. Default None.
+        tile_size (int): Size of the tiles to divide the image into. Default 224.
         max_num_tiles (Optional[int]): Only used if possible_resolutions is NOT given.
             Maximum number of tiles to break an image into.
             This will be used to generate possible_resolutions,
             e.g. [(224, 224), (224, 448), (448, 224)] if max_num_tiles = 2 and tile_size = 224.
+            Default 4.
         resample (str): Resampling method used when resizing images. Supports any enum of
             ``torchvision.transforms.InterpolationMode``, e.g. "nearest", "nearest_exact", "bilinear", "bicubic".
-        resize_to_max_canvas (bool):
-            "If True, the image will be upscaled without distortion to fit the largest possible
+            Default 'bilinear'.
+        resize_to_max_canvas (bool): "If True, the image will be upscaled without distortion to fit the largest possible
             resolution from possible_resolutions.
             If False, it will pick the resolution that minimizes downscaling, including no downscaling at all.
-            In this case, the image will only be upscaled if it's size < tile_size.
+            In this case, the image will only be upscaled if it's size < tile_size. Default False.
 
     Examples:
         >>> image_transform = CLIPImageTransform(
@@ -128,11 +129,12 @@ class CLIPImageTransform:
         self.image_std = image_std
 
         # resize_with_pad
-        self.max_upscaling_size = None if resize_to_max_canvas else tile_size
+        self.max_size = None if resize_to_max_canvas else tile_size
         self.resample = torchvision.transforms.InterpolationMode[resample.upper()]
 
         # tile_crop
         self.tile_size = tile_size
+        self.tile_crop = tile_crop
 
     def __call__(self, *, image: Image.Image, **kwargs) -> Mapping[str, Any]:
 
@@ -155,7 +157,7 @@ class CLIPImageTransform:
             image=image_tensor,
             target_size=best_resolution,
             resample=self.resample,
-            max_upscaling_size=self.max_upscaling_size,
+            max_size=self.max_size,
         )
 
         # Normalize
@@ -165,7 +167,7 @@ class CLIPImageTransform:
             )
 
         # Divide the image into equally sized tiles
-        image_tensor = tile_crop(image=image_tensor, tile_size=self.tile_size)
+        image_tensor = self.tile_crop(image=image_tensor, tile_size=self.tile_size)
 
         aspect_ratio = torch.tensor(best_resolution).reshape(-1) // self.tile_size
 

@@ -12,7 +12,7 @@ from torch import nn, Tensor
 
 from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
 from torchtune.modules.low_precision import _register_nf4_dispatch_ops  # noqa: F401
-from torchtune.modules.peft.peft_utils import AdapterModule
+from torchtune.modules.peft import AdapterModule
 
 
 class LoRALinear(nn.Module, AdapterModule):

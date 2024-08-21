@@ -42,6 +42,7 @@ tune = "torchtune._cli.tune:main"
 [project.optional-dependencies]
 dev = [
     "bitsandbytes>=0.43.0",
+    "comet_ml>=3.44.2",
     "pre-commit",
     "pytest==7.4.0",
     "pytest-cov",
@@ -66,7 +67,7 @@ where = [""]
 include = ["torchtune*", "recipes*"]
 
 [tool.setuptools.package-data]
-recipes = ["configs/*.yaml", "configs/*/*.yaml"]
+recipes = ["configs/*.yaml", "configs/*/*.yaml", "configs/*/*/*.yaml"]
 
 
 # ---- Tooling specifications ---- #
@@ -79,7 +80,7 @@ target-version = ["py38"]
 [tool.pydoclint]
 style = 'google'
 check-return-types = 'False'
-exclude = ['tests/torchtune/models/llama2/scripts/', 'tests/torchtune/models/mistral/scripts/']
+exclude = 'tests/torchtune/models/(\w+)/scripts/'
 
 [tool.pytest.ini_options]
 addopts = ["--showlocals", "--import-mode=prepend", "--without-integration", "--without-slow-integration"]

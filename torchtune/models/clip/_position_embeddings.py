@@ -4,6 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from typing import Any, Tuple
+
 import torch
 from torch import nn
 
@@ -37,10 +39,12 @@ class TokenPositionalEmbedding(nn.Module):
             * torch.randn((patch_grid_size**2 + 1, embed_dim))  # +1 for CLS token
         )
 
-    def forward(self, x: torch.Tensor, *args) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, *args: Tuple[Any]) -> torch.Tensor:
         """
         Args:
             x (torch.Tensor): Tensor with shape (..., n_tokens, embed_dim)
+            *args (Tuple[Any]): Optional args.
+
         Returns:
             torch.Tensor: The input tensor with added positional embeddings.
         """
@@ -49,11 +53,11 @@ class TokenPositionalEmbedding(nn.Module):
 
 class TiledTokenPositionalEmbedding(nn.Module):
     """
+
     Token positional embedding for tiled images. There are two positional embeddings in this module:
 
-    * local_token_positional_embedding: same for every tile, different for every token. Equivalent
+    * local_token_positional_embedding: same for every tile, different for every token. Equivalent \
         to :class:`torchtune.models.clip._position_embeddings.TokenPositionalEmbedding`, but gated.
-
     * global_token_positional_embedding: different for every tile, different for every token.
 
     Notice that tile is different from patch (token). For details, please check the documentation of
@@ -101,7 +105,8 @@ class TiledTokenPositionalEmbedding(nn.Module):
         Args:
             x (torch.Tensor): Tensor with shape (bsz * n_imgs, n_tiles, n_tokens, embed_dim).
             aspect_ratio (torch.Tensor): Tensor with shape (bsz * n_imgs, 2),
-                representing the aspect ratio of the image before tile-cropping, e.g. (2,1).
+                where aspect_ratio[k] represents the aspect ratio of the k^th image
+                of the batch before tile-cropping,  e.g. aspect_ratio[k] = (2,1).
         Returns:
             torch.Tensor: The input tensor with added positional embeddings.
         """

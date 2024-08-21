@@ -6,6 +6,9 @@ from torchtune.models.phi3._tokenizer import Phi3MiniTokenizer
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from functools import partial
+from torchtune.modules.tokenizers import parse_hf_tokenizer_json
+from torchtune.data._prompt_templates import _TemplateType
+from torchtune.config._utils import _get_prompt_template
 
 
 """
@@ -38,7 +41,7 @@ def phi3_mini() -> TransformerDecoder:
         norm_eps=1e-5,
     )
 
-def phi3_mini_tokenizer(path: str, special_tokens_path: Optional[str] = None) -> Phi3MiniTokenizer:
+def phi3_mini_tokenizer(path: str, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = None) -> Phi3MiniTokenizer:
     """Phi-3 Mini tokenizer.
     Ref: https://huggingface.co/microsoft/Phi-3-mini-4k-instruct/blob/main/tokenizer_config.json
 
@@ -47,6 +50,12 @@ def phi3_mini_tokenizer(path: str, special_tokens_path: Optional[str] = None) ->
         special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
             model files that contains all registered special tokens, or a local json file 
             structured similarly. Default is None to use the canonical Phi3 special tokens.
+        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
+            after which the input will be truncated. Default is None.
+        prompt_template (Optional[_TemplateType]): optional specified prompt template.
+            If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
+            class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
+            prepend/append tags.
 
     Note:
         This tokenizer includes typical LM EOS and BOS tokens like
@@ -58,7 +67,8 @@ def phi3_mini_tokenizer(path: str, special_tokens_path: Optional[str] = None) ->
         Phi3MiniSentencePieceBaseTokenizer: Instantiation of the SPM tokenizer.
     """
     special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    return Phi3MiniTokenizer(path=path, special_tokens=special_tokens)
+    template = _get_prompt_template(prompt_template) if prompt_template is not None else None
+    return Phi3MiniTokenizer(path=path, special_tokens=special_tokens, max_seq_len=max_seq_len, prompt_template=template)
 
 
 def lora_phi3_mini(

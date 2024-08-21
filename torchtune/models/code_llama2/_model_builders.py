@@ -29,7 +29,9 @@ def code_llama2_7b() -> TransformerDecoder:
         embed_dim=4096,
         max_seq_len=16384,
         attn_dropout=0.0,
+        intermediate_dim=11008,
         norm_eps=1e-5,
+        rope_base=1_000_000,
     )
 
 
@@ -59,6 +61,7 @@ def lora_code_llama2_7b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for LoRA linear layers. Default: 0.05
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
@@ -110,6 +113,7 @@ def code_llama2_13b() -> TransformerDecoder:
         max_seq_len=16384,
         attn_dropout=0.0,
         norm_eps=1e-5,
+        rope_base=1_000_000,
     )
 
 
@@ -139,6 +143,7 @@ def lora_code_llama2_13b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for LoRA linear layers. Default: 0.05
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
@@ -191,6 +196,7 @@ def code_llama2_70b() -> TransformerDecoder:
         max_seq_len=16384,
         attn_dropout=0.0,
         norm_eps=1e-5,
+        rope_base=1_000_000,
     )
 
 
@@ -220,6 +226,7 @@ def lora_code_llama2_70b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for LoRA linear layers. Default: 0.05
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:

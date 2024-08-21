@@ -47,6 +47,7 @@ class _EvalWrapper(HFLM):
         device (torch.device): The device to use.
         max_seq_length (int): The maximum sequence length to use.
         batch_size (int): The batch size per GPU to use.
+        dtype (torch.dtype): dtype for the model caches during generation.
     """
 
     def __init__(
@@ -129,6 +130,12 @@ class _EvalWrapper(HFLM):
     ) -> torch.Tensor:
         curr_batch_size = context.size(0)
 
+        if curr_batch_size > 1:
+            raise ValueError(
+                f"Got a batch size of '{curr_batch_size}'. Batch size > 1 is not supported for "
+                "generation. See https://github.com/pytorch/torchtune/issues/1250 for more info."
+            )
+
         # Setup caches for a given batch size
         # Technically this is not necessary, but it's a good way to ensure that
         # the caches won't error on a different batch size. In addition, caches
@@ -149,7 +156,6 @@ class _EvalWrapper(HFLM):
             self._model,
             context,
             max_generated_tokens=self.max_gen_toks,
-            pad_id=self._tokenizer.pad_id,
             temperature=temperature,
             top_k=None,  # do_sample is not supported currently
             stop_tokens=self._tokenizer.stop_tokens,
@@ -182,7 +188,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
     def setup(self) -> None:
         self._device = utils.get_device(device=self._cfg.device)
-        self._dtype = utils.get_dtype(dtype=self._cfg.dtype)
+        self._dtype = utils.get_dtype(dtype=self._cfg.dtype, device=self._device)
         self._limit = self._cfg.limit
         self._tasks = list(self._cfg.tasks)
         self._quantizer = config.instantiate(self._cfg.quantizer)
@@ -218,6 +224,12 @@ class EleutherEvalRecipe(EvalRecipeInterface):
             model = model.to(device=self._device, dtype=self._dtype)
 
         model.load_state_dict(model_state_dict)
+
+        # Put model in eval mode.
+        # Note: This will not disable the dropout applied in SDPA,
+        # see https://github.com/pytorch/pytorch/issues/124464
+        model.eval()
+
         # Validate model was loaded in with the expected dtype.
         utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)
         logger.info(f"Model is initialized with precision {self._dtype}.")

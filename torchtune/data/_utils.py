@@ -6,7 +6,7 @@
 
 from typing import Any, Dict, List, Optional
 
-from torchtune.data._types import Message
+from torchtune.data._messages import Message
 
 
 def truncate(

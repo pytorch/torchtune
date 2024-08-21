@@ -26,11 +26,11 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.datasets import ConcatDataset
-from torchtune.modules.peft import LoRALinear
-from torchtune.modules.peft.peft_utils import (
+from torchtune.modules.peft import (
     get_adapter_params,
     get_lora_module_names,
     get_merged_lora_ckpt,
+    LoRALinear,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
@@ -105,6 +105,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
+
+        if not utils.torch_version_ge("2.4.0"):
+            raise RuntimeError("FSDP2 recipe is only available on PyTorch nightlies")
+
         self._device = utils.get_device(device=cfg.device)
         self._dtype = utils.get_dtype(cfg.dtype, device=self._device)
 
@@ -297,7 +301,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
-                model, auto_wrap_policy={modules.TransformerDecoderLayer}
+                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
         fsdp_kwargs = {}
@@ -310,13 +314,13 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         for m in reversed(list(model.modules())):
             if isinstance(m, nn.Linear) and m.weight.requires_grad:
                 fully_shard(m, **fsdp_kwargs)
-            # TransformerDecoderLayer is wrapped by CheckpointWrapper
+            # TransformerSelfAttentionLayer is wrapped by CheckpointWrapper
             # when enable_activation_checkpointing
             if enable_activation_checkpointing:
                 if isinstance(m, CheckpointWrapper):
                     fully_shard(m, **fsdp_kwargs)
             else:
-                if isinstance(m, modules.TransformerDecoderLayer):
+                if isinstance(m, modules.TransformerSelfAttentionLayer):
                     fully_shard(m, **fsdp_kwargs)
         fully_shard(model, **fsdp_kwargs)
 
@@ -430,13 +434,15 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
-            collate_fn=partial(
-                utils.padded_collate,
-                padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
-            )
-            if not packed
-            else None,
+            collate_fn=(
+                partial(
+                    utils.padded_collate,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else None
+            ),
         )
 
         if self._is_rank_zero:
@@ -603,7 +609,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     loss_to_log = running_loss.item()
                     pbar.update(1)
                     pbar.set_description(
-                        f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
+                        f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
                     )
 
                     # Log per-step metrics

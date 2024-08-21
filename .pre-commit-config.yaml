@@ -45,7 +45,7 @@ repos:
           - usort == 1.0.5
 
 - repo: https://github.com/jsh9/pydoclint
-  rev: d88180a8632bb1602a4d81344085cf320f288c5a
+  rev: 94efc5f989adbea30f3534b476b2931a02c1af90
   hooks:
     - id: pydoclint
       args: [--config=pyproject.toml]

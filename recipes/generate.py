@@ -36,7 +36,7 @@ class InferenceRecipe:
 
     def __init__(self, cfg: DictConfig) -> None:
         self._device = utils.get_device(device=cfg.device)
-        self._dtype = utils.get_dtype(dtype=cfg.dtype)
+        self._dtype = utils.get_dtype(dtype=cfg.dtype, device=self._device)
         self._quantizer = config.instantiate(cfg.quantizer)
         self._quantization_mode = utils.get_quantizer_mode(self._quantizer)
 
@@ -55,6 +55,7 @@ class InferenceRecipe:
         self._model = self._setup_model(
             model_cfg=cfg.model,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
+            enable_kv_cache=cfg.enable_kv_cache,
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
@@ -62,6 +63,7 @@ class InferenceRecipe:
         self,
         model_cfg: DictConfig,
         model_state_dict: Dict[str, Any],
+        enable_kv_cache: bool = True,
     ) -> nn.Module:
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
@@ -77,8 +79,9 @@ class InferenceRecipe:
         logger.info(f"Model is initialized with precision {self._dtype}.")
 
         # Ensure the cache is setup on the right device
-        with self._device:
-            model.setup_caches(batch_size=1, dtype=self._dtype)
+        if enable_kv_cache:
+            with self._device:
+                model.setup_caches(batch_size=1, dtype=self._dtype)
 
         return model
 
@@ -152,7 +155,6 @@ class InferenceRecipe:
                 temperature=cfg.temperature,
                 top_k=cfg.top_k,
                 stop_tokens=self._tokenizer.stop_tokens,
-                pad_id=self._tokenizer.pad_id,
                 custom_generate_next_token=custom_generate_next_token,
             )
             t = time.perf_counter() - t0
@@ -166,7 +168,6 @@ class InferenceRecipe:
             temperature=cfg.temperature,
             top_k=cfg.top_k,
             stop_tokens=self._tokenizer.stop_tokens,
-            pad_id=self._tokenizer.pad_id,
             custom_generate_next_token=custom_generate_next_token,
         )
         t = time.perf_counter() - t0

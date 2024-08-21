@@ -4,53 +4,59 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional
+from typing import Dict, Optional, Union
 
-from torchtune.datasets._chat import chat_dataset, ChatDataset
+from torchtune.data import ShareGPTToMessages
+from torchtune.datasets._packed import PackedDataset
 
-from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.datasets._sft import SFTDataset
+from torchtune.modules.transforms import Transform
 
 
 def slimorca_dataset(
-    tokenizer: ModelTokenizer,
+    model_transform: Transform,
     *,
     source: str = "Open-Orca/SlimOrca-Dedup",
-    chat_format: Optional[str] = None,
-    max_seq_len: int = 1024,
+    column_map: Optional[Dict[str, str]] = None,
     train_on_input: bool = False,
+    new_system_prompt: Optional[str] = None,
     packed: bool = False,
-) -> ChatDataset:
+    split: str = "train",
+) -> Union[SFTDataset, PackedDataset]:
     """
     Support for `SlimOrca-style <https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup>`_
     family of conversational datasets.
 
-    Use a chat format if the base model requires it, such as Llama2 and Mistral.
-    The Llama3 models do not prescribe a particular format.
-
-    The returned data is a tuple of input token id list and label token id
-    list. If `max_seq_len` keyword argument is provided, the returned
-    input token id list is ensured (by truncation if necessary) to be within
-    that length.
+    Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is
+    set to ``False`` by default
+    - If ``train_on_input`` is True, the prompt is used during training and
+    contributes to the loss.
+    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)
 
     Args:
-        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
-        source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`.
-        chat_format (Optional[str]): name of template used to format the chat. See the description
-            in :class:`~torchtune.datasets.ChatDataset` for more details. Default: None
-        max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
-            This value needs to be at least 4 though it is generally set to max sequence length accepted by the model.
-            Default is 1024.
+        model_transform (Transform): model specific transform to convert a list of messages
+            output by the dataset to tokens. This will always be a :class:`~torchtune.modules.tokenizers.ModelTokenizer`.
+        source (str): path to dataset repository on Hugging Face. For local datasets,
+            define source as the data file type (e.g. "json", "csv", "text") and pass
+            in the filepath in ``data_files``. See `Hugging Face's
+            <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
+            ``load_dataset`` for more details. Default is ``Open-Orca/SlimOrca-Dedup``.
+        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the message transform
+            :class:`~torchtune.data.ShareGPTToMessages` to the new column names in the dataset. If None, use
+            the default column name ``"conversations"`` in ``Open-Orca/SlimOrca-Dedup``.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        new_system_prompt (Optional[str]): if specified, prepend a system message to every sample. This can
+            serve as instructions to guide the model response. Setting this will OVERRIDE any system
+            messages already present in the dataset. Default is None.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
-
-    Raises:
-        ValueError: If `max_seq_len` is less than 4.
+        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
+            of a given split, e.g. ``split="train[:10%]"``. Default is "train".
 
     Returns:
-        ChatDataset: dataset configured with SlimOrca source data and Llama2 chat template
+        Union[SFTDataset, PackedDataset]: dataset configured with SlimOrca source data
 
     Example:
-        >>> ds = slimorca_dataset(tokenizer=tokenizer, max_seq_len=10)
+        >>> ds = slimorca_dataset(model_transform=tokenizer)
         >>> for input, label in ds:
         >>>     print(input)
         >>>     print(label)
@@ -59,18 +65,16 @@ def slimorca_dataset(
         >>> [1, 351, 82, 391, 221, 220, 193, 12, 471, ..., 2]
         >>> [-100, -100, -100, -100, -100, -100, -100, -100, 471, ..., 2]
     """
-    if max_seq_len < 4:
-        # Input token needs to have 1 bos, 1 eos,
-        # and 1 token from prompt, 1 from label
-        raise ValueError("max_seq_len must be at least 4")
 
-    return chat_dataset(
-        tokenizer=tokenizer,
-        source=source,
-        conversation_style="sharegpt",
-        chat_format=chat_format,
-        max_seq_len=max_seq_len,
+    message_transform = ShareGPTToMessages(
         train_on_input=train_on_input,
-        packed=packed,
-        split="train",
+        column_map=column_map,
+        new_system_prompt=new_system_prompt,
     )
+    ds = SFTDataset(
+        source=source,
+        message_transform=message_transform,
+        model_transform=model_transform,
+        split=split,
+    )
+    return PackedDataset(ds) if packed else ds

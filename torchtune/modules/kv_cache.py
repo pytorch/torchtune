@@ -40,6 +40,7 @@ class KVCache(nn.Module):
         self.register_buffer(
             "v_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False
         )
+        self.size = 0
         self.batch_size = batch_size
 
     def reset(self) -> None:
@@ -52,18 +53,18 @@ class KVCache(nn.Module):
     ) -> Tuple[Tensor, Tensor]:
         """Update KV cache with the new k_val, v_val and return the updated cache.
 
+        Raises an assertion error if ``input_pos`` is longer than the maximum sequence length.
+
         Args:
             input_pos (Tensor): Current position tensor with shape [S]
             k_val (Tensor): Current key tensor with shape [B, H, S, D]
             v_val (Tensor): Current value tensor with shape [B, H, S, D]
 
-        Raises:
-            ValueError: if ``input_pos`` is longer than the maximum sequence length
-
         Returns:
             Tuple[Tensor, Tensor]: Updated KV cache with key first
         """
         assert input_pos.shape[0] == k_val.shape[2]
+        self.size = input_pos.max().item() + 1
 
         k_out = self.k_cache
         v_out = self.v_cache

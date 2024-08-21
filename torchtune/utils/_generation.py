@@ -66,7 +66,6 @@ def generate(
     prompt: torch.Tensor,
     *,
     max_generated_tokens: int,
-    pad_id: int = 0,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
     stop_tokens: Optional[List[int]] = None,
@@ -80,7 +79,6 @@ def generate(
         prompt (torch.Tensor): tensor with the token IDs associated with the given prompt,
             with shape either [seq_length] or [bsz x seq_length]
         max_generated_tokens (int): number of tokens to be generated
-        pad_id (int): token ID to use for padding, default 0.
         temperature (float): value to scale the predicted logits by, default 1.0.
         top_k (Optional[int]): If specified, we prune the sampling to only token ids within the top_k probabilities,
             default None.
@@ -120,9 +118,10 @@ def generate(
         custom_generate_next_token = generate_next_token
 
     # generate the first tokens conditioned on the prompt
+    input_pos = torch.arange(0, model.max_seq_len, device=prompt.device)
     tokens = generate_next_token(
         model,
-        input_pos=torch.arange(0, prompt_length, device=prompt.device),
+        input_pos=input_pos[:prompt_length],
         x=prompt,
         temperature=temperature,
         top_k=top_k,
@@ -137,7 +136,9 @@ def generate(
         if stop_token_reached.all().item():
             return generated_tokens.tolist()
 
-    input_pos = torch.tensor([prompt_length], device=prompt.device)
+    curr_pos = prompt_length
+    # if key value caches are enabled, we can incrementally decode
+    incremental_decoding = model.caches_are_enabled()
     for _ in range(max_generated_tokens - 1):
         # update stop_token_mask if we reached a stop token in a previous step
         # by appending the logical not of stop_token_reached to the end of the mask
@@ -147,12 +148,24 @@ def generate(
                 [stop_token_mask, ~stop_token_reached.reshape(bsz, 1)], dim=-1
             )
 
+        # if incremental decoding is enabled, we can use the current position
+        # otherwise, we take the whole sequence up to the current position
+        if incremental_decoding:
+            curr_input_pos = input_pos[curr_pos].unsqueeze(0)
+        else:
+            curr_input_pos = input_pos[: curr_pos + 1]
+            tokens = generated_tokens.clone()
+
         tokens = custom_generate_next_token(
-            model, input_pos=input_pos, x=tokens, temperature=temperature, top_k=top_k
+            model,
+            input_pos=curr_input_pos,
+            x=tokens,
+            temperature=temperature,
+            top_k=top_k,
         )
 
         generated_tokens = torch.cat([generated_tokens, tokens], dim=-1)
-        input_pos += 1
+        curr_pos += 1
 
         if stop_tokens is not None:
             stop_token_reached = update_stop_tokens_tracker(
@@ -164,8 +177,5 @@ def generate(
     # mask out generated tokens in seqs that already hit a stop token
     if stop_tokens is not None:
         generated_tokens = generated_tokens * stop_token_mask
-        # if pad_id is not 0, replace 0 with pad_id
-        if pad_id != 0:
-            generated_tokens[generated_tokens == 0] = pad_id
 
     return generated_tokens.tolist()

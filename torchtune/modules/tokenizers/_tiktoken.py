@@ -97,6 +97,10 @@ class TikTokenBaseTokenizer(BaseTokenizer):
 
         Args:
             text (str): The string to encode.
+            add_bos (bool): Whether to add the tokenizer's bos_id to the encoded string.
+                Default True.
+            add_eos (bool): Whether to add the tokenizer's eos_id to the encoded string.
+                Default True.
 
         Returns:
             List[int]: The list of token ids.
@@ -134,6 +138,7 @@ class TikTokenBaseTokenizer(BaseTokenizer):
         self,
         token_ids: List[int],
         truncate_at_eos: bool = True,
+        skip_special_tokens: bool = True,
     ) -> str:
         """
         Decode a list of token ids into a string.
@@ -142,6 +147,8 @@ class TikTokenBaseTokenizer(BaseTokenizer):
             token_ids (List[int]): The list of token ids.
             truncate_at_eos (bool): Whether to truncate the string at the end of
                 sequence token. Default is True.
+            skip_special_tokens (bool): Whether to show or skip special tokens in the decoded string.
+                Default is True.
 
         Returns:
             str: The decoded string.
@@ -153,5 +160,11 @@ class TikTokenBaseTokenizer(BaseTokenizer):
                 k = None
             if k:
                 token_ids = token_ids[:k]
-        token_ids = [token_id for token_id in token_ids if token_id != self.bos_id]
+        if skip_special_tokens:
+            token_ids = [
+                token_id
+                for token_id in token_ids
+                if token_id not in self.tt_model._special_tokens.values()
+                and token_id != self.bos_id
+            ]
         return self.tt_model.decode(token_ids)

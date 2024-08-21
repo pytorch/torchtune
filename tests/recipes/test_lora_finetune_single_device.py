@@ -88,6 +88,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
+            tokenizer.prompt_template=null \
             metric_logger.filename={log_file} \
             compile={compile} \
         """.split()
@@ -133,6 +134,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             checkpointer.model_type=LLAMA2 \
             metric_logger.filename={log_file} \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
             compile={compile} \
         """.split()
 
@@ -180,6 +182,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
@@ -204,6 +207,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
         """.split()
         cmd_2 = cmd_2 + self._get_test_config_overrides(epochs=3) + model_config
         monkeypatch.setattr(sys, "argv", cmd_2)
@@ -234,6 +238,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]

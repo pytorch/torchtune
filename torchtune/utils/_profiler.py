@@ -54,9 +54,9 @@ def _warn(msg: str):
 
 def trace_handler(
     prof: torch.profiler.profile,
-    output_dir,
-    metric="self_cuda_time_total",
-    row_limit=25,
+    output_dir: str,
+    metric: str = "self_cuda_time_total",
+    row_limit: int = 25,
 ):
     """
     Handles export of artifacts from ``torch.profiler.profile``.
@@ -64,7 +64,7 @@ def trace_handler(
     The following artifacts are exported:
     - chrome / tensorboard trace - viewable through tensorboard or perfetto.dev / chrome::/tracing
     - trace event table
-    - memory timeline if ``profile_memory``
+    - memory timeline and snapshot.pickle if ``profile_memory``
     - stacks if ``with_stack`` (note that ``profile_memory`` requires ``with_stack`` to be ``True``),
     viewable as a flamegraph see (https://pytorch.org/docs/stable/profiler.html#torch.profiler._KinetoProfile.export_stacks).
 
@@ -78,11 +78,10 @@ def trace_handler(
     See profiler documentation (https://pytorch.org/docs/stable/profiler.html#torch.profiler.profile) for more details
 
     Args:
-        prof: torch.profiler.profile
-        output_dir: str - directory to store artifacts
-        metric: str - metric to order trace event table by, see ``torch.profiler.profile.key_averages().table`` for
-        additional metrics
-        row_limit: int - number of rows to display in trace event table
+        prof (torch.profiler.profile): instance of torch profiler to use
+        output_dir (str):  directory to store artifacts
+        metric (str): metric to order trace event table by, see ``torch.profiler.profile.key_averages().table`` for
+        row_limit (int): number of rows to display in trace event table
 
     """
     world_size, rank = get_world_size_and_rank()
@@ -115,6 +114,10 @@ def trace_handler(
                 )
             except Exception as e:
                 log.warn(f" Failed to export memory timeline: {e}")
+
+            torch.cuda.memory._dump_snapshot(
+                f"{curr_trace_dir}/rank{rank}_memory_snapshot.pickle"
+            )
 
     # Dump stack traces
     if prof.with_stack:
@@ -190,33 +193,55 @@ def setup_torch_profiler(
     output_dir: Optional[str] = None,
 ) -> Tuple[torch.profiler.profile, DictConfig]:
     """
-    Sets up torch.profiler.profile and returns the profiler config with post-setup updates.
+    Sets up :class:`~torch.profiler.profile` and returns the profiler config with post-setup updates.
 
-    The profiler config can be provided in configs under the `profiler` key with the following layout:
+    The profiler config can be provided in configs under the ``profiler`` key with the following layout:
 
     .. code-block:: yaml
 
         profiler:
-            enabled: bool
+          _component_: torchtune.utils.setup_torch_profiler
+          enabled: bool
+          # Output directory of trace artifacts
+          output_dir: str
 
-            #Output directory of trace artifacts
-            output_dir: str
+          # torch.profiler.ProfilerActivity types to trace
+          cpu: bool
+          cuda: bool
 
-        #`torch.profiler.ProfilerActivity` types to trace
-        cpu: bool
-        cuda: bool
+          # Trace options
+          profile_memory: bool
+          with_stack: bool
+          record_shapes: bool
+          with_flops: bool
 
-            #Trace options
-            profile_memory: bool
-            with_stack: bool
-            record_shapes: bool
-            with_flops: bool
+          # torch.profiler.schedule args
+          wait_steps: int
+          warmup_steps: int
+          active_steps: int
+          num_cycles: int
 
-        #`torch.profiler.schedule` args
-        wait_steps: int
-        warmup_steps: int
-        active_steps: int
-        num_cycles: int
+    The profiler schedule updates with respect to an optimizer step (e.g., if
+    ``gradient_accumulation = 2``, then the profiler will step every 2 batches).
+
+    Sensible defaults will be chosen if the config is missing options:
+
+    - If no activities are specified, profiler will default to CPU + CUDA
+    - If no schedule is specified, profiler will default to ``DEFAULT_SCHEDULE``
+    - Certain options will be overridden (``with_stack`` and ``record_shapes``) \
+    depending on requirements of other options (e.g., ``profile_memory`` requires \
+    ``with_stack`` and ``record_shapes``).
+
+
+    Note:
+        - Enabling the profiler will result in training speed reduction.
+        - Setting ``profile_memory: True`` will generate large trace files.
+        - The profiler schedule is context dependent. Calling ``profiler.step()`` \
+        at each batch iteration but **outside** the gradient accumulation scope will \
+        ``step`` the profiler each forward / backward step. Calling ``profiler.step()`` \
+        each batch iteration but **within** the gradient accumulation scope  will ``step`` \
+        the profiler each optimizer update step such that each ``step`` contains multiple \
+        forward / backward passes.
 
     Args:
         enabled (bool): Enable pytorch profiler. Default is False.
@@ -226,33 +251,14 @@ def setup_torch_profiler(
         with_stack (bool): Profile stack. Default is False.
         record_shapes (bool): Record shapes. Default is True.
         with_flops (bool): Profile flops. Default is False.
-        wait_steps (Optional[int]): Wait time in steps. Maps to `wait` kwarg of `torch.profiler.schedule`.
-        warmup_steps (Optional[int]): Warmup time in steps. Maps to `warmup` kwarg of `torch.profiler.schedule`.
-        active_steps (Optional[int]): Active time in steps. Maps to `active` kwarg of `torch.profiler.schedule`.
-        num_cycles (Optional[int]): Number of profiling cycles. Maps to `repeat` kwarg of `torch.profiler.schedule`.
+        wait_steps (Optional[int]): Wait time in steps. Maps to ``wait`` kwarg of ``torch.profiler.schedule``.
+        warmup_steps (Optional[int]): Warmup time in steps. Maps to ``warmup`` kwarg of ``torch.profiler.schedule``.
+        active_steps (Optional[int]): Active time in steps. Maps to ``active`` kwarg of ``torch.profiler.schedule``.
+        num_cycles (Optional[int]): Number of profiling cycles. Maps to ``repeat`` kwarg of ``torch.profiler.schedule``.
         output_dir (Optional[str]): Tracing file output path.
 
     Returns:
-        tuple: [torch.profiler.profile, DictConfig]
-
-    NOTE:
-    - Enabling the profiler will result in training speed reduction.
-    - Setting ``profile_memory: true`` will generate large trace files.
-    - The profiler schedule is context dependent:
-    * Calling ``profiler.step()`` at each batch iteration but outside the gradient accumulation
-    scope will ``step`` the profiler each forward / backward step
-    * Calling ``profiler.step()`` each batch iteration but within the gradient accumulation scope
-    will ``step`` the profiler each optimizer update step such that each ``step`` contains multiple
-    forward / backward passes.
-
-    Additional notes:
-        - the profiler schedule updates with respect to an optimizer step:
-            - e.g., if `gradient_accumulation = 2`, then the profiler will step every 2 batches.
-        - sensible defaults will be chosen if the config is missing options
-            - if no activities are specified, profiler will default to CPU + CUDA
-            - similarly, if no schedule is specified, profiler will default to DEFAULT_SCHEDULE
-            - certain options will be overridden (`with_stack` and `record_shapes`) depending on requirements of other options
-                - e.g., `profile_memory` requires `with_stack` and `record_shapes`
+        Tuple[torch.profiler.profile, DictConfig]
     """
 
     if not enabled:

@@ -176,6 +176,7 @@ def tune_to_hf(
         num_heads (int): Number of heads in the model.
         num_kv_heads (int): Number of heads in the key/value projection layers.
         dim (int): Dimension of the model.
+        head_dim (int): Dimension of model attention heads. Default None.
 
     Returns:
         Dict[str, torch.Tensor]: State dict in HF's format.
@@ -249,6 +250,7 @@ def tune_to_peft_adapter_weights(
     num_heads: int = 32,
     num_kv_heads: int = 32,
     dim: int = 4096,
+    head_dim: int = None,
 ):
     converted_state_dict = {}
     full_mapping = {}
@@ -266,7 +268,8 @@ def tune_to_peft_adapter_weights(
             }
         )
 
-    head_dim = dim // num_heads
+    if head_dim is None:
+        head_dim = dim // num_heads
 
     def _permute_lora_matrix(t, n_heads):
         rank = t.shape[-1]

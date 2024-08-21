@@ -23,7 +23,7 @@ torchtune supports several widely used datasets to help quickly bootstrap your f
     grammar_dataset
     samsum_dataset
     slimorca_dataset
-    stack_exchanged_paired_dataset
+    stack_exchange_paired_dataset
     cnn_dailymail_articles_dataset
     wikitext_dataset
 
@@ -56,3 +56,4 @@ Class representations for the above dataset builders.
     ConcatDataset
     PackedDataset
     PreferenceDataset
+    SFTDataset
