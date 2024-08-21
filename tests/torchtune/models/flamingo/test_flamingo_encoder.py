@@ -63,7 +63,7 @@ class TestFlamingoVisionEncoder:
             self.batch_size,
             self.n_imgs
             * self.num_tiles
-            * vision_transformer.encoder.get_image_tokens_per_tile(),
+            * vision_transformer.clip.get_image_tokens_per_tile(),
             transformer_config["decoder_embed_dim"],
         )
         assert (
@@ -94,7 +94,7 @@ class TestFlamingoVisionEncoder:
 
         expected_shape = (
             self.batch_size,
-            self.n_imgs * model_with_multiple_tiles.encoder.get_image_tokens_per_tile(),
+            self.n_imgs * model_with_multiple_tiles.clip.get_image_tokens_per_tile(),
             transformer_config["decoder_embed_dim"],
         )
         assert (
@@ -120,7 +120,7 @@ class TestFlamingoVisionEncoder:
             self.batch_size,
             self.n_imgs
             * self.num_tiles
-            * model_with_no_hidden.encoder.get_image_tokens_per_tile(),
+            * model_with_no_hidden.clip.get_image_tokens_per_tile(),
             transformer_config["decoder_embed_dim"],
         )
         assert (
