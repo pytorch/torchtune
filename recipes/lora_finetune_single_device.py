@@ -567,7 +567,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
         if not isinstance(logits, list):
             labels = labels.reshape(-1)
-            logits = logits.reshape(-1, logits.size(-1))
+            logits = logits.reshape(-1, logits.size(-1)).float()
 
         # Compute loss
         loss = self._loss_fn(logits, labels)
