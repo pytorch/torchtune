@@ -109,7 +109,7 @@ def lora_gemma_2b(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=0.05,
-        use_dora: bool = False,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 
