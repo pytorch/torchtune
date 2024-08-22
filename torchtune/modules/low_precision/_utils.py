@@ -37,9 +37,8 @@ def _get_torchao_version() -> Tuple[Optional[str], Optional[bool]]:
 
     Checks:
         1) is_fbcode, then
-        2) importlib's version(torchao-nightly) for nightlies, then
         3) torchao.__version__ (only defined for torchao >= 0.3.0), then
-        4) importlib's version(torchao) for non-nightly
+        4) importlib's version(torchao)
 
 
     If none of these work, raise an error.
@@ -47,20 +46,12 @@ def _get_torchao_version() -> Tuple[Optional[str], Optional[bool]]:
     """
     if _is_fbcode():
         return None, None
-    # Check for nightly install first
     try:
-        ao_version = version("torchao-nightly")
-        is_nightly = True
-    except PackageNotFoundError:
-        try:
-            ao_version = torchao.__version__
-            is_nightly = False
-        except AttributeError:
-            ao_version = "unknown"
-    if ao_version == "unknown":
+        ao_version = torchao.__version__
+    except AttributeError:
         try:
             ao_version = version("torchao")
-            is_nightly = False
         except Exception as e:
             raise PackageNotFoundError("Could not find torchao version") from e
+    is_nightly = "dev" in ao_version
     return ao_version, is_nightly
