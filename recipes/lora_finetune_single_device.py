@@ -401,10 +401,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             log.info("Compiling model with torch.compile...")
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
             model = torch.compile(model, backend=backend)
-            # TODO: currently compiling loss step break the graph on every step
-            # and it too slow
-            # self._loss_step_original = self._loss_step
-            # self._loss_step = torch.compile(self._loss_step, backend=backend)
 
         if self._device.type == "cuda":
             memory_stats = utils.get_memory_stats(device=self._device)
