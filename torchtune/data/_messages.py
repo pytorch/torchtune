@@ -364,6 +364,9 @@ class ShareGPTToMessages(Transform):
 
         Returns:
             List[Message]: A list of messages with "role" and "content" fields.
+
+        Raises:
+            ValueError: If ``image_dir`` is not provided and sample contains image paths.
         """
         role_map = {"system": "system", "human": "user", "gpt": "assistant"}
         messages = []

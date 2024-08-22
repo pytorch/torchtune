@@ -71,7 +71,9 @@ def llava_instruct_dataset(
         data_files (str): path to the json file to load as dataset. See the `dataset repo
             <https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K/tree/main>`_ for options.
             Default is "llava_instruct_150k.json".
-        **load_dataset_kwargs: Additional keyword arguments to pass to ``load_dataset``.
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
+            Face's `API ref <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset>`_
+            for more details.
 
     Returns:
         Union[SFTDataset, PackedDataset]: dataset configured with source data and transform

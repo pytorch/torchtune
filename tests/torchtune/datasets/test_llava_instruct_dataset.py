@@ -43,7 +43,12 @@ class TestLLaVAInstructDataset:
                         },
                         {
                             "from": "gpt",
-                            "value": "From the image, we can infer that the man is engaging in a recreational activity involving a frisbee in a park or grass field. The frisbee is in the air, and the man appears to be either catching or throwing it. This suggests that he might be playing a casual game of catch with a friend or practicing his frisbee skills, enjoying the outdoors and getting some physical activity at the same time.",
+                            "value": "From the image, we can infer that the man is engaging in a "
+                            "recreational activity involving a frisbee in a park or grass field. "
+                            "The frisbee is in the air, and the man appears to be either catching "
+                            "or throwing it. This suggests that he might be playing a casual game "
+                            "of catch with a friend or practicing his frisbee skills, enjoying the "
+                            "outdoors and getting some physical activity at the same time.",
                         },
                     ],
                 }
@@ -94,7 +99,12 @@ class TestLLaVAInstructDataset:
                         },
                         {
                             "from": "gpt",
-                            "value": "From the image, we can infer that the man is engaging in a recreational activity involving a frisbee in a park or grass field. The frisbee is in the air, and the man appears to be either catching or throwing it. This suggests that he might be playing a casual game of catch with a friend or practicing his frisbee skills, enjoying the outdoors and getting some physical activity at the same time.",
+                            "value": "From the image, we can infer that the man is engaging in a "
+                            "recreational activity involving a frisbee in a park or grass field. "
+                            "The frisbee is in the air, and the man appears to be either catching "
+                            "or throwing it. This suggests that he might be playing a casual game "
+                            "of catch with a friend or practicing his frisbee skills, enjoying the "
+                            "outdoors and getting some physical activity at the same time.",
                         },
                     ],
                 }

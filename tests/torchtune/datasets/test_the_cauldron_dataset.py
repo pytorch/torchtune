@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import pdb
 from unittest.mock import patch
 
 import pytest
@@ -36,7 +37,9 @@ class TestTheCauldronDataset:
                     "images": [ToPILImage()(image_tensor)],
                     "texts": [
                         {
-                            "user": "Question: What do respiration and combustion give out\nChoices:\nA. Oxygen\nB. Carbon dioxide\nC. Nitrogen\nD. Heat\nAnswer with the letter.",
+                            "user": "Question: What do respiration and combustion give out"
+                            "\nChoices:\nA. Oxygen\nB. Carbon dioxide\nC. Nitrogen\nD. Heat"
+                            "\nAnswer with the letter.",
                             "assistant": "Answer: B",
                             "source": "AI2D",
                         }
@@ -45,13 +48,13 @@ class TestTheCauldronDataset:
             ]
         )
 
-        grammar_ds = the_cauldron_dataset(
+        ds = the_cauldron_dataset(
             model_transform=tokenizer, subset="dummy", train_on_input=True
         )
         input, labels, images = (
-            grammar_ds[0]["tokens"],
-            grammar_ds[0]["labels"],
-            grammar_ds[0]["images"][0],
+            ds[0]["tokens"],
+            ds[0]["labels"],
+            ds[0]["images"][0],
         )
 
         assert input == [
@@ -84,6 +87,7 @@ class TestTheCauldronDataset:
             -1,
         ]
         assert labels == input
+        pdb.set_trace()
         torch.testing.assert_close(PILToTensor()(images), image_tensor)
 
     @patch("torchtune.datasets._sft.load_dataset")
@@ -100,7 +104,9 @@ class TestTheCauldronDataset:
                     "images": [ToPILImage()(image_tensor)],
                     "texts": [
                         {
-                            "user": "Question: What do respiration and combustion give out\nChoices:\nA. Oxygen\nB. Carbon dioxide\nC. Nitrogen\nD. Heat\nAnswer with the letter.",
+                            "user": "Question: What do respiration and combustion give out"
+                            "\nChoices:\nA. Oxygen\nB. Carbon dioxide\nC. Nitrogen\nD. Heat"
+                            "\nAnswer with the letter.",
                             "assistant": "Answer: B",
                             "source": "AI2D",
                         }
@@ -109,13 +115,13 @@ class TestTheCauldronDataset:
             ]
         )
 
-        grammar_ds = the_cauldron_dataset(
+        ds = the_cauldron_dataset(
             model_transform=tokenizer, subset="dummy", train_on_input=False
         )
         input, labels, images = (
-            grammar_ds[0]["tokens"],
-            grammar_ds[0]["labels"],
-            grammar_ds[0]["images"][0],
+            ds[0]["tokens"],
+            ds[0]["labels"],
+            ds[0]["images"][0],
         )
 
         assert input == [
