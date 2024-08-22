@@ -46,19 +46,28 @@ class _CLIPImageTransform(torch.nn.Module):
         self.pad = torch.nn.functional.pad
 
     def check_variable_bounds_for_export(
-        self, vars: List[int], lower: int, upper: int
+        self,
+        target_size: List[int],
+        canvas_size: List[int],
+        lower: int,
+        upper: int,
     ) -> None:
         """
-        Performs torch._checks to confirm a value is within the specified lower and upper bounds.
-        Note: this is used to export the model. For eager mode usage, please disregard.
+        Performs torch._checks used to export the model. For eager mode usage, please disregard.
         The check mitigates data dependent errors that may occur during torch.export. It installs a
         deferred runtime assert, instead of a compile-time guard. Data dependent errors usually occur
         in models with data-dependent control flow, eg. via .item(), tolist(), nonzero(). For more
         context: https://docs.google.com/document/d/1HSuTTVvYH1pTew89Rtpeu84Ht3nQEFTYhAX3Ypa_xJs/edit
         """
-        for var in vars:
+        # Check lower <= canvas_size <= upper.
+        for var in canvas_size:
             torch._check(var >= lower)
             torch._check(var <= upper)
+
+        # Check lower <= target_size <= canvas_size.
+        for i in range(len(target_size)):
+            torch._check(target_size[i] >= lower)
+            torch._check(target_size[i] <= canvas_size[i])
 
     def forward(
         self, image: torch.Tensor, target_size: torch.Tensor, canvas_size: torch.Tensor
@@ -83,9 +92,10 @@ class _CLIPImageTransform(torch.nn.Module):
 
         # Checks to allow the model to export via torch.export.
         self.check_variable_bounds_for_export(
-            [target_h, target_w, canvas_h, canvas_w],
-            2,
-            self.tile_size * self.max_num_tiles,
+            target_size=[target_h, target_w],
+            canvas_size=[canvas_h, canvas_w],
+            lower=2,
+            upper=self.tile_size * self.max_num_tiles,
         )
 
         # Resize.
