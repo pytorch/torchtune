@@ -9,15 +9,15 @@ import sys
 args = sys.argv
 
 torch.manual_seed(42)
-device = torch.device("cuda")
-dtype = torch.float16
+device = torch.device("mps")
+dtype = torch.bfloat16
 with utils.set_default_dtype(dtype), device:
     model = llama2(
         vocab_size=32000, num_layers=22, num_heads=32, embed_dim=2048, max_seq_len=2048, norm_eps=1e-5, num_kv_heads=4
     )
 utils.validate_expected_param_dtype(model.named_parameters(), dtype=dtype)
 checkpointer = utils.FullModelHFCheckpointer(
-    checkpoint_dir="./target/1b_normal/",
+    checkpoint_dir="./target/dummy/",
     checkpoint_files=[
         "pytorch_model.bin",
     ],
@@ -28,7 +28,7 @@ checkpointer = utils.FullModelHFCheckpointer(
 state_dict = checkpointer.load_checkpoint()["model"]
 model.load_state_dict(state_dict=state_dict)
 model.eval()
-tokenizer = llama2_tokenizer("./target/1b_normal/tokenizer.model")
+tokenizer = llama2_tokenizer("./target/dummy/tokenizer.model")
 
 prompt = """
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla fermentum sapien vitae arcu volutpat egestas. Duis euismod nunc lorem, aliquet laoreet ex blandit vel. Vivamus sodales lacus velit, a hendrerit erat ornare vitae. Nam auctor nulla sit amet tempus pretium. Ut bibendum ullamcorper elit vel porttitor. Maecenas ut lacus in sapien suscipit condimentum. Sed eu massa mauris. Nullam id diam erat. Aenean quis nunc eu libero ultrices ullamcorper ut placerat odio. Aenean nunc elit, tincidunt in erat non, congue finibus tellus. Donec tellus nibh, imperdiet non justo nec, rutrum efficitur lacus.
@@ -38,17 +38,19 @@ Ut non commodo nisi. Nulla dapibus porta velit facilisis gravida. Phasellus inte
 
 # prompt = "The quick brown fox jumped over the lazy dog and went to"
 
-batch_size = 1
+batch_size = 4
 with device:
-    model.setup_caches(batch_size=1, dtype=dtype)
+    model.setup_caches(batch_size=batch_size, dtype=dtype)
 
 prompt = torch.tensor(tokenizer.encode(prompt, add_eos=False), dtype=torch.int, device=device).repeat(batch_size, 1)
-
-print(prompt.shape)
+prompt = torch.hstack(
+    (torch.ones(batch_size, prompt.shape[-1] // 4, device=device, dtype=torch.int) * tokenizer.pad_id, prompt)
+)
+# prompt[:2][: prompt.shape[-1] // 4] = tokenizer.pad_id
 
 
 def generate_with_compile():
-    custom_generate_next_token = torch.compile(utils.generate_next_token, fullgraph=True, mode="max-autotune")
+    custom_generate_next_token = torch.compile(utils.generate_next_token, fullgraph=True, backend="aot_eager")
     return utils.generate(
         model=model,
         prompt=prompt,
@@ -85,7 +87,7 @@ def generate_rlhf():
 
 t0 = time.perf_counter()
 with torch.no_grad():
-    generated_tokens = generate_with_compile()
+    generated_tokens = generate_rlhf()
 
 
 t = time.perf_counter() - t0

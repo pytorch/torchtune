@@ -57,12 +57,22 @@ class KVCache(nn.Module):
         Returns:
             Tuple[Tensor, Tensor]: Updated KV cache with key first
         """
-        assert input_pos.shape[0] == k_val.shape[2]
-        self.size = self.k_cache.dim()
+        import pdb
+
+        # pdb.set_trace()
+        assert input_pos.shape[-1] == k_val.shape[2]
+        self.size = input_pos.dim()
 
         k_out = self.k_cache
         v_out = self.v_cache
-        k_out[:, :, input_pos] = k_val
-        v_out[:, :, input_pos] = v_val
+        _, num_heads, _, d_k = k_out.shape
+        expanded_input_pos = input_pos.unsqueeze(1).unsqueeze(-1).expand(-1, num_heads, -1, d_k).to(torch.long)
+
+        # Use scatter to place k_val into k_out according to input_pos
+        k_out.scatter_(2, expanded_input_pos, k_val)
+        v_out.scatter_(2, expanded_input_pos, v_val)
+
+        # k_out[:, :, input_pos] = k_val
+        # v_out[:, :, input_pos] = v_val
 
         return k_out, v_out
