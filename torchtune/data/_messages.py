@@ -4,7 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 from typing import Any, Dict, List, Literal, Mapping, Optional, Union
+
+from PIL import Image
+from torchtune.data._utils import split_text_by_image_tag
 
 from torchtune.modules.transforms import Transform
 
@@ -281,7 +285,7 @@ class ChosenRejectedToMessages(Transform):
 class ShareGPTToMessages(Transform):
     """
     Convert a single chat sample adhering to the ShareGPT json structure to torchtune's :class:`~torchtune.data.Message`
-    structure.
+    structure. Additionally supports an optional image column for multimodal conversational datasets.
 
     A single sample typically consists of a single optional system prompt and one or multiple
     turns of user and assistant messages.
@@ -295,7 +299,8 @@ class ShareGPTToMessages(Transform):
                     "value": <message>,
                 },
                 ...
-            ]
+            ],
+            "image": <image_path>,
         }
 
     :class:`~torchtune.data.Message` follows::
@@ -310,12 +315,19 @@ class ShareGPTToMessages(Transform):
 
     Args:
         train_on_input (bool): whether the prompt should remain unmasked. Default: False
-        column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("conversations")
+        column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("conversations", "image")
             to the new column names in the dataset. If None, assume these are identical.
             Default is None.
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
+        image_tag (Optional[str]): if specified, split the raw text content by the specified ``image_tag``
+            and use placeholders for where the images are present in the text for proper tokenization. Set
+            this if your dataset contains images and uses a specific string (ex: "<image>") to indicate the
+            presence of an image. Leave this as None if your dataset does not contain images. Default is None.
+        image_dir (Optional[str]): if specified, load images from the specified directory. This requires
+            the image path to be stored in the ``image`` key in the sample dict. Leave this as None if your
+            dataset does not contain images or if PIL images are already provided. Default is None.
 
     Raises:
         ValueError: If ``column_map`` is provided and ``conversations`` not in ``column_map``.
@@ -326,9 +338,13 @@ class ShareGPTToMessages(Transform):
         train_on_input: bool = False,
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
+        image_tag: Optional[str] = None,
+        image_dir: Optional[str] = None,
     ):
         self.train_on_input = train_on_input
         self.new_system_prompt = new_system_prompt
+        self.image_tag = image_tag
+        self.image_dir = image_dir
         if column_map:
             if "conversations" not in column_map:
                 raise ValueError(
@@ -336,7 +352,7 @@ class ShareGPTToMessages(Transform):
                 )
             self._column_map = column_map
         else:
-            self._column_map = {"conversations": "conversations"}
+            self._column_map = {"conversations": "conversations", "image": "image"}
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         """
@@ -361,11 +377,31 @@ class ShareGPTToMessages(Transform):
             role = role_map[message["from"]]
             if role == "system" and self.new_system_prompt is not None:
                 continue
-            content = message["value"]
+            content = (
+                split_text_by_image_tag(message["value"], self.image_tag)
+                if role == "user" and self.image_tag is not None
+                else message["value"]
+            )
             masked = (role != "assistant") and (not self.train_on_input)
             messages.append(Message(role=role, content=content, masked=masked))
 
-        return {"messages": messages}
+        # Retrieve image from image_dir if specified
+        if "image" in sample and isinstance(sample["image"], str):
+            if self.image_dir is None:
+                raise ValueError(
+                    "You must specify an image_dir to load images specified with paths."
+                )
+            image_path = os.path.join(self.image_dir, sample["image"])
+            image = Image.open(image_path)
+        elif "image" in sample and isinstance(sample["image"], Image.Image):
+            image = sample["image"]
+        else:
+            image = None
+
+        processed_sample = {"messages": messages}
+        if image is not None:
+            processed_sample["images"] = [image]
+        return processed_sample
 
 
 class JSONToMessages(Transform):
@@ -455,3 +491,45 @@ class JSONToMessages(Transform):
             updated_messages.append(Message.from_dict(message))
 
         return {"messages": updated_messages}
+
+
+def validate_messages(
+    messages: List[Message],
+) -> None:
+    """
+    Given a list of messages, ensure that messages form a valid
+    back-and-forth conversation. An error will be raised if:
+
+    - There is a system message that's not the first message
+    - There are two consecutive user messages
+    - An assistant message comes before the first user message
+    - The message is empty
+    - Messages are shorter than length of 2 (min. one user-assistant turn)
+
+
+    Args:
+        messages (List[Message]): the messages to validate.
+
+    Raises:
+        ValueError: If the messages are invalid.
+    """
+    if len(messages) < 2:
+        raise ValueError(
+            f"Messages must be at least length 2, but got {len(messages)} messages"
+        )
+
+    last_turn = "assistant"
+    for i, message in enumerate(messages):
+        if message.role == "assistant" and last_turn != "user":
+            raise ValueError(
+                f"Assistant message before expected user message at index {i} in messages"
+            )
+        if message.role == "user" and last_turn == "user":
+            raise ValueError(
+                f"Two consecutive user messages at index {i} and {i - 1} in messages"
+            )
+        if message.role == "system" and i > 0:
+            raise ValueError(
+                f"System message at index {i} in messages, but system messages must come first"
+            )
+        last_turn = message.role

@@ -4,95 +4,108 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Optional, Union
 
-from torchtune.config._utils import _get_component_from_path
-
-from torchtune.data import ChatFormat, Message, split_text_by_image_tag
-from torchtune.datasets.multimodal._multimodal import MultimodalDataset
+from torchtune.data import ShareGPTToMessages
+from torchtune.datasets._packed import PackedDataset
+from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.transforms import Transform
-
-
-class LlavaInstructTransform(Transform):
-    """
-    Construct messages from a sample formatted similarly to the
-    `LLaVA-Instruct-150K dataset<https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K>_`.
-
-    The image tags <image> are replaced with placeholders in the ``Message`` content that
-    the model tokenizer will replace with its image special token id.
-
-    Attributes:
-        train_on_input (bool): Whether to train on the input or not.
-
-    Args:
-        sample (Mapping[str, Any]): A sample from the dataset.
-
-    Returns:
-        Mapping[str, Any]: updated sample dict with the following keys:
-            - messages (List[Message]): A list of messages representing the single sample
-    """
-
-    def __init__(
-        self, train_on_input: bool = False, chat_format: Optional[ChatFormat] = None
-    ):
-        self.train_on_input = train_on_input
-        self.chat_format = chat_format
-
-    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
-        role_map = {"system": "system", "human": "user", "gpt": "assistant"}
-        conversations = sample["conversations"]
-
-        messages = []
-        for message in conversations:
-            role = role_map[message["from"]]
-            content = (
-                split_text_by_image_tag(message["value"])
-                if role == "user"
-                else [{"type": "text", "content": message["value"]}]
-            )
-            masked = (role != "assistant") and (not self.train_on_input)
-            messages.append(Message(role=role, content=content, masked=masked))
-        return messages
 
 
 def llava_instruct_dataset(
     model_transform: Transform,
     *,
+    coco_image_dir: str,
     source: str = "liuhaotian/LLaVA-Instruct-150K",
-    chat_format: Optional[str] = None,
-    train_on_input: bool = False,
+    column_map: Optional[Dict[str, str]] = None,
+    new_system_prompt: Optional[str] = None,
+    image_tag: Optional[str] = "<image>",
+    train_on_input: bool = True,
+    packed: bool = False,
+    split: str = "train",
+    data_files: str = "llava_instruct_150k.json",
     **load_dataset_kwargs: Dict[str, Any],
-) -> MultimodalDataset:
+) -> Union[SFTDataset, PackedDataset]:
     """
     Support for family of image + text datasets similar to
     `LLaVA-Instruct-150K <https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K>_`
     from Hugging Face Datasets.
 
+    To use this dataset, you must first download the COCO Train 2017 image dataset. You can do so
+    by visiting https://cocodataset.org/#download or downloading it directly:
+
+    .. code-block:: bash
+
+        wget -c http://images.cocodataset.org/zips/train2017.zip
+        unzip train2017.zip -d coco/
+
+    Then, you must pass in the directory containing all the images to the ``image_dir`` argument
+    so each file can be loaded as PIL images in the transform. In the example above, you would
+    set ``image_dir="coco/train2017"``.
+
     Args:
         model_transform (Transform): model-specific transform that takes in a sample dict and applies custom
             transforms on the keys. The tokenizer used by the model should be encapsulated in the model transform
-            and should operate on the "messages" field. The keys returned by the model should be aligned with the
+            and should operate on the "messages" field. Any model-specific image transforms should operate on
+            the "images" field. The keys returned by the model should be aligned with the
             expected inputs into the model.
-        source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
-            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path).
-            Current default is path to The Cauldron, but can be configured for any similar dataset.
-        chat_format (Optional[str]): name of template used to format the chat. See the description
-            in :class:`~torchtune.datasets.ChatDataset` for more details. Default: None
-        train_on_input (bool): Whether to train on the input or not. Default is False.
+        coco_image_dir (str): path to the directory containing the COCO Train 2017 images.
+        source (str): path to dataset repository on Hugging Face. For local datasets,
+            define source as the data file type (e.g. "json", "csv", "text") and pass
+            in the filepath in ``data_files``. See `Hugging Face's
+            <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
+        column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("conversations")
+            to the new column names in the dataset. If None, assume these are identical.
+            Default is None.
+        new_system_prompt (Optional[str]): if specified, prepend a system message. This can
+            serve as instructions to guide the model response. Setting this will OVERRIDE any system
+            messages already present in the dataset. Default is None.
+        image_tag (Optional[str]): if specified, split the raw text content by the specified ``image_tag``
+            and use placeholders for where the images are present in the text for proper tokenization. Set
+            this if your dataset contains images and uses a specific string (ex: "<image>") to indicate the
+            presence of an image. Leave this as None if your dataset does not contain images. Default is "<image>".
+        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
+        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
+            of a given split, e.g. ``split="train[:10%]"``. Default is "train".
+        data_files (str): path to the json file to load as dataset. See the `dataset repo
+            <https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K/tree/main>`_ for options.
+            Default is "llava_instruct_150k.json".
         **load_dataset_kwargs: Additional keyword arguments to pass to ``load_dataset``.
 
     Returns:
-        MultimodalDataset: the configured :class:`~torchtune.datasets.MultimodalDataset`
+        Union[SFTDataset, PackedDataset]: dataset configured with source data and transform
+
+    Raises:
+        ValueError: If ``packed`` is True and ``max_seq_len`` is not set on the model_transform.
+
+    Example:
+        >>> llava_instruct_ds = llava_instruct_dataset(model_transform=model_transform)
+        >>> for batch in Dataloader(llava_instruct_ds, batch_size=8):
+        >>>     print(f"Batch size: {len(batch)}")
+        >>> Batch size: 8
     """
 
-    message_transform = LlavaInstructTransform(
-        train_on_input=train_on_input, chat_format=_get_component_from_path(chat_format)
+    message_transform = ShareGPTToMessages(
+        train_on_input=train_on_input,
+        column_map=column_map,
+        new_system_prompt=new_system_prompt,
+        image_tag=image_tag,
+        image_dir=coco_image_dir,
     )
 
-    return MultimodalDataset(
+    ds = SFTDataset(
         model_transform=model_transform,
         source=source,
         message_transform=message_transform,
-        split="train",
+        split=split,
+        data_files=data_files,
         **load_dataset_kwargs,
     )
+    if packed:
+        if model_transform.max_seq_len is None:
+            raise ValueError(
+                "PackedDataset requires a max_seq_len to be set on the tokenizer."
+            )
+        return PackedDataset(ds, max_seq_len=model_transform.max_seq_len)
+    return ds
