@@ -62,7 +62,7 @@ class FusionLayer(nn.Module):
         # TODO: Switch to register_load_state_dict_pre_hook and
         # register_state_dict_pre_hook after PyTorch v2.5
 
-    def _state_dict_hook(self, state_dict, *args, **kwargs):
+    def _state_dict_hook(self, state_dict, prefix, *args, **kwargs):
         """Remove "layer" from the original layer in the state_dict
         name. This keeps the orginal state dict name for the layer
         from before fusing with the FusionLayer.
@@ -71,8 +71,9 @@ class FusionLayer(nn.Module):
         """
         keys = list(state_dict.keys())
         for key in keys:
-            if key.startswith("layer"):
-                new_key = key.replace("layer.", "")
+            local_key = key[len(prefix) :]
+            if local_key.startswith("layer"):
+                new_key = prefix + local_key.replace("layer.", "")
                 state_dict[new_key] = state_dict[key]
                 del state_dict[key]
 
@@ -191,8 +192,8 @@ class FusionEmbedding(nn.Module):
 
         [!Note] This update changes the order of the OrderedDict
         """
-        key = "embedding.weight"
-        new_key = "weight"
+        key = prefix + "embedding.weight"
+        new_key = prefix + "weight"
         destination[new_key] = destination[key]
         del destination[key]
 
