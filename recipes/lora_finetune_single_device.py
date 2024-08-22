@@ -328,6 +328,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         log.info(f" Profiler config after instantiation: {profiler_cfg}")
 
+        self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
+        if profiler_cfg["enabled"]:
+            self.profiler_wait_steps = profiler_cfg["wait_steps"]
+            self.profiler_warmup_steps = profiler_cfg["warmup_steps"]
+            self.profiler_active_steps = profiler_cfg["active_steps"]
+
         return profiler
 
     def _setup_model(
@@ -579,6 +585,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     ):
                         break
 
+                    # Start tracking CUDA memory for active steps for just the first epoch
+                    if (
+                        curr_epoch == 0
+                        and self.profiler_profile_memory
+                        and idx == self.profiler_wait_steps + self.profiler_warmup_steps
+                    ):
+                        torch.cuda.memory._record_memory_history()
+
                     batch = {k: v.to(self._device) for k, v in batch.items()}
                     num_tokens += batch["tokens"].numel()
 
@@ -625,6 +639,17 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         running_loss = 0
                         num_tokens = 0
                         t0 = time.perf_counter()
+
+                    # Stop tracking CUDA memory now that active steps are complete
+                    if (
+                        curr_epoch == 0
+                        and self.profiler_profile_memory
+                        and idx
+                        == self.profiler_wait_steps
+                        + self.profiler_warmup_steps
+                        + self.profiler_active_steps
+                    ):
+                        torch.cuda.memory._record_memory_history(enabled=None)
 
                     # Step the profiler
                     # Note we are stepping each batch, which might not include optimizer step in the trace
