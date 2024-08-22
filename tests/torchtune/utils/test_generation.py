@@ -11,7 +11,7 @@ from tests.test_utils import fixed_init_model
 
 from torchtune import utils
 from torchtune.models.llama2 import llama2
-from torchtune.utils._generation import sample
+from torchtune.utils._generation import get_causal_mask, pad_left, sample
 
 
 class TestTextGenerate:
@@ -77,6 +77,12 @@ class TestTextGenerate:
         """
         return torch.arange(2, 10).repeat(2, 1)
 
+    @pytest.fixture
+    def batched_causal_mask(self, prompt_tokens_batched):
+        # To be used with `prompt_tokens_batched`, created a simple causal mask
+        # for testing purposes
+        return torch.tril(torch.ones_like(prompt_tokens_batched))
+
     def test_sample_consistency(self):
         """
         Test token sampling produces the right output.
@@ -115,6 +121,12 @@ class TestTextGenerate:
         model2 = request.getfixturevalue(model2)
         prompt = request.getfixturevalue(prompt)
 
+        # grab batched casual mask if prompt is batched
+        if len(prompt.shape) > 1:
+            mask = request.getfixturevalue("batched_causal_mask")
+        else:
+            mask = None
+
         temperature = 0.6
         top_k = 100
 
@@ -123,6 +135,7 @@ class TestTextGenerate:
             model=model1,
             prompt=prompt,
             max_generated_tokens=10,
+            mask=mask,
             temperature=temperature,
             top_k=top_k,
         )
@@ -132,13 +145,16 @@ class TestTextGenerate:
             model=model2,
             prompt=prompt,
             max_generated_tokens=10,
+            mask=mask,
             temperature=temperature,
             top_k=top_k,
         )
 
         assert outputs_first == outputs_second
 
-    def test_batched_generate(self, generation_model_batched, prompt_tokens_batched):
+    def test_batched_generate(
+        self, generation_model_batched, prompt_tokens_batched, batched_causal_mask
+    ):
         """Test batched generation works as expected."""
         temperature = 0.6
         top_k = 100
@@ -149,6 +165,7 @@ class TestTextGenerate:
             model=generation_model_batched,
             prompt=prompt_tokens_batched,
             max_generated_tokens=10,
+            mask=batched_causal_mask,
             temperature=temperature,
             top_k=top_k,
         )
@@ -228,7 +245,9 @@ class TestTextGenerate:
 
         assert outputs == expected_output
 
-    def test_stop_tokens_batched(self, generation_model_batched, prompt_tokens_batched):
+    def test_stop_tokens_batched(
+        self, generation_model_batched, prompt_tokens_batched, batched_causal_mask
+    ):
         """
         Test to check if the `generate` function produces the right output when stop tokens are
         provided, but this time in batched format.
@@ -246,6 +265,7 @@ class TestTextGenerate:
             model=generation_model_batched,
             prompt=prompt_tokens_batched,
             max_generated_tokens=10,
+            mask=batched_causal_mask,
             temperature=temperature,
             top_k=top_k,
             stop_tokens=stop_tokens,
@@ -259,7 +279,7 @@ class TestTextGenerate:
         assert outputs == expected_output
 
     def test_stop_tokens_batched_uneven_stopping(
-        self, generation_model_batched, prompt_tokens_batched
+        self, generation_model_batched, prompt_tokens_batched, batched_causal_mask
     ):
         """
         Test to check if the `generate` function produces the right output when stop tokens are
@@ -279,6 +299,7 @@ class TestTextGenerate:
             model=generation_model_batched,
             prompt=prompt_tokens_batched,
             max_generated_tokens=10,
+            mask=batched_causal_mask,
             temperature=temperature,
             top_k=top_k,
             stop_tokens=stop_tokens,
@@ -290,3 +311,58 @@ class TestTextGenerate:
         ]
 
         assert outputs == expected_output
+
+
+class TestTextGenerationUtils:
+    """
+    Test class for text generation utils.
+    """
+
+    @pytest.fixture
+    def tokens(self):
+        return [
+            [1, 2, 3, 4],
+            [5, 6],
+            [7, 8, 9],
+        ]
+
+    @pytest.fixture
+    def pad_id(self):
+        return 0
+
+    @pytest.fixture
+    def expected_padding_mask(self):
+        return torch.tensor(
+            [
+                [1, 1, 1, 1],
+                [0, 0, 1, 1],
+                [0, 1, 1, 1],
+            ]
+        )
+
+    @pytest.fixture
+    def expected_padded_tokens(self):
+        return torch.tensor(
+            [
+                [1, 2, 3, 4],
+                [0, 0, 5, 6],
+                [0, 7, 8, 9],
+            ]
+        )
+
+    def test_pad_left(
+        self, tokens, pad_id, expected_padded_tokens, expected_padding_mask
+    ):
+        padded_tokens, padding_mask = pad_left(tokens, pad_id=pad_id)
+        assert torch.equal(padded_tokens, expected_padded_tokens)
+        assert torch.equal(padding_mask, expected_padding_mask)
+
+    def test_get_causal_mask(self, expected_padding_mask):
+        mask1 = torch.tensor([[1, 0, 0, 0], [1, 1, 0, 0], [1, 1, 1, 0], [1, 1, 1, 1]])
+        mask2 = torch.tensor([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 1, 1]])
+        mask3 = torch.tensor([[1, 0, 0, 0], [0, 1, 0, 0], [0, 1, 1, 0], [0, 1, 1, 1]])
+        expected_masks = torch.stack([mask1, mask2, mask3], dim=0)
+
+        mask = get_causal_mask(expected_padding_mask)
+
+        assert torch.equal(mask, expected_masks)

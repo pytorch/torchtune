@@ -4,9 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Tuple
 
 import torch
+from torch.nn.utils.rnn import pad_sequence
 from torchtune.modules import TransformerDecoder
 
 
@@ -38,13 +39,14 @@ def generate_next_token(
     model: TransformerDecoder,
     input_pos: torch.Tensor,
     x: torch.Tensor,
+    mask: Optional[torch.Tensor] = None,
     temperature: float = 1.0,
     top_k: int = None,
 ) -> torch.Tensor:
     """Generates the next tokens."""
     # model produces logits in [bsz, seq_length, vocab_size]
     # we want to take the last token's logits as the input to the next model call
-    logits = model(x, input_pos=input_pos)[:, -1]
+    logits = model(x, input_pos=input_pos, mask=mask)[:, -1]
     return sample(logits, temperature, top_k)
 
 
@@ -60,12 +62,97 @@ def update_stop_tokens_tracker(
     return stop_token_reached
 
 
+def pad_left(
+    tokens: List[List[int]], *, pad_id: int
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Pad a list of lists of integers to the left.
+
+    Args:
+        tokens (List[List[int]]): token ids
+        pad_id (int): padding token id
+
+    Returns:
+        Tuple[Tensor, Tensor]: padded tokens and boolean padding mask
+
+    Example:
+        >>> tokens = [[1, 2, 3], [5, 6]]
+        >>> pad_left(tokens, pad_id = 0)
+        (tensor([[1, 2, 3],
+                [0, 5, 6]]),
+        tensor([[True, True, True],
+                [False, True, True]]))
+    """
+    padded_sequence = pad_sequence(
+        [torch.tensor(x[::-1]) for x in tokens],  # first flip each sequence and pad
+        batch_first=True,
+        padding_value=pad_id,
+    ).flip(
+        dims=[1]
+    )  # flip back to correct order
+
+    padding_mask = padded_sequence != pad_id
+
+    return padded_sequence, padding_mask
+
+
+# def pad_right(tokens: List[List[int]], *, pad_id: int) -> Tuple[torch.Tensor, torch.Tensor]:
+#     """Pad a list of lists of integers to the right.
+
+#     Args:
+#         tokens (List[List[int]]): token ids
+#         pad_id (int): padding token id
+
+#     Returns:
+#         Tuple[Tensor, Tensor]: padded tokens and padding mask
+
+#     Example:
+#         >>> tokens = [[1, 2, 3], [5, 6]]
+#         >>> pad_right(tokens, pad_id=0)
+#     """
+#     pass
+
+
+def get_causal_mask(
+    padding_mask: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Converts an attention mask of shape ``[bsz, seq_len]`` to a causal attention mask suitable for
+    consumption by :func:`~torch.nn.functional.scaled_dot_product_attention~`.
+
+    HF uses a similar implementation internally, see
+    https://github.com/huggingface/transformers/blob/a564d10afe1a78c31934f0492422700f61a0ffc0/src/transformers/models/mistral/modeling_mistral.py#L1096
+
+    Args:
+        padding_mask (torch.Tensor): Boolean tensor where True indicates participation in attention
+            with shape [bsz x seq_length]
+
+    Returns:
+        torch.Tensor: Boolean causal mask with shape [bsz x seq_length x seq_length]
+
+    Example:
+        >>> padding_mask = torch.tensor([[1, 1, 1]
+        ...                              [1, 1, 0]])
+        >>> get_causal_mask(padding_mask)
+        tensor([[1, 1, 1],
+                [1, 1, 0]]
+
+    """
+    _, seq_len = padding_mask.shape
+    mask = torch.tril(
+        torch.ones(seq_len, seq_len, device=padding_mask.device, dtype=bool), diagonal=0
+    )
+    mask = mask & (padding_mask[:, None, :] & padding_mask[:, :, None])
+    mask.diagonal(dim1=1, dim2=2)[:] = True
+    return mask
+
+
 @torch.inference_mode()
 def generate(
     model: TransformerDecoder,
     prompt: torch.Tensor,
     *,
     max_generated_tokens: int,
+    mask: Optional[torch.Tensor] = None,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
     stop_tokens: Optional[List[int]] = None,
@@ -79,6 +166,7 @@ def generate(
         prompt (torch.Tensor): tensor with the token IDs associated with the given prompt,
             with shape either [seq_length] or [bsz x seq_length]
         max_generated_tokens (int): number of tokens to be generated
+        mask (Optional[torch.Tensor]): Optional boolean tensor which contains the attention mask
         temperature (float): value to scale the predicted logits by, default 1.0.
         top_k (Optional[int]): If specified, we prune the sampling to only token ids within the top_k probabilities,
             default None.
@@ -123,6 +211,7 @@ def generate(
         model,
         input_pos=input_pos[:prompt_length],
         x=prompt,
+        mask=mask,
         temperature=temperature,
         top_k=top_k,
     )

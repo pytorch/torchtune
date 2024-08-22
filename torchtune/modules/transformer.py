@@ -337,7 +337,6 @@ class TransformerDecoder(nn.Module):
         self.max_seq_len = max_seq_len
         self.num_heads = num_heads
         self.head_dim = head_dim
-        self.causal_mask = None
 
     def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
         """Setup key value caches for attention calculation.
@@ -349,11 +348,11 @@ class TransformerDecoder(nn.Module):
         for layer in self.layers:
             layer.setup_cache(batch_size, dtype)
 
-        # causal_mask is used during inference to ensure we're attending
-        # to the right tokens
-        self.causal_mask = torch.tril(
-            torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
-        )
+        # # causal_mask is used during inference to ensure we're attending
+        # # to the right tokens
+        # self.causal_mask = torch.tril(
+        #     torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
+        # )
 
     def caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""
@@ -396,11 +395,6 @@ class TransformerDecoder(nn.Module):
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
 
-        Note: At the very first step of inference, when the model is provided with a prompt,
-        ``input_pos`` would contain the positions of all of the tokens in the prompt
-        (eg: ``torch.arange(prompt_length)``). This is because we will need to compute the
-        KV values for each position.
-
         Returns:
             Union[Tensor, List[Tensor]]: output tensor with shape [b x s x v] or a list of layer
                 output tensors defined by ``output_hidden_states`` with the
@@ -409,6 +403,13 @@ class TransformerDecoder(nn.Module):
         Raises:
             ValueError: if causal_mask is set but input_pos is None
             ValueError: if seq_len of x is bigger than max_seq_len
+
+        Note:
+            At the very first step of inference, when the model is provided with a prompt,
+            ``input_pos`` would contain the positions of all of the tokens in the prompt
+            (eg: ``torch.arange(prompt_length)``). This is because we will need to compute the
+            KV values for each position. In the subsequent steps, ``input_pos`` will contain
+            the position of the current token (eg: ``torch.tensor([prompt_length])``).
 
         Notation used for tensor shapes:
             - b: batch size
@@ -431,18 +432,16 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
-        if self.causal_mask is not None:
+        if self.caches_are_enabled():
             if input_pos is None:
                 raise ValueError(
                     "Caches are setup, but the position of input token is missing"
                 )
-            if mask is not None:
+            if mask is None and bsz > 1:
                 raise ValueError(
-                    "An attention mask was set. Cannot use a non-causal mask for inference"
+                    "Running inference with bsz > 1, but no attention mask is set."
+                    "Please call ``torchtune.utils.get_casual_mask()`` to generate this mask."
                 )
-            # shape: [1, input_pos_len, m_s]
-            # in most cases input_pos_len should be 1
-            mask = self.causal_mask[None, input_pos]
 
         hidden = []
         for i, layer in enumerate(self.layers):
