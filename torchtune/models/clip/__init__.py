@@ -11,10 +11,12 @@ from ._position_embeddings import (
     TilePositionalEmbedding,
     TokenPositionalEmbedding,
 )
+from ._transforms import CLIPImageTransform
 
 __all__ = [
     "clip_mlp",
     "clip_vision_encoder",
+    "CLIPImageTransform",
     "TokenPositionalEmbedding",
     "TiledTokenPositionalEmbedding",
     "TilePositionalEmbedding",

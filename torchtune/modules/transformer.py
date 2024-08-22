@@ -339,6 +339,7 @@ class TransformerDecoder(nn.Module):
         self.num_heads = num_heads
         self.head_dim = head_dim
         self.causal_mask = None
+        self.cur_pos = None
 
     def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
         """Setup key value caches for attention calculation.
@@ -355,6 +356,7 @@ class TransformerDecoder(nn.Module):
         self.causal_mask = torch.tril(
             torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
         )
+        self.cur_pos = 0
 
     def caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""
@@ -369,6 +371,8 @@ class TransformerDecoder(nn.Module):
 
         for layer in self.layers:
             layer.reset_cache()
+
+        self.cur_pos = 0
 
     def forward(
         self,
@@ -408,8 +412,8 @@ class TransformerDecoder(nn.Module):
                 final output tensor appended to the list.
 
         Raises:
-            ValueError: if causal_mask is set but input_pos is None
             ValueError: if seq_len of x is bigger than max_seq_len
+            ValueError: if a mask is provided and the model is in inference mode
 
         Notation used for tensor shapes:
             - b: batch size
@@ -433,14 +437,16 @@ class TransformerDecoder(nn.Module):
         h = self.tok_embeddings(tokens)
 
         if self.causal_mask is not None:
-            if input_pos is None:
-                raise ValueError(
-                    "Caches are setup, but the position of input token is missing"
-                )
             if mask is not None:
                 raise ValueError(
                     "An attention mask was set. Cannot use a non-causal mask for inference"
                 )
+            # Track the input position
+            if input_pos is None:
+                input_pos = torch.arange(
+                    self.cur_pos, self.cur_pos + seq_len, device=h.device
+                )
+            self.cur_pos = input_pos.max() + 1
             # shape: [1, input_pos_len, m_s]
             # in most cases input_pos_len should be 1
             mask = self.causal_mask[None, input_pos]
@@ -535,6 +541,7 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         self.num_heads = num_heads
         self.head_dim = head_dim
         self.causal_mask = None
+        self.cur_pos = None
 
     def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
         """Setup key value caches for attention calculation.
@@ -551,6 +558,7 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         self.causal_mask = torch.tril(
             torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
         )
+        self.cur_pos = 0
 
     def caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""
@@ -565,6 +573,8 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
 
         for layer in self.layers:
             layer.reset_cache()
+
+        self.cur_pos = 0
 
     def forward(
         self,
@@ -604,7 +614,8 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
                 final output tensor appended to the list.
 
         Raises:
-            ValueError: if causal_mask is set but input_pos is None
+            ValueError: if seq_len of x is bigger than max_seq_len
+            ValueError: if a mask is provided and the model is in inference mode
 
         Notation used for tensor shapes:
             - b: batch size
@@ -628,14 +639,16 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         h = self.tok_embeddings(tokens)
 
         if self.causal_mask is not None:
-            if input_pos is None:
-                raise ValueError(
-                    "Caches are setup, but the position of input token is missing"
-                )
             if mask is not None:
                 raise ValueError(
                     "An attention mask was set. Cannot use a non-causal mask for inference"
                 )
+            # Track the input position
+            if input_pos is None:
+                input_pos = torch.arange(
+                    self.cur_pos, self.cur_pos + seq_len, device=h.device
+                )
+            self.cur_pos = input_pos.max() + 1
             # shape: [1, input_pos_len, m_s]
             # in most cases input_pos_len should be 1
             mask = self.causal_mask[None, input_pos]

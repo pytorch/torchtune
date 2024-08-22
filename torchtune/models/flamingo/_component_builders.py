@@ -90,6 +90,7 @@ def flamingo_vision_encoder(
         out_indices=clip_hidden_states,
         max_num_tiles=max_num_tiles,
         in_channels=in_channels,
+        attn_bias=False,
         output_cls_projection=False,
     )
 
@@ -104,10 +105,10 @@ def flamingo_vision_encoder(
         num_heads=num_heads,
         num_kv_heads=num_heads,
         head_dim=head_dim,
-        q_proj=nn.Linear(clip_embed_dim, num_heads * head_dim, bias=True),
-        k_proj=nn.Linear(clip_embed_dim, num_kv_heads * head_dim, bias=True),
-        v_proj=nn.Linear(clip_embed_dim, num_kv_heads * head_dim, bias=True),
-        output_proj=nn.Linear(clip_embed_dim, clip_embed_dim, bias=True),
+        q_proj=nn.Linear(clip_embed_dim, num_heads * head_dim, bias=False),
+        k_proj=nn.Linear(clip_embed_dim, num_kv_heads * head_dim, bias=False),
+        v_proj=nn.Linear(clip_embed_dim, num_kv_heads * head_dim, bias=False),
+        output_proj=nn.Linear(clip_embed_dim, clip_embed_dim, bias=False),
         pos_embeddings=None,
         attn_dropout=0.0,
         is_causal=False,
@@ -203,6 +204,7 @@ def flamingo_decoder(
             v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
             output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
             pos_embeddings=rope,
+            max_seq_len=max_seq_len,
             attn_dropout=0.0,
         )
         mlp = llama3_mlp(dim=embed_dim, hidden_dim=hidden_dim)
@@ -228,6 +230,7 @@ def flamingo_decoder(
                 q_norm=RMSNorm(dim=head_dim, eps=1e-05),
                 k_norm=RMSNorm(dim=head_dim, eps=1e-05),
                 pos_embeddings=None,
+                max_seq_len=max_seq_len,
                 is_causal=False,
                 attn_dropout=0.0,
             )

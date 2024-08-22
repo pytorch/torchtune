@@ -21,6 +21,7 @@ def clip_vision_encoder(
     num_layers: int,
     num_heads: int,
     cls_output_dim: int = 512,
+    attn_bias: bool = True,
     out_indices: Optional[List[int]] = None,
     output_cls_projection: bool = False,
     max_num_tiles: int = 4,
@@ -40,6 +41,8 @@ def clip_vision_encoder(
         embed_dim (int): The dimensionality of each patch embedding (token).
         num_layers (int): The number of transformer layers.
         num_heads (int): The number of attention heads in each transformer layer.
+        cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.
+        attn_bias (bool): Boolean for if to use bias in the attention module. Default True.
         out_indices (Optional[List[int]]): The indices of hidden layers to return.
             If provided, it will return the intermediate results of the transformer layers
             before they go through a next layer. For example, ``out_indices=[0,3]`` will
@@ -54,7 +57,6 @@ def clip_vision_encoder(
         max_num_tiles (int): The maximum number of tiles that can be processed. This is used to
             determine the size of the positional embeddings.
         in_channels (int): The number of image input channels.
-        cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.
 
     Returns:
         A `VisionTransformer` object.
@@ -72,10 +74,10 @@ def clip_vision_encoder(
             num_heads=num_heads,
             num_kv_heads=num_heads,
             head_dim=embed_dim // num_heads,
-            q_proj=nn.Linear(embed_dim, embed_dim, bias=True),
-            k_proj=nn.Linear(embed_dim, embed_dim, bias=True),
-            v_proj=nn.Linear(embed_dim, embed_dim, bias=True),
-            output_proj=nn.Linear(embed_dim, embed_dim, bias=True),
+            q_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
+            k_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
+            v_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
+            output_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
             pos_embeddings=None,
             attn_dropout=0.0,
             is_causal=False,

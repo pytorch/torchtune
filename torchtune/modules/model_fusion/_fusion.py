@@ -76,14 +76,15 @@ class FusionLayer(nn.Module):
                 state_dict[new_key] = state_dict[key]
                 del state_dict[key]
 
-    def _load_state_dict_hook(self, state_dict, *args, **kwargs):
+    def _load_state_dict_hook(self, state_dict, prefix, *args, **kwargs):
         """Apply extra "layer" prefix to the state_dict key to
         account for the FusionLayer wrapping.
         """
         keys = list(state_dict.keys())
         for key in keys:
-            if not key.startswith("fusion_layer"):
-                new_key = "layer." + key
+            local_key = key[len(prefix) :]
+            if not local_key.startswith("fusion_layer"):
+                new_key = prefix + "layer." + local_key
                 state_dict[new_key] = state_dict[key]
                 del state_dict[key]
 
@@ -195,12 +196,12 @@ class FusionEmbedding(nn.Module):
         destination[new_key] = destination[key]
         del destination[key]
 
-    def _load_state_dict_hook(self, state_dict, *args, **kwargs):
+    def _load_state_dict_hook(self, state_dict, prefix, *args, **kwargs):
         """Apply extra "embedding" prefix to the state_dict key to
         account for the FusionEmbedding wrapping.
         """
-        key = "weight"
-        new_key = "embedding.weight"
+        key = prefix + "weight"
+        new_key = prefix + "embedding.weight"
         state_dict[new_key] = state_dict[key]
         del state_dict[key]
 

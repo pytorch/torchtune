@@ -70,7 +70,7 @@ class TestFlamingoVisionEncoder:
             output.shape == expected_shape
         ), f"Expected shape {expected_shape}, but got {output.shape}"
 
-        assert_expected(output.mean(), torch.tensor(-10.0646), atol=1e-3, rtol=1e-3)
+        assert_expected(output.mean(), torch.tensor(-10.1947), atol=1e-3, rtol=1e-3)
 
     def test_fails_if_ar_none_and_multiple_tiles(self, vision_transformer):
         assert self.image.shape[2] > 1, "This test is not valid for num_tiles=1"
@@ -101,7 +101,7 @@ class TestFlamingoVisionEncoder:
             output.shape == expected_shape
         ), f"Expected shape {expected_shape}, but got {output.shape}"
 
-        assert_expected(output.mean(), torch.tensor(-9.9723), atol=1e-3, rtol=1e-3)
+        assert_expected(output.mean(), torch.tensor(-10.1022), atol=1e-3, rtol=1e-3)
 
     def test_flamingo_no_hidden_layers(self, vision_transformer, transformer_config):
         # Modify the transformer_config for this specific test
