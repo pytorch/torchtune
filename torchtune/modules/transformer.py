@@ -338,6 +338,11 @@ class TransformerDecoder(nn.Module):
         self.num_heads = num_heads
         self.head_dim = head_dim
         self.causal_mask = None
+        self.num_output_chunks = 0
+
+    def set_num_output_chunks(self, num_output_chunks: int) -> None:
+        """Use to save memory in combination with ChunkedCrossEntropy (TODO: add link to ChunkedCrossEntropy)"""
+        self.num_output_chunks = num_output_chunks
 
     def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
         """Setup key value caches for attention calculation.
@@ -460,8 +465,14 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.norm(h)
 
-        # shape: [b, s, out_dim] - out_dim is usually the vocab size
-        output = self.output(h).float()
+        # shape: [b, seq_len//num_chunks, out_dim] - out_dim is usually the vocab size
+        if self.num_output_chunks > 0:
+            # chunk for ChunkedCrossEntropyLoss, saving memory
+            output = [
+                self.output(chunk) for chunk in h.chunk(self.num_output_chunks, dim=1)
+            ]
+        else:
+            output = self.output(h)
 
         # Output list if hidden states are requested, otherwise just the output
         # TODO: always output a list to have a consistent output type

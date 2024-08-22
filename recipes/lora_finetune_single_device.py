@@ -207,6 +207,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._model_compile = cfg.compile
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
+        # initialize loss
+        self._loss_fn = config.instantiate(cfg.loss)
+        self.num_output_chunks = getattr(self._loss_fn, "num_output_chunks", 0)
+        log.info("Loss is initialized.")
+
+        # set up model
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
@@ -228,9 +234,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 checkpoint_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None
             ),
         )
-
-        self._loss_fn = config.instantiate(cfg.loss)
-        log.info("Loss is initialized.")
 
         # Dataloader depends on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -268,6 +271,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
+
+        # Used to ignore labels for loss computation
+        self.ignore_labels_cache = torch.full(
+            (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
+        )
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
@@ -344,8 +352,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
     ) -> nn.Module:
+
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
+        model.set_num_output_chunks(self.num_output_chunks)
 
         self._lora_rank = cfg_model.lora_rank
         self._lora_alpha = cfg_model.lora_alpha
@@ -390,8 +400,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         if compile_model:
             log.info("Compiling model with torch.compile...")
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-            self._loss_step_original = self._loss_step
-            self._loss_step = torch.compile(self._loss_step, backend=backend)
+            model = torch.compile(model, backend=backend)
+            # TODO: currently compiling loss step break the graph on every step
+            # and it too slow
+            # self._loss_step_original = self._loss_step
+            # self._loss_step = torch.compile(self._loss_step, backend=backend)
 
         if self._device.type == "cuda":
             memory_stats = utils.get_memory_stats(device=self._device)
@@ -537,18 +550,28 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
         # Both are shape [b, s]
         tokens, labels = batch["tokens"], batch["labels"]
+
         # Get the attention mask and position ids from the dataset if they
         # exist. Currently, only sample packing in PackedDataset returns these
         mask = batch.get("mask", None)  # shape [b, s, s]
         input_pos = batch.get("input_pos", None)  # shape [b, s]
 
+        # run model
         logits = self._model(tokens, mask=mask, input_pos=input_pos)
-        # Shift so that tokens < n predict n
-        logits = logits[..., :-1, :].contiguous()
-        labels = labels[..., 1:].contiguous()
-        logits = logits.transpose(1, 2)
+
+        # Shift labels to compute loss
+        # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
+        # But this way we dont need to slice the logits. We just add an ignore index to labels.
+        labels = torch.hstack(
+            (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
+        )
+        if not isinstance(logits, list):
+            labels = labels.reshape(-1)
+            logits = logits.reshape(-1, logits.size(-1))
+
         # Compute loss
         loss = self._loss_fn(logits, labels)
+
         # free logits otherwise it peaks backward memory
         del logits
 
