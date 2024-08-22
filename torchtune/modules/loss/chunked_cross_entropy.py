@@ -10,6 +10,10 @@ import torch
 
 
 class ChunkedCrossEntropyLoss(torch.nn.Module):
+    """
+    TODO: explain why it saves memory
+    """
+
     def __init__(
         self,
         num_output_chunks: int = 16,
