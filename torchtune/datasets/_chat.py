@@ -127,7 +127,9 @@ def chat_dataset(
     This builder function can be used to configure a custom chat dataset directly from the yaml config
     as an alternative to :class:`~torchtune.datasets.SFTDataset`, as it is made to be config friendly.
 
-    The dataset is expected to contain a single column with the conversations::
+    The dataset is expected to contain a single column with the conversations:
+
+    .. code-block:: text
 
         |  conversations                         |
         |----------------------------------------|
@@ -179,6 +181,8 @@ def chat_dataset(
 
     Examples:
 
+    ::
+
         my_dataset.json
         [
             {
@@ -218,20 +222,22 @@ def chat_dataset(
         >>> tokenizer.decode(tokens)
         "What time is it in London?It is 10:00 AM in London."
 
-    This can also be accomplished via the yaml config::
+    This can also be accomplished via the yaml config:
+
+    .. code-block:: yaml
 
         dataset:
-            _component_: torchtune.datasets.chat_dataset
-            source: json
-            data_files: my_dataset.json
-            conversation_column: conversations
-            conversation_style: sharegpt
-            train_on_input: False
-            packed: False
-            split: train
+          _component_: torchtune.datasets.chat_dataset
+          source: json
+          data_files: my_dataset.json
+          conversation_column: conversations
+          conversation_style: sharegpt
+          train_on_input: False
+          packed: False
+          split: train
 
     Returns:
-        SFTDataset or PackedDataset: the configured :class:`~torchtune.datasets.SFTDataset`
+        Union[SFTDataset, PackedDataset]: the configured :class:`~torchtune.datasets.SFTDataset`
             or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``
 
     Raises:

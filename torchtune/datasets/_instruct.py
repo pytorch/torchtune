@@ -145,7 +145,9 @@ def instruct_dataset(
     This builder function can be used to configure a custom instruct dataset directly from the yaml config
     as an alternative to :class:`~torchtune.datasets.SFTDataset`, as it is made to be config friendly.
 
-    The dataset should follow this format::
+    The dataset should follow this format:
+
+    .. code-block:: text
 
         |  input          |  output          |
         |-----------------|------------------|
@@ -182,6 +184,8 @@ def instruct_dataset(
 
     Examples:
 
+    ::
+
         my_dataset.json
         [
             {
@@ -213,21 +217,23 @@ def instruct_dataset(
         >>> tokenizer.decode(tokens)
         "What time is it in London?It is 10:00 AM in London."
 
-    This can also be accomplished via the yaml config::
+    This can also be accomplished via the yaml config:
+
+    .. code-block:: yaml
 
         dataset:
-            _component_: torchtune.datasets.instruct_dataset
-            source: json
-            data_files: my_dataset.json
-            column_map:
-              input: question
-              output: answer
-            train_on_input: False
-            packed: False
-            split: train
+          _component_: torchtune.datasets.instruct_dataset
+          source: json
+          data_files: my_dataset.json
+          column_map:
+            input: question
+            output: answer
+          train_on_input: False
+          packed: False
+          split: train
 
     Returns:
-        SFTDataset or PackedDataset: the configured :class:`~torchtune.datasets.SFTDataset`
+        Union[SFTDataset, PackedDataset]: the configured :class:`~torchtune.datasets.SFTDataset`
             or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``
 
     Raises:
