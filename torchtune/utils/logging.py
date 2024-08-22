@@ -5,9 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import Optional, TypeVar
-
-T = TypeVar("T", bound=type)
+from typing import Optional
 
 
 def get_logger(level: Optional[str] = None) -> logging.Logger:

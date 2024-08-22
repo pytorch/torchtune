@@ -11,7 +11,8 @@ from torchtune.data._utils import deprecated
 
 
 @deprecated(
-    msg="Please use `torchtune.data.ShareGPTToMessages` with `torchtune.datasets.SFTDataset` instead."
+    msg="Please use an instance of `torchtune.data.ShareGPTToMessages` as the "
+    "`message_transform` argument for `torchtune.datasets.SFTDataset` instead."
 )
 def get_sharegpt_messages(
     sample: Mapping[str, Any], train_on_input: bool = False
@@ -79,7 +80,8 @@ def get_sharegpt_messages(
 
 
 @deprecated(
-    msg="Please use `torchtune.data.JSONToMessages` with `torchtune.datasets.SFTDataset` instead."
+    msg="Please use an instance of `torchtune.data.JSONToMessages` as the "
+    "`message_transform` argument for `torchtune.datasets.SFTDataset` instead."
 )
 def get_openai_messages(
     sample: Mapping[str, Any],

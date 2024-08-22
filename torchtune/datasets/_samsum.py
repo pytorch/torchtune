@@ -45,7 +45,7 @@ def samsum_dataset(
             ``load_dataset`` for more details. Default is ``Samsung/samsum``.
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the message transform
             :class:`~torchtune.data.InputOutputToMessages` to the new column names in the dataset. Keys should
-            be "input" and "output" and values should be the new column names. If None, use
+            be "input" and "output" and values should be the actual column names. If None, use
             the default column names ``{"input": "dialogue", "output": "summary"}`` in ``Samsung/samsum``.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         new_system_prompt (Optional[str]): if specified, prepend a system message to every sample. This can

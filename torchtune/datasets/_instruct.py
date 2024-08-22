@@ -140,7 +140,10 @@ def instruct_dataset(
     **load_dataset_kwargs: Dict[str, Any],
 ) -> Union[SFTDataset, PackedDataset]:
     """
-    Quickly configure a custom dataset with user instruction prompts and model responses.
+    Configure a custom dataset with user instruction prompts and model responses.
+
+    This builder function can be used to configure a custom instruct dataset directly from the yaml config
+    as an alternative to :class:`~torchtune.datasets.SFTDataset`, as it is made to be config friendly.
 
     The dataset should follow this format::
 
@@ -160,9 +163,6 @@ def instruct_dataset(
     contributes to the loss.
     - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)
 
-    This builder function can be used to configure a custom instruct dataset directly from the yaml config
-    as an alternative to :class:`~torchtune.datasets.SFTDataset`, as it is made to be config friendly.
-
     Args:
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path to dataset repository on Hugging Face. For local datasets,
@@ -172,7 +172,7 @@ def instruct_dataset(
             ``load_dataset`` for more details.
         column_map (Optional[Dict[str, str]]): a mapping to change the expected "input"
             and "output" column names to the actual column names in the dataset. Keys should be "input" and
-            "output" and values should be the new column names. Default is None, keeping the default "input"
+            "output" and values should be the actual column names. Default is None, keeping the default "input"
             and "output" column names.
         train_on_input (bool): Whether the model is trained on the user prompt or not.
             Default is False.

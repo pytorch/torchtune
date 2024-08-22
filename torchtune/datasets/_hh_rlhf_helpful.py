@@ -35,7 +35,7 @@ def hh_rlhf_helpful_dataset(
             for more details. Default is ``RLHFlow/HH-RLHF-Helpful-standard``.
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns "chosen" and "rejected"
             in the message transform :class:`~torchtune.data.ChosenRejectedToMessages` to the new column names in
-            the dataset. Keys should be "chosen" and "rejected" and values should be the new column names.
+            the dataset. Keys should be "chosen" and "rejected" and values should be the actual column names.
             If None, keep the default columns "chosen" and "rejected".
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         new_system_prompt (Optional[str]): if specified, prepend a system message to every sample for both chosen

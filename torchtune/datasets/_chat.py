@@ -122,7 +122,10 @@ def chat_dataset(
     **load_dataset_kwargs: Dict[str, Any],
 ) -> Union[SFTDataset, PackedDataset]:
     """
-    Quickly configure a custom dataset with conversations between user and model assistant.
+    Configure a custom dataset with conversations between user and model assistant.
+
+    This builder function can be used to configure a custom chat dataset directly from the yaml config
+    as an alternative to :class:`~torchtune.datasets.SFTDataset`, as it is made to be config friendly.
 
     The dataset is expected to contain a single column with the conversations::
 
@@ -157,9 +160,6 @@ def chat_dataset(
     - If ``train_on_input`` is True, the prompt is used during training and
     contributes to the loss.
     - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)
-
-    This builder function can be used to configure a custom chat dataset directly from the yaml config
-    as an alternative to :class:`~torchtune.datasets.SFTDataset`, as it is made to be config friendly.
 
     Args:
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.

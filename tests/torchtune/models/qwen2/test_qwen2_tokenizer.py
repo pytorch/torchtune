@@ -4,15 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from pathlib import Path
 from typing import Optional
 
 import pytest
 
+from tests.common import ASSETS
+
 from torchtune.data import Message
 from torchtune.models.qwen2 import qwen2_tokenizer
-
-ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
 
 
 class TestQwen2Tokenizer:

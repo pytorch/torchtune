@@ -4,15 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from pathlib import Path
-
 import pytest
+from tests.common import ASSETS
 from tests.test_utils import DummyChatFormat, DummyTokenizer
 from torchtune.data import get_sharegpt_messages
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets import chat_dataset, ChatDataset
-
-ASSETS = Path(__file__).parent.parent.parent / "assets"
 
 
 class TestChatDataset:

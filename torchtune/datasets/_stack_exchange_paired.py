@@ -39,7 +39,7 @@ class StackExchangePairedToMessages(Transform):
             Default is False.
         column_map (Optional[Dict[str, str]]): a mapping to change the expected "prompt",
             "chosen", and "rejected" column names to the actual column names in the dataset.
-            Keys should be "prompt", "chosen", and "rejected" and values should be the new column names.
+            Keys should be "prompt", "chosen", and "rejected" and values should be the actual column names.
             Default is None, keeping the default column names.
     """
 
@@ -96,7 +96,7 @@ def stack_exchange_paired_dataset(
             ``load_dataset`` for more details. Default is ``lvwerra/stack-exchange-paired``.
         column_map (Optional[Dict[str, str]]): a mapping to change the expected "prompt",
             "chosen", and "rejected" column names to the actual column names in the dataset.
-            Keys should be "prompt", "chosen", and "rejected" and values should be the new column names.
+            Keys should be "prompt", "chosen", and "rejected" and values should be the actual column names.
             Default is None, keeping the default column names.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset

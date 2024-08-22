@@ -132,7 +132,7 @@ class InputOutputToMessages(Transform):
             Default is False.
         column_map (Optional[Dict[str, str]]): a mapping to change the expected "input"
             and "output" column names to the actual column names in the dataset. Keys should
-            be "input" and "output" and values should be the new column names. Default is None,
+            be "input" and "output" and values should be the actual column names. Default is None,
             keeping the default "input" and "output" column names.
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Default is None.
@@ -218,7 +218,7 @@ class ChosenRejectedToMessages(Transform):
             Default is False.
         column_map (Optional[Dict[str, str]]): a mapping to change the expected
             "chosen" and "rejected" column names to the actual column names in the dataset.
-            Keys should be "chosen" and "rejected" and values should be the new column names.
+            Keys should be "chosen" and "rejected" and values should be the actual column names.
             Default is None, keeping the default column names.
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
