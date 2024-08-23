@@ -40,7 +40,6 @@ class TestDoRALinear:
     """
 
     @pytest.mark.parametrize("dtype", [torch.float32, torch.bfloat16])
-    # @pytest.mark.parametrize("dropout", [0.0, 0.1])
     @pytest.mark.parametrize("use_bias", [False, True])
     @pytest.mark.parametrize("quantize_base", [False, True])
     def test_dora(self, dtype, use_bias, quantize_base):

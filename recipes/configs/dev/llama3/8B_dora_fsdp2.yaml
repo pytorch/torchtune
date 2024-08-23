@@ -1,12 +1,12 @@
-# Config for single device DoRA finetuning in lora_finetune_single_device.py
+# Config for multi-device DoRA finetuning in lora_finetune_fsdp2.py
 # using a Llama3 8B Instruct model
 #
 # This config assumes that you've run the following command before launching
 # this run:
 #   tune download meta-llama/Meta-Llama-3-8B-Instruct --output-dir /tmp/Meta-Llama-3-8B-Instruct --hf-token <HF_TOKEN>
 #
-# To launch on a single device, run the following command from root:
-#   tune run --nproc_per_node 2 lora_finetune_distributed --config llama3/8B_dora
+# To launch on 2 devices, run the following command from root:
+#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_fsdp2 --config llama3/8B_dora
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training

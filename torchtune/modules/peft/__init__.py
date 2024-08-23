@@ -17,7 +17,7 @@ from ._utils import (  # noqa
     validate_state_dict_for_lora,
 )
 from .dora import DoRALinear
-from .lora import LoRALinear
+from .lora import _lora_a_init_params, _lora_b_init_params, LoRALinear
 
 
 __all__ = [
@@ -32,4 +32,6 @@ __all__ = [
     "disable_adapter",
     "get_merged_lora_ckpt",
     "get_lora_module_names",
+    "_lora_a_init_params",
+    "_lora_b_init_params",
 ]

@@ -81,8 +81,8 @@ class LoRALinear(nn.Module, AdapterModule):
     def initialize_parameters(self):
         # Initialize as in
         # https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119
-        nn.init.kaiming_uniform_(self.lora_a.weight, a=math.sqrt(5))
-        nn.init.zeros_(self.lora_b.weight)
+        _lora_a_init_params(self.lora_a)
+        _lora_b_init_params(self.lora_b)
 
     def _create_weight_and_bias(self):
         """
@@ -129,3 +129,17 @@ class LoRALinear(nn.Module, AdapterModule):
         lora_out = self.lora_a(self.dropout(x))
         lora_out = (self.alpha / self.rank) * self.lora_b(lora_out)
         return out + lora_out
+
+
+def _lora_a_init_params(x: nn.Linear) -> None:
+    """
+    Initialize LoRA A weight to Kaiming uniform.
+    """
+    nn.init.kaiming_uniform_(x.weight, a=math.sqrt(5))
+
+
+def _lora_b_init_params(x: nn.Linear) -> None:
+    """
+    Initialize LoRA B weight to zeros.
+    """
+    nn.init.zeros_(x.weight)

@@ -26,6 +26,12 @@ from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
+from torchtune.modules.peft import (
+    _lora_a_init_params,
+    _lora_b_init_params,
+    DoRALinear,
+    LoRALinear,
+)
 
 from torchtune.utils._device import get_device
 from torchtune.utils.logging import get_logger
@@ -230,6 +236,12 @@ def prepare_model_for_fsdp_with_meta_device(model: nn.Module) -> nn.Module:
 
         if reset_params is None:
             v.reset_parameters = _dummy_reset_params.__get__(v)
+
+        # This will define reset_parameters for LoRA weight initialization
+        # directly on any LoRALinear submodules lora_a and lora_b.
+        if isinstance(v, LoRALinear) or isinstance(v, DoRALinear):
+            v.lora_a.reset_parameters = _lora_a_init_params.__get__(v.lora_a)
+            v.lora_b.reset_parameters = _lora_b_init_params.__get__(v.lora_b)
 
     return model
 
