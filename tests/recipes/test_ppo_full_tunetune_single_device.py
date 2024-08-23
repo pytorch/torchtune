@@ -42,6 +42,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             "enable_activation_checkpointing=False",
             "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
             "tokenizer._component_=torchtune.models.llama2.llama2_tokenizer",
+            "tokenizer.prompt_template=null",
             "seed=9",
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",

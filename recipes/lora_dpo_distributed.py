@@ -28,14 +28,14 @@ from torchtune import config, modules, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets import ConcatDataset
 from torchtune.modules import rlhf
-from torchtune.modules.loss import SimPOLoss
-from torchtune.modules.peft.peft_utils import (
+from torchtune.modules.peft import (
     disable_adapter,
     get_adapter_params,
     get_merged_lora_ckpt,
     set_trainable_params,
     validate_state_dict_for_lora,
 )
+from torchtune.modules.rlhf.loss import SimPOLoss
 from torchtune.recipe_interfaces import FTRecipeInterface
 from tqdm import tqdm
 
@@ -49,8 +49,11 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
     in the TRL library: https://github.com/huggingface/trl/blob/main/trl/trainer/dpo_trainer.py#L65
 
     Features:
-        - FSDP. Supported using PyTorch's FSDP APIs. DDP is currently not supported. Traning on CPU is not
-            supported.
+        - FSDP. Supported using PyTorch's FSDP APIs. This can be parameterized using the
+            ``fsdp_sharding_strategy`` config option. You can pass any value supported by
+            torch.distributed.fsdp.ShardingStrategy
+            (https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.ShardingStrategy).
+            For example, in your config, simply pass ``fsdp_sharding=NO_SHARD`` for DDP.
 
         - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
             flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
@@ -95,10 +98,10 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
 
     The following losses are supported in this recipe:
-        - :class:`~torchtune.modules.loss.DPOLoss`: Direct Preference Optimization (DPO).
-        - :class:`~torchtune.modules.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
-        - :class:`~torchtune.modules.loss.IPO`: Identity Preference Optimization (IPO).
-        - :class:`~torchtune.modules.loss.SimPOLoss`: Simple Preference Optimization (SimPO).
+        - :class:`~torchtune.modules.rlhf.loss.DPOLoss`: Direct Preference Optimization (DPO).
+        - :class:`~torchtune.modules.rlhf.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
+        - :class:`~torchtune.modules.rlhf.loss.IPO`: Identity Preference Optimization (IPO).
+        - :class:`~torchtune.modules.rlhf.loss.SimPOLoss`: Simple Preference Optimization (SimPO).
 
     For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
     has example commands for how to kick-off training.
@@ -145,6 +148,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        self._fsdp_sharding_strategy = torch.distributed.fsdp.ShardingStrategy[
+            cfg.get("fsdp_sharding_strategy", "FULL_SHARD")
+        ]
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -354,9 +360,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         model = FSDP(
             module=model,
             auto_wrap_policy=utils.lora_fsdp_wrap_policy(
-                modules_to_wrap={modules.TransformerDecoderLayer}
+                modules_to_wrap={modules.TransformerSelfAttentionLayer}
             ),
-            sharding_strategy=torch.distributed.fsdp.ShardingStrategy.FULL_SHARD,
+            sharding_strategy=self._fsdp_sharding_strategy,
             device_id=self._device,
             # this recipe does not currently support mixed precision training
             mixed_precision=None,
@@ -377,7 +383,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
-                model, auto_wrap_policy={modules.TransformerDecoderLayer}
+                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
         if self._is_rank_zero:
             memory_stats = utils.get_memory_stats(device=self._device)
@@ -559,7 +565,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         all_log_probs = rlhf.get_batch_log_probs(
             all_logits,
             concatenated_labels,
-            # see :class:`~torchtune.modules.loss.dpo.SimPOLoss`
+            # see :class:`~torchtune.modules.rlhf.loss.dpo.SimPOLoss`
             return_average_logprobs=isinstance(self._loss_fn, SimPOLoss),
         )
 
@@ -613,6 +619,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     policy_chosen_logits,
                     policy_rejected_logits,
                 ) = self.concatenated_forward(self._model, batch)
+
+                policy_chosen_logits_mean = policy_chosen_logits.detach().mean()
+                policy_rejected_logits_mean = policy_rejected_logits.detach().mean()
+
+                # deleting logits here helps reduce (peak) memory usage - we only need them for metric logging
+                del policy_chosen_logits, policy_rejected_logits
 
                 if isinstance(self._loss_fn, SimPOLoss):
                     loss, chosen_rewards, rejected_rewards = self._loss_fn(

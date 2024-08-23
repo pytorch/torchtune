@@ -11,11 +11,11 @@ from torch import nn
 from torchtune.models.mistral import mistral_classifier
 from torchtune.models.mistral._component_builders import mistral_mlp
 from torchtune.modules import (
-    CausalSelfAttention,
+    MultiHeadAttention,
     RMSNorm,
     RotaryPositionalEmbeddings,
     TransformerDecoder,
-    TransformerDecoderLayer,
+    TransformerSelfAttentionLayer,
 )
 
 
@@ -36,7 +36,7 @@ def mistral(
     """
     Build the decoder associated with the mistral model. This includes:
     - Token embeddings
-    - num_layers number of TransformerDecoderLayer blocks
+    - num_layers number of TransformerSelfAttentionLayer blocks
     - RMS Norm layer applied to the output of the transformer
     - Final projection into token space
 
@@ -68,7 +68,7 @@ def mistral(
     rope = RotaryPositionalEmbeddings(
         dim=head_dim, max_seq_len=max_seq_len, base=rope_base
     )
-    self_attn = CausalSelfAttention(
+    self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -83,7 +83,7 @@ def mistral(
         attn_dropout=attn_dropout,
     )
     mlp = mistral_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
-    layer = TransformerDecoderLayer(
+    layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
         sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
@@ -92,7 +92,7 @@ def mistral(
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
     return TransformerDecoder(
         tok_embeddings=tok_embeddings,
-        layer=layer,
+        layers=layer,
         num_layers=num_layers,
         max_seq_len=max_seq_len,
         num_heads=num_heads,

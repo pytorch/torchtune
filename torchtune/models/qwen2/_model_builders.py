@@ -3,13 +3,15 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from torchtune.models.qwen2._component_builders import qwen2, lora_qwen2
 from torchtune.models.qwen2._tokenizer import Qwen2Tokenizer
 from torchtune.modules import TransformerDecoder, TiedEmbeddingTransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from torchtune.modules.tokenizers import parse_hf_tokenizer_json
+from torchtune.data._prompt_templates import _TemplateType
+from torchtune.config._utils import _get_prompt_template
 
 """
 Model builders build specific instantiations using component builders. For example
@@ -95,7 +97,12 @@ def qwen2_1_5b() -> TiedEmbeddingTransformerDecoder:
 
 
 def qwen2_tokenizer(
-    path: str, merges_file: str = None, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None, **kwargs,
+    path: str,
+    merges_file: str = None,
+    special_tokens_path: Optional[str] = None,
+    max_seq_len: Optional[int] = None,
+    prompt_template: Optional[_TemplateType] = "torchtune.data.ChatMLTemplate",
+    **kwargs,
 ) -> Qwen2Tokenizer:
     """
     Tokenizer for Qwen2.
@@ -106,14 +113,19 @@ def qwen2_tokenizer(
         special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
             model files that contains all registered special tokens, or a local json file
             structured similarly. Default is None to use the canonical Qwen2 special tokens.
-        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
-            after which the input will be truncated. Default is None.
+        max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
+            Default: None
+        prompt_template (Optional[_TemplateType]): optional specified prompt template.
+            If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
+            class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
+            prepend/append tags. Default is :class:`~torchtune.models.llama2.Llama2ChatTemplate`.
 
     Returns:
         Qwen2Tokenizer: Instantiation of the Qwen2 tokenizer
     """
     special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    return Qwen2Tokenizer(path=path, merges_file=merges_file, special_tokens=special_tokens, max_seq_len=max_seq_len, **kwargs)
+    template = _get_prompt_template(prompt_template) if prompt_template is not None else None
+    return Qwen2Tokenizer(path=path, merges_file=merges_file, special_tokens=special_tokens, max_seq_len=max_seq_len, prompt_template=template, **kwargs)
 
 
 def lora_qwen2_7b(
@@ -171,7 +183,6 @@ def lora_qwen2_7b(
 def lora_qwen2_0_5b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
-    apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
     lora_dropout: float = 0.05,
@@ -190,8 +201,6 @@ def lora_qwen2_0_5b(
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
             Default: False
-        apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
-            Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         quantize_base (bool): Whether to quantize base model weights
@@ -206,7 +215,7 @@ def lora_qwen2_0_5b(
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
-        apply_lora_to_output=apply_lora_to_output,
+        apply_lora_to_output=False,
         vocab_size=151936,
         num_layers=24,
         num_heads=14,
@@ -228,7 +237,6 @@ def lora_qwen2_0_5b(
 def lora_qwen2_1_5b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
-    apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
     lora_dropout: float = 0.05,
@@ -247,8 +255,6 @@ def lora_qwen2_1_5b(
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
             Default: False
-        apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
-            Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         quantize_base (bool): Whether to quantize base model weights
@@ -263,7 +269,7 @@ def lora_qwen2_1_5b(
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
-        apply_lora_to_output=apply_lora_to_output,
+        apply_lora_to_output=False,
         vocab_size=151936,
         num_layers=28,
         num_heads=12,

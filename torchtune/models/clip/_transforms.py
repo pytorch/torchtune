@@ -11,12 +11,12 @@ import torch
 import torchvision
 from PIL import Image
 
-from torchtune.modules.transforms import (
+from torchtune.modules.transforms.vision_utils.get_canvas_best_fit import (
     find_supported_resolutions,
     get_canvas_best_fit,
-    resize_with_pad,
-    tile_crop,
 )
+from torchtune.modules.transforms.vision_utils.resize_with_pad import resize_with_pad
+from torchtune.modules.transforms.vision_utils.tile_crop import tile_crop
 
 from torchvision.transforms.v2 import functional as F
 
@@ -129,11 +129,12 @@ class CLIPImageTransform:
         self.image_std = image_std
 
         # resize_with_pad
-        self.max_upscaling_size = None if resize_to_max_canvas else tile_size
+        self.max_size = None if resize_to_max_canvas else tile_size
         self.resample = torchvision.transforms.InterpolationMode[resample.upper()]
 
         # tile_crop
         self.tile_size = tile_size
+        self.tile_crop = tile_crop
 
     def __call__(self, *, image: Image.Image, **kwargs) -> Mapping[str, Any]:
 
@@ -156,7 +157,7 @@ class CLIPImageTransform:
             image=image_tensor,
             target_size=best_resolution,
             resample=self.resample,
-            max_upscaling_size=self.max_upscaling_size,
+            max_size=self.max_size,
         )
 
         # Normalize
@@ -166,7 +167,7 @@ class CLIPImageTransform:
             )
 
         # Divide the image into equally sized tiles
-        image_tensor = tile_crop(image=image_tensor, tile_size=self.tile_size)
+        image_tensor = self.tile_crop(image=image_tensor, tile_size=self.tile_size)
 
         aspect_ratio = torch.tensor(best_resolution).reshape(-1) // self.tile_size
 

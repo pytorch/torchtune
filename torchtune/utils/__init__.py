@@ -10,6 +10,7 @@ from ._checkpointing import (  # noqa
     FullModelMetaCheckpointer,
     FullModelTorchTuneCheckpointer,
     ModelType,
+    update_state_dict_for_classifier,
 )
 
 from ._device import get_device
@@ -27,6 +28,7 @@ from ._distributed import (  # noqa
     lora_fsdp_wrap_policy,
     prepare_model_for_fsdp_with_meta_device,
     set_torch_num_threads,
+    shard_model,
     validate_no_params_on_meta_device,
 )
 from ._generation import generate, generate_next_token  # noqa
@@ -71,6 +73,7 @@ from .quantization import get_quantizer_mode
 from .seed import set_seed
 
 __all__ = [
+    "update_state_dict_for_classifier",
     "get_memory_stats",
     "FSDPPolicyType",
     "log_memory_stats",
@@ -103,4 +106,5 @@ __all__ = [
     "get_quantizer_mode",
     "generate",
     "generate_next_token",
+    "shard_model",
 ]

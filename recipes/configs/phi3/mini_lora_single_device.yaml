@@ -52,8 +52,8 @@ shuffle: True
 # Fine-tuning arguments
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 64
 batch_size: 2
+gradient_accumulation_steps: 16
 optimizer:
   _component_: torch.optim.AdamW
   weight_decay: 0.01
@@ -69,8 +69,8 @@ compile: False
 device: cuda
 
 # Memory management
-dtype: bf16
 enable_activation_checkpointing: True
+dtype: bf16
 
 # Logging
 output_dir: /tmp/phi3_lora_finetune_output
