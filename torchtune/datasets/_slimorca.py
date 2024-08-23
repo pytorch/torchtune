@@ -19,6 +19,7 @@ def slimorca_dataset(
     source: str = "Open-Orca/SlimOrca-Dedup",
     column_map: Optional[Dict[str, str]] = None,
     train_on_input: bool = False,
+    new_system_prompt: Optional[str] = None,
     packed: bool = False,
     split: str = "train",
 ) -> Union[SFTDataset, PackedDataset]:
@@ -44,6 +45,9 @@ def slimorca_dataset(
             :class:`~torchtune.data.ShareGPTToMessages` to the new column names in the dataset. If None, use
             the default column name ``"conversations"`` in ``Open-Orca/SlimOrca-Dedup``.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        new_system_prompt (Optional[str]): if specified, prepend a system message to every sample. This can
+            serve as instructions to guide the model response. Setting this will OVERRIDE any system
+            messages already present in the dataset. Default is None.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
@@ -63,7 +67,9 @@ def slimorca_dataset(
     """
 
     message_transform = ShareGPTToMessages(
-        train_on_input=train_on_input, column_map=column_map
+        train_on_input=train_on_input,
+        column_map=column_map,
+        new_system_prompt=new_system_prompt,
     )
     ds = SFTDataset(
         source=source,
