@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 from typing import List
 
 import torch
@@ -14,21 +15,15 @@ class ChunkedCrossEntropyLoss(torch.nn.Module):
     TODO: explain why it saves memory
     """
 
-    def __init__(
-        self,
-        num_output_chunks: int = 16,
-        ignore_index: int = -100,
-        compile_ce: bool = True,
-    ):
+    def __init__(self, num_output_chunks: int = 16, ignore_index: int = -100):
         super(ChunkedCrossEntropyLoss, self).__init__()
         self.num_output_chunks = num_output_chunks
         self.ignore_index = ignore_index
         self.cross_entropy_loss = torch.nn.CrossEntropyLoss(
             reduction="sum", ignore_index=self.ignore_index
         )
-        if compile_ce:
-            self.cross_entropy_loss = torch.compile(self.cross_entropy_loss)
 
+    @torch.compile(backend=os.environ.get("TORCH_COMPILE_BACKEND", "inductor"))
     def _compute_cross_entropy(
         self, logits: torch.Tensor, labels: torch.Tensor
     ) -> torch.Tensor:
@@ -56,5 +51,5 @@ class ChunkedCrossEntropyLoss(torch.nn.Module):
 
         total_loss = 0.0
         for logits_chunk, labels_chunk in zip(logits, labels):
-            total_loss += self.cross_entropy_loss(logits_chunk, labels_chunk)
+            total_loss += self._compute_cross_entropy(logits_chunk, labels_chunk)
         return total_loss / total_elements
