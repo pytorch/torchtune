@@ -38,15 +38,17 @@ Ut non commodo nisi. Nulla dapibus porta velit facilisis gravida. Phasellus inte
 
 # prompt = "The quick brown fox jumped over the lazy dog and went to"
 
-batch_size = 4
+batch_size = 1
 with device:
     model.setup_caches(batch_size=batch_size, dtype=dtype)
 
 prompt = torch.tensor(tokenizer.encode(prompt, add_eos=False), dtype=torch.int, device=device).repeat(batch_size, 1)
-prompt = torch.hstack(
-    (torch.ones(batch_size, prompt.shape[-1] // 4, device=device, dtype=torch.int) * tokenizer.pad_id, prompt)
-)
+# prompt = torch.hstack(
+#     (torch.ones(batch_size, prompt.shape[-1] // 4, device=device, dtype=torch.int) * tokenizer.pad_id, prompt)
+# )
 # prompt[:2][: prompt.shape[-1] // 4] = tokenizer.pad_id
+
+# ['cudagraphs', 'inductor', 'onnxrt', 'openxla', 'tvm']
 
 
 def generate_with_compile():
@@ -87,7 +89,7 @@ def generate_rlhf():
 
 t0 = time.perf_counter()
 with torch.no_grad():
-    generated_tokens = generate_rlhf()
+    generated_tokens = generate_with_compile()
 
 
 t = time.perf_counter() - t0
