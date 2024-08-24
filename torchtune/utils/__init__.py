@@ -31,7 +31,12 @@ from ._distributed import (  # noqa
     shard_model,
     validate_no_params_on_meta_device,
 )
-from ._generation import generate, generate_next_token  # noqa
+from ._generation import (  # noqa
+    generate,
+    generate_next_token,
+    get_causal_mask,
+    pad_left,
+)
 from ._profiler import (
     DEFAULT_PROFILE_DIR,
     DEFAULT_PROFILER_ACTIVITIES,

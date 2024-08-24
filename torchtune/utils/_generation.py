@@ -95,23 +95,6 @@ def pad_left(
     return padded_sequence, padding_mask
 
 
-# def pad_right(tokens: List[List[int]], *, pad_id: int) -> Tuple[torch.Tensor, torch.Tensor]:
-#     """Pad a list of lists of integers to the right.
-
-#     Args:
-#         tokens (List[List[int]]): token ids
-#         pad_id (int): padding token id
-
-#     Returns:
-#         Tuple[Tensor, Tensor]: padded tokens and padding mask
-
-#     Example:
-#         >>> tokens = [[1, 2, 3], [5, 6]]
-#         >>> pad_right(tokens, pad_id=0)
-#     """
-#     pass
-
-
 def get_causal_mask(
     padding_mask: torch.Tensor,
 ) -> torch.Tensor:
@@ -228,6 +211,10 @@ def generate(
     curr_pos = prompt_length
     # if key value caches are enabled, we can incrementally decode
     incremental_decoding = model.caches_are_enabled()
+    if incremental_decoding:
+        # mask will always just be the smallest causal mask
+        mask = torch.ones((bsz, 1, 1), dtype=torch.bool, device=prompt.device)
+
     for _ in range(max_generated_tokens - 1):
         # update stop_token_mask if we reached a stop token in a previous step
         # by appending the logical not of stop_token_reached to the end of the mask
@@ -245,10 +232,17 @@ def generate(
             curr_input_pos = input_pos[: curr_pos + 1]
             tokens = generated_tokens.clone()
 
+            if mask is not None:
+                # Add a new row and column to the mask for the new token
+                mask = torch.nn.functional.pad(mask, (0, 1, 0, 1))
+                # Set the last row to ones (true) to represent causal mask
+                mask[:, :, -1] = 1
+
         tokens = custom_generate_next_token(
             model,
             input_pos=curr_input_pos,
             x=tokens,
+            mask=mask,
             temperature=temperature,
             top_k=top_k,
         )

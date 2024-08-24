@@ -261,13 +261,17 @@ class MultiHeadAttention(nn.Module):
             q = self.q_norm(q)
             k = self.k_norm(k)
 
+        # [b, s, s] -> [b, 1, s, s]
+        if mask is not None:
+            mask = mask[:, None, :, :]
+
         # Update key-value cache
         if self.kv_cache is not None:
             k, v = self.kv_cache.update(input_pos, k, v)
-
-        # shape: [b, 1, s, s]
-        if mask is not None:
-            mask = mask[:, None, :, :]
+            # pad the mask to match the kv_cache size
+            # [b, 1, s, s] -> [b, 1, s, m_s]
+            if mask is not None:
+                mask = torch.nn.functional.pad(mask, (0, self.max_seq_len - s_x))
 
         # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
         output = nn.functional.scaled_dot_product_attention(

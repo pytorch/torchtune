@@ -81,7 +81,10 @@ class TestTextGenerate:
     def batched_causal_mask(self, prompt_tokens_batched):
         # To be used with `prompt_tokens_batched`, created a simple causal mask
         # for testing purposes
-        return torch.tril(torch.ones_like(prompt_tokens_batched))
+        seq_len = prompt_tokens_batched.size(1)
+        return torch.tril(torch.ones((seq_len, seq_len), dtype=torch.bool)).repeat(
+            2, 1, 1
+        )
 
     def test_sample_consistency(self):
         """

@@ -348,12 +348,6 @@ class TransformerDecoder(nn.Module):
         for layer in self.layers:
             layer.setup_cache(batch_size, dtype)
 
-        # # causal_mask is used during inference to ensure we're attending
-        # # to the right tokens
-        # self.causal_mask = torch.tril(
-        #     torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
-        # )
-
     def caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""
         return self.layers[0].cache_enabled
@@ -411,7 +405,7 @@ class TransformerDecoder(nn.Module):
             KV values for each position. In the subsequent steps, ``input_pos`` will contain
             the position of the current token (eg: ``torch.tensor([prompt_length])``).
 
-        Notation used for tensor shapes:
+        Shape notation:
             - b: batch size
             - s: token sequence length
             - s_e: encoder sequence length
@@ -437,9 +431,9 @@ class TransformerDecoder(nn.Module):
                 raise ValueError(
                     "Caches are setup, but the position of input token is missing"
                 )
-            if mask is None and bsz > 1:
+            if bsz > 1 and mask is None:
                 raise ValueError(
-                    "Running inference with bsz > 1, but no attention mask is set."
+                    "Running inference with bsz > 1, but no attention mask is set. "
                     "Please call ``torchtune.utils.get_casual_mask()`` to generate this mask."
                 )
 

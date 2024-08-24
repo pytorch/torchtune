@@ -13,7 +13,6 @@ import torch
 from omegaconf import DictConfig
 
 from torch import nn
-from torch.nn.utils.rnn import pad_sequence
 
 from torchtune import config, utils
 from torchtune.modules import TransformerDecoder
@@ -103,19 +102,8 @@ class _EvalWrapper(HFLM):
         self, text: List[str], **kwargs
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         tokenized_text = [self.tok_encode(x) for x in text]
-
-        # pad left
-        x = pad_sequence(
-            [
-                torch.tensor(x[::-1]) for x in tokenized_text
-            ],  # first flip each sequence and pad
-            batch_first=True,
-            padding_value=self._tokenizer.pad_id,
-        ).flip(
-            dims=[1]
-        )  # flip back to correct order
-
-        return x, torch.ones_like(x)  # return 'mask' b/c it's expected by the harness
+        x, mask = utils.pad_left(tokenized_text, pad_id=self._tokenizer.pad_id)
+        return x, mask
 
     def tok_decode(self, tokens: Union[List[int], int], **kwargs) -> str:
         if isinstance(tokens, int):
@@ -131,10 +119,11 @@ class _EvalWrapper(HFLM):
         curr_batch_size = context.size(0)
 
         if curr_batch_size > 1:
-            raise ValueError(
-                f"Got a batch size of '{curr_batch_size}'. Batch size > 1 is not supported for "
-                "generation. See https://github.com/pytorch/torchtune/issues/1250 for more info."
-            )
+            # We assume that there's a padding mask if the batch size is > 1
+            padding_mask = generation_kwargs["padding_mask"]
+            causal_mask = utils.get_causal_mask(padding - mask)
+        else:
+            causal_mask = None
 
         # Setup caches for a given batch size
         # Technically this is not necessary, but it's a good way to ensure that
@@ -156,6 +145,7 @@ class _EvalWrapper(HFLM):
             self._model,
             context,
             max_generated_tokens=self.max_gen_toks,
+            mask=casual_mask,
             temperature=temperature,
             top_k=None,  # do_sample is not supported currently
             stop_tokens=self._tokenizer.stop_tokens,
