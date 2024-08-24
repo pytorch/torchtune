@@ -120,6 +120,7 @@ converted tensors to the CPU. This offloading is to avoid peaking memory; if we 
 on GPU.
 
 
+.. _qlora_compile_label:
 
 Putting it all together: QLoRA finetune
 -----------------------------------------

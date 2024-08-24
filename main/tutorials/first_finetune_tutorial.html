@@ -304,6 +304,12 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Fine-Tune Your First LLM</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tune_cli.html">torchtune CLI</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Finetuning Recipes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/recipes_overview.html">Recipes Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="llama3.html">Meta Llama3 in torchtune</a></li>
@@ -313,6 +319,7 @@
 <li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="datasets.html">Configuring Datasets for Fine-Tuning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="chat.html">Fine-tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="memory_optimizations.html">Memory Optimization Overview</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
@@ -478,11 +485,12 @@ inference, evaluation, and quantization.</p>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>To learn more about the concept of “recipes”, check out our technical deep-dive: <a class="reference internal" href="../deep_dives/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">What Are Recipes?</span></a>.</p>
+<p>Check out our <a class="reference internal" href="../recipes/recipes_overview.html#recipes-overview-label"><span class="std std-ref">recipes index</span></a> to see all the fine-tuning techniques we support.
+To learn more about the concept of “recipes”, check out our technical deep-dive: <a class="reference internal" href="../deep_dives/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">What Are Recipes?</span></a>.</p>
 </div>
 <p>torchtune provides built-in recipes for finetuning on single device, on multiple devices with <a class="reference external" href="https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/">FSDP</a>,
-using memory efficient techniques like <a class="reference external" href="https://arxiv.org/abs/2106.09685">LoRA</a>, and more! You can view all built-in recipes <a class="reference external" href="https://github.com/pytorch/torchtune/tree/main/recipes">on GitHub</a>. You can also utilize the
-<a class="reference internal" href="../tune_cli.html#tune-ls-label"><span class="std std-ref">tune ls</span></a> command to print out all recipes and corresponding configs.</p>
+using memory efficient techniques like <a class="reference external" href="https://arxiv.org/abs/2106.09685">LoRA</a>, and more! Check out all our built-in recipes in our <a class="reference internal" href="../recipes/recipes_overview.html#recipes-overview-label"><span class="std std-ref">recipe index</span></a>. You can also utilize the
+<code class="code docutils literal notranslate"><span class="pre">tune</span> <span class="pre">ls</span></code> command to print out all recipes and corresponding configs.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>ls
 RECIPE<span class="w">                                   </span>CONFIG
 full_finetune_single_device<span class="w">              </span>llama2/7B_full_low_memory

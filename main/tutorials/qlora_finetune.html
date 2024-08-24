@@ -304,6 +304,12 @@
 <li class="toctree-l1"><a class="reference internal" href="first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tune_cli.html">torchtune CLI</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Finetuning Recipes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/recipes_overview.html">Recipes Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="llama3.html">Meta Llama3 in torchtune</a></li>
@@ -313,6 +319,7 @@
 <li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="datasets.html">Configuring Datasets for Fine-Tuning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="chat.html">Fine-tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="memory_optimizations.html">Memory Optimization Overview</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
@@ -518,7 +525,7 @@ converted tensors to the CPU. This offloading is to avoid peaking memory; if we 
 on GPU.</p>
 </section>
 <section id="putting-it-all-together-qlora-finetune">
-<h2>Putting it all together: QLoRA finetune<a class="headerlink" href="#putting-it-all-together-qlora-finetune" title="Permalink to this heading">¶</a></h2>
+<span id="qlora-compile-label"></span><h2>Putting it all together: QLoRA finetune<a class="headerlink" href="#putting-it-all-together-qlora-finetune" title="Permalink to this heading">¶</a></h2>
 <p>Putting it all together, we can now finetune a model using torchtune’s <a class="reference external" href="https://github.com/pytorch/torchtune/blob/48626d19d2108f92c749411fbd5f0ff140023a25/recipes/lora_finetune.py">LoRA recipe</a>,
 with a <a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_qlora_single_device.yaml">QLoRA configuration</a>.</p>
 <p>Make sure that you have first downloaded the Llama2 weights and tokenizer by following <a class="reference internal" href="first_finetune_tutorial.html#download-llama-label"><span class="std std-ref">these instructions</span></a>.

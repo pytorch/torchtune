@@ -41,7 +41,7 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Checkpointing in torchtune" href="../deep_dives/checkpointer.html" />
+    <link rel="next" title="Memory Optimization Overview" href="memory_optimizations.html" />
     <link rel="prev" title="Configuring Datasets for Fine-Tuning" href="datasets.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -304,6 +304,12 @@
 <li class="toctree-l1"><a class="reference internal" href="first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tune_cli.html">torchtune CLI</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Finetuning Recipes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/recipes_overview.html">Recipes Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="llama3.html">Meta Llama3 in torchtune</a></li>
@@ -313,6 +319,7 @@
 <li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="datasets.html">Configuring Datasets for Fine-Tuning</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Fine-tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="memory_optimizations.html">Memory Optimization Overview</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
@@ -407,7 +414,7 @@
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
   <section id="fine-tuning-llama3-with-chat-data">
-<h1>Fine-tuning Llama3 with Chat Data<a class="headerlink" href="#fine-tuning-llama3-with-chat-data" title="Permalink to this heading">¶</a></h1>
+<span id="chat-tutorial-label"></span><h1>Fine-tuning Llama3 with Chat Data<a class="headerlink" href="#fine-tuning-llama3-with-chat-data" title="Permalink to this heading">¶</a></h1>
 <p>Llama3 Instruct introduced a new prompt template for fine-tuning with chat data. In this tutorial,
 we’ll cover what you need to know to get you quickly started on preparing your own
 custom chat dataset for fine-tuning Llama3 Instruct.</p>
@@ -732,7 +739,7 @@ then specify it in the config.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../deep_dives/checkpointer.html" class="btn btn-neutral float-right" title="Checkpointing in torchtune" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="memory_optimizations.html" class="btn btn-neutral float-right" title="Memory Optimization Overview" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="datasets.html" class="btn btn-neutral" title="Configuring Datasets for Fine-Tuning" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
