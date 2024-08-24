@@ -15,7 +15,6 @@ from torchtune.modules import (
     FeedForward,
     FrozenNF4Linear,
     RMSNorm,
-    RotaryPositionalEmbeddings,
     TransformerDecoder,
     TransformerSelfAttentionLayer,
 )
