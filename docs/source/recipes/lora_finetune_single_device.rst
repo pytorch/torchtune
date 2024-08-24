@@ -4,24 +4,12 @@
 LoRA Single Device Finetuning
 =============================
 
-This recipe supports finetuning on next-token prediction tasks using `LoRA <https://arxiv.org/abs/2106.09685>`_,
-a technique to significantly reduce memory consumption during training whilst still maintaining competitive performance.
+This recipe supports finetuning on next-token prediction tasks using parameter efficient fine-tuning techniques (PEFT)
+such as `LoRA <https://arxiv.org/abs/2106.09685>`_ and `QLoRA <https://arxiv.org/abs/2305.14314>`_.  These techniques
+significantly reduce memory consumption during training whilst still maintaining competitive performance.
 
-Interested in using this recipe? Check out some of our awesome tutorials to show off how it can be used:
-
-* :ref:`Finetuning Llama2 with LoRA<lora_finetune_label>`
-* :ref:`End-to-End Workflow with torchtune<dataset_tutorial_label>`
-* :ref:`Fine-tuning Llama3 with Chat Data<chat_tutorial_label>`
-* :ref:`Meta Llama3 in torchtune<llama3_label>`
-* :ref:`Fine-Tune Your First LLM<finetune_llama_label>`
-
-The best way to get started with our recipes is through the :ref:`cli_label`, which allows you to
-list all our recipes and configs, run recipes, copy configs and recipes, and validate configs
-without touching a line of code!
-
-For example, if you're interested in using this recipe with the latest `Llama models <https://llama.meta.com/>`_, you can fine-tune
+We provide pre-tested out-of-the-box configs which you can get up and running with the latest `Llama models <https://llama.meta.com/>`_
 in just two steps:
-
 
 .. note::
 
@@ -38,17 +26,28 @@ in just two steps:
     tune run lora_finetune_single_device \
     --config llama3_1/8B_lora_single_device
 
+You can quickly customize this recipe through the :ref:`cli_label`. For example, when fine-tuning with LoRA, you can adjust the layers which LoRA are applied to,
+and the scale of the imapct of LoRA during training:
 
-Most of you will want to twist, pull, and bop all the different levers, buttons, and knobs we expose in our recipes. Check out our
-:ref:`configs tutorial <config_tutorial_label>` to learn how to customize recipes to suit your needs.
+.. code-block:: bash
 
-This recipe is an example of parameter efficient fine-tuning (PEFT). To understand the different
-levers you can pull, see our documentation for the different PEFT training paradigms we support:
+    tune run lora_finetune_single_device \
+    --config llama3_1/8B_lora_single_device \
+    --model.lora_attn_modules=["q_proj", "k_proj", "v_proj"] \
+    --model.apply_lora_to_mlp=True \
+    --model.lora_rank=64 \
+    --model.lora_alpha=128
 
-* :ref:`glossary_lora`.
-* :ref:`glossary_qlora`.
+This configuration in particular results in a aggressive LoRA policy which
+will tradeoff higher training accuracy with increased memory usage and slower training.
 
-As with all of our recipes, you can also:
+For a deeper understanding of the different levers you can pull when using this recipe,
+see our documentation for the different PEFT training paradigms we support:
+
+* :ref:`glossary_lora`
+* :ref:`glossary_qlora`
+
+Many of our other memory optimization features can be used in this recipe, too:
 
 * Adjust :ref:`model precision <glossary_precision>`.
 * Use :ref:`activation checkpointing <glossary_act_ckpt>`.
@@ -57,4 +56,12 @@ As with all of our recipes, you can also:
   significantly reduces memory usage due to gradient state, you will likely not need this
   feature.
 
-If you're interested in an overview of our memory optimization features, check out our  :ref:`memory optimization overview<memory_optimization_overview_label>`!
+You can learn more about all of our memory optimization features in our  :ref:`memory optimization overview<memory_optimization_overview_label>`.
+
+Interested in seeing this recipe in action? Check out some of our tutorials to show off how it can be used:
+
+* :ref:`Finetuning Llama2 with LoRA<lora_finetune_label>`
+* :ref:`End-to-End Workflow with torchtune<dataset_tutorial_label>`
+* :ref:`Fine-tuning Llama3 with Chat Data<chat_tutorial_label>`
+* :ref:`Meta Llama3 in torchtune<llama3_label>`
+* :ref:`Fine-Tune Your First LLM<finetune_llama_label>`
