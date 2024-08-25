@@ -48,6 +48,6 @@ Our supervised fine-tuning recipes include:
 
   Want to learn more about a certain recipe, but can't find the documentation here?
   Not to worry! Our recipe documentation is currently in construction - come back soon
-  to see documentation of your favourite fine-tuning techniques.
-
-  .. interested in contributing documentation? Check out our issue here TODO (SalmanMohammadi)
+  to see documentation of your favourite fine-tuning techniques. We'd love to support
+  your contributions if you're interested in helping out here. Check out our tracker
+  issue `here <https://github.com/pytorch/torchtune/issues/1408>`_.
