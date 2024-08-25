@@ -4,9 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import sys
 import time
-
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
 from warnings import warn
@@ -40,6 +40,8 @@ from torchtune.recipe_interfaces import FTRecipeInterface
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
+
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 
 class LoRADPORecipeDistributed(FTRecipeInterface):
