@@ -620,7 +620,7 @@ but sometimes you may want to quickly try different values without having to upd
 the config itself. To enable quick experimentation, you can specify override values
 to parameters in your config via the <code class="code docutils literal notranslate"><span class="pre">tune</span></code> command. These should be specified
 as key-value pairs <code class="code docutils literal notranslate"><span class="pre">k1=v1</span> <span class="pre">k2=v2</span> <span class="pre">...</span></code></p>
-<p>For example, to run the <code class="code docutils literal notranslate"><span class="pre">lora_finetune_single_device</span></code> recipe with custom model and tokenizer directories, you can provide overrides:</p>
+<p>For example, to run the <a class="reference internal" href="../recipes/lora_finetune_single_device.html#lora-finetune-recipe-label"><span class="std std-ref">LoRA single-device finetuning</span></a> recipe with custom model and tokenizer directories, you can provide overrides:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span><span class="se">\</span>
 --config<span class="w"> </span>llama2/7B_lora_single_device<span class="w"> </span><span class="se">\</span>
 checkpointer.checkpoint_dir<span class="o">=</span>/home/my_model_checkpoint<span class="w"> </span><span class="se">\</span>
