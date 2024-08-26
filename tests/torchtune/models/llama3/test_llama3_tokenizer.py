@@ -4,13 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from pathlib import Path
-
 import pytest
+from tests.common import ASSETS
 from torchtune.data._messages import Message
 from torchtune.models.llama3 import llama3_tokenizer, Llama3Tokenizer
-
-ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
 
 
 class TestLlama3Tokenizer:
