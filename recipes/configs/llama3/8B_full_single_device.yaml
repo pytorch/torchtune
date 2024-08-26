@@ -58,6 +58,7 @@ max_steps_per_epoch: null
 gradient_accumulation_steps: 1
 optimizer_in_bwd: True
 compile: False
+per_layer_compile: False
 
 # Training environment
 device: cuda

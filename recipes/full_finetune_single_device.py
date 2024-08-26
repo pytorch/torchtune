@@ -202,6 +202,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # should be called before ``_setup_optimizer`` since transforming the optimizer
         # state dict requires the model
         self._model_compile = cfg.compile
+        self._per_layer_compile = cfg.per_layer_compile
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
@@ -222,6 +223,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
+        if self._model_compile and self._per_layer_compile:
+            log.info("Compiling loss with torch.compile...")
+            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+            self._loss_fn = torch.compile(self._loss_fn, backend=backend)
         log.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
@@ -333,6 +338,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
 
+        if compile_model and self._per_layer_compile:
+            log.info("Compiling model with torch.compile...")
+            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+            for m in reversed(list(model.modules())):
+                if isinstance(m, modules.transformer.TransformerSelfAttentionLayer):
+                    m.compile(backend=backend)
+
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
@@ -345,7 +357,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         log.info(f"Model is initialized with precision {self._dtype}.")
 
         # Compile model, if enabled.
-        if compile_model:
+        print(f"model: {model}")
+        if compile_model and not self._per_layer_compile:
             log.info("Compiling model with torch.compile...")
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
             self._loss_step_original = self._loss_step
