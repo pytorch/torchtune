@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>InstructDataset &mdash; torchtune main documentation</title>
+  <title>torchtune.datasets.InstructDataset &mdash; torchtune main documentation</title>
   
 
   
@@ -41,7 +41,7 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="ChatDataset" href="torchtune.datasets.ChatDataset.html" />
+    <link rel="next" title="torchtune.datasets.ChatDataset" href="torchtune.datasets.ChatDataset.html" />
     <link rel="prev" title="text_completion_dataset" href="torchtune.datasets.text_completion_dataset.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -379,7 +379,7 @@
         
           <li><a href="../api_ref_datasets.html">torchtune.datasets</a> &gt;</li>
         
-      <li>InstructDataset</li>
+      <li>torchtune.datasets.InstructDataset</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -415,12 +415,18 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="instructdataset">
-<h1>InstructDataset<a class="headerlink" href="#instructdataset" title="Permalink to this heading">¶</a></h1>
-<dl class="py class">
+  <section id="torchtune-datasets-instructdataset">
+<h1>torchtune.datasets.InstructDataset<a class="headerlink" href="#torchtune-datasets-instructdataset" title="Permalink to this heading">¶</a></h1>
+<dl class="py data">
 <dt class="sig sig-object py" id="torchtune.datasets.InstructDataset">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.datasets.</span></span><span class="sig-name descname"><span class="pre">InstructDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer" title="torchtune.modules.tokenizers._utils.ModelTokenizer"><span class="pre">ModelTokenizer</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">template</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="torchtune.data.InstructTemplate.html#torchtune.data.InstructTemplate" title="torchtune.data._instruct_templates.InstructTemplate"><span class="pre">InstructTemplate</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.12)"><span class="pre">Callable</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_on_input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">load_dataset_kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/datasets/_instruct.html#InstructDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.datasets.InstructDataset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Class that supports any custom dataset with instruction-based prompts and a
+<span class="sig-prename descclassname"><span class="pre">torchtune.datasets.</span></span><span class="sig-name descname"><span class="pre">InstructDataset</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;function</span> <span class="pre">InstructDataset&gt;</span></em><a class="reference internal" href="../_modules/torchtune/datasets/_instruct.html#InstructDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.datasets.InstructDataset" title="Permalink to this definition">¶</a></dt>
+<dd><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This class is deprecated and will be removed in a future release. Please use
+<a class="reference internal" href="torchtune.datasets.SFTDataset.html#torchtune.datasets.SFTDataset" title="torchtune.datasets.SFTDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">SFTDataset</span></code></a> or <a class="reference internal" href="torchtune.datasets.instruct_dataset.html#torchtune.datasets.instruct_dataset" title="torchtune.datasets.instruct_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">instruct_dataset()</span></code></a>
+for custom instruct data.</p>
+</div>
+<p>Class that supports any custom dataset with instruction-based prompts and a
 configurable template.</p>
 <p>The general flow from loading a sample to tokenized prompt is:
 load sample -&gt; apply transform -&gt; format into template -&gt; tokenize</p>
@@ -472,7 +478,7 @@ such as <code class="docutils literal notranslate"><span class="pre">data_files<
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.datasets.ChatDataset.html" class="btn btn-neutral float-right" title="ChatDataset" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.datasets.ChatDataset.html" class="btn btn-neutral float-right" title="torchtune.datasets.ChatDataset" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="torchtune.datasets.text_completion_dataset.html" class="btn btn-neutral" title="text_completion_dataset" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
@@ -507,7 +513,7 @@ such as <code class="docutils literal notranslate"><span class="pre">data_files<
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">InstructDataset</a></li>
+<li><a class="reference internal" href="#">torchtune.datasets.InstructDataset</a></li>
 </ul>
 
             </div>

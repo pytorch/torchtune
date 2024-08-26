@@ -448,6 +448,7 @@ turns of user and assistant messages.</p>
 Default is False.</p></li>
 <li><p><strong>column_map</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em><em>]</em>) – a mapping to change the expected
 “chosen” and “rejected” column names to the actual column names in the dataset.
+Keys should be “chosen” and “rejected” and values should be the actual column names.
 Default is None, keeping the default column names.</p></li>
 <li><p><strong>new_system_prompt</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – if specified, prepend a system message. This can
 serve as instructions to guide the model response. Setting this will OVERRIDE any system

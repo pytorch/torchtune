@@ -451,7 +451,8 @@ turns of user and assistant messages.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>train_on_input</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – whether the prompt should remain unmasked. Default: False</p></li>
 <li><p><strong>column_map</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em><em>]</em>) – a mapping from the expected columns (“messages”)
-to the new column names in the dataset. If None, assume these are identical.
+to the new column names in the dataset. Key should be “messages” and value should be
+the new column name. If None, keep the default “messages”.
 Default is None.</p></li>
 <li><p><strong>new_system_prompt</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – if specified, prepend a system message. This can
 serve as instructions to guide the model response. Setting this will OVERRIDE any system

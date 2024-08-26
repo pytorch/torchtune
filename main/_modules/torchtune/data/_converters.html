@@ -418,12 +418,29 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.data._messages</span> <span class="kn">import</span> <span class="n">Message</span>
+<span class="kn">from</span> <span class="nn">torchtune.data._utils</span> <span class="kn">import</span> <span class="n">deprecated</span>
 
 
-<div class="viewcode-block" id="get_sharegpt_messages"><a class="viewcode-back" href="../../../generated/torchtune.data.get_sharegpt_messages.html#torchtune.data.get_sharegpt_messages">[docs]</a><span class="k">def</span> <span class="nf">get_sharegpt_messages</span><span class="p">(</span>
+<div class="viewcode-block" id="get_sharegpt_messages"><a class="viewcode-back" href="../../../generated/torchtune.data.get_sharegpt_messages.html#torchtune.data.get_sharegpt_messages">[docs]</a><span class="nd">@deprecated</span><span class="p">(</span>
+    <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Please use an instance of `torchtune.data.ShareGPTToMessages` as the &quot;</span>
+    <span class="s2">&quot;`message_transform` argument for `torchtune.datasets.SFTDataset` instead.&quot;</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_sharegpt_messages</span><span class="p">(</span>
     <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Note:</span>
+<span class="sd">        This class is deprecated and will be removed in a future release. Please use</span>
+<span class="sd">        :class:`~torchtune.data.ShareGPTToMessages` instead. The following are equivalent:</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            # Deprecated</span>
+<span class="sd">            transformed_sample = get_sharegpt_messages(sample, train_on_input=True)</span>
+
+<span class="sd">            # New</span>
+<span class="sd">            transformed_sample = ShareGPTToMessages(train_on_input=True)(sample)</span>
+
 <span class="sd">    Convert a chat sample adhering to the ShareGPT json structure to torchtune&#39;s :class:`~torchtune.data.Message`</span>
 <span class="sd">    structure.</span>
 
@@ -473,11 +490,27 @@
     <span class="k">return</span> <span class="n">messages</span></div>
 
 
-<div class="viewcode-block" id="get_openai_messages"><a class="viewcode-back" href="../../../generated/torchtune.data.get_openai_messages.html#torchtune.data.get_openai_messages">[docs]</a><span class="k">def</span> <span class="nf">get_openai_messages</span><span class="p">(</span>
+<div class="viewcode-block" id="get_openai_messages"><a class="viewcode-back" href="../../../generated/torchtune.data.get_openai_messages.html#torchtune.data.get_openai_messages">[docs]</a><span class="nd">@deprecated</span><span class="p">(</span>
+    <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Please use an instance of `torchtune.data.JSONToMessages` as the &quot;</span>
+    <span class="s2">&quot;`message_transform` argument for `torchtune.datasets.SFTDataset` instead.&quot;</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_openai_messages</span><span class="p">(</span>
     <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Note:</span>
+<span class="sd">        This class is deprecated and will be removed in a future release. Please use</span>
+<span class="sd">        :class:`~torchtune.data.JSONToMessages` instead. The following are equivalent:</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            # Deprecated</span>
+<span class="sd">            transformed_sample = get_openai_messages(sample, train_on_input=True)</span>
+
+<span class="sd">            # New</span>
+<span class="sd">            transformed_sample = JSONToMessages(train_on_input=True)(sample)</span>
+
 <span class="sd">    Convert a chat sample adhering to the OpenAI API json structure to torchtune&#39;s :class:`~torchtune.data.Message`</span>
 <span class="sd">    structure.</span>
 

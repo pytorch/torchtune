@@ -422,7 +422,7 @@ and models.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.data.InstructTemplate.html#torchtune.data.InstructTemplate" title="torchtune.data.InstructTemplate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InstructTemplate</span></code></a></p></td>
-<td><p>Interface for instruction templates.</p></td>
+<td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.data.GrammarErrorCorrectionTemplate.html#torchtune.data.GrammarErrorCorrectionTemplate" title="torchtune.data.GrammarErrorCorrectionTemplate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GrammarErrorCorrectionTemplate</span></code></a></p></td>
 <td><p>A prompt template for grammar error correction tasks.</p></td>
@@ -443,17 +443,7 @@ and models.</p>
 <td><p>OpenAI's <a class="reference external" href="https://github.com/MicrosoftDocs/azure-docs/blob/772c14eeabfa0c0c561d5c2d34ef19341f528b7b/articles/ai-services/openai/how-to/chat-markup-language.md">Chat Markup Language</a> used by their chat models.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.data.ChatFormat.html#torchtune.data.ChatFormat" title="torchtune.data.ChatFormat"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ChatFormat</span></code></a></p></td>
-<td><p>Interface for chat formats.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.data.ChatMLFormat.html#torchtune.data.ChatMLFormat" title="torchtune.data.ChatMLFormat"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ChatMLFormat</span></code></a></p></td>
-<td><p><p>OpenAI's <a class="reference external" href="https://github.com/MicrosoftDocs/azure-docs/blob/772c14eeabfa0c0c561d5c2d34ef19341f528b7b/articles/ai-services/openai/how-to/chat-markup-language.md">Chat Markup Language</a> used by their chat models.</p>
-</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.data.Llama2ChatFormat.html#torchtune.data.Llama2ChatFormat" title="torchtune.data.Llama2ChatFormat"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Llama2ChatFormat</span></code></a></p></td>
-<td><p>Chat format that formats human and system prompts with appropriate tags used in Llama2 pre-training.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.data.MistralChatFormat.html#torchtune.data.MistralChatFormat" title="torchtune.data.MistralChatFormat"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MistralChatFormat</span></code></a></p></td>
-<td><p>Formats according to <a class="reference external" href="https://docs.mistral.ai/models/">Mistral's instruct model</a>.</p></td>
+<td><p></p></td>
 </tr>
 </tbody>
 </table>
@@ -477,10 +467,10 @@ and models.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.data.get_sharegpt_messages.html#torchtune.data.get_sharegpt_messages" title="torchtune.data.get_sharegpt_messages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_sharegpt_messages</span></code></a></p></td>
-<td><p>Convert a chat sample adhering to the ShareGPT json structure to torchtune's <a class="reference internal" href="generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> structure.</p></td>
+<td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.data.get_openai_messages.html#torchtune.data.get_openai_messages" title="torchtune.data.get_openai_messages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_openai_messages</span></code></a></p></td>
-<td><p>Convert a chat sample adhering to the OpenAI API json structure to torchtune's <a class="reference internal" href="generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> structure.</p></td>
+<td><p></p></td>
 </tr>
 </tbody>
 </table>
@@ -491,7 +481,7 @@ and models.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.data.InputOutputToMessages.html#torchtune.data.InputOutputToMessages" title="torchtune.data.InputOutputToMessages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InputOutputToMessages</span></code></a></p></td>
-<td><p>Message transform class that converts a single sample with &quot;input&quot; and &quot;output&quot; fields, (or equivalent fields specified in column_map) to user and assistant messages, respectively.</p></td>
+<td><p>Message transform class that converts a single sample with &quot;input&quot; and &quot;output&quot; fields, (or equivalent fields specified in column_map) to user and assistant messages, respectively. This is useful for datasets that have two columns, one containing the user prompt string and the other containing the model response string::.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.data.ShareGPTToMessages.html#torchtune.data.ShareGPTToMessages" title="torchtune.data.ShareGPTToMessages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShareGPTToMessages</span></code></a></p></td>
 <td><p>Convert a single chat sample adhering to the ShareGPT json structure to torchtune's <a class="reference internal" href="generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> structure.</p></td>

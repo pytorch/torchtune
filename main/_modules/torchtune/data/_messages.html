@@ -532,13 +532,18 @@
 <span class="sd">    Message transform class that converts a single sample with &quot;input&quot; and &quot;output&quot; fields,</span>
 <span class="sd">    (or equivalent fields specified in column_map) to user and assistant messages,</span>
 <span class="sd">    respectively. This is useful for datasets that have two columns, one containing</span>
-<span class="sd">    the user prompt and the other containing the model response.</span>
+<span class="sd">    the user prompt string and the other containing the model response string::</span>
+
+<span class="sd">        |  input          |  output          |</span>
+<span class="sd">        |-----------------|------------------|</span>
+<span class="sd">        | &quot;user prompt&quot;   | &quot;model response&quot; |</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        train_on_input (bool): Whether the model is trained on the user prompt or not.</span>
 <span class="sd">            Default is False.</span>
 <span class="sd">        column_map (Optional[Dict[str, str]]): a mapping to change the expected &quot;input&quot;</span>
-<span class="sd">            and &quot;output&quot; column names to the actual column names in the dataset. Default is None,</span>
+<span class="sd">            and &quot;output&quot; column names to the actual column names in the dataset. Keys should</span>
+<span class="sd">            be &quot;input&quot; and &quot;output&quot; and values should be the actual column names. Default is None,</span>
 <span class="sd">            keeping the default &quot;input&quot; and &quot;output&quot; column names.</span>
 <span class="sd">        new_system_prompt (Optional[str]): if specified, prepend a system message. This can</span>
 <span class="sd">            serve as instructions to guide the model response. Default is None.</span>
@@ -624,6 +629,7 @@
 <span class="sd">            Default is False.</span>
 <span class="sd">        column_map (Optional[Dict[str, str]]): a mapping to change the expected</span>
 <span class="sd">            &quot;chosen&quot; and &quot;rejected&quot; column names to the actual column names in the dataset.</span>
+<span class="sd">            Keys should be &quot;chosen&quot; and &quot;rejected&quot; and values should be the actual column names.</span>
 <span class="sd">            Default is None, keeping the default column names.</span>
 <span class="sd">        new_system_prompt (Optional[str]): if specified, prepend a system message. This can</span>
 <span class="sd">            serve as instructions to guide the model response. Setting this will OVERRIDE any system</span>
@@ -722,7 +728,8 @@
 <span class="sd">    Args:</span>
 <span class="sd">        train_on_input (bool): whether the prompt should remain unmasked. Default: False</span>
 <span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected columns (&quot;conversations&quot;)</span>
-<span class="sd">            to the new column names in the dataset. If None, assume these are identical.</span>
+<span class="sd">            to the new column names in the dataset. Key should be &quot;conversations&quot; and value should</span>
+<span class="sd">            be the new column name. If None, keep the default &quot;conversations&quot;.</span>
 <span class="sd">            Default is None.</span>
 <span class="sd">        new_system_prompt (Optional[str]): if specified, prepend a system message. This can</span>
 <span class="sd">            serve as instructions to guide the model response. Setting this will OVERRIDE any system</span>
@@ -812,7 +819,8 @@
 <span class="sd">    Args:</span>
 <span class="sd">        train_on_input (bool): whether the prompt should remain unmasked. Default: False</span>
 <span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected columns (&quot;messages&quot;)</span>
-<span class="sd">            to the new column names in the dataset. If None, assume these are identical.</span>
+<span class="sd">            to the new column names in the dataset. Key should be &quot;messages&quot; and value should be</span>
+<span class="sd">            the new column name. If None, keep the default &quot;messages&quot;.</span>
 <span class="sd">            Default is None.</span>
 <span class="sd">        new_system_prompt (Optional[str]): if specified, prepend a system message. This can</span>
 <span class="sd">            serve as instructions to guide the model response. Setting this will OVERRIDE any system</span>

@@ -1,10 +1,6 @@
-﻿.. role:: hidden
-    :class: hidden-section
+﻿torchtune.datasets.InstructDataset
+==================================
+
 .. currentmodule:: torchtune.datasets
 
-
-InstructDataset
-===============
-
-.. autoclass:: InstructDataset
-    :members:
+.. autodata:: InstructDataset

@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>ChatDataset &mdash; torchtune main documentation</title>
+  <title>torchtune.datasets.ChatDataset &mdash; torchtune main documentation</title>
   
 
   
@@ -42,7 +42,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="TextCompletionDataset" href="torchtune.datasets.TextCompletionDataset.html" />
-    <link rel="prev" title="InstructDataset" href="torchtune.datasets.InstructDataset.html" />
+    <link rel="prev" title="torchtune.datasets.InstructDataset" href="torchtune.datasets.InstructDataset.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -379,7 +379,7 @@
         
           <li><a href="../api_ref_datasets.html">torchtune.datasets</a> &gt;</li>
         
-      <li>ChatDataset</li>
+      <li>torchtune.datasets.ChatDataset</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -415,12 +415,18 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="chatdataset">
-<h1>ChatDataset<a class="headerlink" href="#chatdataset" title="Permalink to this heading">¶</a></h1>
-<dl class="py class">
+  <section id="torchtune-datasets-chatdataset">
+<h1>torchtune.datasets.ChatDataset<a class="headerlink" href="#torchtune-datasets-chatdataset" title="Permalink to this heading">¶</a></h1>
+<dl class="py data">
 <dt class="sig sig-object py" id="torchtune.datasets.ChatDataset">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.datasets.</span></span><span class="sig-name descname"><span class="pre">ChatDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer" title="torchtune.modules.tokenizers._utils.ModelTokenizer"><span class="pre">ModelTokenizer</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">convert_to_messages</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.12)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.12)"><span class="pre">Mapping</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data._messages.Message"><span class="pre">Message</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chat_format</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="torchtune.data.ChatFormat.html#torchtune.data.ChatFormat" title="torchtune.data._chat_formats.ChatFormat"><span class="pre">ChatFormat</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_on_input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">load_dataset_kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/datasets/_chat.html#ChatDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.datasets.ChatDataset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Class that supports any custom dataset with multiturn conversations.</p>
+<span class="sig-prename descclassname"><span class="pre">torchtune.datasets.</span></span><span class="sig-name descname"><span class="pre">ChatDataset</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;function</span> <span class="pre">ChatDataset&gt;</span></em><a class="reference internal" href="../_modules/torchtune/datasets/_chat.html#ChatDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.datasets.ChatDataset" title="Permalink to this definition">¶</a></dt>
+<dd><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This class is deprecated and will be removed in a future release. Please use
+<a class="reference internal" href="torchtune.datasets.SFTDataset.html#torchtune.datasets.SFTDataset" title="torchtune.datasets.SFTDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">SFTDataset</span></code></a> or <a class="reference internal" href="torchtune.datasets.chat_dataset.html#torchtune.datasets.chat_dataset" title="torchtune.datasets.chat_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">chat_dataset()</span></code></a>
+for custom chat data.</p>
+</div>
+<p>Class that supports any custom dataset with multiturn conversations.</p>
 <p>The general flow from loading a sample to tokenized prompt is:
 load sample -&gt; apply transform -&gt; foreach turn{format into template -&gt; tokenize}</p>
 <p>Use <code class="docutils literal notranslate"><span class="pre">convert_to_messages</span></code> to prepare your dataset into the Llama2 chat format
@@ -457,9 +463,6 @@ unless you want to structure messages in a particular way for inference.</p></li
 such as <code class="docutils literal notranslate"><span class="pre">data_files</span></code> or <code class="docutils literal notranslate"><span class="pre">split</span></code>.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – if <code class="docutils literal notranslate"><span class="pre">chat_format</span></code> is not an instance of <a class="reference internal" href="torchtune.data.ChatFormat.html#torchtune.data.ChatFormat" title="torchtune.data.ChatFormat"><code class="xref py py-class docutils literal notranslate"><span class="pre">torchtune.data.ChatFormat</span></code></a>.</p>
-</dd>
 </dl>
 </dd></dl>
 
@@ -476,7 +479,7 @@ such as <code class="docutils literal notranslate"><span class="pre">data_files<
         <a href="torchtune.datasets.TextCompletionDataset.html" class="btn btn-neutral float-right" title="TextCompletionDataset" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.datasets.InstructDataset.html" class="btn btn-neutral" title="InstructDataset" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.datasets.InstructDataset.html" class="btn btn-neutral" title="torchtune.datasets.InstructDataset" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -508,7 +511,7 @@ such as <code class="docutils literal notranslate"><span class="pre">data_files<
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">ChatDataset</a></li>
+<li><a class="reference internal" href="#">torchtune.datasets.ChatDataset</a></li>
 </ul>
 
             </div>

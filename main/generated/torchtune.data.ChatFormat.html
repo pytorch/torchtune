@@ -41,7 +41,7 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="ChatMLFormat" href="torchtune.data.ChatMLFormat.html" />
+    <link rel="next" title="Message" href="torchtune.data.Message.html" />
     <link rel="prev" title="ChatMLTemplate" href="torchtune.data.ChatMLTemplate.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -420,7 +420,12 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="torchtune.data.ChatFormat">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.data.</span></span><span class="sig-name descname"><span class="pre">ChatFormat</span></span><a class="reference internal" href="../_modules/torchtune/data/_chat_formats.html#ChatFormat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.data.ChatFormat" title="Permalink to this definition">¶</a></dt>
-<dd><p>Interface for chat formats. Each chat format should include tags for system,
+<dd><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This class is deprecated and will be removed in a future release. Please use
+<a class="reference internal" href="torchtune.data.PromptTemplate.html#torchtune.data.PromptTemplate" title="torchtune.data.PromptTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">PromptTemplate</span></code></a> for custom chat formats.</p>
+</div>
+<p>Interface for chat formats. Each chat format should include tags for system,
 user, and assistant roles that are prepended or appended to the message
 content.</p>
 <dl class="py method">
@@ -450,7 +455,7 @@ of <cite>Message</cite> objects</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.data.ChatMLFormat.html" class="btn btn-neutral float-right" title="ChatMLFormat" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.data.Message.html" class="btn btn-neutral float-right" title="Message" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="torchtune.data.ChatMLTemplate.html" class="btn btn-neutral" title="ChatMLTemplate" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>

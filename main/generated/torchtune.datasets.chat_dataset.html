@@ -419,25 +419,50 @@
 <h1>chat_dataset<a class="headerlink" href="#chat-dataset" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="torchtune.datasets.chat_dataset">
-<span class="sig-prename descclassname"><span class="pre">torchtune.datasets.</span></span><span class="sig-name descname"><span class="pre">chat_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer" title="torchtune.modules.tokenizers._utils.ModelTokenizer"><span class="pre">ModelTokenizer</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">conversation_style</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">chat_format</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_on_input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">packed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">load_dataset_kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.datasets.ChatDataset.html#torchtune.datasets.ChatDataset" title="torchtune.datasets._chat.ChatDataset"><span class="pre">ChatDataset</span></a></span></span><a class="reference internal" href="../_modules/torchtune/datasets/_chat.html#chat_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.datasets.chat_dataset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Build a configurable dataset with conversations. This method should be
-used to configure a custom chat dataset from the yaml config instead of
-using <a class="reference internal" href="torchtune.datasets.ChatDataset.html#torchtune.datasets.ChatDataset" title="torchtune.datasets.ChatDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChatDataset</span></code></a> directly, as it is made to be config friendly.</p>
+<span class="sig-prename descclassname"><span class="pre">torchtune.datasets.</span></span><span class="sig-name descname"><span class="pre">chat_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer" title="torchtune.modules.tokenizers._utils.ModelTokenizer"><span class="pre">ModelTokenizer</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">conversation_column</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">conversation_style</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_on_input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">packed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">load_dataset_kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.12)"><span class="pre">Union</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="torchtune.datasets.SFTDataset.html#torchtune.datasets.SFTDataset" title="torchtune.datasets._sft.SFTDataset"><span class="pre">SFTDataset</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="torchtune.datasets.PackedDataset.html#torchtune.datasets.PackedDataset" title="torchtune.datasets._packed.PackedDataset"><span class="pre">PackedDataset</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/datasets/_chat.html#chat_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.datasets.chat_dataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configure a custom dataset with conversations between user and model assistant.</p>
+<p>This builder function can be used to configure a custom chat dataset directly from the yaml config
+as an alternative to <a class="reference internal" href="torchtune.datasets.SFTDataset.html#torchtune.datasets.SFTDataset" title="torchtune.datasets.SFTDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">SFTDataset</span></code></a>, as it is made to be config friendly.</p>
+<p>The dataset is expected to contain a single column with the conversations:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>|  conversations                         |
+|----------------------------------------|
+| [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: Q1},      |
+|  {&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: A1}] |
+</pre></div>
+</div>
+<p>This will be converted to:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="s2">&quot;Q1&quot;</span><span class="p">),</span>
+    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="s2">&quot;A1&quot;</span><span class="p">),</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<p>This list of messages is then tokenized for model training.</p>
+<p>You may have a different structure for your conversations, such as different role names or
+different keys in the json structure. You can use the <code class="docutils literal notranslate"><span class="pre">conversation_style</span></code> parameter
+to choose from standard formats such as “sharegpt” (see <a class="reference internal" href="torchtune.data.ShareGPTToMessages.html#torchtune.data.ShareGPTToMessages" title="torchtune.data.ShareGPTToMessages"><code class="xref py py-class docutils literal notranslate"><span class="pre">ShareGPTToMessages</span></code></a>)
+or “json” (see <a class="reference internal" href="torchtune.data.JSONToMessages.html#torchtune.data.JSONToMessages" title="torchtune.data.JSONToMessages"><code class="xref py py-class docutils literal notranslate"><span class="pre">JSONToMessages</span></code></a>). If your dataset is not in one of these
+formats, we recommend creating a custom message transform and using it in a custom dataset
+builder function similar to <a class="reference internal" href="#torchtune.datasets.chat_dataset" title="torchtune.datasets.chat_dataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">chat_dataset</span></code></a>.</p>
+<p>If your column names are different, use the <code class="docutils literal notranslate"><span class="pre">conversation_column</span></code> parameter to point
+towards the column with the conversations.</p>
+<p>Masking of the prompt during training is controlled by the <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> flag, which is
+set to <code class="docutils literal notranslate"><span class="pre">False</span></code> by default
+- If <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> is True, the prompt is used during training and
+contributes to the loss.
+- If <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> is False, the prompt is masked out (tokens replaced with -100)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>tokenizer</strong> (<a class="reference internal" href="torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer" title="torchtune.modules.tokenizers.ModelTokenizer"><em>ModelTokenizer</em></a>) – Tokenizer used by the model that implements the <code class="docutils literal notranslate"><span class="pre">tokenize_messages</span></code> method.</p></li>
 <li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path to dataset repository on Hugging Face. For local datasets,
-define source as the data file type (e.g. “json”, “csv”, “text”) and pass
-in the filepath in <code class="docutils literal notranslate"><span class="pre">data_files</span></code>. See Hugging Face’s <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>
-(<a class="reference external" href="https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path">https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path</a>)
-for more details.</p></li>
+define source as the data file type (e.g. “json”, “csv”, “text”), pass
+in the filepath in <code class="docutils literal notranslate"><span class="pre">data_files</span></code>, and set <code class="docutils literal notranslate"><span class="pre">split=&quot;train&quot;</span></code>. See <a class="reference external" href="https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path">Hugging Face’s</a>
+<code class="docutils literal notranslate"><span class="pre">load_dataset</span></code> for more details.</p></li>
+<li><p><strong>conversation_column</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – name of column containing the conversations.</p></li>
 <li><p><strong>conversation_style</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – string specifying expected style of conversations in the dataset
-for automatic conversion to the <a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> structure. Supported styles are: “sharegpt”, “openai”</p></li>
-<li><p><strong>chat_format</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – full import path of <a class="reference internal" href="torchtune.data.ChatFormat.html#torchtune.data.ChatFormat" title="torchtune.data.ChatFormat"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChatFormat</span></code></a> class used to format the messages.
-See the description in <a class="reference internal" href="torchtune.datasets.ChatDataset.html#torchtune.datasets.ChatDataset" title="torchtune.datasets.ChatDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChatDataset</span></code></a> for more details. For a list of all
-possible chat formats, check out <a class="reference internal" href="../api_ref_data.html#chat-formats"><span class="std std-ref">Text templates</span></a>. Default: None.</p></li>
-<li><p><strong>max_seq_len</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Maximum number of tokens in the returned input and label token id lists.</p></li>
+for automatic conversion to the <a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> structure.
+Supported styles are: “sharegpt”, “json”</p></li>
 <li><p><strong>train_on_input</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – Whether the model is trained on the prompt or not. Default is False.</p></li>
 <li><p><strong>packed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – Whether or not to pack the dataset to <code class="docutils literal notranslate"><span class="pre">max_seq_len</span></code> prior to training. Default is False.</p></li>
 <li><p><strong>**load_dataset_kwargs</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – additional keyword arguments to pass to <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>,
@@ -445,38 +470,68 @@ such as <code class="docutils literal notranslate"><span class="pre">data_files<
 </ul>
 </dd>
 </dl>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">chat_dataset</span>
+<p>Examples:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">my_dataset</span><span class="o">.</span><span class="n">json</span>
+<span class="p">[</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;conversations&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;from&quot;</span><span class="p">:</span> <span class="s2">&quot;human&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;What time is it in London?&quot;</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;from&quot;</span><span class="p">:</span> <span class="s2">&quot;gpt&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;It is 10:00 AM in London.&quot;</span><span class="p">,</span>
+            <span class="p">},</span>
+        <span class="p">],</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;conversations&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="o">...</span>
+        <span class="p">],</span>
+    <span class="p">},</span>
+    <span class="o">...</span><span class="p">,</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">chat_dataset</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">chat_dataset</span><span class="p">(</span>
-<span class="gp">... </span>  <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
-<span class="gp">... </span>  <span class="n">source</span><span class="o">=</span><span class="s2">&quot;HuggingFaceH4/no_robots&quot;</span><span class="p">,</span>
-<span class="gp">... </span>  <span class="n">conversation_style</span><span class="o">=</span><span class="s2">&quot;sharegpt&quot;</span><span class="p">,</span>
-<span class="gp">... </span>  <span class="n">chat_format</span><span class="o">=</span><span class="s2">&quot;torchtune.data.ChatMLFormat&quot;</span><span class="p">,</span>
-<span class="gp">... </span>  <span class="n">max_seq_len</span><span class="o">=</span><span class="mi">2096</span><span class="p">,</span>
-<span class="gp">... </span>  <span class="n">train_on_input</span><span class="o">=</span><span class="kc">True</span>
+<span class="gp">... </span>    <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">source</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">data_files</span><span class="o">=</span><span class="s2">&quot;my_dataset.json&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">conversation_column</span><span class="o">=</span><span class="s2">&quot;conversations&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">conversation_style</span><span class="o">=</span><span class="s2">&quot;sharegpt&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">train_on_input</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">packed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
 <span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tokens</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;tokens&quot;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
+<span class="go">&quot;What time is it in London?It is 10:00 AM in London.&quot;</span>
 </pre></div>
 </div>
 <p>This can also be accomplished via the yaml config:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dataset</span><span class="p">:</span>
-    <span class="n">_component_</span><span class="p">:</span> <span class="n">torchtune</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">chat_dataset</span>
-    <span class="n">source</span><span class="p">:</span> <span class="n">HuggingFaceH4</span><span class="o">/</span><span class="n">no_robots</span>
-    <span class="n">conversation_style</span><span class="p">:</span> <span class="n">sharegpt</span>
-    <span class="n">chat_format</span><span class="p">:</span> <span class="n">torchtune</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ChatMLFormat</span>
-    <span class="n">max_seq_len</span><span class="p">:</span> <span class="mi">2096</span>
-    <span class="n">train_on_input</span><span class="p">:</span> <span class="kc">True</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.chat_dataset</span>
+<span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">json</span>
+<span class="w">  </span><span class="nt">data_files</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my_dataset.json</span>
+<span class="w">  </span><span class="nt">conversation_column</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conversations</span>
+<span class="w">  </span><span class="nt">conversation_style</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sharegpt</span>
+<span class="w">  </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
+<span class="w">  </span><span class="nt">packed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
+<span class="w">  </span><span class="nt">split</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">train</span>
 </pre></div>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p><dl class="simple">
-<dt>the configured <a class="reference internal" href="torchtune.datasets.ChatDataset.html#torchtune.datasets.ChatDataset" title="torchtune.datasets.ChatDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChatDataset</span></code></a></dt><dd><p>or <a class="reference internal" href="torchtune.datasets.PackedDataset.html#torchtune.datasets.PackedDataset" title="torchtune.datasets.PackedDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">PackedDataset</span></code></a> if <code class="docutils literal notranslate"><span class="pre">packed=True</span></code></p>
+<dt>the configured <a class="reference internal" href="torchtune.datasets.SFTDataset.html#torchtune.datasets.SFTDataset" title="torchtune.datasets.SFTDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">SFTDataset</span></code></a></dt><dd><p>or <a class="reference internal" href="torchtune.datasets.PackedDataset.html#torchtune.datasets.PackedDataset" title="torchtune.datasets.PackedDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">PackedDataset</span></code></a> if <code class="docutils literal notranslate"><span class="pre">packed=True</span></code></p>
 </dd>
 </dl>
 </p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="torchtune.datasets.ChatDataset.html#torchtune.datasets.ChatDataset" title="torchtune.datasets.ChatDataset">ChatDataset</a> or <a class="reference internal" href="torchtune.datasets.PackedDataset.html#torchtune.datasets.PackedDataset" title="torchtune.datasets.PackedDataset">PackedDataset</a></p>
+<dd class="field-even"><p>Union[<a class="reference internal" href="torchtune.datasets.SFTDataset.html#torchtune.datasets.SFTDataset" title="torchtune.datasets.SFTDataset">SFTDataset</a>, <a class="reference internal" href="torchtune.datasets.PackedDataset.html#torchtune.datasets.PackedDataset" title="torchtune.datasets.PackedDataset">PackedDataset</a>]</p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – if the conversation format is not supported</p>

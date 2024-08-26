@@ -450,6 +450,7 @@
 <span class="sd">            Default is False.</span>
 <span class="sd">        column_map (Optional[Dict[str, str]]): a mapping to change the expected &quot;prompt&quot;,</span>
 <span class="sd">            &quot;chosen&quot;, and &quot;rejected&quot; column names to the actual column names in the dataset.</span>
+<span class="sd">            Keys should be &quot;prompt&quot;, &quot;chosen&quot;, and &quot;rejected&quot; and values should be the actual column names.</span>
 <span class="sd">            Default is None, keeping the default column names.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -504,8 +505,10 @@
 <span class="sd">            in the filepath in ``data_files``. See `Hugging Face&#39;s</span>
 <span class="sd">            &lt;https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path&gt;`_</span>
 <span class="sd">            ``load_dataset`` for more details. Default is ``lvwerra/stack-exchange-paired``.</span>
-<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the prompt template</span>
-<span class="sd">            to the new column names in the dataset. If None, assume these are identical.</span>
+<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping to change the expected &quot;prompt&quot;,</span>
+<span class="sd">            &quot;chosen&quot;, and &quot;rejected&quot; column names to the actual column names in the dataset.</span>
+<span class="sd">            Keys should be &quot;prompt&quot;, &quot;chosen&quot;, and &quot;rejected&quot; and values should be the actual column names.</span>
+<span class="sd">            Default is None, keeping the default column names.</span>
 <span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
 <span class="sd">        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset</span>
 <span class="sd">            of a given split, e.g. ``split=&quot;train[:10%]&quot;``. Default is &quot;train&quot;.</span>

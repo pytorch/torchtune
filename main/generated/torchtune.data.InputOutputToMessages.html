@@ -423,14 +423,20 @@
 <dd><p>Message transform class that converts a single sample with “input” and “output” fields,
 (or equivalent fields specified in column_map) to user and assistant messages,
 respectively. This is useful for datasets that have two columns, one containing
-the user prompt and the other containing the model response.</p>
+the user prompt string and the other containing the model response string:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>  <span class="nb">input</span>          <span class="o">|</span>  <span class="n">output</span>          <span class="o">|</span>
+<span class="o">|-----------------|------------------|</span>
+<span class="o">|</span> <span class="s2">&quot;user prompt&quot;</span>   <span class="o">|</span> <span class="s2">&quot;model response&quot;</span> <span class="o">|</span>
+</pre></div>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>train_on_input</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – Whether the model is trained on the user prompt or not.
 Default is False.</p></li>
 <li><p><strong>column_map</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em><em>]</em>) – a mapping to change the expected “input”
-and “output” column names to the actual column names in the dataset. Default is None,
+and “output” column names to the actual column names in the dataset. Keys should
+be “input” and “output” and values should be the actual column names. Default is None,
 keeping the default “input” and “output” column names.</p></li>
 <li><p><strong>new_system_prompt</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – if specified, prepend a system message. This can
 serve as instructions to guide the model response. Default is None.</p></li>

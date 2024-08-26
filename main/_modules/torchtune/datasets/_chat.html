@@ -415,27 +415,34 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">datasets</span> <span class="kn">import</span> <span class="n">load_dataset</span>
 <span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span>
-<span class="kn">from</span> <span class="nn">torchtune.config._utils</span> <span class="kn">import</span> <span class="n">_get_component_from_path</span>
 <span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">ChatFormat</span><span class="p">,</span>
     <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
-    <span class="n">get_openai_messages</span><span class="p">,</span>
-    <span class="n">get_sharegpt_messages</span><span class="p">,</span>
+    <span class="n">JSONToMessages</span><span class="p">,</span>
     <span class="n">Message</span><span class="p">,</span>
+    <span class="n">ShareGPTToMessages</span><span class="p">,</span>
     <span class="n">validate_messages</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span> <span class="nn">torchtune.data._utils</span> <span class="kn">import</span> <span class="n">deprecated</span>
 <span class="kn">from</span> <span class="nn">torchtune.datasets._packed</span> <span class="kn">import</span> <span class="n">PackedDataset</span>
+<span class="kn">from</span> <span class="nn">torchtune.datasets._sft</span> <span class="kn">import</span> <span class="n">SFTDataset</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">ModelTokenizer</span>
 
 
-<div class="viewcode-block" id="ChatDataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.ChatDataset.html#torchtune.datasets.ChatDataset">[docs]</a><span class="k">class</span> <span class="nc">ChatDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<div class="viewcode-block" id="ChatDataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.ChatDataset.html#torchtune.datasets.ChatDataset">[docs]</a><span class="nd">@deprecated</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Please use `torchtune.datasets.SFTDataset` for custom chat data.&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">ChatDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Note:</span>
+<span class="sd">        This class is deprecated and will be removed in a future release. Please use</span>
+<span class="sd">        :class:`~torchtune.datasets.SFTDataset` or :func:`~torchtune.datasets.chat_dataset`</span>
+<span class="sd">        for custom chat data.</span>
+
 <span class="sd">    Class that supports any custom dataset with multiturn conversations.</span>
 
 <span class="sd">    The general flow from loading a sample to tokenized prompt is:</span>
@@ -472,9 +479,6 @@
 <span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
 <span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,</span>
 <span class="sd">            such as ``data_files`` or ``split``.</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">        ValueError: if ``chat_format`` is not an instance of :class:`torchtune.data.ChatFormat`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -488,10 +492,6 @@
         <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">chat_format</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">chat_format</span><span class="p">(),</span> <span class="n">ChatFormat</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;chat_format must be a ChatFormat class, not </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">chat_format</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span> <span class="o">=</span> <span class="n">tokenizer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">load_dataset</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">)</span>
@@ -526,87 +526,159 @@
     <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">conversation_column</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">conversation_style</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">chat_format</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">packed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatDataset</span><span class="p">:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">SFTDataset</span><span class="p">,</span> <span class="n">PackedDataset</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Build a configurable dataset with conversations. This method should be</span>
-<span class="sd">    used to configure a custom chat dataset from the yaml config instead of</span>
-<span class="sd">    using :class:`~torchtune.datasets.ChatDataset` directly, as it is made to be config friendly.</span>
+<span class="sd">    Configure a custom dataset with conversations between user and model assistant.</span>
+
+<span class="sd">    This builder function can be used to configure a custom chat dataset directly from the yaml config</span>
+<span class="sd">    as an alternative to :class:`~torchtune.datasets.SFTDataset`, as it is made to be config friendly.</span>
+
+<span class="sd">    The dataset is expected to contain a single column with the conversations:</span>
+
+<span class="sd">    .. code-block:: text</span>
+
+<span class="sd">        |  conversations                         |</span>
+<span class="sd">        |----------------------------------------|</span>
+<span class="sd">        | [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: Q1},      |</span>
+<span class="sd">        |  {&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: A1}] |</span>
+
+<span class="sd">    This will be converted to:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        messages = [</span>
+<span class="sd">            Message(role=&quot;user&quot;, content=&quot;Q1&quot;),</span>
+<span class="sd">            Message(role=&quot;assistant&quot;, content=&quot;A1&quot;),</span>
+<span class="sd">        ]</span>
+
+<span class="sd">    This list of messages is then tokenized for model training.</span>
+
+<span class="sd">    You may have a different structure for your conversations, such as different role names or</span>
+<span class="sd">    different keys in the json structure. You can use the ``conversation_style`` parameter</span>
+<span class="sd">    to choose from standard formats such as &quot;sharegpt&quot; (see :class:`~torchtune.data.ShareGPTToMessages`)</span>
+<span class="sd">    or &quot;json&quot; (see :class:`~torchtune.data.JSONToMessages`). If your dataset is not in one of these</span>
+<span class="sd">    formats, we recommend creating a custom message transform and using it in a custom dataset</span>
+<span class="sd">    builder function similar to :class:`~torchtune.datasets.chat_dataset`.</span>
+
+<span class="sd">    If your column names are different, use the ``conversation_column`` parameter to point</span>
+<span class="sd">    towards the column with the conversations.</span>
+
+<span class="sd">    Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is</span>
+<span class="sd">    set to ``False`` by default</span>
+<span class="sd">    - If ``train_on_input`` is True, the prompt is used during training and</span>
+<span class="sd">    contributes to the loss.</span>
+<span class="sd">    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.</span>
 <span class="sd">        source (str): path to dataset repository on Hugging Face. For local datasets,</span>
-<span class="sd">            define source as the data file type (e.g. &quot;json&quot;, &quot;csv&quot;, &quot;text&quot;) and pass</span>
-<span class="sd">            in the filepath in ``data_files``. See Hugging Face&#39;s ``load_dataset``</span>
-<span class="sd">            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)</span>
-<span class="sd">            for more details.</span>
+<span class="sd">            define source as the data file type (e.g. &quot;json&quot;, &quot;csv&quot;, &quot;text&quot;), pass</span>
+<span class="sd">            in the filepath in ``data_files``, and set ``split=&quot;train&quot;``. See `Hugging Face&#39;s</span>
+<span class="sd">            &lt;https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path&gt;`_</span>
+<span class="sd">            ``load_dataset`` for more details.</span>
+<span class="sd">        conversation_column (str): name of column containing the conversations.</span>
 <span class="sd">        conversation_style (str): string specifying expected style of conversations in the dataset</span>
-<span class="sd">            for automatic conversion to the :class:`~torchtune.data.Message` structure. Supported styles are: &quot;sharegpt&quot;, &quot;openai&quot;</span>
-<span class="sd">        chat_format (Optional[str]): full import path of :class:`~torchtune.data.ChatFormat` class used to format the messages.</span>
-<span class="sd">            See the description in :class:`~torchtune.datasets.ChatDataset` for more details. For a list of all</span>
-<span class="sd">            possible chat formats, check out :ref:`chat_formats`. Default: None.</span>
-<span class="sd">        max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.</span>
+<span class="sd">            for automatic conversion to the :class:`~torchtune.data.Message` structure.</span>
+<span class="sd">            Supported styles are: &quot;sharegpt&quot;, &quot;json&quot;</span>
 <span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
 <span class="sd">        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.</span>
 <span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,</span>
 <span class="sd">            such as ``data_files`` or ``split``.</span>
 
 <span class="sd">    Examples:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        my_dataset.json</span>
+<span class="sd">        [</span>
+<span class="sd">            {</span>
+<span class="sd">                &quot;conversations&quot;: [</span>
+<span class="sd">                    {</span>
+<span class="sd">                        &quot;from&quot;: &quot;human&quot;,</span>
+<span class="sd">                        &quot;value&quot;: &quot;What time is it in London?&quot;,</span>
+<span class="sd">                    },</span>
+<span class="sd">                    {</span>
+<span class="sd">                        &quot;from&quot;: &quot;gpt&quot;,</span>
+<span class="sd">                        &quot;value&quot;: &quot;It is 10:00 AM in London.&quot;,</span>
+<span class="sd">                    },</span>
+<span class="sd">                ],</span>
+<span class="sd">            },</span>
+<span class="sd">            {</span>
+<span class="sd">                &quot;conversations&quot;: [</span>
+<span class="sd">                    ...</span>
+<span class="sd">                ],</span>
+<span class="sd">            },</span>
+<span class="sd">            ...,</span>
+<span class="sd">        ]</span>
+
+<span class="sd">    ::</span>
+
 <span class="sd">        &gt;&gt;&gt; from torchtune.datasets import chat_dataset</span>
 <span class="sd">        &gt;&gt;&gt; dataset = chat_dataset(</span>
-<span class="sd">        ...   tokenizer=tokenizer,</span>
-<span class="sd">        ...   source=&quot;HuggingFaceH4/no_robots&quot;,</span>
-<span class="sd">        ...   conversation_style=&quot;sharegpt&quot;,</span>
-<span class="sd">        ...   chat_format=&quot;torchtune.data.ChatMLFormat&quot;,</span>
-<span class="sd">        ...   max_seq_len=2096,</span>
-<span class="sd">        ...   train_on_input=True</span>
+<span class="sd">        ...     tokenizer=tokenizer,</span>
+<span class="sd">        ...     source=&quot;json&quot;,</span>
+<span class="sd">        ...     data_files=&quot;my_dataset.json&quot;,</span>
+<span class="sd">        ...     conversation_column=&quot;conversations&quot;,</span>
+<span class="sd">        ...     conversation_style=&quot;sharegpt&quot;,</span>
+<span class="sd">        ...     train_on_input=False,</span>
+<span class="sd">        ...     packed=False,</span>
+<span class="sd">        ...     split=&quot;train&quot;,</span>
 <span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt; tokens = dataset[0][&quot;tokens&quot;]</span>
+<span class="sd">        &gt;&gt;&gt; tokenizer.decode(tokens)</span>
+<span class="sd">        &quot;What time is it in London?It is 10:00 AM in London.&quot;</span>
 
-<span class="sd">    This can also be accomplished via the yaml config::</span>
+<span class="sd">    This can also be accomplished via the yaml config:</span>
+
+<span class="sd">    .. code-block:: yaml</span>
 
 <span class="sd">        dataset:</span>
-<span class="sd">            _component_: torchtune.datasets.chat_dataset</span>
-<span class="sd">            source: HuggingFaceH4/no_robots</span>
-<span class="sd">            conversation_style: sharegpt</span>
-<span class="sd">            chat_format: torchtune.data.ChatMLFormat</span>
-<span class="sd">            max_seq_len: 2096</span>
-<span class="sd">            train_on_input: True</span>
+<span class="sd">          _component_: torchtune.datasets.chat_dataset</span>
+<span class="sd">          source: json</span>
+<span class="sd">          data_files: my_dataset.json</span>
+<span class="sd">          conversation_column: conversations</span>
+<span class="sd">          conversation_style: sharegpt</span>
+<span class="sd">          train_on_input: False</span>
+<span class="sd">          packed: False</span>
+<span class="sd">          split: train</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        ChatDataset or PackedDataset: the configured :class:`~torchtune.datasets.ChatDataset`</span>
+<span class="sd">        Union[SFTDataset, PackedDataset]: the configured :class:`~torchtune.datasets.SFTDataset`</span>
 <span class="sd">            or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: if the conversation format is not supported</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">conversation_style</span> <span class="o">==</span> <span class="s2">&quot;sharegpt&quot;</span><span class="p">:</span>
-        <span class="n">convert_to_messages</span> <span class="o">=</span> <span class="n">get_sharegpt_messages</span>
-    <span class="k">elif</span> <span class="n">conversation_style</span> <span class="o">==</span> <span class="s2">&quot;openai&quot;</span><span class="p">:</span>
-        <span class="n">convert_to_messages</span> <span class="o">=</span> <span class="n">get_openai_messages</span>
+        <span class="n">message_transform</span> <span class="o">=</span> <span class="n">ShareGPTToMessages</span><span class="p">(</span>
+            <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
+            <span class="n">column_map</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;conversations&quot;</span><span class="p">:</span> <span class="n">conversation_column</span><span class="p">},</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">conversation_style</span> <span class="o">==</span> <span class="s2">&quot;json&quot;</span><span class="p">:</span>
+        <span class="n">message_transform</span> <span class="o">=</span> <span class="n">JSONToMessages</span><span class="p">(</span>
+            <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span> <span class="n">column_map</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">conversation_column</span><span class="p">}</span>
+        <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported conversation style: </span><span class="si">{</span><span class="n">conversation_style</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-    <span class="n">ds</span> <span class="o">=</span> <span class="n">ChatDataset</span><span class="p">(</span>
-        <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">SFTDataset</span><span class="p">(</span>
         <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
-        <span class="n">convert_to_messages</span><span class="o">=</span><span class="n">convert_to_messages</span><span class="p">,</span>
-        <span class="n">chat_format</span><span class="o">=</span><span class="n">_get_component_from_path</span><span class="p">(</span><span class="n">chat_format</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">chat_format</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
-        <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
+        <span class="n">message_transform</span><span class="o">=</span><span class="n">message_transform</span><span class="p">,</span>
+        <span class="n">model_transform</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
         <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">return</span> <span class="p">(</span>
-        <span class="n">PackedDataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">padding_idx</span><span class="o">=</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_id</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">packed</span>
-        <span class="k">else</span> <span class="n">ds</span>
-    <span class="p">)</span></div>
+    <span class="k">if</span> <span class="n">packed</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;PackedDataset requires a max_seq_len to be set on the tokenizer.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">PackedDataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ds</span></div>
 </pre></div>
 
              </article>

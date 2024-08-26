@@ -415,24 +415,34 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">datasets</span> <span class="kn">import</span> <span class="n">load_dataset</span>
 <span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span>
-<span class="kn">from</span> <span class="nn">torchtune.config._utils</span> <span class="kn">import</span> <span class="n">_get_component_from_path</span>
 <span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
+    <span class="n">InputOutputToMessages</span><span class="p">,</span>
     <span class="n">InstructTemplate</span><span class="p">,</span>
     <span class="n">Message</span><span class="p">,</span>
     <span class="n">validate_messages</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span> <span class="nn">torchtune.data._utils</span> <span class="kn">import</span> <span class="n">deprecated</span>
 <span class="kn">from</span> <span class="nn">torchtune.datasets._packed</span> <span class="kn">import</span> <span class="n">PackedDataset</span>
+<span class="kn">from</span> <span class="nn">torchtune.datasets._sft</span> <span class="kn">import</span> <span class="n">SFTDataset</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">ModelTokenizer</span>
 
 
-<div class="viewcode-block" id="InstructDataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.InstructDataset.html#torchtune.datasets.InstructDataset">[docs]</a><span class="k">class</span> <span class="nc">InstructDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<div class="viewcode-block" id="InstructDataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.InstructDataset.html#torchtune.datasets.InstructDataset">[docs]</a><span class="nd">@deprecated</span><span class="p">(</span>
+    <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Please use `torchtune.datasets.SFTDataset` or :func:`~torchtune.datasets.instruct_dataset` for custom instruct data.&quot;</span>
+<span class="p">)</span>
+<span class="k">class</span> <span class="nc">InstructDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Note:</span>
+<span class="sd">        This class is deprecated and will be removed in a future release. Please use</span>
+<span class="sd">        :class:`~torchtune.datasets.SFTDataset` or :func:`~torchtune.datasets.instruct_dataset`</span>
+<span class="sd">        for custom instruct data.</span>
+
 <span class="sd">    Class that supports any custom dataset with instruction-based prompts and a</span>
 <span class="sd">    configurable template.</span>
 
@@ -535,76 +545,129 @@
     <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">template</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">packed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InstructDataset</span><span class="p">:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">SFTDataset</span><span class="p">,</span> <span class="n">PackedDataset</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Build a configurable dataset with instruction prompts. This method should be</span>
-<span class="sd">    used to configure a custom instruct dataset from the yaml config instead of</span>
-<span class="sd">    using :class:`~torchtune.datasets.InstructDataset` directly, as it is made to be config friendly.</span>
+<span class="sd">    Configure a custom dataset with user instruction prompts and model responses.</span>
+
+<span class="sd">    This builder function can be used to configure a custom instruct dataset directly from the yaml config</span>
+<span class="sd">    as an alternative to :class:`~torchtune.datasets.SFTDataset`, as it is made to be config friendly.</span>
+
+<span class="sd">    The dataset should follow this format:</span>
+
+<span class="sd">    .. code-block:: text</span>
+
+<span class="sd">        |  input          |  output          |</span>
+<span class="sd">        |-----------------|------------------|</span>
+<span class="sd">        | &quot;user prompt&quot;   | &quot;model response&quot; |</span>
+
+<span class="sd">    If your column names are different, you can use the ``column_map`` parameter to change</span>
+<span class="sd">    the expected column names. For example, if your dataset has columns ``&quot;question&quot;`` and</span>
+<span class="sd">    ``&quot;answer&quot;`` you can use::</span>
+
+<span class="sd">        column_map = {&quot;input&quot;: &quot;question&quot;, &quot;output&quot;: &quot;answer&quot;}</span>
+
+<span class="sd">    Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is</span>
+<span class="sd">    set to ``False`` by default</span>
+<span class="sd">    - If ``train_on_input`` is True, the prompt is used during training and</span>
+<span class="sd">    contributes to the loss.</span>
+<span class="sd">    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.</span>
 <span class="sd">        source (str): path to dataset repository on Hugging Face. For local datasets,</span>
-<span class="sd">            define source as the data file type (e.g. &quot;json&quot;, &quot;csv&quot;, &quot;text&quot;) and pass</span>
-<span class="sd">            in the filepath in ``data_files``. See Hugging Face&#39;s ``load_dataset``</span>
-<span class="sd">            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)</span>
-<span class="sd">            for more details.</span>
-<span class="sd">        template (str): full import path of class used to format the prompt. If the placeholder variable</span>
-<span class="sd">            names in the template do not match the column/key names in the dataset, use ``column_map`` to map them.</span>
-<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names in the template</span>
-<span class="sd">            to the column/key names in the sample. If None, assume these are identical.</span>
-<span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
-<span class="sd">        max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.</span>
-<span class="sd">            Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory</span>
-<span class="sd">            and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.</span>
-<span class="sd">        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.</span>
+<span class="sd">            define source as the data file type (e.g. &quot;json&quot;, &quot;csv&quot;, &quot;text&quot;), pass</span>
+<span class="sd">            in the filepath in ``data_files``, and set ``split=&quot;train&quot;``. See `Hugging Face&#39;s</span>
+<span class="sd">            &lt;https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path&gt;`_</span>
+<span class="sd">            ``load_dataset`` for more details.</span>
+<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping to change the expected &quot;input&quot;</span>
+<span class="sd">            and &quot;output&quot; column names to the actual column names in the dataset. Keys should be &quot;input&quot; and</span>
+<span class="sd">            &quot;output&quot; and values should be the actual column names. Default is None, keeping the default &quot;input&quot;</span>
+<span class="sd">            and &quot;output&quot; column names.</span>
+<span class="sd">        train_on_input (bool): Whether the model is trained on the user prompt or not.</span>
+<span class="sd">            Default is False.</span>
+<span class="sd">        packed (bool): Whether or not to pack the dataset to tokenizer&#39;s ``max_seq_len`` prior to training. Default is False.</span>
 <span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,</span>
 <span class="sd">            such as ``data_files`` or ``split``.</span>
 
 <span class="sd">    Examples:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        my_dataset.json</span>
+<span class="sd">        [</span>
+<span class="sd">            {</span>
+<span class="sd">                &quot;question&quot;: &quot;What time is it in London?&quot;,</span>
+<span class="sd">                &quot;answer&quot;: &quot;It is 10:00 AM in London.&quot;,</span>
+<span class="sd">            },</span>
+<span class="sd">            {</span>
+<span class="sd">                ...</span>
+<span class="sd">            },</span>
+<span class="sd">            ...,</span>
+<span class="sd">        ]</span>
+
+<span class="sd">    ::</span>
+
 <span class="sd">        &gt;&gt;&gt; from torchtune.datasets import instruct_dataset</span>
 <span class="sd">        &gt;&gt;&gt; dataset = instruct_dataset(</span>
-<span class="sd">        ...   tokenizer=tokenizer,</span>
-<span class="sd">        ...   source=&quot;yahma/alpaca_cleaned&quot;,</span>
-<span class="sd">        ...   template=&quot;torchtune.data.AlpacaInstructTemplate&quot;,</span>
-<span class="sd">        ...   max_seq_len=2096,</span>
-<span class="sd">        ...   train_on_input=True,</span>
-<span class="sd">        ...   packed=True,</span>
+<span class="sd">        ...     tokenizer=tokenizer,</span>
+<span class="sd">        ...     source=&quot;json&quot;,</span>
+<span class="sd">        ...     data_files=&quot;my_dataset.json&quot;,</span>
+<span class="sd">        ...     column_map={</span>
+<span class="sd">        ...         &quot;input&quot;: &quot;question&quot;,</span>
+<span class="sd">        ...         &quot;output&quot;: &quot;answer&quot;,</span>
+<span class="sd">        ...     },</span>
+<span class="sd">        ...     train_on_input=False,</span>
+<span class="sd">        ...     packed=False,</span>
+<span class="sd">        ...     split=&quot;train&quot;,</span>
 <span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt; tokens = dataset[0][&quot;tokens&quot;]</span>
+<span class="sd">        &gt;&gt;&gt; tokenizer.decode(tokens)</span>
+<span class="sd">        &quot;What time is it in London?It is 10:00 AM in London.&quot;</span>
 
-<span class="sd">    This can also be accomplished via the yaml config::</span>
+<span class="sd">    This can also be accomplished via the yaml config:</span>
+
+<span class="sd">    .. code-block:: yaml</span>
 
 <span class="sd">        dataset:</span>
-<span class="sd">            _component_: torchtune.datasets.instruct_dataset</span>
-<span class="sd">            source: yahma/alpaca_cleaned</span>
-<span class="sd">            template: torchtune.data.AlpacaInstructTemplate</span>
-<span class="sd">            max_seq_len: 2096</span>
-<span class="sd">            train_on_input: True</span>
-<span class="sd">            packed: True</span>
+<span class="sd">          _component_: torchtune.datasets.instruct_dataset</span>
+<span class="sd">          source: json</span>
+<span class="sd">          data_files: my_dataset.json</span>
+<span class="sd">          column_map:</span>
+<span class="sd">            input: question</span>
+<span class="sd">            output: answer</span>
+<span class="sd">          train_on_input: False</span>
+<span class="sd">          packed: False</span>
+<span class="sd">          split: train</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        InstructDataset or PackedDataset: the configured :class:`~torchtune.datasets.InstructDataset`</span>
+<span class="sd">        Union[SFTDataset, PackedDataset]: the configured :class:`~torchtune.datasets.SFTDataset`</span>
 <span class="sd">            or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If ``packed=True`` and ``tokenizer.max_seq_len`` is not set.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">ds</span> <span class="o">=</span> <span class="n">InstructDataset</span><span class="p">(</span>
-        <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+
+    <span class="n">message_transform</span> <span class="o">=</span> <span class="n">InputOutputToMessages</span><span class="p">(</span>
+        <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span> <span class="n">column_map</span><span class="o">=</span><span class="n">column_map</span>
+    <span class="p">)</span>
+
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">SFTDataset</span><span class="p">(</span>
         <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
-        <span class="n">template</span><span class="o">=</span><span class="n">_get_component_from_path</span><span class="p">(</span><span class="n">template</span><span class="p">),</span>
-        <span class="n">column_map</span><span class="o">=</span><span class="n">column_map</span><span class="p">,</span>
-        <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
-        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+        <span class="n">message_transform</span><span class="o">=</span><span class="n">message_transform</span><span class="p">,</span>
+        <span class="n">model_transform</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
         <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">return</span> <span class="p">(</span>
-        <span class="n">PackedDataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">padding_idx</span><span class="o">=</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_id</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">packed</span>
-        <span class="k">else</span> <span class="n">ds</span>
-    <span class="p">)</span></div>
+    <span class="k">if</span> <span class="n">packed</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;PackedDataset requires a max_seq_len to be set on the tokenizer.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">PackedDataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ds</span></div>
 </pre></div>
 
              </article>

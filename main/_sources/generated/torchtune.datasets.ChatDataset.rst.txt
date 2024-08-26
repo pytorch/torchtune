@@ -1,10 +1,6 @@
-﻿.. role:: hidden
-    :class: hidden-section
+﻿torchtune.datasets.ChatDataset
+==============================
+
 .. currentmodule:: torchtune.datasets
 
-
-ChatDataset
-===========
-
-.. autoclass:: ChatDataset
-    :members:
+.. autodata:: ChatDataset
