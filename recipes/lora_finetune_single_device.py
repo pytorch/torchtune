@@ -29,6 +29,9 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils import DummyProfiler, PROFILER_KEY
+from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+    CheckpointWrapper,
+)
 
 from tqdm import tqdm
 
@@ -388,11 +391,18 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         log.info(f"Model is initialized with precision {self._dtype}.")
         # Compile model, if enabled.
+        print(f"model: {model}")
         if compile_model:
             log.info("Compiling model with torch.compile...")
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
             if self._per_layer_compile:
-                
+                for m in reversed(list(model.modules())):
+                    if enable_activation_checkpointing:
+                        if isinstance(m, CheckpointWrapper):
+                            m.compile(backend=backend)
+                    else:
+                        if isinstance(m, modules.transformer.TransformerSelfAttentionLayer):
+                            m.compile(backend=backend)
             else:
                 self._loss_step_original = self._loss_step
                 self._loss_step = torch.compile(self._loss_step, backend=backend)
