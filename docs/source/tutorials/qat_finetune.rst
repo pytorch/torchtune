@@ -23,6 +23,8 @@ resulting model, and evaluate your quantized model using torchtune.
       * Make sure to :ref:`install torchtune<install_label>`
       * Make sure you have downloaded the :ref:`Llama3-8B model weights<download_llama_label>`
 
+.. _what_is_qat_label:
+
 What is QAT?
 ------------
 
@@ -49,14 +51,15 @@ process is “aware” that the model will ultimately be quantized after trainin
 
 QAT typically involves applying a transformation to your model before and after training.
 For example, in the `torchao QAT implementation <https://github.com/pytorch/ao/blob/v0.2.0/torchao/quantization/prototype/qat.py>`_,
-these are represented as the prepare and convert steps: (1) prepare inserts fake quantize
-operations into linear layers, and (2) convert transforms the fake quantize operations
+these are represented as the ``prepare()`` and ``convert()`` steps: (1) ``prepare()`` inserts fake quantize
+operations into linear layers, and (2) ``convert()`` transforms the fake quantize operations
 to actual quantize and dequantize operations after training, thereby producing a quantized
 model (dequantize operations are typically fused with linear after lowering).
 Between these two steps, training can proceed exactly as before.
 
 .. image:: /_static/img/qat_diagram.png
 
+.. _apply_qat_label:
 
 Applying QAT to Llama3 models
 -----------------------------
@@ -133,7 +136,7 @@ used for inference or generation.
 QAT finetuning recipe in torchtune
 ----------------------------------
 
-Putting it all together, we can now fine-tune a model using torchtune’s `QAT recipe <https://github.com/pytorch/torchtune/blob/main/recipes/qat_distributed.py>`_.
+Putting it all together, we can now fine-tune a model using torchtune’s `QAT recipe <qat_distributed_recipe_label>`.
 Make sure that you have first downloaded the Llama3 weights and tokenizer by
 following :ref:`these instructions<download_llama_label>`. In this tutorial,
 we use the following settings to demonstrate QAT’s effectiveness in recovering
@@ -244,6 +247,8 @@ quantizes the float model to a model with quantized weights:
 
   Make sure to use the same QAT quantizer you used to fine-tune your model,
   otherwise the numerics will be off and the quantized model will perform poorly.
+
+.. _qat_eval_label:
 
 Evaluating the quantized model
 ------------------------------
