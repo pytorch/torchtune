@@ -8,31 +8,24 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
 
 import torch
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
-from torch.distributed import init_process_group
-from torch.distributed.fsdp import (
-    CPUOffload,
-    FullOptimStateDictConfig,
-    FullStateDictConfig,
-    FullyShardedDataParallel as FSDP,
-    StateDictType,
-)
+from torch.distributed import destroy_process_group, init_process_group
+
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-
 from torchtune import config, modules, utils
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.utils import DummyProfiler, PROFILER_KEY
 from torchtune.utils.activations import apply_selective_activation_checkpointing
 
 from tqdm import tqdm
-
 
 log = utils.get_logger("DEBUG")
 
@@ -54,8 +47,11 @@ class QATRecipeDistributed(FTRecipeInterface):
             weight and activation values to stabilize before fake quantizing them, potentially leading
             to improved quantized accuracy. This can be specified through ``fake_quant_after_n_steps``.
 
-        - FSDP. Supported using PyTorch's FSDP APIs. DDP is currently not supported. Training on CPU
-            is not supported.
+        - FSDP. Supported using PyTorch's FSDP APIs. CPU offload of parameters, gradients, and optimizer states
+            is supported via the ``fsdp_cpu_offload``. Resharding of parameters after the forward pass is
+            done by default (corresponding to FULL_SHARD sharding strategy), but can be disabled by setting the config
+            ``fsdp_reshard_after_forward`` to False (this corresponds to SHARD_GRAD_OP sharding strategy).
+            DDP is currently not supported. Training on CPU is not supported.
 
         - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
             flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
@@ -103,10 +99,10 @@ class QATRecipeDistributed(FTRecipeInterface):
 
     Raises:
         ValueError: If ``dtype`` is set to fp16.
+        RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-
         self._device = utils.get_device(device=cfg.device)
         self._dtype = utils.get_dtype(cfg.dtype, device=self._device)
 
@@ -117,7 +113,7 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         if (
             cfg.get("fsdp_cpu_offload", False)
-            and cfg.get("fused", False)
+            and cfg.optimizer.get("fused", False)
             and not utils.torch_version_ge("2.4.0")
         ):
             raise RuntimeError(
@@ -137,6 +133,9 @@ class QATRecipeDistributed(FTRecipeInterface):
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        self._fsdp_sharding_strategy = torch.distributed.fsdp.ShardingStrategy[
+            cfg.get("fsdp_sharding_strategy", "FULL_SHARD")
+        ]
         self._fake_quant_after_n_steps = cfg.get("fake_quant_after_n_steps", None)
         self._quantizer_mode = None
 
@@ -205,8 +204,8 @@ class QATRecipeDistributed(FTRecipeInterface):
 
     def setup(self, cfg: DictConfig) -> None:
         """
-        Sets up the recipe state correctly. This includes setting recipe attributes based
-        on the ``resume_from_checkpoint`` flag.
+        Setup the recipe. This includes training state (if resume_from_checkpoint is True),
+        model, tokenizer, loss, optimizer, sampler, and dataloader.
         """
         if self._is_rank_zero:
             self._metric_logger = config.instantiate(cfg.metric_logger)
@@ -214,29 +213,24 @@ class QATRecipeDistributed(FTRecipeInterface):
             # log config with parameter override
             self._metric_logger.log_config(cfg)
 
-        ckpt_dict = self.load_checkpoint(cfg.checkpointer)
+        checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
-        # ``_setup_model`` handles initialization and loading the state dict. This method
-        # should be called before ``_setup_optimizer`` since transforming the optimizer
-        # state dict requires the model
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
-            memory_efficient_fsdp_wrap=cfg.get("memory_efficient_fsdp_wrap", False),
+            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
-            model_state_dict=ckpt_dict[utils.MODEL_KEY],
+            reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
+            model_state_dict=checkpoint_dict[utils.MODEL_KEY],
             ac_mode=cfg.get("ac_mode", None),
             ac_option=cfg.get("ac_option", None),
             quantizer_cfg=cfg.get("quantizer", None),
         )
-
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
-        # _setup_optimizer should take in ckpt_dict only if training is resumed from
-        # checkpoint. Transforming the opt state dict is handled by this method
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=ckpt_dict[utils.OPT_KEY]
+            opt_state_dict=checkpoint_dict[utils.OPT_KEY]
             if self._resume_from_checkpoint
             else None,
         )
@@ -268,12 +262,84 @@ class QATRecipeDistributed(FTRecipeInterface):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
 
+        # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
+        # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
+        self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
+
+    def _setup_profiler(
+        self, cfg_profiler: Optional[DictConfig] = None
+    ) -> Union[torch.profiler.profile, DummyProfiler]:
+        """
+        Parses the `profiler` section of top-level `cfg` and sets up profiler
+
+        Args:
+            cfg_profiler (Optional[DictConfig]): ``profiler`` section of the top-level ``cfg`` (the main config passed to
+                `recipe.main`). Default None.
+
+        Returns:
+            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
+            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
+            that the instrumented training loop does not need to be changed profiling is disabled.
+
+        The profiler config can be provided in configs under the `profiler` key with the following layout:
+
+        .. code-block:: yaml
+            profiler:
+                enabled: bool
+
+                #Output directory of trace artifacts
+                output_dir: str
+
+            #`torch.profiler.ProfilerActivity` types to trace
+            cpu: bool
+            cuda: bool
+
+                #Trace options
+                profile_memory: bool
+                with_stack: bool
+                record_shapes: bool
+                with_flops: bool
+
+            # `torch.profiler.schedule` options:
+            # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+            wait_steps: int
+            warmup_steps: int
+            active_steps: int
+            num_cycles: int
+        """
+        # Missing profiler section in config, assume disabled
+        if cfg_profiler is None:
+            cfg_profiler = DictConfig({"enabled": False})
+
+        # Check that component is included and set correctly
+        if cfg_profiler.get("_component_", None) is None:
+            cfg_profiler["_component_"] = "torchtune.utils.setup_torch_profiler"
+        else:
+            assert (
+                cfg_profiler.get("_component_")
+                == "torchtune.utils.setup_torch_profiler"
+            ), "Only torch profiler supported currently: component must be `torchtune.utils.setup_torch_profiler`"
+
+        profiler, profiler_cfg = config.instantiate(cfg_profiler)
+
+        if self._is_rank_zero:
+            log.info(f" Profiler config after instantiation: {profiler_cfg}")
+
+            self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
+            if profiler_cfg["enabled"]:
+                self.profiler_wait_steps = profiler_cfg["wait_steps"]
+                self.profiler_warmup_steps = profiler_cfg["warmup_steps"]
+                self.profiler_active_steps = profiler_cfg["active_steps"]
+
+        return profiler
+
     def _setup_model(
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
-        memory_efficient_fsdp_wrap: bool,
+        custom_sharded_layers: Optional[List[str]],
         fsdp_cpu_offload: bool,
+        reshard_after_forward: bool,
         model_state_dict: Dict[str, Any],
         ac_mode: Optional[str] = None,
         ac_option: Optional[int] = None,
@@ -281,37 +347,20 @@ class QATRecipeDistributed(FTRecipeInterface):
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
-            a. To minimize GPU peak memory, we load the model on CPU with the right
-               dtype. To ensure that we don't instantiate ``world_size`` number of models,
-               we initialize on meta_device for all ranks other than rank 0.
-            b. Rank 0 is also responsible for calling ``load_state_dict`` and loading the
-               model weights from checkpoint.
-            c. While wrapping the model with FSDP, we set ``sync_module_states``
-               to TRUE and broadcast module params and buffers from rank 0.
-            d. The ``device_id`` param ensures that the FSDP initialization happens on
-               the correct device.
+           a. To minimize GPU peak memory, we initialize the model on meta device with
+              the right dtype
+           b. All ranks calls ``load_state_dict`` without peaking CPU RAMs since
+              full state dicts are loaded with ``torch.load(mmap=True)``
         """
+
         if self._is_rank_zero:
-            log.info("FSDP is enabled. Instantiating Model on CPU for Rank 0 ...")
+            log.info(
+                "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ..."
+            )
             init_start = time.perf_counter()
 
-            with utils.set_default_dtype(self._dtype):
-                model = config.instantiate(cfg_model)
-
-            log.info(
-                f"Model instantiation took {time.perf_counter() - init_start:.2f} secs"
-            )
-
-            # Load both the model weights. This should happen only on Rank 0
-            model.load_state_dict(model_state_dict)
-
-        else:
-            # For non-zero ranks, load the model on meta device
-            with utils.set_default_dtype(self._dtype), torch.device("meta"):
-                model = config.instantiate(cfg_model)
-
-        if self._dtype == torch.bfloat16:
-            model = model.to(torch.bfloat16)
+        with utils.set_default_dtype(self._dtype), torch.device("meta"):
+            model = config.instantiate(cfg_model)
 
         # We currently have two versions of activation checkpointing in this recipe
         # for testing and BC purposes. ``enable_activation_checkpointing`` controls
@@ -319,14 +368,17 @@ class QATRecipeDistributed(FTRecipeInterface):
         # ac_mode and ac_option together control selective AC. This is only enabled
         # when these are set AND ``enable_activation_checkpointing`` is set to False
         # We'll clean this up as soon as testing of AC is complete
-        ac_mode = ac_mode
-        ac_option = ac_option
-
         if (not enable_activation_checkpointing) and (ac_mode is not None):
             apply_selective_activation_checkpointing(
                 model,
                 ac_mode,
                 ac_option,
+            )
+
+        # original activation checkpointing (full) - flip the condition above
+        if enable_activation_checkpointing and ac_mode is None:
+            utils.set_activation_checkpointing(
+                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
         # Apply quantization-aware training during finetuning
@@ -342,41 +394,55 @@ class QATRecipeDistributed(FTRecipeInterface):
         self._quantizer_mode = quantizer_mode
         model = quantizer.prepare(model)
 
-        # Wrap the model with FSDP. This will ensure that the model is sharded
-        # across all available GPUs.
-        model = FSDP(
-            module=model,
-            auto_wrap_policy=utils.get_full_finetune_fsdp_wrap_policy(
-                memory_efficient_fsdp_wrap=memory_efficient_fsdp_wrap,
-                modules_to_wrap={modules.TransformerSelfAttentionLayer},
-            ),
-            cpu_offload=CPUOffload(offload_params=fsdp_cpu_offload),
-            sharding_strategy=torch.distributed.fsdp.ShardingStrategy.FULL_SHARD,
-            device_id=self._device,
-            # this recipe does not currently support mixed precision training
-            mixed_precision=None,
-            # Ensure we broadcast params and buffers from rank 0
-            sync_module_states=True,
-            # Initialize empty modules on all non-zero ranks
-            param_init_fn=(
-                lambda module: module.to_empty(
-                    device=torch.device("cuda"), recurse=False
-                )
-                if not self._is_rank_zero
-                else None
-            ),
+        # For FSDP sharding, we can condition on either the module or its name
+        # Shard conditions should be callables taking name (relative to model root)
+        # and the module itself and returning a bool on whether to shard the given module
+        fsdp_shard_conditions = []
+
+        # Shard transformer decoder layers (or AC-wrapped versions)
+        # Alternatively we could condition on the module type (TransformerDecoder or CheckpointWrapper)
+        # But directly using the name is more concise
+        def _is_layer_fqn(s: str) -> bool:
+            """
+            Return True for layers.i and False for all other module names
+            Covers sharding for both AC-wrapped and non-AC-wrapped modules in one shot
+            """
+            s_list = s.split(".")
+            return len(s_list) == 2 and s_list[0] == "layers" and str.isdigit(s_list[1])
+
+        fsdp_shard_conditions = [lambda n, m: _is_layer_fqn(n)]
+
+        # If wrapping any layers separately, we can add another shard condition
+        # A layer will be sharded if any of the fsdp_shard_conditions are met
+        if custom_sharded_layers:
+            fsdp_shard_conditions += [lambda n, m: n in custom_sharded_layers]
+
+        utils.shard_model(
+            model=model,
+            shard_conditions=fsdp_shard_conditions,
+            cpu_offload=fsdp_cpu_offload,
+            reshard_after_forward=reshard_after_forward,
+        )
+
+        with utils.set_default_dtype(self._dtype), self._device:
+            for m in model.modules():
+                # RoPE is not covered in state dict
+                if hasattr(m, "rope_init"):
+                    m.rope_init()
+
+        # This method will convert the full model state dict into a sharded state
+        # dict and load into the model
+        utils.load_from_full_model_state_dict(
+            model, model_state_dict, self._device, self._is_rank_zero, strict=True
         )
 
         # Ensure no params and buffers are on meta device
         utils.validate_no_params_on_meta_device(model)
 
-        # original activation checkpointing (full) - flip the condition above
-        if enable_activation_checkpointing and ac_mode is None:
-            utils.set_activation_checkpointing(
-                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
-            )
-
         if self._is_rank_zero:
+            log.info(
+                f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
+            )
             memory_stats = utils.get_memory_stats(device=self._device)
             utils.log_memory_stats(memory_stats)
 
@@ -388,17 +454,13 @@ class QATRecipeDistributed(FTRecipeInterface):
     def _setup_optimizer(
         self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
     ) -> Optimizer:
-        """
-        Set up the optimizer. This method also handles transforing the state dict
-        for FSDP.
-        """
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
-
         if opt_state_dict:
-            opt_state_dict = FSDP.optim_state_dict_to_load(
-                self._model, optimizer, opt_state_dict
+            utils.load_from_full_optimizer_state_dict(
+                optimizer,
+                opt_state_dict,
+                self._device,
             )
-            optimizer.load_state_dict(opt_state_dict)
 
         if self._is_rank_zero:
             log.info("Optimizer is initialized.")
@@ -419,21 +481,17 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
-                config.instantiate(single_cfg_dataset, self._tokenizer)
+                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer)
                 for single_cfg_dataset in cfg_dataset
             ]
             ds = ConcatDataset(datasets=datasets)
             packed = False
         else:
-            ds = config.instantiate(cfg_dataset, self._tokenizer)
+            ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
             packed = cfg_dataset.get("packed", False)
 
         sampler = DistributedSampler(
-            ds,
-            num_replicas=world_size,
-            rank=rank,
-            shuffle=shuffle,
-            seed=0,
+            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
         )
         dataloader = DataLoader(
             dataset=ds,
@@ -453,23 +511,38 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         return sampler, dataloader
 
-    def save_checkpoint(self, epoch: int) -> None:
+    def save_checkpoint(
+        self,
+        epoch: int,
+    ) -> None:
         """
-        Save state dict to file. The recipe save_checkpoint method is responsible for
-        correctly creating the checkpoint dict and passing to the checkpointer.
+        Checkpoint the state of the recipe. The constructed checkpoint state dict
+        contains the following information:
+        - Model weights with key utils.MODEL_KEY
+        - Relevant recipe state if training is not complete
+
+        Checkpointer will save the model weights and recipe state in
+        different checkpoint files. To correctly resume training from an intermediate checkpoint,
+        the model weights and recipe state must be provided.
         """
+        # final dict passed onto the checkpointer
         checkpoint_dict = {}
 
+        intermediate_checkpoint = epoch + 1 < self.total_epochs
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
-        with FSDP.state_dict_type(
+        cpu_state_dict = utils.get_full_model_state_dict(
             self._model,
-            StateDictType.FULL_STATE_DICT,
-            FullStateDictConfig(offload_to_cpu=True, rank0_only=True),
-            FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=True),
-        ):
-            cpu_state_dict = self._model.state_dict()
-            opt_state_dict = FSDP.optim_state_dict(self._model, self._optimizer)
+            self._is_rank_zero,
+        )
+
+        if intermediate_checkpoint:
+            opt_state_dict = utils.get_full_optimizer_state_dict(
+                self._optimizer,
+                self._is_rank_zero,
+            )
+        else:
+            opt_state_dict = None
 
         # Now that we have the model and opt state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file
@@ -477,8 +550,9 @@ class QATRecipeDistributed(FTRecipeInterface):
 
             checkpoint_dict.update({utils.MODEL_KEY: cpu_state_dict})
 
-            # if training is in-progress, checkpoint the optimizer state as well
-            if epoch + 1 < self.total_epochs:
+            # if training is in-progress, checkpoint the optimizer state and recipe state
+            # as well.
+            if intermediate_checkpoint:
                 checkpoint_dict.update(
                     {
                         utils.OPT_KEY: opt_state_dict,
@@ -492,13 +566,12 @@ class QATRecipeDistributed(FTRecipeInterface):
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
                 epoch=epoch,
-                intermediate_checkpoint=(epoch + 1 < self.total_epochs),
+                intermediate_checkpoint=intermediate_checkpoint,
             )
 
     def train(self) -> None:
         """
-        The core training loop. Supports training on subsets of the dataset using the
-        ``max_steps_per_epoch``.
+        The core training loop.
         """
         # clean up before training begins
         utils.cleanup_before_training()
@@ -513,6 +586,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         running_loss = 0
         num_tokens = 0
 
+        self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
 
@@ -528,6 +602,15 @@ class QATRecipeDistributed(FTRecipeInterface):
                     == self.max_steps_per_epoch
                 ):
                     break
+
+                # Start tracking CUDA memory for active steps for just the first epoch
+                if (
+                    self._is_rank_zero
+                    and curr_epoch == 0
+                    and self.profiler_profile_memory
+                    and idx == self.profiler_wait_steps + self.profiler_warmup_steps
+                ):
+                    torch.cuda.memory._record_memory_history()
 
                 # Both are shape [b, s]
                 tokens, labels = batch["tokens"], batch["labels"]
@@ -616,13 +699,32 @@ class QATRecipeDistributed(FTRecipeInterface):
                     num_tokens = 0
                     t0 = time.perf_counter()
 
+                    # Stop tracking CUDA memory now that active steps are complete
+                    if (
+                        self._is_rank_zero
+                        and curr_epoch == 0
+                        and self.profiler_profile_memory
+                        and idx
+                        == self.profiler_wait_steps
+                        + self.profiler_warmup_steps
+                        + self.profiler_active_steps
+                    ):
+                        torch.cuda.memory._record_memory_history(enabled=None)
+
+                    # Step profiler
+                    # Note that this is called within gradient accumulation block, hence
+                    # will include multiple forward / backward passes if gradient accumulation > 1
+                    self._profiler.step()
+
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
+
+        self._profiler.stop()
 
     def cleanup(self) -> None:
         if self._is_rank_zero:
             self._metric_logger.close()
-        torch.distributed.destroy_process_group()
+        destroy_process_group()
 
 
 @config.parse
@@ -639,7 +741,6 @@ def recipe_main(cfg: DictConfig) -> None:
             "Distributed QAT recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
-
     init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
     if cfg.get("fsdp_cpu_offload", False):
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
