@@ -205,6 +205,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._metric_logger.log_config(cfg)
 
         self._model_compile = cfg.compile
+        self._per_layer_compile = cfg.per_layer_compile
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
         self._model = self._setup_model(
@@ -390,8 +391,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         if compile_model:
             log.info("Compiling model with torch.compile...")
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-            self._loss_step_original = self._loss_step
-            self._loss_step = torch.compile(self._loss_step, backend=backend)
+            if self._per_layer_compile:
+                
+            else:
+                self._loss_step_original = self._loss_step
+                self._loss_step = torch.compile(self._loss_step, backend=backend)
 
         if self._device.type == "cuda":
             memory_stats = utils.get_memory_stats(device=self._device)
