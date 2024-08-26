@@ -64,7 +64,7 @@ def trace_handler(
     The following artifacts are exported:
     - chrome / tensorboard trace - viewable through tensorboard or perfetto.dev / chrome::/tracing
     - trace event table
-    - memory timeline if ``profile_memory``
+    - memory timeline and snapshot.pickle if ``profile_memory``
     - stacks if ``with_stack`` (note that ``profile_memory`` requires ``with_stack`` to be ``True``),
     viewable as a flamegraph see (https://pytorch.org/docs/stable/profiler.html#torch.profiler._KinetoProfile.export_stacks).
 
@@ -114,6 +114,10 @@ def trace_handler(
                 )
             except Exception as e:
                 log.warn(f" Failed to export memory timeline: {e}")
+
+            torch.cuda.memory._dump_snapshot(
+                f"{curr_trace_dir}/rank{rank}_memory_snapshot.pickle"
+            )
 
     # Dump stack traces
     if prof.with_stack:
