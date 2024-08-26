@@ -359,6 +359,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
 
+        if compile_model and self._per_layer_compile:
+            log.info("Compiling model with torch.compile...")
+            torch._dynamo.config.inline_inbuilt_nn_modules = True
+            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+            for m in reversed(list(model.modules())):
+                if isinstance(m, modules.transformer.TransformerSelfAttentionLayer):
+                    m.compile(backend=backend)
+
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
@@ -392,20 +400,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         log.info(f"Model is initialized with precision {self._dtype}.")
         # Compile model, if enabled.
         print(f"model: {model}")
-        if compile_model:
+        if compile_model and not self._per_layer_compile:
             log.info("Compiling model with torch.compile...")
+            torch._dynamo.config.inline_inbuilt_nn_modules = True
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-            if self._per_layer_compile:
-                for m in reversed(list(model.modules())):
-                    if enable_activation_checkpointing:
-                        if isinstance(m, CheckpointWrapper):
-                            m.compile(backend=backend)
-                    else:
-                        if isinstance(m, modules.transformer.TransformerSelfAttentionLayer):
-                            m.compile(backend=backend)
-            else:
-                self._loss_step_original = self._loss_step
-                self._loss_step = torch.compile(self._loss_step, backend=backend)
+            self._loss_step_original = self._loss_step
+            self._loss_step = torch.compile(self._loss_step, backend=backend)
 
         if self._device.type == "cuda":
             memory_stats = utils.get_memory_stats(device=self._device)
