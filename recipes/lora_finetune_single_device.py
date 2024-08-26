@@ -29,9 +29,6 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils import DummyProfiler, PROFILER_KEY
-from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
-    CheckpointWrapper,
-)
 
 from tqdm import tqdm
 
