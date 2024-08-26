@@ -236,7 +236,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._loss_fn = config.instantiate(cfg.loss)
         if self._model_compile and self._per_layer_compile:
             log.info("Compiling loss with torch.compile...")
-            torch._dynamo.config.inline_inbuilt_nn_modules = True
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
             self._loss_fn = torch.compile(self._loss_fn, backend=backend)
         log.info("Loss is initialized.")
@@ -366,7 +365,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         if compile_model and self._per_layer_compile:
             log.info("Compiling model with torch.compile...")
-            torch._dynamo.config.inline_inbuilt_nn_modules = True
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
             for m in reversed(list(model.modules())):
                 if isinstance(m, modules.transformer.TransformerSelfAttentionLayer):
@@ -407,7 +405,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         print(f"model: {model}")
         if compile_model and not self._per_layer_compile:
             log.info("Compiling model with torch.compile...")
-            torch._dynamo.config.inline_inbuilt_nn_modules = True
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
             self._loss_step_original = self._loss_step
             self._loss_step = torch.compile(self._loss_step, backend=backend)
