@@ -58,7 +58,10 @@ jobs:
           python -m pip install lm-eval==0.4.*
       - name: Install torchao nightly
         if: ${{ matrix.torch-version == 'nightly' }}
-        run: pip install --pre torchao --index-url https://download.pytorch.org/whl/nightly/cu121
+        # need to manually uninstall stable torchao before install nightly version
+        run: |
+          pip uninstall torchao
+          pip install --pre torchao --index-url https://download.pytorch.org/whl/nightly/cu121
       - name: Run regression tests with coverage
         run: pytest tests -m slow_integration_test --silence-s3-logs --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload Coverage to Codecov
