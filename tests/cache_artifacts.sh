@@ -40,12 +40,12 @@ while [[ $# -gt 0 ]]; do
             done
             shift # Next argument
             ;;
-        # "--run-regression-tests")
-        #     # Add URL for large model
-        #     S3_URLS+=(
-        #         $FULL_MODEL_URL
-        #     )
-        #     shift # Next argument
+        "--run-regression-tests")
+            # Add URL for large model
+            S3_URLS+=(
+                $FULL_MODEL_URL
+            )
+            shift # Next argument
             ;;
         "--silence-s3-logs")
             # Disable S3 progress bar
