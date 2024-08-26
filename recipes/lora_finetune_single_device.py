@@ -234,6 +234,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
+        if self._model_compile and self._per_layer_compile:
+            log.info("Compiling loss with torch.compile...")
+            torch._dynamo.config.inline_inbuilt_nn_modules = True
+            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+            self._loss_fn = torch.compile(self._loss_fn, backend=backend)
         log.info("Loss is initialized.")
 
         # Dataloader depends on the tokenizer and loss_fn and should be
