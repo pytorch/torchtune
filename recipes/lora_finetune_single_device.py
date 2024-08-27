@@ -207,11 +207,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._model_compile = cfg.compile
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
-        # initialize loss
-        self._loss_fn = config.instantiate(cfg.loss)
-        self.num_output_chunks = getattr(self._loss_fn, "num_output_chunks", 0)
-        log.info("Loss is initialized.")
-
         # set up model
         self._model = self._setup_model(
             cfg_model=cfg.model,
@@ -234,6 +229,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 checkpoint_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None
             ),
         )
+
+        # initialize loss
+        self._loss_fn = config.instantiate(cfg.loss)
+        self.num_output_chunks = getattr(self._loss_fn, "num_output_chunks", 0)
+        log.info("Loss is initialized.")
 
         # Dataloader depends on the tokenizer and loss_fn and should be
         # setup after all of these are setup
