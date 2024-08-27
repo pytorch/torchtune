@@ -266,6 +266,11 @@ class QATRecipeDistributed(FTRecipeInterface):
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
 
+        # Used to ignore labels for loss computation
+        self.ignore_labels_cache = torch.full(
+            (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
+        )
+
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
     ) -> Union[torch.profiler.profile, DummyProfiler]:
@@ -649,10 +654,17 @@ class QATRecipeDistributed(FTRecipeInterface):
                 )
 
                 logits = self._model(tokens, mask=mask, input_pos=input_pos)
-                # Shift so that tokens < n predict n
-                logits = logits[..., :-1, :].contiguous()
-                labels = labels[..., 1:].contiguous()
-                logits = logits.transpose(1, 2)
+
+                # Shift labels to compute loss
+                # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
+                # But this way we dont need to slice the logits. We just add an ignore index to labels.
+                labels = torch.hstack(
+                    (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
+                )
+                if not isinstance(logits, list):
+                    labels = labels.reshape(-1)
+                    logits = logits.reshape(-1, logits.size(-1)).float()
+
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
                 # free logits otherwise it peaks backward memory

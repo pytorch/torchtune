@@ -605,6 +605,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 )
 
                 logits = self._model(tokens, mask=mask, input_pos=input_pos)
+
                 # Shift labels to compute loss
                 # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
                 # But this way we dont need to slice the logits. We just add an ignore index to labels.
