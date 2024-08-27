@@ -4,24 +4,34 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, List, Mapping, Optional
+from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
 import numpy as np
 from datasets import load_dataset
 from torch.utils.data import Dataset
-from torchtune.config._utils import _get_component_from_path
 from torchtune.data import (
     CROSS_ENTROPY_IGNORE_IDX,
+    InputOutputToMessages,
     InstructTemplate,
     Message,
     validate_messages,
 )
+from torchtune.data._utils import deprecated
 from torchtune.datasets._packed import PackedDataset
+from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.tokenizers import ModelTokenizer
 
 
+@deprecated(
+    msg="Please use `torchtune.datasets.SFTDataset` or :func:`~torchtune.datasets.instruct_dataset` for custom instruct data."
+)
 class InstructDataset(Dataset):
     """
+    Note:
+        This class is deprecated and will be removed in a future release. Please use
+        :class:`~torchtune.datasets.SFTDataset` or :func:`~torchtune.datasets.instruct_dataset`
+        for custom instruct data.
+
     Class that supports any custom dataset with instruction-based prompts and a
     configurable template.
 
@@ -124,73 +134,126 @@ def instruct_dataset(
     tokenizer: ModelTokenizer,
     *,
     source: str,
-    template: str,
     column_map: Optional[Dict[str, str]] = None,
     train_on_input: bool = False,
-    max_seq_len: Optional[int] = None,
     packed: bool = False,
     **load_dataset_kwargs: Dict[str, Any],
-) -> InstructDataset:
+) -> Union[SFTDataset, PackedDataset]:
     """
-    Build a configurable dataset with instruction prompts. This method should be
-    used to configure a custom instruct dataset from the yaml config instead of
-    using :class:`~torchtune.datasets.InstructDataset` directly, as it is made to be config friendly.
+    Configure a custom dataset with user instruction prompts and model responses.
+
+    This builder function can be used to configure a custom instruct dataset directly from the yaml config
+    as an alternative to :class:`~torchtune.datasets.SFTDataset`, as it is made to be config friendly.
+
+    The dataset should follow this format:
+
+    .. code-block:: text
+
+        |  input          |  output          |
+        |-----------------|------------------|
+        | "user prompt"   | "model response" |
+
+    If your column names are different, you can use the ``column_map`` parameter to change
+    the expected column names. For example, if your dataset has columns ``"question"`` and
+    ``"answer"`` you can use::
+
+        column_map = {"input": "question", "output": "answer"}
+
+    Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is
+    set to ``False`` by default
+    - If ``train_on_input`` is True, the prompt is used during training and
+    contributes to the loss.
+    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)
 
     Args:
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path to dataset repository on Hugging Face. For local datasets,
-            define source as the data file type (e.g. "json", "csv", "text") and pass
-            in the filepath in ``data_files``. See Hugging Face's ``load_dataset``
-            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
-            for more details.
-        template (str): full import path of class used to format the prompt. If the placeholder variable
-            names in the template do not match the column/key names in the dataset, use ``column_map`` to map them.
-        column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names in the template
-            to the column/key names in the sample. If None, assume these are identical.
-        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
-        max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
-            Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
-            and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
-        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
+            define source as the data file type (e.g. "json", "csv", "text"), pass
+            in the filepath in ``data_files``, and set ``split="train"``. See `Hugging Face's
+            <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
+            ``load_dataset`` for more details.
+        column_map (Optional[Dict[str, str]]): a mapping to change the expected "input"
+            and "output" column names to the actual column names in the dataset. Keys should be "input" and
+            "output" and values should be the actual column names. Default is None, keeping the default "input"
+            and "output" column names.
+        train_on_input (bool): Whether the model is trained on the user prompt or not.
+            Default is False.
+        packed (bool): Whether or not to pack the dataset to tokenizer's ``max_seq_len`` prior to training. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
             such as ``data_files`` or ``split``.
 
     Examples:
+
+    ::
+
+        my_dataset.json
+        [
+            {
+                "question": "What time is it in London?",
+                "answer": "It is 10:00 AM in London.",
+            },
+            {
+                ...
+            },
+            ...,
+        ]
+
+    ::
+
         >>> from torchtune.datasets import instruct_dataset
         >>> dataset = instruct_dataset(
-        ...   tokenizer=tokenizer,
-        ...   source="yahma/alpaca_cleaned",
-        ...   template="torchtune.data.AlpacaInstructTemplate",
-        ...   max_seq_len=2096,
-        ...   train_on_input=True,
-        ...   packed=True,
+        ...     tokenizer=tokenizer,
+        ...     source="json",
+        ...     data_files="my_dataset.json",
+        ...     column_map={
+        ...         "input": "question",
+        ...         "output": "answer",
+        ...     },
+        ...     train_on_input=False,
+        ...     packed=False,
+        ...     split="train",
         ... )
+        >>> tokens = dataset[0]["tokens"]
+        >>> tokenizer.decode(tokens)
+        "What time is it in London?It is 10:00 AM in London."
 
-    This can also be accomplished via the yaml config::
+    This can also be accomplished via the yaml config:
+
+    .. code-block:: yaml
 
         dataset:
-            _component_: torchtune.datasets.instruct_dataset
-            source: yahma/alpaca_cleaned
-            template: torchtune.data.AlpacaInstructTemplate
-            max_seq_len: 2096
-            train_on_input: True
-            packed: True
+          _component_: torchtune.datasets.instruct_dataset
+          source: json
+          data_files: my_dataset.json
+          column_map:
+            input: question
+            output: answer
+          train_on_input: False
+          packed: False
+          split: train
 
     Returns:
-        InstructDataset or PackedDataset: the configured :class:`~torchtune.datasets.InstructDataset`
+        Union[SFTDataset, PackedDataset]: the configured :class:`~torchtune.datasets.SFTDataset`
             or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``
+
+    Raises:
+        ValueError: If ``packed=True`` and ``tokenizer.max_seq_len`` is not set.
     """
-    ds = InstructDataset(
-        tokenizer=tokenizer,
+
+    message_transform = InputOutputToMessages(
+        train_on_input=train_on_input, column_map=column_map
+    )
+
+    ds = SFTDataset(
         source=source,
-        template=_get_component_from_path(template),
-        column_map=column_map,
-        train_on_input=train_on_input,
-        max_seq_len=max_seq_len,
+        message_transform=message_transform,
+        model_transform=tokenizer,
         **load_dataset_kwargs,
     )
-    return (
-        PackedDataset(ds, max_seq_len=max_seq_len, padding_idx=tokenizer.pad_id)
-        if packed
-        else ds
-    )
+    if packed:
+        if tokenizer.max_seq_len is None:
+            raise ValueError(
+                "PackedDataset requires a max_seq_len to be set on the tokenizer."
+            )
+        return PackedDataset(ds, max_seq_len=tokenizer.max_seq_len)
+    return ds

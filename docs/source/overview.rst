@@ -32,6 +32,8 @@ Excited? To get started, checkout some of our tutorials, including:
 - our :ref:`LoRA tutorial <lora_finetune_label>` to learn about parameter-efficient finetuning with torchtune.
 - our :ref:`QLoRA tutorial <qlora_finetune_label>` to attain maximal memory efficiency with torchtune.
 
+Eager for more? Check out our :ref:`recipes index<recipes_overview_label>` to see all the fine-tuning techniques we support.
+
 Key Concepts
 ------------
 
