@@ -11,16 +11,17 @@ import torch
 
 class CEWithChunkedOutputLoss(torch.nn.Module):
     """
-    CE with chunked outputs saves memory by only upcasting one chunk at a time.
+    CE with chunked outputs that saves memory by only upcasting one chunk at a time.
 
     Since the model is trained with fp16, before running CE, we have to upcast
-    it to fp32 for better accuracy. When this happens, the memory usage doubles.
-    Models like llama3 have large vocabulary size. So doing it one chunk at a time
-    saves considerable memory. Chunking happens at the token level.
+    it to fp32 for better accuracy and stability. When upcasting happens, the memory usage doubles.
+    Models like llama3 have large vocabulary size and, therefore, have a large output
+    result (bsz, num_tokens, vocab_size). If we chunk on tje token level, you can still compute
+    the cross entropy normally, but upcasting only one chunk at a time saves considerable memory.
 
     The CE and upcasting have to be compiled together for better performance.
-    Also, compiling CE always yields to great gains. Therefore, compiling
-    is the default.
+    Also, compiling CE always yields great memory gains. Therefore, compiling
+    is the default in this class.
 
     For more details, please refer to: https://github.com/pytorch/torchtune/pull/1390
     """
