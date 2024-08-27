@@ -12,8 +12,6 @@
 # to override the checkpointer directory while launching training
 # you can run:
 #   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_fsdp2 --config llama3/8B_dora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
-#
-# This config works only for training on single device.
 
 
 # Model Arguments

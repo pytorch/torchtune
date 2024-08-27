@@ -21,12 +21,6 @@ from torchtune.modules.peft import (
 )
 from torchtune.utils.seed import set_seed
 
-RANK = 4
-ALPHA = 1.0
-BSZ = 2
-SEQ_LEN = 32
-EXPECTED_VAL = 1.1252
-
 
 @pytest.fixture(autouse=True)
 def random():
@@ -229,7 +223,6 @@ class _DoraReference(nn.Module):
         if use_dora:
             self.lora_magnitude = nn.Parameter(torch.randn(out_dim, dtype=dtype))
         self.dropout = nn.Dropout(p=dropout)
-        torch.use_deterministic_algorithms(True)
 
     def initialize_dora(self):
         weight = self.weight.to(self.lora_a.weight.dtype)
