@@ -31,6 +31,7 @@ from torchtune.training._profiler import (
     setup_torch_profiler,
 )
 from torchtune.training.activations import apply_selective_activation_checkpointing
+from torchtune.training._activation_offloading import NoOpManager, OffloadActivations
 from torchtune.training.checkpointing import (
     ADAPTER_CONFIG,
     ADAPTER_KEY,
@@ -120,4 +121,6 @@ __all__ = [
     "DummyProfiler",
     "PROFILER_KEY",
     "setup_torch_profiler",
+    "OffloadActivations",
+    "NoOpManager",
 ]
