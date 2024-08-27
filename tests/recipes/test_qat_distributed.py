@@ -26,7 +26,6 @@ from tests.test_utils import (
     gpu_test,
     TOKENIZER_PATHS,
 )
-from torchao.utils import TORCH_VERSION_AFTER_2_4
 
 
 class TestQATDistributedRecipe:
@@ -60,9 +59,6 @@ class TestQATDistributedRecipe:
         ],
     )
     @gpu_test(gpu_count=2)
-    @pytest.mark.skipif(
-        not TORCH_VERSION_AFTER_2_4, reason="QAT only supported for PyTorch 2.4+"
-    )
     def test_loss(self, config, model_type, ckpt_type, tmpdir, monkeypatch):
         ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
         ckpt = model_type + "_" + ckpt_type
