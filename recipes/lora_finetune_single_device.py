@@ -399,7 +399,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         log.info(f"Model is initialized with precision {self._dtype}.")
         # Compile model, if enabled.
-        print(f"model: {model}")
         if compile_model and not self._per_layer_compile:
             log.info("Compiling model with torch.compile...")
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")

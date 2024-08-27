@@ -306,7 +306,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
 
-        print(f"model: {model}")
         if self._model_compile and self._per_layer_compile:
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
             for m in reversed(list(model.modules())):
