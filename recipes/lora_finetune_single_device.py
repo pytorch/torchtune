@@ -29,6 +29,7 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils import DummyProfiler, PROFILER_KEY
+from torchtune.utils._activations_offloading.offload_ctx_mgr import ActivationsManager
 
 from tqdm import tqdm
 
@@ -542,7 +543,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         mask = batch.get("mask", None)  # shape [b, s, s]
         input_pos = batch.get("input_pos", None)  # shape [b, s]
 
-        logits = self._model(tokens, mask=mask, input_pos=input_pos)
+        with ActivationsManager():
+            logits = self._model(tokens, mask=mask, input_pos=input_pos)
+
         # Shift so that tokens < n predict n
         logits = logits[..., :-1, :].contiguous()
         labels = labels[..., 1:].contiguous()
