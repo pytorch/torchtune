@@ -54,7 +54,7 @@ optimizer:
   _component_: torch.optim.AdamW
   lr: 5e-6
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
 # Training env
 device: cuda
