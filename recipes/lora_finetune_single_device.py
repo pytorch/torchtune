@@ -205,7 +205,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._metric_logger.log_config(cfg)
 
         self._model_compile = cfg.compile
-        self._per_layer_compile = cfg.per_layer_compile
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
         self._model = self._setup_model(
@@ -231,7 +230,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
-        if self._model_compile and self._per_layer_compile:
+        if self._model_compile:
             log.info("Compiling loss with torch.compile...")
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
             self._loss_fn = torch.compile(self._loss_fn, backend=backend)
@@ -360,8 +359,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
 
-        if compile_model and self._per_layer_compile:
-            log.info("Compiling model with torch.compile...")
+        if compile_model:
+            log.info("Compiling model layers with torch.compile...")
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
             for m in reversed(list(model.modules())):
                 if isinstance(m, modules.transformer.TransformerSelfAttentionLayer):
@@ -398,12 +397,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
         log.info(f"Model is initialized with precision {self._dtype}.")
-        # Compile model, if enabled.
-        if compile_model and not self._per_layer_compile:
-            log.info("Compiling model with torch.compile...")
-            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-            self._loss_step_original = self._loss_step
-            self._loss_step = torch.compile(self._loss_step, backend=backend)
 
         if self._device.type == "cuda":
             memory_stats = utils.get_memory_stats(device=self._device)

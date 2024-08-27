@@ -209,8 +209,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
         self._model_compile = cfg.compile
-        self._per_layer_compile = cfg.per_layer_compile
-        assert self._model_compile and self._per_layer_compile
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
@@ -233,7 +231,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
-        if self._model_compile and self._per_layer_compile:
+        if self._model_compile:
             log.info("Compiling loss with torch.compile...")
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
             self._loss_fn = torch.compile(self._loss_fn, backend=backend)
@@ -306,7 +304,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
 
-        if self._model_compile and self._per_layer_compile:
+        if self._model_compile:
+            log.info("Compiling model layers with torch.compile...")
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
             for m in reversed(list(model.modules())):
                 if isinstance(m, modules.TransformerSelfAttentionLayer):
