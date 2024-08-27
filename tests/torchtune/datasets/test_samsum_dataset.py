@@ -37,7 +37,7 @@ class TestSamsumDataset:
             ]
         )
 
-        samsum_ds = samsum_dataset(model_transform=tokenizer, train_on_input=True)
+        samsum_ds = samsum_dataset(tokenizer=tokenizer, train_on_input=True)
         input, labels = samsum_ds[0]["tokens"], samsum_ds[0]["labels"]
 
         assert input == [
@@ -88,7 +88,7 @@ class TestSamsumDataset:
             ]
         )
 
-        samsum_ds = samsum_dataset(model_transform=tokenizer)
+        samsum_ds = samsum_dataset(tokenizer=tokenizer)
 
         # Generate the input and labels
         input, labels = samsum_ds[0]["tokens"], samsum_ds[0]["labels"]
