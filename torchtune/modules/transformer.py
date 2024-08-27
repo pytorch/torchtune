@@ -341,7 +341,7 @@ class TransformerDecoder(nn.Module):
         self.num_output_chunks = 0
 
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
-        """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputsLoss`.
+        """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
         This should be called before the first forward pass, in the recipe."""
         self.num_output_chunks = num_output_chunks
 
@@ -468,7 +468,7 @@ class TransformerDecoder(nn.Module):
 
         if self.num_output_chunks > 0:
             # shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size
-            # Used with CEWithChunkedOutputsLoss. Need to set num_output_chunks in the recipe,
+            # Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,
             # before calling forward. Upcasting it done inside of the loss function.
             output = [
                 self.output(chunk) for chunk in h.chunk(self.num_output_chunks, dim=1)
@@ -549,7 +549,7 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         self.causal_mask = None
 
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
-        """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputsLoss`.
+        """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
         This should be called before the first forward pass, in the recipe."""
         self.num_output_chunks = num_output_chunks
 
@@ -675,7 +675,7 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
 
         if self.num_output_chunks > 0:
             # shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size
-            # Used with CEWithChunkedOutputsLoss. Need to set num_output_chunks in the recipe,
+            # Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,
             # before calling forward. Upcasting it done inside of the loss function.
             output = [
                 F.linear(chunk, self.tok_embeddings.weight)

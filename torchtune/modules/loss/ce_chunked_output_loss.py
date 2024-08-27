@@ -9,7 +9,7 @@ from typing import List
 import torch
 
 
-class ChunkedCrossEntropyLoss(torch.nn.Module):
+class CEWithChunkedOutputLoss(torch.nn.Module):
     """
     CE with chunked outputs saves memory by only upcasting one chunk at a time.
 
