@@ -97,7 +97,7 @@ on Hugging Face's `documentation. <https://huggingface.co/docs/datasets/en/loadi
 Setting max sequence length
 ---------------------------
 
-The default collator, :func:`~torchtune.utils.padded_collate`, used in all
+The default collator, :func:`~torchtune.padded_collate`, used in all
 our training recipes will pad samples to the max sequence length within the batch,
 not globally. If you wish to set an upper limit on the max sequence length globally,
 you can specify it in the dataset builder with ``max_seq_len``. Any sample in the dataset

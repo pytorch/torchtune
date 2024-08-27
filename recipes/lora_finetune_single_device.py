@@ -459,7 +459,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             batch_size=batch_size,
             collate_fn=(
                 partial(
-                    utils.padded_collate,
+                    padded_collate,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
                 )
