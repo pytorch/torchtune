@@ -33,8 +33,10 @@ def hh_rlhf_helpful_dataset(
             in the filepath in ``data_files``. See Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
             for more details. Default is ``RLHFlow/HH-RLHF-Helpful-standard``.
-        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the prompt template
-            to the new column names in the dataset. If None, assume these are identical.
+        column_map (Optional[Dict[str, str]]): a mapping from the expected columns "chosen" and "rejected"
+            in the message transform :class:`~torchtune.data.ChosenRejectedToMessages` to the new column names in
+            the dataset. Keys should be "chosen" and "rejected" and values should be the actual column names.
+            If None, keep the default columns "chosen" and "rejected".
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         new_system_prompt (Optional[str]): if specified, prepend a system message to every sample for both chosen
             and rejected. This can serve as instructions to guide the model response. Setting this will OVERRIDE

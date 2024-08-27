@@ -66,8 +66,6 @@ Each API and class should be clearly documented. Well-documented code is easier 
 
 Documentation is written in [RST](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html) format.
 
-If you've contributed a new recipe, please ensure you've created a corresponding recipe doc file in [the recipes directory](docs/source/recipes), and updated the [recipe overview page](docs/source/recipes/recipes_overview.rst), and the [index sidebar](docs/source/index.rst). You can find a template to fill in [here](docs/source/_templates/_recipe_template.rst).
-
 ### Adding a new class/method to the API References
 Once you've added an API that is meant to be exposed publically, you should add it to the appropriate rst file. For example, any new API within the [configs/](torchtune/configs)
 directory should be added to `api_ref_configs.rst`, [data/](torchtune/data) should be added to `api_ref_data.rst`, [datasets](torchtune/datasets) should be added to
@@ -76,6 +74,22 @@ directory should be added to `api_ref_configs.rst`, [data/](torchtune/data) shou
 All code written within the docstring of the class or method will be correctly rendered there.
 
 > Note: Our RST theme expects code to be specified using double backticks instead of single. Eg: ``hidden_dim``. Single backticks will be rendered as italics instead of as "code".
+
+### Adding documentation for a recipe
+
+If you've contributed a new recipe, or you're interesting in adding documentation for an existing recipe, you can add a new page in [the recipes directory](docs/source/recipes). Please refer to existing recipe docpages to understand the format of these documentation pages. Broadly speaking:
+
+- Recipe documentation pages are like beefed up API references for recipes.
+- They should have a low noise/information ratio, i.e. information in the recipe documentation page should mostly be relevant for using that recipe.
+- Relevant information could include:
+  - A cookbook/manual-style description of all the ways in which the recipe can be modified. For instance, does it support different loss functions? If so, describe those loss functions and help a user understand when they might want to use them.
+  - Example commands for using and customizing the recipe, particularly w.r.t the specific knobs and levers unique to the recipe.
+  - Pre-requisites for the recipe including models and datasets.
+  - Reference outputs for a recipe to help a user understand what successful training looks like e.g. loss curves, eval results, generations, etc.
+  - References to the appropriate [memory optimization](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html) features which can be used in the recipe. If you've contributed new memory optimization features which could be used across other recipes, consider adding them to the overview!
+
+
+Finally, make sure you update the [recipe overview page](docs/source/recipes/recipes_overview.rst), and the [index sidebar](docs/source/index.rst).
 
 ### Building docs
 
