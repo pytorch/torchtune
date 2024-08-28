@@ -601,6 +601,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 logits = logits[..., :-1, :].contiguous()
                 labels = labels[..., 1:].contiguous()
                 logits = logits.transpose(1, 2)
+                torch._dynamo.mark_dynamic(logits, 2)
+                torch._dynamo.mark_dynamic(labels, 1)
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
                 # free logits otherwise it peaks backward memory
