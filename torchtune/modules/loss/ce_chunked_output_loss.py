@@ -4,10 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
 from typing import List
 
 import torch
+import torch.nn.functional as F
 
 
 class CEWithChunkedOutputLoss(torch.nn.Module):
@@ -31,15 +31,16 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
         super().__init__()
         self.num_output_chunks = num_output_chunks
         self.ignore_index = ignore_index
-        self.cross_entropy_loss = torch.nn.CrossEntropyLoss(
-            reduction="sum", ignore_index=self.ignore_index
-        )
 
-    @torch.compile(backend=os.environ.get("TORCH_COMPILE_BACKEND", "inductor"))
     def _compute_cross_entropy(
         self, logits: torch.Tensor, labels: torch.Tensor
     ) -> torch.Tensor:
-        return self.cross_entropy_loss(logits.float(), labels)
+        """
+        Upcast logits to fp32 and compute cross entropy loss.
+        """
+        return F.cross_entropy(
+            logits.float(), labels, ignore_index=self.ignore_index, reduction="sum"
+        )
 
     def forward(self, logits: List[torch.Tensor], labels: torch.Tensor) -> torch.Tensor:
         """
