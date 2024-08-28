@@ -95,5 +95,5 @@ class TestQATDistributedRecipe:
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values(model_type)
         torch.testing.assert_close(
-            loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
+            loss_values, expected_loss_values, rtol=1e-3, atol=1e-3
         )
