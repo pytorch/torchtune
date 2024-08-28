@@ -42,7 +42,6 @@ from ._profiler import (
     setup_torch_profiler,
 )
 from ._version import torch_version_ge
-from .argparse import TuneRecipeArgumentParser
 from .collate import padded_collate
 from .constants import (  # noqa
     ADAPTER_CONFIG,
@@ -91,7 +90,6 @@ __all__ = [
     "set_default_dtype",
     "set_seed",
     "validate_expected_param_dtype",
-    "TuneRecipeArgumentParser",
     "torch_version_ge",
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",
