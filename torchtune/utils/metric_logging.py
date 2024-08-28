@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Union
 
 from numpy import ndarray
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig, ListConfig, OmegaConf
 from torch import Tensor
 
 from torchtune.utils import get_logger
@@ -395,6 +395,10 @@ class CometLogger(MetricLoggerInterface):
         self.experiment = None
 
         if self.rank == 0:
+            # Cast tags extracted from YAML from ListConfig to list
+            if isinstance(tags, ListConfig):
+                tags = list(tags)
+                
             self.experiment = comet_ml.start(
                 api_key=api_key,
                 workspace=workspace,
