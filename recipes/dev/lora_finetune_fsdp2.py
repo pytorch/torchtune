@@ -230,11 +230,25 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             else None,
         )
 
+        # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
-        if self._model_compile:
-            log.info("Compiling loss with torch.compile...")
-            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-            self._loss_fn = torch.compile(self._loss_fn, backend=backend)
+        backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+        if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
+            # set num_output_chunks for model
+            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+            if self._model_compile:
+                log.info("Compiling loss with torch.compile...")
+                # For CEWithChunkedOutputLoss, if we compile the entire class
+                # we lose the benefits from the chunked loss.
+                # Therefore, we only compile the cross entropy function + upcasting
+                self._loss_fn._compute_cross_entropy = torch.compile(
+                    self._loss_fn._compute_cross_entropy, backend=backend
+                )
+        else:
+            if self._model_compile:
+                log.info("Compiling loss with torch.compile...")
+                self._loss_fn = torch.compile(self._loss_fn, backend=backend)
+        log.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -267,6 +281,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             cfg_lr_scheduler=cfg.lr_scheduler,
             num_training_steps=self.total_epochs * self._steps_per_epoch,
             last_epoch=self.global_step - 1,
+        )
+
+        # Used to ignore labels for loss computation
+        self.ignore_labels_cache = torch.full(
+            (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
         )
 
     def _setup_model(
@@ -596,12 +615,20 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 )
 
                 logits = self._model(tokens, mask=mask, input_pos=input_pos)
-                # Shift so that tokens < n predict n
-                logits = logits[..., :-1, :].contiguous()
-                labels = labels[..., 1:].contiguous()
-                logits = logits.transpose(1, 2)
+
+                # Shift labels to compute loss
+                # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
+                # But this way we dont need to slice the logits. We just add an ignore index to labels.
+                labels = torch.hstack(
+                    (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
+                )
+                if not isinstance(logits, list):
+                    labels = labels.reshape(-1)
+                    logits = logits.reshape(-1, logits.size(-1))
+
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
+
                 # free logits otherwise it peaks backward memory
                 del logits
 
