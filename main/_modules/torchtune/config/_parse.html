@@ -417,14 +417,63 @@
 <span class="kn">import</span> <span class="nn">argparse</span>
 <span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span>
+<span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">Namespace</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">from</span> <span class="nn">omegaconf</span> <span class="kn">import</span> <span class="n">DictConfig</span>
+<span class="kn">from</span> <span class="nn">omegaconf</span> <span class="kn">import</span> <span class="n">DictConfig</span><span class="p">,</span> <span class="n">OmegaConf</span>
+
 <span class="kn">from</span> <span class="nn">torchtune.config._utils</span> <span class="kn">import</span> <span class="n">_merge_yaml_and_cli_args</span>
-<span class="kn">from</span> <span class="nn">torchtune.utils.argparse</span> <span class="kn">import</span> <span class="n">TuneRecipeArgumentParser</span>
 
 
 <span class="n">Recipe</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">DictConfig</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">TuneRecipeArgumentParser</span><span class="p">(</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A helpful utility subclass of the ``argparse.ArgumentParser`` that</span>
+<span class="sd">    adds a builtin argument &quot;config&quot;. The config argument takes a file path to a YAML file</span>
+<span class="sd">    and loads in argument defaults from said file. The YAML file must only contain</span>
+<span class="sd">    argument names and their values and nothing more, it does not have to include all of the</span>
+<span class="sd">    arguments. These values will be treated as defaults and can still be overridden from the</span>
+<span class="sd">    command line. Everything else works the same as the base ArgumentParser and you should</span>
+<span class="sd">    consult the docs for more info: https://docs.python.org/3/library/argparse.html.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        This class uses &quot;config&quot; as a builtin argument so it is not available to use.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--config&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Path/name of a yaml file with recipe args&quot;</span><span class="p">,</span>
+            <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">parse_known_args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;This acts the same as the base parse_known_args but will first load in defaults from</span>
+<span class="sd">        from the config yaml file if it is provided. The command line args will always take</span>
+<span class="sd">        precident over the values in the config file. All other parsing method, such as parse_args,</span>
+<span class="sd">        internally call this method so they will inherit this property too. For more info see</span>
+<span class="sd">        the docs for the base method: https://docs.python.org/3/library/argparse.html#the-parse-args-method.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">namespace</span><span class="p">,</span> <span class="n">unknown_args</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">unknown_flag_args</span> <span class="o">=</span> <span class="p">[</span><span class="n">arg</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">unknown_args</span> <span class="k">if</span> <span class="n">arg</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;--&quot;</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">unknown_flag_args</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Additional flag arguments not supported: </span><span class="si">{</span><span class="n">unknown_flag_args</span><span class="si">}</span><span class="s2">. Please use --config or key=value overrides&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">config</span> <span class="o">=</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">namespace</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="s2">&quot;config&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">config</span><span class="p">,</span> <span class="s2">&quot;Cannot use &#39;config&#39; within a config file&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="p">)</span>
+
+        <span class="n">namespace</span><span class="p">,</span> <span class="n">unknown_args</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">namespace</span><span class="o">.</span><span class="n">config</span>
+
+        <span class="k">return</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">unknown_args</span>
 
 
 <div class="viewcode-block" id="parse"><a class="viewcode-back" href="../../../generated/torchtune.config.parse.html#torchtune.config.parse">[docs]</a><span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="n">recipe_main</span><span class="p">:</span> <span class="n">Recipe</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Recipe</span><span class="p">],</span> <span class="n">Any</span><span class="p">]:</span>
