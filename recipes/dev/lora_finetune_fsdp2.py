@@ -325,8 +325,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # iterating from lowerer modules to higher
         # eg grouping lora adapters before transformer block
         for m in reversed(list(model.modules())):
-            # if isinstance(m, nn.Linear) and m.weight.requires_grad:
-            #     fully_shard(m, **fsdp_kwargs)
             # TransformerSelfAttentionLayer is wrapped by CheckpointWrapper
             # when enable_activation_checkpointing
             if enable_activation_checkpointing:
@@ -640,7 +638,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(utils.get_memory_stats(device=self._device))
-                            log.warn(f"Memory stats: {utils.get_memory_stats(device=self._device)}")
                         self._metric_logger.log_dict(
                             log_dict,
                             step=self.global_step,
