@@ -19,6 +19,7 @@ dependencies = [
     # Tokenization
     "sentencepiece",
     "tiktoken",
+    "urllib3<2",
     "blobfile>=2",
 
     # Miscellaneous
