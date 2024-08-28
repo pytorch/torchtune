@@ -512,7 +512,7 @@ dataset.split<span class="o">=</span>train<span class="w"> </span>dataset.data_d
 </section>
 <section id="setting-max-sequence-length">
 <h2>Setting max sequence length<a class="headerlink" href="#setting-max-sequence-length" title="Permalink to this heading">¶</a></h2>
-<p>The default collator, <a class="reference internal" href="../generated/torchtune.utils.padded_collate.html#torchtune.utils.padded_collate" title="torchtune.utils.padded_collate"><code class="xref py py-func docutils literal notranslate"><span class="pre">padded_collate()</span></code></a>, used in all
+<p>The default collator, <a class="reference internal" href="../generated/torchtune.data.padded_collate.html#torchtune.data.padded_collate" title="torchtune.data.padded_collate"><code class="xref py py-func docutils literal notranslate"><span class="pre">padded_collate()</span></code></a>, used in all
 our training recipes will pad samples to the max sequence length within the batch,
 not globally. If you wish to set an upper limit on the max sequence length globally,
 you can specify it in the dataset builder with <code class="docutils literal notranslate"><span class="pre">max_seq_len</span></code>. Any sample in the dataset
