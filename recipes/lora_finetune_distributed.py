@@ -245,7 +245,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
         backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-        if isinstance(self._loss_fn, torchtune.modules.loss.CEWithChunkedOutputLos):
+        if isinstance(self._loss_fn, torchtune.modules.loss.CEWithChunkedOutputLoss):
             # set num_output_chunks for model
             self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
             if self._model_compile:
