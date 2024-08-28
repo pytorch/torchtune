@@ -31,7 +31,7 @@ tokenizer:
   path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
 
 checkpointer:
-  _component_: torchtune.utils.FullModelMetaCheckpointer
+  _component_: torchtune.training.FullModelMetaCheckpointer
   checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/original/
   checkpoint_files: [
     consolidated.00.pth

@@ -3,17 +3,15 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import Union
 
-from torchtune.utils._checkpointing._checkpointer import (
+from torchtune.training.checkpointing import (  # noqa
+    ADAPTER_CONFIG,
+    ADAPTER_KEY,
+    Checkpointer,
+    EPOCHS_KEY,
     FullModelHFCheckpointer,
     FullModelMetaCheckpointer,
     FullModelTorchTuneCheckpointer,
-)
-from torchtune.utils._checkpointing._utils import (
-    ADAPTER_CONFIG,
-    ADAPTER_KEY,
-    EPOCHS_KEY,
     MAX_STEPS_KEY,
     MODEL_KEY,
     ModelType,
@@ -24,12 +22,6 @@ from torchtune.utils._checkpointing._utils import (
     TOTAL_EPOCHS_KEY,
     update_state_dict_for_classifier,
 )
-
-Checkpointer = Union[
-    FullModelHFCheckpointer,
-    FullModelMetaCheckpointer,
-    FullModelTorchTuneCheckpointer,
-]
 
 __all__ = [
     "FullModelHFCheckpointer",

@@ -1,27 +1,8 @@
-=================
+===============
 torchtune.utils
-=================
+===============
 
 .. currentmodule:: torchtune.utils
-
-
-.. _checkpointing_label:
-
-Checkpointing
--------------
-
-torchtune offers checkpointers to allow seamless transitioning between checkpoint formats for training and interoperability with the rest of the ecosystem. For a comprehensive overview of
-checkpointing, please see the :ref:`checkpointing deep-dive <understand_checkpointer>`.
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    FullModelHFCheckpointer
-    FullModelMetaCheckpointer
-    FullModelTorchTuneCheckpointer
-    ModelType
-    update_state_dict_for_classifier
 
 .. _dist_label:
 

@@ -58,7 +58,7 @@ reward_and_value_model:
 
 # checkpointer for the policy model - update this if resuming from checkpoint
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Mistral-7B-Instruct-v0.2/
   checkpoint_files:
     [
@@ -74,7 +74,7 @@ checkpointer:
 # this should be setup identically to the policy model checkpointer at the start of training
 # ensure `checkpoint_files` always points to the original policy weights, even if resuming training
 ref_policy_checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Mistral-7B-Instruct-v0.2/
   checkpoint_files:
     [
@@ -89,7 +89,7 @@ ref_policy_checkpointer:
 # since this model will be identical to the reward model it's helpful to initialise this
 # from the trained reward model weights
 value_checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/RM-Mistral-7B/
   checkpoint_files:
     [
@@ -103,7 +103,7 @@ value_checkpointer:
 # checkpointer for the reward model, ensure `checkpoint_files`
 # always points to the original reward model weights, even if resuming training
 reward_checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/RM-Mistral-7B/
   checkpoint_files:
     [

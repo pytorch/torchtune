@@ -135,7 +135,7 @@ torchtune supports three different
 each of which supports a different checkpoint format.
 
 
-:class:`HFCheckpointer <torchtune.utils.FullModelHFCheckpointer>`
+:class:`HFCheckpointer <torchtune.training.FullModelHFCheckpointer>`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This checkpointer reads and writes checkpoints in a format which is compatible with the transformers
@@ -167,7 +167,7 @@ The following snippet explains how the HFCheckpointer is setup in torchtune conf
     checkpointer:
 
         # checkpointer to use
-        _component_: torchtune.utils.FullModelHFCheckpointer
+        _component_: torchtune.training.FullModelHFCheckpointer
 
         # directory with the checkpoint files
         # this should match the output_dir above
@@ -205,7 +205,7 @@ The following snippet explains how the HFCheckpointer is setup in torchtune conf
 
 |
 
-:class:`MetaCheckpointer <torchtune.utils.FullModelMetaCheckpointer>`
+:class:`MetaCheckpointer <torchtune.training.FullModelMetaCheckpointer>`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This checkpointer reads and writes checkpoints in a format which is compatible with the original meta-llama
@@ -237,7 +237,7 @@ The following snippet explains how the MetaCheckpointer is setup in torchtune co
     checkpointer:
 
         # checkpointer to use
-        _component_: torchtune.utils.FullModelMetaCheckpointer
+        _component_: torchtune.training.FullModelMetaCheckpointer
 
         # directory with the checkpoint files
         # this should match the output_dir above
@@ -265,7 +265,7 @@ The following snippet explains how the MetaCheckpointer is setup in torchtune co
 
 |
 
-:class:`TorchTuneCheckpointer <torchtune.utils.FullModelTorchTuneCheckpointer>`
+:class:`TorchTuneCheckpointer <torchtune.training.FullModelTorchTuneCheckpointer>`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This checkpointer reads and writes checkpoints in a format that is compatible with torchtune's
@@ -335,7 +335,7 @@ to the config file
     checkpointer:
 
         # checkpointer to use
-        _component_: torchtune.utils.FullModelHFCheckpointer
+        _component_: torchtune.training.FullModelHFCheckpointer
 
         checkpoint_dir: <checkpoint_dir>
 
@@ -381,7 +381,7 @@ looks something like this:
     checkpointer:
 
         # checkpointer to use
-        _component_: torchtune.utils.FullModelHFCheckpointer
+        _component_: torchtune.training.FullModelHFCheckpointer
 
         # directory with the checkpoint files
         # this should match the output_dir above

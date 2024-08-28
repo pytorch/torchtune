@@ -15,7 +15,7 @@ from omegaconf import DictConfig
 from torch import nn
 from torch.nn.utils.rnn import pad_sequence
 
-from torchtune import config, utils
+from torchtune import config, training, utils
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.recipe_interfaces import EvalRecipeInterface
@@ -207,7 +207,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
         self._model = self._setup_model(
             model_cfg=self._cfg.model,
-            model_state_dict=ckpt_dict[utils.MODEL_KEY],
+            model_state_dict=ckpt_dict[training.MODEL_KEY],
         )
         self._tokenizer = config.instantiate(self._cfg.tokenizer)
         logger.info("Tokenizer is initialized from file.")

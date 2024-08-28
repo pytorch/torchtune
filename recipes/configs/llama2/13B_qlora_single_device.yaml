@@ -29,7 +29,7 @@ tokenizer:
   path: /tmp/Llama-2-13b-hf/tokenizer.model
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Llama-2-13b-hf/
   checkpoint_files: [
     pytorch_model-00001-of-00003.bin,

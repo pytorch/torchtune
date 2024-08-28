@@ -23,7 +23,7 @@ tokenizer:
   path: /tmp/Meta-Llama-3-70B-Instruct/original/tokenizer.model
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir:  /tmp/Meta-Llama-3-70B-Instruct
   checkpoint_files: [
     model-00001-of-00030.safetensors,

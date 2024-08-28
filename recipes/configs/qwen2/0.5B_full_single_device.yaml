@@ -32,7 +32,7 @@ model:
   _component_: torchtune.models.qwen2.qwen2_0_5b
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Qwen2-0.5B-Instruct
   checkpoint_files: [
     model.safetensors

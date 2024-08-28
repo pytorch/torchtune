@@ -32,7 +32,7 @@ model:
   _component_: torchtune.models.gemma.gemma_2b
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/gemma-2b/
   checkpoint_files: [
     model-00001-of-00002.safetensors,

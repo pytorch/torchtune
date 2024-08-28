@@ -17,7 +17,7 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import config, modules, utils
+from torchtune import config, modules, training, utils
 from torchtune.datasets import ConcatDataset
 from torchtune.modules import rlhf
 from torchtune.modules.rlhf import PPOStats, Trajectory
@@ -182,10 +182,10 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             cfg_reward_value_model=cfg.reward_and_value_model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             compile_model=self._model_compile,
-            policy_state_dict=policy_model_checkpoint_dict[utils.MODEL_KEY],
-            ref_policy_state_dict=ref_policy_state_dict[utils.MODEL_KEY],
-            value_model_state_dict=value_model_checkpoint_dict[utils.MODEL_KEY],
-            reward_model_state_dict=reward_model_state_dict[utils.MODEL_KEY],
+            policy_state_dict=policy_model_checkpoint_dict[training.MODEL_KEY],
+            ref_policy_state_dict=ref_policy_state_dict[training.MODEL_KEY],
+            value_model_state_dict=value_model_checkpoint_dict[training.MODEL_KEY],
+            reward_model_state_dict=reward_model_state_dict[training.MODEL_KEY],
         )
 
         # setup tokenizer
@@ -198,7 +198,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             cfg_optimizer=cfg.optimizer,
             optimizer_in_bwd=cfg.optimizer_in_bwd,
             opt_state_dict=(
-                policy_model_checkpoint_dict[utils.OPT_KEY]
+                policy_model_checkpoint_dict[training.OPT_KEY]
                 if self._resume_from_checkpoint
                 else None
             ),
@@ -593,25 +593,27 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
         """
-        policy_ckpt_dict = {utils.MODEL_KEY: self._policy_model.state_dict()}
-        value_ckpt_dict = {utils.MODEL_KEY: self._value_model.state_dict()}
+        policy_ckpt_dict = {training.MODEL_KEY: self._policy_model.state_dict()}
+        value_ckpt_dict = {training.MODEL_KEY: self._value_model.state_dict()}
 
         # if training is in-progress, checkpoint the optimizer state and rng state as well
         if is_intermediate_checkpoint:
             policy_ckpt_dict.update(
                 {
-                    utils.SEED_KEY: self.seed,
-                    utils.EPOCHS_KEY: self._epochs_run,
-                    utils.TOTAL_EPOCHS_KEY: self._total_epochs,
-                    utils.MAX_STEPS_KEY: self._total_steps,
-                    utils.STEPS_KEY: self._steps_run,
-                    utils.RNG_KEY: self._rng.get_state(),
+                    training.SEED_KEY: self.seed,
+                    training.EPOCHS_KEY: self._epochs_run,
+                    training.TOTAL_EPOCHS_KEY: self._total_epochs,
+                    training.MAX_STEPS_KEY: self._total_steps,
+                    training.STEPS_KEY: self._steps_run,
+                    training.RNG_KEY: self._rng.get_state(),
                 }
             )
             if not self._optimizer_in_bwd:
-                policy_ckpt_dict[utils.OPT_KEY] = self._optimizer.state_dict()
+                policy_ckpt_dict[training.OPT_KEY] = self._optimizer.state_dict()
             else:
-                policy_ckpt_dict[utils.OPT_KEY] = self._optim_ckpt_wrapper.state_dict()
+                policy_ckpt_dict[
+                    training.OPT_KEY
+                ] = self._optim_ckpt_wrapper.state_dict()
 
         self._policy_checkpointer.save_checkpoint(
             policy_ckpt_dict,
@@ -633,20 +635,20 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # warn the user and overwrite.
         try:
             if (
-                self.seed != ckpt_dict[utils.SEED_KEY]
-                or self._total_steps != ckpt_dict[utils.MAX_STEPS_KEY]
-                or self._total_epochs != ckpt_dict[utils.TOTAL_EPOCHS_KEY]
+                self.seed != ckpt_dict[training.SEED_KEY]
+                or self._total_steps != ckpt_dict[training.MAX_STEPS_KEY]
+                or self._total_epochs != ckpt_dict[training.TOTAL_EPOCHS_KEY]
             ):
                 warn(
                     message="""Configured value for seed, total_steps, or total_epochs
                     does not match the value stored in checkpoint."""
                 )
-            self.seed = utils.set_seed(seed=ckpt_dict[utils.SEED_KEY])
-            self._rng.set_state(ckpt_dict[utils.RNG_KEY])
-            self._steps_run = ckpt_dict[utils.STEPS_KEY]
-            self._total_steps = ckpt_dict[utils.MAX_STEPS_KEY]
-            self._total_epochs = ckpt_dict[utils.TOTAL_EPOCHS_KEY]
-            self._epochs_run = ckpt_dict[utils.EPOCHS_KEY]
+            self.seed = utils.set_seed(seed=ckpt_dict[training.SEED_KEY])
+            self._rng.set_state(ckpt_dict[training.RNG_KEY])
+            self._steps_run = ckpt_dict[training.STEPS_KEY]
+            self._total_steps = ckpt_dict[training.MAX_STEPS_KEY]
+            self._total_epochs = ckpt_dict[training.TOTAL_EPOCHS_KEY]
+            self._epochs_run = ckpt_dict[training.EPOCHS_KEY]
 
         except KeyError as e:
             raise KeyError from e(

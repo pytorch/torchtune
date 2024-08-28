@@ -14,7 +14,7 @@ from omegaconf import DictConfig
 
 from torch import nn
 
-from torchtune import config, utils
+from torchtune import config, training, utils
 
 logger = utils.get_logger("DEBUG")
 
@@ -61,7 +61,7 @@ class QuantizationRecipe:
         ckpt_dict = self.load_checkpoint(cfg.checkpointer)
         self._model = self._setup_model(
             model_cfg=cfg.model,
-            model_state_dict=ckpt_dict[utils.MODEL_KEY],
+            model_state_dict=ckpt_dict[training.MODEL_KEY],
         )
 
     def _setup_model(

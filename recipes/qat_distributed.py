@@ -19,7 +19,7 @@ from torch.distributed import destroy_process_group, init_process_group
 
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import config, modules, utils
+from torchtune import config, modules, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
@@ -168,28 +168,28 @@ class QATRecipeDistributed(FTRecipeInterface):
         Updates the recipe state from checkpoint.
         """
         try:
-            self.epochs_run = ckpt_dict[utils.EPOCHS_KEY]
+            self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
 
             # on mismatch, warn the user and prevent the override
-            if self.seed != ckpt_dict[utils.SEED_KEY]:
+            if self.seed != ckpt_dict[training.SEED_KEY]:
                 warn(
                     message=(
                         "Config value for seed does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[utils.SEED_KEY]}"
+                        f"using the checkpoint value: {ckpt_dict[training.SEED_KEY]}"
                     )
                 )
-                self.seed = ckpt_dict[utils.SEED_KEY]
-            if self.max_steps_per_epoch != ckpt_dict[utils.MAX_STEPS_KEY]:
+                self.seed = ckpt_dict[training.SEED_KEY]
+            if self.max_steps_per_epoch != ckpt_dict[training.MAX_STEPS_KEY]:
                 warn(
                     message=(
                         "Config value for max_steps_per_epoch does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[utils.MAX_STEPS_KEY]}"
+                        f"using the checkpoint value: {ckpt_dict[training.MAX_STEPS_KEY]}"
                     )
                 )
-                self.max_steps_per_epoch = ckpt_dict[utils.MAX_STEPS_KEY]
+                self.max_steps_per_epoch = ckpt_dict[training.MAX_STEPS_KEY]
 
             # on mismatch, warn the user but allow the override
-            if self.total_epochs != ckpt_dict[utils.TOTAL_EPOCHS_KEY]:
+            if self.total_epochs != ckpt_dict[training.TOTAL_EPOCHS_KEY]:
                 warn(
                     message=(
                         "Config value for total_epochs does not match the checkpoint value, "
@@ -222,7 +222,7 @@ class QATRecipeDistributed(FTRecipeInterface):
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
-            model_state_dict=checkpoint_dict[utils.MODEL_KEY],
+            model_state_dict=checkpoint_dict[training.MODEL_KEY],
             ac_mode=cfg.get("ac_mode", None),
             ac_option=cfg.get("ac_option", None),
             quantizer_cfg=cfg.get("quantizer", None),
@@ -231,7 +231,7 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=checkpoint_dict[utils.OPT_KEY]
+            opt_state_dict=checkpoint_dict[training.OPT_KEY]
             if self._resume_from_checkpoint
             else None,
         )
@@ -519,7 +519,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         """
         Checkpoint the state of the recipe. The constructed checkpoint state dict
         contains the following information:
-        - Model weights with key utils.MODEL_KEY
+        - Model weights with key training.MODEL_KEY
         - Relevant recipe state if training is not complete
 
         Checkpointer will save the model weights and recipe state in
@@ -549,18 +549,18 @@ class QATRecipeDistributed(FTRecipeInterface):
         # to be sent to the checkpointer and ultimately written to file
         if self._is_rank_zero:
 
-            checkpoint_dict.update({utils.MODEL_KEY: cpu_state_dict})
+            checkpoint_dict.update({training.MODEL_KEY: cpu_state_dict})
 
             # if training is in-progress, checkpoint the optimizer state and recipe state
             # as well.
             if intermediate_checkpoint:
                 checkpoint_dict.update(
                     {
-                        utils.OPT_KEY: opt_state_dict,
-                        utils.SEED_KEY: self.seed,
-                        utils.EPOCHS_KEY: self.epochs_run,
-                        utils.TOTAL_EPOCHS_KEY: self.total_epochs,
-                        utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                        training.OPT_KEY: opt_state_dict,
+                        training.SEED_KEY: self.seed,
+                        training.EPOCHS_KEY: self.epochs_run,
+                        training.TOTAL_EPOCHS_KEY: self.total_epochs,
+                        training.MAX_STEPS_KEY: self.max_steps_per_epoch,
                     }
                 )
 
