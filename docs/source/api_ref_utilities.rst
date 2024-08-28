@@ -122,4 +122,3 @@ Miscellaneous
     set_seed
     generate
     torch_version_ge
-    TuneRecipeArgumentParser

@@ -52,7 +52,6 @@ from ._profiler import (
     setup_torch_profiler,
 )
 from ._version import torch_version_ge
-from .argparse import TuneRecipeArgumentParser
 from .logging import get_logger
 from .memory import (  # noqa
     cleanup_before_training,
@@ -87,7 +86,6 @@ __all__ = [
     "set_default_dtype",
     "set_seed",
     "validate_expected_param_dtype",
-    "TuneRecipeArgumentParser",
     "torch_version_ge",
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",
