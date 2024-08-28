@@ -54,7 +54,7 @@ gradient_accumulation_steps: 1
 
 # QAT arguments
 quantizer:
-  _component_: torchtune.utils.quantization.Int8DynActInt4WeightQATQuantizer
+  _component_: torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer
   groupsize: 256
 
 # Training env

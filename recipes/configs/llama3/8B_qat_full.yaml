@@ -45,7 +45,7 @@ epochs: 3
 
 # QAT arguments
 quantizer:
-  _component_: torchtune.utils.quantization.Int8DynActInt4WeightQATQuantizer
+  _component_: torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer
   groupsize: 256
 
 optimizer:

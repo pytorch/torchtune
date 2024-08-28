@@ -26,7 +26,7 @@ class QuantizationRecipe:
 
     Supported quantization modes are:
     8da4w (PyTorch 2.3+):
-        torchtune.utils.quantization.Int8DynActInt4WeightQuantizer
+        torchtune.training.quantization.Int8DynActInt4WeightQuantizer
         int8 per token dynamic activation with int4 weight only per axis group quantization
         Args:
             `groupsize` (int): a parameter of int4 weight only quantization,
@@ -35,7 +35,7 @@ class QuantizationRecipe:
             but also higher memory overhead
 
     8da4w-qat (PyTorch 2.4+):
-        torchtune.utils.quantization.Int8DynActInt4WeightQATQuantizer
+        torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer
         int8 per token dynamic activation with int4 weight only per axis group quantization
         Same as "8da4w", but for quantizing QAT checkpoints
         Args:
