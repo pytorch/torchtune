@@ -45,6 +45,7 @@ class TextCompletionDataset(Dataset):
         max_seq_len: Optional[int] = None,
         add_eos: bool = True,
         custom_filter: bool=False,
+        skip_filter: bool = False,
         filter_fn: Optional[Callable] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
@@ -59,7 +60,10 @@ class TextCompletionDataset(Dataset):
             return "\n".join([line for line in text.splitlines() if line.strip()])
         
         # Set the filter function
-        self.filter_fn=filter_fn if custom_filter else default_filter
+        if not skip_filter:
+            self.filter_fn=filter_fn if custom_filter else default_filter
+        else:
+            self.filter_fn=None
 
     def __len__(self):
         return len(self._data)
@@ -70,7 +74,7 @@ class TextCompletionDataset(Dataset):
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
         prompt = sample[self._column]
-        
+
         # Apply the filter function to the text data
         if self.filter_fn:
             prompt = self.filter_fn(prompt)
@@ -96,6 +100,7 @@ def text_completion_dataset(
     packed: bool = False,
     split_across_pack: bool = True,
     custom_filter=False,
+    skip_filter: bool = False,
     filter_fn: Optional[Callable] = None,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> Union[TextCompletionDataset, PackedDataset]:
