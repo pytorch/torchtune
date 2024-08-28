@@ -5,11 +5,21 @@
 # LICENSE file in the root directory of this source tree.
 
 from ._checkpointing import (  # noqa
+    ADAPTER_CONFIG,
+    ADAPTER_KEY,
     Checkpointer,
+    EPOCHS_KEY,
     FullModelHFCheckpointer,
     FullModelMetaCheckpointer,
     FullModelTorchTuneCheckpointer,
+    MAX_STEPS_KEY,
+    MODEL_KEY,
     ModelType,
+    OPT_KEY,
+    RNG_KEY,
+    SEED_KEY,
+    STEPS_KEY,
+    TOTAL_EPOCHS_KEY,
     update_state_dict_for_classifier,
 )
 
@@ -43,18 +53,6 @@ from ._profiler import (
 )
 from ._version import torch_version_ge
 from .argparse import TuneRecipeArgumentParser
-from .constants import (  # noqa
-    ADAPTER_CONFIG,
-    ADAPTER_KEY,
-    EPOCHS_KEY,
-    MAX_STEPS_KEY,
-    MODEL_KEY,
-    OPT_KEY,
-    RNG_KEY,
-    SEED_KEY,
-    STEPS_KEY,
-    TOTAL_EPOCHS_KEY,
-)
 from .logging import get_logger
 from .memory import (  # noqa
     cleanup_before_training,
