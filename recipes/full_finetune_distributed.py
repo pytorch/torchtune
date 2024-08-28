@@ -20,6 +20,7 @@ from torch.distributed import destroy_process_group, init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
+from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils import DummyProfiler, PROFILER_KEY
@@ -470,7 +471,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             batch_size=batch_size,
             sampler=sampler,
             collate_fn=partial(
-                utils.padded_collate,
+                padded_collate,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=self._loss_fn.ignore_index,
             )

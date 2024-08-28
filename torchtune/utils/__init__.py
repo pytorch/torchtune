@@ -53,7 +53,6 @@ from ._profiler import (
 )
 from ._version import torch_version_ge
 from .argparse import TuneRecipeArgumentParser
-from .collate import padded_collate
 from .logging import get_logger
 from .memory import (  # noqa
     cleanup_before_training,
@@ -83,7 +82,6 @@ __all__ = [
     "is_distributed",
     "lora_fsdp_wrap_policy",
     "get_full_finetune_fsdp_wrap_policy",
-    "padded_collate",
     "get_unmasked_sequence_lengths",
     "set_activation_checkpointing",
     "set_default_dtype",
