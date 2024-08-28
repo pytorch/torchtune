@@ -232,8 +232,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # For CEWithChunkedOutputLoss, if we compile the entire class
                 # we lose the benefits from the chunked loss.
                 # Therefore, we only compile the cross entropy function + upcasting
-                self._loss_fn._compute_cross_entropy = torch.compile(
-                    self._loss_fn._compute_cross_entropy, backend=backend
+                self._loss_fn.compute_cross_entropy = torch.compile(
+                    self._loss_fn.compute_cross_entropy, backend=backend
                 )
         else:
             if self._model_compile:

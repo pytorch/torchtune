@@ -21,8 +21,8 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
     the cross entropy normally, but upcasting only one chunk at a time saves considerable memory.
 
     The CE and upcasting have to be compiled together for better performance.
-    When using this class, we recommend compiling only _compute_cross_entropy. The gains
-    chunking won't be realized if you compile the entire class.
+    When using this class, we recommend using torch.compile only on the method `compute_cross_entropy`.
+    The gains from chunking won't be realized if you compile the entire class.
 
     For more details, please refer to: https://github.com/pytorch/torchtune/pull/1390
     """
@@ -32,7 +32,7 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
         self.num_output_chunks = num_output_chunks
         self.ignore_index = ignore_index
 
-    def _compute_cross_entropy(
+    def compute_cross_entropy(
         self, logits: torch.Tensor, labels: torch.Tensor
     ) -> torch.Tensor:
         """
@@ -54,13 +54,13 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
             torch.Tensor: Cross entropy loss of shape (1,).
 
         Example:
-        >>> loss_fn = ChunkedCrossEntropyLoss()
-        >>>
-        >>> h = torch.tensor([bsz, num_tokens, dim])
-        >>> output_chunks = [model.output(chunk) for chunk in h.chunk(num_chunks, dim=1)]
-        >>>
-        >>> labels = torch.tensor([bsz, num_tokens])
-        >>> loss = loss_fn(output_chunks, labels)
+            >>> loss_fn = ChunkedCrossEntropyLoss()
+            >>>
+            >>> h = torch.tensor([bsz, num_tokens, dim])
+            >>> output_chunks = [model.output(chunk) for chunk in h.chunk(num_chunks, dim=1)]
+            >>>
+            >>> labels = torch.tensor([bsz, num_tokens])
+            >>> loss = loss_fn(output_chunks, labels)
         """
 
         total_elements = (labels != self.ignore_index).sum()
@@ -78,6 +78,6 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
         # compute one chunk at a time
         total_loss = 0.0
         for logits_chunk, labels_chunk in zip(logits, labels):
-            total_loss += self._compute_cross_entropy(logits_chunk, labels_chunk)
+            total_loss += self.compute_cross_entropy(logits_chunk, labels_chunk)
 
         return total_loss / total_elements
