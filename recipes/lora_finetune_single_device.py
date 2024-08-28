@@ -19,6 +19,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
+from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     get_adapter_params,
@@ -230,6 +231,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
+        if self._model_compile:
+            log.info("Compiling loss with torch.compile...")
+            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+            self._loss_fn = torch.compile(self._loss_fn, backend=backend)
         log.info("Loss is initialized.")
 
         # Dataloader depends on the tokenizer and loss_fn and should be
@@ -355,6 +360,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
 
+        if compile_model:
+            log.info("Compiling model layers with torch.compile...")
+            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+            for m in reversed(list(model.modules())):
+                if isinstance(m, modules.transformer.TransformerSelfAttentionLayer):
+                    m.compile(backend=backend)
+
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
@@ -386,12 +398,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
         log.info(f"Model is initialized with precision {self._dtype}.")
-        # Compile model, if enabled.
-        if compile_model:
-            log.info("Compiling model with torch.compile...")
-            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-            self._loss_step_original = self._loss_step
-            self._loss_step = torch.compile(self._loss_step, backend=backend)
 
         if self._device.type == "cuda":
             memory_stats = utils.get_memory_stats(device=self._device)
@@ -459,7 +465,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             batch_size=batch_size,
             collate_fn=(
                 partial(
-                    utils.padded_collate,
+                    padded_collate,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
                 )

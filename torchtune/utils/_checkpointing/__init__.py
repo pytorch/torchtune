@@ -5,13 +5,25 @@
 # LICENSE file in the root directory of this source tree.
 from typing import Union
 
-from ._checkpointer import (  # noqa
+from torchtune.utils._checkpointing._checkpointer import (
     FullModelHFCheckpointer,
     FullModelMetaCheckpointer,
     FullModelTorchTuneCheckpointer,
 )
-from ._checkpointer_utils import ModelType  # noqa
-from .utils import update_state_dict_for_classifier
+from torchtune.utils._checkpointing._utils import (
+    ADAPTER_CONFIG,
+    ADAPTER_KEY,
+    EPOCHS_KEY,
+    MAX_STEPS_KEY,
+    MODEL_KEY,
+    ModelType,
+    OPT_KEY,
+    RNG_KEY,
+    SEED_KEY,
+    STEPS_KEY,
+    TOTAL_EPOCHS_KEY,
+    update_state_dict_for_classifier,
+)
 
 Checkpointer = Union[
     FullModelHFCheckpointer,
@@ -26,4 +38,14 @@ __all__ = [
     "ModelType",
     "Checkpointer",
     "update_state_dict_for_classifier",
+    "ADAPTER_CONFIG",
+    "ADAPTER_KEY",
+    "EPOCHS_KEY",
+    "MAX_STEPS_KEY",
+    "MODEL_KEY",
+    "OPT_KEY",
+    "RNG_KEY",
+    "SEED_KEY",
+    "STEPS_KEY",
+    "TOTAL_EPOCHS_KEY",
 ]
