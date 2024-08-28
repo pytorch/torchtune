@@ -15,7 +15,7 @@ from omegaconf import DictConfig
 from torch import nn
 from torch.nn.utils.rnn import pad_sequence
 
-from torchtune import config, utils
+from torchtune import config, training, utils
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.recipe_interfaces import EvalRecipeInterface
@@ -188,7 +188,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
     def setup(self) -> None:
         self._device = utils.get_device(device=self._cfg.device)
-        self._dtype = utils.get_dtype(dtype=self._cfg.dtype, device=self._device)
+        self._dtype = training.get_dtype(dtype=self._cfg.dtype, device=self._device)
         self._limit = self._cfg.limit
         self._tasks = list(self._cfg.tasks)
         self._quantizer = config.instantiate(self._cfg.quantizer)
@@ -217,7 +217,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         model_cfg: DictConfig,
         model_state_dict: Dict[str, Any],
     ) -> nn.Module:
-        with utils.set_default_dtype(self._dtype), self._device:
+        with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
         if self._quantization_mode is not None:
             model = self._quantizer.quantize(model)
@@ -231,7 +231,9 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         model.eval()
 
         # Validate model was loaded in with the expected dtype.
-        utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)
+        training.validate_expected_param_dtype(
+            model.named_parameters(), dtype=self._dtype
+        )
         logger.info(f"Model is initialized with precision {self._dtype}.")
         return model
 

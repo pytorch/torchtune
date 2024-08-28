@@ -12,7 +12,7 @@ from unittest import mock
 import pytest
 import torch
 
-from torchtune.utils.precision import (
+from torchtune.training.precision import (
     _set_float32_precision,
     get_dtype,
     PRECISION_STR_TO_DTYPE,

@@ -64,7 +64,6 @@ from .memory import (  # noqa
 )
 from .pooling import get_unmasked_sequence_lengths
 
-from .precision import get_dtype, set_default_dtype, validate_expected_param_dtype
 from .quantization import get_quantizer_mode
 from .seed import set_seed
 
@@ -74,7 +73,6 @@ __all__ = [
     "FSDPPolicyType",
     "log_memory_stats",
     "get_device",
-    "get_dtype",
     "get_logger",
     "get_world_size_and_rank",
     "init_distributed",
@@ -83,9 +81,7 @@ __all__ = [
     "get_full_finetune_fsdp_wrap_policy",
     "get_unmasked_sequence_lengths",
     "set_activation_checkpointing",
-    "set_default_dtype",
     "set_seed",
-    "validate_expected_param_dtype",
     "torch_version_ge",
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",

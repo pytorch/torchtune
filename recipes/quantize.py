@@ -14,7 +14,7 @@ from omegaconf import DictConfig
 
 from torch import nn
 
-from torchtune import config, utils
+from torchtune import config, training, utils
 
 logger = utils.get_logger("DEBUG")
 
@@ -47,7 +47,7 @@ class QuantizationRecipe:
 
     def __init__(self, cfg: DictConfig) -> None:
         self._device = utils.get_device(device=cfg.device)
-        self._dtype = utils.get_dtype(dtype=cfg.dtype, device=self._device)
+        self._dtype = training.get_dtype(dtype=cfg.dtype, device=self._device)
         self._quantizer = config.instantiate(cfg.quantizer)
         self._quantization_mode = utils.get_quantizer_mode(self._quantizer)
         utils.set_seed(seed=cfg.seed)
@@ -69,7 +69,7 @@ class QuantizationRecipe:
         model_cfg: DictConfig,
         model_state_dict: Dict[str, Any],
     ) -> nn.Module:
-        with utils.set_default_dtype(self._dtype), self._device:
+        with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
 
         if "qat" in self._quantization_mode:
@@ -77,7 +77,9 @@ class QuantizationRecipe:
         model.load_state_dict(model_state_dict)
 
         # Validate model was loaded in with the expected dtype.
-        utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)
+        training.validate_expected_param_dtype(
+            model.named_parameters(), dtype=self._dtype
+        )
         logger.info(f"Model is initialized with precision {self._dtype}.")
         return model
 

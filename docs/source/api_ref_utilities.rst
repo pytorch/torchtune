@@ -52,9 +52,6 @@ Utilities for working in a reduced precision setting.
     :toctree: generated/
     :nosignatures:
 
-    get_dtype
-    set_default_dtype
-    validate_expected_param_dtype
     get_quantizer_mode
 
 .. _ac_label:

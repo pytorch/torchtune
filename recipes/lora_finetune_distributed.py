@@ -25,7 +25,7 @@ from torch.distributed.fsdp import (
 )
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import config, modules, utils
+from torchtune import config, modules, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
@@ -111,7 +111,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
     def __init__(self, cfg: DictConfig) -> None:
         self._device = utils.get_device(device=cfg.device)
-        self._dtype = utils.get_dtype(cfg.dtype, device=self._device)
+        self._dtype = training.get_dtype(cfg.dtype, device=self._device)
 
         if self._dtype == torch.float16:
             raise ValueError(
@@ -379,7 +379,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             log.info("FSDP is enabled. Instantiating Model on CPU for Rank 0 ...")
             init_start = time.perf_counter()
 
-            with utils.set_default_dtype(self._dtype):
+            with training.set_default_dtype(self._dtype):
                 model = config.instantiate(cfg_model)
 
             log.info(
@@ -412,7 +412,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         else:
             # For non-zero ranks, load the model on meta device
-            with utils.set_default_dtype(self._dtype), torch.device("meta"):
+            with training.set_default_dtype(self._dtype), torch.device("meta"):
                 model = config.instantiate(cfg_model)
 
         if self._dtype == torch.bfloat16:

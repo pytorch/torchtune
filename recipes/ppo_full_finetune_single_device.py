@@ -17,7 +17,7 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import config, modules, utils
+from torchtune import config, modules, training, utils
 from torchtune.datasets import ConcatDataset
 from torchtune.modules import rlhf
 from torchtune.modules.rlhf import PPOStats, Trajectory
@@ -106,7 +106,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
     def __init__(self, cfg: DictConfig) -> None:
 
         self._device = utils.get_device(device=cfg.device)
-        self._dtype = utils.get_dtype(cfg.dtype, device=self._device)
+        self._dtype = training.get_dtype(cfg.dtype, device=self._device)
 
         # Disable for fp16, as we haven't validated "full" fp16 with this recipe, nor
         # enabled necessary features such as gradient scaling.
@@ -409,7 +409,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         Sets up the policy model, reference policy model, reward model, and value model.
         """
 
-        with utils.set_default_dtype(self._dtype), self._device:
+        with training.set_default_dtype(self._dtype), self._device:
             policy_model = config.instantiate(cfg_model)
             ref_policy_model = config.instantiate(cfg_model)
             reward_model = config.instantiate(cfg_reward_value_model)
@@ -442,16 +442,16 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         value_model.load_state_dict(value_model_state_dict)
 
         # Validate models were loaded in with the expected dtype.
-        utils.validate_expected_param_dtype(
+        training.validate_expected_param_dtype(
             value_model.named_parameters(), dtype=self._dtype
         )
-        utils.validate_expected_param_dtype(
+        training.validate_expected_param_dtype(
             reward_model.named_parameters(), dtype=self._dtype
         )
-        utils.validate_expected_param_dtype(
+        training.validate_expected_param_dtype(
             value_model.named_parameters(), dtype=self._dtype
         )
-        utils.validate_expected_param_dtype(
+        training.validate_expected_param_dtype(
             ref_policy_model.named_parameters(), dtype=self._dtype
         )
 
