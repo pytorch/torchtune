@@ -433,13 +433,13 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # a classifier model, this function should just ensure
         # output.weight appears in the state_dict and the model's parameters,
         # and removes output.bias from the state dict if found
-        utils.update_state_dict_for_classifier(
+        training.update_state_dict_for_classifier(
             reward_model_state_dict, reward_model.named_parameters()
         )
         reward_model.load_state_dict(reward_model_state_dict)
 
         # same as above
-        utils.update_state_dict_for_classifier(
+        training.update_state_dict_for_classifier(
             value_model_state_dict, value_model.named_parameters()
         )
         value_model.load_state_dict(value_model_state_dict)
