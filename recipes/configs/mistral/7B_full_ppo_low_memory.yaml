@@ -34,7 +34,7 @@ tokenizer:
 dataset:
   _component_: torchtune.datasets.text_completion_dataset
   source: trl-internal-testing/sentiment-trl-style
-  max_seq_len: 32768
+  max_seq_len: null
   split: train
   column: prompt
   add_eos: False
