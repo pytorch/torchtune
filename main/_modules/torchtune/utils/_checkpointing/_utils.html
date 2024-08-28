@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.utils._checkpointing._checkpointer_utils &mdash; torchtune main documentation</title>
+  <title>torchtune.utils._checkpointing._utils &mdash; torchtune main documentation</title>
   
 
   
@@ -376,7 +376,7 @@
         
           <li><a href="../../../index.html">Module code</a> &gt;</li>
         
-      <li>torchtune.utils._checkpointing._checkpointer_utils</li>
+      <li>torchtune.utils._checkpointing._utils</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -408,7 +408,7 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>Source code for torchtune.utils._checkpointing._checkpointer_utils</h1><div class="highlight"><pre>
+  <h1>Source code for torchtune.utils._checkpointing._utils</h1><div class="highlight"><pre>
 <span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
 <span class="c1"># All rights reserved.</span>
 <span class="c1">#</span>
@@ -418,10 +418,33 @@
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">safetensors</span> <span class="kn">import</span> <span class="n">safe_open</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Keys used during checkpoint load and checkpoint save.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># adapter config containing info about LoRA modules, rank, alpha</span>
+<span class="n">ADAPTER_CONFIG</span> <span class="o">=</span> <span class="s2">&quot;adapter_config&quot;</span>
+<span class="c1"># key used for adapter weights such as LoRA weights</span>
+<span class="n">ADAPTER_KEY</span> <span class="o">=</span> <span class="s2">&quot;adapter&quot;</span>
+<span class="c1"># number of epochs completed thus far</span>
+<span class="n">EPOCHS_KEY</span> <span class="o">=</span> <span class="s2">&quot;epochs_run&quot;</span>
+<span class="n">MAX_STEPS_KEY</span> <span class="o">=</span> <span class="s2">&quot;max_steps_per_epoch&quot;</span>
+<span class="n">MODEL_KEY</span> <span class="o">=</span> <span class="s2">&quot;model&quot;</span>
+<span class="n">OPT_KEY</span> <span class="o">=</span> <span class="s2">&quot;optimizer&quot;</span>
+<span class="n">SEED_KEY</span> <span class="o">=</span> <span class="s2">&quot;seed&quot;</span>
+<span class="c1"># total number of epochs for training; resumed training runs for</span>
+<span class="c1"># (total_epochs - epochs_run) number of epochs</span>
+<span class="n">TOTAL_EPOCHS_KEY</span> <span class="o">=</span> <span class="s2">&quot;total_epochs&quot;</span>
+<span class="c1"># number of steps completed thus far - for PPO</span>
+<span class="n">STEPS_KEY</span> <span class="o">=</span> <span class="s2">&quot;steps_run&quot;</span>
+<span class="c1"># rng state for ensuring correct training resuming in PPO</span>
+<span class="n">RNG_KEY</span> <span class="o">=</span> <span class="s2">&quot;rng_state&quot;</span>
 
 
 <div class="viewcode-block" id="ModelType"><a class="viewcode-back" href="../../../../generated/torchtune.utils.ModelType.html#torchtune.utils.ModelType">[docs]</a><span class="k">class</span> <span class="nc">ModelType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
@@ -541,6 +564,56 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">file_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="update_state_dict_for_classifier"><a class="viewcode-back" href="../../../../generated/torchtune.utils.update_state_dict_for_classifier.html#torchtune.utils.update_state_dict_for_classifier">[docs]</a><span class="k">def</span> <span class="nf">update_state_dict_for_classifier</span><span class="p">(</span>
+    <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+    <span class="n">model_named_parameters</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]],</span>
+    <span class="n">force_override</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Validates the state dict for checkpoint loading for a classifier model.</span>
+<span class="sd">    To be used prior to a call to ``model.load_state_dict(state_dict)``.</span>
+<span class="sd">    This function will overwrite the ``output.weight`` in the state-dict</span>
+<span class="sd">    to be loaded with the ``output.weight`` in the model if the shapes</span>
+<span class="sd">    for the ``output.weight`` do not match. You may also wish to override this behaviour,</span>
+<span class="sd">    for example, if ``num_classes`` for your checkpoint and model are the same.</span>
+
+<span class="sd">    Concretely, when fine-tuning a classifier model from the checkpoint of a base language model</span>
+<span class="sd">    which has ``output.weight`` of shape ``[vocab_dim, embed_dim]``, we overwrite</span>
+<span class="sd">    the ``output.weight`` in the state-dict to be loaded with the randomly initialized</span>
+<span class="sd">    ``[num_classes, embed_dim]`` weight in the model. This is done in-place.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        state_dict (Dict[str, torch.Tensor]): state dict to be loaded into the classifier model.</span>
+<span class="sd">        model_named_parameters (Iterable[Tuple[str, torch.nn.Parameter]]): model named parameters</span>
+<span class="sd">            from ``model.named_parameters()``.</span>
+<span class="sd">        force_override (bool): Whether to replace ``output.weight`` in ``state_dict`` with the model&#39;s</span>
+<span class="sd">            ``output.weight``, even if the shapes match.</span>
+<span class="sd">    Notes:</span>
+<span class="sd">        - ``output.bias`` will be ignored if present in ``state_dict``</span>
+<span class="sd">        - This function will always replace the ``output.weight`` in ``state_dict``,</span>
+<span class="sd">            if ``output.weight != model.output.weight``.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        AssertionError: if ``state_dict`` does not contain ``output.weight``.</span>
+<span class="sd">        AssertionError: if ``model_named_parameters`` does not contain ``output.weight``.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">output_weight</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">model_named_parameters</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;output.weight&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">&quot;output.weight&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
+            <span class="s2">&quot;Expected output.weight in state_dict, but it wasn&#39;t found.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">output_weight</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
+            <span class="s2">&quot;Expected output.weight in model_named_parameters, but it wasn&#39;t found.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="s2">&quot;output.bias&quot;</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">:</span>
+        <span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Found output.bias in state dict - this will not be used!&quot;</span><span class="p">)</span>
+        <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;output.bias&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;output.weight&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">output_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="n">force_override</span><span class="p">:</span>
+        <span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;output.weight&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">output_weight</span></div>
 </pre></div>
 
              </article>
