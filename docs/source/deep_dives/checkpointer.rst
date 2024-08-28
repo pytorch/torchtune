@@ -136,7 +136,7 @@ each of which supports a different checkpoint format.
 
 
 :class:`HFCheckpointer <torchtune.training.FullModelHFCheckpointer>`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This checkpointer reads and writes checkpoints in a format which is compatible with the transformers
 framework from Hugging Face. As mentioned above, this is the most popular format within the Hugging Face
@@ -206,7 +206,7 @@ The following snippet explains how the HFCheckpointer is setup in torchtune conf
 |
 
 :class:`MetaCheckpointer <torchtune.training.FullModelMetaCheckpointer>`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This checkpointer reads and writes checkpoints in a format which is compatible with the original meta-llama
 github repository.
@@ -266,7 +266,7 @@ The following snippet explains how the MetaCheckpointer is setup in torchtune co
 |
 
 :class:`TorchTuneCheckpointer <torchtune.training.FullModelTorchTuneCheckpointer>`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This checkpointer reads and writes checkpoints in a format that is compatible with torchtune's
 model definition. This does not perform any state_dict conversions and is currently used either

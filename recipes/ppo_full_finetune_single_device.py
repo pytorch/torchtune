@@ -348,7 +348,10 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         value_cfg: DictConfig,
         reward_cfg: DictConfig,
     ) -> Tuple[
-        utils.Checkpointer, utils.Checkpointer, utils.Checkpointer, utils.Checkpointer
+        training.Checkpointer,
+        training.Checkpointer,
+        training.Checkpointer,
+        training.Checkpointer,
     ]:
         """
         Sets up checkpointers for policy, reference policy, value, and reward models.
