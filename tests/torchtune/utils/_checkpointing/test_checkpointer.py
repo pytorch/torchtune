@@ -21,8 +21,11 @@ from torchtune.modules.peft import (
 )
 
 from torchtune.utils._checkpointing import FullModelHFCheckpointer
-from torchtune.utils._checkpointing._checkpointer_utils import safe_torch_load
-from torchtune.utils.constants import ADAPTER_CONFIG, ADAPTER_KEY
+from torchtune.utils._checkpointing._checkpointer_utils import (
+    ADAPTER_CONFIG,
+    ADAPTER_KEY,
+    safe_torch_load,
+)
 from torchtune.utils.seed import set_seed
 
 _VOCAB_SIZE = 100
@@ -321,7 +324,7 @@ class TestHFLlama2FullModelCheckpointer:
         output_file_2 = Path.joinpath(tmp_path, "adapter_2.pt")
 
         with pytest.raises(ValueError, match="Unable to load checkpoint from"):
-            output_state_dict_1 = safe_torch_load(output_file_1)
+            _ = safe_torch_load(output_file_1)
 
         output_state_dict_2 = safe_torch_load(output_file_2)
         # Check that the empty adapter we saved is the one loaded succesfully
@@ -761,31 +764,3 @@ class TestHFGemmaFullModelCheckpointer:
         output_state_dict = safe_torch_load(output_file)
 
         assert len(output_state_dict.keys()) == len(orig_state_dict.keys())
-
-
-class TestCheckpointerUtils:
-    @pytest.fixture
-    def model_checkpoint(self, tmp_path):
-        """
-        Fixture which creates a checkpoint file for testing checkpointer utils.
-        """
-        checkpoint_file = tmp_path / "model_checkpoint_01.pt"
-
-        state_dict = {
-            "token_embeddings.weight": torch.ones(1, 10),
-            "output.weight": torch.ones(1, 10),
-        }
-
-        torch.save(state_dict, checkpoint_file)
-
-        return checkpoint_file
-
-    @pytest.mark.parametrize("weights_only", [True, False])
-    def test_safe_torch_load(self, model_checkpoint, weights_only):
-        state_dict = safe_torch_load(Path(model_checkpoint), weights_only)
-
-        assert "token_embeddings.weight" in state_dict
-        assert "output.weight" in state_dict
-
-        assert state_dict["token_embeddings.weight"].shape[1] == 10
-        assert state_dict["output.weight"].shape[0] == 1

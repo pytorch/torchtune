@@ -5,11 +5,15 @@
 # LICENSE file in the root directory of this source tree.
 
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 import torch
 from torchtune.models.llama2 import llama2, llama2_classifier
-from torchtune.utils import update_state_dict_for_classifier
+from torchtune.utils._checkpointing._checkpointer_utils import (
+    safe_torch_load,
+    update_state_dict_for_classifier,
+)
 
 N_LAYERS = 3
 IN_DIM = 5
@@ -20,6 +24,34 @@ NUM_KV_HEADS = 2
 EMBED_DIM = 64
 MAX_SEQ_LEN = 64
 NUM_CLASSES = 6
+
+
+class TestCheckpointerUtils:
+    @pytest.fixture
+    def model_checkpoint(self, tmp_path):
+        """
+        Fixture which creates a checkpoint file for testing checkpointer utils.
+        """
+        checkpoint_file = tmp_path / "model_checkpoint_01.pt"
+
+        state_dict = {
+            "token_embeddings.weight": torch.ones(1, 10),
+            "output.weight": torch.ones(1, 10),
+        }
+
+        torch.save(state_dict, checkpoint_file)
+
+        return checkpoint_file
+
+    @pytest.mark.parametrize("weights_only", [True, False])
+    def test_safe_torch_load(self, model_checkpoint, weights_only):
+        state_dict = safe_torch_load(Path(model_checkpoint), weights_only)
+
+        assert "token_embeddings.weight" in state_dict
+        assert "output.weight" in state_dict
+
+        assert state_dict["token_embeddings.weight"].shape[1] == 10
+        assert state_dict["output.weight"].shape[0] == 1
 
 
 class TestUpdateStateDictForClassifer:

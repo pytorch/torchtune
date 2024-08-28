@@ -7,10 +7,33 @@
 import json
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Iterable, Tuple
+from warnings import warn
 
 import torch
 from safetensors import safe_open
+
+"""
+Keys used during checkpoint load and checkpoint save.
+"""
+
+# adapter config containing info about LoRA modules, rank, alpha
+ADAPTER_CONFIG = "adapter_config"
+# key used for adapter weights such as LoRA weights
+ADAPTER_KEY = "adapter"
+# number of epochs completed thus far
+EPOCHS_KEY = "epochs_run"
+MAX_STEPS_KEY = "max_steps_per_epoch"
+MODEL_KEY = "model"
+OPT_KEY = "optimizer"
+SEED_KEY = "seed"
+# total number of epochs for training; resumed training runs for
+# (total_epochs - epochs_run) number of epochs
+TOTAL_EPOCHS_KEY = "total_epochs"
+# number of steps completed thus far - for PPO
+STEPS_KEY = "steps_run"
+# rng state for ensuring correct training resuming in PPO
+RNG_KEY = "rng_state"
 
 
 class ModelType(Enum):
@@ -130,3 +153,53 @@ def save_config(path: Path, config: Dict[str, Any]) -> None:
     if not file_path.exists():
         with open(file_path, "w") as f:
             json.dump(config, f)
+
+
+def update_state_dict_for_classifier(
+    state_dict: Dict[str, torch.Tensor],
+    model_named_parameters: Iterable[Tuple[str, torch.nn.Parameter]],
+    force_override: bool = False,
+):
+    """
+    Validates the state dict for checkpoint loading for a classifier model.
+    To be used prior to a call to ``model.load_state_dict(state_dict)``.
+    This function will overwrite the ``output.weight`` in the state-dict
+    to be loaded with the ``output.weight`` in the model if the shapes
+    for the ``output.weight`` do not match. You may also wish to override this behaviour,
+    for example, if ``num_classes`` for your checkpoint and model are the same.
+
+    Concretely, when fine-tuning a classifier model from the checkpoint of a base language model
+    which has ``output.weight`` of shape ``[vocab_dim, embed_dim]``, we overwrite
+    the ``output.weight`` in the state-dict to be loaded with the randomly initialized
+    ``[num_classes, embed_dim]`` weight in the model. This is done in-place.
+
+    Args:
+        state_dict (Dict[str, torch.Tensor]): state dict to be loaded into the classifier model.
+        model_named_parameters (Iterable[Tuple[str, torch.nn.Parameter]]): model named parameters
+            from ``model.named_parameters()``.
+        force_override (bool): Whether to replace ``output.weight`` in ``state_dict`` with the model's
+            ``output.weight``, even if the shapes match.
+    Notes:
+        - ``output.bias`` will be ignored if present in ``state_dict``
+        - This function will always replace the ``output.weight`` in ``state_dict``,
+            if ``output.weight != model.output.weight``.
+
+    Raises:
+        AssertionError: if ``state_dict`` does not contain ``output.weight``.
+        AssertionError: if ``model_named_parameters`` does not contain ``output.weight``.
+
+    """
+    output_weight = dict(model_named_parameters).get("output.weight", None)
+    if "output.weight" not in state_dict:
+        raise AssertionError(
+            "Expected output.weight in state_dict, but it wasn't found."
+        )
+    if output_weight is None:
+        raise AssertionError(
+            "Expected output.weight in model_named_parameters, but it wasn't found."
+        )
+    if "output.bias" in state_dict:
+        warn("Found output.bias in state dict - this will not be used!")
+        state_dict.pop("output.bias")
+    if state_dict["output.weight"].shape[0] != output_weight.shape[0] or force_override:
+        state_dict["output.weight"] = output_weight
