@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Union, Callable
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
@@ -44,6 +44,8 @@ class TextCompletionDataset(Dataset):
         column: str = "text",
         max_seq_len: Optional[int] = None,
         add_eos: bool = True,
+        custom_filter: bool=False,
+        filter_fn: Optional[Callable] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._tokenizer = tokenizer
@@ -51,6 +53,13 @@ class TextCompletionDataset(Dataset):
         self.max_seq_len = max_seq_len
         self._column = column
         self.add_eos = add_eos
+
+        # Default filter function to remove empty lines
+        def default_filter(text:str) -> str:
+            return "\n".join([line for line in text.splitlines() if line.strip()])
+        
+        # Set the filter function
+        self.filter_fn=filter_fn if custom_filter else default_filter
 
     def __len__(self):
         return len(self._data)
@@ -61,6 +70,11 @@ class TextCompletionDataset(Dataset):
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
         prompt = sample[self._column]
+        
+        # Apply the filter function to the text data
+        if self.filter_fn:
+            prompt = self.filter_fn(prompt)
+
         tokens = self._tokenizer.encode(text=prompt, add_bos=True, add_eos=self.add_eos)
 
         # Truncate if needed, but don't coerce EOS id
@@ -81,6 +95,8 @@ def text_completion_dataset(
     add_eos: bool = True,
     packed: bool = False,
     split_across_pack: bool = True,
+    custom_filter=False,
+    filter_fn: Optional[Callable] = None,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> Union[TextCompletionDataset, PackedDataset]:
     """
@@ -143,6 +159,8 @@ def text_completion_dataset(
         column=column,
         max_seq_len=max_seq_len,
         add_eos=add_eos,
+        filter_fn=filter_fn,
+        custom_filter=custom_filter,
         **load_dataset_kwargs,
     )
     return (
