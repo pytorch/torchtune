@@ -19,7 +19,7 @@ from torchtune.models import convert_weights
 from torchtune.models.phi3 import phi3_hf_to_tune, phi3_tune_to_hf
 from torchtune.models.qwen2 import qwen2_hf_to_tune, qwen2_tune_to_hf
 from torchtune.modules.rlhf.utils import reward_hf_to_tune, reward_tune_to_hf
-from torchtune.utils._checkpointing._checkpointer_utils import (
+from torchtune.utils._checkpointing._utils import (
     get_path,
     ModelType,
     safe_torch_load,

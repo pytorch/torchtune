@@ -10,7 +10,7 @@ from torchtune.utils._checkpointing._checkpointer import (
     FullModelMetaCheckpointer,
     FullModelTorchTuneCheckpointer,
 )
-from torchtune.utils._checkpointing._checkpointer_utils import (
+from torchtune.utils._checkpointing._utils import (
     ADAPTER_CONFIG,
     ADAPTER_KEY,
     EPOCHS_KEY,

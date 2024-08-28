@@ -21,7 +21,7 @@ from torchtune.modules.peft import (
 )
 
 from torchtune.utils._checkpointing import FullModelHFCheckpointer
-from torchtune.utils._checkpointing._checkpointer_utils import (
+from torchtune.utils._checkpointing._utils import (
     ADAPTER_CONFIG,
     ADAPTER_KEY,
     safe_torch_load,
