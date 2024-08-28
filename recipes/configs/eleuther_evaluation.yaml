@@ -32,6 +32,8 @@ tasks: ["truthfulqa_mc2"]
 limit: null
 max_seq_length: 4096
 batch_size: 8
+# It is recommended to set enable_kv_cache=False for long-context models like Llama3.1
+enable_kv_cache: True
 
 # Quantization specific args
 quantizer: null
