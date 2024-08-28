@@ -192,7 +192,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         self._limit = self._cfg.limit
         self._tasks = list(self._cfg.tasks)
         self._quantizer = config.instantiate(self._cfg.quantizer)
-        self._quantization_mode = utils.get_quantizer_mode(self._quantizer)
+        self._quantization_mode = training.get_quantizer_mode(self._quantizer)
 
         utils.set_seed(seed=self._cfg.seed)
 
