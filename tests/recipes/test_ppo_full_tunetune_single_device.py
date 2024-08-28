@@ -47,6 +47,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
+            "compile=False",
         ] + dummy_text_completion_alpaca_dataset_config()
 
     @pytest.mark.integration_test

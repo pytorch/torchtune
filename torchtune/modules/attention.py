@@ -136,13 +136,16 @@ class MultiHeadAttention(nn.Module):
         self.k_norm = k_norm
         self.pos_embeddings = pos_embeddings
 
-    def setup_cache(self, batch_size: int, dtype: torch.dtype) -> None:
+    def setup_cache(
+        self, batch_size: int, dtype: torch.dtype, max_seq_len: Optional[int] = None
+    ) -> None:
         """Setup key value caches for attention calculation. If called
         after kv_cache is already setup, this will be skipped.
 
         Args:
             batch_size (int): batch size for the caches.
             dtype (torch.dtype): dtype for the caches.
+            max_seq_len (Optional[int]): maximum sequence length to initialize caches with.
         """
         # Don't overwrite user defined kv_cache from init
         if self.kv_cache is not None:
@@ -152,7 +155,7 @@ class MultiHeadAttention(nn.Module):
         else:
             self.kv_cache = KVCache(
                 batch_size=batch_size,
-                max_seq_len=self.max_seq_len,
+                max_seq_len=self.max_seq_len if max_seq_len is None else max_seq_len,
                 num_heads=self.num_heads,
                 head_dim=self.head_dim,
                 dtype=dtype,
@@ -173,6 +176,7 @@ class MultiHeadAttention(nn.Module):
         *,
         mask: Optional[Tensor] = None,
         input_pos: Optional[Tensor] = None,
+        cache_pos: Optional[Tensor] = None,
     ) -> Tensor:
         """
         Args:
@@ -189,6 +193,10 @@ class MultiHeadAttention(nn.Module):
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
+            cache_pos (Optional[Tensor]): Optional tensor which contains the cache positions
+                of each token, used during inference. This is useful when ``input_ids`` are
+                right-shifted to account for padding tokens. Default is None, in which case
+                ``input_pos`` is used (if specified).
 
         Returns:
             Tensor: output tensor with attention applied
@@ -209,11 +217,11 @@ class MultiHeadAttention(nn.Module):
         b, s_x, _ = x.shape
         y = y if y is not None else x
         s_y = y.shape[1]
-
         if self.kv_cache and input_pos is None:
             cache_size = self.kv_cache.size
             input_pos = torch.arange(cache_size, cache_size + s_y, device=x.device)
 
+        cache_pos = input_pos if cache_pos is None else cache_pos
         # q has shape [b, s_x, num_heads * head_dim]
         # k has shape [b, s_y, num_kv_heads * head_dim]
         # v has shape [b, s_y, num_kv_heads * head_dim]
@@ -261,13 +269,13 @@ class MultiHeadAttention(nn.Module):
             q = self.q_norm(q)
             k = self.k_norm(k)
 
-        # Update key-value cache
-        if self.kv_cache is not None:
-            k, v = self.kv_cache.update(input_pos, k, v)
-
         # shape: [b, 1, s, s]
         if mask is not None:
             mask = mask[:, None, :, :]
+
+        # Update key-value cache
+        if self.kv_cache is not None and torch.is_inference_mode_enabled():
+            k, v = self.kv_cache.update(cache_pos, k, v)
 
         # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
         output = nn.functional.scaled_dot_product_attention(

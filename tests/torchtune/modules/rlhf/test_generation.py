@@ -238,7 +238,9 @@ class TestGetCausalMask:
             ]
         ).unsqueeze(0)
 
-        causal_mask = rlhf.get_causal_mask(left_padded_prompt_tokens != 0)
+        causal_mask = rlhf.get_causal_mask_from_padding_mask(
+            left_padded_prompt_tokens != 0
+        )
         torch.testing.assert_close(causal_mask, expected_casual_mask, atol=0, rtol=0)
 
     def test_get_causal_mask_for_left_padded_inputs_batched(
@@ -276,7 +278,9 @@ class TestGetCausalMask:
             ]
         )
 
-        causal_mask = rlhf.get_causal_mask(left_padded_prompt_tokens_batched != 0)
+        causal_mask = rlhf.get_causal_mask_from_padding_mask(
+            left_padded_prompt_tokens_batched != 0
+        )
         torch.testing.assert_close(causal_mask, expected_causal_mask, atol=0, rtol=0)
 
     def test_get_causal_mask_for_right_padded_inputs(self, right_padded_prompt_tokens):
@@ -294,7 +298,9 @@ class TestGetCausalMask:
             ]
         ).unsqueeze(0)
 
-        causal_mask = rlhf.get_causal_mask(right_padded_prompt_tokens != 0)
+        causal_mask = rlhf.get_causal_mask_from_padding_mask(
+            right_padded_prompt_tokens != 0
+        )
         torch.testing.assert_close(causal_mask, expected_causal_mask, atol=0, rtol=0)
 
     def test_get_causal_mask_for_right_padded_inputs_batched(
@@ -332,7 +338,9 @@ class TestGetCausalMask:
             ]
         )
 
-        causal_mask = rlhf.get_causal_mask(right_padded_prompt_tokens_batched != 0)
+        causal_mask = rlhf.get_causal_mask_from_padding_mask(
+            right_padded_prompt_tokens_batched != 0
+        )
         torch.testing.assert_close(causal_mask, expected_causal_mask, atol=0, rtol=0)
 
     def test_get_causal_mask_for_mixed_padding_inputs(self, mixed_padded_prompt_tokens):
@@ -352,7 +360,9 @@ class TestGetCausalMask:
             ]
         ).unsqueeze(0)
 
-        causal_mask = rlhf.get_causal_mask(mixed_padded_prompt_tokens != 0)
+        causal_mask = rlhf.get_causal_mask_from_padding_mask(
+            mixed_padded_prompt_tokens != 0
+        )
         torch.testing.assert_close(causal_mask, expected_causal_mask, atol=0, rtol=0)
 
     def test_get_causal_mask_for_mixed_padded_inputs_batched(
@@ -390,5 +400,7 @@ class TestGetCausalMask:
             ]
         )
 
-        causal_mask = rlhf.get_causal_mask(mixed_padded_prompt_tokens_batched != 0)
+        causal_mask = rlhf.get_causal_mask_from_padding_mask(
+            mixed_padded_prompt_tokens_batched != 0
+        )
         torch.testing.assert_close(causal_mask, expected_causal_mask, atol=0, rtol=0)

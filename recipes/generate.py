@@ -15,6 +15,7 @@ from torch import nn
 from torchtune import config, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import ChatFormat, InstructTemplate, Message
+from torchtune.generation import generate, generate_next_token
 
 logger = utils.get_logger("DEBUG")
 
@@ -131,7 +132,7 @@ class InferenceRecipe:
                 messages = chat_format.format(messages)
             return self._tokenizer.tokenize_messages(messages)[0]
 
-    @torch.no_grad()
+    @torch.inference_mode()
     def generate(self, cfg: DictConfig):
         tokens = self.convert_prompt_to_tokens(
             cfg.prompt, cfg.get("chat_format", None), cfg.get("instruct_template", None)
@@ -145,7 +146,9 @@ class InferenceRecipe:
         if self._quantization_mode is not None:
             logger.info("Starting compilation to improve generation performance ...")
             custom_generate_next_token = torch.compile(
-                utils.generate_next_token, mode="max-autotune", fullgraph=True
+                generate_next_token,
+                mode="max-autotune",
+                fullgraph=True,
             )
             t0 = time.perf_counter()
             _ = utils.generate(
@@ -161,15 +164,17 @@ class InferenceRecipe:
             logger.info(f"Warmup run for quantized model takes: {t:.02f} sec")
 
         t0 = time.perf_counter()
-        generated_tokens = utils.generate(
+        generated_tokens, _ = generate(
             model=self._model,
             prompt=prompt,
             max_generated_tokens=cfg.max_new_tokens,
+            pad_id=self._tokenizer.pad_id,
             temperature=cfg.temperature,
             top_k=cfg.top_k,
-            stop_tokens=self._tokenizer.stop_tokens,
+            # stop_tokens=self._tokenizer.stop_tokens,
             custom_generate_next_token=custom_generate_next_token,
         )
+        generated_tokens = generated_tokens.tolist()
         t = time.perf_counter() - t0
 
         logger.info(self._tokenizer.decode(generated_tokens[0]))

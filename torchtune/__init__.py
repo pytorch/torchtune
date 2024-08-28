@@ -6,6 +6,6 @@
 
 __version__ = ""
 
-from torchtune import datasets, models, modules, utils
+from torchtune import datasets, generation, models, modules, utils
 
-__all__ = [datasets, models, modules, utils]
+__all__ = [datasets, models, modules, utils, generation]
