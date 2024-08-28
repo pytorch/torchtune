@@ -244,7 +244,19 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
-        self.num_output_chunks = getattr(self._loss_fn, "num_output_chunks", 0)
+        backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+        if isinstance(self._loss_fn, modules.loss.CEWithChunkedOutputLoss):
+            # set num_output_chunks for model
+            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+            if self._model_compile:
+                log.info("Compiling loss with torch.compile...")
+                self._loss_fn._compute_cross_entropy = torch.compile(
+                    self._loss_fn._compute_cross_entropy, backend=backend
+                )
+        else:
+            if self._model_compile:
+                log.info("Compiling loss with torch.compile...")
+                self._loss_fn = torch.compile(self._loss_fn, backend=backend)
         log.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
@@ -701,7 +713,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 )
                 if not isinstance(logits, list):
                     labels = labels.reshape(-1)
-                    logits = logits.reshape(-1, logits.size(-1)).float()
+                    logits = logits.reshape(-1, logits.size(-1))
 
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
