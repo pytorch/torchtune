@@ -27,8 +27,8 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
     For more details, please refer to: https://github.com/pytorch/torchtune/pull/1390
     """
 
-    def __init__(self, num_output_chunks: int = 16, ignore_index: int = -100):
-        super(ChunkedCrossEntropyLoss, self).__init__()
+    def __init__(self, num_output_chunks: int = 8, ignore_index: int = -100):
+        super().__init__()
         self.num_output_chunks = num_output_chunks
         self.ignore_index = ignore_index
         self.cross_entropy_loss = torch.nn.CrossEntropyLoss(
