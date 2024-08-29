@@ -201,18 +201,15 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 "Are you sure you passed in the right recipe checkpoint?"
             ) from e
 
-    def setup(self, cfg: DictConfig, epoch=0, metric_logger=None) -> None:
+    def setup(self, cfg: DictConfig) -> None:
         """
         Setup the recipe state. This includes recipe state (if resume_from_checkpoint is True),
         model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
         """
-        # ==== For loss curves: preserve metric logger across setups ====
-        if epoch == 0:
-            self._metric_logger = config.instantiate(cfg.metric_logger)
-            # log config with parameter override
-            self._metric_logger.log_config(cfg)
-        else:
-            self._metric_logger = metric_logger
+        self._metric_logger = config.instantiate(cfg.metric_logger)
+
+        # log config with parameter override
+        self._metric_logger.log_config(cfg)
 
         self._compile = cfg.compile
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
@@ -526,6 +523,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 }
             )
 
+        # Move to CPU to avoid a copy on GPU
         state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
 
         # Construct the adapter weights
@@ -604,7 +602,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         return loss
 
-    def train(self, curr_epoch=0) -> None:
+    def train(self) -> None:
         """
         The core training loop.
         """
@@ -621,8 +619,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         with self._profiler as prof:
             # self.epochs_run should be non-zero when we're resuming from a checkpoint
-            # (for loss curves) pass in curr_epoch as argument
-            for _ in range(1):
+            for curr_epoch in range(self.epochs_run, self.total_epochs):
                 # Update the sampler to ensure data is correctly shuffled across epochs
                 # in case shuffle is True
                 self._sampler.set_epoch(curr_epoch)
@@ -719,7 +716,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 log.info("Starting checkpoint save...")
                 self.save_checkpoint(epoch=curr_epoch)
                 log.info(
-                    "Checkpoint saved in {:.2f} seconds".format(
+                    "Checkpoint saved in {:.2f} seconds.".format(
                         time.time() - start_save_checkpoint
                     )
                 )
@@ -738,23 +735,9 @@ def recipe_main(cfg: DictConfig) -> None:
         - Overwritten by arguments from the command-line
     """
     config.log_config(recipe_name="LoRAFinetuneRecipeSingleDevice", cfg=cfg)
-    # ==== The following changes are to mimic resume_from_checkpoint ====
-    for i in range(cfg.epochs):
-        recipe = LoRAFinetuneRecipeSingleDevice(cfg=cfg)
-        if i == 0:
-            recipe.setup(cfg=cfg, epoch=i)
-            # persist metric_logger across epochs (for wanbd logging)
-            metric_logger = recipe._metric_logger
-        else:
-            recipe.setup(cfg=cfg, epoch=i, metric_logger=metric_logger)
-        recipe.train(curr_epoch=i)
-        # modify config to mimic user modifying .yaml file to resume from checkpoint
-        cfg.resume_from_checkpoint = True
-        cfg.checkpointer.checkpoint_dir = "/tmp/Meta-Llama-3-8B-Instruct/"
-        cfg.checkpointer.checkpoint_files = [f"meta_model_{i}.pt"]
-        cfg.checkpointer.adapter_checkpoint = f"adapter_{i}.pt"
-        cfg.checkpointer.recipe_checkpoint = "recipe_state.pt"
-
+    recipe = LoRAFinetuneRecipeSingleDevice(cfg=cfg)
+    recipe.setup(cfg=cfg)
+    recipe.train()
     recipe.cleanup()
 
 

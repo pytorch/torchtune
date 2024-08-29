@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import sys
 from functools import partial
 from typing import List, Literal, Optional
 
@@ -262,7 +263,18 @@ def lora_llama3(
     if quantize_base:
         # For QLoRA, we reparametrize 4-bit tensors to bf16, and offload to CPU on the fly
         # so as to not increase peak memory
-        hook = _low_ram_reparametrize_as_dtype_state_dict_post_hook if low_cpu_ram else reparametrize_as_dtype_state_dict_post_hook
+        if low_cpu_ram and _low_ram_reparametrize_as_dtype_state_dict_post_hook is None:
+            if sys.platform == "win32":
+                raise RuntimeError(
+                    "low_cpu_ram=True not supported on Windows."
+                )
+            else:
+                raise RuntimeError("low_cpu_ram=True requires torch.__version__ >= 2.5.0.dev20240829.")
+        hook = (
+            _low_ram_reparametrize_as_dtype_state_dict_post_hook
+            if low_cpu_ram
+            else reparametrize_as_dtype_state_dict_post_hook
+        )
         model._register_state_dict_hook(
             partial(hook, offload_to_cpu=True)
         )
