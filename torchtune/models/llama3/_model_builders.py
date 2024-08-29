@@ -97,6 +97,7 @@ def lora_llama3_8b(
     lora_alpha: float = 16,
     quantize_base: bool = False,
     use_dora: bool = False,
+    low_cpu_ram: bool = False,
 ) -> TransformerDecoder:
     """
     Builder for creating a Llama3 8B model with LoRA enabled.
@@ -141,6 +142,7 @@ def lora_llama3_8b(
         lora_dropout=0.05,
         quantize_base=quantize_base,
         use_dora=use_dora,
+        low_cpu_ram=low_cpu_ram,
     )
 
 

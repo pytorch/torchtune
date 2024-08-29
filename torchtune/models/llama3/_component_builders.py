@@ -22,7 +22,7 @@ from torchtune.modules import (
     TransformerSelfAttentionLayer,
 )
 
-from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
+from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook, _low_ram_reparametrize_as_dtype_state_dict_post_hook
 
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 
@@ -154,6 +154,8 @@ def lora_llama3(
     use_dora: bool = False,
     # Quantization args
     quantize_base: bool = False,
+    # colab checkpoint saving args
+    low_cpu_ram: bool = False,
 ) -> TransformerDecoder:
     """
     Return a version of Llama3 (an instance of :func:`~torchtune.modules.TransformerDecoder`)
@@ -190,7 +192,8 @@ def lora_llama3(
         quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
-
+        low_cpu_ram (bool): Whether checkpointing in an environment with low RAM. Setting this flag to
+            ``True`` can avoid CPU OOM when checkpointing on a low RAM machine (e.g. colab)
     Returns:
         TransformerDecoder: Instantiation of Llama3 model with LoRA applied to
         a subset of the attention projections in each layer.
@@ -253,14 +256,13 @@ def lora_llama3(
         output=output_proj,
     )
 
-    # Registering this hook will cause OOM on colab
-    # We do the corresponding logic in lora_finetune_single_device.py:save_checkpoint
-    # if quantize_base:
-    #     # For QLoRA, we reparametrize 4-bit tensors to bf16, and offload to CPU on the fly
-    #     # so as to not increase peak memory
-    #     model._register_state_dict_hook(
-    #         partial(reparametrize_as_dtype_state_dict_post_hook, offload_to_cpu=True)
-    #     )
+    if quantize_base:
+        # For QLoRA, we reparametrize 4-bit tensors to bf16, and offload to CPU on the fly
+        # so as to not increase peak memory
+        hook = _low_ram_reparametrize_as_dtype_state_dict_post_hook if low_cpu_ram else reparametrize_as_dtype_state_dict_post_hook
+        model._register_state_dict_hook(
+            partial(hook, offload_to_cpu=True)
+        )
 
     return model
 

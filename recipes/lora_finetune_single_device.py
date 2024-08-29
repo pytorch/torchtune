@@ -13,12 +13,9 @@ from warnings import warn
 
 import torch
 from omegaconf import DictConfig, ListConfig
-from collections import OrderedDict
-from mmap import MAP_SHARED, MAP_PRIVATE
 
 from torch import nn
 from torch.optim import Optimizer
-from torch._subclasses.fake_tensor import FakeTensorMode, FakeTensorConverter, FakeTensor
 from torch.utils.data import DataLoader, DistributedSampler
 from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune import config, modules, training, utils
@@ -38,23 +35,6 @@ from torchtune.training import DummyProfiler, PROFILER_KEY
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
-
-
-# === This will not live in torchtune, is just for the sake of this prototype ===
-def fake_reduce_ex(tensor, proto):
-    tensor.untyped_storage()._serialize_data = False
-    func, args = tensor._reduce_ex_internal(proto)
-    storage = args[0]
-    # FakeTensor storage device is always meta, we need to tag the storage with
-    # the tensor device to be able to restore it correctly.
-    if isinstance(storage, torch.storage.UntypedStorage):
-        storage._fake_device = tensor.device  # type: ignore[attr-defined]
-    elif isinstance(storage, torch.storage.TypedStorage):
-        storage._untyped_storage._fake_device = tensor.device
-    return (torch._tensor._rebuild_from_type_v2, (func, torch.Tensor, args, None))
-
-FakeTensor.__reduce_ex__ = fake_reduce_ex
-# === This will not live in torchtune ===
 
 
 class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
@@ -546,50 +526,25 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 }
             )
 
-        # Move to CPU to avoid a copy on GPU
-        # state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
+        state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
 
-        # === Create a FakeTensor version of the state_dict (preserves storage aliasing) ===
-        state_dict = self._model.state_dict()
-        mode = FakeTensorMode()
-        converter = FakeTensorConverter()
-        fake_state_dict = OrderedDict()
-        for k, v in state_dict.items():
-            # remove adapters (we don't want them in merged_state_dict)
-            if "lora_a" in k or "lora_b" in k:
-                continue
-            if isinstance(v, NF4Tensor):
-                fake_state_dict[k] = converter.from_real_tensor(mode, v).to(torch.bfloat16).cpu()
-            else:
-                fake_state_dict[k] = converter.from_real_tensor(mode, v).cpu()
-
-        # === Save and load fake state_dict ===
-        # dest_state_dict is now backed by an mmap-ed file that can be written to
-        dest_state_dict_path = "/tmp/llama_state_dict.pt"
-        torch.save(fake_state_dict, dest_state_dict_path)
-        torch.serialization.set_default_mmap_options(MAP_SHARED)
-        dest_state_dict = torch.load(dest_state_dict_path, mmap=True, weights_only=True)
-        torch.serialization.set_default_mmap_options(MAP_PRIVATE)
-
-        # This bit does D2H one by one and since dest_state_dict is backed by mmap --> won't OOM :)
-        for k in state_dict.keys():
-            if 'lora_a' in k or 'lora_b' in k:
-                # adapters are very small ~0.04GB so we don't need to use mmap when offloading to CPU
-                dest_state_dict[k] = state_dict[k].cpu()
-            if isinstance(state_dict[k], NF4Tensor):
-                dest_state_dict[k].copy_(state_dict[k].to(torch.bfloat16))
-            else:
-                dest_state_dict[k].copy_(state_dict[k])
+        # Construct the adapter weights
+        # Do this using the state_dict to avoid running upcast and H2D in state_dict post hook twice
+        # Must be before get_merged_lora_ckpt because get_merged_lora_ckpt will remove lora keys
+        adapter_key_filter = lambda x: x in self.adapter_params
+        adapter_state_dict = {
+            k: v for k, v in state_dict.items() if adapter_key_filter(k)
+        }
 
         # Construct the full state dict with LoRA weights merged into base LLM weights
         merged_state_dict = get_merged_lora_ckpt(
             state_dict,
             rank=self._lora_rank,
             alpha=self._lora_alpha,
-            dest_state_dict=dest_state_dict,
         )
         ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
 
+<<<<<<< HEAD
         # Construct the adapter weights
         adapter_key_filter = lambda x: x in self.adapter_params
         # adapters are very small ~0.04GB so we don't need to use mmap when offloading to CPU
@@ -597,6 +552,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             k: v.cpu() for k, v in self._model.state_dict().items() if adapter_key_filter(k)
         }
         ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
+=======
+        ckpt_dict.update({utils.ADAPTER_KEY: adapter_state_dict})
+>>>>>>> b8dbcfdb (Use core APIs, refactor into state_dict post hook)
         adapter_config = {
             "r": self._lora_rank,
             "lora_alpha": self._lora_alpha,
@@ -759,6 +717,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 self.epochs_run += 1
                 start_save_checkpoint = time.time()
+                log.info("Starting checkpoint save...")
                 self.save_checkpoint(epoch=curr_epoch)
                 log.info("Checkpoint saved in {:.2f} seconds".format(time.time() - start_save_checkpoint))
 
