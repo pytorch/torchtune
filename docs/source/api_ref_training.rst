@@ -14,3 +14,12 @@ Utilities for working in a reduced precision setting.
     :nosignatures:
 
     get_quantizer_mode
+
+Miscellaneous
+-------------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    get_unmasked_sequence_lengths

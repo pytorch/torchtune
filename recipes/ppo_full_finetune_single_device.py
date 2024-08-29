@@ -17,7 +17,7 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import config, modules, utils
+from torchtune import config, modules, training, utils
 from torchtune.datasets import ConcatDataset
 from torchtune.modules import rlhf
 from torchtune.modules.rlhf import PPOStats, Trajectory
@@ -736,7 +736,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # step 5.1 the scores from the reward model are the logits for the last non-padding token in
         # each (query, truncated-response) pair
-        seq_lens = utils.get_unmasked_sequence_lengths(response_padding_masks)
+        seq_lens = training.get_unmasked_sequence_lengths(response_padding_masks)
         scores = scores[torch.arange(batch_size), seq_lens + context_length].squeeze(-1)
 
         # step 5.2 if configured, apply any penalties for sequences without EOS tokens
