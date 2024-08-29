@@ -398,7 +398,7 @@ class CometLogger(MetricLoggerInterface):
             # Cast tags extracted from YAML from ListConfig to list
             if isinstance(tags, ListConfig):
                 tags = list(tags)
-                
+
             self.experiment = comet_ml.start(
                 api_key=api_key,
                 workspace=workspace,
