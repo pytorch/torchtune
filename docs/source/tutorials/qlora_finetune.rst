@@ -195,7 +195,7 @@ A comparison of the smoothed loss curves between QLoRA and LoRA can be seen belo
 .. image:: /_static/img/qlora_exp.png
 
 .. note::
-    The above figure was generated with W&B. You can use torchtune's :class:`~torchtune.utils.metric_logging.WandBLogger`
+    The above figure was generated with W&B. You can use torchtune's :class:`~torchtune.training.metric_logging.WandBLogger`
     to generate similar loss curves, but you will need to install W&B and setup an account separately. For more details on
     using W&B in torchtune, see our ":ref:`wandb_logging`" recipe.
 

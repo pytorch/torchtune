@@ -12,7 +12,7 @@ This deep-dive will guide you through how to set up logging to Weights & Biases
     .. grid-item-card:: :octicon:`mortar-board;1em;` What this deep-dive will cover
 
       * How to get started with W&B
-      * How to use the :class:`~torchtune.utils.metric_logging.WandBLogger`
+      * How to use the :class:`~torchtune.training.metric_logging.WandBLogger`
       * How to log configs, metrics, and model checkpoints to W&B
 
 torchtune supports logging your training runs to `Weights & Biases <https://wandb.ai)>`_.
@@ -48,7 +48,7 @@ The only change you need to make is to add the metric logger to your config. Wei
 
     # enable logging to the built-in WandBLogger
     metric_logger:
-      _component_: torchtune.utils.metric_logging.WandBLogger
+      _component_: torchtune.training.metric_logging.WandBLogger
       # the W&B project to log to
       project: torchtune
 
