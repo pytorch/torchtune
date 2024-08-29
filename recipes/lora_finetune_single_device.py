@@ -87,6 +87,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
 
+        - Gradient Clipping. Gradient clipping is supported using the ``clip_grad_norm`` flag. Grad norm 
+            logging is supported using the ``log_grad_norm`` flag. ``clip_grad_norm`` does not need to be
+            set to log grad norm. If ``log_grad_norm`` is set to True, max_norm will be set to ``inf``.
+
     For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
     has example commands for how to kick-off training.
 
