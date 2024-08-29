@@ -431,7 +431,7 @@
     <span class="k">return</span> <span class="n">_component_</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_instantiate_node</span><span class="p">(</span><span class="n">node</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">]):</span>
+<span class="k">def</span> <span class="nf">_instantiate_node</span><span class="p">(</span><span class="n">node</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates the object specified in _component_ field with provided positional args</span>
 <span class="sd">    and kwargs already merged. Raises an InstantiationError if _component_ is not specified.</span>
@@ -514,7 +514,7 @@
     <span class="c1"># Resolve all interpolations, or references to other fields within the same config</span>
     <span class="n">OmegaConf</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">_instantiate_node</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">_instantiate_node</span><span class="p">(</span><span class="n">OmegaConf</span><span class="o">.</span><span class="n">to_object</span><span class="p">(</span><span class="n">config</span><span class="p">),</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
 </pre></div>
 
              </article>
