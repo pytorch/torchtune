@@ -92,6 +92,7 @@ These are utilities that are common to and can be used by all modules.
    :nosignatures:
 
    common_utils.reparametrize_as_dtype_state_dict_post_hook
+   common_utils.setup_caches
 
 
 Vision Transforms

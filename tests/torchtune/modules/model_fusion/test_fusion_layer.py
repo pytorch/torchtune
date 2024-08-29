@@ -24,7 +24,7 @@ class DummyLayer(nn.Module):
         self.linear = nn.Linear(dim, dim)
         self.cache_enabled = False
 
-    def setup_cache(self, batch_size, dtype):
+    def setup_cache(self, batch_size, dtype, encoder_max_seq_len, decoder_max_seq_len):
         self.cache_enabled = True
 
     def reset_cache(self):
@@ -115,7 +115,9 @@ class TestFusionLayer:
         """
         Test that the cache methods works as expected.
         """
-        fused_layer.setup_cache(2, torch.float32)
+        fused_layer.setup_cache(
+            2, torch.float32, encoder_max_seq_len=1, decoder_max_seq_len=1
+        )
         assert fused_layer.cache_enabled
         fused_layer.reset_cache()
         assert not fused_layer.cache_enabled

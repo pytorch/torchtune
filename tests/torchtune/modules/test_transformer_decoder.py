@@ -23,6 +23,7 @@ from torchtune.modules import (
     MultiHeadAttention,
     RMSNorm,
     RotaryPositionalEmbeddings,
+    setup_caches,
     TanhGate,
     TransformerCrossAttentionLayer,
     TransformerDecoder,
@@ -301,7 +302,7 @@ class TestTransformerDecoder:
         for p in decoder.parameters():
             nn.init.constant_(p, 0.2)
         decoder.eval()
-        decoder.setup_caches(batch_size=4, dtype=torch.float32)
+        setup_caches(decoder, batch_size=4, dtype=torch.float32)
         return decoder
 
     def test_forward(

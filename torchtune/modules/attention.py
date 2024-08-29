@@ -136,13 +136,16 @@ class MultiHeadAttention(nn.Module):
         self.k_norm = k_norm
         self.pos_embeddings = pos_embeddings
 
-    def setup_cache(self, batch_size: int, dtype: torch.dtype) -> None:
+    def setup_cache(
+        self, batch_size: int, dtype: torch.dtype, max_seq_len: int
+    ) -> None:
         """Setup key value caches for attention calculation. If called
         after kv_cache is already setup, this will be skipped.
 
         Args:
             batch_size (int): batch size for the caches.
             dtype (torch.dtype): dtype for the caches.
+            max_seq_len (int): maximum sequence length model will be run with.
         """
         # Don't overwrite user defined kv_cache from init
         if self.kv_cache is not None:
@@ -152,7 +155,7 @@ class MultiHeadAttention(nn.Module):
         else:
             self.kv_cache = KVCache(
                 batch_size=batch_size,
-                max_seq_len=self.max_seq_len,
+                max_seq_len=max_seq_len,
                 num_heads=self.num_heads,
                 head_dim=self.head_dim,
                 dtype=dtype,

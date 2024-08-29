@@ -53,7 +53,7 @@ class KVCache(nn.Module):
     ) -> Tuple[Tensor, Tensor]:
         """Update KV cache with the new k_val, v_val and return the updated cache.
 
-        Raises an assertion error if ``input_pos`` is longer than the maximum sequence length.
+        Raises an assertion error
 
         Args:
             input_pos (Tensor): Current position tensor with shape [S]
@@ -62,12 +62,29 @@ class KVCache(nn.Module):
 
         Returns:
             Tuple[Tensor, Tensor]: Updated KV cache with key first
-        """
-        assert input_pos.shape[0] == k_val.shape[2]
-        self.size = input_pos.max().item() + 1
 
+        Raises:
+            ValueError: if the sequence length of ``input_pos`` is longer than the maximum sequence length.
+            ValueError: if the batch size of the new key (or value) tensor is greater than the batch size
+                used during cache setup.
+        """
+
+        if input_pos.shape[0] != k_val.shape[2]:
+            raise ValueError(
+                f"The current cache has been setup with a sequence length of {k_val.shape[2]}"
+                f", but found cache positions with sequence length {input_pos.shape[0]}!"
+            )
+
+        if k_val.shape[0] > self.k_cache.shape[0]:
+            raise ValueError(
+                f"The current cache has been setup with a batch size of {self.k_cache.shape[0]}"
+                f", but found new key tensors with batch size {k_val.shape[0]}!"
+            )
+
+        self.size = input_pos.max().item() + 1
         k_out = self.k_cache
         v_out = self.v_cache
+
         k_out[:, :, input_pos] = k_val
         v_out[:, :, input_pos] = v_val
 

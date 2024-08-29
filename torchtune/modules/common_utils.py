@@ -4,12 +4,55 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import torch
 
 import torch.nn as nn
 from torchao.dtypes.nf4tensor import NF4Tensor
+from torchtune.modules.transformer import TransformerDecoder
+
+
+def setup_caches(
+    model: TransformerDecoder,
+    batch_size: int,
+    dtype: torch.dtype,
+    *,
+    encoder_max_seq_len: Optional[int] = None,
+    decoder_max_seq_len: Optional[int] = None,
+):
+    """
+    Setup static key-value caches for attention calculation for a given ``TransformerDecoder` model.
+    This function supports cache setup for both decoder, and encoder-decoder models.
+
+    Concretely, all layers which are an instance of :class:`~torchtune.modules.TransformerSelfAttentionLayer`
+    will use ``decoder_max_seq_len``, and all layers which are an instance
+    of :class:`~torchtune.modules.TransformerCrossAttentionLayer` will use ``encoder_max_seq_len``.
+    :class:`~torchtune.modules.model_fusion.FusionLayer` will use both.
+
+    Args:
+        model (TransformerDecoder): An instance of a ``TransformerDecoder`` model.
+        batch_size (int): batch size for the caches.
+        dtype (torch.dtype): dtype for the caches.
+        encoder_max_seq_len (Optional[int]): maximum cache sequence length for encoder layers.
+            Default None, in which case ``model.max_seq_len`` is used.
+        decoder_max_seq_len (Optional[int]): maximum cache sequence length for decoder layers.
+            Default None, in which case ``model.max_seq_len`` is used.
+
+    """
+    encoder_max_seq_len = (
+        model.max_seq_len if encoder_max_seq_len is None else encoder_max_seq_len
+    )
+    decoder_max_seq_len = (
+        model.max_seq_len if decoder_max_seq_len is None else decoder_max_seq_len
+    )
+    for layer in model.layers:
+        layer.setup_cache(
+            batch_size,
+            dtype,
+            encoder_max_seq_len=encoder_max_seq_len,
+            decoder_max_seq_len=decoder_max_seq_len,
+        )
 
 
 def reparametrize_as_dtype_state_dict_post_hook(

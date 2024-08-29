@@ -11,6 +11,7 @@ from tests.test_utils import fixed_init_model
 
 from torchtune import utils
 from torchtune.models.llama2 import llama2
+from torchtune.modules import setup_caches
 from torchtune.utils._generation import sample
 
 
@@ -30,7 +31,7 @@ class TestTextGenerate:
             max_seq_len=2048,
         )
         fixed_init_model(model)
-        model.setup_caches(batch_size=1, dtype=dtype)
+        setup_caches(model, batch_size=1, dtype=dtype)
         model.eval()
         return model
 
@@ -59,7 +60,7 @@ class TestTextGenerate:
             max_seq_len=2048,
         )
         fixed_init_model(model)
-        model.setup_caches(batch_size=2, dtype=dtype)
+        setup_caches(model, batch_size=2, dtype=dtype)
         model.eval()
         return model
 

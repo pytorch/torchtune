@@ -43,14 +43,23 @@ class TransformerSelfAttentionLayer(nn.Module):
         self.sa_scale = sa_scale or nn.Identity()
         self.mlp_scale = mlp_scale or nn.Identity()
 
-    def setup_cache(self, batch_size: int, dtype: torch.dtype) -> None:
+    def setup_cache(
+        self,
+        batch_size: int,
+        dtype: torch.dtype,
+        *,
+        encoder_max_seq_len: int,
+        decoder_max_seq_len: int,
+    ) -> None:
         """Setup key value caches for attention calculation.
 
         Args:
             batch_size (int): batch size for the caches.
             dtype (torch.dtype): dtype for the caches.
+            encoder_max_seq_len (int): this parameter is ignored in this layer.
+            decoder_max_seq_len (int): maximum cache sequence length.
         """
-        self.attn.setup_cache(batch_size, dtype)
+        self.attn.setup_cache(batch_size, dtype, max_seq_len=decoder_max_seq_len)
 
     @property
     def cache_enabled(self) -> bool:
@@ -148,14 +157,23 @@ class TransformerCrossAttentionLayer(nn.Module):
         self.ca_scale = ca_scale or nn.Identity()
         self.mlp_scale = mlp_scale or nn.Identity()
 
-    def setup_cache(self, batch_size: int, dtype: torch.dtype) -> None:
+    def setup_cache(
+        self,
+        batch_size: int,
+        dtype: torch.dtype,
+        *,
+        encoder_max_seq_len: int,
+        decoder_max_seq_len: int,
+    ) -> None:
         """Setup key value caches for attention calculation.
 
         Args:
             batch_size (int): batch size for the caches.
             dtype (torch.dtype): dtype for the caches.
+            encoder_max_seq_len (int): maximum cache sequence length.
+            decoder_max_seq_len (int): this parameter is ignored in this layer.
         """
-        self.attn.setup_cache(batch_size, dtype)
+        self.attn.setup_cache(batch_size, dtype, encoder_max_seq_len)
 
     @property
     def cache_enabled(self) -> bool:
@@ -339,22 +357,6 @@ class TransformerDecoder(nn.Module):
         self.head_dim = head_dim
         self.causal_mask = None
 
-    def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
-        """Setup key value caches for attention calculation.
-
-        Args:
-            batch_size (int): batch size for the caches.
-            dtype (torch.dtype): dtype for the caches.
-        """
-        for layer in self.layers:
-            layer.setup_cache(batch_size, dtype)
-
-        # causal_mask is used during inference to ensure we're attending
-        # to the right tokens
-        self.causal_mask = torch.tril(
-            torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
-        )
-
     def caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""
         return self.layers[0].cache_enabled
@@ -533,22 +535,6 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         self.num_heads = num_heads
         self.head_dim = head_dim
         self.causal_mask = None
-
-    def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
-        """Setup key value caches for attention calculation.
-
-        Args:
-            batch_size (int): batch size for the caches.
-            dtype (torch.dtype): dtype for the caches.
-        """
-        for layer in self.layers:
-            layer.setup_cache(batch_size, dtype)
-
-        # causal_mask is used during inference to ensure we're attending
-        # to the right tokens
-        self.causal_mask = torch.tril(
-            torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
-        )
 
     def caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""

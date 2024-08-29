@@ -9,6 +9,7 @@ import pytest
 import torch
 from tests.test_utils import assert_expected, fixed_init_model
 from torch import nn
+from torchtune.modules import setup_caches
 from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.utils.seed import set_seed
 
@@ -16,6 +17,17 @@ from torchtune.utils.seed import set_seed
 @pytest.fixture(autouse=True)
 def random():
     set_seed(1)
+
+
+class DummyLayer:
+    def __init__(self):
+        self.cache_enabled = False
+
+    def setup_cache(self, batch_size, dtype, encoder_max_seq_len, decoder_max_seq_len):
+        self.cache_enabled = True
+
+    def reset_cache(self):
+        self.cache_enabled = False
 
 
 class DummyModel(nn.Module):
@@ -27,15 +39,15 @@ class DummyModel(nn.Module):
         self.k = nn.Linear(dim, dim)
         self.v = nn.Linear(dim, dim)
         self.output = nn.Linear(dim, vocab_size)
-
-    def setup_caches(self, batch_size, dtype):
-        self.cache_enabled = True
+        self.max_seq_len = 2
+        self.layers = [DummyLayer()]
 
     def caches_are_enabled(self):
-        return self.cache_enabled
+        return self.layers[0].cache_enabled
 
     def reset_caches(self):
-        self.cache_enabled = False
+        for layer in self.layers:
+            layer.reset_cache()
 
     def forward(self, tokens, mask, encoder_input, encoder_mask, input_pos):
         x = self.embed(tokens)
@@ -141,7 +153,7 @@ class TestDeepFusionModel:
         """
         Test that the cache methods works as expected.
         """
-        fused_model.setup_caches(2, torch.float32)
+        setup_caches(fused_model.decoder, batch_size=2, dtype=torch.float32)
         assert fused_model.caches_are_enabled()
         fused_model.reset_caches()
         assert not fused_model.caches_are_enabled()

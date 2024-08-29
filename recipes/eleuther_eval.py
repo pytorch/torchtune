@@ -16,7 +16,7 @@ from torch import nn
 from torch.nn.utils.rnn import pad_sequence
 
 from torchtune import config, utils
-from torchtune.modules import TransformerDecoder
+from torchtune.modules import setup_caches, TransformerDecoder
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.recipe_interfaces import EvalRecipeInterface
 
@@ -149,7 +149,7 @@ class _EvalWrapper(HFLM):
         # are not needed for a regular model call, so we just setup here
         if self.enable_kv_cache:
             with context.device:
-                self._model.setup_caches(batch_size=curr_batch_size, dtype=self._dtype)
+                setup_caches(batch_size=curr_batch_size, dtype=self._dtype)
 
         temperature = generation_kwargs.get("temperature", 0.0)
         do_sample = generation_kwargs.get("do_sample", False)
