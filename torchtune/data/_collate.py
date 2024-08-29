@@ -9,7 +9,7 @@ import torch
 
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
-from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
 
 def padded_collate(

@@ -19,6 +19,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import config, modules, utils
+from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils import DummyProfiler, PROFILER_KEY
@@ -221,7 +222,24 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             ),
         )
 
+        # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
+        backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+        if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
+            # set num_output_chunks for model
+            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+            if self._model_compile:
+                log.info("Compiling loss with torch.compile...")
+                # For CEWithChunkedOutputLoss, if we compile the entire class
+                # we lose the benefits from the chunked loss.
+                # Therefore, we only compile the cross entropy function + upcasting
+                self._loss_fn.compute_cross_entropy = torch.compile(
+                    self._loss_fn.compute_cross_entropy, backend=backend
+                )
+        else:
+            if self._model_compile:
+                log.info("Compiling loss with torch.compile...")
+                self._loss_fn = torch.compile(self._loss_fn, backend=backend)
         log.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
@@ -252,6 +270,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
+
+        # Used to ignore labels for loss computation
+        self.ignore_labels_cache = torch.full(
+            (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
+        )
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
@@ -333,6 +356,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
 
+        if compile_model:
+            log.info("Compiling model layers with torch.compile...")
+            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+            for m in reversed(list(model.modules())):
+                if isinstance(m, modules.transformer.TransformerSelfAttentionLayer):
+                    m.compile(backend=backend)
+
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
@@ -343,13 +373,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Validate model was loaded in with the expected dtype.
         utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)
         log.info(f"Model is initialized with precision {self._dtype}.")
-
-        # Compile model, if enabled.
-        if compile_model:
-            log.info("Compiling model with torch.compile...")
-            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-            self._loss_step_original = self._loss_step
-            self._loss_step = torch.compile(self._loss_step, backend=backend)
 
         if self._device.type == "cuda":
             memory_stats = utils.get_memory_stats(device=self._device)
@@ -433,7 +456,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             batch_size=batch_size,
             sampler=sampler,
             collate_fn=partial(
-                utils.padded_collate,
+                padded_collate,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=self._loss_fn.ignore_index,
             )
@@ -480,10 +503,17 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         input_pos = batch.get("input_pos", None)  # shape [b, s]
 
         logits = self._model(tokens, mask=mask, input_pos=input_pos)
-        # Shift so that tokens < n predict n
-        logits = logits[..., :-1, :].contiguous()
-        labels = labels[..., 1:].contiguous()
-        logits = logits.transpose(1, 2)
+
+        # Shift labels to compute loss
+        # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
+        # But this way we dont need to slice the logits. We just add an ignore index to labels.
+        labels = torch.hstack(
+            (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
+        )
+        if not isinstance(logits, list):
+            labels = labels.reshape(-1)
+            logits = logits.reshape(-1, logits.size(-1))
+
         # Compute loss
         loss = self._loss_fn(logits, labels)
         # free logits otherwise it peaks backward memory

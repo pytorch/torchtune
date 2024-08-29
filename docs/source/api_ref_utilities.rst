@@ -107,17 +107,6 @@ Various logging utilities.
     metric_logging.StdoutLogger
     metric_logging.DiskLogger
 
-Data
-----
-
-Utilities for working with data and datasets.
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    padded_collate
-
 .. _gen_label:
 
 
@@ -133,4 +122,3 @@ Miscellaneous
     set_seed
     generate
     torch_version_ge
-    TuneRecipeArgumentParser
