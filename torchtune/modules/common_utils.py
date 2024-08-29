@@ -4,9 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from collections import OrderedDict
 import mmap
 import sys
+from collections import OrderedDict
 from typing import Any, Dict, Tuple
 
 import torch
@@ -53,8 +53,10 @@ def reparametrize_as_dtype_state_dict_post_hook(
             if offload_to_cpu:
                 state_dict[k] = state_dict[k].cpu()
 
+
 # mmap.MAP_SHARED is not supported on Windows but this change targets colab.
 if hasattr(torch.serialization, "skip_data") and not sys.platform == "win32":
+
     def _low_ram_reparametrize_as_dtype_state_dict_post_hook(
         model: nn.Module,
         state_dict: Dict[str, Any],
@@ -108,7 +110,9 @@ if hasattr(torch.serialization, "skip_data") and not sys.platform == "win32":
         with torch.serialization.skip_data(materialize_fake_tensors=True):
             torch.save(fake_state_dict, dest_state_dict_path)
         with torch.serialization.set_default_mmap_options(mmap.MAP_SHARED):
-            dest_state_dict = torch.load(dest_state_dict_path, mmap=True, weights_only=True)
+            dest_state_dict = torch.load(
+                dest_state_dict_path, mmap=True, weights_only=True
+            )
 
         # Do D2H and upcast one by one and since dest_state_dict is backed by mmap --> won't OOM
         # even when there is no swap space (e.g. colab)
@@ -123,5 +127,6 @@ if hasattr(torch.serialization, "skip_data") and not sys.platform == "win32":
         # to use the public state_dict post hook which does not support out of place behavior.
         for k in state_dict.keys():
             state_dict[k] = dest_state_dict[k]
+
 else:
     _low_ram_reparametrize_as_dtype_state_dict_post_hook = None
