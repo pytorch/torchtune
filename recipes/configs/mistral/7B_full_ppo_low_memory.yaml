@@ -28,6 +28,7 @@
 tokenizer:
   _component_: torchtune.models.mistral.mistral_tokenizer
   path: /tmp/Mistral-7B-Instruct-v0.2/tokenizer.model
+  max_seq_len: null
 
 # Dataset
 dataset:

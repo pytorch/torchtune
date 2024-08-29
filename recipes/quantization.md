@@ -23,11 +23,11 @@ follow this with `tune run quantize` while specifying the same quantizer in the 
 ```yaml
 # QAT specific args
 quantizer:
-  _component_: torchtune.utils.quantization.Int8DynActInt4WeightQATQuantizer
+  _component_: torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer
   groupsize: 256
 ```
 
-Currently only `torchtune.utils.quantization.Int8DynActInt4WeightQATQuantizer`
+Currently only `torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer`
 is supported. This refers to int8 dynamic per token activation quantization
 combined with int4 grouped per axis weight quantization. For more details,
 please refer to the [torchao implementation](https://github.com/pytorch/ao/blob/950a89388e88e10f26bbbbe2ec0b1710ba3d33d1/torchao/quantization/prototype/qat.py#L22).
@@ -48,7 +48,7 @@ checkpointer:
 
 # Quantization specific args
 quantizer:
-  _component_: torchtune.utils.quantization.Int8DynActInt4WeightQuantizer
+  _component_: torchtune.training.quantization.Int8DynActInt4WeightQuantizer
   groupsize: 256
 ```
 
@@ -75,7 +75,7 @@ checkpointer:
 
 # Quantization Arguments
 quantizer:
-  _component_: torchtune.utils.quantization.Int8DynActInt4WeightQuantizer
+  _component_: torchtune.training.quantization.Int8DynActInt4WeightQuantizer
   groupsize: 256
 ```
 

@@ -21,3 +21,15 @@ checkpointing, please see the :ref:`checkpointing deep-dive <understand_checkpoi
     FullModelTorchTuneCheckpointer
     ModelType
     update_state_dict_for_classifier
+
+
+Reduced Precision
+------------------
+
+Utilities for working in a reduced precision setting.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    get_quantizer_mode

@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.training.checkpointing import (  # noqa
+from torchtune.training.checkpointing import (
     ADAPTER_CONFIG,
     ADAPTER_KEY,
     Checkpointer,
@@ -22,6 +22,7 @@ from torchtune.training.checkpointing import (  # noqa
     TOTAL_EPOCHS_KEY,
     update_state_dict_for_classifier,
 )
+from torchtune.training.quantization import get_quantizer_mode
 
 __all__ = [
     "FullModelHFCheckpointer",
@@ -40,4 +41,5 @@ __all__ = [
     "SEED_KEY",
     "STEPS_KEY",
     "TOTAL_EPOCHS_KEY",
+    "get_quantizer_mode",
 ]
