@@ -27,6 +27,7 @@
 tokenizer:
   _component_: torchtune.models.mistral.mistral_tokenizer
   path: /tmp/Mistral-7B-v0.1/tokenizer.model
+  max_seq_len: null
 
 # Dataset
 dataset:
@@ -57,7 +58,7 @@ optimizer:
   _component_: bitsandbytes.optim.PagedAdamW
   lr: 5e-6
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
 optimizer_in_bwd: True
