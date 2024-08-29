@@ -22,7 +22,10 @@ from torchtune.modules import (
     TransformerSelfAttentionLayer,
 )
 
-from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook, _low_ram_reparametrize_as_dtype_state_dict_post_hook
+from torchtune.modules.common_utils import (
+    reparametrize_as_dtype_state_dict_post_hook,
+    _low_ram_reparametrize_as_dtype_state_dict_post_hook,
+)
 
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 
@@ -193,7 +196,7 @@ def lora_llama3(
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
         low_cpu_ram (bool): Whether checkpointing in an environment with low RAM. Setting this flag to
-            ``True`` can avoid CPU OOM when checkpointing on a low RAM machine (e.g. colab)
+            ``True`` can avoid CPU OOM when checkpointing on a low RAM machine (e.g. colab) with QLoRA.
     Returns:
         TransformerDecoder: Instantiation of Llama3 model with LoRA applied to
         a subset of the attention projections in each layer.

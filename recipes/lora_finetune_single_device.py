@@ -105,7 +105,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-
         self._device = utils.get_device(device=cfg.device)
         # Reduced precision logic
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
@@ -718,7 +717,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 start_save_checkpoint = time.time()
                 log.info("Starting checkpoint save...")
                 self.save_checkpoint(epoch=curr_epoch)
-                log.info("Checkpoint saved in {:.2f} seconds".format(time.time() - start_save_checkpoint))
+                log.info(
+                    "Checkpoint saved in {:.2f} seconds".format(
+                        time.time() - start_save_checkpoint
+                    )
+                )
 
     def cleanup(self) -> None:
         self._metric_logger.close()

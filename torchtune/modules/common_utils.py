@@ -11,8 +11,8 @@ from typing import Any, Dict, Tuple
 import torch
 
 import torch.nn as nn
+from torch._subclasses.fake_tensor import FakeTensorConverter, FakeTensorMode
 from torchao.dtypes.nf4tensor import NF4Tensor
-from torch._subclasses.fake_tensor import FakeTensorMode, FakeTensorConverter
 
 
 def reparametrize_as_dtype_state_dict_post_hook(
@@ -52,6 +52,7 @@ def reparametrize_as_dtype_state_dict_post_hook(
             state_dict[k] = v.to(dtype)
             if offload_to_cpu:
                 state_dict[k] = state_dict[k].cpu()
+
 
 def _low_ram_reparametrize_as_dtype_state_dict_post_hook(
     model: nn.Module,
