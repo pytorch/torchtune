@@ -28,6 +28,7 @@ model:
 tokenizer:
   _component_: torchtune.models.phi3.phi3_mini_tokenizer
   path: /tmp/Phi-3-mini-4k-instruct/tokenizer.model
+  max_seq_len: null
 
 # Checkpointer
 checkpointer:

@@ -21,6 +21,7 @@
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
   path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
+  max_seq_len: null
 
 # Model Arguments
 model:
