@@ -56,24 +56,6 @@ Utilities for working in a reduced precision setting.
     set_default_dtype
     validate_expected_param_dtype
 
-.. _ac_label:
-
-Memory Management
------------------
-
-Utilities to reduce memory consumption during training.
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    set_activation_checkpointing
-    OptimizerInBackwardWrapper
-    create_optim_in_bwd_wrapper
-    register_optim_in_bwd_hooks
-
-
-.. _perf_profiling_label:
 
 Performance and Profiling
 -------------------------
@@ -85,8 +67,6 @@ of your finetuning job.
     :toctree: generated/
     :nosignatures:
 
-    get_memory_stats
-    log_memory_stats
     setup_torch_profiler
 
 .. _metric_logging_label:

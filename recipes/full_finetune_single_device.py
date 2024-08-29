@@ -398,7 +398,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             # Register optimizer step hooks on the model to run optimizer in backward.
             utils.register_optim_in_bwd_hooks(model=self._model, optim_dict=optim_dict)
             # Create a wrapper for checkpoint save/load of optimizer states when running in backward.
-            self._optim_ckpt_wrapper = utils.create_optim_in_bwd_wrapper(
+            self._optim_ckpt_wrapper = training.create_optim_in_bwd_wrapper(
                 model=self._model, optim_dict=optim_dict
             )
             # Load optimizer states. If optimizer states are being restored in an optimizer in backward

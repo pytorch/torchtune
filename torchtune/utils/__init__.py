@@ -53,15 +53,7 @@ from ._profiler import (
 )
 from ._version import torch_version_ge
 from .logging import get_logger
-from .memory import (  # noqa
-    cleanup_before_training,
-    create_optim_in_bwd_wrapper,
-    get_memory_stats,
-    log_memory_stats,
-    OptimizerInBackwardWrapper,
-    register_optim_in_bwd_hooks,
-    set_activation_checkpointing,
-)
+
 from .pooling import get_unmasked_sequence_lengths
 
 from .precision import get_dtype, set_default_dtype, validate_expected_param_dtype
@@ -69,9 +61,7 @@ from .seed import set_seed
 
 __all__ = [
     "update_state_dict_for_classifier",
-    "get_memory_stats",
     "FSDPPolicyType",
-    "log_memory_stats",
     "get_device",
     "get_dtype",
     "get_logger",
@@ -81,14 +71,10 @@ __all__ = [
     "lora_fsdp_wrap_policy",
     "get_full_finetune_fsdp_wrap_policy",
     "get_unmasked_sequence_lengths",
-    "set_activation_checkpointing",
     "set_default_dtype",
     "set_seed",
     "validate_expected_param_dtype",
     "torch_version_ge",
-    "OptimizerInBackwardWrapper",
-    "create_optim_in_bwd_wrapper",
-    "register_optim_in_bwd_hooks",
     "DEFAULT_PROFILE_DIR",
     "DEFAULT_PROFILER_ACTIVITIES",
     "DEFAULT_SCHEDULE",

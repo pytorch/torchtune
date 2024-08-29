@@ -17,7 +17,7 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import config, modules, utils
+from torchtune import config, modules, training, utils
 from torchtune.datasets import ConcatDataset
 from torchtune.modules import rlhf
 from torchtune.modules.rlhf import PPOStats, Trajectory
@@ -521,10 +521,10 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 model=self._value_model, optim_dict=optim_dict
             )
             # Create a wrapper for checkpoint save/load of optimizer states when running in backward.
-            self._optim_ckpt_wrapper = utils.create_optim_in_bwd_wrapper(
+            self._optim_ckpt_wrapper = training.create_optim_in_bwd_wrapper(
                 model=self._policy_model, optim_dict=optim_dict
             )
-            self._optim_ckpt_wrapper = utils.create_optim_in_bwd_wrapper(
+            self._optim_ckpt_wrapper = training.create_optim_in_bwd_wrapper(
                 model=self._value_model, optim_dict=optim_dict
             )
             # Load optimizer states. If optimizer states are being restored in an optimizer in backward

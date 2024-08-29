@@ -572,7 +572,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         The core training loop.
         """
         # clean up before training begins
-        utils.cleanup_before_training()
+        training.cleanup_before_training()
 
         _, rank = utils.get_world_size_and_rank()
 

@@ -14,7 +14,7 @@ from omegaconf import DictConfig
 
 from torch import nn
 
-from torchtune import config, utils
+from torchtune import config, training, utils
 
 logger = utils.get_logger("DEBUG")
 
