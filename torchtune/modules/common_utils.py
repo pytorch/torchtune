@@ -116,10 +116,8 @@ def _low_ram_reparametrize_as_dtype_state_dict_post_hook(
         else:
             dest_state_dict[k].copy_(state_dict[k])
 
-    # In place update original state_dict object because we eventually want
-    # to use the public state_dict post hook which does not support out of place
-    # behavior due to buggy semantic
+    # In place update original state_dict object. Although the private state dict
+    # post hook supports out of place behavior, the semantic actually buggy. We eventually want
+    # to use the public state_dict post hook which does not support out of place behavior.
     for k in state_dict.keys():
         state_dict[k] = dest_state_dict[k]
-
-    return state_dict
