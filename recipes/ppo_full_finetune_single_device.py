@@ -122,7 +122,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
-        self.seed = utils.set_seed(seed=cfg.seed)
+        self.seed = training.set_seed(seed=cfg.seed)
         # manually setting up a generator for the recipe
         self._rng = torch.Generator(self._device).manual_seed(self.seed)
         self._total_steps = 0
@@ -641,7 +641,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     message="""Configured value for seed, total_steps, or total_epochs
                     does not match the value stored in checkpoint."""
                 )
-            self.seed = utils.set_seed(seed=ckpt_dict[utils.SEED_KEY])
+            self.seed = training.set_seed(seed=ckpt_dict[utils.SEED_KEY])
             self._rng.set_state(ckpt_dict[utils.RNG_KEY])
             self._steps_run = ckpt_dict[utils.STEPS_KEY]
             self._total_steps = ckpt_dict[utils.MAX_STEPS_KEY]

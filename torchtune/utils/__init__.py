@@ -65,7 +65,6 @@ from .memory import (  # noqa
 from .pooling import get_unmasked_sequence_lengths
 
 from .precision import get_dtype, set_default_dtype, validate_expected_param_dtype
-from .seed import set_seed
 
 __all__ = [
     "update_state_dict_for_classifier",
@@ -83,7 +82,6 @@ __all__ = [
     "get_unmasked_sequence_lengths",
     "set_activation_checkpointing",
     "set_default_dtype",
-    "set_seed",
     "validate_expected_param_dtype",
     "torch_version_ge",
     "OptimizerInBackwardWrapper",

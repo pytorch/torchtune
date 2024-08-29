@@ -14,7 +14,7 @@ from tests.test_utils import assert_expected, fixed_init_model
 from torch import nn, Tensor
 
 from torchtune.modules import KVCache, MultiHeadAttention, RotaryPositionalEmbeddings
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 
 @pytest.fixture(autouse=True)

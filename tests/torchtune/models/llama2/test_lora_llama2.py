@@ -17,7 +17,7 @@ from torchtune.models.llama2 import llama2, lora_llama2
 from torchtune.models.llama2._component_builders import lora_llama2_self_attention
 from torchtune.modules.low_precision import FrozenNF4Linear
 from torchtune.modules.peft import get_merged_lora_ckpt, LoRALinear
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 RANK = 4
 ALPHA = 1.0
