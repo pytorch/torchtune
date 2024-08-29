@@ -23,7 +23,7 @@ model:
   apply_lora_to_output: False
   lora_rank: 8
   lora_alpha: 16
-  low_cpu_ram: True
+  low_cpu_ram: False
 
 # Tokenizer
 tokenizer:
