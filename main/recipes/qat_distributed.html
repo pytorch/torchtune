@@ -336,6 +336,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
@@ -460,7 +461,7 @@ strategy. Generally, the pipeline for training, quantizing, and evaluating a mod
 <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">run</span> <span class="pre">quantize</span></code> while specifying the same quantizer in the config, e.g.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># QAT specific args</span>
 <span class="nt">quantizer</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.quantization.Int8DynActInt4WeightQATQuantizer</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer</span>
 <span class="w">  </span><span class="nt">groupsize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">256</span>
 </pre></div>
 </div>
@@ -468,7 +469,7 @@ strategy. Generally, the pipeline for training, quantizing, and evaluating a mod
 <li><p><a class="reference internal" href="../tutorials/qat_finetune.html#qat-eval-label"><span class="std std-ref">Evaluate</span></a> or <a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/quantization.md#generate">run inference</a>
 using your your quantized model by specifying the corresponding post-training quantizer:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">quantizer</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.quantization.Int8DynActInt4WeightQuantizer</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.quantization.Int8DynActInt4WeightQuantizer</span>
 <span class="w">  </span><span class="nt">groupsize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">256</span>
 </pre></div>
 </div>
