@@ -87,7 +87,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
 
-        - Gradient Clipping. Gradient clipping is supported using the ``clip_grad_norm`` flag. Grad norm 
+        - Gradient Clipping. Gradient clipping is supported using the ``clip_grad_norm`` flag. Grad norm
             logging is supported using the ``log_grad_norm`` flag. ``clip_grad_norm`` does not need to be
             set to log grad norm. If ``log_grad_norm`` is set to True, max_norm will be set to ``inf``.
 
@@ -139,7 +139,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
         self._log_grad_norm = cfg.get("log_grad_norm", False)
         if self._clip_grad_norm is None and self._log_grad_norm:
-            self._clip_grad_norm = 'inf'
+            self._clip_grad_norm = "inf"
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -648,7 +648,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     # Step with optimizer
                     if (idx + 1) % self._gradient_accumulation_steps == 0:
                         if self._clip_grad_norm is not None:
-                            grad_norm = torch.nn.utils.clip_grad_norm_(self._model.parameters(), max_norm=float(self._clip_grad_norm))
+                            grad_norm = torch.nn.utils.clip_grad_norm_(
+                                self._model.parameters(),
+                                max_norm=float(self._clip_grad_norm),
+                            )
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
                         self._lr_scheduler.step()
