@@ -103,4 +103,4 @@ def instantiate(
     # Resolve all interpolations, or references to other fields within the same config
     OmegaConf.resolve(config)
 
-    return _instantiate_node(config, *args)
+    return _instantiate_node(OmegaConf.to_object(config), *args)
