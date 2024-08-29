@@ -132,6 +132,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        self._clip_grad_norm = cfg.get("clip_grad_norm", None)
+        self._log_grad_norm = cfg.get("log_grad_norm", False)
+        if self._clip_grad_norm is None and self._log_grad_norm:
+            self._clip_grad_norm = 'inf'
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -639,6 +643,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                     # Step with optimizer
                     if (idx + 1) % self._gradient_accumulation_steps == 0:
+                        if self._clip_grad_norm is not None:
+                            grad_norm = torch.nn.utils.clip_grad_norm_(self._model.parameters(), max_norm=float(self._clip_grad_norm))
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
                         self._lr_scheduler.step()
@@ -666,6 +672,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 log_dict.update(
                                     utils.get_memory_stats(device=self._device)
                                 )
+                            if self._log_grad_norm:
+                                log_dict.update({"grad_norm": grad_norm})
                             self._metric_logger.log_dict(
                                 log_dict,
                                 step=self.global_step,

@@ -68,6 +68,7 @@ epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 64
 compile: False
+log_grad_norm: False
 
 # Logging
 output_dir: /tmp/lora_finetune_output
