@@ -44,8 +44,6 @@ class TextCompletionDataset(Dataset):
         column: str = "text",
         max_seq_len: Optional[int] = None,
         add_eos: bool = True,
-        custom_filter: bool=False,
-        skip_filter: bool = False,
         filter_fn: Optional[Callable] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
@@ -55,15 +53,8 @@ class TextCompletionDataset(Dataset):
         self._column = column
         self.add_eos = add_eos
 
-        # Default filter function to remove empty lines
-        def default_filter(text:str) -> str:
-            return "\n".join([line for line in text.splitlines() if line.strip()])
-        
-        # Set the filter function
-        if not skip_filter:
-            self.filter_fn=filter_fn if custom_filter else default_filter
-        else:
-            self.filter_fn=None
+        if filter_fn:
+            self._data=self._data.filter(filter_fn)
 
     def __len__(self):
         return len(self._data)
@@ -74,10 +65,6 @@ class TextCompletionDataset(Dataset):
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
         prompt = sample[self._column]
-
-        # Apply the filter function to the text data
-        if self.filter_fn:
-            prompt = self.filter_fn(prompt)
 
         tokens = self._tokenizer.encode(text=prompt, add_bos=True, add_eos=self.add_eos)
 
@@ -99,8 +86,6 @@ def text_completion_dataset(
     add_eos: bool = True,
     packed: bool = False,
     split_across_pack: bool = True,
-    custom_filter=False,
-    skip_filter: bool = False,
     filter_fn: Optional[Callable] = None,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> Union[TextCompletionDataset, PackedDataset]:
@@ -165,7 +150,6 @@ def text_completion_dataset(
         max_seq_len=max_seq_len,
         add_eos=add_eos,
         filter_fn=filter_fn,
-        custom_filter=custom_filter,
         **load_dataset_kwargs,
     )
     return (
