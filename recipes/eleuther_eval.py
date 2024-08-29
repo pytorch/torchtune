@@ -15,7 +15,7 @@ from omegaconf import DictConfig
 from torch import nn
 from torch.nn.utils.rnn import pad_sequence
 
-from torchtune import config, utils, training
+from torchtune import config, training, utils
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.recipe_interfaces import EvalRecipeInterface
