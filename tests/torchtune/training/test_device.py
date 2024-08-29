@@ -12,7 +12,7 @@ from unittest.mock import patch
 import pytest
 
 import torch
-from torchtune.utils._device import (
+from torchtune.training._device import (
     _get_device_type_from_env,
     _setup_cuda_device,
     get_device,

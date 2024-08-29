@@ -73,7 +73,7 @@ class LoRALinear(nn.Module, AdapterModule):
         # params are initialized, as is done in initialize_parameters below).
         # For that reason, we patch reset_parameters directly on lora_a and lora_b submodules
         # when using meta device. This is done in
-        # torchtune.utils.prepare_model_for_fsdp_with_meta_device.
+        # torchtune.training.prepare_model_for_fsdp_with_meta_device.
         # See this issue for more details: https://github.com/pytorch/pytorch/issues/104187.
         # Without meta device, we only need the following:
         self.initialize_parameters()

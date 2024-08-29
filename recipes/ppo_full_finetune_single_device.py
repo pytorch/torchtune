@@ -105,7 +105,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
     def __init__(self, cfg: DictConfig) -> None:
 
-        self._device = utils.get_device(device=cfg.device)
+        self._device = training.get_device(device=cfg.device)
         self._dtype = utils.get_dtype(cfg.dtype, device=self._device)
 
         # Disable for fp16, as we haven't validated "full" fp16 with this recipe, nor

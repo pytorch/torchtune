@@ -13,9 +13,9 @@ from typing import Any, Dict, List, Mapping, Optional, Union
 from numpy import ndarray
 from omegaconf import DictConfig, OmegaConf
 from torch import Tensor
+from torchtune.training._distributed import get_world_size_and_rank
 
 from torchtune.utils import get_logger
-from torchtune.utils._distributed import get_world_size_and_rank
 from typing_extensions import Protocol
 
 Scalar = Union[Tensor, ndarray, int, float]

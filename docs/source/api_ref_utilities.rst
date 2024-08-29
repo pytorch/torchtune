@@ -23,24 +23,6 @@ checkpointing, please see the :ref:`checkpointing deep-dive <understand_checkpoi
     ModelType
     update_state_dict_for_classifier
 
-.. _dist_label:
-
-Distributed
------------
-
-Utilities for enabling and working with distributed training.
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    FSDPPolicyType
-    init_distributed
-    is_distributed
-    get_world_size_and_rank
-    get_full_finetune_fsdp_wrap_policy
-    lora_fsdp_wrap_policy
-
 .. _mp_label:
 
 Reduced Precision
@@ -117,7 +99,6 @@ Miscellaneous
     :nosignatures:
 
     get_logger
-    get_device
     set_seed
     generate
     torch_version_ge
