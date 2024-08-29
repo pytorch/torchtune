@@ -325,8 +325,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # iterating from lowerer modules to higher
         # eg grouping lora adapters before transformer block
         for m in reversed(list(model.modules())):
-            if isinstance(m, nn.Linear) and m.weight.requires_grad:
-                fully_shard(m, **fsdp_kwargs)
             # TransformerSelfAttentionLayer is wrapped by CheckpointWrapper
             # when enable_activation_checkpointing
             if enable_activation_checkpointing:
@@ -601,6 +599,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 logits = logits[..., :-1, :].contiguous()
                 labels = labels[..., 1:].contiguous()
                 logits = logits.transpose(1, 2)
+                torch._dynamo.mark_dynamic(logits, 2)
+                torch._dynamo.mark_dynamic(labels, 1)
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
                 # free logits otherwise it peaks backward memory
