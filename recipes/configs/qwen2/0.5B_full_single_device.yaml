@@ -51,7 +51,7 @@ optimizer:
   lr: 2e-5
 
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 optimizer_in_bwd: False
 
 max_steps_per_epoch: null
