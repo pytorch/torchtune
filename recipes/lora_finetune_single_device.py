@@ -604,7 +604,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         return loss
 
-    def train(self) -> None:
     def train(self, curr_epoch=0) -> None:
         """
         The core training loop.
