@@ -9,7 +9,7 @@ import torch
 def get_unmasked_sequence_lengths(mask: torch.Tensor) -> torch.Tensor:
     """
     Returns the sequence lengths for each batch element, excluding masked tokens.
-    
+
     Args:
         mask (torch.Tensor): Boolean mask with shape [b x s], where True indicates a value to be masked out
             This is usually a mask for padding tokens, where True indicates a padding token.
