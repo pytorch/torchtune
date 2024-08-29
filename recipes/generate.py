@@ -38,7 +38,7 @@ class InferenceRecipe:
         self._device = utils.get_device(device=cfg.device)
         self._dtype = training.get_dtype(dtype=cfg.dtype, device=self._device)
         self._quantizer = config.instantiate(cfg.quantizer)
-        self._quantization_mode = utils.get_quantizer_mode(self._quantizer)
+        self._quantization_mode = training.get_quantizer_mode(self._quantizer)
 
         utils.set_seed(seed=cfg.seed)
 

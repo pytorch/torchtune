@@ -9,9 +9,11 @@ from torchtune.training.precision import (
     set_default_dtype,
     validate_expected_param_dtype,
 )
+from torchtune.training.quantization import get_quantizer_mode
 
 __all__ = [
     "get_dtype",
     "set_default_dtype",
     "validate_expected_param_dtype",
+    "get_quantizer_mode",
 ]

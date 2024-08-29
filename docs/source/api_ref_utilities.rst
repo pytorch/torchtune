@@ -41,19 +41,6 @@ Utilities for enabling and working with distributed training.
     get_full_finetune_fsdp_wrap_policy
     lora_fsdp_wrap_policy
 
-.. _mp_label:
-
-Reduced Precision
-------------------
-
-Utilities for working in a reduced precision setting.
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    get_quantizer_mode
-
 .. _ac_label:
 
 Memory Management
