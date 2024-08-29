@@ -7,10 +7,11 @@
 <head>
   <meta name="robots" content="noindex">
   <meta charset="utf-8">
-  
+  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Overview: module code &mdash; torchtune main documentation</title>
+  <title>CEWithChunkedOutputLoss &mdash; torchtune main documentation</title>
   
 
   
@@ -40,6 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="torchtune.utils" href="../api_ref_utilities.html" />
+    <link rel="prev" title="SimPOLoss" href="torchtune.modules.rlhf.loss.SimPOLoss.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -327,12 +330,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
@@ -374,10 +377,16 @@
       </li>
 
         
-      <li>Overview: module code</li>
+          <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
+        
+      <li>CEWithChunkedOutputLoss</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/generated/torchtune.modules.loss.CEWithChunkedOutputLoss.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+          
         
       </li>
     
@@ -406,103 +415,76 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>All modules for which code is available</h1>
-<ul><li><a href="functools.html">functools</a></li>
-<li><a href="torchtune/config/_instantiate.html">torchtune.config._instantiate</a></li>
-<li><a href="torchtune/config/_parse.html">torchtune.config._parse</a></li>
-<li><a href="torchtune/config/_utils.html">torchtune.config._utils</a></li>
-<li><a href="torchtune/config/_validate.html">torchtune.config._validate</a></li>
-<li><a href="torchtune/data/_chat_formats.html">torchtune.data._chat_formats</a></li>
-<li><a href="torchtune/data/_collate.html">torchtune.data._collate</a></li>
-<li><a href="torchtune/data/_converters.html">torchtune.data._converters</a></li>
-<li><a href="torchtune/data/_instruct_templates.html">torchtune.data._instruct_templates</a></li>
-<li><a href="torchtune/data/_messages.html">torchtune.data._messages</a></li>
-<li><a href="torchtune/data/_prompt_templates.html">torchtune.data._prompt_templates</a></li>
-<li><a href="torchtune/data/_utils.html">torchtune.data._utils</a></li>
-<li><a href="torchtune/datasets/_alpaca.html">torchtune.datasets._alpaca</a></li>
-<li><a href="torchtune/datasets/_chat.html">torchtune.datasets._chat</a></li>
-<li><a href="torchtune/datasets/_cnn_dailymail.html">torchtune.datasets._cnn_dailymail</a></li>
-<li><a href="torchtune/datasets/_concat.html">torchtune.datasets._concat</a></li>
-<li><a href="torchtune/datasets/_grammar.html">torchtune.datasets._grammar</a></li>
-<li><a href="torchtune/datasets/_instruct.html">torchtune.datasets._instruct</a></li>
-<li><a href="torchtune/datasets/_packed.html">torchtune.datasets._packed</a></li>
-<li><a href="torchtune/datasets/_preference.html">torchtune.datasets._preference</a></li>
-<li><a href="torchtune/datasets/_samsum.html">torchtune.datasets._samsum</a></li>
-<li><a href="torchtune/datasets/_sft.html">torchtune.datasets._sft</a></li>
-<li><a href="torchtune/datasets/_slimorca.html">torchtune.datasets._slimorca</a></li>
-<li><a href="torchtune/datasets/_stack_exchange_paired.html">torchtune.datasets._stack_exchange_paired</a></li>
-<li><a href="torchtune/datasets/_text_completion.html">torchtune.datasets._text_completion</a></li>
-<li><a href="torchtune/datasets/_wikitext.html">torchtune.datasets._wikitext</a></li>
-<li><a href="torchtune/models/clip/_component_builders.html">torchtune.models.clip._component_builders</a></li>
-<li><a href="torchtune/models/clip/_position_embeddings.html">torchtune.models.clip._position_embeddings</a></li>
-<li><a href="torchtune/models/code_llama2/_model_builders.html">torchtune.models.code_llama2._model_builders</a></li>
-<li><a href="torchtune/models/gemma/_component_builders.html">torchtune.models.gemma._component_builders</a></li>
-<li><a href="torchtune/models/gemma/_model_builders.html">torchtune.models.gemma._model_builders</a></li>
-<li><a href="torchtune/models/gemma/_tokenizer.html">torchtune.models.gemma._tokenizer</a></li>
-<li><a href="torchtune/models/llama2/_component_builders.html">torchtune.models.llama2._component_builders</a></li>
-<li><a href="torchtune/models/llama2/_model_builders.html">torchtune.models.llama2._model_builders</a></li>
-<li><a href="torchtune/models/llama2/_prompt_template.html">torchtune.models.llama2._prompt_template</a></li>
-<li><a href="torchtune/models/llama2/_tokenizer.html">torchtune.models.llama2._tokenizer</a></li>
-<li><a href="torchtune/models/llama3/_component_builders.html">torchtune.models.llama3._component_builders</a></li>
-<li><a href="torchtune/models/llama3/_model_builders.html">torchtune.models.llama3._model_builders</a></li>
-<li><a href="torchtune/models/llama3/_tokenizer.html">torchtune.models.llama3._tokenizer</a></li>
-<li><a href="torchtune/models/llama3_1/_component_builders.html">torchtune.models.llama3_1._component_builders</a></li>
-<li><a href="torchtune/models/llama3_1/_model_builders.html">torchtune.models.llama3_1._model_builders</a></li>
-<li><a href="torchtune/models/mistral/_component_builders.html">torchtune.models.mistral._component_builders</a></li>
-<li><a href="torchtune/models/mistral/_model_builders.html">torchtune.models.mistral._model_builders</a></li>
-<li><a href="torchtune/models/mistral/_prompt_template.html">torchtune.models.mistral._prompt_template</a></li>
-<li><a href="torchtune/models/mistral/_tokenizer.html">torchtune.models.mistral._tokenizer</a></li>
-<li><a href="torchtune/models/phi3/_component_builders.html">torchtune.models.phi3._component_builders</a></li>
-<li><a href="torchtune/models/phi3/_model_builders.html">torchtune.models.phi3._model_builders</a></li>
-<li><a href="torchtune/models/phi3/_tokenizer.html">torchtune.models.phi3._tokenizer</a></li>
-<li><a href="torchtune/models/qwen2/_component_builders.html">torchtune.models.qwen2._component_builders</a></li>
-<li><a href="torchtune/models/qwen2/_model_builders.html">torchtune.models.qwen2._model_builders</a></li>
-<li><a href="torchtune/models/qwen2/_tokenizer.html">torchtune.models.qwen2._tokenizer</a></li>
-<li><a href="torchtune/modules/attention.html">torchtune.modules.attention</a></li>
-<li><a href="torchtune/modules/common_utils.html">torchtune.modules.common_utils</a></li>
-<li><a href="torchtune/modules/feed_forward.html">torchtune.modules.feed_forward</a></li>
-<li><a href="torchtune/modules/kv_cache.html">torchtune.modules.kv_cache</a></li>
-<li><a href="torchtune/modules/layer_norm.html">torchtune.modules.layer_norm</a></li>
-<li><a href="torchtune/modules/loss/ce_chunked_output_loss.html">torchtune.modules.loss.ce_chunked_output_loss</a></li>
-<li><a href="torchtune/modules/lr_schedulers.html">torchtune.modules.lr_schedulers</a></li>
-<li><a href="torchtune/modules/model_fusion/_fusion.html">torchtune.modules.model_fusion._fusion</a></li>
-<li><a href="torchtune/modules/model_fusion/_fusion_utils.html">torchtune.modules.model_fusion._fusion_utils</a></li>
-<li><a href="torchtune/modules/peft/_utils.html">torchtune.modules.peft._utils</a></li>
-<li><a href="torchtune/modules/peft/lora.html">torchtune.modules.peft.lora</a></li>
-<li><a href="torchtune/modules/position_embeddings.html">torchtune.modules.position_embeddings</a></li>
-<li><a href="torchtune/modules/rlhf/collate.html">torchtune.modules.rlhf.collate</a></li>
-<li><a href="torchtune/modules/rlhf/loss/dpo.html">torchtune.modules.rlhf.loss.dpo</a></li>
-<li><a href="torchtune/modules/rlhf/loss/ppo.html">torchtune.modules.rlhf.loss.ppo</a></li>
-<li><a href="torchtune/modules/rlhf/rewards.html">torchtune.modules.rlhf.rewards</a></li>
-<li><a href="torchtune/modules/rlhf/sequence_processing.html">torchtune.modules.rlhf.sequence_processing</a></li>
-<li><a href="torchtune/modules/rms_norm.html">torchtune.modules.rms_norm</a></li>
-<li><a href="torchtune/modules/tanh_gate.html">torchtune.modules.tanh_gate</a></li>
-<li><a href="torchtune/modules/tokenizers/_sentencepiece.html">torchtune.modules.tokenizers._sentencepiece</a></li>
-<li><a href="torchtune/modules/tokenizers/_tiktoken.html">torchtune.modules.tokenizers._tiktoken</a></li>
-<li><a href="torchtune/modules/tokenizers/_utils.html">torchtune.modules.tokenizers._utils</a></li>
-<li><a href="torchtune/modules/transformer.html">torchtune.modules.transformer</a></li>
-<li><a href="torchtune/modules/transforms/_transforms.html">torchtune.modules.transforms._transforms</a></li>
-<li><a href="torchtune/modules/vision_transformer.html">torchtune.modules.vision_transformer</a></li>
-<li><a href="torchtune/utils/_checkpointing/_checkpointer.html">torchtune.utils._checkpointing._checkpointer</a></li>
-<li><a href="torchtune/utils/_checkpointing/_utils.html">torchtune.utils._checkpointing._utils</a></li>
-<li><a href="torchtune/utils/_device.html">torchtune.utils._device</a></li>
-<li><a href="torchtune/utils/_distributed.html">torchtune.utils._distributed</a></li>
-<li><a href="torchtune/utils/_generation.html">torchtune.utils._generation</a></li>
-<li><a href="torchtune/utils/_profiler.html">torchtune.utils._profiler</a></li>
-<li><a href="torchtune/utils/_version.html">torchtune.utils._version</a></li>
-<li><a href="torchtune/utils/logging.html">torchtune.utils.logging</a></li>
-<li><a href="torchtune/utils/memory.html">torchtune.utils.memory</a></li>
-<li><a href="torchtune/utils/metric_logging.html">torchtune.utils.metric_logging</a></li>
-<li><a href="torchtune/utils/precision.html">torchtune.utils.precision</a></li>
-<li><a href="torchtune/utils/quantization.html">torchtune.utils.quantization</a></li>
-<li><a href="torchtune/utils/seed.html">torchtune.utils.seed</a></li>
-<li><a href="typing.html">typing</a></li>
+  <section id="cewithchunkedoutputloss">
+<h1>CEWithChunkedOutputLoss<a class="headerlink" href="#cewithchunkedoutputloss" title="Permalink to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="torchtune.modules.loss.CEWithChunkedOutputLoss">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.loss.</span></span><span class="sig-name descname"><span class="pre">CEWithChunkedOutputLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_output_chunks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-</span> <span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/loss/ce_chunked_output_loss.html#CEWithChunkedOutputLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.loss.CEWithChunkedOutputLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>CE with chunked outputs that saves memory by only upcasting one chunk at a time.</p>
+<p>Since the model is trained with bf16, before running CE, we have to upcast
+it to fp32 for better accuracy and stability. When upcasting happens, the memory usage doubles.
+Models like llama3 have large vocabulary size and, therefore, have a large output
+result (bsz, num_tokens, vocab_size). If we chunk on the token level, you can still compute
+the cross entropy normally, but upcasting only one chunk at a time saves considerable memory.</p>
+<p>The CE and upcasting have to be compiled together for better performance.
+When using this class, we recommend using torch.compile only on the method <cite>compute_cross_entropy</cite>.
+The gains from chunking won’t be realized if you compile the entire class.</p>
+<p>For more details, please refer to: <a class="reference external" href="https://github.com/pytorch/torchtune/pull/1390">https://github.com/pytorch/torchtune/pull/1390</a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.modules.loss.CEWithChunkedOutputLoss.compute_cross_entropy">
+<span class="sig-name descname"><span class="pre">compute_cross_entropy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/loss/ce_chunked_output_loss.html#CEWithChunkedOutputLoss.compute_cross_entropy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.loss.CEWithChunkedOutputLoss.compute_cross_entropy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Upcast logits to fp32 and compute cross entropy loss.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.modules.loss.CEWithChunkedOutputLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/loss/ce_chunked_output_loss.html#CEWithChunkedOutputLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.loss.CEWithChunkedOutputLoss.forward" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>logits</strong> (<em>List</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – List of chunked logits of length
+<code class="docutils literal notranslate"><span class="pre">self.num_output_chunks</span></code>, where each chunk has shape
+(batch_size, num_tokens / num_output_chunks, vocab_size).</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – Ground truth labels of shape (batch_size, num_tokens).</p></li>
 </ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Cross entropy loss of shape (1,).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)">torch.Tensor</a></p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">loss_fn</span> <span class="o">=</span> <span class="n">ChunkedCrossEntropyLoss</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">bsz</span><span class="p">,</span> <span class="n">num_tokens</span><span class="p">,</span> <span class="n">dim</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">output_chunks</span> <span class="o">=</span> <span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">h</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="n">num_chunks</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">bsz</span><span class="p">,</span> <span class="n">num_tokens</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">output_chunks</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
 
              </article>
              
             </div>
             <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../api_ref_utilities.html" class="btn btn-neutral float-right" title="torchtune.utils" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+      
+      
+        <a href="torchtune.modules.rlhf.loss.SimPOLoss.html" class="btn btn-neutral" title="SimPOLoss" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+      
+    </div>
   
 
   
@@ -531,7 +513,10 @@
         <div class="pytorch-content-right" id="pytorch-content-right">
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
-              
+              <ul>
+<li><a class="reference internal" href="#">CEWithChunkedOutputLoss</a></li>
+</ul>
+
             </div>
           </div>
         </div>
@@ -552,7 +537,6 @@
          <script src="../_static/doctools.js"></script>
          <script src="../_static/clipboard.min.js"></script>
          <script src="../_static/copybutton.js"></script>
-         <script src="../_static/tabs.js"></script>
          <script src="../_static/design-tabs.js"></script>
      
 

@@ -749,6 +749,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">num_heads</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span> <span class="o">=</span> <span class="n">head_dim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span> <span class="o">=</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="TransformerDecoder.set_num_output_chunks"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.set_num_output_chunks">[docs]</a>    <span class="k">def</span> <span class="nf">set_num_output_chunks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_output_chunks</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.</span>
+<span class="sd">        This should be called before the first forward pass, in the recipe.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span> <span class="o">=</span> <span class="n">num_output_chunks</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder.setup_caches"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.setup_caches">[docs]</a>    <span class="k">def</span> <span class="nf">setup_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Setup key value caches for attention calculation.</span>
@@ -871,8 +877,16 @@
         <span class="c1"># shape: [b, s, d]</span>
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
 
-        <span class="c1"># shape: [b, s, out_dim] - out_dim is usually the vocab size</span>
-        <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">h</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size</span>
+            <span class="c1"># Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,</span>
+            <span class="c1"># before calling forward. Upcasting it done inside of the loss function.</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">h</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># shape: [b, seq_len, out_dim]</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">h</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
 
         <span class="c1"># Output list if hidden states are requested, otherwise just the output</span>
         <span class="c1"># TODO: always output a list to have a consistent output type</span>
@@ -944,6 +958,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">num_heads</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span> <span class="o">=</span> <span class="n">head_dim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span> <span class="o">=</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="TiedEmbeddingTransformerDecoder.set_num_output_chunks"><a class="viewcode-back" href="../../../generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.set_num_output_chunks">[docs]</a>    <span class="k">def</span> <span class="nf">set_num_output_chunks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_output_chunks</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.</span>
+<span class="sd">        This should be called before the first forward pass, in the recipe.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span> <span class="o">=</span> <span class="n">num_output_chunks</span></div>
 
 <div class="viewcode-block" id="TiedEmbeddingTransformerDecoder.setup_caches"><a class="viewcode-back" href="../../../generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.setup_caches">[docs]</a>    <span class="k">def</span> <span class="nf">setup_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Setup key value caches for attention calculation.</span>
@@ -1065,8 +1085,17 @@
         <span class="c1"># shape: [b, s, d]</span>
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
 
-        <span class="c1"># shape: [b, s, out_dim] - out_dim is usually the vocab size</span>
-        <span class="n">output</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size</span>
+            <span class="c1"># Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,</span>
+            <span class="c1"># before calling forward. Upcasting it done inside of the loss function.</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">F</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">h</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># shape: [b, seq_len, out_dim]</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
 
         <span class="c1"># Output list if hidden states are requested, otherwise just the output</span>
         <span class="c1"># TODO: always output a list to have a consistent output type</span>
