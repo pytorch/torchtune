@@ -26,7 +26,7 @@ from torch.distributed.fsdp import (
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
-from torchtune.data import padded_collate
+from torchtune.data import padded_collate_sft
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     get_adapter_params,
@@ -114,9 +114,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._dtype = utils.get_dtype(cfg.dtype, device=self._device)
 
         if self._dtype == torch.float16:
-            raise ValueError(
-                "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
-            )
+            raise ValueError("full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead.")
 
         _, rank = utils.get_world_size_and_rank()
 
@@ -163,9 +161,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # used to create these intermediate checkpoints
         if self._resume_from_checkpoint:
             if utils.ADAPTER_KEY not in checkpoint_dict:
-                raise ValueError(
-                    "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
-                )
+                raise ValueError("Adapter weights not found. Please ensure a valid adapter checkpoint is provided.")
             # _update_recipe_state will throw an exception if the recipe state is not corrctly loaded
             # no need to check here
             self._update_recipe_state(checkpoint_dict)
@@ -228,19 +224,13 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             base_model_state_dict=checkpoint_dict[utils.MODEL_KEY],
-            lora_weights_state_dict=(
-                checkpoint_dict[utils.ADAPTER_KEY]
-                if self._resume_from_checkpoint
-                else None
-            ),
+            lora_weights_state_dict=(checkpoint_dict[utils.ADAPTER_KEY] if self._resume_from_checkpoint else None),
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=checkpoint_dict[utils.OPT_KEY]
-            if self._resume_from_checkpoint
-            else None,
+            opt_state_dict=checkpoint_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None,
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
@@ -260,13 +250,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # by the dataloader and the max_steps_per_epoch param set by the user and is used
         # for logging and tracking training state. This should be computed after the dataloader
         # has been setup
-        self._steps_per_epoch = (
-            len(self._dataloader) // self._gradient_accumulation_steps
-        )
-        if (
-            self.max_steps_per_epoch is not None
-            and self.max_steps_per_epoch < self._steps_per_epoch
-        ):
+        self._steps_per_epoch = len(self._dataloader) // self._gradient_accumulation_steps
+        if self.max_steps_per_epoch is not None and self.max_steps_per_epoch < self._steps_per_epoch:
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
 
@@ -332,8 +317,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             cfg_profiler["_component_"] = "torchtune.utils.setup_torch_profiler"
         else:
             assert (
-                cfg_profiler.get("_component_")
-                == "torchtune.utils.setup_torch_profiler"
+                cfg_profiler.get("_component_") == "torchtune.utils.setup_torch_profiler"
             ), "Only torch profiler supported currently: component must be `torchtune.utils.setup_torch_profiler`"
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
@@ -382,9 +366,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             with utils.set_default_dtype(self._dtype):
                 model = config.instantiate(cfg_model)
 
-            log.info(
-                f"Model instantiation took {time.perf_counter() - init_start:.2f} secs"
-            )
+            log.info(f"Model instantiation took {time.perf_counter() - init_start:.2f} secs")
 
             # The model contains LoRA params which won't have any matching keys in
             # the state dict. As a result, we need to load with strict=False.
@@ -396,11 +378,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
                 apply_lora_to_output=getattr(cfg_model, "apply_lora_to_output", False),
                 full_model_state_dict_keys=model.state_dict().keys(),
-                lora_state_dict_keys=(
-                    lora_weights_state_dict.keys()
-                    if lora_weights_state_dict is not None
-                    else None
-                ),
+                lora_state_dict_keys=(lora_weights_state_dict.keys() if lora_weights_state_dict is not None else None),
                 base_model_state_dict_keys=base_model_state_dict.keys(),
             )
 
@@ -428,9 +406,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         model = FSDP(
             module=model,
-            auto_wrap_policy=utils.lora_fsdp_wrap_policy(
-                modules_to_wrap={modules.TransformerSelfAttentionLayer}
-            ),
+            auto_wrap_policy=utils.lora_fsdp_wrap_policy(modules_to_wrap={modules.TransformerSelfAttentionLayer}),
             sharding_strategy=self._fsdp_sharding_strategy,
             device_id=self._device,
             # this recipe does not currently support mixed precision training
@@ -440,9 +416,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             # Initialize empty modules on all non-zero ranks
             param_init_fn=(
                 lambda module: (
-                    module.to_empty(device=torch.device("cuda"), recurse=False)
-                    if not self._is_rank_zero
-                    else None
+                    module.to_empty(device=torch.device("cuda"), recurse=False) if not self._is_rank_zero else None
                 )
             ),
         )
@@ -451,9 +425,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         utils.validate_no_params_on_meta_device(model)
 
         if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(
-                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
-            )
+            utils.set_activation_checkpointing(model, auto_wrap_policy={modules.TransformerSelfAttentionLayer})
         if self._is_rank_zero:
             memory_stats = utils.get_memory_stats(device=self._device)
             utils.log_memory_stats(memory_stats)
@@ -470,9 +442,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         if opt_state_dict:
             # Note: technically we should check _contains_fsdp for
             # just the state dict of the adapter cfg, but should be equivalent
-            opt_state_dict = FSDP.optim_state_dict_to_load(
-                self._model, optimizer, opt_state_dict
-            )
+            opt_state_dict = FSDP.optim_state_dict_to_load(self._model, optimizer, opt_state_dict)
             optimizer.load_state_dict(opt_state_dict)
 
         if self._is_rank_zero:
@@ -509,19 +479,14 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         world_size, rank = utils.get_world_size_and_rank()
 
         if isinstance(cfg_dataset, ListConfig):
-            datasets = [
-                config.instantiate(single_cfg_dataset, self._tokenizer)
-                for single_cfg_dataset in cfg_dataset
-            ]
+            datasets = [config.instantiate(single_cfg_dataset, self._tokenizer) for single_cfg_dataset in cfg_dataset]
             ds = ConcatDataset(datasets=datasets)
             packed = False
         else:
             ds = config.instantiate(cfg_dataset, self._tokenizer)
             packed = cfg_dataset.get("packed", False)
 
-        sampler = DistributedSampler(
-            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
-        )
+        sampler = DistributedSampler(ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0)
 
         dataloader = DataLoader(
             dataset=ds,
@@ -529,7 +494,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             sampler=sampler,
             collate_fn=(
                 partial(
-                    padded_collate,
+                    padded_collate_sft,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
                 )
@@ -582,9 +547,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             # Filter out the adapter keys and weights from the model state dict. These will
             # be saved separately
             adapter_key_filter = lambda x: x in self.adapter_params
-            adapter_state_dict = {
-                k: v for k, v in cpu_state_dict.items() if adapter_key_filter(k)
-            }
+            adapter_state_dict = {k: v for k, v in cpu_state_dict.items() if adapter_key_filter(k)}
             checkpoint_dict.update({utils.ADAPTER_KEY: adapter_state_dict})
 
             # merge the adapter weights and base weights to create the model checkpoint
@@ -656,8 +619,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
+                    and (idx // self._gradient_accumulation_steps) == self.max_steps_per_epoch
                 ):
                     break
 
@@ -681,9 +643,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 num_tokens += tokens.numel()
                 labels = labels.to(self._device)
                 mask = mask.to(self._device) if mask is not None else None
-                input_pos = (
-                    input_pos.to(self._device) if input_pos is not None else None
-                )
+                input_pos = input_pos.to(self._device) if input_pos is not None else None
 
                 logits = self._model(tokens, mask=mask, input_pos=input_pos)
                 # Shift so that tokens < n predict n
@@ -710,15 +670,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
                     loss_to_log = running_loss.item()
                     pbar.update(1)
-                    pbar.set_description(
-                        f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
-                    )
+                    pbar.set_description(f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}")
 
                     # Log per-step metrics
-                    if (
-                        self.global_step % self._log_every_n_steps == 0
-                        and self._is_rank_zero
-                    ):
+                    if self.global_step % self._log_every_n_steps == 0 and self._is_rank_zero:
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
                             "loss": loss_to_log,
@@ -742,10 +697,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         self._is_rank_zero
                         and curr_epoch == 0
                         and self.profiler_profile_memory
-                        and idx
-                        == self.profiler_wait_steps
-                        + self.profiler_warmup_steps
-                        + self.profiler_active_steps
+                        and idx == self.profiler_wait_steps + self.profiler_warmup_steps + self.profiler_active_steps
                     ):
                         torch.cuda.memory._record_memory_history(enabled=None)
 

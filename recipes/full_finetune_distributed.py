@@ -20,7 +20,7 @@ from torch.distributed import destroy_process_group, init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
-from torchtune.data import padded_collate
+from torchtune.data import padded_collate_sft
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils import DummyProfiler, PROFILER_KEY
@@ -97,18 +97,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._dtype = utils.get_dtype(cfg.dtype, device=self._device)
 
         if self._dtype == torch.float16:
-            raise ValueError(
-                "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
-            )
+            raise ValueError("full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead.")
 
         if (
             cfg.get("fsdp_cpu_offload", False)
             and cfg.optimizer.get("fused", False)
             and not utils.torch_version_ge("2.4.0")
         ):
-            raise RuntimeError(
-                "Using fused optimizer on CPU is only supported in PyTorch nightly."
-            )
+            raise RuntimeError("Using fused optimizer on CPU is only supported in PyTorch nightly.")
 
         # logging attributes
         self._output_dir = cfg.output_dir
@@ -217,9 +213,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=checkpoint_dict[utils.OPT_KEY]
-            if self._resume_from_checkpoint
-            else None,
+            opt_state_dict=checkpoint_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None,
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
@@ -239,13 +233,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # by the dataloader, the max_steps_per_epoch param set by the user and the
         # gradient_accumulation_steps param. This value is used for logging and tracking
         # training state. The computation should happen after the dataloader has been setup
-        self._steps_per_epoch = (
-            len(self._dataloader) // self._gradient_accumulation_steps
-        )
-        if (
-            self.max_steps_per_epoch is not None
-            and self.max_steps_per_epoch < self._steps_per_epoch
-        ):
+        self._steps_per_epoch = len(self._dataloader) // self._gradient_accumulation_steps
+        if self.max_steps_per_epoch is not None and self.max_steps_per_epoch < self._steps_per_epoch:
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
 
@@ -303,8 +292,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             cfg_profiler["_component_"] = "torchtune.utils.setup_torch_profiler"
         else:
             assert (
-                cfg_profiler.get("_component_")
-                == "torchtune.utils.setup_torch_profiler"
+                cfg_profiler.get("_component_") == "torchtune.utils.setup_torch_profiler"
             ), "Only torch profiler supported currently: component must be `torchtune.utils.setup_torch_profiler`"
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
@@ -340,9 +328,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         """
 
         if self._is_rank_zero:
-            log.info(
-                "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ..."
-            )
+            log.info("FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...")
             init_start = time.perf_counter()
 
         with utils.set_default_dtype(self._dtype), torch.device("meta"):
@@ -363,9 +349,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # original activation checkpointing (full) - flip the condition above
         if enable_activation_checkpointing and ac_mode is None:
-            utils.set_activation_checkpointing(
-                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
-            )
+            utils.set_activation_checkpointing(model, auto_wrap_policy={modules.TransformerSelfAttentionLayer})
 
         # For FSDP sharding, we can condition on either the module or its name
         # Shard conditions should be callables taking name (relative to model root)
@@ -405,17 +389,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # This method will convert the full model state dict into a sharded state
         # dict and load into the model
-        utils.load_from_full_model_state_dict(
-            model, model_state_dict, self._device, self._is_rank_zero, strict=True
-        )
+        utils.load_from_full_model_state_dict(model, model_state_dict, self._device, self._is_rank_zero, strict=True)
 
         # Ensure no params and buffers are on meta device
         utils.validate_no_params_on_meta_device(model)
 
         if self._is_rank_zero:
-            log.info(
-                f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
-            )
+            log.info(f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs")
             memory_stats = utils.get_memory_stats(device=self._device)
             utils.log_memory_stats(memory_stats)
 
@@ -454,8 +434,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
-                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer)
-                for single_cfg_dataset in cfg_dataset
+                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer) for single_cfg_dataset in cfg_dataset
             ]
             ds = ConcatDataset(datasets=datasets)
             packed = False
@@ -463,20 +442,20 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
             packed = cfg_dataset.get("packed", False)
 
-        sampler = DistributedSampler(
-            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
-        )
+        sampler = DistributedSampler(ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0)
         dataloader = DataLoader(
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
-            collate_fn=partial(
-                padded_collate,
-                padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
-            )
-            if not packed
-            else None,
+            collate_fn=(
+                partial(
+                    padded_collate_sft,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else None
+            ),
         )
 
         if self._is_rank_zero:
@@ -571,8 +550,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
+                    and (idx // self._gradient_accumulation_steps) == self.max_steps_per_epoch
                 ):
                     break
 
@@ -596,9 +574,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 num_tokens += tokens.numel()
                 labels = labels.to(self._device)
                 mask = mask.to(self._device) if mask is not None else None
-                input_pos = (
-                    input_pos.to(self._device) if input_pos is not None else None
-                )
+                input_pos = input_pos.to(self._device) if input_pos is not None else None
 
                 logits = self._model(tokens, mask=mask, input_pos=input_pos)
                 # Shift so that tokens < n predict n
@@ -624,15 +600,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                     loss_to_log = running_loss.item()
                     pbar.update(1)
-                    pbar.set_description(
-                        f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
-                    )
+                    pbar.set_description(f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}")
 
                     # Log per-step metrics
-                    if (
-                        self.global_step % self._log_every_n_steps == 0
-                        and self._is_rank_zero
-                    ):
+                    if self.global_step % self._log_every_n_steps == 0 and self._is_rank_zero:
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
                             "loss": loss_to_log,
@@ -656,10 +627,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         self._is_rank_zero
                         and curr_epoch == 0
                         and self.profiler_profile_memory
-                        and idx
-                        == self.profiler_wait_steps
-                        + self.profiler_warmup_steps
-                        + self.profiler_active_steps
+                        and idx == self.profiler_wait_steps + self.profiler_warmup_steps + self.profiler_active_steps
                     ):
                         torch.cuda.memory._record_memory_history(enabled=None)
 
