@@ -20,7 +20,7 @@ from torch.distributed import destroy_process_group, init_process_group
 
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import config, modules, utils
+from torchtune import config, modules, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
@@ -412,7 +412,7 @@ class QATRecipeDistributed(FTRecipeInterface):
             raise ValueError("Quantizer must be specified for QAT recipe.")
         quantizer = config.instantiate(quantizer_cfg)
         quantizer.precision = self._dtype
-        quantizer_mode = utils.quantization.get_quantizer_mode(quantizer)
+        quantizer_mode = training.quantization.get_quantizer_mode(quantizer)
         if "qat" not in quantizer_mode:
             raise ValueError(
                 "Quantizer mode '%s' is not supported for finetuning" % quantizer_mode
@@ -652,7 +652,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                             "Step 0: Disabling fake quant, will re-enable in step %s"
                             % self._fake_quant_after_n_steps
                         )
-                        disable_fq = utils.quantization._get_disable_fake_quant(
+                        disable_fq = training.quantization._get_disable_fake_quant(
                             self._quantizer_mode
                         )
                         self._model.apply(disable_fq)
@@ -661,7 +661,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                             "Step %s: Enabling fake quant"
                             % self._fake_quant_after_n_steps
                         )
-                        enable_fq = utils.quantization._get_enable_fake_quant(
+                        enable_fq = training.quantization._get_enable_fake_quant(
                             self._quantizer_mode
                         )
                         self._model.apply(enable_fq)

@@ -15,7 +15,7 @@ from omegaconf import DictConfig
 from torch import nn
 from torch.nn.utils.rnn import pad_sequence
 
-from torchtune import config, utils
+from torchtune import config, training, utils
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.recipe_interfaces import EvalRecipeInterface
@@ -200,7 +200,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         self._limit = self._cfg.limit
         self._tasks = list(self._cfg.tasks)
         self._quantizer = config.instantiate(self._cfg.quantizer)
-        self._quantization_mode = utils.get_quantizer_mode(self._quantizer)
+        self._quantization_mode = training.get_quantizer_mode(self._quantizer)
         self._enable_kv_cache = self._cfg.get("enable_kv_cache", True)
 
         utils.set_seed(seed=self._cfg.seed)

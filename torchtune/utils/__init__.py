@@ -65,7 +65,6 @@ from .memory import (  # noqa
 from .pooling import get_unmasked_sequence_lengths
 
 from .precision import get_dtype, set_default_dtype, validate_expected_param_dtype
-from .quantization import get_quantizer_mode
 from .seed import set_seed
 
 __all__ = [
@@ -97,7 +96,6 @@ __all__ = [
     "DummyProfiler",
     "PROFILER_KEY",
     "setup_torch_profiler",
-    "get_quantizer_mode",
     "generate",
     "generate_next_token",
     "shard_model",
