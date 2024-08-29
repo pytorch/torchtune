@@ -58,7 +58,7 @@ optimizer:
   lr: 5e-6
 optimizer_in_bwd: True
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 compile: False
 
 # Training env
