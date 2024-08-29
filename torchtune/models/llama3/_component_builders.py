@@ -269,7 +269,7 @@ def lora_llama3(
                     "low_cpu_ram=True not supported on Windows."
                 )
             else:
-                raise RuntimeError("low_cpu_ram=True requires torch.__version__ >= 2.5.0.dev20240829.")
+                raise RuntimeError("low_cpu_ram=True requires torch.__version__ >= 2.5.0.dev20240830.")
         hook = (
             _low_ram_reparametrize_as_dtype_state_dict_post_hook
             if low_cpu_ram
