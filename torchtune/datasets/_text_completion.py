@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List, Mapping, Optional, Union, Callable
+from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
@@ -54,7 +54,7 @@ class TextCompletionDataset(Dataset):
         self.add_eos = add_eos
 
         if filter_fn:
-            self._data=self._data.filter(filter_fn)
+            self._data = self._data.filter(filter_fn)
 
     def __len__(self):
         return len(self._data)
