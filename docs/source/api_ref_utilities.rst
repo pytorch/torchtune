@@ -89,23 +89,6 @@ of your finetuning job.
     log_memory_stats
     setup_torch_profiler
 
-.. _metric_logging_label:
-
-Metric Logging
---------------
-
-Various logging utilities.
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    metric_logging.CometLogger
-    metric_logging.WandBLogger
-    metric_logging.TensorBoardLogger
-    metric_logging.StdoutLogger
-    metric_logging.DiskLogger
-
 .. _gen_label:
 
 
