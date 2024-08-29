@@ -424,7 +424,7 @@ class TransformerDecoder(nn.Module):
                 final output tensor appended to the list.
 
         Raises:
-            ValueError: if causal_mask is set but input_pos is None
+            ValueError: if caches are setup, but a mask is not provided
             ValueError: if seq_len of x is bigger than max_seq_len
 
         Note:
@@ -465,18 +465,9 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
-        # if self.caches_are_enabled():
-        #     if input_pos is None and cache_pos is None:
-        #         raise ValueError("Caches are setup, but the neither input positions or cache positions were provided.")
-        # #     if mask is not None:
-        #         raise ValueError("An attention mask was set. Cannot use a non-causal mask for inference")
-        #     # shape: [1, input_pos_len, m_s]
-        #     # in most cases input_pos_len should be 1
-        #     import pdb
-
-        # pdb.set_trace()
-        # mask = self.causal_mask[None, input_pos]
-        # pdb.set_trace()
+        if self.caches_are_enabled():
+            if mask is None:
+                raise ValueError("Caches are setup but a mask was not provided!")
 
         hidden = []
         for i, layer in enumerate(self.layers):
@@ -660,18 +651,9 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
-        if self.causal_mask is not None:
-            if input_pos is None:
-                raise ValueError(
-                    "Caches are setup, but the position of input token is missing"
-                )
-            if mask is not None:
-                raise ValueError(
-                    "An attention mask was set. Cannot use a non-causal mask for inference"
-                )
-            # shape: [1, input_pos_len, m_s]
-            # in most cases input_pos_len should be 1
-            mask = self.causal_mask[None, input_pos]
+        if self.caches_are_enabled():
+            if mask is None:
+                raise ValueError("Caches are setup but a mask was not provided!")
 
         hidden = []
         for i, layer in enumerate(self.layers):

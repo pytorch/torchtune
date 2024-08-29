@@ -10,7 +10,9 @@ import torch
 from torchtune.modules.transformer import TransformerDecoder
 
 
-def multinomial_sample_one(probs: torch.Tensor, q: torch.Tensor = None) -> torch.Tensor:
+def multinomial_sample_one(
+    probs: torch.Tensor, q: Optional[torch.Tensor] = None
+) -> torch.Tensor:
     """Samples from a multinomial distribution."""
 
     q = torch.empty_like(probs).exponential_(1) if q is None else q
@@ -61,7 +63,7 @@ def generate_next_token(
             with shape [bsz x seq_length].
         mask (Optional[torch.Tensor]): attention mask with shape [bsz x seq_length x seq_length],
             default None.
-        cache_pos (Optional[torch.Tensor]): Optional tensor which contains the cache positions
+        cache_pos (Optional[torch.Tensor]): tensor which contains the cache positions
             of each token, used during inference. This is useful when ``input_ids`` are
             right-shifted to account for padding tokens. Default is None, in which case
             ``input_pos`` is used (if specified).
@@ -153,7 +155,7 @@ def get_position_ids_from_padding_masks(
     Example:
         >>> padding_mask = torch.tensor([True, True, True, False, False, False, False, False])
         >>> input_pos = get_position_ids_from_padding_mask(padding_mask)
-        >>> input_ids
+        >>> input_pos
         >>> torch.Tensor([0, 0, 0, 0, 1, 2, 3, 4])
     """
     return ((padding_mask.cumsum(-1) - 1) * padding_mask).to(torch.int)
