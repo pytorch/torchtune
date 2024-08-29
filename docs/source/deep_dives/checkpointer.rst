@@ -427,7 +427,7 @@ For this section we'll use the Llama2 13B model in HF format.
 .. code-block:: python
 
     import torch
-    from torchtune.utils import FullModelHFCheckpointer, ModelType
+    from torchtune.training import FullModelHFCheckpointer, ModelType
     from torchtune.models.llama2 import llama2_13b
 
     # Set the right directory and files
