@@ -360,9 +360,9 @@ def lora_qwen2_self_attention(
         )
         if "q_proj" in lora_modules
         else (
-            nn.Linear(embed_dim, num_heads * head_dim, bias=False)
+            nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, num_heads * head_dim, bias=False)
+            else FrozenNF4Linear(embed_dim, num_kv_heads * head_dim, bias=True)
         )
     )
     k_proj = (
@@ -377,9 +377,9 @@ def lora_qwen2_self_attention(
         )
         if "k_proj" in lora_modules
         else (
-            nn.Linear(embed_dim, num_heads * head_dim, bias=False)
+            nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, num_heads * head_dim, bias=False)
+            else FrozenNF4Linear(embed_dim, num_kv_heads * head_dim, bias=True)
         )
     )
     v_proj = (
@@ -394,9 +394,9 @@ def lora_qwen2_self_attention(
         )
         if "v_proj" in lora_modules
         else (
-            nn.Linear(embed_dim, num_heads * head_dim, bias=False)
+            nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, num_heads * head_dim, bias=False)
+            else FrozenNF4Linear(embed_dim, num_kv_heads * head_dim, bias=True)
         )
     )
     output_proj = (
