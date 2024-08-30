@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run (torchtune does not use gguf so you can ignore it to save time and space):
-#   tune download google/gemma-7b --hf-token <HF_TOKEN> --output-dir /tmp/gemma-7b --ignore-patterns "gemma-7b.gguf"
+#   tune download google/gemma-7b --hf-token <HF_TOKEN> --ignore-patterns "gemma-7b.gguf"
 #
 # To launch on a single device, run the following command from root:
 #   tune run lora_finetune_single_device --config gemma/7B_lora_single_device
@@ -35,7 +35,7 @@ model:
   lora_alpha: 16
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/gemma-7b/
   checkpoint_files: [
     model-00001-of-00004.safetensors,
@@ -47,6 +47,7 @@ checkpointer:
   output_dir: /tmp/gemma-7b/
   model_type: GEMMA
 resume_from_checkpoint: False
+save_adapter_weights_only: False
 
 optimizer:
   _component_: torch.optim.AdamW
@@ -57,7 +58,7 @@ lr_scheduler:
   num_warmup_steps: 100
 
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
 # Fine-tuning arguments
 batch_size: 8

@@ -28,9 +28,10 @@ model:
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
   path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
+  max_seq_len: null
 
 checkpointer:
-  _component_: torchtune.utils.FullModelMetaCheckpointer
+  _component_: torchtune.training.FullModelMetaCheckpointer
   checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/original/
   checkpoint_files: [
     consolidated.00.pth
@@ -39,6 +40,7 @@ checkpointer:
   output_dir: /tmp/Meta-Llama-3-8B-Instruct/
   model_type: LLAMA3
 resume_from_checkpoint: False
+save_adapter_weights_only: False
 
 # Dataset and Sampler
 dataset:
@@ -57,7 +59,7 @@ lr_scheduler:
   num_warmup_steps: 100
 
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
 # Training
 epochs: 1

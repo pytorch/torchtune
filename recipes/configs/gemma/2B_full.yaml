@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download google/gemma-2b --hf-token <HF_TOKEN> --output-dir /tmp/gemma --ignore-patterns ""
+#   tune download google/gemma-2b --ignore-patterns None --hf-token <HF_TOKEN>
 #
 # To launch on 4 devices, run the following command from root:
 #   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config gemma/2B_full
@@ -19,7 +19,7 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.gemma.gemma_tokenizer
-  path: /tmp/gemma/tokenizer.model
+  path: /tmp/gemma-2b/tokenizer.model
 
 # Dataset
 dataset:
@@ -32,14 +32,14 @@ model:
   _component_: torchtune.models.gemma.gemma_2b
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/gemma/
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/gemma-2b/
   checkpoint_files: [
     model-00001-of-00002.safetensors,
     model-00002-of-00002.safetensors,
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/gemma
+  output_dir: /tmp/gemma-2b
   model_type: GEMMA
 resume_from_checkpoint: False
 
@@ -50,7 +50,7 @@ optimizer:
   _component_: torch.optim.AdamW
   lr: 2e-5
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
 
@@ -59,7 +59,6 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True
-memory_efficient_fsdp_wrap: False
 
 # Reduced precision
 dtype: bf16
