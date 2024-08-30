@@ -389,7 +389,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     m.compile(backend=backend)
 
         if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(
+            training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
@@ -421,8 +421,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         log.info(f"Model is initialized with precision {self._dtype}.")
 
         if self._device.type == "cuda":
-            memory_stats = utils.get_memory_stats(device=self._device)
-            utils.log_memory_stats(memory_stats)
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(memory_stats)
         return model
 
     def _setup_optimizer(
@@ -665,7 +665,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 and self._log_peak_memory_stats
                             ):
                                 log_dict.update(
-                                    utils.get_memory_stats(device=self._device)
+                                    training.get_memory_stats(device=self._device)
                                 )
                             self._metric_logger.log_dict(
                                 log_dict,

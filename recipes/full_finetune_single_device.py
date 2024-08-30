@@ -364,7 +364,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     m.compile(backend=backend)
 
         if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(
+            training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
@@ -377,8 +377,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         log.info(f"Model is initialized with precision {self._dtype}.")
 
         if self._device.type == "cuda":
-            memory_stats = utils.get_memory_stats(device=self._device)
-            utils.log_memory_stats(memory_stats)
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(memory_stats)
 
         return model
 
@@ -398,7 +398,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 for p in self._model.parameters()
             }
             # Register optimizer step hooks on the model to run optimizer in backward.
-            utils.register_optim_in_bwd_hooks(model=self._model, optim_dict=optim_dict)
+            training.register_optim_in_bwd_hooks(
+                model=self._model, optim_dict=optim_dict
+            )
             # Create a wrapper for checkpoint save/load of optimizer states when running in backward.
             self._optim_ckpt_wrapper = training.create_optim_in_bwd_wrapper(
                 model=self._model, optim_dict=optim_dict
@@ -602,7 +604,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._device.type == "cuda" and self._log_peak_memory_stats:
-                            log_dict.update(utils.get_memory_stats(device=self._device))
+                            log_dict.update(
+                                training.get_memory_stats(device=self._device)
+                            )
                         self._metric_logger.log_dict(
                             log_dict,
                             step=self.global_step,

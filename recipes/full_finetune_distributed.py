@@ -388,7 +388,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # original activation checkpointing (full) - flip the condition above
         if enable_activation_checkpointing and ac_mode is None:
-            utils.set_activation_checkpointing(
+            training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
@@ -441,8 +441,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             log.info(
                 f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
             )
-            memory_stats = utils.get_memory_stats(device=self._device)
-            utils.log_memory_stats(memory_stats)
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(memory_stats)
 
         # synchronize before training begins
         torch.distributed.barrier()
@@ -673,7 +673,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._log_peak_memory_stats:
-                            log_dict.update(utils.get_memory_stats(device=self._device))
+                            log_dict.update(
+                                training.get_memory_stats(device=self._device)
+                            )
                         self._metric_logger.log_dict(
                             log_dict,
                             step=self.global_step,
