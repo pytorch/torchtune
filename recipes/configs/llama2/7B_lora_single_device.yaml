@@ -31,7 +31,7 @@ tokenizer:
   max_seq_len: null
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Llama-2-7b-hf
   checkpoint_files: [
     pytorch_model-00001-of-00002.bin,

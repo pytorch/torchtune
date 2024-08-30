@@ -19,14 +19,14 @@ from torchtune.modules.peft import (
     get_lora_module_names,
     validate_missing_and_unexpected_for_lora,
 )
-from torchtune.training.seed import set_seed
 
-from torchtune.utils._checkpointing import FullModelHFCheckpointer
-from torchtune.utils._checkpointing._utils import (
+from torchtune.training.checkpointing import FullModelHFCheckpointer
+from torchtune.training.checkpointing._utils import (
     ADAPTER_CONFIG,
     ADAPTER_KEY,
     safe_torch_load,
 )
+from torchtune.training.seed import set_seed
 
 _VOCAB_SIZE = 100
 _DIM = 64

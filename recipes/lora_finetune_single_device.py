@@ -18,7 +18,7 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import config, modules, utils
+from torchtune import config, modules, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
@@ -103,7 +103,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         self._device = utils.get_device(device=cfg.device)
         # Reduced precision logic
-        self._dtype = utils.get_dtype(cfg.dtype, device=self._device)
+        self._dtype = training.get_dtype(cfg.dtype, device=self._device)
         # fp16 precision is explicitly disabled as it is not supported in this
         # recipe (for example, no gradient scaling).
         if self._dtype == torch.float16:
@@ -146,7 +146,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         checkpoint_dict = self._checkpointer.load_checkpoint()
 
         if self._resume_from_checkpoint:
-            if utils.ADAPTER_KEY not in checkpoint_dict:
+            if training.ADAPTER_KEY not in checkpoint_dict:
                 raise ValueError(
                     "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
                 )
@@ -160,28 +160,28 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         Updates the recipe state from checkpoint.
         """
         try:
-            self.epochs_run = ckpt_dict[utils.EPOCHS_KEY]
+            self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
 
             # on mismatch, warn the user and prevent the override
-            if self.seed != ckpt_dict[utils.SEED_KEY]:
+            if self.seed != ckpt_dict[training.SEED_KEY]:
                 warn(
                     message=(
                         "Config value for seed does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[utils.SEED_KEY]}"
+                        f"using the checkpoint value: {ckpt_dict[training.SEED_KEY]}"
                     )
                 )
-                self.seed = ckpt_dict[utils.SEED_KEY]
-            if self.max_steps_per_epoch != ckpt_dict[utils.MAX_STEPS_KEY]:
+                self.seed = ckpt_dict[training.SEED_KEY]
+            if self.max_steps_per_epoch != ckpt_dict[training.MAX_STEPS_KEY]:
                 warn(
                     message=(
                         "Config value for max_steps_per_epoch does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[utils.MAX_STEPS_KEY]}"
+                        f"using the checkpoint value: {ckpt_dict[training.MAX_STEPS_KEY]}"
                     )
                 )
-                self.max_steps_per_epoch = ckpt_dict[utils.MAX_STEPS_KEY]
+                self.max_steps_per_epoch = ckpt_dict[training.MAX_STEPS_KEY]
 
             # on mismatch, warn the user but allow the override
-            if self.total_epochs != ckpt_dict[utils.TOTAL_EPOCHS_KEY]:
+            if self.total_epochs != ckpt_dict[training.TOTAL_EPOCHS_KEY]:
                 warn(
                     message=(
                         "Config value for total_epochs does not match the checkpoint value, "
@@ -213,9 +213,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             compile_model=cfg.compile,
-            base_model_state_dict=checkpoint_dict[utils.MODEL_KEY],
+            base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
             lora_weights_state_dict=(
-                checkpoint_dict[utils.ADAPTER_KEY]
+                checkpoint_dict[training.ADAPTER_KEY]
                 if self._resume_from_checkpoint
                 else None
             ),
@@ -227,7 +227,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
             opt_state_dict=(
-                checkpoint_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None
+                checkpoint_dict[training.OPT_KEY]
+                if self._resume_from_checkpoint
+                else None
             ),
         )
 
@@ -368,8 +370,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
     ) -> nn.Module:
-
-        with utils.set_default_dtype(self._dtype), self._device:
+        with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
 
         self._lora_rank = cfg_model.lora_rank
@@ -413,7 +414,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Validate model adapter params were loaded in with the expected dtype
         # TODO (rohan-varma): Further validation to ensure the appropriate base params
         # are NF4 vs bf16 based on the quantization config.
-        utils.validate_expected_param_dtype(
+        training.validate_expected_param_dtype(
             self.adapter_params.items(), dtype=self._dtype
         )
 
@@ -516,11 +517,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         if intermediate_checkpoint:
             ckpt_dict.update(
                 {
-                    utils.OPT_KEY: self._optimizer.state_dict(),
-                    utils.SEED_KEY: self.seed,
-                    utils.EPOCHS_KEY: self.epochs_run,
-                    utils.TOTAL_EPOCHS_KEY: self.total_epochs,
-                    utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                    training.OPT_KEY: self._optimizer.state_dict(),
+                    training.SEED_KEY: self.seed,
+                    training.EPOCHS_KEY: self.epochs_run,
+                    training.TOTAL_EPOCHS_KEY: self.total_epochs,
+                    training.MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
 
@@ -533,14 +534,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             rank=self._lora_rank,
             alpha=self._lora_alpha,
         )
-        ckpt_dict.update({utils.MODEL_KEY: merged_state_dict})
+        ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
 
         # Construct the adapter weights
         adapter_key_filter = lambda x: x in self.adapter_params
         adapter_state_dict = {
             k: v for k, v in self._model.state_dict().items() if adapter_key_filter(k)
         }
-        ckpt_dict.update({utils.ADAPTER_KEY: adapter_state_dict})
+        ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
         adapter_config = {
             "r": self._lora_rank,
             "lora_alpha": self._lora_alpha,
@@ -551,7 +552,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             ),
             "peft_type": "LORA",
         }
-        ckpt_dict.update({utils.ADAPTER_CONFIG: adapter_config})
+        ckpt_dict.update({training.ADAPTER_CONFIG: adapter_config})
 
         self._checkpointer.save_checkpoint(
             ckpt_dict,

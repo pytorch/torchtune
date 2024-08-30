@@ -35,7 +35,7 @@ model:
   lora_alpha: 16
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/gemma-7b/
   checkpoint_files: [
     model-00001-of-00004.safetensors,

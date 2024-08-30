@@ -24,7 +24,7 @@ from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
 
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import config, modules, utils
+from torchtune import config, modules, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
@@ -111,7 +111,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             raise RuntimeError("FSDP2 recipe is only available on PyTorch nightlies")
 
         self._device = utils.get_device(device=cfg.device)
-        self._dtype = utils.get_dtype(cfg.dtype, device=self._device)
+        self._dtype = training.get_dtype(cfg.dtype, device=self._device)
 
         if self._dtype == torch.float16:
             raise ValueError(
@@ -159,7 +159,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # and recipe state to be present. The keys should match up with what ``save_checkpoint``
         # used to create these intermediate checkpoints
         if self._resume_from_checkpoint:
-            if utils.ADAPTER_KEY not in checkpoint_dict:
+            if training.ADAPTER_KEY not in checkpoint_dict:
                 raise ValueError(
                     "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
                 )
@@ -173,9 +173,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         Updates the recipe state from checkpoint.
         """
         if not (
-            utils.SEED_KEY in ckpt_dict
-            and utils.TOTAL_EPOCHS_KEY in ckpt_dict
-            and utils.MAX_STEPS_KEY in ckpt_dict
+            training.SEED_KEY in ckpt_dict
+            and training.TOTAL_EPOCHS_KEY in ckpt_dict
+            and training.MAX_STEPS_KEY in ckpt_dict
         ):
             raise KeyError(
                 "Checkpoint does not contain the required keys needed for updating recipe state."
@@ -184,18 +184,18 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # If seed, total_epoch or max_steps_per_epoch don't match,
         # warn the user and overwrite
         if (
-            self.seed != ckpt_dict[utils.SEED_KEY]
-            or self.total_epochs != ckpt_dict[utils.TOTAL_EPOCHS_KEY]
-            or self.max_steps_per_epoch != ckpt_dict[utils.MAX_STEPS_KEY]
+            self.seed != ckpt_dict[training.SEED_KEY]
+            or self.total_epochs != ckpt_dict[training.TOTAL_EPOCHS_KEY]
+            or self.max_steps_per_epoch != ckpt_dict[training.MAX_STEPS_KEY]
         ):
             warn(
                 message="""Configured value for seed, epochs or max_steps_per_epoch
                 does not match the value stored in checkpoint."""
             )
-        self.seed = training.set_seed(seed=ckpt_dict[utils.SEED_KEY])
-        self.epochs_run = ckpt_dict[utils.EPOCHS_KEY]
-        self.total_epochs = ckpt_dict[utils.TOTAL_EPOCHS_KEY]
-        self.max_steps_per_epoch = ckpt_dict[utils.MAX_STEPS_KEY]
+        self.seed = training.set_seed(seed=ckpt_dict[training.SEED_KEY])
+        self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
+        self.total_epochs = ckpt_dict[training.TOTAL_EPOCHS_KEY]
+        self.max_steps_per_epoch = ckpt_dict[training.MAX_STEPS_KEY]
 
     def setup(self, cfg: DictConfig) -> None:
         """
@@ -214,9 +214,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
-            base_model_state_dict=checkpoint_dict[utils.MODEL_KEY],
+            base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
             lora_weights_state_dict=(
-                checkpoint_dict[utils.ADAPTER_KEY]
+                checkpoint_dict[training.ADAPTER_KEY]
                 if self._resume_from_checkpoint
                 else None
             ),
@@ -226,7 +226,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=checkpoint_dict[utils.OPT_KEY]
+            opt_state_dict=checkpoint_dict[training.OPT_KEY]
             if self._resume_from_checkpoint
             else None,
         )
@@ -318,7 +318,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             )
             init_start = time.perf_counter()
 
-        with utils.set_default_dtype(self._dtype), torch.device("meta"):
+        with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
         self.adapter_params = get_adapter_params(model)
@@ -363,7 +363,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         else:
             lora_missing, lora_unexpected = None, None
 
-        with utils.set_default_dtype(self._dtype), self._device:
+        with training.set_default_dtype(self._dtype), self._device:
             lora_device = "cpu" if cfg_fsdp and cfg_fsdp.cpu_offload else self._device
             for m in model.modules():
                 if isinstance(m, LoRALinear) and not lora_weights_state_dict:
@@ -526,7 +526,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             adapter_state_dict = {
                 k: v for k, v in cpu_state_dict.items() if adapter_key_filter(k)
             }
-            checkpoint_dict.update({utils.ADAPTER_KEY: adapter_state_dict})
+            checkpoint_dict.update({training.ADAPTER_KEY: adapter_state_dict})
 
             # merge the adapter weights and base weights to create the model checkpoint
             merged_state_dict = get_merged_lora_ckpt(
@@ -534,18 +534,18 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 rank=self._lora_rank,
                 alpha=self._lora_alpha,
             )
-            checkpoint_dict.update({utils.MODEL_KEY: merged_state_dict})
+            checkpoint_dict.update({training.MODEL_KEY: merged_state_dict})
 
             # if training is in-progress, checkpoint the optimizer state and recipe state
             # as well.
             if intermediate_checkpoint:
                 checkpoint_dict.update(
                     {
-                        utils.OPT_KEY: opt_state_dict,
-                        utils.SEED_KEY: self.seed,
-                        utils.EPOCHS_KEY: self.epochs_run,
-                        utils.TOTAL_EPOCHS_KEY: self.total_epochs,
-                        utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                        training.OPT_KEY: opt_state_dict,
+                        training.SEED_KEY: self.seed,
+                        training.EPOCHS_KEY: self.epochs_run,
+                        training.TOTAL_EPOCHS_KEY: self.total_epochs,
+                        training.MAX_STEPS_KEY: self.max_steps_per_epoch,
                     }
                 )
 
@@ -559,7 +559,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 ),
                 "peft_type": "LORA",
             }
-            checkpoint_dict.update({utils.ADAPTER_CONFIG: adapter_config})
+            checkpoint_dict.update({training.ADAPTER_CONFIG: adapter_config})
 
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
