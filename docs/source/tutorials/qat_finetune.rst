@@ -223,7 +223,7 @@ copy and make the following modifications to the quantization config:
     _component_: torchtune.models.llama3.llama3_8b
 
   checkpointer:
-    _component_: torchtune.utils.FullModelMetaCheckpointer
+    _component_: torchtune.training.FullModelMetaCheckpointer
     checkpoint_dir: <your QAT checkpoint dir>
     checkpoint_files: [meta_model_0.pt]
     recipe_checkpoint: null
@@ -269,7 +269,7 @@ integrated in torchtune. First, copy the evaluation config and make the followin
     _component_: torchtune.models.llama3.llama3_8b
 
   checkpointer:
-    _component_: torchtune.utils.FullModelTorchTuneCheckpointer
+    _component_: torchtune.training.FullModelTorchTuneCheckpointer
     checkpoint_dir: <your quantized model checkpoint dir>
     checkpoint_files: [meta_model_0-8da4w.pt]
     recipe_checkpoint: null
