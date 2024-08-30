@@ -291,7 +291,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.ignore_labels_cache = torch.full(
             (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
         )
-    
+
     def _patch_state_dict_hook(self, cfg: DictConfig) -> None:
         """
         Patches the state_dict hook for QLoRA for the `low_cpu_ram` config option.
