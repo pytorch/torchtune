@@ -128,7 +128,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         tune run lora_finetune_single_device
             --config llama2/7B_qlora_single_device \
             output_dir={tmpdir} \
-            checkpointer=torchtune.utils.FullModelMetaCheckpointer
+            checkpointer=torchtune.training.FullModelMetaCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
@@ -177,7 +177,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         tune run lora_finetune_single_device \
             --config llama2/7B_lora_single_device \
             output_dir={tmpdir} \
-            checkpointer=torchtune.utils.FullModelHFCheckpointer \
+            checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
@@ -198,7 +198,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         tune run lora_finetune_single_device \
             --config llama2/7B_lora_single_device \
             output_dir={tmpdir} \
-            checkpointer=torchtune.utils.FullModelHFCheckpointer \
+            checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.adapter_checkpoint={os.path.join(tmpdir, "adapter_0.pt")}
@@ -233,7 +233,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         tune run lora_finetune_single_device \
             --config llama2/7B_lora_single_device \
             output_dir={tmpdir} \
-            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \

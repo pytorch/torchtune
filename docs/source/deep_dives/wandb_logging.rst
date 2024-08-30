@@ -87,10 +87,10 @@ A suggested approach would be something like this:
             description="Model checkpoint",
             # you can add whatever metadata you want as a dict
             metadata={
-                utils.SEED_KEY: self.seed,
-                utils.EPOCHS_KEY: self.epochs_run,
-                utils.TOTAL_EPOCHS_KEY: self.total_epochs,
-                utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                training.SEED_KEY: self.seed,
+                training.EPOCHS_KEY: self.epochs_run,
+                training.TOTAL_EPOCHS_KEY: self.total_epochs,
+                training.MAX_STEPS_KEY: self.max_steps_per_epoch,
             }
         )
         wandb_at.add_file(checkpoint_file)

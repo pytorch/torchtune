@@ -130,7 +130,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         tune run full_finetune_single_device \
             --config llama2/7B_full_low_memory \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
@@ -151,7 +151,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         tune run full_finetune_single_device \
             --config llama2/7B_full_low_memory \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
             checkpointer.checkpoint_files=[{os.path.join(tmpdir, "hf_model_0001_0.pt")}]\
             checkpointer.recipe_checkpoint={os.path.join(tmpdir, "recipe_state.pt")}
@@ -217,7 +217,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
         cmd_1 = f"""
         tune run full_finetune_single_device \
             --config llama2/7B_full_low_memory \
-            checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
@@ -243,7 +243,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
         cmd_2 = f"""
         tune run full_finetune_single_device \
             --config llama2/7B_full_low_memory \
-            checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \

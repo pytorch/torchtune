@@ -33,7 +33,7 @@ tokenizer:
   max_seq_len: null
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Qwen2-0.5B-Instruct
   checkpoint_files: [
     model.safetensors
@@ -86,7 +86,7 @@ enable_activation_checkpointing: True
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training
 profiler:
-  _component_: torchtune.utils.setup_torch_profiler
+  _component_: torchtune.training.setup_torch_profiler
 
   enabled: False
 

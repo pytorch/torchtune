@@ -32,7 +32,7 @@ tokenizer:
 
 # Checkpointer
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/CodeLlama-7b-hf
   checkpoint_files: [
     pytorch_model-00001-of-00003.bin,
@@ -86,7 +86,7 @@ log_peak_memory_stats: False
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training
 profiler:
-  _component_: torchtune.utils.setup_torch_profiler
+  _component_: torchtune.training.setup_torch_profiler
   enabled: False
 
   #Output directory of trace artifacts

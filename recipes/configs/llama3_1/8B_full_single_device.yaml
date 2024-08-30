@@ -37,7 +37,7 @@ model:
   _component_: torchtune.models.llama3_1.llama3_1_8b
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
   checkpoint_files: [
     model-00001-of-00004.safetensors,
@@ -82,7 +82,7 @@ log_peak_memory_stats: False
 
 # Profiler (disabled)
 profiler:
-  _component_: torchtune.utils.setup_torch_profiler
+  _component_: torchtune.training.setup_torch_profiler
   enabled: False
 
   #Output directory of trace artifacts
