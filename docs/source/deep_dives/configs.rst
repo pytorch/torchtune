@@ -147,7 +147,7 @@ will automatically resolve it for you.
 
     output_dir: /tmp/alpaca-llama2-finetune
     metric_logger:
-      _component_: torchtune.utils.metric_logging.DiskLogger
+      _component_: torchtune.training.metric_logging.DiskLogger
       log_dir: ${output_dir}
 
 Validating your config
