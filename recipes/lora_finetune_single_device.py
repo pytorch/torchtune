@@ -287,6 +287,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
 
+        # Used to ignore labels for loss computation
+        self.ignore_labels_cache = torch.full(
+            (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
+        )
+    
     def _patch_state_dict_hook(self, cfg: DictConfig) -> None:
         """
         Patches the state_dict hook for QLoRA for the `low_cpu_ram` config option.
@@ -309,11 +314,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             common_utils.reparametrize_as_dtype_state_dict_post_hook = (
                 common_utils._low_ram_reparametrize_as_dtype_state_dict_post_hook
             )
-
-        # Used to ignore labels for loss computation
-        self.ignore_labels_cache = torch.full(
-            (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
-        )
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
