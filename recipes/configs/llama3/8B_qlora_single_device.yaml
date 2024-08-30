@@ -45,7 +45,7 @@ save_adapter_weights_only: False
 # Dataset and Sampler
 dataset:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
-seed: 1372749820
+seed: null
 shuffle: True
 batch_size: 2
 
@@ -62,17 +62,16 @@ loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
 # Training
-epochs: 10
-max_steps_per_epoch: 20
-gradient_accumulation_steps: 2
+epochs: 1
+max_steps_per_epoch: null
+gradient_accumulation_steps: 16
 compile: False
 
 # Logging
 output_dir: /tmp/qlora_finetune_output/
 metric_logger:
-  _component_: torchtune.utils.metric_logging.WandBLogger
-  # the W&B project to log to
-  project: torchtune
+  _component_: torchtune.utils.metric_logging.DiskLogger
+  log_dir: ${output_dir}
 log_every_n_steps: 1
 log_peak_memory_stats: False
 

@@ -559,17 +559,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
         ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
 
-<<<<<<< HEAD
-        # Construct the adapter weights
-        adapter_key_filter = lambda x: x in self.adapter_params
-        # adapters are very small ~0.04GB so we don't need to use mmap when offloading to CPU
-        adapter_state_dict = {
-            k: v.cpu() for k, v in self._model.state_dict().items() if adapter_key_filter(k)
-        }
         ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
-=======
-        ckpt_dict.update({utils.ADAPTER_KEY: adapter_state_dict})
->>>>>>> b8dbcfdb (Use core APIs, refactor into state_dict post hook)
         adapter_config = {
             "r": self._lora_rank,
             "lora_alpha": self._lora_alpha,
