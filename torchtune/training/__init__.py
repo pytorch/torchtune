@@ -4,10 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.training.precision import (
-    get_dtype,
-    set_default_dtype,
-    validate_expected_param_dtype,
 from torchtune.training.checkpointing import (
     ADAPTER_CONFIG,
     ADAPTER_KEY,
@@ -25,6 +21,11 @@ from torchtune.training.checkpointing import (
     STEPS_KEY,
     TOTAL_EPOCHS_KEY,
     update_state_dict_for_classifier,
+)
+from torchtune.training.precision import (
+    get_dtype,
+    set_default_dtype,
+    validate_expected_param_dtype,
 )
 from torchtune.training.quantization import get_quantizer_mode
 
