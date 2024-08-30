@@ -31,7 +31,7 @@ model:
   _component_: torchtune.models.llama2.llama2_7b
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Llama-2-7b-hf
   checkpoint_files: [
     pytorch_model-00001-of-00002.bin,
@@ -55,7 +55,7 @@ gradient_accumulation_steps: 1
 
 # QAT arguments
 quantizer:
-  _component_: torchtune.utils.quantization.Int8DynActInt4WeightQATQuantizer
+  _component_: torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer
   groupsize: 256
 
 # Training env
