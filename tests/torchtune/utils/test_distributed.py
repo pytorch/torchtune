@@ -28,8 +28,7 @@ from torchtune import modules, utils
 from torchtune.models.llama2._component_builders import llama2, lora_llama2
 from torchtune.models.llama3._component_builders import llama3
 from torchtune.modules import TransformerSelfAttentionLayer
-from torchtune.modules.peft import LoRALinear
-from torchtune.modules.peft.peft_utils import get_adapter_params, set_trainable_params
+from torchtune.modules.peft import get_adapter_params, LoRALinear, set_trainable_params
 
 
 class TestDistributed:

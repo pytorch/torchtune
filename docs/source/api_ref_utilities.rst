@@ -1,26 +1,8 @@
-=================
+===============
 torchtune.utils
-=================
+===============
 
 .. currentmodule:: torchtune.utils
-
-
-.. _checkpointing_label:
-
-Checkpointing
--------------
-
-torchtune offers checkpointers to allow seamless transitioning between checkpoint formats for training and interoperability with the rest of the ecosystem. For a comprehensive overview of
-checkpointing, please see the :ref:`checkpointing deep-dive <understand_checkpointer>`.
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    FullModelHFCheckpointer
-    FullModelMetaCheckpointer
-    FullModelTorchTuneCheckpointer
-    ModelType
 
 .. _dist_label:
 
@@ -39,22 +21,6 @@ Utilities for enabling and working with distributed training.
     get_world_size_and_rank
     get_full_finetune_fsdp_wrap_policy
     lora_fsdp_wrap_policy
-
-.. _mp_label:
-
-Reduced Precision
-------------------
-
-Utilities for working in a reduced precision setting.
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    get_dtype
-    set_default_dtype
-    validate_expected_param_dtype
-    get_quantizer_mode
 
 .. _ac_label:
 
@@ -106,17 +72,6 @@ Various logging utilities.
     metric_logging.StdoutLogger
     metric_logging.DiskLogger
 
-Data
-----
-
-Utilities for working with data and datasets.
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    padded_collate
-
 .. _gen_label:
 
 
@@ -132,4 +87,3 @@ Miscellaneous
     set_seed
     generate
     torch_version_ge
-    TuneRecipeArgumentParser

@@ -18,9 +18,10 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import config, modules, utils
+from torchtune import config, modules, training, utils
+from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
-from torchtune.modules.peft.peft_utils import (
+from torchtune.modules.peft import (
     get_adapter_params,
     get_lora_module_names,
     get_merged_lora_ckpt,
@@ -102,7 +103,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         self._device = utils.get_device(device=cfg.device)
         # Reduced precision logic
-        self._dtype = utils.get_dtype(cfg.dtype, device=self._device)
+        self._dtype = training.get_dtype(cfg.dtype, device=self._device)
         # fp16 precision is explicitly disabled as it is not supported in this
         # recipe (for example, no gradient scaling).
         if self._dtype == torch.float16:
@@ -145,7 +146,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         checkpoint_dict = self._checkpointer.load_checkpoint()
 
         if self._resume_from_checkpoint:
-            if utils.ADAPTER_KEY not in checkpoint_dict:
+            if training.ADAPTER_KEY not in checkpoint_dict:
                 raise ValueError(
                     "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
                 )
@@ -159,28 +160,28 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         Updates the recipe state from checkpoint.
         """
         try:
-            self.epochs_run = ckpt_dict[utils.EPOCHS_KEY]
+            self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
 
             # on mismatch, warn the user and prevent the override
-            if self.seed != ckpt_dict[utils.SEED_KEY]:
+            if self.seed != ckpt_dict[training.SEED_KEY]:
                 warn(
                     message=(
                         "Config value for seed does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[utils.SEED_KEY]}"
+                        f"using the checkpoint value: {ckpt_dict[training.SEED_KEY]}"
                     )
                 )
-                self.seed = ckpt_dict[utils.SEED_KEY]
-            if self.max_steps_per_epoch != ckpt_dict[utils.MAX_STEPS_KEY]:
+                self.seed = ckpt_dict[training.SEED_KEY]
+            if self.max_steps_per_epoch != ckpt_dict[training.MAX_STEPS_KEY]:
                 warn(
                     message=(
                         "Config value for max_steps_per_epoch does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[utils.MAX_STEPS_KEY]}"
+                        f"using the checkpoint value: {ckpt_dict[training.MAX_STEPS_KEY]}"
                     )
                 )
-                self.max_steps_per_epoch = ckpt_dict[utils.MAX_STEPS_KEY]
+                self.max_steps_per_epoch = ckpt_dict[training.MAX_STEPS_KEY]
 
             # on mismatch, warn the user but allow the override
-            if self.total_epochs != ckpt_dict[utils.TOTAL_EPOCHS_KEY]:
+            if self.total_epochs != ckpt_dict[training.TOTAL_EPOCHS_KEY]:
                 warn(
                     message=(
                         "Config value for total_epochs does not match the checkpoint value, "
@@ -207,13 +208,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._model_compile = cfg.compile
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
+        # set up model
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             compile_model=cfg.compile,
-            base_model_state_dict=checkpoint_dict[utils.MODEL_KEY],
+            base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
             lora_weights_state_dict=(
-                checkpoint_dict[utils.ADAPTER_KEY]
+                checkpoint_dict[training.ADAPTER_KEY]
                 if self._resume_from_checkpoint
                 else None
             ),
@@ -225,11 +227,30 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
             opt_state_dict=(
-                checkpoint_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None
+                checkpoint_dict[training.OPT_KEY]
+                if self._resume_from_checkpoint
+                else None
             ),
         )
 
+        # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
+        backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+        if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
+            # set num_output_chunks for model
+            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+            if self._model_compile:
+                log.info("Compiling loss with torch.compile...")
+                # For CEWithChunkedOutputLoss, if we compile the entire class
+                # we lose the benefits from the chunked loss.
+                # Therefore, we only compile the cross entropy function + upcasting
+                self._loss_fn.compute_cross_entropy = torch.compile(
+                    self._loss_fn.compute_cross_entropy, backend=backend
+                )
+        else:
+            if self._model_compile:
+                log.info("Compiling loss with torch.compile...")
+                self._loss_fn = torch.compile(self._loss_fn, backend=backend)
         log.info("Loss is initialized.")
 
         # Dataloader depends on the tokenizer and loss_fn and should be
@@ -268,6 +289,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
+
+        # Used to ignore labels for loss computation
+        self.ignore_labels_cache = torch.full(
+            (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
+        )
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
@@ -328,6 +354,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         log.info(f" Profiler config after instantiation: {profiler_cfg}")
 
+        self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
+        if profiler_cfg["enabled"]:
+            self.profiler_wait_steps = profiler_cfg["wait_steps"]
+            self.profiler_warmup_steps = profiler_cfg["warmup_steps"]
+            self.profiler_active_steps = profiler_cfg["active_steps"]
+
         return profiler
 
     def _setup_model(
@@ -338,7 +370,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
     ) -> nn.Module:
-        with utils.set_default_dtype(self._dtype), self._device:
+        with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
 
         self._lora_rank = cfg_model.lora_rank
@@ -348,6 +380,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
+
+        if compile_model:
+            log.info("Compiling model layers with torch.compile...")
+            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+            for m in reversed(list(model.modules())):
+                if isinstance(m, modules.transformer.TransformerSelfAttentionLayer):
+                    m.compile(backend=backend)
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
@@ -375,17 +414,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Validate model adapter params were loaded in with the expected dtype
         # TODO (rohan-varma): Further validation to ensure the appropriate base params
         # are NF4 vs bf16 based on the quantization config.
-        utils.validate_expected_param_dtype(
+        training.validate_expected_param_dtype(
             self.adapter_params.items(), dtype=self._dtype
         )
 
         log.info(f"Model is initialized with precision {self._dtype}.")
-        # Compile model, if enabled.
-        if compile_model:
-            log.info("Compiling model with torch.compile...")
-            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-            self._loss_step_original = self._loss_step
-            self._loss_step = torch.compile(self._loss_step, backend=backend)
 
         if self._device.type == "cuda":
             memory_stats = utils.get_memory_stats(device=self._device)
@@ -453,7 +486,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             batch_size=batch_size,
             collate_fn=(
                 partial(
-                    utils.padded_collate,
+                    padded_collate,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
                 )
@@ -484,11 +517,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         if intermediate_checkpoint:
             ckpt_dict.update(
                 {
-                    utils.OPT_KEY: self._optimizer.state_dict(),
-                    utils.SEED_KEY: self.seed,
-                    utils.EPOCHS_KEY: self.epochs_run,
-                    utils.TOTAL_EPOCHS_KEY: self.total_epochs,
-                    utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                    training.OPT_KEY: self._optimizer.state_dict(),
+                    training.SEED_KEY: self.seed,
+                    training.EPOCHS_KEY: self.epochs_run,
+                    training.TOTAL_EPOCHS_KEY: self.total_epochs,
+                    training.MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
 
@@ -501,14 +534,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             rank=self._lora_rank,
             alpha=self._lora_alpha,
         )
-        ckpt_dict.update({utils.MODEL_KEY: merged_state_dict})
+        ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
 
         # Construct the adapter weights
         adapter_key_filter = lambda x: x in self.adapter_params
         adapter_state_dict = {
             k: v for k, v in self._model.state_dict().items() if adapter_key_filter(k)
         }
-        ckpt_dict.update({utils.ADAPTER_KEY: adapter_state_dict})
+        ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
         adapter_config = {
             "r": self._lora_rank,
             "lora_alpha": self._lora_alpha,
@@ -519,7 +552,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             ),
             "peft_type": "LORA",
         }
-        ckpt_dict.update({utils.ADAPTER_CONFIG: adapter_config})
+        ckpt_dict.update({training.ADAPTER_CONFIG: adapter_config})
 
         self._checkpointer.save_checkpoint(
             ckpt_dict,
@@ -531,18 +564,28 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
         # Both are shape [b, s]
         tokens, labels = batch["tokens"], batch["labels"]
+
         # Get the attention mask and position ids from the dataset if they
         # exist. Currently, only sample packing in PackedDataset returns these
         mask = batch.get("mask", None)  # shape [b, s, s]
         input_pos = batch.get("input_pos", None)  # shape [b, s]
 
+        # run model
         logits = self._model(tokens, mask=mask, input_pos=input_pos)
-        # Shift so that tokens < n predict n
-        logits = logits[..., :-1, :].contiguous()
-        labels = labels[..., 1:].contiguous()
-        logits = logits.transpose(1, 2)
+
+        # Shift labels to compute loss
+        # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
+        # But this way we dont need to slice the logits. We just add an ignore index to labels.
+        labels = torch.hstack(
+            (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
+        )
+        if not isinstance(logits, list):
+            labels = labels.reshape(-1)
+            logits = logits.reshape(-1, logits.size(-1))
+
         # Compute loss
         loss = self._loss_fn(logits, labels)
+
         # free logits otherwise it peaks backward memory
         del logits
 
@@ -578,6 +621,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         == self.max_steps_per_epoch
                     ):
                         break
+
+                    # Start tracking CUDA memory for active steps for just the first epoch
+                    if (
+                        curr_epoch == 0
+                        and self.profiler_profile_memory
+                        and idx == self.profiler_wait_steps + self.profiler_warmup_steps
+                    ):
+                        torch.cuda.memory._record_memory_history()
 
                     batch = {k: v.to(self._device) for k, v in batch.items()}
                     num_tokens += batch["tokens"].numel()
@@ -625,6 +676,17 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         running_loss = 0
                         num_tokens = 0
                         t0 = time.perf_counter()
+
+                    # Stop tracking CUDA memory now that active steps are complete
+                    if (
+                        curr_epoch == 0
+                        and self.profiler_profile_memory
+                        and idx
+                        == self.profiler_wait_steps
+                        + self.profiler_warmup_steps
+                        + self.profiler_active_steps
+                    ):
+                        torch.cuda.memory._record_memory_history(enabled=None)
 
                     # Step the profiler
                     # Note we are stepping each batch, which might not include optimizer step in the trace

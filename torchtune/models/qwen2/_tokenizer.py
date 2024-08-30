@@ -380,7 +380,9 @@ class Qwen2Tokenizer(ModelTokenizer):
 
         # Finally, truncate if necessary
         if self.max_seq_len:
-            tokens = truncate(tokens, self.max_seq_len, self.eos_id)
+            tokenized_messages = truncate(
+                tokenized_messages, self.max_seq_len, self.eos_id
+            )
             mask = truncate(mask, self.max_seq_len, True)
 
         return tokenized_messages, mask

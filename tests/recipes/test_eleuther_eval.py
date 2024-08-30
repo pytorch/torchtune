@@ -29,7 +29,7 @@ class TestEleutherEval:
         tune run eleuther_eval \
             --config eleuther_evaluation \
             output_dir={tmpdir} \
-            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
@@ -90,7 +90,7 @@ class TestEleutherEval:
         tune run eleuther_eval \
             --config eleuther_evalation \
             output_dir={tmpdir} \
-            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \

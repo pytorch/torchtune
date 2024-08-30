@@ -32,7 +32,7 @@ model:
   _component_: torchtune.models.gemma.gemma_7b
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/gemma-7b/
   checkpoint_files: [
     model-00001-of-00004.safetensors,
@@ -52,7 +52,7 @@ optimizer:
   _component_: torch.optim.AdamW
   lr: 2e-5
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
 

@@ -7,12 +7,8 @@
 import runpy
 import sys
 
-from pathlib import Path
-
 import pytest
-from tests.common import TUNE_PATH
-
-ASSETS = Path(__file__).parent.parent.parent / "assets"
+from tests.common import ASSETS, TUNE_PATH
 
 
 class TestTuneValidateCommand:

@@ -101,6 +101,16 @@ torchtune tutorials.
 .. toctree::
    :glob:
    :maxdepth: 1
+   :caption: Finetuning Recipes
+   :hidden:
+
+   recipes/recipes_overview
+   recipes/lora_finetune_single_device
+   recipes/qat_distributed
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
    :caption: Tutorials
    :hidden:
 
@@ -111,6 +121,7 @@ torchtune tutorials.
    tutorials/e2e_flow
    tutorials/datasets
    tutorials/chat
+   tutorials/memory_optimizations
 
 .. toctree::
    :glob:
@@ -135,4 +146,5 @@ torchtune tutorials.
    api_ref_datasets
    api_ref_models
    api_ref_modules
+   api_ref_training
    api_ref_utilities

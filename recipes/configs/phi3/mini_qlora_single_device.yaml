@@ -28,10 +28,11 @@ model:
 tokenizer:
   _component_: torchtune.models.phi3.phi3_mini_tokenizer
   path: /tmp/Phi-3-mini-4k-instruct/tokenizer.model
+  max_seq_len: null
 
 # Checkpointer
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Phi-3-mini-4k-instruct
   checkpoint_files: [
     model-00001-of-00002.safetensors,
@@ -62,7 +63,7 @@ lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 compile: False
 
 # Training env

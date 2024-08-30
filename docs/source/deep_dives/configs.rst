@@ -216,9 +216,7 @@ the config itself. To enable quick experimentation, you can specify override val
 to parameters in your config via the :code:`tune` command. These should be specified
 as key-value pairs :code:`k1=v1 k2=v2 ...`
 
-.. TODO (SalmanMohammadi) link this to the upcoming recipe docpage for the lora recipe
-
-For example, to run the :code:`lora_finetune_single_device` recipe with custom model and tokenizer directories, you can provide overrides:
+For example, to run the :ref:`LoRA single-device finetuning <lora_finetune_recipe_label>` recipe with custom model and tokenizer directories, you can provide overrides:
 
 .. code-block:: bash
 

@@ -6,7 +6,7 @@
 from functools import partial
 from typing import Dict, List, Protocol, Tuple, Union
 
-from torchtune.data import Message, Role
+from torchtune.data._messages import Message, Role
 
 _TemplateType = Union[str, Dict[Role, Tuple[str, str]]]
 

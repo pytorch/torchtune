@@ -114,7 +114,8 @@ def alpaca_dataset(
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details. Default is ``tatsu-lab/alpaca``.
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the message transform
-            :class:`~torchtune.data.AlpacaToMessages` to the new column names in the dataset. If None, use
+            :class:`~torchtune.data.AlpacaToMessages` to the new column names in the dataset. Keys should be
+            "instruction", "input", and "output" and values should be the actual column names. If None, uses
             the default column names ``"instruction``, ``"input"``, and ``"output"`` in ``tatsu-lab/alpaca``.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.

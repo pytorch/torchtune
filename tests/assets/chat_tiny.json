@@ -1,0 +1,26 @@
+[
+    {
+        "conversations": [
+            {
+                "from": "system",
+                "value": "You are an AI assistant."
+            },
+            {
+                "from": "human",
+                "value": "What is the meaning of life?"
+            },
+            {
+                "from": "gpt",
+                "value": "The meaning of life is 42."
+            },
+            {
+                "from": "human",
+                "value": "That's ridiculous."
+            },
+            {
+                "from": "gpt",
+                "value": "I agree."
+            }
+        ]
+    }
+]
