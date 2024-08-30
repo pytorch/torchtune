@@ -24,8 +24,8 @@ from torchtune import config, modules, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.activations import apply_selective_activation_checkpointing
-from torchtune.utils import DummyProfiler, PROFILER_KEY
 
 from tqdm import tqdm
 
@@ -325,12 +325,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Check that component is included and set correctly
         if cfg_profiler.get("_component_", None) is None:
-            cfg_profiler["_component_"] = "torchtune.utils.setup_torch_profiler"
+            cfg_profiler["_component_"] = "torchtune.training.setup_torch_profiler"
         else:
             assert (
                 cfg_profiler.get("_component_")
-                == "torchtune.utils.setup_torch_profiler"
-            ), "Only torch profiler supported currently: component must be `torchtune.utils.setup_torch_profiler`"
+                == "torchtune.training.setup_torch_profiler"
+            ), "Only torch profiler supported currently: component must be `torchtune.training.setup_torch_profiler`"
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 

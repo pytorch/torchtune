@@ -23,15 +23,7 @@ from ._distributed import (  # noqa
     validate_no_params_on_meta_device,
 )
 from ._generation import generate, generate_next_token  # noqa
-from ._profiler import (
-    DEFAULT_PROFILE_DIR,
-    DEFAULT_PROFILER_ACTIVITIES,
-    DEFAULT_SCHEDULE,
-    DEFAULT_TRACE_OPTS,
-    DummyProfiler,
-    PROFILER_KEY,
-    setup_torch_profiler,
-)
+
 from ._version import torch_version_ge
 from .logging import get_logger
 from .memory import (  # noqa
@@ -65,13 +57,6 @@ __all__ = [
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",
     "register_optim_in_bwd_hooks",
-    "DEFAULT_PROFILE_DIR",
-    "DEFAULT_PROFILER_ACTIVITIES",
-    "DEFAULT_SCHEDULE",
-    "DEFAULT_TRACE_OPTS",
-    "DummyProfiler",
-    "PROFILER_KEY",
-    "setup_torch_profiler",
     "generate",
     "generate_next_token",
     "shard_model",
