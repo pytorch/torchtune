@@ -61,7 +61,7 @@ class QuantizationRecipe:
         ckpt_dict = self.load_checkpoint(cfg.checkpointer)
         self._model = self._setup_model(
             model_cfg=cfg.model,
-            model_state_dict=ckpt_dict[utils.MODEL_KEY],
+            model_state_dict=ckpt_dict[training.MODEL_KEY],
         )
 
     def _setup_model(

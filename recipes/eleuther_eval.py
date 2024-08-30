@@ -216,7 +216,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
         self._model = self._setup_model(
             model_cfg=self._cfg.model,
-            model_state_dict=ckpt_dict[utils.MODEL_KEY],
+            model_state_dict=ckpt_dict[training.MODEL_KEY],
         )
         self._tokenizer = config.instantiate(self._cfg.tokenizer)
         logger.info("Tokenizer is initialized from file.")
