@@ -375,7 +375,7 @@ def lora_llama3_1_self_attention(
             else FrozenNF4Linear(embed_dim, embed_dim, bias=False)
         )
     )
-    rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+    rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
     self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
