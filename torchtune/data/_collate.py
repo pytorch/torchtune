@@ -61,21 +61,18 @@ def padded_collate(
     padding_idx: int | Dict[str, int],
 ):
     """
-    A generic padding collate function which pads ``keys_to_pad`` entries in a
+    A generic padding collation function which pads ``keys_to_pad`` entries in a
     batch of sequences with the given `pad_fn` to the maximum sequence length for
-    each entry in the batch.
-
-    Note:
-        To correctly use this function for collation in a DataLoader, you must ensure
-        all other batch elements which are not in ``keys_to_pad`` do not require any
-        padding.
+    each entry in the batch. Any keys in ``batch`` which are not in ``keys_to_pad``
+    are discarded.
 
     Args:
         batch (List[Dict[str, List[int]]]): A list of dictionaries containing inputs.
         pad_fn (Callable): padding function to apply to ``keys_to_pad`` batch elements.
             This should have an identical signature to :func:`torch.nn.utils.rnn.pad_sequence`, e.g.
             :func:`torchtune.data.left_pad_sequence`.
-        keys_to_pad (List[str]): Batch element keys to apply padding to.
+        keys_to_pad (List[str]): Batch element keys to apply padding to. Should be a subset
+            of keys in the batch.
         padding_idx (int | Dict[str, int]): Either a single integer padding value to apply to all
             ``keys_to_pad`` elements, or a mapping with keys identical to ``keys_to_pad`` with per-key
             padding values.
@@ -84,7 +81,7 @@ def padded_collate(
         torch.Tensor: The padded tensor of input ids with shape [batch_size, max_seq_len].
 
     Raises:
-        ValueError: if ``keys_to_pad`` is empty.
+        ValueError: if ``keys_to_pad`` is empty, or is not a list, or is not a subset of keys in the batch.
         ValueError: if ``padding_idx`` is provided as a dictionary, but the keys are not identical to
             ``keys_to_pad``.
 
@@ -112,20 +109,25 @@ def padded_collate(
                             [  8,   9,  10,  11,  12]])
         }
     """
-    if not keys_to_pad:
+    if not isinstance(keys_to_pad, list) or not keys_to_pad:
         raise ValueError(
-            "keys_to_pad is empty, therefore this function is a no-op! If you do not "
-            "require any collation, simply omit collate_fn when constructing your DataLoader!"
+            f"keys_to_pad should be a list of strings with at least one element, but found {keys_to_pad}!"
         )
-    if isinstance(padding_idx, dict) and not set(padding_idx.keys()) == set(
-        keys_to_pad
-    ):
-        raise ValueError(
-            f"padding_idx was provided as a dictionary, but the keys ({padding_idx.keys()}) "
-            f"are not the same as keys_to_pad ({keys_to_pad})"
-        )
-    batch_keys = [k for k in batch[0].keys() if k not in keys_to_pad]
-    output_dict = {k: torch.tensor([x[k] for x in batch]) for k in batch_keys}
+    if isinstance(padding_idx, dict):
+        if isinstance(padding_idx, dict) and not set(padding_idx.keys()) == set(
+            keys_to_pad
+        ):
+            raise ValueError(
+                f"padding_idx was provided as a dictionary, but the keys ({padding_idx.keys()}) "
+                f"are not the same as keys_to_pad ({keys_to_pad})"
+            )
+        if not set(keys_to_pad) <= set(batch[0].keys()):
+            raise ValueError(
+                "keys_to_pad should be a subset of keys in the batch, but found "
+                f"{set(keys_to_pad)} and {set(batch[0].keys())}, respectively."
+            )
+
+    output_dict = {}
     for k in keys_to_pad:
         output_dict[k] = pad_fn(
             [torch.tensor(x[k]) for x in batch],
@@ -206,10 +208,6 @@ def padded_collate_dpo(
     as a dictionary with multiple key-value pairs. Each key corresponds to a different
     sequence component, such as input_ids or labels.
 
-    This will raise:
-        AssertionError: if the length of chosen_input_ids and rejected_input_ids differ.
-        AssertionError: if the length of chosen_labels and rejected_labels differ.
-
     Args:
         batch (List[Dict[str, List[int]]]): A list of dictionaries, where each dictionary
             represents a sequence with multiple components, 'chosen_input_ids',
@@ -220,7 +218,6 @@ def padded_collate_dpo(
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: A tuple containing concatenated and padded
         input ids and labels.
-
 
     Example:
         >>> batch = [
@@ -243,9 +240,6 @@ def padded_collate_dpo(
     rejected_input_ids = [torch.tensor(ex["rejected_input_ids"]) for ex in batch]
     chosen_labels = [torch.tensor(ex["chosen_labels"]) for ex in batch]
     rejected_labels = [torch.tensor(ex["rejected_labels"]) for ex in batch]
-
-    assert len(chosen_input_ids) == len(rejected_input_ids)
-    assert len(chosen_labels) == len(rejected_labels)
 
     to_pad_input_ids = chosen_input_ids + rejected_input_ids
     to_pad_labels = chosen_labels + rejected_labels

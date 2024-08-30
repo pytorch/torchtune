@@ -13,9 +13,8 @@ import torch
 from omegaconf import DictConfig
 
 from torch import nn
-from torch.nn.utils.rnn import pad_sequence
-
 from torchtune import config, training, utils
+from torchtune.data import left_pad_sequence
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.recipe_interfaces import EvalRecipeInterface
@@ -112,15 +111,13 @@ class _EvalWrapper(HFLM):
         tokenized_text = [self.tok_encode(x) for x in text]
 
         # pad left
-        x = pad_sequence(
+        x = left_pad_sequence(
             [
                 torch.tensor(x[::-1]) for x in tokenized_text
             ],  # first flip each sequence and pad
             batch_first=True,
             padding_value=self._tokenizer.pad_id,
-        ).flip(
-            dims=[1]
-        )  # flip back to correct order
+        )
 
         return x, torch.ones_like(x)  # return 'mask' b/c it's expected by the harness
 
