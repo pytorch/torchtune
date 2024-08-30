@@ -425,12 +425,10 @@
 <p>FSDP’s default behavior is to allocate gradients at the level of FSDP-wrapped modules.
 This means that if any parameter in a given FSDP-wrapped module requires gradients, then memory will be
 allocated for gradients for the entire module.</p>
-<p>In the case of LoRA, where only LoRA A and B matrices are trainable, this means that
-we need to wrap LoRA A and B submodules in their own FSDP units to
+<p>In the case of LoRA, where only the adapters are trainable, this means that
+we need to wrap the adapter submodules in their own FSDP units to
 maximize memory savings. After this is done, model will also be hierarchically wrapped
-based on nn.Module types specified in <code class="docutils literal notranslate"><span class="pre">modules_to_wrap</span></code>. This function assumes that
-(a) LoRA’s A and B matrices are the only trainable weights in the entire model, and
-(b) we have already set <code class="docutils literal notranslate"><span class="pre">requires_grad</span> <span class="pre">=</span> <span class="pre">True</span></code> on LoRA params.</p>
+based on nn.Module types specified in <code class="docutils literal notranslate"><span class="pre">modules_to_wrap</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>modules_to_wrap</strong> (<em>Set</em><em>[</em><em>Type</em><em>]</em>) – nn.Module types to recursively wrap</p>

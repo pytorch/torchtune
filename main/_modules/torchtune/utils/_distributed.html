@@ -438,11 +438,8 @@
 <span class="kn">from</span> <span class="nn">torch.optim</span> <span class="kn">import</span> <span class="n">Optimizer</span>
 <span class="kn">from</span> <span class="nn">torchao.dtypes.nf4tensor</span> <span class="kn">import</span> <span class="n">NF4Tensor</span><span class="p">,</span> <span class="n">to_nf4</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">TransformerDecoder</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.peft.lora</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">_lora_a_init_params</span><span class="p">,</span>
-    <span class="n">_lora_b_init_params</span><span class="p">,</span>
-    <span class="n">LoRALinear</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">DoRALinear</span><span class="p">,</span> <span class="n">LoRALinear</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules.peft.lora</span> <span class="kn">import</span> <span class="n">_lora_a_init_params</span><span class="p">,</span> <span class="n">_lora_b_init_params</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.utils._device</span> <span class="kn">import</span> <span class="n">get_device</span>
 <span class="kn">from</span> <span class="nn">torchtune.utils.logging</span> <span class="kn">import</span> <span class="n">get_logger</span>
@@ -650,7 +647,7 @@
 
         <span class="c1"># This will define reset_parameters for LoRA weight initialization</span>
         <span class="c1"># directly on any LoRALinear submodules lora_a and lora_b.</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">LoRALinear</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">LoRALinear</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">DoRALinear</span><span class="p">):</span>
             <span class="n">v</span><span class="o">.</span><span class="n">lora_a</span><span class="o">.</span><span class="n">reset_parameters</span> <span class="o">=</span> <span class="n">_lora_a_init_params</span><span class="o">.</span><span class="fm">__get__</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">lora_a</span><span class="p">)</span>
             <span class="n">v</span><span class="o">.</span><span class="n">lora_b</span><span class="o">.</span><span class="n">reset_parameters</span> <span class="o">=</span> <span class="n">_lora_b_init_params</span><span class="o">.</span><span class="fm">__get__</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">lora_b</span><span class="p">)</span>
 
@@ -665,12 +662,10 @@
 <span class="sd">    This means that if any parameter in a given FSDP-wrapped module requires gradients, then memory will be</span>
 <span class="sd">    allocated for gradients for the entire module.</span>
 
-<span class="sd">    In the case of LoRA, where only LoRA A and B matrices are trainable, this means that</span>
-<span class="sd">    we need to wrap LoRA A and B submodules in their own FSDP units to</span>
+<span class="sd">    In the case of LoRA, where only the adapters are trainable, this means that</span>
+<span class="sd">    we need to wrap the adapter submodules in their own FSDP units to</span>
 <span class="sd">    maximize memory savings. After this is done, model will also be hierarchically wrapped</span>
-<span class="sd">    based on nn.Module types specified in ``modules_to_wrap``. This function assumes that</span>
-<span class="sd">    (a) LoRA&#39;s A and B matrices are the only trainable weights in the entire model, and</span>
-<span class="sd">    (b) we have already set ``requires_grad = True`` on LoRA params.</span>
+<span class="sd">    based on nn.Module types specified in ``modules_to_wrap``.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        modules_to_wrap (Set[Type]): nn.Module types to recursively wrap</span>

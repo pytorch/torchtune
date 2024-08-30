@@ -419,6 +419,7 @@
 <span class="kn">import</span> <span class="nn">contextlib</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Set</span>
 
+<span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
 
 <span class="c1"># Modules from MultiHeadAttention that LoRA can be applied to</span>
@@ -563,7 +564,12 @@
     <span class="n">lora_modules</span> <span class="o">=</span> <span class="n">get_lora_module_names</span><span class="p">(</span>
         <span class="n">lora_attn_modules</span><span class="p">,</span> <span class="n">apply_lora_to_mlp</span><span class="p">,</span> <span class="n">apply_lora_to_output</span>
     <span class="p">)</span>
-    <span class="n">is_lora_param</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">any</span><span class="p">([</span><span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">k</span><span class="p">,</span> <span class="s2">&quot;lora&quot;</span><span class="p">])</span> <span class="ow">in</span> <span class="n">x</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">lora_modules</span><span class="p">])</span>
+    <span class="n">is_lora_param</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">any</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">k</span><span class="p">,</span> <span class="s2">&quot;lora&quot;</span><span class="p">])</span> <span class="ow">in</span> <span class="n">x</span> <span class="ow">or</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">k</span><span class="p">,</span> <span class="s2">&quot;magnitude&quot;</span><span class="p">])</span> <span class="ow">in</span> <span class="n">x</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">lora_modules</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">full_model_state_dict_keys</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">is_lora_param</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">base_model_state_dict_keys</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -612,17 +618,22 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        Set[str]: Set of keys in the state dict that correspond to LoRA modules.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">lora_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="s2">&quot;lora&quot;</span> <span class="ow">in</span> <span class="n">k</span><span class="p">]</span>
+    <span class="n">lora_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="s2">&quot;lora&quot;</span> <span class="ow">in</span> <span class="n">k</span> <span class="ow">or</span> <span class="s2">&quot;magnitude&quot;</span> <span class="ow">in</span> <span class="n">k</span><span class="p">]</span>
     <span class="k">return</span> <span class="nb">set</span><span class="p">(</span>
         <span class="p">[</span>
-            <span class="n">k</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.lora_a.weight&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.lora_b.weight&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="n">k</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.lora_a.weight&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.lora_b.weight&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.magnitude&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">lora_keys</span>
         <span class="p">]</span>
     <span class="p">)</span>
 
 
+<span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span>
 <span class="k">def</span> <span class="nf">get_merged_lora_ckpt</span><span class="p">(</span>
-    <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Merge LoRA weights into the base model format for efficient inference.</span>
@@ -630,8 +641,7 @@
 <span class="sd">    make a copy prior to calling this function.</span>
 
 <span class="sd">    For every LoRA module in the state dict, this function will convert its</span>
-<span class="sd">    weight -&gt; weight + (alpha / rank) * lora_b @ lora_a,</span>
-<span class="sd">    then delete the lora_a and lora_b weights.</span>
+<span class="sd">    base weight then delete the LoRA-specific parameters.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        state_dict (Dict[str, Any]): State dict from a model.</span>
@@ -645,9 +655,22 @@
     <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">lora_modules</span><span class="p">:</span>
         <span class="n">lora_a_weight</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s2">.lora_a.weight&quot;</span><span class="p">]</span>
         <span class="n">lora_b_weight</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s2">.lora_b.weight&quot;</span><span class="p">]</span>
-        <span class="n">state_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s2">.weight&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">alpha</span> <span class="o">/</span> <span class="n">rank</span><span class="p">)</span> <span class="o">*</span> <span class="n">lora_b_weight</span> <span class="o">@</span> <span class="n">lora_a_weight</span>
+        <span class="n">base_weight</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s2">.weight&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">lora_a_weight</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">lora_magnitude</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s2">.magnitude&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="n">lora_weight</span> <span class="o">=</span> <span class="p">(</span><span class="n">alpha</span> <span class="o">/</span> <span class="n">rank</span><span class="p">)</span> <span class="o">*</span> <span class="n">lora_b_weight</span> <span class="o">@</span> <span class="n">lora_a_weight</span>
+        <span class="n">merged_weight</span> <span class="o">=</span> <span class="n">base_weight</span> <span class="o">+</span> <span class="n">lora_weight</span>
+        <span class="k">if</span> <span class="n">lora_magnitude</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">weight_norm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">base_weight</span> <span class="o">+</span> <span class="n">lora_weight</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">mag_norm_scale</span> <span class="o">=</span> <span class="p">(</span><span class="n">lora_magnitude</span> <span class="o">/</span> <span class="n">weight_norm</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">merged_weight</span> <span class="o">*=</span> <span class="n">mag_norm_scale</span>
+        <span class="n">state_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s2">.weight&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">merged_weight</span>
+
         <span class="k">del</span> <span class="n">state_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s2">.lora_a.weight&quot;</span><span class="p">]</span>
         <span class="k">del</span> <span class="n">state_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s2">.lora_b.weight&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">lora_magnitude</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">state_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s2">.magnitude&quot;</span><span class="p">]</span>
+
     <span class="k">return</span> <span class="n">state_dict</span>
 
 
@@ -739,7 +762,13 @@
     <span class="n">lora_modules</span> <span class="o">=</span> <span class="n">get_lora_module_names</span><span class="p">(</span>
         <span class="n">lora_attn_modules</span><span class="p">,</span> <span class="n">apply_lora_to_mlp</span><span class="p">,</span> <span class="n">apply_lora_to_output</span>
     <span class="p">)</span>
-    <span class="n">is_lora_param</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">any</span><span class="p">([</span><span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">k</span><span class="p">,</span> <span class="s2">&quot;lora&quot;</span><span class="p">])</span> <span class="ow">in</span> <span class="n">x</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">lora_modules</span><span class="p">])</span>
+    <span class="n">is_lora_param</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">any</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">k</span><span class="p">,</span> <span class="s2">&quot;lora&quot;</span><span class="p">])</span> <span class="ow">in</span> <span class="n">x</span> <span class="ow">or</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">k</span><span class="p">,</span> <span class="s2">&quot;magnitude&quot;</span><span class="p">])</span> <span class="ow">in</span> <span class="n">x</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">lora_modules</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
     <span class="k">if</span> <span class="n">base_missing</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">base_missing</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">is_lora_param</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
@@ -752,6 +781,17 @@
                 <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Missing LoRA key </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> from adapter state dict&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">lora_unexpected</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;Unexpected key loading adapter&quot;</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">load_dora_magnitudes</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    For DoRA magnitude we use setattr to move from meta device</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dora_parents</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">n</span><span class="p">:</span> <span class="n">p</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_modules</span><span class="p">()</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s2">&quot;adapter_params&quot;</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="n">sd</span> <span class="o">=</span> <span class="p">{</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">.magnitude&quot;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">magnitude</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">dora_parents</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">sd</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">assign</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 
              </article>
