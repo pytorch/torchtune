@@ -6,23 +6,21 @@
 
 from functools import partial
 from typing import List, Optional
-from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 
 from torch import nn
 
 from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
 
 from torchtune.modules import (
-    MultiHeadAttention,
     FeedForward,
     FrozenNF4Linear,
+    MultiHeadAttention,
     RMSNorm,
     RotaryPositionalEmbeddings,
     TransformerDecoder,
     TransformerSelfAttentionLayer,
 )
-
-
+from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 
@@ -85,7 +83,9 @@ def llama2(
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
 
-    rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+    rope = RotaryPositionalEmbeddings(
+        dim=head_dim, max_seq_len=max_seq_len, base=rope_base
+    )
     self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
@@ -100,7 +100,9 @@ def llama2(
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
-    hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
+    hidden_dim = (
+        intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
+    )
     mlp = llama2_mlp(dim=embed_dim, hidden_dim=hidden_dim)
     layer = TransformerSelfAttentionLayer(
         attn=self_attn,
@@ -126,9 +128,21 @@ def llama2_mlp(dim: int, hidden_dim: int, quantize_base: bool = False) -> FeedFo
     """
     Build the MLP layer associated with the Llama model.
     """
-    gate_proj = nn.Linear(dim, hidden_dim, bias=False) if not quantize_base else FrozenNF4Linear(dim, hidden_dim, bias=False)
-    down_proj = nn.Linear(hidden_dim, dim, bias=False) if not quantize_base else FrozenNF4Linear(hidden_dim, dim, bias=False)
-    up_proj = nn.Linear(dim, hidden_dim, bias=False) if not quantize_base else FrozenNF4Linear(dim, hidden_dim, bias=False)
+    gate_proj = (
+        nn.Linear(dim, hidden_dim, bias=False)
+        if not quantize_base
+        else FrozenNF4Linear(dim, hidden_dim, bias=False)
+    )
+    down_proj = (
+        nn.Linear(hidden_dim, dim, bias=False)
+        if not quantize_base
+        else FrozenNF4Linear(hidden_dim, dim, bias=False)
+    )
+    up_proj = (
+        nn.Linear(dim, hidden_dim, bias=False)
+        if not quantize_base
+        else FrozenNF4Linear(dim, hidden_dim, bias=False)
+    )
     return FeedForward(gate_proj=gate_proj, down_proj=down_proj, up_proj=up_proj)
 
 
@@ -214,7 +228,9 @@ def lora_llama2(
         quantize_base=quantize_base,
     )
 
-    hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
+    hidden_dim = (
+        intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
+    )
     if apply_lora_to_mlp:
         mlp = lora_llama2_mlp(
             dim=embed_dim,
@@ -226,7 +242,9 @@ def lora_llama2(
             lora_dropout=lora_dropout,
         )
     else:
-        mlp = llama2_mlp(dim=embed_dim, hidden_dim=hidden_dim, quantize_base=quantize_base)
+        mlp = llama2_mlp(
+            dim=embed_dim, hidden_dim=hidden_dim, quantize_base=quantize_base
+        )
 
     layer = TransformerSelfAttentionLayer(
         attn=self_attn,
@@ -240,7 +258,13 @@ def lora_llama2(
     # TODO: quantize_base is not applied to final output_proj currently.
     adapter_cls = DoRALinear if use_dora else LoRALinear
     output_proj = (
-        adapter_cls(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout)
+        adapter_cls(
+            embed_dim,
+            vocab_size,
+            rank=lora_rank,
+            alpha=lora_alpha,
+            dropout=lora_dropout,
+        )
         if apply_lora_to_output
         else nn.Linear(embed_dim, vocab_size, bias=False)
     )
@@ -321,7 +345,9 @@ def lora_llama2_self_attention(
         ValueError: If lora_modules arg is an empty list
     """
     if not lora_modules:
-        raise ValueError(f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules")
+        raise ValueError(
+            f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules"
+        )
 
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
@@ -508,7 +534,9 @@ def llama2_classifier(
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
-    hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
+    hidden_dim = (
+        intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
+    )
     mlp = llama2_mlp(dim=embed_dim, hidden_dim=hidden_dim)
     layer = TransformerSelfAttentionLayer(
         attn=self_attn,
@@ -610,7 +638,9 @@ def lora_llama2_classifier(
         quantize_base=quantize_base,
     )
 
-    hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
+    hidden_dim = (
+        intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
+    )
     if apply_lora_to_mlp:
         mlp = lora_llama2_mlp(
             dim=embed_dim,
@@ -636,7 +666,13 @@ def lora_llama2_classifier(
     # TODO: quantize_base is not applied to final output_proj currently.
     adapter_cls = DoRALinear if use_dora else LoRALinear
     output_proj = (
-        adapter_cls(embed_dim, num_classes, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout)
+        adapter_cls(
+            embed_dim,
+            num_classes,
+            rank=lora_rank,
+            alpha=lora_alpha,
+            dropout=lora_dropout,
+        )
         if apply_lora_to_output
         else nn.Linear(embed_dim, num_classes, bias=False)
     )

@@ -97,9 +97,8 @@ class TestDoRALinear:
                 quantize_base=False,
             )
 
-    # @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
-    def test_qdora_parity(self):
-        dtype = torch.bfloat16
+    @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
+    def test_qdora_parity(self, dtype):
         with training.set_default_dtype(dtype):
             torch.manual_seed(0)
             qdora_linear = DoRALinear(
@@ -120,12 +119,12 @@ class TestDoRALinear:
                 quantize_base=False,
             )
 
-        qdora_linear.initialize_dora_magnitude()
-        dora_linear.initialize_dora_magnitude()
-
         # set weight of dora_linear to unquantized weight of qdora_linear and check
         # parity.
         dora_linear.weight.data = qdora_linear.weight.to(dtype)
+
+        qdora_linear.initialize_dora_magnitude()
+        dora_linear.initialize_dora_magnitude()
 
         # Ensure forward passes are the same. This is because DoRALinear should use a special
         # quantized linear operator that runs compute in higher prec (but only saves the 4 bit quantized tensor)
@@ -135,9 +134,7 @@ class TestDoRALinear:
         dora_linear_out = dora_linear(inputs)
         torch.manual_seed(0)
         qdora_linear_out = qdora_linear(inputs)
-        torch.testing.assert_close(
-            dora_linear_out, qdora_linear_out, rtol=1e-01, atol=1e-01
-        )
+        torch.testing.assert_close(dora_linear_out, qdora_linear_out)
 
     @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
     def test_quantized_state_dict(self, dtype):

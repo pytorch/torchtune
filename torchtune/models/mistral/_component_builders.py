@@ -5,20 +5,20 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
-from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 from typing import List
 
 from torch import nn
 
 from torchtune.modules import (
-    MultiHeadAttention,
     FeedForward,
     FrozenNF4Linear,
+    MultiHeadAttention,
     RMSNorm,
     RotaryPositionalEmbeddings,
     TransformerDecoder,
     TransformerSelfAttentionLayer,
 )
+from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 
@@ -79,7 +79,9 @@ def mistral(
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
 
-    rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+    rope = RotaryPositionalEmbeddings(
+        dim=head_dim, max_seq_len=max_seq_len, base=rope_base
+    )
     self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
@@ -119,9 +121,21 @@ def mistral_mlp(dim: int, hidden_dim: int, quantize_base: bool = False) -> FeedF
     """
     Build the MLP layer associated with the Mistral model.
     """
-    gate_proj = nn.Linear(dim, hidden_dim, bias=False) if not quantize_base else FrozenNF4Linear(dim, hidden_dim, bias=False)
-    down_proj = nn.Linear(hidden_dim, dim, bias=False) if not quantize_base else FrozenNF4Linear(hidden_dim, dim, bias=False)
-    up_proj = nn.Linear(dim, hidden_dim, bias=False) if not quantize_base else FrozenNF4Linear(dim, hidden_dim, bias=False)
+    gate_proj = (
+        nn.Linear(dim, hidden_dim, bias=False)
+        if not quantize_base
+        else FrozenNF4Linear(dim, hidden_dim, bias=False)
+    )
+    down_proj = (
+        nn.Linear(hidden_dim, dim, bias=False)
+        if not quantize_base
+        else FrozenNF4Linear(hidden_dim, dim, bias=False)
+    )
+    up_proj = (
+        nn.Linear(dim, hidden_dim, bias=False)
+        if not quantize_base
+        else FrozenNF4Linear(dim, hidden_dim, bias=False)
+    )
     return FeedForward(gate_proj=gate_proj, down_proj=down_proj, up_proj=up_proj)
 
 
@@ -215,7 +229,9 @@ def lora_mistral(
             quantize_base=quantize_base,
         )
     else:
-        mlp = mistral_mlp(dim=embed_dim, hidden_dim=intermediate_dim, quantize_base=quantize_base)
+        mlp = mistral_mlp(
+            dim=embed_dim, hidden_dim=intermediate_dim, quantize_base=quantize_base
+        )
 
     layer = TransformerSelfAttentionLayer(
         attn=self_attn,
@@ -229,7 +245,7 @@ def lora_mistral(
     # TODO: quantize_base is not applied to final output_proj currently.
     adapter_cls = DoRALinear if use_dora else LoRALinear
     output_proj = (
-        DoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha, use_dora=use_dora)
+        DoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha)
         if apply_lora_to_output
         else nn.Linear(embed_dim, vocab_size, bias=False)
     )
@@ -311,7 +327,9 @@ def lora_mistral_self_attention(
         ValueError: If lora_modules arg is an empty list
     """
     if not lora_modules:
-        raise ValueError(f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules")
+        raise ValueError(
+            f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules"
+        )
 
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
@@ -324,7 +342,6 @@ def lora_mistral_self_attention(
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
-            use_dora=use_dora,
             quantize_base=quantize_base,
         )
         if "q_proj" in lora_modules
@@ -341,7 +358,6 @@ def lora_mistral_self_attention(
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
-            use_dora=use_dora,
             quantize_base=quantize_base,
         )
         if "k_proj" in lora_modules
@@ -358,7 +374,6 @@ def lora_mistral_self_attention(
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
-            use_dora=use_dora,
             quantize_base=quantize_base,
         )
         if "v_proj" in lora_modules
@@ -375,7 +390,6 @@ def lora_mistral_self_attention(
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
-            use_dora=use_dora,
             quantize_base=quantize_base,
         )
         if "output_proj" in lora_modules
@@ -385,7 +399,9 @@ def lora_mistral_self_attention(
             else FrozenNF4Linear(embed_dim, embed_dim, bias=False)
         )
     )
-    rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+    rope = RotaryPositionalEmbeddings(
+        dim=head_dim, max_seq_len=max_seq_len, base=rope_base
+    )
     self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
@@ -419,7 +435,6 @@ def lora_mistral_mlp(
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
-        use_dora=use_dora,
         quantize_base=quantize_base,
     )
     down_proj = adapter_cls(
@@ -428,7 +443,6 @@ def lora_mistral_mlp(
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
-        use_dora=use_dora,
         quantize_base=quantize_base,
     )
     up_proj = adapter_cls(
@@ -437,7 +451,6 @@ def lora_mistral_mlp(
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
-        use_dora=use_dora,
         quantize_base=quantize_base,
     )
     return FeedForward(
@@ -490,7 +503,9 @@ def mistral_classifier(
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
 
-    rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+    rope = RotaryPositionalEmbeddings(
+        dim=head_dim, max_seq_len=max_seq_len, base=rope_base
+    )
     self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
@@ -633,7 +648,13 @@ def lora_mistral_classifier(
     # TODO: quantize_base is not applied to final output_proj currently.
     adapter_cls = DoRALinear if use_dora else LoRALinear
     output_proj = (
-        adapter_cls(embed_dim, num_classes, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout, use_dora=use_dora)
+        adapter_cls(
+            embed_dim,
+            num_classes,
+            rank=lora_rank,
+            alpha=lora_alpha,
+            dropout=lora_dropout,
+        )
         if apply_lora_to_output
         else nn.Linear(embed_dim, num_classes, bias=False)
     )
