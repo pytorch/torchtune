@@ -76,7 +76,7 @@ class TestPaddedCollate:
         assert torch.equal(result["tokens"], expected_tokens)
         assert torch.equal(result["labels"], expected_labels)
 
-    def test_padded_ppo(self):
+    def test_padded_collate_ppo(self):
         batch = [
             {"tokens": [1, 2, 3], "labels": [1]},
             {"tokens": [4, 5], "labels": [2]},
@@ -90,7 +90,7 @@ class TestPaddedCollate:
         assert set(result.keys()) == {"tokens"}
         assert torch.equal(result["tokens"], expected_tokens)
 
-    def test_multiple_keys_to_pad(self):
+    def test_padded_collate_multiple_keys_to_pad(self):
         batch = [
             {"tokens": [1, 2], "labels_0": [3, 4], "labels_1": [1]},
             {"tokens": [5, 6, 7], "labels_0": [8, 9, 10], "labels_1": [2]},
