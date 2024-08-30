@@ -548,6 +548,7 @@
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">packed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">SFTDataset</span><span class="p">,</span> <span class="n">PackedDataset</span><span class="p">]:</span>
@@ -590,6 +591,8 @@
 <span class="sd">            and &quot;output&quot; column names.</span>
 <span class="sd">        train_on_input (bool): Whether the model is trained on the user prompt or not.</span>
 <span class="sd">            Default is False.</span>
+<span class="sd">        new_system_prompt (Optional[str]): if specified, prepend a system message. This can</span>
+<span class="sd">            serve as instructions to guide the model response. Default is None.</span>
 <span class="sd">        packed (bool): Whether or not to pack the dataset to tokenizer&#39;s ``max_seq_len`` prior to training. Default is False.</span>
 <span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,</span>
 <span class="sd">            such as ``data_files`` or ``split``.</span>
@@ -651,9 +654,10 @@
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If ``packed=True`` and ``tokenizer.max_seq_len`` is not set.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
     <span class="n">message_transform</span> <span class="o">=</span> <span class="n">InputOutputToMessages</span><span class="p">(</span>
-        <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span> <span class="n">column_map</span><span class="o">=</span><span class="n">column_map</span>
+        <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
+        <span class="n">column_map</span><span class="o">=</span><span class="n">column_map</span><span class="p">,</span>
+        <span class="n">new_system_prompt</span><span class="o">=</span><span class="n">new_system_prompt</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">ds</span> <span class="o">=</span> <span class="n">SFTDataset</span><span class="p">(</span>
