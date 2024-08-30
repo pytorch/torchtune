@@ -4,6 +4,15 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from torchtune.training._profiler import (
+    DEFAULT_PROFILE_DIR,
+    DEFAULT_PROFILER_ACTIVITIES,
+    DEFAULT_SCHEDULE,
+    DEFAULT_TRACE_OPTS,
+    DummyProfiler,
+    PROFILER_KEY,
+    setup_torch_profiler,
+)
 from torchtune.training.checkpointing import (
     ADAPTER_CONFIG,
     ADAPTER_KEY,
@@ -52,4 +61,11 @@ __all__ = [
     "TOTAL_EPOCHS_KEY",
     "get_quantizer_mode",
     "set_seed",
+    "DEFAULT_PROFILE_DIR",
+    "DEFAULT_PROFILER_ACTIVITIES",
+    "DEFAULT_SCHEDULE",
+    "DEFAULT_TRACE_OPTS",
+    "DummyProfiler",
+    "PROFILER_KEY",
+    "setup_torch_profiler",
 ]
