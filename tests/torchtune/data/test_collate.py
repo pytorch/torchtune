@@ -53,7 +53,7 @@ class TestLeftPadSequence:
         a = torch.tensor([1, 2, 3])
         b = torch.tensor([4, 5, 6, 7])
         c = torch.tensor([8, 9, 10, 11, 12])
-        result = left_pad_sequence([a, b, c], padding_value=0)
+        result = left_pad_sequence([a, b, c], batch_first=True, padding_value=0)
         expected = torch.tensor([[0, 0, 1, 2, 3], [0, 4, 5, 6, 7], [8, 9, 10, 11, 12]])
         assert torch.equal(result, expected)
 
