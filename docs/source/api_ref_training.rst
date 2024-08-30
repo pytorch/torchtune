@@ -68,3 +68,4 @@ of your finetuning job.
 
     get_memory_stats
     log_memory_stats
+    setup_torch_profiler

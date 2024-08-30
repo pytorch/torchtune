@@ -4,6 +4,15 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from torchtune.training._profiler import (
+    DEFAULT_PROFILE_DIR,
+    DEFAULT_PROFILER_ACTIVITIES,
+    DEFAULT_SCHEDULE,
+    DEFAULT_TRACE_OPTS,
+    DummyProfiler,
+    PROFILER_KEY,
+    setup_torch_profiler,
+)
 from torchtune.training.checkpointing import (
     ADAPTER_CONFIG,
     ADAPTER_KEY,
@@ -66,4 +75,11 @@ __all__ = [
     "OptimizerInBackwardWrapper",
     "register_optim_in_bwd_hooks",
     "set_activation_checkpointing",
+    "DEFAULT_PROFILE_DIR",
+    "DEFAULT_PROFILER_ACTIVITIES",
+    "DEFAULT_SCHEDULE",
+    "DEFAULT_TRACE_OPTS",
+    "DummyProfiler",
+    "PROFILER_KEY",
+    "setup_torch_profiler",
 ]
