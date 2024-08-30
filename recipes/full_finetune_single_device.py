@@ -18,7 +18,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
-from torchtune import config, modules, utils
+from torchtune import config, modules, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
@@ -152,28 +152,28 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         Updates the recipe state from checkpoint.
         """
         try:
-            self.epochs_run = ckpt_dict[utils.EPOCHS_KEY]
+            self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
 
             # on mismatch, warn the user and prevent the override
-            if self.seed != ckpt_dict[utils.SEED_KEY]:
+            if self.seed != ckpt_dict[training.SEED_KEY]:
                 warn(
                     message=(
                         "Config value for seed does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[utils.SEED_KEY]}"
+                        f"using the checkpoint value: {ckpt_dict[training.SEED_KEY]}"
                     )
                 )
-                self.seed = ckpt_dict[utils.SEED_KEY]
-            if self.max_steps_per_epoch != ckpt_dict[utils.MAX_STEPS_KEY]:
+                self.seed = ckpt_dict[training.SEED_KEY]
+            if self.max_steps_per_epoch != ckpt_dict[training.MAX_STEPS_KEY]:
                 warn(
                     message=(
                         "Config value for max_steps_per_epoch does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[utils.MAX_STEPS_KEY]}"
+                        f"using the checkpoint value: {ckpt_dict[training.MAX_STEPS_KEY]}"
                     )
                 )
-                self.max_steps_per_epoch = ckpt_dict[utils.MAX_STEPS_KEY]
+                self.max_steps_per_epoch = ckpt_dict[training.MAX_STEPS_KEY]
 
             # on mismatch, warn the user but allow the override
-            if self.total_epochs != ckpt_dict[utils.TOTAL_EPOCHS_KEY]:
+            if self.total_epochs != ckpt_dict[training.TOTAL_EPOCHS_KEY]:
                 warn(
                     message=(
                         "Config value for total_epochs does not match the checkpoint value, "
@@ -207,7 +207,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             compile_model=self._model_compile,
-            model_state_dict=ckpt_dict[utils.MODEL_KEY],
+            model_state_dict=ckpt_dict[training.MODEL_KEY],
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
         log.info("Tokenizer is initialized from file.")
@@ -218,7 +218,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             cfg_optimizer=cfg.optimizer,
             optimizer_in_bwd=cfg.optimizer_in_bwd,
             opt_state_dict=(
-                ckpt_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None
+                ckpt_dict[training.OPT_KEY] if self._resume_from_checkpoint else None
             ),
         )
 
@@ -473,21 +473,21 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
         """
-        ckpt_dict = {utils.MODEL_KEY: self._model.state_dict()}
+        ckpt_dict = {training.MODEL_KEY: self._model.state_dict()}
         # if training is in-progress, checkpoint the optimizer state as well
         if epoch + 1 < self.total_epochs:
             ckpt_dict.update(
                 {
-                    utils.SEED_KEY: self.seed,
-                    utils.EPOCHS_KEY: self.epochs_run,
-                    utils.TOTAL_EPOCHS_KEY: self.total_epochs,
-                    utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                    training.SEED_KEY: self.seed,
+                    training.EPOCHS_KEY: self.epochs_run,
+                    training.TOTAL_EPOCHS_KEY: self.total_epochs,
+                    training.MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
             if not self._optimizer_in_bwd:
-                ckpt_dict[utils.OPT_KEY] = self._optimizer.state_dict()
+                ckpt_dict[training.OPT_KEY] = self._optimizer.state_dict()
             else:
-                ckpt_dict[utils.OPT_KEY] = self._optim_ckpt_wrapper.state_dict()
+                ckpt_dict[training.OPT_KEY] = self._optim_ckpt_wrapper.state_dict()
         self._checkpointer.save_checkpoint(
             ckpt_dict,
             epoch=epoch,

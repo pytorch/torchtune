@@ -12,7 +12,7 @@ import torch
 from omegaconf import DictConfig
 from torch import nn
 
-from torchtune import config, utils
+from torchtune import config, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import ChatFormat, InstructTemplate, Message
 
@@ -54,7 +54,7 @@ class InferenceRecipe:
 
         self._model = self._setup_model(
             model_cfg=cfg.model,
-            model_state_dict=ckpt_dict[utils.MODEL_KEY],
+            model_state_dict=ckpt_dict[training.MODEL_KEY],
             enable_kv_cache=cfg.enable_kv_cache,
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)

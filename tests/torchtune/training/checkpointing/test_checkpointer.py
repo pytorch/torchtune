@@ -20,8 +20,8 @@ from torchtune.modules.peft import (
     validate_missing_and_unexpected_for_lora,
 )
 
-from torchtune.utils._checkpointing import FullModelHFCheckpointer
-from torchtune.utils._checkpointing._utils import (
+from torchtune.training.checkpointing import FullModelHFCheckpointer
+from torchtune.training.checkpointing._utils import (
     ADAPTER_CONFIG,
     ADAPTER_KEY,
     safe_torch_load,

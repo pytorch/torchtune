@@ -31,7 +31,7 @@ tokenizer:
   max_seq_len: null
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Qwen2-1.5B-Instruct
   checkpoint_files: [
     model.safetensors
