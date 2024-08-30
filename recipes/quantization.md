@@ -42,7 +42,7 @@ To evaluate a quantized model, make the following changes to the default [evalua
 # https://pytorch.org/torchtune/main/deep_dives/checkpointer.html
 # Make sure to change the default checkpointer component
 checkpointer:
-  _component_: torchtune.utils.FullModelTorchTuneCheckpointer
+  _component_: torchtune.training.FullModelTorchTuneCheckpointer
   ..
   checkpoint_files: [<quantized_model_checkpoint>]
 
@@ -69,7 +69,7 @@ To run inference using a quantized model, make the following changes to the defa
 # https://pytorch.org/torchtune/main/deep_dives/checkpointer.html
 # Make sure to change the default checkpointer component
 checkpointer:
-  _component_: torchtune.utils.FullModelTorchTuneCheckpointer
+  _component_: torchtune.training.FullModelTorchTuneCheckpointer
   ..
   checkpoint_files: [<quantized_model_checkpoint>]
 

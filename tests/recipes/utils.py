@@ -13,9 +13,9 @@ import torch
 from torch.utils.data import Dataset
 
 CKPT_COMPONENT_MAP = {
-    "tune": "torchtune.utils.FullModelTorchTuneCheckpointer",
-    "meta": "torchtune.utils.FullModelMetaCheckpointer",
-    "hf": "torchtune.utils.FullModelHFCheckpointer",
+    "tune": "torchtune.training.FullModelTorchTuneCheckpointer",
+    "meta": "torchtune.training.FullModelMetaCheckpointer",
+    "hf": "torchtune.training.FullModelHFCheckpointer",
 }
 
 
