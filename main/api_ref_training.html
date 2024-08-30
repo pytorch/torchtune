@@ -441,11 +441,20 @@ checkpointing, please see the <a class="reference internal" href="deep_dives/che
 </table>
 </section>
 <section id="reduced-precision">
-<h2>Reduced Precision<a class="headerlink" href="#reduced-precision" title="Permalink to this heading">¶</a></h2>
+<span id="mp-label"></span><h2>Reduced Precision<a class="headerlink" href="#reduced-precision" title="Permalink to this heading">¶</a></h2>
 <p>Utilities for working in a reduced precision setting.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.training.get_quantizer_mode.html#torchtune.training.get_quantizer_mode" title="torchtune.training.get_quantizer_mode"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_quantizer_mode</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.training.get_dtype.html#torchtune.training.get_dtype" title="torchtune.training.get_dtype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_dtype</span></code></a></p></td>
+<td><p>Get the torch.dtype corresponding to the given precision string.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.training.set_default_dtype.html#torchtune.training.set_default_dtype" title="torchtune.training.set_default_dtype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_default_dtype</span></code></a></p></td>
+<td><p>Context manager to set torch's default dtype.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.training.validate_expected_param_dtype.html#torchtune.training.validate_expected_param_dtype" title="torchtune.training.validate_expected_param_dtype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_expected_param_dtype</span></code></a></p></td>
+<td><p>Validates that all input parameters have the expected dtype.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.training.get_quantizer_mode.html#torchtune.training.get_quantizer_mode" title="torchtune.training.get_quantizer_mode"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_quantizer_mode</span></code></a></p></td>
 <td><p>Given a quantizer object, returns a string that specifies the type of quantization.</p></td>
 </tr>
 </tbody>
