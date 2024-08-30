@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.utils._profiler &mdash; torchtune main documentation</title>
+  <title>torchtune.training._profiler &mdash; torchtune main documentation</title>
   
 
   
@@ -377,7 +377,7 @@
         
           <li><a href="../../index.html">Module code</a> &gt;</li>
         
-      <li>torchtune.utils._profiler</li>
+      <li>torchtune.training._profiler</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -409,7 +409,7 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>Source code for torchtune.utils._profiler</h1><div class="highlight"><pre>
+  <h1>Source code for torchtune.training._profiler</h1><div class="highlight"><pre>
 <span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
 <span class="c1"># All rights reserved.</span>
 <span class="c1">#</span>
@@ -588,7 +588,7 @@
         <span class="k">pass</span>
 
 
-<div class="viewcode-block" id="setup_torch_profiler"><a class="viewcode-back" href="../../../generated/torchtune.utils.setup_torch_profiler.html#torchtune.utils.setup_torch_profiler">[docs]</a><span class="k">def</span> <span class="nf">setup_torch_profiler</span><span class="p">(</span>
+<div class="viewcode-block" id="setup_torch_profiler"><a class="viewcode-back" href="../../../generated/torchtune.training.setup_torch_profiler.html#torchtune.training.setup_torch_profiler">[docs]</a><span class="k">def</span> <span class="nf">setup_torch_profiler</span><span class="p">(</span>
     <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">cpu</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">cuda</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -612,7 +612,7 @@
 <span class="sd">    .. code-block:: yaml</span>
 
 <span class="sd">        profiler:</span>
-<span class="sd">          _component_: torchtune.utils.setup_torch_profiler</span>
+<span class="sd">          _component_: torchtune.training.setup_torch_profiler</span>
 <span class="sd">          enabled: bool</span>
 <span class="sd">          # Output directory of trace artifacts</span>
 <span class="sd">          output_dir: str</span>
