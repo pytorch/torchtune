@@ -56,7 +56,7 @@ class TextCompletionDataset(Dataset):
         self._column = column
         self.add_eos = add_eos
 
-        if filter_fn:
+        if filter_fn is not None:
             self._data = self._data.filter(filter_fn)
 
     def __len__(self):
