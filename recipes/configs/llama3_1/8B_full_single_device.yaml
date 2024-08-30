@@ -82,7 +82,7 @@ log_peak_memory_stats: False
 
 # Profiler (disabled)
 profiler:
-  _component_: torchtune.utils.setup_torch_profiler
+  _component_: torchtune.training.setup_torch_profiler
   enabled: False
 
   #Output directory of trace artifacts

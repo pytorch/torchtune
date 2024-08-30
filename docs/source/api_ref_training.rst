@@ -55,3 +55,17 @@ Various logging utilities.
     metric_logging.TensorBoardLogger
     metric_logging.StdoutLogger
     metric_logging.DiskLogger
+
+.. _perf_profiling_label:
+
+Performance and Profiling
+-------------------------
+
+torchtune provides utilities to profile and debug the memory and performance
+of your finetuning job.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    setup_torch_profiler

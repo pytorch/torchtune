@@ -68,6 +68,10 @@ class GemmaTransformerDecoder(nn.Module):
         self.norm_embeddings = norm_embeddings
         self.num_output_chunks = 0
 
+    def caches_are_enabled(self) -> bool:
+        """Check if the key value caches are setup."""
+        return self.layers[0].cache_enabled
+
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
         This should be called before the first forward pass, in the recipe."""
