@@ -43,6 +43,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
             "tokenizer._component_=torchtune.models.llama2.llama2_tokenizer",
             "tokenizer.prompt_template=null",
+            "tokenizer.max_seq_len=64",
             "seed=9",
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
