@@ -87,9 +87,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
 
-        - Gradient Clipping. Gradient clipping is supported using the ``clip_grad_norm`` flag. Grad norm
-            logging is supported using the ``log_grad_norm`` flag. ``clip_grad_norm`` does not need to be
-            set to log grad norm. If ``log_grad_norm`` is set to True, max_norm will be set to ``inf``.
+        - Gradient Clipping. Gradient clipping is supported using the ``clip_grad_norm`` flag. By default,
+            ``clip_grad_norm`` is set to ``None``. If you only want to log the grad norm, you can set
+            ``clip_grad_norm='inf'``.
 
     For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
     has example commands for how to kick-off training.
@@ -137,9 +137,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
-        self._log_grad_norm = cfg.get("log_grad_norm", False)
-        if self._clip_grad_norm is None and self._log_grad_norm:
-            self._clip_grad_norm = "inf"
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -679,7 +676,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 log_dict.update(
                                     utils.get_memory_stats(device=self._device)
                                 )
-                            if self._log_grad_norm:
+                            if self._clip_grad_norm is not None:
                                 log_dict.update({"grad_norm": grad_norm})
                             self._metric_logger.log_dict(
                                 log_dict,
