@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Tuple, Union
 
 import torch
 
@@ -14,7 +14,7 @@ from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
 def left_pad_sequence(
     sequences: List[torch.Tensor],
-    batch_first: bool = True,
+    batch_first: bool = False,
     padding_value: float = 0,
 ) -> torch.Tensor:
     """
@@ -38,9 +38,9 @@ def left_pad_sequence(
 
     Args:
         sequences (List[torch.Tensor]): list of variable length sequences.
-        batch_first (bool, optional): if ``True``, the output will be in ``B x T x *``
-            format, ``T x B x *`` otherwise.
-        padding_value (float, optional): value for padded elements. Default: 0.
+        batch_first (bool): if ``True``, the output will be in ``B x T x *``
+            format, ``T x B x *`` otherwise. Default False.
+        padding_value (float): value for padded elements. Default: 0.
 
     Returns:
         Tensor of size ``T x B x *`` if :attr:`batch_first` is ``False``.
@@ -58,7 +58,7 @@ def padded_collate(
     *,
     pad_fn: Callable,
     keys_to_pad: List[str],
-    padding_idx: int | Dict[str, int],
+    padding_idx: Union[int, Dict[str, int]],
 ):
     """
     A generic padding collation function which pads ``keys_to_pad`` entries in a
@@ -73,7 +73,7 @@ def padded_collate(
             :func:`torchtune.data.left_pad_sequence`.
         keys_to_pad (List[str]): Batch element keys to apply padding to. Should be a subset
             of keys in the batch.
-        padding_idx (int | Dict[str, int]): Either a single integer padding value to apply to all
+        padding_idx (Union[int, Dict[str, int]]): Either a single integer padding value to apply to all
             ``keys_to_pad`` elements, or a mapping with keys identical to ``keys_to_pad`` with per-key
             padding values.
 
@@ -131,6 +131,7 @@ def padded_collate(
     for k in keys_to_pad:
         output_dict[k] = pad_fn(
             [torch.tensor(x[k]) for x in batch],
+            batch_first=True,
             padding_value=padding_idx[k]
             if isinstance(padding_idx, dict)
             else padding_idx,

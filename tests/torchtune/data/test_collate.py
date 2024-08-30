@@ -67,11 +67,11 @@ class TestPaddedCollate:
         ]
         result = padded_collate(
             batch,
-            pad_fn=left_pad_sequence,
+            pad_fn=torch.nn.utils.rnn.pad_sequence,
             keys_to_pad=["tokens", "labels"],
             padding_idx=-10,
         )
-        expected_tokens = torch.tensor([[-10, 1, 2, 3], [-10, -10, 4, 5], [6, 7, 8, 9]])
+        expected_tokens = torch.tensor([[1, 2, 3, -10], [4, 5, -10, -10], [6, 7, 8, 9]])
         expected_labels = torch.tensor([[1], [2], [3]])
         assert torch.equal(result["tokens"], expected_tokens)
         assert torch.equal(result["labels"], expected_labels)
