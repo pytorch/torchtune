@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 import torch
 from torchtune.models.llama2 import llama2, llama2_classifier
-from torchtune.utils._checkpointing._utils import (
+from torchtune.training.checkpointing._utils import (
     safe_torch_load,
     update_state_dict_for_classifier,
 )
@@ -175,6 +175,3 @@ class TestUpdateStateDictForClassifer:
 
         assert set(model_state_dict.keys()) == set(state_dict_to_load.keys())
         assert torch.equal(model_state_dict["output.weight"], expected_output_weight)
-
-
-#

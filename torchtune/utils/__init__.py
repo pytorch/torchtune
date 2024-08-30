@@ -4,25 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from ._checkpointing import (  # noqa
-    ADAPTER_CONFIG,
-    ADAPTER_KEY,
-    Checkpointer,
-    EPOCHS_KEY,
-    FullModelHFCheckpointer,
-    FullModelMetaCheckpointer,
-    FullModelTorchTuneCheckpointer,
-    MAX_STEPS_KEY,
-    MODEL_KEY,
-    ModelType,
-    OPT_KEY,
-    RNG_KEY,
-    SEED_KEY,
-    STEPS_KEY,
-    TOTAL_EPOCHS_KEY,
-    update_state_dict_for_classifier,
-)
-
 from ._device import get_device
 from ._distributed import (  # noqa
     contains_fsdp,
@@ -55,15 +36,12 @@ from ._version import torch_version_ge
 from .logging import get_logger
 
 from .pooling import get_unmasked_sequence_lengths
-
-from .precision import get_dtype, set_default_dtype, validate_expected_param_dtype
 from .seed import set_seed
 
 __all__ = [
     "update_state_dict_for_classifier",
     "FSDPPolicyType",
     "get_device",
-    "get_dtype",
     "get_logger",
     "get_world_size_and_rank",
     "init_distributed",
@@ -71,9 +49,7 @@ __all__ = [
     "lora_fsdp_wrap_policy",
     "get_full_finetune_fsdp_wrap_policy",
     "get_unmasked_sequence_lengths",
-    "set_default_dtype",
     "set_seed",
-    "validate_expected_param_dtype",
     "torch_version_ge",
     "DEFAULT_PROFILE_DIR",
     "DEFAULT_PROFILER_ACTIVITIES",
