@@ -12,7 +12,7 @@ import torch
 from tests.test_utils import fixed_init_model
 from torch import nn
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
-from torchtune import utils
+from torchtune import training
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 from torchtune.modules.peft import DoRALinear
 from torchtune.utils.seed import set_seed
@@ -63,7 +63,7 @@ class TestDoRALinear:
 
     @pytest.fixture
     def qdora_linear(self, in_dim, out_dim) -> DoRALinear:
-        with utils.set_default_dtype(torch.bfloat16):
+        with training.set_default_dtype(torch.bfloat16):
             qdora_linear = DoRALinear(
                 in_dim=512,
                 out_dim=512,
@@ -100,7 +100,7 @@ class TestDoRALinear:
     # @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
     def test_qdora_parity(self):
         dtype = torch.bfloat16
-        with utils.set_default_dtype(dtype):
+        with training.set_default_dtype(dtype):
             torch.manual_seed(0)
             qdora_linear = DoRALinear(
                 in_dim=512,
@@ -141,7 +141,7 @@ class TestDoRALinear:
 
     @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
     def test_quantized_state_dict(self, dtype):
-        with utils.set_default_dtype(dtype):
+        with training.set_default_dtype(dtype):
             dora_linear = DoRALinear(
                 in_dim=512,
                 out_dim=512,
