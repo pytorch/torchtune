@@ -14,6 +14,7 @@ import torch
 import torch.nn as nn
 from torch._subclasses.fake_tensor import FakeTensorConverter, FakeTensorMode
 from torchao.dtypes.nf4tensor import NF4Tensor
+from torchtune.utils._version import torch_version_ge
 
 
 def reparametrize_as_dtype_state_dict_post_hook(
@@ -55,7 +56,7 @@ def reparametrize_as_dtype_state_dict_post_hook(
 
 
 # mmap.MAP_SHARED is not supported on Windows but this change targets colab.
-if hasattr(torch.serialization, "skip_data") and not sys.platform == "win32":
+if torch_version_ge('2.5.0.dev20240830') and not sys.platform == "win32":
 
     def _low_ram_reparametrize_as_dtype_state_dict_post_hook(
         model: nn.Module,

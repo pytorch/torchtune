@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import sys
 from functools import partial
 from typing import List, Literal, Optional
 
@@ -23,10 +22,7 @@ from torchtune.modules import (
     TransformerSelfAttentionLayer,
 )
 
-from torchtune.modules.common_utils import (
-    reparametrize_as_dtype_state_dict_post_hook,
-    _low_ram_reparametrize_as_dtype_state_dict_post_hook,
-)
+from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 
@@ -158,8 +154,6 @@ def lora_llama3(
     use_dora: bool = False,
     # Quantization args
     quantize_base: bool = False,
-    # colab checkpoint saving args
-    low_cpu_ram: bool = False,
 ) -> TransformerDecoder:
     """
     Return a version of Llama3 (an instance of :func:`~torchtune.modules.TransformerDecoder`)
@@ -196,8 +190,7 @@ def lora_llama3(
         quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
-        low_cpu_ram (bool): Whether checkpointing in an environment with low RAM. Setting this flag to
-            ``True`` can avoid CPU OOM when checkpointing on a low RAM machine (e.g. colab) with QLoRA.
+
     Returns:
         TransformerDecoder: Instantiation of Llama3 model with LoRA applied to
         a subset of the attention projections in each layer.
@@ -263,20 +256,8 @@ def lora_llama3(
     if quantize_base:
         # For QLoRA, we reparametrize 4-bit tensors to bf16, and offload to CPU on the fly
         # so as to not increase peak memory
-        if low_cpu_ram and _low_ram_reparametrize_as_dtype_state_dict_post_hook is None:
-            if sys.platform == "win32":
-                raise RuntimeError(
-                    "low_cpu_ram=True not supported on Windows."
-                )
-            else:
-                raise RuntimeError("low_cpu_ram=True requires torch.__version__ >= 2.5.0.dev20240830.")
-        hook = (
-            _low_ram_reparametrize_as_dtype_state_dict_post_hook
-            if low_cpu_ram
-            else reparametrize_as_dtype_state_dict_post_hook
-        )
         model._register_state_dict_hook(
-            partial(hook, offload_to_cpu=True)
+            partial(reparametrize_as_dtype_state_dict_post_hook, offload_to_cpu=True)
         )
 
     return model

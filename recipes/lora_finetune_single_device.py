@@ -12,6 +12,7 @@ from typing import Any, Dict, Optional, Tuple, Union
 from warnings import warn
 
 import torch
+import torchtune.modules.common_utils as common_utils
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
@@ -286,6 +287,22 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
+    
+    def _patch_state_dict_hook(self, cfg: DictConfig) -> None:
+        """
+        Patches the state_dict hook for QLoRA for the `low_cpu_ram` config option.
+        """
+        self._previous_hook = None
+        if cfg.get("low_cpu_ram", False):
+            if common_utils._low_ram_reparametrize_as_dtype_state_dict_post_hook is None:
+                if sys.platform == "win32":
+                    raise RuntimeError(
+                        "low_cpu_ram=True not supported on Windows."
+                    )
+                else:
+                    raise RuntimeError("low_cpu_ram=True requires torch.__version__ >= 2.5.0.dev20240830.")
+            self._previous_hook = common_utils.reparametrize_as_dtype_state_dict_post_hook
+            common_utils.reparametrize_as_dtype_state_dict_post_hook = common_utils._low_ram_reparametrize_as_dtype_state_dict_post_hook
 
         # Used to ignore labels for loss computation
         self.ignore_labels_cache = torch.full(
@@ -722,6 +739,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 )
 
     def cleanup(self) -> None:
+        if self._previous_hook is not None:
+            common_utils.reparametrize_as_dtype_state_dict_post_hook = self._previous_hook
+            self._previous_hook = None
         self._metric_logger.close()
 
 
@@ -736,6 +756,7 @@ def recipe_main(cfg: DictConfig) -> None:
     """
     config.log_config(recipe_name="LoRAFinetuneRecipeSingleDevice", cfg=cfg)
     recipe = LoRAFinetuneRecipeSingleDevice(cfg=cfg)
+    recipe._patch_state_dict_hook(cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()
