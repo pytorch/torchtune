@@ -39,8 +39,6 @@ Utilities for working in a reduced precision setting.
     get_quantizer_mode
 
 
-.. _ac_label:
-
 Memory Management
 -----------------
 
