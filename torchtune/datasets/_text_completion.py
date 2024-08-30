@@ -119,6 +119,9 @@ def text_completion_dataset(
             For pre-training, typically this is set to True for general text completion. For
             fine-tuning, typically this is set to False to avoid truncating sentences in instruct
             tuning. This argument is ignored if ``packed=False``. Default is True.
+        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
+            the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
+            details.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
     Examples:
