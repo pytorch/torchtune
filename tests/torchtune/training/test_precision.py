@@ -12,7 +12,7 @@ from unittest import mock
 import pytest
 import torch
 
-from torchtune.utils.precision import (
+from torchtune.training.precision import (
     _set_float32_precision,
     get_dtype,
     PRECISION_STR_TO_DTYPE,
@@ -46,7 +46,7 @@ class TestPrecisionUtils:
                 get_dtype(dtype) == expected_dtype
             ), f"{dtype} should return {expected_dtype}"
 
-    @mock.patch("torchtune.utils.precision.verify_bf16_support", return_value=False)
+    @mock.patch("torchtune.training.precision.verify_bf16_support", return_value=False)
     def test_error_bf16_unsupported(self, mock_verify):
         """
         Tests that an error is raised if bf16 is specified but not supported.
