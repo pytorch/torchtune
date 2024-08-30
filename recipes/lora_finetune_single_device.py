@@ -107,7 +107,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # fp16 precision is explicitly disabled as it is not supported in this
         # recipe (for example, no gradient scaling).
         if self._dtype == torch.float16:
-            raise ValueError("fp16 precision is not supported in this recipe. Please use fp32 or bf16.")
+            raise ValueError(
+                "fp16 precision is not supported in this recipe. Please use fp32 or bf16."
+            )
         # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
         if (
             self._dtype == torch.bfloat16
@@ -145,7 +147,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         if self._resume_from_checkpoint:
             if utils.ADAPTER_KEY not in checkpoint_dict:
-                raise ValueError("Adapter weights not found. Please ensure a valid adapter checkpoint is provided.")
+                raise ValueError(
+                    "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
+                )
             # _update_recipe_state will throw an exception if the recipe state is not corrctly loaded
             # no need to check here
             self._update_recipe_state(checkpoint_dict)
@@ -209,7 +213,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             compile_model=cfg.compile,
             base_model_state_dict=checkpoint_dict[utils.MODEL_KEY],
-            lora_weights_state_dict=(checkpoint_dict[utils.ADAPTER_KEY] if self._resume_from_checkpoint else None),
+            lora_weights_state_dict=(
+                checkpoint_dict[utils.ADAPTER_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
@@ -217,7 +225,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=(checkpoint_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None),
+            opt_state_dict=(
+                checkpoint_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None
+            ),
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
@@ -242,8 +252,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # by the dataloader and the max_steps_per_epoch param set by the user and is used
         # for logging and tracking training state. This should be computed after the dataloader
         # has been setup
-        self._steps_per_epoch = len(self._dataloader) // self._gradient_accumulation_steps
-        if self.max_steps_per_epoch is not None and self.max_steps_per_epoch < self._steps_per_epoch:
+        self._steps_per_epoch = (
+            len(self._dataloader) // self._gradient_accumulation_steps
+        )
+        if (
+            self.max_steps_per_epoch is not None
+            and self.max_steps_per_epoch < self._steps_per_epoch
+        ):
             self._steps_per_epoch = self.max_steps_per_epoch
             self.global_step = self.epochs_run * self._steps_per_epoch
 
@@ -310,7 +325,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             cfg_profiler["_component_"] = "torchtune.utils.setup_torch_profiler"
         else:
             assert (
-                cfg_profiler.get("_component_") == "torchtune.utils.setup_torch_profiler"
+                cfg_profiler.get("_component_")
+                == "torchtune.utils.setup_torch_profiler"
             ), "Only torch profiler supported currently: component must be `torchtune.utils.setup_torch_profiler`"
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
@@ -352,11 +368,17 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     m.compile(backend=backend)
 
         if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(model, auto_wrap_policy={modules.TransformerSelfAttentionLayer})
+            utils.set_activation_checkpointing(
+                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
+            )
 
-        base_missing, base_unexpected = model.load_state_dict(base_model_state_dict, strict=False)
+        base_missing, base_unexpected = model.load_state_dict(
+            base_model_state_dict, strict=False
+        )
         if lora_weights_state_dict:
-            lora_missing, lora_unexpected = model.load_state_dict(lora_weights_state_dict, strict=False)
+            lora_missing, lora_unexpected = model.load_state_dict(
+                lora_weights_state_dict, strict=False
+            )
         else:
             lora_missing, lora_unexpected = None, None
         validate_missing_and_unexpected_for_lora(
@@ -371,7 +393,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Validate model adapter params were loaded in with the expected dtype
         # TODO (rohan-varma): Further validation to ensure the appropriate base params
         # are NF4 vs bf16 based on the quantization config.
-        utils.validate_expected_param_dtype(self.adapter_params.items(), dtype=self._dtype)
+        utils.validate_expected_param_dtype(
+            self.adapter_params.items(), dtype=self._dtype
+        )
 
         log.info(f"Model is initialized with precision {self._dtype}.")
 
@@ -418,7 +442,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         Samplers, iterable datasets, and streaming datasets are not supported.
         """
         if isinstance(cfg_dataset, ListConfig):
-            datasets = [config.instantiate(single_cfg_dataset, self._tokenizer) for single_cfg_dataset in cfg_dataset]
+            datasets = [
+                config.instantiate(single_cfg_dataset, self._tokenizer)
+                for single_cfg_dataset in cfg_dataset
+            ]
             ds = ConcatDataset(datasets=datasets)
             packed = False
         else:
@@ -490,7 +517,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # Construct the adapter weights
         adapter_key_filter = lambda x: x in self.adapter_params
-        adapter_state_dict = {k: v for k, v in self._model.state_dict().items() if adapter_key_filter(k)}
+        adapter_state_dict = {
+            k: v for k, v in self._model.state_dict().items() if adapter_key_filter(k)
+        }
         ckpt_dict.update({utils.ADAPTER_KEY: adapter_state_dict})
         adapter_config = {
             "r": self._lora_rank,
@@ -557,7 +586,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 for idx, batch in enumerate(self._dataloader):
                     if (
                         self.max_steps_per_epoch is not None
-                        and (idx // self._gradient_accumulation_steps) == self.max_steps_per_epoch
+                        and (idx // self._gradient_accumulation_steps)
+                        == self.max_steps_per_epoch
                     ):
                         break
 
@@ -587,7 +617,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                         loss_to_log = running_loss.item()
                         pbar.update(1)
-                        pbar.set_description(f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}")
+                        pbar.set_description(
+                            f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
+                        )
 
                         # Log per-step metrics
                         if self.global_step % self._log_every_n_steps == 0:
@@ -597,8 +629,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 "lr": self._optimizer.param_groups[0]["lr"],
                                 "tokens_per_second_per_gpu": num_tokens / time_per_step,
                             }
-                            if self._device.type == "cuda" and self._log_peak_memory_stats:
-                                log_dict.update(utils.get_memory_stats(device=self._device))
+                            if (
+                                self._device.type == "cuda"
+                                and self._log_peak_memory_stats
+                            ):
+                                log_dict.update(
+                                    utils.get_memory_stats(device=self._device)
+                                )
                             self._metric_logger.log_dict(
                                 log_dict,
                                 step=self.global_step,
@@ -613,7 +650,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     if (
                         curr_epoch == 0
                         and self.profiler_profile_memory
-                        and idx == self.profiler_wait_steps + self.profiler_warmup_steps + self.profiler_active_steps
+                        and idx
+                        == self.profiler_wait_steps
+                        + self.profiler_warmup_steps
+                        + self.profiler_active_steps
                     ):
                         torch.cuda.memory._record_memory_history(enabled=None)
 

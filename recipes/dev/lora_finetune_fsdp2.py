@@ -114,7 +114,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._dtype = utils.get_dtype(cfg.dtype, device=self._device)
 
         if self._dtype == torch.float16:
-            raise ValueError("full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead.")
+            raise ValueError(
+                "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
+            )
 
         _, rank = utils.get_world_size_and_rank()
 
@@ -158,7 +160,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # used to create these intermediate checkpoints
         if self._resume_from_checkpoint:
             if utils.ADAPTER_KEY not in checkpoint_dict:
-                raise ValueError("Adapter weights not found. Please ensure a valid adapter checkpoint is provided.")
+                raise ValueError(
+                    "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
+                )
             # _update_recipe_state will throw an exception if the recipe state is not corrctly loaded
             # no need to check here
             self._update_recipe_state(checkpoint_dict)
@@ -169,7 +173,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         Updates the recipe state from checkpoint.
         """
         if not (
-            utils.SEED_KEY in ckpt_dict and utils.TOTAL_EPOCHS_KEY in ckpt_dict and utils.MAX_STEPS_KEY in ckpt_dict
+            utils.SEED_KEY in ckpt_dict
+            and utils.TOTAL_EPOCHS_KEY in ckpt_dict
+            and utils.MAX_STEPS_KEY in ckpt_dict
         ):
             raise KeyError(
                 "Checkpoint does not contain the required keys needed for updating recipe state."
@@ -209,14 +215,20 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             base_model_state_dict=checkpoint_dict[utils.MODEL_KEY],
-            lora_weights_state_dict=(checkpoint_dict[utils.ADAPTER_KEY] if self._resume_from_checkpoint else None),
+            lora_weights_state_dict=(
+                checkpoint_dict[utils.ADAPTER_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
             cfg_fsdp=cfg.fsdp if hasattr(cfg, "fsdp") else None,
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=checkpoint_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None,
+            opt_state_dict=checkpoint_dict[utils.OPT_KEY]
+            if self._resume_from_checkpoint
+            else None,
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
@@ -240,8 +252,13 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # by the dataloader and the max_steps_per_epoch param set by the user and is used
         # for logging and tracking training state. This should be computed after the dataloader
         # has been setup
-        self._steps_per_epoch = len(self._dataloader) // self._gradient_accumulation_steps
-        if self.max_steps_per_epoch is not None and self.max_steps_per_epoch < self._steps_per_epoch:
+        self._steps_per_epoch = (
+            len(self._dataloader) // self._gradient_accumulation_steps
+        )
+        if (
+            self.max_steps_per_epoch is not None
+            and self.max_steps_per_epoch < self._steps_per_epoch
+        ):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
 
@@ -277,7 +294,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
 
         if self._is_rank_zero:
-            log.info("FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...")
+            log.info(
+                "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ..."
+            )
             init_start = time.perf_counter()
 
         with utils.set_default_dtype(self._dtype), torch.device("meta"):
@@ -294,7 +313,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     m.compile(backend=backend)
 
         if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(model, auto_wrap_policy={modules.TransformerSelfAttentionLayer})
+            utils.set_activation_checkpointing(
+                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
+            )
 
         fsdp_kwargs = {}
         if cfg_fsdp and cfg_fsdp.cpu_offload:
@@ -352,7 +373,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         utils.validate_no_params_on_meta_device(model)
 
         if self._is_rank_zero:
-            log.info(f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs")
+            log.info(
+                f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
+            )
             memory_stats = utils.get_memory_stats(device=self._device)
             utils.log_memory_stats(memory_stats)
 
@@ -407,7 +430,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
-                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer) for single_cfg_dataset in cfg_dataset
+                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer)
+                for single_cfg_dataset in cfg_dataset
             ]
             ds = ConcatDataset(datasets=datasets)
             packed = False
@@ -415,7 +439,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
             packed = cfg_dataset.get("packed", False)
 
-        sampler = DistributedSampler(ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0)
+        sampler = DistributedSampler(
+            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
+        )
 
         dataloader = DataLoader(
             dataset=ds,
@@ -478,7 +504,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             # Filter out the adapter keys and weights from the model state dict. These will
             # be saved separately
             adapter_key_filter = lambda x: x in self.adapter_params
-            adapter_state_dict = {k: v for k, v in cpu_state_dict.items() if adapter_key_filter(k)}
+            adapter_state_dict = {
+                k: v for k, v in cpu_state_dict.items() if adapter_key_filter(k)
+            }
             checkpoint_dict.update({utils.ADAPTER_KEY: adapter_state_dict})
 
             # merge the adapter weights and base weights to create the model checkpoint
@@ -548,7 +576,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps) == self.max_steps_per_epoch
+                    and (idx // self._gradient_accumulation_steps)
+                    == self.max_steps_per_epoch
                 ):
                     break
 
@@ -563,7 +592,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 num_tokens += tokens.numel()
                 labels = labels.to(self._device)
                 mask = mask.to(self._device) if mask is not None else None
-                input_pos = input_pos.to(self._device) if input_pos is not None else None
+                input_pos = (
+                    input_pos.to(self._device) if input_pos is not None else None
+                )
 
                 logits = self._model(tokens, mask=mask, input_pos=input_pos)
                 # Shift so that tokens < n predict n
@@ -590,10 +621,15 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
                     loss_to_log = running_loss.item()
                     pbar.update(1)
-                    pbar.set_description(f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}")
+                    pbar.set_description(
+                        f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
+                    )
 
                     # Log per-step metrics
-                    if self.global_step % self._log_every_n_steps == 0 and self._is_rank_zero:
+                    if (
+                        self.global_step % self._log_every_n_steps == 0
+                        and self._is_rank_zero
+                    ):
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
                             "loss": loss_to_log,

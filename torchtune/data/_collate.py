@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import Dict, List
+from typing import Callable, Dict, List, Tuple
 
 import torch
 
@@ -11,14 +11,115 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
-def padded_collate()
 
-def left_pad_sequence():
-    pass
+def left_pad_sequence(
+    sequences: List[torch.Tensor],
+    batch_first: bool = True,
+    padding_value: float = 0,
+) -> torch.Tensor:
+    """
+    This function is identical to :func:`torch.nn.utils.rnn.pad_sequence`, but
+    instead pads a list of variable length Tensors from the left to the length
+    of the longest sequence.
+
+    Example:
+        >>> a = torch.tensor([1, 2, 3])
+        >>> b = torch.tensor([4, 5, 6, 7])
+        >>> c = torch.tensor([8, 9, 10, 11, 12])
+        >>> left_pad_sequence([a, b, c], padding_value=0)
+        tensor([[ 0,  0,  1,  2,  3],
+                [ 0,  4,  5,  6,  7],
+                [ 8,  9, 10, 11, 12]])
+
+    Note:
+        This function returns a Tensor of size ``T x B x *`` or ``B x T x *``
+        where `T` is the length of the longest sequence. This function assumes
+        trailing dimensions and type of all the Tensors in sequences are same.
+
+    Args:
+        sequences (List[torch.Tensor]): list of variable length sequences.
+        batch_first (bool, optional): if ``True``, the output will be in ``B x T x *``
+            format, ``T x B x *`` otherwise.
+        padding_value (float, optional): value for padded elements. Default: 0.
+
+    Returns:
+        Tensor of size ``T x B x *`` if :attr:`batch_first` is ``False``.
+        Tensor of size ``B x T x *`` otherwise
+    """
+    return pad_sequence(
+        map(lambda x: torch.flip(x, dims=[0]), sequences),
+        batch_first=batch_first,
+        padding_value=padding_value,
+    ).flip(dims=[1])
 
 
-def right_pad_sequence():
-    pass
+def padded_collate(
+    batch: List[Dict[str, List[int]]],
+    *,
+    pad_fn: Callable,
+    keys_to_pad: List[str],
+    padding_idx: int = 0,
+):
+    """
+    A generic padding collate function which pads ``keys_to_pad`` entries in a
+    batch of sequences with the given `pad_fn` to the maximum sequence length for
+    each entry in the batch.
+
+    Note:
+        To correctly use this function for collation in a DataLoader, you must ensure
+        all other batch elements which are not in ``keys_to_pad`` do not require any
+        padding.
+
+    Args:
+        batch (List[Dict[str, List[int]]]): A list of dictionaries containing inputs.
+        pad_fn (Callable): padding function to apply to ``keys_to_pad`` batch elements.
+            This should have an identical signature to :func:`torch.nn.utils.rnn.pad_sequence`, e.g.
+            :func:`torchtune.data.left_pad_sequence`.
+        keys_to_pad (List[str]): Batch element keys to apply padding to.
+        padding_idx (int): The padding index. Defaults to 0.
+
+    Returns:
+        torch.Tensor: The padded tensor of input ids with shape [batch_size, max_seq_len].
+
+    Raises:
+        ValueError: if ``keys_to_pad`` is empty.
+
+    Example:
+        >>> a = [1, 2, 3]
+        >>> b = [4, 5, 6, 7]
+        >>> c = [8, 9, 10, 11, 12]
+        >>> batch = [
+        >>>     {"tokens": a, "labels": [1]},
+        >>>     {"tokens": b, "labels": [3]},
+        >>>     {"tokens": c, "labels": [0]},
+        >>> ]
+        >>> padded_collate(
+        >>>     batch,
+        >>>     pad_fn=left_pad_sequence,
+        >>>     keys_to_pad=["tokens"],
+        >>>     padding_idx=-10
+        >>> )
+        {
+            'labels': tensor([[1],
+                            [3],
+                            [0]]),
+            'tokens': tensor([[-10, -10,   1,   2,   3],
+                            [-10,   4,   5,   6,   7],
+                            [  8,   9,  10,  11,  12]])
+        }
+    """
+    if not keys_to_pad:
+        raise ValueError(
+            "keys_to_pad is empty, therefore this function is a no-op! If you do not "
+            "require any collation, simply omit collate_fn when constructing your DataLoader!"
+        )
+    batch_keys = [k for k in batch[0].keys() if k not in keys_to_pad]
+    output_dict = {k: torch.tensor([x[k] for x in batch]) for k in batch_keys}
+    for k in keys_to_pad:
+        output_dict[k] = pad_fn(
+            [torch.tensor(x[k]) for x in batch], padding_value=padding_idx
+        )
+    return output_dict
 
 
 def padded_collate_sft(
@@ -68,7 +169,9 @@ def padded_collate_sft(
 
     # Hack to pad correctly and not use max_seq_len, which is costly
     if input_ids_seq_len > labels_seq_len:
-        labels = F.pad(labels, (0, input_ids_seq_len - labels_seq_len), value=ignore_idx)
+        labels = F.pad(
+            labels, (0, input_ids_seq_len - labels_seq_len), value=ignore_idx
+        )
     elif labels_seq_len > input_ids_seq_len:
         input_ids = F.pad(
             input_ids,
@@ -76,58 +179,6 @@ def padded_collate_sft(
             value=padding_idx,
         )
     return {"tokens": input_ids.long(), "labels": labels.long()}
-
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the
-# LICENSE file in the root directory of this source tree.
-
-from typing import Dict, List, Tuple
-
-import torch
-from torch.nn.utils.rnn import pad_sequence
-
-from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
-
-
-def left_padded_collate(
-    batch: List[Dict[str, List[int]]],
-    padding_idx: int = 0,
-) -> torch.Tensor:
-    """
-    Pads a batch of sequences with left padding to the maximum sequence length in the batch.
-
-    Args:
-        batch (List[Dict[str, List[int]]]): A list of dictionaries containing inputs.
-        padding_idx (int): The padding index. Defaults to 0.
-
-    Returns:
-        torch.Tensor: The padded tensor of input ids with shape [batch_size, max_seq_len].
-
-    Example:
-        >>> padding_idx = -8
-        >>> batch = [
-        >>>     {"tokens": [1, 2] },
-        >>>     {"tokens": [3] },
-        >>>     {"tokens": [4, 5, 6, 7]},
-        >>> ]
-        >>> left_padded_collate(batch, padding_idx)
-        >>> tensor([[-8, -8,  1,  2],
-        >>>         [-8, -8, -8,  3],
-        >>>         [ 4,  5,  6,  7]])
-
-    """
-    pad_toks = pad_sequence(
-        [torch.tensor(x["tokens"][::-1]) for x in batch],
-        batch_first=True,
-        padding_value=padding_idx,
-    ).flip(
-        dims=[1]
-    )
-    # seq_idxs_rev = torch.arange(pad_toks.shape[-1] - 1, -1, -1)
-    # return torch.stack([tok[seq_idxs_rev] for tok in pad_toks])
-    return pad_toks
 
 
 def padded_collate_dpo(
