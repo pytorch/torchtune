@@ -338,6 +338,12 @@ class TransformerDecoder(nn.Module):
         self.num_heads = num_heads
         self.head_dim = head_dim
         self.causal_mask = None
+        self.num_output_chunks = 0
+
+    def set_num_output_chunks(self, num_output_chunks: int) -> None:
+        """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
+        This should be called before the first forward pass, in the recipe."""
+        self.num_output_chunks = num_output_chunks
 
     def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
         """Setup key value caches for attention calculation.
@@ -460,8 +466,16 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.norm(h)
 
-        # shape: [b, s, out_dim] - out_dim is usually the vocab size
-        output = self.output(h).float()
+        if self.num_output_chunks > 0:
+            # shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size
+            # Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,
+            # before calling forward. Upcasting it done inside of the loss function.
+            output = [
+                self.output(chunk) for chunk in h.chunk(self.num_output_chunks, dim=1)
+            ]
+        else:
+            # shape: [b, seq_len, out_dim]
+            output = self.output(h).float()
 
         # Output list if hidden states are requested, otherwise just the output
         # TODO: always output a list to have a consistent output type
@@ -533,6 +547,12 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         self.num_heads = num_heads
         self.head_dim = head_dim
         self.causal_mask = None
+        self.num_output_chunks = 0
+
+    def set_num_output_chunks(self, num_output_chunks: int) -> None:
+        """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
+        This should be called before the first forward pass, in the recipe."""
+        self.num_output_chunks = num_output_chunks
 
     def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
         """Setup key value caches for attention calculation.
@@ -654,8 +674,17 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.norm(h)
 
-        # shape: [b, s, out_dim] - out_dim is usually the vocab size
-        output = F.linear(h, self.tok_embeddings.weight).float()
+        if self.num_output_chunks > 0:
+            # shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size
+            # Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,
+            # before calling forward. Upcasting it done inside of the loss function.
+            output = [
+                F.linear(chunk, self.tok_embeddings.weight)
+                for chunk in h.chunk(self.num_output_chunks, dim=1)
+            ]
+        else:
+            # shape: [b, seq_len, out_dim]
+            output = F.linear(h, self.tok_embeddings.weight).float()
 
         # Output list if hidden states are requested, otherwise just the output
         # TODO: always output a list to have a consistent output type

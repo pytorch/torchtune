@@ -58,7 +58,7 @@ def padded_collate(
     *,
     pad_fn: Callable,
     keys_to_pad: List[str],
-    padding_idx: int = 0,
+    padding_idx: int | Dict[str, int],
 ):
     """
     A generic padding collate function which pads ``keys_to_pad`` entries in a
@@ -76,13 +76,17 @@ def padded_collate(
             This should have an identical signature to :func:`torch.nn.utils.rnn.pad_sequence`, e.g.
             :func:`torchtune.data.left_pad_sequence`.
         keys_to_pad (List[str]): Batch element keys to apply padding to.
-        padding_idx (int): The padding index. Defaults to 0.
+        padding_idx (int | Dict[str, int]): Either a single integer padding value to apply to all
+            ``keys_to_pad`` elements, or a mapping with keys identical to ``keys_to_pad`` with per-key
+            padding values.
 
     Returns:
         torch.Tensor: The padded tensor of input ids with shape [batch_size, max_seq_len].
 
     Raises:
         ValueError: if ``keys_to_pad`` is empty.
+        ValueError: if ``padding_idx`` is provided as a dictionary, but the keys are not identical to
+            ``keys_to_pad``.
 
     Example:
         >>> a = [1, 2, 3]
@@ -113,11 +117,21 @@ def padded_collate(
             "keys_to_pad is empty, therefore this function is a no-op! If you do not "
             "require any collation, simply omit collate_fn when constructing your DataLoader!"
         )
+    if isinstance(padding_idx, dict) and not set(padding_idx.keys()) == set(
+        keys_to_pad
+    ):
+        raise ValueError(
+            f"padding_idx was provided as a dictionary, but the keys ({padding_idx.keys()}) "
+            f"are not the same as keys_to_pad ({keys_to_pad})"
+        )
     batch_keys = [k for k in batch[0].keys() if k not in keys_to_pad]
     output_dict = {k: torch.tensor([x[k] for x in batch]) for k in batch_keys}
     for k in keys_to_pad:
         output_dict[k] = pad_fn(
-            [torch.tensor(x[k]) for x in batch], padding_value=padding_idx
+            [torch.tensor(x[k]) for x in batch],
+            padding_value=padding_idx[k]
+            if isinstance(padding_idx, dict)
+            else padding_idx,
         )
     return output_dict
 
