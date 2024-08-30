@@ -84,7 +84,7 @@ log_peak_memory_stats: False
 # Showcase the usage of PyTorch profiler
 # Set enabled to False as it's only needed for debugging training
 profiler:
-  _component_: torchtune.utils.setup_torch_profiler
+  _component_: torchtune.training.setup_torch_profiler
   enabled: False
 
   # Output directory of trace artifacts
