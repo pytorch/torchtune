@@ -555,7 +555,7 @@ can use <em>interpolations</em> to reference another field, and <a class="refere
 will automatically resolve it for you.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp/alpaca-llama2-finetune</span>
 <span class="nt">metric_logger</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.metric_logging.DiskLogger</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.metric_logging.DiskLogger</span>
 <span class="w">  </span><span class="nt">log_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${output_dir}</span>
 </pre></div>
 </div>

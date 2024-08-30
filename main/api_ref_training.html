@@ -460,6 +460,29 @@ checkpointing, please see the <a class="reference internal" href="deep_dives/che
 </tbody>
 </table>
 </section>
+<section id="metric-logging">
+<span id="metric-logging-label"></span><h2>Metric Logging<a class="headerlink" href="#metric-logging" title="Permalink to this heading">¶</a></h2>
+<p>Various logging utilities.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.training.metric_logging.CometLogger.html#torchtune.training.metric_logging.CometLogger" title="torchtune.training.metric_logging.CometLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.CometLogger</span></code></a></p></td>
+<td><p>Logger for use w/ Comet (<a class="reference external" href="https://www.comet.com/site/">https://www.comet.com/site/</a>).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.training.metric_logging.WandBLogger.html#torchtune.training.metric_logging.WandBLogger" title="torchtune.training.metric_logging.WandBLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.WandBLogger</span></code></a></p></td>
+<td><p>Logger for use w/ Weights and Biases application (<a class="reference external" href="https://wandb.ai/">https://wandb.ai/</a>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.training.metric_logging.TensorBoardLogger.html#torchtune.training.metric_logging.TensorBoardLogger" title="torchtune.training.metric_logging.TensorBoardLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.TensorBoardLogger</span></code></a></p></td>
+<td><p>Logger for use w/ PyTorch's implementation of TensorBoard (<a class="reference external" href="https://pytorch.org/docs/stable/tensorboard.html">https://pytorch.org/docs/stable/tensorboard.html</a>).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.training.metric_logging.StdoutLogger.html#torchtune.training.metric_logging.StdoutLogger" title="torchtune.training.metric_logging.StdoutLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.StdoutLogger</span></code></a></p></td>
+<td><p>Logger to standard output.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.training.metric_logging.DiskLogger.html#torchtune.training.metric_logging.DiskLogger" title="torchtune.training.metric_logging.DiskLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.DiskLogger</span></code></a></p></td>
+<td><p>Logger to disk.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
 <section id="performance-and-profiling">
 <span id="perf-profiling-label"></span><h2>Performance and Profiling<a class="headerlink" href="#performance-and-profiling" title="Permalink to this heading">¶</a></h2>
 <p>torchtune provides utilities to profile and debug the memory and performance
@@ -520,6 +543,7 @@ of your finetuning job.</p>
 <li><a class="reference internal" href="#">torchtune.training</a><ul>
 <li><a class="reference internal" href="#checkpointing">Checkpointing</a></li>
 <li><a class="reference internal" href="#reduced-precision">Reduced Precision</a></li>
+<li><a class="reference internal" href="#metric-logging">Metric Logging</a></li>
 <li><a class="reference internal" href="#performance-and-profiling">Performance and Profiling</a></li>
 </ul>
 </li>

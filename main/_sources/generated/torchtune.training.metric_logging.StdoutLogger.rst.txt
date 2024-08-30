@@ -1,6 +1,6 @@
 ﻿.. role:: hidden
     :class: hidden-section
-.. currentmodule:: torchtune.utils.metric_logging
+.. currentmodule:: torchtune.training.metric_logging
 
 
 StdoutLogger
