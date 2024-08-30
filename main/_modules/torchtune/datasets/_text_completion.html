@@ -416,7 +416,7 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span> <span class="nn">datasets</span> <span class="kn">import</span> <span class="n">load_dataset</span>
 <span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span>
@@ -445,6 +445,9 @@
 <span class="sd">            Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory</span>
 <span class="sd">            and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.</span>
 <span class="sd">        add_eos (bool): Whether to add an EOS token to the end of the sequence. Default is True.</span>
+<span class="sd">        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See</span>
+<span class="sd">            the Hugging Face `docs &lt;https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter&gt;`_ for more</span>
+<span class="sd">            details.</span>
 <span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,</span>
 <span class="sd">            such as ``data_files`` or ``split``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -456,6 +459,7 @@
         <span class="n">column</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">add_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">filter_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span> <span class="o">=</span> <span class="n">tokenizer</span>
@@ -463,6 +467,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">max_seq_len</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_column</span> <span class="o">=</span> <span class="n">column</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_eos</span> <span class="o">=</span> <span class="n">add_eos</span>
+
+        <span class="k">if</span> <span class="n">filter_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">filter_fn</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
@@ -473,6 +480,7 @@
 
     <span class="k">def</span> <span class="nf">_prepare_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
         <span class="n">prompt</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column</span><span class="p">]</span>
+
         <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span> <span class="n">add_bos</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">add_eos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">add_eos</span><span class="p">)</span>
 
         <span class="c1"># Truncate if needed, but don&#39;t coerce EOS id</span>
@@ -493,6 +501,7 @@
     <span class="n">add_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">packed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">split_across_pack</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">filter_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">TextCompletionDataset</span><span class="p">,</span> <span class="n">PackedDataset</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -522,6 +531,9 @@
 <span class="sd">            For pre-training, typically this is set to True for general text completion. For</span>
 <span class="sd">            fine-tuning, typically this is set to False to avoid truncating sentences in instruct</span>
 <span class="sd">            tuning. This argument is ignored if ``packed=False``. Default is True.</span>
+<span class="sd">        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See</span>
+<span class="sd">            the Hugging Face `docs &lt;https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter&gt;`_ for more</span>
+<span class="sd">            details.</span>
 <span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.</span>
 
 <span class="sd">    Examples:</span>
@@ -555,6 +567,7 @@
         <span class="n">column</span><span class="o">=</span><span class="n">column</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
         <span class="n">add_eos</span><span class="o">=</span><span class="n">add_eos</span><span class="p">,</span>
+        <span class="n">filter_fn</span><span class="o">=</span><span class="n">filter_fn</span><span class="p">,</span>
         <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="p">(</span>
