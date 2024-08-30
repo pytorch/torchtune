@@ -7,6 +7,7 @@
 import contextlib
 from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set
 
+import torch
 from torch import nn
 
 # Modules from MultiHeadAttention that LoRA can be applied to
@@ -151,7 +152,12 @@ def validate_state_dict_for_lora(
     lora_modules = get_lora_module_names(
         lora_attn_modules, apply_lora_to_mlp, apply_lora_to_output
     )
-    is_lora_param = lambda x: any([".".join([k, "lora"]) in x for k in lora_modules])
+    is_lora_param = lambda x: any(
+        [
+            ".".join([k, "lora"]) in x or ".".join([k, "magnitude"]) in x
+            for k in lora_modules
+        ]
+    )
     for k in full_model_state_dict_keys:
         if not is_lora_param(k):
             if base_model_state_dict_keys is not None:
@@ -200,17 +206,22 @@ def _get_lora_modules(state_dict: Dict[str, Any]) -> Set[str]:
     Returns:
         Set[str]: Set of keys in the state dict that correspond to LoRA modules.
     """
-    lora_keys = [k for k in state_dict.keys() if "lora" in k]
+    lora_keys = [k for k in state_dict.keys() if "lora" in k or "magnitude" in k]
     return set(
         [
-            k.replace(".lora_a.weight", "").replace(".lora_b.weight", "")
+            k.replace(".lora_a.weight", "")
+            .replace(".lora_b.weight", "")
+            .replace(".magnitude", "")
             for k in lora_keys
         ]
     )
 
 
+@torch.no_grad
 def get_merged_lora_ckpt(
-    state_dict: Dict[str, Any], rank: int, alpha: float
+    state_dict: Dict[str, Any],
+    rank: int,
+    alpha: float,
 ) -> Dict[str, Any]:
     """
     Merge LoRA weights into the base model format for efficient inference.
@@ -218,8 +229,7 @@ def get_merged_lora_ckpt(
     make a copy prior to calling this function.
 
     For every LoRA module in the state dict, this function will convert its
-    weight -> weight + (alpha / rank) * lora_b @ lora_a,
-    then delete the lora_a and lora_b weights.
+    base weight then delete the LoRA-specific parameters.
 
     Args:
         state_dict (Dict[str, Any]): State dict from a model.
@@ -233,9 +243,22 @@ def get_merged_lora_ckpt(
     for module in lora_modules:
         lora_a_weight = state_dict[f"{module}.lora_a.weight"]
         lora_b_weight = state_dict[f"{module}.lora_b.weight"]
-        state_dict[f"{module}.weight"] += (alpha / rank) * lora_b_weight @ lora_a_weight
+        base_weight = state_dict[f"{module}.weight"].to(lora_a_weight.dtype)
+        lora_magnitude = state_dict.get(f"{module}.magnitude", None)
+
+        lora_weight = (alpha / rank) * lora_b_weight @ lora_a_weight
+        merged_weight = base_weight + lora_weight
+        if lora_magnitude is not None:
+            weight_norm = torch.linalg.norm(base_weight + lora_weight, dim=1)
+            mag_norm_scale = (lora_magnitude / weight_norm).view(-1, 1)
+            merged_weight *= mag_norm_scale
+        state_dict[f"{module}.weight"] = merged_weight
+
         del state_dict[f"{module}.lora_a.weight"]
         del state_dict[f"{module}.lora_b.weight"]
+        if lora_magnitude is not None:
+            del state_dict[f"{module}.magnitude"]
+
     return state_dict
 
 
@@ -327,7 +350,13 @@ def validate_missing_and_unexpected_for_lora(
     lora_modules = get_lora_module_names(
         lora_attn_modules, apply_lora_to_mlp, apply_lora_to_output
     )
-    is_lora_param = lambda x: any([".".join([k, "lora"]) in x for k in lora_modules])
+    is_lora_param = lambda x: any(
+        [
+            ".".join([k, "lora"]) in x or ".".join([k, "magnitude"]) in x
+            for k in lora_modules
+        ]
+    )
+
     if base_missing:
         for k in base_missing:
             if not is_lora_param(k):
@@ -340,3 +369,14 @@ def validate_missing_and_unexpected_for_lora(
                 raise AssertionError(f"Missing LoRA key {k} from adapter state dict")
     if lora_unexpected:
         raise AssertionError("Unexpected key loading adapter")
+
+
+def load_dora_magnitudes(model: nn.Module) -> None:
+    """
+    For DoRA magnitude we use setattr to move from meta device
+    """
+    dora_parents = {
+        n: p for n, p in model.named_modules() if hasattr(p, "adapter_params")
+    }
+    sd = {f"{n}.magnitude": p.magnitude for n, p in dora_parents.items()}
+    model.load_state_dict(sd, strict=False, assign=True)
