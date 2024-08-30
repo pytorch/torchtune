@@ -535,10 +535,10 @@ which can be found within their model folders.</p>
 <section id="handling-different-checkpoint-formats">
 <h2>Handling different Checkpoint Formats<a class="headerlink" href="#handling-different-checkpoint-formats" title="Permalink to this heading">¶</a></h2>
 <p>torchtune supports three different
-<a class="reference internal" href="../api_ref_utilities.html#checkpointing-label"><span class="std std-ref">checkpointers</span></a>,
+<a class="reference internal" href="../api_ref_training.html#checkpointing-label"><span class="std std-ref">checkpointers</span></a>,
 each of which supports a different checkpoint format.</p>
 <section id="hfcheckpointer">
-<h3><a class="reference internal" href="../generated/torchtune.utils.FullModelHFCheckpointer.html#torchtune.utils.FullModelHFCheckpointer" title="torchtune.utils.FullModelHFCheckpointer"><code class="xref py py-class docutils literal notranslate"><span class="pre">HFCheckpointer</span></code></a><a class="headerlink" href="#hfcheckpointer" title="Permalink to this heading">¶</a></h3>
+<h3><a class="reference internal" href="../generated/torchtune.training.FullModelHFCheckpointer.html#torchtune.training.FullModelHFCheckpointer" title="torchtune.training.FullModelHFCheckpointer"><code class="xref py py-class docutils literal notranslate"><span class="pre">HFCheckpointer</span></code></a><a class="headerlink" href="#hfcheckpointer" title="Permalink to this heading">¶</a></h3>
 <p>This checkpointer reads and writes checkpoints in a format which is compatible with the transformers
 framework from Hugging Face. As mentioned above, this is the most popular format within the Hugging Face
 Model Hub and is the default format in every torchtune config.</p>
@@ -567,7 +567,7 @@ files.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
 
 <span class="w">    </span><span class="c1"># checkpointer to use</span>
-<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.FullModelHFCheckpointer</span>
+<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.FullModelHFCheckpointer</span>
 
 <span class="w">    </span><span class="c1"># directory with the checkpoint files</span>
 <span class="w">    </span><span class="c1"># this should match the output_dir above</span>
@@ -610,7 +610,7 @@ model implementations. This json file is downloaded from the hub along with the 
 </div>
 </section>
 <section id="metacheckpointer">
-<h3><a class="reference internal" href="../generated/torchtune.utils.FullModelMetaCheckpointer.html#torchtune.utils.FullModelMetaCheckpointer" title="torchtune.utils.FullModelMetaCheckpointer"><code class="xref py py-class docutils literal notranslate"><span class="pre">MetaCheckpointer</span></code></a><a class="headerlink" href="#metacheckpointer" title="Permalink to this heading">¶</a></h3>
+<h3><a class="reference internal" href="../generated/torchtune.training.FullModelMetaCheckpointer.html#torchtune.training.FullModelMetaCheckpointer" title="torchtune.training.FullModelMetaCheckpointer"><code class="xref py py-class docutils literal notranslate"><span class="pre">MetaCheckpointer</span></code></a><a class="headerlink" href="#metacheckpointer" title="Permalink to this heading">¶</a></h3>
 <p>This checkpointer reads and writes checkpoints in a format which is compatible with the original meta-llama
 github repository.</p>
 <p>For this checkpointer to work correctly, we assume that <code class="docutils literal notranslate"><span class="pre">checkpoint_dir</span></code> contains the necessary checkpoint
@@ -638,7 +638,7 @@ files.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
 
 <span class="w">    </span><span class="c1"># checkpointer to use</span>
-<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.FullModelMetaCheckpointer</span>
+<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.FullModelMetaCheckpointer</span>
 
 <span class="w">    </span><span class="c1"># directory with the checkpoint files</span>
 <span class="w">    </span><span class="c1"># this should match the output_dir above</span>
@@ -670,7 +670,7 @@ files.</p>
 </div>
 </section>
 <section id="torchtunecheckpointer">
-<h3><a class="reference internal" href="../generated/torchtune.utils.FullModelTorchTuneCheckpointer.html#torchtune.utils.FullModelTorchTuneCheckpointer" title="torchtune.utils.FullModelTorchTuneCheckpointer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TorchTuneCheckpointer</span></code></a><a class="headerlink" href="#torchtunecheckpointer" title="Permalink to this heading">¶</a></h3>
+<h3><a class="reference internal" href="../generated/torchtune.training.FullModelTorchTuneCheckpointer.html#torchtune.training.FullModelTorchTuneCheckpointer" title="torchtune.training.FullModelTorchTuneCheckpointer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TorchTuneCheckpointer</span></code></a><a class="headerlink" href="#torchtunecheckpointer" title="Permalink to this heading">¶</a></h3>
 <p>This checkpointer reads and writes checkpoints in a format that is compatible with torchtune’s
 model definition. This does not perform any state_dict conversions and is currently used either
 for testing or for loading quantized models for generation.</p>
@@ -729,7 +729,7 @@ to the config file</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
 
 <span class="w">    </span><span class="c1"># checkpointer to use</span>
-<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.FullModelHFCheckpointer</span>
+<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.FullModelHFCheckpointer</span>
 
 <span class="w">    </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
 
@@ -770,7 +770,7 @@ looks something like this:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
 
 <span class="w">    </span><span class="c1"># checkpointer to use</span>
-<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.FullModelHFCheckpointer</span>
+<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.FullModelHFCheckpointer</span>
 
 <span class="w">    </span><span class="c1"># directory with the checkpoint files</span>
 <span class="w">    </span><span class="c1"># this should match the output_dir above</span>
@@ -814,7 +814,7 @@ looks something like this:</p>
 create some models and run a simple forward.</p>
 <p>For this section we’ll use the Llama2 13B model in HF format.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torchtune.utils</span> <span class="kn">import</span> <span class="n">FullModelHFCheckpointer</span><span class="p">,</span> <span class="n">ModelType</span>
+<span class="kn">from</span> <span class="nn">torchtune.training</span> <span class="kn">import</span> <span class="n">FullModelHFCheckpointer</span><span class="p">,</span> <span class="n">ModelType</span>
 <span class="kn">from</span> <span class="nn">torchtune.models.llama2</span> <span class="kn">import</span> <span class="n">llama2_13b</span>
 
 <span class="c1"># Set the right directory and files</span>

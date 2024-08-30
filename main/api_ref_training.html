@@ -41,7 +41,7 @@
   <link rel="stylesheet" href="_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="get_quantizer_mode" href="generated/torchtune.training.get_quantizer_mode.html" />
+    <link rel="next" title="FullModelHFCheckpointer" href="generated/torchtune.training.FullModelHFCheckpointer.html" />
     <link rel="prev" title="CEWithChunkedOutputLoss" href="generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -416,6 +416,30 @@
               
   <section id="torchtune-training">
 <h1>torchtune.training<a class="headerlink" href="#torchtune-training" title="Permalink to this heading">¶</a></h1>
+<section id="checkpointing">
+<span id="checkpointing-label"></span><h2>Checkpointing<a class="headerlink" href="#checkpointing" title="Permalink to this heading">¶</a></h2>
+<p>torchtune offers checkpointers to allow seamless transitioning between checkpoint formats for training and interoperability with the rest of the ecosystem. For a comprehensive overview of
+checkpointing, please see the <a class="reference internal" href="deep_dives/checkpointer.html#understand-checkpointer"><span class="std std-ref">checkpointing deep-dive</span></a>.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.training.FullModelHFCheckpointer.html#torchtune.training.FullModelHFCheckpointer" title="torchtune.training.FullModelHFCheckpointer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FullModelHFCheckpointer</span></code></a></p></td>
+<td><p>Checkpointer which reads and writes checkpoints in HF's format.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.training.FullModelMetaCheckpointer.html#torchtune.training.FullModelMetaCheckpointer" title="torchtune.training.FullModelMetaCheckpointer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FullModelMetaCheckpointer</span></code></a></p></td>
+<td><p>Checkpointer which reads and writes checkpoints in Meta's format.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.training.FullModelTorchTuneCheckpointer.html#torchtune.training.FullModelTorchTuneCheckpointer" title="torchtune.training.FullModelTorchTuneCheckpointer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FullModelTorchTuneCheckpointer</span></code></a></p></td>
+<td><p>Checkpointer which reads and writes checkpoints in a format compatible with torchtune.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.training.ModelType.html#torchtune.training.ModelType" title="torchtune.training.ModelType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ModelType</span></code></a></p></td>
+<td><p>ModelType is used by the checkpointer to distinguish between different model architectures.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.training.update_state_dict_for_classifier.html#torchtune.training.update_state_dict_for_classifier" title="torchtune.training.update_state_dict_for_classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_state_dict_for_classifier</span></code></a></p></td>
+<td><p>Validates the state dict for checkpoint loading for a classifier model.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
 <section id="reduced-precision">
 <h2>Reduced Precision<a class="headerlink" href="#reduced-precision" title="Permalink to this heading">¶</a></h2>
 <p>Utilities for working in a reduced precision setting.</p>
@@ -437,7 +461,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="generated/torchtune.training.get_quantizer_mode.html" class="btn btn-neutral float-right" title="get_quantizer_mode" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="generated/torchtune.training.FullModelHFCheckpointer.html" class="btn btn-neutral float-right" title="FullModelHFCheckpointer" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html" class="btn btn-neutral" title="CEWithChunkedOutputLoss" accesskey="p" rel="prev"><img src="_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
@@ -473,6 +497,7 @@
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
 <li><a class="reference internal" href="#">torchtune.training</a><ul>
+<li><a class="reference internal" href="#checkpointing">Checkpointing</a></li>
 <li><a class="reference internal" href="#reduced-precision">Reduced Precision</a></li>
 </ul>
 </li>

@@ -488,10 +488,10 @@ The config used to train the models can be found <a class="reference external" h
         <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Model checkpoint&quot;</span><span class="p">,</span>
         <span class="c1"># you can add whatever metadata you want as a dict</span>
         <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
-            <span class="n">utils</span><span class="o">.</span><span class="n">SEED_KEY</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
-            <span class="n">utils</span><span class="o">.</span><span class="n">EPOCHS_KEY</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">epochs_run</span><span class="p">,</span>
-            <span class="n">utils</span><span class="o">.</span><span class="n">TOTAL_EPOCHS_KEY</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_epochs</span><span class="p">,</span>
-            <span class="n">utils</span><span class="o">.</span><span class="n">MAX_STEPS_KEY</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_steps_per_epoch</span><span class="p">,</span>
+            <span class="n">training</span><span class="o">.</span><span class="n">SEED_KEY</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
+            <span class="n">training</span><span class="o">.</span><span class="n">EPOCHS_KEY</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">epochs_run</span><span class="p">,</span>
+            <span class="n">training</span><span class="o">.</span><span class="n">TOTAL_EPOCHS_KEY</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_epochs</span><span class="p">,</span>
+            <span class="n">training</span><span class="o">.</span><span class="n">MAX_STEPS_KEY</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_steps_per_epoch</span><span class="p">,</span>
         <span class="p">}</span>
     <span class="p">)</span>
     <span class="n">wandb_at</span><span class="o">.</span><span class="n">add_file</span><span class="p">(</span><span class="n">checkpoint_file</span><span class="p">)</span>

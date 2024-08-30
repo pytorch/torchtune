@@ -515,7 +515,7 @@ base model parameters are not quantized. We can see this by printing the base mo
 </pre></div>
 </div>
 <p>Next, there are a couple of details essential to checkpointing (i.e. <code class="docutils literal notranslate"><span class="pre">state_dict</span></code>) of QLoRA-enabled models.
-To integrate well with torchtune’s <a class="reference internal" href="../api_ref_utilities.html#checkpointing-label"><span class="std std-ref">checkpointing</span></a>, we need to convert <code class="docutils literal notranslate"><span class="pre">NF4Tensors</span></code> back to their
+To integrate well with torchtune’s <a class="reference internal" href="../api_ref_training.html#checkpointing-label"><span class="std std-ref">checkpointing</span></a>, we need to convert <code class="docutils literal notranslate"><span class="pre">NF4Tensors</span></code> back to their
 original precision (generally fp32/bf16). This allows QLoRA-trained checkpoints to interoperate well with the rest of the ecosystem, within
 torchtune and beyond (e.g. post-training quantization, evaluation, inference). This conversion process also allows LoRA adapter weights to be merged back into the base model as done
 in a typical LoRA training flow.</p>

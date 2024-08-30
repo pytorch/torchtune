@@ -587,7 +587,7 @@ tokenizer.path<span class="o">=</span>&lt;checkpoint_dir&gt;/tokenizer.model
 <p>The model has an accuracy around 38.8%. Let’s compare this with the fine-tuned model.</p>
 <p>First, we modify <code class="docutils literal notranslate"><span class="pre">custom_eval_config.yaml</span></code> to include the fine-tuned checkpoints.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.FullModelHFCheckpointer</span>
+<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.FullModelHFCheckpointer</span>
 
 <span class="w">    </span><span class="c1"># directory with the checkpoint files</span>
 <span class="w">    </span><span class="c1"># this should match the output_dir specified during</span>
@@ -641,7 +641,7 @@ and the associated
 </div>
 <p>Let’s modify <code class="docutils literal notranslate"><span class="pre">custom_generation_config.yaml</span></code> to include the following changes.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.FullModelHFCheckpointer</span>
+<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.FullModelHFCheckpointer</span>
 
 <span class="w">    </span><span class="c1"># directory with the checkpoint files</span>
 <span class="w">    </span><span class="c1"># this should match the output_dir specified during</span>

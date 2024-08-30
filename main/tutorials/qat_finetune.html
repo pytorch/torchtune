@@ -622,7 +622,7 @@ copy and make the following modifications to the quantization config:</p>
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama3.llama3_8b</span>
 
 <span class="nt">checkpointer</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.FullModelMetaCheckpointer</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.FullModelMetaCheckpointer</span>
 <span class="w">  </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your QAT checkpoint dir&gt;</span>
 <span class="w">  </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">meta_model_0.pt</span><span class="p p-Indicator">]</span>
 <span class="w">  </span><span class="nt">recipe_checkpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
@@ -661,7 +661,7 @@ integrated in torchtune. First, copy the evaluation config and make the followin
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama3.llama3_8b</span>
 
 <span class="nt">checkpointer</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.FullModelTorchTuneCheckpointer</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.FullModelTorchTuneCheckpointer</span>
 <span class="w">  </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your quantized model checkpoint dir&gt;</span>
 <span class="w">  </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">meta_model_0-8da4w.pt</span><span class="p p-Indicator">]</span>
 <span class="w">  </span><span class="nt">recipe_checkpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
