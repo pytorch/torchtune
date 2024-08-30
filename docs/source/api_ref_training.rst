@@ -22,6 +22,7 @@ checkpointing, please see the :ref:`checkpointing deep-dive <understand_checkpoi
     ModelType
     update_state_dict_for_classifier
 
+.. _mp_label:
 
 Reduced Precision
 ------------------
@@ -32,4 +33,7 @@ Utilities for working in a reduced precision setting.
     :toctree: generated/
     :nosignatures:
 
+    get_dtype
+    set_default_dtype
+    validate_expected_param_dtype
     get_quantizer_mode

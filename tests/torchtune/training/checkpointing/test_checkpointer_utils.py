@@ -175,6 +175,3 @@ class TestUpdateStateDictForClassifer:
 
         assert set(model_state_dict.keys()) == set(state_dict_to_load.keys())
         assert torch.equal(model_state_dict["output.weight"], expected_output_weight)
-
-
-#

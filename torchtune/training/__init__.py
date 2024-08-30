@@ -22,9 +22,17 @@ from torchtune.training.checkpointing import (
     TOTAL_EPOCHS_KEY,
     update_state_dict_for_classifier,
 )
+from torchtune.training.precision import (
+    get_dtype,
+    set_default_dtype,
+    validate_expected_param_dtype,
+)
 from torchtune.training.quantization import get_quantizer_mode
 
 __all__ = [
+    "get_dtype",
+    "set_default_dtype",
+    "validate_expected_param_dtype",
     "FullModelHFCheckpointer",
     "FullModelMetaCheckpointer",
     "FullModelTorchTuneCheckpointer",

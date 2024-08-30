@@ -98,7 +98,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
     def __init__(self, cfg: DictConfig) -> None:
         self._device = utils.get_device(device=cfg.device)
-        self._dtype = utils.get_dtype(cfg.dtype, device=self._device)
+        self._dtype = training.get_dtype(cfg.dtype, device=self._device)
         # Disable for fp16, as we haven't validated "full" fp16 with this recipe, nor
         # enabled necessary features such as gradient scaling.
         if self._dtype == torch.float16:
@@ -353,7 +353,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         Set up the model including enabling activation checkpointing.
         """
-        with utils.set_default_dtype(self._dtype), self._device:
+        with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
 
         if compile_model:
@@ -371,7 +371,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         model.load_state_dict(model_state_dict)
 
         # Validate model was loaded in with the expected dtype.
-        utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)
+        training.validate_expected_param_dtype(
+            model.named_parameters(), dtype=self._dtype
+        )
         log.info(f"Model is initialized with precision {self._dtype}.")
 
         if self._device.type == "cuda":
