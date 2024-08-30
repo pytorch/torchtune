@@ -110,9 +110,6 @@ class DoRALinear(nn.Module, AdapterModule):
         Return lora_a.weight and lora_b.weight as adapter params.
         If bias is enabled, also return lora_a.bias and lora_b.bias.
         """
-        # NOTE: this function has to be updated if the names of "lora_a" and "lora_b"
-        # in this module change.
-        # TODO: need to add back magnitude, but causing initial check to error out cause it's not defined yet
         adapter_params = ["lora_a.weight", "lora_b.weight", "magnitude"]
         return adapter_params
 
