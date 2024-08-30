@@ -245,7 +245,7 @@ def lora_mistral(
     # TODO: quantize_base is not applied to final output_proj currently.
     adapter_cls = DoRALinear if use_dora else LoRALinear
     output_proj = (
-        DoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha)
+        adapter_cls(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha)
         if apply_lora_to_output
         else nn.Linear(embed_dim, vocab_size, bias=False)
     )
