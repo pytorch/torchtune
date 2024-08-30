@@ -40,7 +40,7 @@ model:
   _component_: torchtune.models.mistral.mistral_7b
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Mistral-7B-v0.1
   checkpoint_files: [
     pytorch_model-00001-of-00002.bin,
@@ -58,7 +58,7 @@ optimizer:
   _component_: bitsandbytes.optim.PagedAdamW
   lr: 5e-6
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
 optimizer_in_bwd: True

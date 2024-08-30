@@ -29,7 +29,7 @@ model:
   lora_alpha: 16
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Llama-2-13b-hf/
   checkpoint_files: [
     pytorch_model-00001-of-00003.bin,
@@ -66,7 +66,7 @@ lr_scheduler:
   num_warmup_steps: 100
 
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
 # Training
 epochs: 1

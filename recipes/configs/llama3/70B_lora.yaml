@@ -24,7 +24,7 @@ tokenizer:
   max_seq_len: null
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir:  /tmp/Meta-Llama-3-70B-Instruct
   checkpoint_files: [
     model-00001-of-00030.safetensors,
@@ -81,7 +81,7 @@ lr_scheduler:
   num_warmup_steps: 100
 
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
 # Training
 epochs: 1

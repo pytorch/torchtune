@@ -20,7 +20,7 @@ def _create_component(
     return _component_(*args, **kwargs)
 
 
-def _instantiate_node(node: DictConfig, *args: Tuple[Any, ...]):
+def _instantiate_node(node: Dict[str, Any], *args: Tuple[Any, ...]):
     """
     Creates the object specified in _component_ field with provided positional args
     and kwargs already merged. Raises an InstantiationError if _component_ is not specified.
@@ -103,4 +103,4 @@ def instantiate(
     # Resolve all interpolations, or references to other fields within the same config
     OmegaConf.resolve(config)
 
-    return _instantiate_node(config, *args)
+    return _instantiate_node(OmegaConf.to_object(config), *args)

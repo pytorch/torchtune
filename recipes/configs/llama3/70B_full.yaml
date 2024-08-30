@@ -33,7 +33,7 @@ model:
   _component_: torchtune.models.llama3.llama3_70b
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Meta-Llama-3-70B-Instruct
   checkpoint_files: [
     model-00001-of-00030.safetensors,
@@ -85,7 +85,7 @@ optimizer:
   fused: True
 
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
 

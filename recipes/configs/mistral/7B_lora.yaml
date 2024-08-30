@@ -44,7 +44,7 @@ model:
   lora_alpha: 16
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Mistral-7B-v0.1
   checkpoint_files: [
     pytorch_model-00001-of-00002.bin,
@@ -65,7 +65,7 @@ lr_scheduler:
   num_warmup_steps: 100
 
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
 # Fine-tuning arguments
 batch_size: 4
