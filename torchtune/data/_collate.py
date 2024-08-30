@@ -22,15 +22,6 @@ def left_pad_sequence(
     instead pads a list of variable length Tensors from the left to the length
     of the longest sequence.
 
-    Example:
-        >>> a = torch.tensor([1, 2, 3])
-        >>> b = torch.tensor([4, 5, 6, 7])
-        >>> c = torch.tensor([8, 9, 10, 11, 12])
-        >>> left_pad_sequence([a, b, c], padding_value=0)
-        tensor([[ 0,  0,  1,  2,  3],
-                [ 0,  4,  5,  6,  7],
-                [ 8,  9, 10, 11, 12]])
-
     Note:
         This function returns a Tensor of size ``T x B x *`` or ``B x T x *``
         where `T` is the length of the longest sequence. This function assumes
@@ -45,6 +36,15 @@ def left_pad_sequence(
     Returns:
         Tensor of size ``T x B x *`` if :attr:`batch_first` is ``False``.
         Tensor of size ``B x T x *`` otherwise
+
+    Example:
+        >>> a = torch.tensor([1, 2, 3])
+        >>> b = torch.tensor([4, 5, 6, 7])
+        >>> c = torch.tensor([8, 9, 10, 11, 12])
+        >>> left_pad_sequence([a, b, c], batch_first=True, padding_value=0)
+        tensor([[ 0,  0,  1,  2,  3],
+                [ 0,  4,  5,  6,  7],
+                [ 8,  9, 10, 11, 12]])
     """
     return pad_sequence(
         map(lambda x: torch.flip(x, dims=[0]), sequences),
