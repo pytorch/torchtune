@@ -32,7 +32,7 @@ tokenizer:
   max_seq_len: null
 
 checkpointer:
-  _component_: torchtune.utils.FullModelMetaCheckpointer
+  _component_: torchtune.training.FullModelMetaCheckpointer
   checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/original/
   checkpoint_files: [
     consolidated.00.pth
@@ -83,7 +83,7 @@ enable_activation_checkpointing: True
 
 # Profiler (disabled)
 profiler:
-  _component_: torchtune.utils.setup_torch_profiler
+  _component_: torchtune.training.setup_torch_profiler
   enabled: False
 
   #Output directory of trace artifacts

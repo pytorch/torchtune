@@ -57,7 +57,7 @@ strategy. Generally, the pipeline for training, quantizing, and evaluating a mod
 
      # QAT specific args
      quantizer:
-       _component_: torchtune.utils.quantization.Int8DynActInt4WeightQATQuantizer
+       _component_: torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer
        groupsize: 256
 
 #. :ref:`Evaluate<qat_eval_label>` or `run inference <https://github.com/pytorch/torchtune/blob/main/recipes/quantization.md#generate>`_
@@ -66,7 +66,7 @@ strategy. Generally, the pipeline for training, quantizing, and evaluating a mod
    .. code-block:: yaml
 
      quantizer:
-       _component_: torchtune.utils.quantization.Int8DynActInt4WeightQuantizer
+       _component_: torchtune.training.quantization.Int8DynActInt4WeightQuantizer
        groupsize: 256
 
 .. note::

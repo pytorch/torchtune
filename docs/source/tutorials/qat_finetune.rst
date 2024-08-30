@@ -68,7 +68,7 @@ We can easily apply the above QAT transformations to Llama3 in torchtune for fin
 
 .. code-block:: python
 
-  from torchtune.utils.quantization import Int8DynActInt4WeightQATQuantizer
+  from torchtune.training.quantization import Int8DynActInt4WeightQATQuantizer
   from torchtune.models.llama3 import llama3_8b
 
   model = llama3_8b()
@@ -223,7 +223,7 @@ copy and make the following modifications to the quantization config:
     _component_: torchtune.models.llama3.llama3_8b
 
   checkpointer:
-    _component_: torchtune.utils.FullModelMetaCheckpointer
+    _component_: torchtune.training.FullModelMetaCheckpointer
     checkpoint_dir: <your QAT checkpoint dir>
     checkpoint_files: [meta_model_0.pt]
     recipe_checkpoint: null
@@ -233,7 +233,7 @@ copy and make the following modifications to the quantization config:
   ...
 
   quantizer:
-    _component_: torchtune.utils.quantization.Int8DynActInt4WeightQATQuantizer
+    _component_: torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer
     groupsize: 256
 
 The following command performs the convert step in the QAT flow, which actually
@@ -269,7 +269,7 @@ integrated in torchtune. First, copy the evaluation config and make the followin
     _component_: torchtune.models.llama3.llama3_8b
 
   checkpointer:
-    _component_: torchtune.utils.FullModelTorchTuneCheckpointer
+    _component_: torchtune.training.FullModelTorchTuneCheckpointer
     checkpoint_dir: <your quantized model checkpoint dir>
     checkpoint_files: [meta_model_0-8da4w.pt]
     recipe_checkpoint: null
@@ -285,7 +285,7 @@ integrated in torchtune. First, copy the evaluation config and make the followin
   batch_size: 8
 
   quantizer:
-    _component_: torchtune.utils.quantization.Int8DynActInt4WeightQuantizer
+    _component_: torchtune.training.quantization.Int8DynActInt4WeightQuantizer
     groupsize: 256
 
 .. note::

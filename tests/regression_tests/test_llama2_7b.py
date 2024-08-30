@@ -37,7 +37,7 @@ class TestLoRA7BDistributedFinetuneEval:
         tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed
             --config llama2/7B_lora \
             output_dir={tmpdir} \
-            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer
+            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
@@ -52,7 +52,7 @@ class TestLoRA7BDistributedFinetuneEval:
         tune run eleuther_eval \
             --config eleuther_evaluation \
             output_dir={tmpdir} \
-            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{tmpdir}' \
             checkpointer.checkpoint_files=[torchtune_model_0.pt] \
             checkpointer.output_dir={tmpdir} \
