@@ -4,7 +4,15 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.training.pooling import get_unmasked_sequence_lengths
+from torchtune.training._profiler import (
+    DEFAULT_PROFILE_DIR,
+    DEFAULT_PROFILER_ACTIVITIES,
+    DEFAULT_SCHEDULE,
+    DEFAULT_TRACE_OPTS,
+    DummyProfiler,
+    PROFILER_KEY,
+    setup_torch_profiler,
+)
 from torchtune.training.checkpointing import (
     ADAPTER_CONFIG,
     ADAPTER_KEY,
@@ -23,6 +31,7 @@ from torchtune.training.checkpointing import (
     TOTAL_EPOCHS_KEY,
     update_state_dict_for_classifier,
 )
+from torchtune.training.pooling import get_unmasked_sequence_lengths
 from torchtune.training.precision import (
     get_dtype,
     set_default_dtype,
@@ -52,4 +61,11 @@ __all__ = [
     "TOTAL_EPOCHS_KEY",
     "get_quantizer_mode",
     "get_unmasked_sequence_lengths",
+    "DEFAULT_PROFILE_DIR",
+    "DEFAULT_PROFILER_ACTIVITIES",
+    "DEFAULT_SCHEDULE",
+    "DEFAULT_TRACE_OPTS",
+    "DummyProfiler",
+    "PROFILER_KEY",
+    "setup_torch_profiler",
 ]
