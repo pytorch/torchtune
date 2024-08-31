@@ -5,19 +5,19 @@ Direct Preference Optimization
 ====================================
 
 This recipe supports several `Direct Preference Optimization <https://arxiv.org/abs/2305.18290>`_ (DPO)-style fine-tuning techniques.
+These techniques are a type of `alignment techniques<https://en.wikipedia.org/wiki/AI_alignment>`_ which aim to steer (or *align*) a
+model towards some desireable behaviours. For example, a common goal is to train language models to produce safe and honest outputs,
+or to be `helpful and harmless <https://arxiv.org/abs/2204.05862>`_.
 
-The core principle of DPO retains similarities to PPO (https://arxiv.org/abs/2009.01325), where it optimizes a policy
+DPO works by
 (language) model to align with human preferences, and regularizes the loss function using a baseline
 reference (the frozen, initial language model) to prevent over-fitting to the preference dataset.
 It differs from PPO by optimizing the policy model directly using labelled preference data, rather
 than using an additional reward model to provide feedback. This significantly simplifies training and reduces compute overhead.
 
-.. todo link recipe overview
-
 To see the best results when using this recipe, it's helpful to first fine-tune your model with SFT to ensure your model is
 on-distribution for the domain you're interested in. To do this, check out our other fine-tuning recipes which
-support a variety of SFT paradigms.
-
+support a variety of SFT paradigms in our :ref:`recipe overview <recipes_overview_label>`.
 
 .. image:: /_static/img/dpo_diagram.png
 
