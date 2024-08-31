@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
@@ -33,6 +33,9 @@ class TextCompletionDataset(Dataset):
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
         add_eos (bool): Whether to add an EOS token to the end of the sequence. Default is True.
+        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
+            the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
+            details.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
             such as ``data_files`` or ``split``.
     """
@@ -44,6 +47,7 @@ class TextCompletionDataset(Dataset):
         column: str = "text",
         max_seq_len: Optional[int] = None,
         add_eos: bool = True,
+        filter_fn: Optional[Callable] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._tokenizer = tokenizer
@@ -51,6 +55,9 @@ class TextCompletionDataset(Dataset):
         self.max_seq_len = max_seq_len
         self._column = column
         self.add_eos = add_eos
+
+        if filter_fn is not None:
+            self._data = self._data.filter(filter_fn)
 
     def __len__(self):
         return len(self._data)
@@ -61,6 +68,7 @@ class TextCompletionDataset(Dataset):
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
         prompt = sample[self._column]
+
         tokens = self._tokenizer.encode(text=prompt, add_bos=True, add_eos=self.add_eos)
 
         # Truncate if needed, but don't coerce EOS id
@@ -81,6 +89,7 @@ def text_completion_dataset(
     add_eos: bool = True,
     packed: bool = False,
     split_across_pack: bool = True,
+    filter_fn: Optional[Callable] = None,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> Union[TextCompletionDataset, PackedDataset]:
     """
@@ -110,6 +119,9 @@ def text_completion_dataset(
             For pre-training, typically this is set to True for general text completion. For
             fine-tuning, typically this is set to False to avoid truncating sentences in instruct
             tuning. This argument is ignored if ``packed=False``. Default is True.
+        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
+            the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
+            details.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
     Examples:
@@ -143,6 +155,7 @@ def text_completion_dataset(
         column=column,
         max_seq_len=max_seq_len,
         add_eos=add_eos,
+        filter_fn=filter_fn,
         **load_dataset_kwargs,
     )
     return (

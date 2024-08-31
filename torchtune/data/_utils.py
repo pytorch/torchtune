@@ -4,9 +4,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, List, Optional
+import warnings
+from functools import lru_cache, wraps
+from typing import Any, Callable, List, Optional, TypeVar
 
 from torchtune.data._messages import Message
+
+T = TypeVar("T", bound=type)
 
 
 def truncate(
@@ -73,3 +77,34 @@ def validate_messages(
                 f"System message at index {i} in messages, but system messages must come first"
             )
         last_turn = message.role
+
+
+def deprecated(msg: str = "") -> Callable[[T], T]:
+    """
+    Decorator to mark an object as deprecated and print additional message.
+
+    Args:
+        msg (str): additional information to print after warning.
+
+    Returns:
+        Callable[[T], T]: the decorated object.
+    """
+
+    @lru_cache(maxsize=1)
+    def warn(obj):
+        warnings.warn(
+            f"{obj.__name__} is deprecated and will be removed in future versions. "
+            + msg,
+            category=FutureWarning,
+            stacklevel=3,
+        )
+
+    def decorator(obj):
+        @wraps(obj)
+        def wrapper(*args, **kwargs):
+            warn(obj)
+            return obj(*args, **kwargs)
+
+        return wrapper
+
+    return decorator

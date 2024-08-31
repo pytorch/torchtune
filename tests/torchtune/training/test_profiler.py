@@ -11,7 +11,7 @@ import torch
 from omegaconf import DictConfig, OmegaConf
 from torch._C._profiler import _ExperimentalConfig
 from torchtune import config
-from torchtune.utils import (
+from torchtune.training import (
     DEFAULT_PROFILE_DIR,
     DEFAULT_PROFILER_ACTIVITIES,
     DEFAULT_SCHEDULE,
@@ -75,11 +75,11 @@ def _setup_profiler(
 
     # Check that component is included and set correctly
     if cfg_profiler.get("_component_", None) is None:
-        cfg_profiler["_component_"] = "torchtune.utils.setup_torch_profiler"
+        cfg_profiler["_component_"] = "torchtune.training.setup_torch_profiler"
     else:
         assert (
-            cfg_profiler.get("_component_") == "torchtune.utils.setup_torch_profiler"
-        ), "Only torch profiler supported currently: component must be `torchtune.utils.setup_torch_profiler`"
+            cfg_profiler.get("_component_") == "torchtune.training.setup_torch_profiler"
+        ), "Only torch profiler supported currently: component must be `torchtune.training.setup_torch_profiler`"
 
     profiler, profiler_cfg = config.instantiate(cfg_profiler)
 

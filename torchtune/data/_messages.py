@@ -121,13 +121,18 @@ class InputOutputToMessages(Transform):
     Message transform class that converts a single sample with "input" and "output" fields,
     (or equivalent fields specified in column_map) to user and assistant messages,
     respectively. This is useful for datasets that have two columns, one containing
-    the user prompt and the other containing the model response.
+    the user prompt string and the other containing the model response string::
+
+        |  input          |  output          |
+        |-----------------|------------------|
+        | "user prompt"   | "model response" |
 
     Args:
         train_on_input (bool): Whether the model is trained on the user prompt or not.
             Default is False.
         column_map (Optional[Dict[str, str]]): a mapping to change the expected "input"
-            and "output" column names to the actual column names in the dataset. Default is None,
+            and "output" column names to the actual column names in the dataset. Keys should
+            be "input" and "output" and values should be the actual column names. Default is None,
             keeping the default "input" and "output" column names.
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Default is None.
@@ -213,6 +218,7 @@ class ChosenRejectedToMessages(Transform):
             Default is False.
         column_map (Optional[Dict[str, str]]): a mapping to change the expected
             "chosen" and "rejected" column names to the actual column names in the dataset.
+            Keys should be "chosen" and "rejected" and values should be the actual column names.
             Default is None, keeping the default column names.
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
@@ -311,7 +317,8 @@ class ShareGPTToMessages(Transform):
     Args:
         train_on_input (bool): whether the prompt should remain unmasked. Default: False
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("conversations")
-            to the new column names in the dataset. If None, assume these are identical.
+            to the new column names in the dataset. Key should be "conversations" and value should
+            be the new column name. If None, keep the default "conversations".
             Default is None.
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
@@ -401,7 +408,8 @@ class JSONToMessages(Transform):
     Args:
         train_on_input (bool): whether the prompt should remain unmasked. Default: False
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("messages")
-            to the new column names in the dataset. If None, assume these are identical.
+            to the new column names in the dataset. Key should be "messages" and value should be
+            the new column name. If None, keep the default "messages".
             Default is None.
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
