@@ -132,5 +132,6 @@ class TestSFTDataset:
             model_transform=DummyTokenizer(),
         )
 
-        with pytest.raises(ValueError):
+        msg = "system messages must come first"
+        with pytest.raises(ValueError, match=msg):
             ds[0]
