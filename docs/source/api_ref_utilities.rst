@@ -39,8 +39,6 @@ Utilities to reduce memory consumption during training.
     register_optim_in_bwd_hooks
 
 
-.. _perf_profiling_label:
-
 Performance and Profiling
 -------------------------
 
@@ -53,24 +51,6 @@ of your finetuning job.
 
     get_memory_stats
     log_memory_stats
-    setup_torch_profiler
-
-.. _metric_logging_label:
-
-Metric Logging
---------------
-
-Various logging utilities.
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    metric_logging.CometLogger
-    metric_logging.WandBLogger
-    metric_logging.TensorBoardLogger
-    metric_logging.StdoutLogger
-    metric_logging.DiskLogger
 
 .. _gen_label:
 
