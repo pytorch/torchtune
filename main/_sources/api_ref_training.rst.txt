@@ -69,3 +69,12 @@ of your finetuning job.
     :nosignatures:
 
     setup_torch_profiler
+
+Miscellaneous
+-------------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    get_unmasked_sequence_lengths
