@@ -123,6 +123,11 @@ class SFTDataset(Dataset):
 
         tokenized_dict = self._model_transform(transformed_sample)
 
+        if not ("tokens" in tokenized_dict and "mask" in tokenized_dict):
+            raise ValueError(
+                "model_transform must return a dictionary with 'tokens' and 'mask' keys"
+            )
+
         # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
         tokenized_dict["labels"] = list(
             np.where(
