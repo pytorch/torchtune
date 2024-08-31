@@ -123,7 +123,7 @@ class TestSFTDataset:
         ]
 
     @mock.patch("torchtune.datasets._sft.load_dataset")
-    def test_error_for_validate_diagloue(self, mock_load_dataset, invalid_dialogue):
+    def test_error_for_invalid_messages(self, mock_load_dataset, invalid_dialogue):
         mock_load_dataset.return_value = invalid_dialogue
 
         ds = SFTDataset(
