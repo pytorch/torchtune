@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import torch
-from torchtune.utils.pooling import get_unmasked_sequence_lengths
+from torchtune.training.pooling import get_unmasked_sequence_lengths
 
 
 class TestGetLastUnmaskedTokenIdx:
