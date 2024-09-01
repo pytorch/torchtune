@@ -63,8 +63,7 @@ def padded_collate(
     """
     A generic padding collation function which pads ``keys_to_pad`` entries in a
     batch of sequences with the given `pad_fn` to the maximum sequence length for
-    each entry in the batch. Any keys in ``batch`` which are not in ``keys_to_pad``
-    are discarded.
+    each entry in the batch.
 
     Args:
         batch (List[Dict[str, List[int]]]): A list of dictionaries containing inputs.
@@ -90,9 +89,9 @@ def padded_collate(
         >>> b = [4, 5, 6, 7]
         >>> c = [8, 9, 10, 11, 12]
         >>> batch = [
-        >>>     {"tokens": a, "labels": [1]},
-        >>>     {"tokens": b, "labels": [3]},
-        >>>     {"tokens": c, "labels": [0]},
+        >>>     {"tokens": a, "labels": 1},
+        >>>     {"tokens": b, "labels": 3},
+        >>>     {"tokens": c, "labels": 0},
         >>> ]
         >>> padded_collate(
         >>>     batch,
@@ -101,12 +100,10 @@ def padded_collate(
         >>>     padding_idx=-10
         >>> )
         {
-            'labels': tensor([[1],
-                            [3],
-                            [0]]),
+            'labels': tensor([1, 3, 0]),
             'tokens': tensor([[-10, -10,   1,   2,   3],
-                            [-10,   4,   5,   6,   7],
-                            [  8,   9,  10,  11,  12]])
+                              [-10,   4,   5,   6,   7],
+                              [  8,   9,  10,  11,  12]])
         }
     """
     if not isinstance(keys_to_pad, list) or not keys_to_pad:
@@ -127,7 +124,8 @@ def padded_collate(
                 f"{set(keys_to_pad)} and {set(batch[0].keys())}, respectively."
             )
 
-    output_dict = {}
+    batch_keys = [k for k in batch[0].keys() if k not in keys_to_pad]
+    output_dict = {k: torch.tensor([x[k] for x in batch]) for k in batch_keys}
     for k in keys_to_pad:
         output_dict[k] = pad_fn(
             [torch.tensor(x[k]) for x in batch],

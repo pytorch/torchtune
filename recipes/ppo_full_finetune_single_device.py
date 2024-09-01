@@ -584,7 +584,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             collate_fn=partial(
                 padded_collate,
                 pad_fn=left_pad_sequence,
-                keys_to_pad=["tokens"],
+                keys_to_pad=["tokens", "labels"],
                 padding_idx=self._tokenizer.pad_id,
             ),
             drop_last=True,
