@@ -422,7 +422,7 @@
 
 <span class="kn">from</span> <span class="nn">datasets</span> <span class="kn">import</span> <span class="n">load_dataset</span>
 <span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span>
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span>
+<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">validate_messages</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
 
 
@@ -530,6 +530,9 @@
 
     <span class="k">def</span> <span class="nf">_prepare_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">transformed_sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_message_transform</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;messages&quot;</span> <span class="ow">in</span> <span class="n">transformed_sample</span><span class="p">:</span>
+            <span class="n">validate_messages</span><span class="p">(</span><span class="n">transformed_sample</span><span class="p">[</span><span class="s2">&quot;messages&quot;</span><span class="p">])</span>
+
         <span class="n">tokenized_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_transform</span><span class="p">(</span><span class="n">transformed_sample</span><span class="p">)</span>
 
         <span class="c1"># Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens</span>
