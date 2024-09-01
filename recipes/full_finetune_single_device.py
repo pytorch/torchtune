@@ -443,46 +443,23 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         last_epoch: int,
     ) -> Optional[Optimizer]:
         if self._optimizer_in_bwd:
-            # Get the initial learning rate from the wrapper
-            initial_lr = self._optim_ckpt_wrapper.get_optim_key("lr")
-
-            # Create a dummy optimizer with a single parameter group
-            dummy_optimizer = torch.optim.SGD(
-                [torch.nn.Parameter(torch.tensor([0.0]))], lr=initial_lr
-            )
-
-            # Instantiate the scheduler with the dummy optimizer
-            lr_scheduler = config.instantiate(
-                cfg_lr_scheduler,
-                dummy_optimizer,
-                num_training_steps=num_training_steps,
-                last_epoch=last_epoch,
-            )
-
-            # Store the original step method
-            original_step = lr_scheduler.step
-
-            # Create a custom step function that updates all optimizers
-            def custom_step(epoch=None):
-                if epoch is None:
-                    original_step()
-                else:
-                    original_step(epoch)
-                new_lr = lr_scheduler.get_last_lr()[0]
-                for opt in self._optim_ckpt_wrapper.optim_map.values():
-                    for param_group in opt.param_groups:
-                        param_group["lr"] = new_lr
-
-            # Replace the original step function with our custom one
-            lr_scheduler.step = custom_step
+            # Use the first optimizer from the wrapper to represent the learning rate
+            optimizer = next(iter(self._optim_ckpt_wrapper.optim_map.values()))
         else:
             # Standard case: use the single optimizer
-            lr_scheduler = config.instantiate(
-                cfg_lr_scheduler,
-                self._optimizer,
-                num_training_steps=num_training_steps,
-                last_epoch=last_epoch,
-            )
+            optimizer = self._optimizer
+
+        # Instantiate the learning rate scheduler
+        lr_scheduler = config.instantiate(
+            cfg_lr_scheduler,
+            optimizer,
+            num_training_steps=num_training_steps,
+            last_epoch=last_epoch,
+        )
+
+        if self._optimizer_in_bwd:
+            # Modify the scheduler for optimizer_in_bwd case
+            self._optim_ckpt_wrapper.set_lr_scheduler(lr_scheduler)
 
         log.info("Learning rate scheduler is initialized.")
         return lr_scheduler
