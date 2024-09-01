@@ -65,6 +65,10 @@ def padded_collate(
     batch of sequences with the given `pad_fn` to the maximum sequence length for
     each entry in the batch.
 
+    Note:
+        This function assumes all batch elements which are not in ``keys_to_pad`` do not require
+        any collation (see example below).
+
     Args:
         batch (List[Dict[str, List[int]]]): A list of dictionaries containing inputs.
         pad_fn (Callable): padding function to apply to ``keys_to_pad`` batch elements.
