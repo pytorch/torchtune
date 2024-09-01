@@ -8,22 +8,18 @@
 from typing import Dict, Optional, Union
 
 from torchtune.data import InputOutputToMessages
-from torchtune.data._prompt_templates import (
-    GrammarErrorCorrectionTemplate,
-    PromptTemplate,
-)
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
-from torchtune.modules.transforms import Transform
+from torchtune.modules.tokenizers import ModelTokenizer
 
 
 def grammar_dataset(
-    model_transform: Transform,
+    tokenizer: ModelTokenizer,
     *,
     source: str = "liweili/c4_200m",
     column_map: Optional[Dict[str, str]] = None,
-    prompt_template: Optional[PromptTemplate] = GrammarErrorCorrectionTemplate(),
     train_on_input: bool = False,
+    new_system_prompt: Optional[str] = None,
     packed: bool = False,
     split: str = "train",
 ) -> Union[SFTDataset, PackedDataset]:
@@ -31,10 +27,8 @@ def grammar_dataset(
     Support for grammar correction datasets and their variants from Hugging Face Datasets.
     Here is an `example <https://huggingface.co/datasets/liweili/c4_200m>`_ of a grammar correction dataset.
 
-    The prompt template mirrors what is used in the `llama_recipes codebase
-    <https://github.com/meta-llama/llama-recipes/blob/main/src/llama_recipes/datasets/grammar_dataset/grammar_dataset.py#L50>`_
-
-    where ``input`` and ``output`` are fields from the dataset.
+    It is recommended to configure the tokenizer with the :class:`~torchtune.data.GrammarErrorCorrectionTemplate`
+    in conjunction with this dataset.
 
     Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is
     set to ``False`` by default
@@ -43,41 +37,52 @@ def grammar_dataset(
     - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)
 
     Args:
-        model_transform (Transform): model specific transform to convert a list of messages
-            output by the dataset to tokens. This will always be a :class:`~torchtune.modules.tokenizers.ModelTokenizer`.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path to dataset repository on Hugging Face. For local datasets,
-            define source as the data file type (e.g. "json", "csv", "text") and pass
-            in the filepath in ``data_files``. See `Hugging Face's
+            define source as the data file type (e.g. "json", "csv", "text"), pass
+            in the filepath in ``data_files``, and set ``split="train"``. See `Hugging Face's
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details. Default is ``liweili/c4_200m``.
-        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the prompt template
-            to the new column names in the dataset. If None, assume these are identical.
-        prompt_template (Optional[PromptTemplate]): optional template used to format the prompt. Default
-            is :class:`~torchtune.data.GrammarErrorCorrectionTemplate`.
+        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the message transform
+            :class:`~torchtune.data.InputOutputToMessages` to the new column names in the dataset. Keys should be
+            "input" and "output" and values should be the actual column names. If None, use
+            the default column names ``"input"`` and ``"output"``in ``liweili/c4_200m``.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
-        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
+        new_system_prompt (Optional[str]): if specified, prepend a system message to every sample. This can
+            serve as instructions to guide the model response. Setting this will OVERRIDE any system
+            messages already present in the dataset. Default is None.
+        packed (bool): Whether or not to pack the dataset to tokenizer's ``max_seq_len`` prior to training. Default is False.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
 
     Returns:
         Union[SFTDataset, PackedDataset]: dataset configured with source data and template
 
+    Raises:
+        ValueError: If ``packed=True`` and ``tokenizer.max_seq_len`` is not set.
 
     Example:
-        >>> grammar_ds = grammar_dataset(tokenizer=tokenizer)
+        >>> grammar_ds = grammar_dataset(model_transform=tokenizer)
         >>> for batch in Dataloader(grammar_ds, batch_size=8):
         >>>     print(f"Batch size: {len(batch)}")
         >>> Batch size: 8
     """
 
     message_transform = InputOutputToMessages(
-        train_on_input=train_on_input, column_map=column_map
+        train_on_input=train_on_input,
+        column_map=column_map,
+        new_system_prompt=new_system_prompt,
     )
     ds = SFTDataset(
         source=source,
         message_transform=message_transform,
-        model_transform=model_transform,
-        prompt_template=prompt_template,
+        model_transform=tokenizer,
         split=split,
     )
-    return PackedDataset(ds) if packed else ds
+    if packed:
+        if tokenizer.max_seq_len is None:
+            raise ValueError(
+                "PackedDataset requires a max_seq_len to be set on the tokenizer."
+            )
+        return PackedDataset(ds, max_seq_len=tokenizer.max_seq_len)
+    return ds

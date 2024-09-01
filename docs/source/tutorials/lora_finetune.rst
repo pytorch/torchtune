@@ -161,7 +161,7 @@ Let's inspect each of these models a bit more closely.
 
   # Print the first layer's self-attention in the usual Llama2 model
   >>> print(base_model.layers[0].attn)
-  CausalSelfAttention(
+  MultiHeadAttention(
     (q_proj): Linear(in_features=4096, out_features=4096, bias=False)
     (k_proj): Linear(in_features=4096, out_features=4096, bias=False)
     (v_proj): Linear(in_features=4096, out_features=4096, bias=False)
@@ -171,7 +171,7 @@ Let's inspect each of these models a bit more closely.
 
   # Print the same for Llama2 with LoRA weights
   >>> print(lora_model.layers[0].attn)
-  CausalSelfAttention(
+  MultiHeadAttention(
     (q_proj): LoRALinear(
       (dropout): Dropout(p=0.0, inplace=False)
       (lora_a): Linear(in_features=4096, out_features=8, bias=False)
@@ -297,10 +297,11 @@ A comparison of the (smoothed) loss curves between this run and our baseline ove
 .. image:: /_static/img/lora_experiment_loss_curves.png
 
 .. note::
-    The above figure was generated with W&B. You can use torchtune's :class:`~torchtune.utils.metric_logging.WandBLogger`
+    The above figure was generated with W&B. You can use torchtune's :class:`~torchtune.training.metric_logging.WandBLogger`
     to generate similar loss curves, but you will need to install W&B and setup an account separately. For more details on
     using W&B in torchtune, see our ":ref:`wandb_logging`" recipe.
 
+.. _lora_tutorial_memory_tradeoff_label:
 
 Trading off memory and model performance with LoRA
 --------------------------------------------------

@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from torch import Tensor
 from torchtune.modules import KVCache
 
-from torchtune.modules.transformer import _get_clones, TransformerDecoderLayer
+from torchtune.modules.transformer import _get_clones, TransformerSelfAttentionLayer
 
 
 class GemmaTransformerDecoder(nn.Module):
@@ -26,7 +26,7 @@ class GemmaTransformerDecoder(nn.Module):
     Args:
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move
             tokens to an embedding space and as the output projection.
-        layer (TransformerDecoderLayer): Transformer Decoder layer.
+        layer (TransformerSelfAttentionLayer): Transformer Decoder layer.
         num_layers (int): Number of Transformer Decoder layers.
         max_seq_len (int): maximum sequence length the model will be run with, as used
             by :func:`~torchtune.modules.KVCache`
@@ -49,7 +49,7 @@ class GemmaTransformerDecoder(nn.Module):
     def __init__(
         self,
         tok_embeddings: nn.Embedding,
-        layer: TransformerDecoderLayer,
+        layer: TransformerSelfAttentionLayer,
         num_layers: int,
         max_seq_len: int,
         num_heads: int,
@@ -66,6 +66,16 @@ class GemmaTransformerDecoder(nn.Module):
         self.head_dim = head_dim
         self.causal_mask = None
         self.norm_embeddings = norm_embeddings
+        self.num_output_chunks = 0
+
+    def caches_are_enabled(self) -> bool:
+        """Check if the key value caches are setup."""
+        return self.layers[0].cache_enabled
+
+    def set_num_output_chunks(self, num_output_chunks: int) -> None:
+        """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
+        This should be called before the first forward pass, in the recipe."""
+        self.num_output_chunks = num_output_chunks
 
     def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
         """Setup key value caches for attention calculation.
@@ -158,6 +168,15 @@ class GemmaTransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.norm(h)
 
-        # shape: [b, s, v]
-        output = F.linear(h, self.tok_embeddings.weight).float()
+        if self.num_output_chunks > 0:
+            # shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size
+            # Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,
+            # before calling forward. Upcasting it done inside of the loss function.
+            output = [
+                F.linear(chunk, self.tok_embeddings.weight)
+                for chunk in h.chunk(self.num_output_chunks, dim=1)
+            ]
+        else:
+            # shape: [b, seq_len, out_dim]
+            output = F.linear(h, self.tok_embeddings.weight).float()
         return output

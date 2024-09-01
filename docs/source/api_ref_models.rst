@@ -25,8 +25,8 @@ To download the Llama3-70B-Instruct model:
 
     tune download meta-llama/Meta-Llama-3-70B-Instruct --ignore-patterns "original/consolidated*" --hf-token <HF_TOKEN>
 
-To download the Llama3.1 weights of the above models, you can instead download from `Meta-Llama-3.1-8B-Instruct`
-or `Meta-Llama-3.1-70B-Instruct`.
+To download the Llama3.1 weights of the above models, you can instead download from `Meta-Llama-3.1-8B-Instruct`,
+`Meta-Llama-3.1-70B-Instruct`, or `Meta-Llama-3.1-405B-Instruct`.
 
 .. autosummary::
     :toctree: generated/
@@ -53,6 +53,7 @@ or `Meta-Llama-3.1-70B-Instruct`.
     llama3_1.llama3_1_70b
     llama3_1.lora_llama3_1_70b
     llama3_1.qlora_llama3_1_70b
+    llama3_1.llama3_1_405b
 
 
 .. note::

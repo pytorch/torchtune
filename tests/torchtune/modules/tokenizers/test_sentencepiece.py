@@ -4,12 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from pathlib import Path
-
 import pytest
-from torchtune.modules.tokenizers import SentencePieceBaseTokenizer
 
-ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
+from tests.common import ASSETS
+from torchtune.modules.tokenizers import SentencePieceBaseTokenizer
 
 
 class TestSentencePieceBaseTokenizer:

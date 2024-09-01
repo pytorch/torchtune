@@ -46,6 +46,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
+            "clip_grad_norm=100",
         ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self, model_type):
@@ -86,6 +87,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
+            tokenizer.prompt_template=null \
             metric_logger.filename={log_file} \
             compile={compile} \
         """.split()
@@ -128,12 +130,13 @@ class TestFullFinetuneSingleDeviceRecipe:
         tune run full_finetune_single_device \
             --config llama2/7B_full_low_memory \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2"]
@@ -148,13 +151,14 @@ class TestFullFinetuneSingleDeviceRecipe:
         tune run full_finetune_single_device \
             --config llama2/7B_full_low_memory \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
             checkpointer.checkpoint_files=[{os.path.join(tmpdir, "hf_model_0001_0.pt")}]\
             checkpointer.recipe_checkpoint={os.path.join(tmpdir, "recipe_state.pt")}
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
         """.split()
@@ -180,6 +184,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
             "dtype=fp32",
             "enable_activation_checkpointing=False",
             "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
+            "tokenizer.prompt_template=null",
             "dataset=tests.recipes.utils.DummyDataset",
             "dataset.train_on_input=False",
             "seed=9",
@@ -212,7 +217,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
         cmd_1 = f"""
         tune run full_finetune_single_device \
             --config llama2/7B_full_low_memory \
-            checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
@@ -238,7 +243,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
         cmd_2 = f"""
         tune run full_finetune_single_device \
             --config llama2/7B_full_low_memory \
-            checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \

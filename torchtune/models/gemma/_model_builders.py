@@ -10,6 +10,8 @@ from torchtune.models.gemma.transformer import GemmaTransformerDecoder
 
 from torchtune.models.gemma._tokenizer import GemmaTokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
+from torchtune.data._prompt_templates import _TemplateType
+from torchtune.config._utils import _get_prompt_template
 
 from functools import partial
 
@@ -41,7 +43,7 @@ def gemma_2b() -> GemmaTransformerDecoder:
     )
 
 
-def gemma_tokenizer(path: str, max_seq_len: Optional[int] = None) -> GemmaTokenizer:
+def gemma_tokenizer(path: str, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = None) -> GemmaTokenizer:
     """
     Tokenizer for Gemma.
 
@@ -49,11 +51,16 @@ def gemma_tokenizer(path: str, max_seq_len: Optional[int] = None) -> GemmaTokeni
         path (str): path to the tokenizer
         max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
             after which the input will be truncated. Default is None.
+        prompt_template (Optional[_TemplateType]): optional specified prompt template.
+            If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
+            class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
+            prepend/append tags.
+        
 
     Returns:
         GemmaTokenizer: Instantiation of the Gemma tokenizer
     """
-    return GemmaTokenizer(path=path, max_seq_len=max_seq_len)
+    return GemmaTokenizer(path=path, max_seq_len=max_seq_len, prompt_template=_get_prompt_template(prompt_template) if prompt_template is not None else None)
 
 
 def lora_gemma_2b(
@@ -61,6 +68,7 @@ def lora_gemma_2b(
     apply_lora_to_mlp: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> GemmaTransformerDecoder:
     """
@@ -78,6 +86,8 @@ def lora_gemma_2b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
@@ -99,6 +109,7 @@ def lora_gemma_2b(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=0.05,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 
@@ -139,6 +150,7 @@ def lora_gemma_7b(
     apply_lora_to_mlp: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> GemmaTransformerDecoder:
     """
@@ -156,6 +168,8 @@ def lora_gemma_7b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
@@ -177,6 +191,7 @@ def lora_gemma_7b(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=0.05,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 

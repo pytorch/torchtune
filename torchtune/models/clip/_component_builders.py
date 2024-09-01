@@ -19,6 +19,7 @@ def clip_vision_encoder(
     output_cls_projection: bool = False,
     max_num_tiles: int = 4,
     in_channels: int = 3,
+    intermediate_act: torch.nn.Module = torch.nn.SiLU(),
 ) -> VisionTransformer:
     """
     Builds the vision encoder associated with the clip model. This includes:
@@ -49,6 +50,7 @@ def clip_vision_encoder(
         max_num_tiles (int): The maximum number of tiles that can be processed. This is used to
             determine the size of the positional embeddings.
         in_channels (int): The number of image input channels.
+        intermediate_act (torch.nn.Module): The activation function used in the intermediate layers in the transformer encoder.
 
     Returns:
         A `VisionTransformer` object.
@@ -63,7 +65,7 @@ def clip_vision_encoder(
         nhead=num_heads, 
         dim_feedforward=int(mlp_ratio * embed_dim), 
         dropout=0.0, 
-        activation=torch.nn.SiLU(), 
+        activation=intermediate_act, 
         layer_norm_eps=1e-5, 
         batch_first=True, 
         norm_first=True, 

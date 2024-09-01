@@ -19,18 +19,13 @@ and models.
     :nosignatures:
 
     InstructTemplate
-    AlpacaInstructTemplate
     GrammarErrorCorrectionTemplate
     SummarizeTemplate
-    StackExchangedPairedTemplate
+    QuestionAnswerTemplate
     PromptTemplate
     PromptTemplateInterface
     ChatMLTemplate
-
     ChatFormat
-    ChatMLFormat
-    Llama2ChatFormat
-    MistralChatFormat
 
 Types
 -----
@@ -66,6 +61,18 @@ Converts data from common schema and conversation JSON formats into a list of to
     InputOutputToMessages
     ShareGPTToMessages
     JSONToMessages
+    ChosenRejectedToMessages
+
+Collaters
+---------
+
+Collaters used to collect samples into batches and handle any padding.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    padded_collate
 
 Helper functions
 ----------------

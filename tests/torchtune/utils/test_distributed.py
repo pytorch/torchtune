@@ -27,9 +27,13 @@ from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune import modules, utils
 from torchtune.models.llama2._component_builders import llama2, lora_llama2
 from torchtune.models.llama3._component_builders import llama3
-from torchtune.modules import TransformerDecoderLayer
-from torchtune.modules.peft import LoRALinear
-from torchtune.modules.peft.peft_utils import get_adapter_params, set_trainable_params
+from torchtune.modules import TransformerSelfAttentionLayer
+from torchtune.modules.peft import (
+    DoRALinear,
+    get_adapter_params,
+    LoRALinear,
+    set_trainable_params,
+)
 
 
 class TestDistributed:
@@ -110,7 +114,7 @@ class TestDistributed:
         with single_box_init():
             llama3_policy = utils.get_full_finetune_fsdp_wrap_policy(
                 memory_efficient_fsdp_wrap=True,
-                modules_to_wrap={modules.TransformerDecoderLayer},
+                modules_to_wrap={modules.TransformerSelfAttentionLayer},
             )
             l3 = llama3(
                 vocab_size=64,
@@ -131,7 +135,7 @@ class TestDistributed:
 
             llama2_policy = utils.get_full_finetune_fsdp_wrap_policy(
                 memory_efficient_fsdp_wrap=False,
-                modules_to_wrap={modules.TransformerDecoderLayer},
+                modules_to_wrap={modules.TransformerSelfAttentionLayer},
             )
             l2 = llama2(
                 vocab_size=64,
@@ -166,12 +170,12 @@ def _get_n_lora_and_tformer_layers(model):
     num_lora_ab = 0
     num_transformer_layers = 0
     for module in model.modules():
-        if isinstance(module, LoRALinear):
+        if isinstance(module, LoRALinear) or isinstance(module, DoRALinear):
             num_nested_linears = len(
                 [m for m in module.modules() if isinstance(m, nn.Linear)]
             )
             num_lora_ab += num_nested_linears
-        if isinstance(module, TransformerDecoderLayer):
+        if isinstance(module, TransformerSelfAttentionLayer):
             num_transformer_layers += 1
 
     return num_lora_ab, num_transformer_layers
@@ -198,7 +202,7 @@ class TestLoRAFSDP:
         num_lora_ab, num_transformer_layers = _get_n_lora_and_tformer_layers(model)
         with single_box_init():
             lora_wrap_policy = utils.lora_fsdp_wrap_policy(
-                modules_to_wrap={TransformerDecoderLayer}
+                modules_to_wrap={TransformerSelfAttentionLayer}
             )
             utils.prepare_model_for_fsdp_with_meta_device(model)
             wrapped_lora = FSDP(
@@ -213,20 +217,19 @@ class TestLoRAFSDP:
                 assert not p.is_meta
 
             for m in wrapped_lora.modules():
-                if isinstance(m, LoRALinear):
+                if isinstance(m, LoRALinear) or isinstance(m, DoRALinear):
                     torch.testing.assert_close(
                         m.lora_b.weight, torch.zeros_like(m.lora_b.weight)
                     )
-
             # Total # FSDP modules should be num_transformer + num_lora_ab + 1
             total_fsdp_submodules = len([m for m in FSDP.fsdp_modules(wrapped_lora)])
             assert total_fsdp_submodules == (num_lora_ab + num_transformer_layers + 1)
             # LoRA a & b linears should be individually wrapped.
-            # And TransformerDecoderLayers should be individually wrapped.
+            # And TransformerSelfAttentionLayers should be individually wrapped.
             for fsdp_submodule in FSDP.fsdp_modules(wrapped_lora):
                 if isinstance(fsdp_submodule.module, nn.Linear):
                     num_lora_ab -= 1
-                elif isinstance(fsdp_submodule.module, TransformerDecoderLayer):
+                elif isinstance(fsdp_submodule.module, TransformerSelfAttentionLayer):
                     num_transformer_layers -= 1
             assert num_lora_ab == 0
             assert num_transformer_layers == 0
@@ -438,7 +441,7 @@ class TestFullyShardState(FSDPTest):
         set_trainable_params(base_model, get_adapter_params(base_model))
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
-                base_model, auto_wrap_policy={modules.TransformerDecoderLayer}
+                base_model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
         # fsdp model for saving state dict
@@ -448,7 +451,7 @@ class TestFullyShardState(FSDPTest):
                 if isinstance(m, CheckpointWrapper):
                     fully_shard(m)
             else:
-                if isinstance(m, modules.TransformerDecoderLayer):
+                if isinstance(m, modules.TransformerSelfAttentionLayer):
                     fully_shard(m)
         fully_shard(fsdp_model_to_save)
 
@@ -479,7 +482,8 @@ class TestFullyShardState(FSDPTest):
         set_trainable_params(fsdp_model_to_load, get_adapter_params(fsdp_model_to_load))
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
-                fsdp_model_to_load, auto_wrap_policy={modules.TransformerDecoderLayer}
+                fsdp_model_to_load,
+                auto_wrap_policy={modules.TransformerSelfAttentionLayer},
             )
         # init rope since it's not covered in state dict
         for m in fsdp_model_to_load.modules():
@@ -490,7 +494,7 @@ class TestFullyShardState(FSDPTest):
                 if isinstance(m, CheckpointWrapper):
                     fully_shard(m)
             else:
-                if isinstance(m, modules.TransformerDecoderLayer):
+                if isinstance(m, modules.TransformerSelfAttentionLayer):
                     fully_shard(m)
         fully_shard(fsdp_model_to_load)
         utils.load_from_full_model_state_dict(

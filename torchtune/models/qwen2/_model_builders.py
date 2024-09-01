@@ -3,13 +3,15 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from torchtune.models.qwen2._component_builders import qwen2, lora_qwen2
 from torchtune.models.qwen2._tokenizer import Qwen2Tokenizer
 from torchtune.modules import TransformerDecoder, TiedEmbeddingTransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from torchtune.modules.tokenizers import parse_hf_tokenizer_json
+from torchtune.data._prompt_templates import _TemplateType
+from torchtune.config._utils import _get_prompt_template
 
 """
 Model builders build specific instantiations using component builders. For example
@@ -99,6 +101,7 @@ def qwen2_tokenizer(
     merges_file: str = None,
     special_tokens_path: Optional[str] = None,
     max_seq_len: Optional[int] = None,
+    prompt_template: Optional[_TemplateType] = "torchtune.data.ChatMLTemplate",
     **kwargs,
 ) -> Qwen2Tokenizer:
     """
@@ -112,11 +115,17 @@ def qwen2_tokenizer(
             structured similarly. Default is None to use the canonical Qwen2 special tokens.
         max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
             Default: None
+        prompt_template (Optional[_TemplateType]): optional specified prompt template.
+            If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
+            class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
+            prepend/append tags. Default is :class:`~torchtune.models.llama2.Llama2ChatTemplate`.
+
     Returns:
         Qwen2Tokenizer: Instantiation of the Qwen2 tokenizer
     """
     special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    return Qwen2Tokenizer(path=path, merges_file=merges_file, special_tokens=special_tokens, max_seq_len=max_seq_len, **kwargs)
+    template = _get_prompt_template(prompt_template) if prompt_template is not None else None
+    return Qwen2Tokenizer(path=path, merges_file=merges_file, special_tokens=special_tokens, max_seq_len=max_seq_len, prompt_template=template, **kwargs)
 
 
 def lora_qwen2_7b(
@@ -126,6 +135,7 @@ def lora_qwen2_7b(
     lora_rank: int = 8,
     lora_alpha: float = 16,
     lora_dropout: float = 0.05,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
@@ -167,6 +177,7 @@ def lora_qwen2_7b(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 
@@ -177,6 +188,7 @@ def lora_qwen2_0_5b(
     lora_rank: int = 8,
     lora_alpha: float = 16,
     lora_dropout: float = 0.05,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TiedEmbeddingTransformerDecoder:
     """
@@ -221,6 +233,7 @@ def lora_qwen2_0_5b(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 
@@ -231,6 +244,7 @@ def lora_qwen2_1_5b(
     lora_rank: int = 8,
     lora_alpha: float = 16,
     lora_dropout: float = 0.05,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TiedEmbeddingTransformerDecoder:
     """
@@ -275,5 +289,6 @@ def lora_qwen2_1_5b(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )

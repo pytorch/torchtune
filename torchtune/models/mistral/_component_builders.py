@@ -5,22 +5,22 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
-from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 from typing import List
 
 from torch import nn
 
 from torchtune.modules import (
-    CausalSelfAttention,
     FeedForward,
     FrozenNF4Linear,
+    MultiHeadAttention,
     RMSNorm,
     RotaryPositionalEmbeddings,
     TransformerDecoder,
-    TransformerDecoderLayer,
+    TransformerSelfAttentionLayer,
 )
+from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 
-from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
+from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 
 """
 Component builders for the Mistral 7B models and popular variants such as LoRA.
@@ -28,7 +28,7 @@ Component builders for the Mistral 7B models and popular variants such as LoRA.
 torchtune provides composable building blocks. Builder functions help
 stitch these building blocks into higher-level components. This design has
 two benefits:
-- The building blocks themselves are very flexible. For example, ``CausalSelfAttention``
+- The building blocks themselves are very flexible. For example, ``MultiHeadAttention``
 can take either nn.Linear or nn.LoRALinear for ``q_proj``.
 - Builder functions expose a set of configurable params which keep the constructors of
 the building blocks simple.
@@ -50,7 +50,7 @@ def mistral(
     """
     Build the decoder associated with the mistral model. This includes:
     - Token embeddings
-    - num_layers number of TransformerDecoderLayer blocks
+    - num_layers number of TransformerSelfAttentionLayer blocks
     - RMS Norm layer applied to the output of the transformer
     - Final projection into token space
 
@@ -79,8 +79,10 @@ def mistral(
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
 
-    rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = CausalSelfAttention(
+    rope = RotaryPositionalEmbeddings(
+        dim=head_dim, max_seq_len=max_seq_len, base=rope_base
+    )
+    self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -95,7 +97,7 @@ def mistral(
         attn_dropout=attn_dropout,
     )
     mlp = mistral_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
-    layer = TransformerDecoderLayer(
+    layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
         sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
@@ -105,7 +107,7 @@ def mistral(
     output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
     return TransformerDecoder(
         tok_embeddings=tok_embeddings,
-        layer=layer,
+        layers=layer,
         num_layers=num_layers,
         max_seq_len=max_seq_len,
         num_heads=num_heads,
@@ -119,9 +121,21 @@ def mistral_mlp(dim: int, hidden_dim: int, quantize_base: bool = False) -> FeedF
     """
     Build the MLP layer associated with the Mistral model.
     """
-    gate_proj = nn.Linear(dim, hidden_dim, bias=False) if not quantize_base else FrozenNF4Linear(dim, hidden_dim, bias=False)
-    down_proj = nn.Linear(hidden_dim, dim, bias=False) if not quantize_base else FrozenNF4Linear(hidden_dim, dim, bias=False)
-    up_proj = nn.Linear(dim, hidden_dim, bias=False) if not quantize_base else FrozenNF4Linear(dim, hidden_dim, bias=False)
+    gate_proj = (
+        nn.Linear(dim, hidden_dim, bias=False)
+        if not quantize_base
+        else FrozenNF4Linear(dim, hidden_dim, bias=False)
+    )
+    down_proj = (
+        nn.Linear(hidden_dim, dim, bias=False)
+        if not quantize_base
+        else FrozenNF4Linear(hidden_dim, dim, bias=False)
+    )
+    up_proj = (
+        nn.Linear(dim, hidden_dim, bias=False)
+        if not quantize_base
+        else FrozenNF4Linear(dim, hidden_dim, bias=False)
+    )
     return FeedForward(gate_proj=gate_proj, down_proj=down_proj, up_proj=up_proj)
 
 
@@ -145,6 +159,7 @@ def lora_mistral(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
@@ -176,6 +191,8 @@ def lora_mistral(
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
@@ -197,6 +214,7 @@ def lora_mistral(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 
@@ -207,12 +225,15 @@ def lora_mistral(
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
             lora_dropout=lora_dropout,
+            use_dora=use_dora,
             quantize_base=quantize_base,
         )
     else:
-        mlp = mistral_mlp(dim=embed_dim, hidden_dim=intermediate_dim, quantize_base=quantize_base)
+        mlp = mistral_mlp(
+            dim=embed_dim, hidden_dim=intermediate_dim, quantize_base=quantize_base
+        )
 
-    layer = TransformerDecoderLayer(
+    layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
         sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
@@ -222,14 +243,15 @@ def lora_mistral(
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
     # TODO: quantize_base is not applied to final output_proj currently.
+    adapter_cls = DoRALinear if use_dora else LoRALinear
     output_proj = (
-        LoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha)
+        adapter_cls(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha)
         if apply_lora_to_output
         else nn.Linear(embed_dim, vocab_size, bias=False)
     )
     model = TransformerDecoder(
         tok_embeddings=tok_embeddings,
-        layer=layer,
+        layers=layer,
         num_layers=num_layers,
         max_seq_len=max_seq_len,
         num_heads=num_heads,
@@ -257,7 +279,7 @@ def lora_mistral(
 def lora_mistral_self_attention(
     lora_modules: List[LORA_ATTN_MODULES],
     *,
-    # CausalSelfAttention args
+    # MultiHeadAttention args
     embed_dim: int,
     num_heads: int,
     num_kv_heads: int,
@@ -268,10 +290,11 @@ def lora_mistral_self_attention(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
-) -> CausalSelfAttention:
+) -> MultiHeadAttention:
     """
-    Return an instance of :func:`~torchtune.modules.CausalSelfAttention` with LoRA
+    Return an instance of :func:`~torchtune.modules.MultiHeadAttention` with LoRA
     applied to a subset of its linear layers
 
     Args:
@@ -291,24 +314,29 @@ def lora_mistral_self_attention(
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base (bool): Whether to quantize base model parameters for linear layers
             LoRA is being applied to. Default is ``False``.
 
     Returns:
-        CausalSelfAttention: instantiation of self-attention module with LoRA
+        MultiHeadAttention: instantiation of self-attention module with LoRA
         applied to a subset of Q, K, V, output projections.
 
     Raises:
         ValueError: If lora_modules arg is an empty list
     """
     if not lora_modules:
-        raise ValueError(f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules")
+        raise ValueError(
+            f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules"
+        )
 
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
+    adapter_cls = DoRALinear if use_dora else LoRALinear
 
     q_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             num_heads * head_dim,
             rank=lora_rank,
@@ -324,7 +352,7 @@ def lora_mistral_self_attention(
         )
     )
     k_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             num_kv_heads * head_dim,
             rank=lora_rank,
@@ -340,7 +368,7 @@ def lora_mistral_self_attention(
         )
     )
     v_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             num_kv_heads * head_dim,
             rank=lora_rank,
@@ -356,7 +384,7 @@ def lora_mistral_self_attention(
         )
     )
     output_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             embed_dim,
             rank=lora_rank,
@@ -371,8 +399,10 @@ def lora_mistral_self_attention(
             else FrozenNF4Linear(embed_dim, embed_dim, bias=False)
         )
     )
-    rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = CausalSelfAttention(
+    rope = RotaryPositionalEmbeddings(
+        dim=head_dim, max_seq_len=max_seq_len, base=rope_base
+    )
+    self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -395,9 +425,11 @@ def lora_mistral_mlp(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> FeedForward:
-    gate_proj = LoRALinear(
+    adapter_cls = DoRALinear if use_dora else LoRALinear
+    gate_proj = adapter_cls(
         in_dim=dim,
         out_dim=hidden_dim,
         rank=lora_rank,
@@ -405,7 +437,7 @@ def lora_mistral_mlp(
         dropout=lora_dropout,
         quantize_base=quantize_base,
     )
-    down_proj = LoRALinear(
+    down_proj = adapter_cls(
         in_dim=hidden_dim,
         out_dim=dim,
         rank=lora_rank,
@@ -413,7 +445,7 @@ def lora_mistral_mlp(
         dropout=lora_dropout,
         quantize_base=quantize_base,
     )
-    up_proj = LoRALinear(
+    up_proj = adapter_cls(
         in_dim=dim,
         out_dim=hidden_dim,
         rank=lora_rank,
@@ -471,8 +503,10 @@ def mistral_classifier(
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
 
-    rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = CausalSelfAttention(
+    rope = RotaryPositionalEmbeddings(
+        dim=head_dim, max_seq_len=max_seq_len, base=rope_base
+    )
+    self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -487,7 +521,7 @@ def mistral_classifier(
         attn_dropout=attn_dropout,
     )
     mlp = mistral_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
-    layer = TransformerDecoderLayer(
+    layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
         sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
@@ -497,7 +531,7 @@ def mistral_classifier(
     output_proj = nn.Linear(embed_dim, num_classes, bias=False)
     return TransformerDecoder(
         tok_embeddings=tok_embeddings,
-        layer=layer,
+        layers=layer,
         num_layers=num_layers,
         max_seq_len=max_seq_len,
         num_heads=num_heads,
@@ -529,6 +563,7 @@ def lora_mistral_classifier(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
@@ -561,6 +596,8 @@ def lora_mistral_classifier(
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
@@ -582,6 +619,7 @@ def lora_mistral_classifier(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 
@@ -592,12 +630,13 @@ def lora_mistral_classifier(
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
             lora_dropout=lora_dropout,
+            use_dora=use_dora,
             quantize_base=quantize_base,
         )
     else:
         mlp = mistral_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
 
-    layer = TransformerDecoderLayer(
+    layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
         sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
@@ -607,14 +646,21 @@ def lora_mistral_classifier(
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
     # TODO: quantize_base is not applied to final output_proj currently.
+    adapter_cls = DoRALinear if use_dora else LoRALinear
     output_proj = (
-        LoRALinear(embed_dim, num_classes, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout)
+        adapter_cls(
+            embed_dim,
+            num_classes,
+            rank=lora_rank,
+            alpha=lora_alpha,
+            dropout=lora_dropout,
+        )
         if apply_lora_to_output
         else nn.Linear(embed_dim, num_classes, bias=False)
     )
     model = TransformerDecoder(
         tok_embeddings=tok_embeddings,
-        layer=layer,
+        layers=layer,
         num_layers=num_layers,
         max_seq_len=max_seq_len,
         num_heads=num_heads,
