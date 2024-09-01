@@ -145,4 +145,5 @@ torchtune tutorials.
    api_ref_datasets
    api_ref_models
    api_ref_modules
+   api_ref_training
    api_ref_utilities

@@ -147,7 +147,7 @@ class WandBLogger(MetricLoggerInterface):
         **kwargs: additional arguments to pass to wandb.init
 
     Example:
-        >>> from torchtune.utils.metric_logging import WandBLogger
+        >>> from torchtune.training.metric_logging import WandBLogger
         >>> logger = WandBLogger(project="my_project", entity="my_entity", group="my_group")
         >>> logger.log("my_metric", 1.0, 1)
         >>> logger.log_dict({"my_metric": 1.0}, 1)
@@ -271,7 +271,7 @@ class TensorBoardLogger(MetricLoggerInterface):
         **kwargs: additional arguments
 
     Example:
-        >>> from torchtune.utils.metric_logging import TensorBoardLogger
+        >>> from torchtune.training.metric_logging import TensorBoardLogger
         >>> logger = TensorBoardLogger(log_dir="my_log_dir")
         >>> logger.log("my_metric", 1.0, 1)
         >>> logger.log_dict({"my_metric": 1.0}, 1)
@@ -349,7 +349,7 @@ class CometLogger(MetricLoggerInterface):
             https://www.comet.com/docs/v2/api-and-sdk/python-sdk/reference/Experiment-Creation/#comet_ml.ExperimentConfig
 
     Example:
-        >>> from torchtune.utils.metric_logging import CometLogger
+        >>> from torchtune.training.metric_logging import CometLogger
         >>> logger = CometLogger(project_name="my_project", workspace="my_workspace")
         >>> logger.log("my_metric", 1.0, 1)
         >>> logger.log_dict({"my_metric": 1.0}, 1)

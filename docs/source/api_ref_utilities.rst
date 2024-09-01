@@ -1,27 +1,8 @@
-=================
+===============
 torchtune.utils
-=================
+===============
 
 .. currentmodule:: torchtune.utils
-
-
-.. _checkpointing_label:
-
-Checkpointing
--------------
-
-torchtune offers checkpointers to allow seamless transitioning between checkpoint formats for training and interoperability with the rest of the ecosystem. For a comprehensive overview of
-checkpointing, please see the :ref:`checkpointing deep-dive <understand_checkpointer>`.
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    FullModelHFCheckpointer
-    FullModelMetaCheckpointer
-    FullModelTorchTuneCheckpointer
-    ModelType
-    update_state_dict_for_classifier
 
 .. _dist_label:
 
@@ -41,22 +22,6 @@ Utilities for enabling and working with distributed training.
     get_full_finetune_fsdp_wrap_policy
     lora_fsdp_wrap_policy
 
-.. _mp_label:
-
-Reduced Precision
-------------------
-
-Utilities for working in a reduced precision setting.
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    get_dtype
-    set_default_dtype
-    validate_expected_param_dtype
-    get_quantizer_mode
-
 .. _ac_label:
 
 Memory Management
@@ -74,8 +39,6 @@ Utilities to reduce memory consumption during training.
     register_optim_in_bwd_hooks
 
 
-.. _perf_profiling_label:
-
 Performance and Profiling
 -------------------------
 
@@ -88,24 +51,6 @@ of your finetuning job.
 
     get_memory_stats
     log_memory_stats
-    setup_torch_profiler
-
-.. _metric_logging_label:
-
-Metric Logging
---------------
-
-Various logging utilities.
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    metric_logging.CometLogger
-    metric_logging.WandBLogger
-    metric_logging.TensorBoardLogger
-    metric_logging.StdoutLogger
-    metric_logging.DiskLogger
 
 .. _gen_label:
 

@@ -38,7 +38,7 @@ model:
   _component_: torchtune.models.qwen2.qwen2_1_5b
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Qwen2-1.5B-Instruct
   checkpoint_files: [
     model.safetensors
@@ -75,7 +75,7 @@ dtype: bf16
 
 # Logging
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 output_dir: /tmp/Qwen2-1.5B-Instruct-finetune
 log_every_n_steps: 1

@@ -35,7 +35,7 @@ model:
   _component_: torchtune.models.llama3_1.llama3_1_8b
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
   checkpoint_files: [
     model-00001-of-00004.safetensors,
@@ -75,7 +75,7 @@ dtype: bf16
 
 # Logging
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 output_dir: /tmp/full-llama3.1-finetune
 log_every_n_steps: 1

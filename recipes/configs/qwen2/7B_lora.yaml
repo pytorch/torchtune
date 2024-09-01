@@ -34,7 +34,7 @@ tokenizer:
   max_seq_len: null
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Qwen2-7B-Instruct
   checkpoint_files: [
     model-00001-of-00004.safetensors,
@@ -74,7 +74,7 @@ gradient_accumulation_steps: 32
 # Logging
 output_dir: /tmp/Qwen2-7B-Instruct-lora-finetune
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
 log_peak_memory_stats: False
@@ -87,7 +87,7 @@ enable_activation_checkpointing: False
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training
 profiler:
-  _component_: torchtune.utils.setup_torch_profiler
+  _component_: torchtune.training.setup_torch_profiler
 
   enabled: False
 

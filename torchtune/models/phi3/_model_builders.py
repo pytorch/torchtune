@@ -77,6 +77,7 @@ def lora_phi3_mini(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
@@ -96,6 +97,8 @@ def lora_phi3_mini(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
@@ -117,6 +120,7 @@ def lora_phi3_mini(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=0.05,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 
