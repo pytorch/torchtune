@@ -20,6 +20,13 @@ class ToDummyMessages(Transform):
         dialogue = sample["dialogue"]
         messages = [Message.from_dict(d) for d in dialogue]
         return {"messages": messages}
+    
+
+class DummyTokenizerInvalidModelTransform(DummyTokenizer):
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        sample = super().__call__(sample)
+        del sample["tokens"]
+        return sample
 
 
 class TestSFTDataset:
@@ -133,5 +140,19 @@ class TestSFTDataset:
         )
 
         msg = "system messages must come first"
+        with pytest.raises(ValueError, match=msg):
+            ds[0]
+
+    @mock.patch("torchtune.datasets._sft.load_dataset")
+    def test_error_for_invalid_tokenized_dict(self, mock_load_dataset, dialogue):
+        mock_load_dataset.return_value = dialogue
+
+        ds = SFTDataset(
+            source="iam/agoofy/goober",
+            message_transform=ToDummyMessages(),
+            model_transform=DummyTokenizerInvalidModelTransform(),
+        )
+
+        msg = "model_transform must return a dictionary with 'tokens' and 'mask' keys"
         with pytest.raises(ValueError, match=msg):
             ds[0]
