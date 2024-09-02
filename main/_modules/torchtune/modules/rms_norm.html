@@ -418,7 +418,7 @@
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span><span class="p">,</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
 
 
 <div class="viewcode-block" id="RMSNorm"><a class="viewcode-back" href="../../../generated/torchtune.modules.RMSNorm.html#torchtune.modules.RMSNorm">[docs]</a><span class="k">class</span> <span class="nc">RMSNorm</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
@@ -440,13 +440,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="n">eps</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">dim</span><span class="p">))</span>
 
-<div class="viewcode-block" id="RMSNorm.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.RMSNorm.html#torchtune.modules.RMSNorm.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<div class="viewcode-block" id="RMSNorm.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.RMSNorm.html#torchtune.modules.RMSNorm.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
-<span class="sd">            x (Tensor): input tensor to normalize</span>
+<span class="sd">            x (torch.Tensor): input tensor to normalize</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Tensor: The output tensor after applying RMSNorm.</span>
+<span class="sd">            torch.Tensor: The output tensor after applying RMSNorm.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># computation is in fp32</span>
         <span class="n">x_fp32</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>

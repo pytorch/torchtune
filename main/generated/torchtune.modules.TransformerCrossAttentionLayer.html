@@ -452,11 +452,11 @@
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>Tensor</em>) – input tensor with shape
+<li><p><strong>x</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – input tensor with shape
 [batch_size x seq_length x embed_dim]</p></li>
-<li><p><strong>encoder_input</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Optional input embeds from the encoder. Shape
+<li><p><strong>encoder_input</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – Optional input embeds from the encoder. Shape
 [batch_size x token_sequence x embed_dim]</p></li>
-<li><p><strong>encoder_mask</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Boolean tensor defining a relational matrix between
+<li><p><strong>encoder_mask</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – Boolean tensor defining a relational matrix between
 tokens and encoder embeddings. A True value at position i,j means token i can attend
 to embedding j in the decoder. Mask has shape [batch_size x token_sequence x embed_sequence].
 Default is None.</p></li>
@@ -471,7 +471,7 @@ Default is None.</p></li>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tensor</p>
+<dd class="field-odd"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)">torch.Tensor</a></p>
 </dd>
 </dl>
 </dd></dl>

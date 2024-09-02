@@ -419,8 +419,7 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span><span class="p">,</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
 
 
 <div class="viewcode-block" id="RotaryPositionalEmbeddings"><a class="viewcode-back" href="../../../generated/torchtune.modules.RotaryPositionalEmbeddings.html#torchtune.modules.RotaryPositionalEmbeddings">[docs]</a><span class="k">class</span> <span class="nc">RotaryPositionalEmbeddings</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
@@ -484,19 +483,21 @@
         <span class="n">cache</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">idx_theta</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">idx_theta</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;cache&quot;</span><span class="p">,</span> <span class="n">cache</span><span class="p">,</span> <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-<div class="viewcode-block" id="RotaryPositionalEmbeddings.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.RotaryPositionalEmbeddings.html#torchtune.modules.RotaryPositionalEmbeddings.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<div class="viewcode-block" id="RotaryPositionalEmbeddings.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.RotaryPositionalEmbeddings.html#torchtune.modules.RotaryPositionalEmbeddings.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
-<span class="sd">            x (Tensor): input tensor with shape</span>
+<span class="sd">            x (torch.Tensor): input tensor with shape</span>
 <span class="sd">                [b, s, n_h, h_d]</span>
-<span class="sd">            input_pos (Optional[Tensor]): Optional tensor which contains the position ids</span>
+<span class="sd">            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids</span>
 <span class="sd">                of each token. During training, this is used to indicate the positions</span>
 <span class="sd">                of each token relative to its sample when packed, shape [b, s].</span>
 <span class="sd">                During inference, this indicates the position of the current token.</span>
 <span class="sd">                If none, assume the index of the token is its position id. Default is None.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Tensor: output tensor with RoPE applied</span>
+<span class="sd">            torch.Tensor: output tensor with RoPE applied</span>
 
 <span class="sd">        Notation used for tensor shapes:</span>
 <span class="sd">            - b: batch size</span>

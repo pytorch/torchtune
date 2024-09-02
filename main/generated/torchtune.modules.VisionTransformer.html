@@ -601,8 +601,8 @@ So your input should have shape (bsz=2, n_imgs=2, num_tiles, n_channels, tile_si
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>images</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – Tensor with shape (bsz, n_imgs, n_tiles, n_channels, tile_size, tile_size).</p></li>
-<li><p><strong>aspect_ratio</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – Tensor with shape (bsz, n_imgs, 2). If all
+<li><p><strong>images</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – torch.Tensor with shape (bsz, n_imgs, n_tiles, n_channels, tile_size, tile_size).</p></li>
+<li><p><strong>aspect_ratio</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – torch.Tensor with shape (bsz, n_imgs, 2). If all
 images have a single tile, i.e. they were not tile-cropped, it should be None.
 Used to calculate the positional embeddings for the tiles.</p></li>
 </ul>

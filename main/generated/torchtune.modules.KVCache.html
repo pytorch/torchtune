@@ -449,16 +449,16 @@ same shape as the query tensor. See attention.py for more details</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>input_pos</strong> (<em>Tensor</em>) – Current position tensor with shape [S]</p></li>
-<li><p><strong>k_val</strong> (<em>Tensor</em>) – Current key tensor with shape [B, H, S, D]</p></li>
-<li><p><strong>v_val</strong> (<em>Tensor</em>) – Current value tensor with shape [B, H, S, D]</p></li>
+<li><p><strong>input_pos</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – Current position tensor with shape [S]</p></li>
+<li><p><strong>k_val</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – Current key tensor with shape [B, H, S, D]</p></li>
+<li><p><strong>v_val</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – Current value tensor with shape [B, H, S, D]</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Updated KV cache with key first</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple[Tensor, Tensor]</p>
+<dd class="field-odd"><p>Tuple[<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)">torch.Tensor</a>, <a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)">torch.Tensor</a>]</p>
 </dd>
 </dl>
 </dd></dl>

@@ -420,7 +420,7 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span><span class="p">,</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.kv_cache</span> <span class="kn">import</span> <span class="n">KVCache</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
@@ -580,23 +580,23 @@
 
 <div class="viewcode-block" id="MultiHeadAttention.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">y</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
-<span class="sd">            x (Tensor): input tensor with shape [b x s_x x d]</span>
-<span class="sd">            y (Optional[Tensor]): second input tensor for cross attention with shape [b x s_y x d]</span>
-<span class="sd">            mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask</span>
+<span class="sd">            x (torch.Tensor): input tensor with shape [b x s_x x d]</span>
+<span class="sd">            y (Optional[torch.Tensor]): second input tensor for cross attention with shape [b x s_y x d]</span>
+<span class="sd">            mask (Optional[torch.Tensor]): Optional boolean tensor which contains the attention mask</span>
 <span class="sd">                with shape [batch_size x seq_length x seq_length]. This is applied after</span>
 <span class="sd">                the query-key multiplication and before the softmax. A value of True in row i</span>
 <span class="sd">                and column j means token i attends to token j. A value of False means token i</span>
 <span class="sd">                does not attend to token j. If no mask is specified, a causal mask</span>
 <span class="sd">                is used by default. Default is None.</span>
-<span class="sd">            input_pos (Optional[Tensor]): Optional tensor which contains the position ids</span>
+<span class="sd">            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids</span>
 <span class="sd">                of each token. During training, this is used to indicate the positions</span>
 <span class="sd">                of each token relative to its sample when packed, shape [b x s].</span>
 <span class="sd">                During inference, this indicates the position of the current token.</span>

@@ -680,8 +680,8 @@
 <span class="sd">        Notice that to batch it, you will have to pad n_imgs to max_n_imgs and max_num_tiles.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            images (torch.Tensor): Tensor with shape (bsz, n_imgs, n_tiles, n_channels, tile_size, tile_size).</span>
-<span class="sd">            aspect_ratio (Optional[torch.Tensor]): Tensor with shape (bsz, n_imgs, 2). If all</span>
+<span class="sd">            images (torch.Tensor): torch.Tensor with shape (bsz, n_imgs, n_tiles, n_channels, tile_size, tile_size).</span>
+<span class="sd">            aspect_ratio (Optional[torch.Tensor]): torch.Tensor with shape (bsz, n_imgs, 2). If all</span>
 <span class="sd">                images have a single tile, i.e. they were not tile-cropped, it should be None.</span>
 <span class="sd">                Used to calculate the positional embeddings for the tiles.</span>
 

@@ -446,9 +446,9 @@ the rotation angles</p></li>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>Tensor</em>) – input tensor with shape
+<li><p><strong>x</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – input tensor with shape
 [b, s, n_h, h_d]</p></li>
-<li><p><strong>input_pos</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Optional tensor which contains the position ids
+<li><p><strong>input_pos</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – Optional tensor which contains the position ids
 of each token. During training, this is used to indicate the positions
 of each token relative to its sample when packed, shape [b, s].
 During inference, this indicates the position of the current token.
@@ -459,7 +459,7 @@ If none, assume the index of the token is its position id. Default is None.</p><
 <dd class="field-even"><p>output tensor with RoPE applied</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tensor</p>
+<dd class="field-odd"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)">torch.Tensor</a></p>
 </dd>
 </dl>
 <dl class="simple">

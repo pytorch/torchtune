@@ -469,17 +469,17 @@ statements in code and improves readability.</p>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>tokens</strong> (<em>Tensor</em>) – input tensor with shape [b x s]</p></li>
-<li><p><strong>mask</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Optional boolean tensor which contains the attention mask
+<li><p><strong>tokens</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – input tensor with shape [b x s]</p></li>
+<li><p><strong>mask</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – Optional boolean tensor which contains the attention mask
 with shape [b x s x s]. This is applied after the query-key multiplication and
 before the softmax. A value of True in row i and column j means token i attends
 to token j. A value of False means token i does not attend to token j. If no
 mask is specified, a causal mask is used by default. Default is None.</p></li>
-<li><p><strong>encoder_input</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Optional input embeds from the encoder. Shape [b x s_e x d_e]</p></li>
-<li><p><strong>encoder_mask</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Boolean tensor defining a relational matrix between
+<li><p><strong>encoder_input</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – Optional input embeds from the encoder. Shape [b x s_e x d_e]</p></li>
+<li><p><strong>encoder_mask</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – Boolean tensor defining a relational matrix between
 tokens and encoder embeddings. A True value at position i,j means token i can attend
 to embedding j in the decoder. Mask has shape [b x s x s_e]. Default is None.</p></li>
-<li><p><strong>input_pos</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Optional tensor which contains the position ids
+<li><p><strong>input_pos</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – Optional tensor which contains the position ids
 of each token. During training, this is used to indicate the positions
 of each token relative to its sample when packed, shape [b x s].
 During inference, this indicates the position of the current token.
@@ -501,7 +501,7 @@ final output tensor appended to the list.</p>
 </p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tensor</p>
+<dd class="field-even"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)">torch.Tensor</a></p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – if causal_mask is set but input_pos is None</p>

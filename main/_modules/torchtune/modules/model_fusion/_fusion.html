@@ -419,7 +419,7 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span><span class="p">,</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">TransformerDecoder</span>
 
 
@@ -528,10 +528,10 @@
         <span class="p">]</span>
         <span class="k">return</span> <span class="n">fusion_params</span></div>
 
-<div class="viewcode-block" id="FusionLayer.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<div class="viewcode-block" id="FusionLayer.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
-<span class="sd">            x (Tensor): input tensor with shape</span>
+<span class="sd">            x (torch.Tensor): input tensor with shape</span>
 <span class="sd">                [batch_size x seq_length x embed_dim]</span>
 <span class="sd">            **kwargs (Dict): all additional layer args</span>
 
@@ -631,10 +631,10 @@
         <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">dtype</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
 
-<div class="viewcode-block" id="FusionEmbedding.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionEmbedding.html#torchtune.modules.model_fusion.FusionEmbedding.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<div class="viewcode-block" id="FusionEmbedding.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionEmbedding.html#torchtune.modules.model_fusion.FusionEmbedding.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
-<span class="sd">            input (Tensor): input integer tensor with shape</span>
+<span class="sd">            input (torch.Tensor): input integer tensor with shape</span>
 <span class="sd">                [batch_size x seq_length]</span>
 
 <span class="sd">        Returns:</span>
@@ -735,26 +735,26 @@
 
 <div class="viewcode-block" id="DeepFusionModel.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">tokens</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">tokens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">encoder_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">encoder_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]]:</span>
+        <span class="n">encoder_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
-<span class="sd">            tokens (Tensor): input tensor with shape [b x s]</span>
-<span class="sd">            mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask</span>
+<span class="sd">            tokens (torch.Tensor): input tensor with shape [b x s]</span>
+<span class="sd">            mask (Optional[torch.Tensor]): Optional boolean tensor which contains the attention mask</span>
 <span class="sd">                with shape [b x s x s]. This is applied after the query-key multiplication and</span>
 <span class="sd">                before the softmax. A value of True in row i and column j means token i attends</span>
 <span class="sd">                to token j. A value of False means token i does not attend to token j. If no</span>
 <span class="sd">                mask is specified, a causal mask is used by default. Default is None.</span>
 <span class="sd">            encoder_input (Optional[Dict]): Optional input for the encoder.</span>
-<span class="sd">            encoder_mask (Optional[Tensor]):  Boolean tensor defining a relational matrix between</span>
+<span class="sd">            encoder_mask (Optional[torch.Tensor]):  Boolean tensor defining a relational matrix between</span>
 <span class="sd">                tokens and encoder embeddings. A True value at position i,j means token i can attend</span>
 <span class="sd">                to embedding j in the decoder. Mask has shape [b x s x s_e]. Default is None.</span>
-<span class="sd">            input_pos (Optional[Tensor]): Optional tensor which contains the position ids</span>
+<span class="sd">            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids</span>
 <span class="sd">                of each token. During training, this is used to indicate the positions</span>
 <span class="sd">                of each token relative to its sample when packed, shape [b x s].</span>
 <span class="sd">                During inference, this indicates the position of the current token.</span>

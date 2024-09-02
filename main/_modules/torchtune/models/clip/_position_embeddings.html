@@ -454,7 +454,7 @@
 <div class="viewcode-block" id="TokenPositionalEmbedding.forward"><a class="viewcode-back" href="../../../../generated/torchtune.models.clip.TokenPositionalEmbedding.html#torchtune.models.clip.TokenPositionalEmbedding.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
-<span class="sd">            x (torch.Tensor): Tensor with shape (..., n_tokens, embed_dim)</span>
+<span class="sd">            x (torch.Tensor): torch.Tensor with shape (..., n_tokens, embed_dim)</span>
 <span class="sd">            *args (Tuple[Any]): Optional args.</span>
 
 <span class="sd">        Returns:</span>
@@ -515,8 +515,8 @@
 <div class="viewcode-block" id="TiledTokenPositionalEmbedding.forward"><a class="viewcode-back" href="../../../../generated/torchtune.models.clip.TiledTokenPositionalEmbedding.html#torchtune.models.clip.TiledTokenPositionalEmbedding.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">aspect_ratio</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
-<span class="sd">            x (torch.Tensor): Tensor with shape (bsz * n_imgs, n_tiles, n_tokens, embed_dim).</span>
-<span class="sd">            aspect_ratio (torch.Tensor): Tensor with shape (bsz * n_imgs, 2),</span>
+<span class="sd">            x (torch.Tensor): torch.Tensor with shape (bsz * n_imgs, n_tiles, n_tokens, embed_dim).</span>
+<span class="sd">            aspect_ratio (torch.Tensor): torch.Tensor with shape (bsz * n_imgs, 2),</span>
 <span class="sd">                where aspect_ratio[k] represents the aspect ratio of the k^th image</span>
 <span class="sd">                of the batch before tile-cropping,  e.g. aspect_ratio[k] = (2,1).</span>
 <span class="sd">        Returns:</span>
@@ -581,8 +581,8 @@
 <div class="viewcode-block" id="TilePositionalEmbedding.forward"><a class="viewcode-back" href="../../../../generated/torchtune.models.clip.TilePositionalEmbedding.html#torchtune.models.clip.TilePositionalEmbedding.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">aspect_ratio</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        args:</span>
-<span class="sd">            x (torch.Tensor): Tensor with shape (bsz * n_imgs, n_tiles, n_tokens, embed_dim).</span>
-<span class="sd">            aspect_ratio (torch.Tensor): Tensor with shape (bsz * n_imgs, 2),</span>
+<span class="sd">            x (torch.Tensor): torch.Tensor with shape (bsz * n_imgs, n_tiles, n_tokens, embed_dim).</span>
+<span class="sd">            aspect_ratio (torch.Tensor): torch.Tensor with shape (bsz * n_imgs, 2),</span>
 <span class="sd">                representing the aspect ratio of the image before tile-cropping, e.g. (2,1).</span>
 <span class="sd">        returns:</span>
 <span class="sd">            torch.Tensor: The input tensor with added positional embeddings.</span>

@@ -447,8 +447,8 @@ with shape (40, 40) each.</p></li>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – Tensor with shape (bsz * n_imgs, n_tiles, n_tokens, embed_dim).</p></li>
-<li><p><strong>aspect_ratio</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – Tensor with shape (bsz * n_imgs, 2),
+<li><p><strong>x</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – torch.Tensor with shape (bsz * n_imgs, n_tiles, n_tokens, embed_dim).</p></li>
+<li><p><strong>aspect_ratio</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – torch.Tensor with shape (bsz * n_imgs, 2),
 where aspect_ratio[k] represents the aspect ratio of the k^th image
 of the batch before tile-cropping,  e.g. aspect_ratio[k] = (2,1).</p></li>
 </ul>

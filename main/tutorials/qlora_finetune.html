@@ -607,10 +607,11 @@ output by your saved checkpoints (which can be found in <code class="code docuti
 <p>This deep-dive section resumes from the <a class="reference internal" href="#qlora-core-highlevel"><span class="std std-ref">Using QLoRA to save memory</span></a> portion of this tutorial and dives into how quantization is done with <code class="docutils literal notranslate"><span class="pre">NF4Tensor</span></code> and handled appropriately in the forward pass.</p>
 <p>First, we’ll begin with
 a vanilla minimal LoRA layer, taken from <a class="reference internal" href="lora_finetune.html#lora-finetune-label"><span class="std std-ref">the LoRA tutorial</span></a> and augmented to support quantization:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span><span class="p">,</span> <span class="n">Tensor</span>
-<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-<span class="hll"><span class="kn">from</span> <span class="nn">torchao.dtypes.nf4tensor</span> <span class="kn">import</span> <span class="n">linear_nf4</span><span class="p">,</span> <span class="n">to_nf4</span>
-</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+<span class="hll"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span><span class="kn">from</span> <span class="nn">torchao.dtypes.nf4tensor</span> <span class="kn">import</span> <span class="n">linear_nf4</span><span class="p">,</span> <span class="n">to_nf4</span>
+
 <span class="k">class</span> <span class="nc">LoRALinear</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
@@ -618,16 +619,16 @@ a vanilla minimal LoRA layer, taken from <a class="reference internal" href="lor
     <span class="n">out_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-    <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-<span class="hll">    <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span>
-</span>  <span class="p">):</span>
+<span class="hll">    <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span>    <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span>
+  <span class="p">):</span>
     <span class="c1"># These are the weights from the original pretrained model</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">linear</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">linear_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">weight</span>
-    <span class="c1"># Use torchao&#39;s to_nf4 API to quantize the base weight if needed.</span>
-<span class="hll">    <span class="k">if</span> <span class="n">quantize_base</span><span class="p">:</span>
-</span><span class="hll">      <span class="bp">self</span><span class="o">.</span><span class="n">linear_weight</span> <span class="o">=</span> <span class="n">to_nf4</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">linear_weight</span><span class="p">)</span>
-</span>    <span class="c1"># These are the new LoRA params. In general rank &lt;&lt; in_dim, out_dim</span>
+<span class="hll">    <span class="c1"># Use torchao&#39;s to_nf4 API to quantize the base weight if needed.</span>
+</span><span class="hll">    <span class="k">if</span> <span class="n">quantize_base</span><span class="p">:</span>
+</span>      <span class="bp">self</span><span class="o">.</span><span class="n">linear_weight</span> <span class="o">=</span> <span class="n">to_nf4</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">linear_weight</span><span class="p">)</span>
+    <span class="c1"># These are the new LoRA params. In general rank &lt;&lt; in_dim, out_dim</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">lora_a</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">lora_b</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">rank</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
@@ -643,12 +644,12 @@ a vanilla minimal LoRA layer, taken from <a class="reference internal" href="lor
     <span class="bp">self</span><span class="o">.</span><span class="n">lora_a</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">lora_b</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
 
-  <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
-    <span class="c1"># frozen_out would be the output of the original model</span>
-<span class="hll">    <span class="k">if</span> <span class="n">quantize_base</span><span class="p">:</span>
+  <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="hll">    <span class="c1"># frozen_out would be the output of the original model</span>
+</span><span class="hll">    <span class="k">if</span> <span class="n">quantize_base</span><span class="p">:</span>
 </span><span class="hll">      <span class="c1"># Call into torchao&#39;s linear_nf4 to run linear forward pass w/quantized weight.</span>
-</span><span class="hll">      <span class="n">frozen_out</span>  <span class="o">=</span> <span class="n">linear_nf4</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
-</span>    <span class="k">else</span><span class="p">:</span>
+</span>      <span class="n">frozen_out</span>  <span class="o">=</span> <span class="n">linear_nf4</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
       <span class="n">frozen_out</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
 
     <span class="c1"># lora_a projects inputs down to the much smaller self.rank,</span>

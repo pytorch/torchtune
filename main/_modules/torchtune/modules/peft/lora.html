@@ -418,9 +418,10 @@
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
 
+<span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span><span class="p">,</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
 
 <span class="kn">from</span> <span class="nn">torchao.dtypes.nf4tensor</span> <span class="kn">import</span> <span class="n">linear_nf4</span><span class="p">,</span> <span class="n">to_nf4</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.low_precision</span> <span class="kn">import</span> <span class="n">_register_nf4_dispatch_ops</span>  <span class="c1"># noqa: F401</span>
@@ -523,13 +524,13 @@
         <span class="n">adapter_params</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;lora_a.weight&quot;</span><span class="p">,</span> <span class="s2">&quot;lora_b.weight&quot;</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">adapter_params</span></div>
 
-<div class="viewcode-block" id="LoRALinear.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<div class="viewcode-block" id="LoRALinear.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
-<span class="sd">            x (Tensor): input tensor with shape ``(..., in_dim)``</span>
+<span class="sd">            x (torch.Tensor): input tensor with shape ``(..., in_dim)``</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Tensor: output tensor with shape ``(..., out_dim)``</span>
+<span class="sd">            torch.Tensor: output tensor with shape ``(..., out_dim)``</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_quantize_base</span><span class="p">:</span>

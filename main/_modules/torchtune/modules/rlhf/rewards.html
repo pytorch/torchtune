@@ -438,7 +438,7 @@
 <span class="sd">    - If ``penalise_no_eos`` is True, scores for sequences with no EOS token are penalised.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        padding_masks (torch.Tensor): Tensor where True indicates a padding token in the generated</span>
+<span class="sd">        padding_masks (torch.Tensor): torch.Tensor where True indicates a padding token in the generated</span>
 <span class="sd">            sequence, and False otherwise. Shape: (b, reponse_len)</span>
 <span class="sd">        seq_lens (torch.Tensor): The length of each generated sequence. Shape: (b,)</span>
 <span class="sd">        penalise_no_eos (bool, optional): Whether to penalise sequences with no EOS token. Defaults to True.</span>
