@@ -11,6 +11,7 @@ from tests.test_utils import fixed_init_model
 from torch import nn, Tensor
 from torchtune.modules import KVCache, MultiHeadAttention, RotaryPositionalEmbeddings
 
+
 # Copy-paste of fused attention for comparison
 class FusedMultiHeadAttention(nn.Module):
     """Multi-headed grouped query self-attention (GQA) layer introduced
@@ -115,15 +116,15 @@ class FusedMultiHeadAttention(nn.Module):
 
     def forward(
         self,
-        x: Tensor,
-        mask: Optional[Tensor] = None,
+        x: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
         curr_pos: int = 0,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         """
         Args:
             x (Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
-            mask (Optional[Tensor]): boolean mask, defaults to None.
+            mask (Optional[torch.Tensor]): boolean mask, defaults to None.
             curr_pos (int): current position in the sequence, defaults to 0.
 
         Returns:
@@ -241,7 +242,7 @@ def map_state_dict(
     return mapped_sd
 
 
-def _get_mask(inpt: Tensor) -> Tensor:
+def _get_mask(inpt: torch.Tensor) -> torch.Tensor:
     seq_len = inpt.shape[1]
     mask = torch.full((1, 1, seq_len, seq_len), float("-inf"), device=inpt.device)
     mask = torch.triu(mask, diagonal=1).type_as(inpt)
