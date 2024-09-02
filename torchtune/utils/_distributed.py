@@ -97,7 +97,7 @@ def _broadcast_tensor(tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
     """Broadcasts a tensor from a source to all other processes.
 
     Args:
-        tensor (torch.Tensor): Tensor to broadcast.
+        tensor (torch.Tensor): torch.Tensor to broadcast.
         src (int, optional): Source rank. Defaults to 0.
 
     Returns:

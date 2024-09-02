@@ -9,7 +9,6 @@ from typing import Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch import Tensor
 from torchtune.modules import KVCache
 
 from torchtune.modules.transformer import _get_clones, TransformerSelfAttentionLayer
@@ -101,20 +100,20 @@ class GemmaTransformerDecoder(nn.Module):
 
     def forward(
         self,
-        tokens: Tensor,
+        tokens: torch.Tensor,
         *,
-        mask: Optional[Tensor] = None,
-        input_pos: Optional[Tensor] = None,
-    ) -> Tensor:
+        mask: Optional[torch.Tensor] = None,
+        input_pos: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         """
         Args:
-            tokens (Tensor): input tensor with shape [b x s]
-            mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask
+            tokens (torch.Tensor): input tensor with shape [b x s]
+            mask (Optional[torch.Tensor]): Optional boolean tensor which contains the attention mask
                 with shape [b x s x s]. This is applied after the query-key multiplication and
                 before the softmax. A value of True in row i and column j means token i attends
                 to token j. A value of False means token i does not attend to token j. If no
                 mask is specified, a causal mask is used by default. Default is None.
-            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.

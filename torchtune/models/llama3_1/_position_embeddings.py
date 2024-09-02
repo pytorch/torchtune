@@ -9,7 +9,7 @@ from typing import Optional
 
 import torch
 
-from torch import nn, Tensor
+from torch import nn
 
 
 class Llama3ScaledRoPE(nn.Module):
@@ -74,7 +74,8 @@ class Llama3ScaledRoPE(nn.Module):
 
     def apply_scaling(self, freqs: torch.Tensor):
         """From the following Meta-Llama code:
-        https://github.com/meta-llama/llama-models/blob/dc42f22a3b05502e7296402b019a51f57fa045c9/models/llama3_1/api/model.py#L41"""
+        https://github.com/meta-llama/llama-models/blob/dc42f22a3b05502e7296402b019a51f57fa045c9/models/llama3_1/api/model.py#L41
+        """
         # Values obtained from grid search
         scale_factor = 8
         low_freq_factor = 1
@@ -98,12 +99,14 @@ class Llama3ScaledRoPE(nn.Module):
                 new_freqs.append((1 - smooth) * freq / scale_factor + smooth * freq)
         return torch.tensor(new_freqs, dtype=freqs.dtype, device=freqs.device)
 
-    def forward(self, x: Tensor, *, input_pos: Optional[Tensor] = None) -> Tensor:
+    def forward(
+        self, x: torch.Tensor, *, input_pos: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """
         Args:
-            x (Tensor): input tensor with shape
+            x (torch.Tensor): input tensor with shape
                 [b, s, n_h, h_d]
-            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b, s].
                 During inference, this indicates the position of the current token.
