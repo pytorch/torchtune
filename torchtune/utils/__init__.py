@@ -20,9 +20,7 @@ from .memory import (  # noqa
 )
 
 __all__ = [
-    "update_state_dict_for_classifier",
     "get_memory_stats",
-    "FSDPPolicyType",
     "log_memory_stats",
     "get_device",
     "get_logger",
