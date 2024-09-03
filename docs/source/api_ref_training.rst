@@ -39,6 +39,17 @@ Utilities for working in a reduced precision setting.
     get_quantizer_mode
 
 
+Memory Management
+-----------------
+
+Utilities to reduce memory consumption during training.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    apply_selective_activation_checkpointing
+
 .. _metric_logging_label:
 
 Metric Logging
