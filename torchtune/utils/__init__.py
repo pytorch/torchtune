@@ -36,8 +36,6 @@ from .memory import (  # noqa
     set_activation_checkpointing,
 )
 
-from .seed import set_seed
-
 __all__ = [
     "update_state_dict_for_classifier",
     "get_memory_stats",
@@ -51,7 +49,6 @@ __all__ = [
     "lora_fsdp_wrap_policy",
     "get_full_finetune_fsdp_wrap_policy",
     "set_activation_checkpointing",
-    "set_seed",
     "torch_version_ge",
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",

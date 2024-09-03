@@ -9,7 +9,7 @@ import torch
 from tests.test_utils import fixed_init_model
 from tests.torchtune.models.mistral.scripts.mistral_test_config import MistralTestConfig
 from torchtune.models.mistral import mistral
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 
 @pytest.fixture(autouse=True)
