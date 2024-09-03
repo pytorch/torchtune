@@ -443,7 +443,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         if custom_sharded_layers:
             fsdp_shard_conditions += [lambda n, m: n in custom_sharded_layers]
 
-        utils.shard_model(
+        training.shard_model(
             model=model,
             shard_conditions=fsdp_shard_conditions,
             cpu_offload=fsdp_cpu_offload,
