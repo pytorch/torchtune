@@ -5,19 +5,15 @@
 # LICENSE file in the root directory of this source tree.
 
 from collections import Counter
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 from datasets import Dataset
-from PIL import Image
 
 from tests.test_utils import DummyTokenizer
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
 from torchtune.datasets import llava_instruct_dataset
-
-ASSETS = Path(__file__).parent.parent.parent / "assets"
 
 
 class TestLLaVAInstructDataset:
@@ -56,9 +52,10 @@ class TestLLaVAInstructDataset:
         )
 
         ds = llava_instruct_dataset(
-            model_transform=tokenizer, train_on_input=True, coco_image_dir=str(ASSETS)
+            model_transform=tokenizer,
+            train_on_input=True,
         )
-        input, labels, images = ds[0]["tokens"], ds[0]["labels"], ds[0]["images"][0]
+        input, labels, images = ds[0]["tokens"], ds[0]["labels"], ds[0]["images"]
 
         expected_count = {
             3: 17,
@@ -79,7 +76,7 @@ class TestLLaVAInstructDataset:
 
         assert Counter(input) == expected_count
         assert Counter(labels) == expected_count
-        assert isinstance(images, Image.Image)
+        assert images == "test_image.jpg"
 
     @patch("torchtune.datasets._sft.load_dataset")
     def test_label_masking(self, load_dataset, tokenizer):
@@ -112,9 +109,10 @@ class TestLLaVAInstructDataset:
         )
 
         ds = llava_instruct_dataset(
-            model_transform=tokenizer, train_on_input=False, coco_image_dir=str(ASSETS)
+            model_transform=tokenizer,
+            train_on_input=False,
         )
-        input, labels, images = ds[0]["tokens"], ds[0]["labels"], ds[0]["images"][0]
+        input, labels, images = ds[0]["tokens"], ds[0]["labels"], ds[0]["images"]
 
         expected_count = {
             3: 17,
@@ -135,4 +133,4 @@ class TestLLaVAInstructDataset:
 
         assert Counter(input) == expected_count
         assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 11
-        assert isinstance(images, Image.Image)
+        assert images == "test_image.jpg"

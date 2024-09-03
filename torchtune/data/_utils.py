@@ -41,7 +41,19 @@ def split_text_by_image_tag(content: str, image_tag: str) -> List[Dict[str, str]
     """
     Given a raw text string, split by the specified ``image_tag``
     and form into list of dictionaries to be used in the ``Message`` content
-    field.
+    field::
+
+        [
+            {
+                "role": "system" | "user" | "assistant",
+                "content":
+                    [
+                        {"type": "image"},
+                        {"type": "text", "content": "This is a sample image."},
+                    ],
+            },
+            ...
+        ]
 
     Args:
         content (str): raw message text

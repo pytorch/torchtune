@@ -91,6 +91,7 @@ def test_validate_messages():
 
 
 def test_split_text_by_image_tag():
+    # Test single image tag in the middle
     text = "hello <image>world"
     assert split_text_by_image_tag(text, "<image>") == [
         {"type": "text", "content": "hello "},
@@ -98,6 +99,7 @@ def test_split_text_by_image_tag():
         {"type": "text", "content": "world"},
     ]
 
+    # Test multiple image tags and image tag in beginning
     text = "[image]hello [image]world"
     assert split_text_by_image_tag(text, "[image]") == [
         {"type": "image"},
@@ -106,7 +108,25 @@ def test_split_text_by_image_tag():
         {"type": "text", "content": "world"},
     ]
 
+    # Test an image tag that is not present in the text
     text = "hello world"
     assert split_text_by_image_tag(text, "asdfghjkl;") == [
         {"type": "text", "content": "hello world"}
+    ]
+
+    # Test consecutive image tags
+    text = "<image><image>hello <image>world"
+    assert split_text_by_image_tag(text, "<image>") == [
+        {"type": "image"},
+        {"type": "image"},
+        {"type": "text", "content": "hello "},
+        {"type": "image"},
+        {"type": "text", "content": "world"},
+    ]
+
+    # Test image tag at the end
+    text = "hello <image>"
+    assert split_text_by_image_tag(text, "<image>") == [
+        {"type": "text", "content": "hello "},
+        {"type": "image"},
     ]
