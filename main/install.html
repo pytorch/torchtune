@@ -416,8 +416,20 @@
               
   <section id="install-instructions">
 <span id="install-label"></span><h1>Install Instructions<a class="headerlink" href="#install-instructions" title="Permalink to this heading">¶</a></h1>
-<p><strong>Pre-requisites</strong>: torchtune requires PyTorch, so please install for your proper host and environment
-using the <a class="reference external" href="https://pytorch.org/get-started/locally/">Start Locally</a> page.</p>
+<section id="pre-requisites">
+<h2>Pre-requisites<a class="headerlink" href="#pre-requisites" title="Permalink to this heading">¶</a></h2>
+<p>torchtune requires PyTorch, so please install for your proper host and environment
+using the <a class="reference external" href="https://pytorch.org/get-started/locally/">Start Locally</a> page. You should also install
+torchvision (for multimodal LLMs) and torchao (for quantization APIs). You can install either stable or
+nightly versions with the following commands:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Install stable version of PyTorch libraries using pip</span>
+pip<span class="w"> </span>install<span class="w"> </span>torch<span class="w"> </span>torchvision<span class="w"> </span>torchao
+
+<span class="c1"># Nightly install for latest features</span>
+pip<span class="w"> </span>install<span class="w"> </span>--pre<span class="w"> </span>torch<span class="w"> </span>torchvision<span class="w"> </span>torchao<span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/nightly/cu121
+</pre></div>
+</div>
+</section>
 <section id="install-via-pypi">
 <h2>Install via PyPI<a class="headerlink" href="#install-via-pypi" title="Permalink to this heading">¶</a></h2>
 <p>The latest stable version of torchtune is hosted on PyPI and can be downloaded
@@ -520,6 +532,7 @@ version. For example, if you are running CUDA 12, your index url would be “<a 
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
 <li><a class="reference internal" href="#">Install Instructions</a><ul>
+<li><a class="reference internal" href="#pre-requisites">Pre-requisites</a></li>
 <li><a class="reference internal" href="#install-via-pypi">Install via PyPI</a></li>
 <li><a class="reference internal" href="#install-via-git-clone">Install via <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span></code></a></li>
 <li><a class="reference internal" href="#install-nightly-build">Install nightly build</a></li>
