@@ -28,7 +28,12 @@ from torchtune import modules, training
 from torchtune.models.llama2._component_builders import llama2, lora_llama2
 from torchtune.models.llama3._component_builders import llama3
 from torchtune.modules import TransformerSelfAttentionLayer
-from torchtune.modules.peft import get_adapter_params, LoRALinear, set_trainable_params
+from torchtune.modules.peft import (
+    DoRALinear,
+    get_adapter_params,
+    LoRALinear,
+    set_trainable_params,
+)
 
 
 class TestDistributed:
@@ -165,7 +170,7 @@ def _get_n_lora_and_tformer_layers(model):
     num_lora_ab = 0
     num_transformer_layers = 0
     for module in model.modules():
-        if isinstance(module, LoRALinear):
+        if isinstance(module, LoRALinear) or isinstance(module, DoRALinear):
             num_nested_linears = len(
                 [m for m in module.modules() if isinstance(m, nn.Linear)]
             )
@@ -212,11 +217,10 @@ class TestLoRAFSDP:
                 assert not p.is_meta
 
             for m in wrapped_lora.modules():
-                if isinstance(m, LoRALinear):
+                if isinstance(m, LoRALinear) or isinstance(m, DoRALinear):
                     torch.testing.assert_close(
                         m.lora_b.weight, torch.zeros_like(m.lora_b.weight)
                     )
-
             # Total # FSDP modules should be num_transformer + num_lora_ab + 1
             total_fsdp_submodules = len([m for m in FSDP.fsdp_modules(wrapped_lora)])
             assert total_fsdp_submodules == (num_lora_ab + num_transformer_layers + 1)

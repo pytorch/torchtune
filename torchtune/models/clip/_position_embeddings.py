@@ -42,7 +42,7 @@ class TokenPositionalEmbedding(nn.Module):
     def forward(self, x: torch.Tensor, *args: Tuple[Any]) -> torch.Tensor:
         """
         Args:
-            x (torch.Tensor): Tensor with shape (..., n_tokens, embed_dim)
+            x (torch.Tensor): torch.Tensor with shape (..., n_tokens, embed_dim)
             *args (Tuple[Any]): Optional args.
 
         Returns:
@@ -103,8 +103,8 @@ class TiledTokenPositionalEmbedding(nn.Module):
     def forward(self, x: torch.Tensor, aspect_ratio: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            x (torch.Tensor): Tensor with shape (bsz * n_imgs, n_tiles, n_tokens, embed_dim).
-            aspect_ratio (torch.Tensor): Tensor with shape (bsz * n_imgs, 2),
+            x (torch.Tensor): torch.Tensor with shape (bsz * n_imgs, n_tiles, n_tokens, embed_dim).
+            aspect_ratio (torch.Tensor): torch.Tensor with shape (bsz * n_imgs, 2),
                 where aspect_ratio[k] represents the aspect ratio of the k^th image
                 of the batch before tile-cropping,  e.g. aspect_ratio[k] = (2,1).
         Returns:
@@ -169,8 +169,8 @@ class TilePositionalEmbedding(nn.Module):
     def forward(self, x: torch.Tensor, aspect_ratio: torch.Tensor) -> torch.Tensor:
         """
         args:
-            x (torch.Tensor): Tensor with shape (bsz * n_imgs, n_tiles, n_tokens, embed_dim).
-            aspect_ratio (torch.Tensor): Tensor with shape (bsz * n_imgs, 2),
+            x (torch.Tensor): torch.Tensor with shape (bsz * n_imgs, n_tiles, n_tokens, embed_dim).
+            aspect_ratio (torch.Tensor): torch.Tensor with shape (bsz * n_imgs, 2),
                 representing the aspect ratio of the image before tile-cropping, e.g. (2,1).
         returns:
             torch.Tensor: The input tensor with added positional embeddings.

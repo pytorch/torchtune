@@ -6,9 +6,10 @@
 import math
 from typing import List
 
+import torch
 import torch.nn.functional as F
 
-from torch import nn, Tensor
+from torch import nn
 
 from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
 from torchtune.modules.low_precision import _register_nf4_dispatch_ops  # noqa: F401
@@ -111,13 +112,13 @@ class LoRALinear(nn.Module, AdapterModule):
         adapter_params = ["lora_a.weight", "lora_b.weight"]
         return adapter_params
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            x (Tensor): input tensor with shape ``(..., in_dim)``
+            x (torch.Tensor): input tensor with shape ``(..., in_dim)``
 
         Returns:
-            Tensor: output tensor with shape ``(..., out_dim)``
+            torch.Tensor: output tensor with shape ``(..., out_dim)``
 
         """
         if self._quantize_base:
