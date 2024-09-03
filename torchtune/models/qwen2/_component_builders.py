@@ -97,7 +97,7 @@ def qwen2(
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
-    mlp = qwen2_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
+    mlp = qwen2_mlp(dim=embed_dim, hidden_dim=intermediate_dim, quantize_base=False)
     layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
@@ -129,7 +129,7 @@ def qwen2(
         )
 
 
-def qwen2_mlp(dim: int, hidden_dim: int) -> FeedForward:
+def qwen2_mlp(dim: int, hidden_dim: int, quantize_base: bool = False) -> FeedForward:
     """
     Build the MLP layer associated with the Qwen2 model.
     """
@@ -232,7 +232,7 @@ def lora_qwen2(
             lora_dropout=lora_dropout,
         )
     else:
-        mlp = qwen2_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
+        mlp = qwen2_mlp(dim=embed_dim, hidden_dim=intermediate_dim, quantize_base=quantize_base)
 
     layer = TransformerSelfAttentionLayer(
         attn=self_attn,

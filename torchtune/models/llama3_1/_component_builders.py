@@ -219,7 +219,7 @@ def lora_llama3_1(
             lora_dropout=lora_dropout,
         )
     else:
-        mlp = llama3_mlp(dim=embed_dim, hidden_dim=hidden_dim)
+        mlp = llama3_mlp(dim=embed_dim, hidden_dim=hidden_dim, quantize_base=quantize_base)
 
     layer = TransformerSelfAttentionLayer(
         attn=self_attn,
