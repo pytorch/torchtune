@@ -16,7 +16,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 
 from tests.test_utils import assert_expected, captured_output
 
-from torchtune.utils.metric_logging import (
+from torchtune.training.metric_logging import (
     CometLogger,
     DiskLogger,
     StdoutLogger,

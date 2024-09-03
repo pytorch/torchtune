@@ -23,23 +23,6 @@ Utilities for enabling and working with distributed training.
     lora_fsdp_wrap_policy
 
 
-.. _metric_logging_label:
-
-Metric Logging
---------------
-
-Various logging utilities.
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    metric_logging.CometLogger
-    metric_logging.WandBLogger
-    metric_logging.TensorBoardLogger
-    metric_logging.StdoutLogger
-    metric_logging.DiskLogger
-
 .. _gen_label:
 
 

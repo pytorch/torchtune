@@ -40,6 +40,7 @@ from torchtune.training.memory import (
     register_optim_in_bwd_hooks,
     set_activation_checkpointing,
 )
+from torchtune.training.pooling import get_unmasked_sequence_lengths
 from torchtune.training.precision import (
     get_dtype,
     set_default_dtype,
@@ -75,6 +76,7 @@ __all__ = [
     "OptimizerInBackwardWrapper",
     "register_optim_in_bwd_hooks",
     "set_activation_checkpointing",
+    "get_unmasked_sequence_lengths",
     "DEFAULT_PROFILE_DIR",
     "DEFAULT_PROFILER_ACTIVITIES",
     "DEFAULT_SCHEDULE",

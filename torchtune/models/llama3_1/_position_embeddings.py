@@ -9,7 +9,7 @@ from typing import Optional
 
 import torch
 
-from torch import nn, Tensor
+from torch import nn
 
 
 class Llama3ScaledRoPE(nn.Module):
@@ -21,6 +21,9 @@ class Llama3ScaledRoPE(nn.Module):
     In this implementation we cache the embeddings for each position upto
     ``max_seq_len`` by computing this during init.
 
+    Default scaling factors are from the following Meta-Llama code:
+    https://github.com/meta-llama/llama-models/blob/dc42f22a3b05502e7296402b019a51f57fa045c9/models/llama3_1/api/model.py#L41
+
     Args:
         dim (int): Embedding dimension. This is usually set to the dim of each
             head in the attention module computed as ````embed_dim`` // ``num_heads````
@@ -28,6 +31,10 @@ class Llama3ScaledRoPE(nn.Module):
             model, if exceeded the cached freqs will be recomputed
         base (int): The base for the geometric progression used to compute
             the rotation angles
+        scale_factor (int): scaling factor for theta. Default: 8
+        low_freq_factor (int): low frequency factor for scaling theta. Default: 1
+        high_freq_factor (int): high frequency factor for scaling theta. Default: 4
+        old_context_len (int): old context length for scaling theta. Default: 8192
     """
 
     def __init__(
@@ -35,24 +42,42 @@ class Llama3ScaledRoPE(nn.Module):
         dim: int,
         max_seq_len: int = 4096,
         base: int = 10_000,
+        scale_factor: int = 8,
+        low_freq_factor: int = 1,
+        high_freq_factor: int = 4,
+        old_context_len: int = 8192,
     ) -> None:
         super().__init__()
         self.dim = dim
         self.base = base
         self.max_seq_len = max_seq_len
+
         self.is_cache_built = False
+
+        self.scale_factor = scale_factor
+        self.low_freq_factor = low_freq_factor
+        self.high_freq_factor = high_freq_factor
+        self.old_context_len = old_context_len
 
     # TODO: delete this once all our recipes are moved off of FSDP1 since we
     # no longer need to explicitly name our param init method reset_parameters
     def reset_parameters(self):
         self.rope_init()
 
-    def rope_init(self):
+    def rope_init(
+        self,
+        scale_factor: int,
+        low_freq_factor: int,
+        high_freq_factor: int,
+        old_context_len: int,
+    ):
         freqs = 1.0 / (
             self.base
             ** (torch.arange(0, self.dim, 2)[: (self.dim // 2)].float() / self.dim)
         )
-        theta = self.apply_scaling(freqs)
+        theta = self.apply_scaling(
+            freqs, scale_factor, low_freq_factor, high_freq_factor, old_context_len
+        )
         self.register_buffer("theta", theta, persistent=False)
         self.build_rope_cache(self.max_seq_len)
         self.is_cache_built = True
@@ -72,14 +97,14 @@ class Llama3ScaledRoPE(nn.Module):
         cache = torch.stack([torch.cos(idx_theta), torch.sin(idx_theta)], dim=-1)
         self.register_buffer("cache", cache, persistent=False)
 
-    def apply_scaling(self, freqs: torch.Tensor):
-        """From the following Meta-Llama code:
-        https://github.com/meta-llama/llama-models/blob/dc42f22a3b05502e7296402b019a51f57fa045c9/models/llama3_1/api/model.py#L41"""
-        # Values obtained from grid search
-        scale_factor = 8
-        low_freq_factor = 1
-        high_freq_factor = 4
-        old_context_len = 8192  # original llama3 length
+    def apply_scaling(
+        self,
+        freqs: torch.Tensor,
+        scale_factor: int,
+        low_freq_factor: int,
+        high_freq_factor: int,
+        old_context_len: int,
+    ):
 
         low_freq_wavelen = old_context_len / low_freq_factor
         high_freq_wavelen = old_context_len / high_freq_factor
@@ -98,12 +123,14 @@ class Llama3ScaledRoPE(nn.Module):
                 new_freqs.append((1 - smooth) * freq / scale_factor + smooth * freq)
         return torch.tensor(new_freqs, dtype=freqs.dtype, device=freqs.device)
 
-    def forward(self, x: Tensor, *, input_pos: Optional[Tensor] = None) -> Tensor:
+    def forward(
+        self, x: torch.Tensor, *, input_pos: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """
         Args:
-            x (Tensor): input tensor with shape
+            x (torch.Tensor): input tensor with shape
                 [b, s, n_h, h_d]
-            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b, s].
                 During inference, this indicates the position of the current token.
@@ -118,10 +145,16 @@ class Llama3ScaledRoPE(nn.Module):
             - n_h: num heads
             - h_d: head dim
         """
+
         # TODO: remove once our distributed recipes are on FSDP2
         if not self.is_cache_built:
             with torch.device(x.device):
-                self.rope_init()
+                self.rope_init(
+                    scale_factor=self.scale_factor,
+                    low_freq_factor=self.low_freq_factor,
+                    high_freq_factor=self.high_freq_factor,
+                    old_context_len=self.old_context_len,
+                )
 
         # input tensor has shape [b, s, n_h, h_d]
         seq_len = x.size(1)

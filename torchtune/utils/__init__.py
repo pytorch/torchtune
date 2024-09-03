@@ -26,8 +26,6 @@ from ._generation import generate, generate_next_token  # noqa
 
 from ._version import torch_version_ge
 from .logging import get_logger
-
-from .pooling import get_unmasked_sequence_lengths
 from .seed import set_seed
 
 __all__ = [
@@ -40,7 +38,6 @@ __all__ = [
     "is_distributed",
     "lora_fsdp_wrap_policy",
     "get_full_finetune_fsdp_wrap_policy",
-    "get_unmasked_sequence_lengths",
     "set_seed",
     "torch_version_ge",
     "DEFAULT_PROFILE_DIR",

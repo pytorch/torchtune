@@ -6,7 +6,7 @@
 
 import torch
 
-from torch import nn, Tensor
+from torch import nn
 
 
 class TanhGate(nn.Module):
@@ -16,12 +16,12 @@ class TanhGate(nn.Module):
         super().__init__()
         self.scale = nn.Parameter(torch.zeros(1))
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            x (Tensor): input tensor to gate
+            x (torch.Tensor): input tensor to gate
 
         Returns:
-            Tensor: The output tensor after gating.
+            torch.Tensor: The output tensor after gating.
         """
         return x * self.scale.tanh()

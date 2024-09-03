@@ -25,6 +25,7 @@ from torchtune.modules.peft import (
     get_adapter_params,
     get_lora_module_names,
     get_merged_lora_ckpt,
+    load_dora_magnitudes,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
@@ -87,6 +88,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
 
+        - Gradient Clipping. Gradient clipping is supported using the ``clip_grad_norm`` flag. By default,
+            ``clip_grad_norm`` is set to ``None``. If you only want to log the grad norm, you can set
+            ``clip_grad_norm='inf'``.
+
     For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
     has example commands for how to kick-off training.
 
@@ -132,6 +137,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -379,6 +385,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._apply_lora_to_mlp = cfg_model.apply_lora_to_mlp
         self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
         self.adapter_params = get_adapter_params(model)
+        self._is_dora = any(["magnitude" in k for k in self.adapter_params.keys()])
         set_trainable_params(model, self.adapter_params)
 
         if compile_model:
@@ -396,6 +403,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         base_missing, base_unexpected = model.load_state_dict(
             base_model_state_dict, strict=False
         )
+        # This is for any adapters that need to be initialized after base weights
+        # have been loaded (e.g. DoRA).
+        if self._is_dora:
+            load_dora_magnitudes(model)
         if lora_weights_state_dict:
             lora_missing, lora_unexpected = model.load_state_dict(
                 lora_weights_state_dict, strict=False
@@ -640,6 +651,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                     # Step with optimizer
                     if (idx + 1) % self._gradient_accumulation_steps == 0:
+                        if self._clip_grad_norm is not None:
+                            grad_norm = torch.nn.utils.clip_grad_norm_(
+                                self._model.parameters(),
+                                max_norm=float(self._clip_grad_norm),
+                            )
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
                         self._lr_scheduler.step()
@@ -667,6 +683,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 log_dict.update(
                                     training.get_memory_stats(device=self._device)
                                 )
+                            if self._clip_grad_norm is not None:
+                                log_dict.update({"grad_norm": grad_norm})
                             self._metric_logger.log_dict(
                                 log_dict,
                                 step=self.global_step,
