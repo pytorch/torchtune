@@ -24,15 +24,14 @@ class TheCauldronToMessages(Transform):
     Args:
         train_on_input (bool): Whether the model is trained on the user prompt or not.
             Default is True.
-        column_map (Optional[Dict[str, str]]): a mapping to change the expected "images"
-            and "texts" column names to the actual column names in the dataset. Default is None,
+        column_map (Optional[Dict[str, str]]): a mapping to change the expected "texts" 
+            column names to the actual column names in the dataset. Default is None,
             keeping the default column names.
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Default is None.
 
     Raises:
-        ValueError: If ``column_map`` is provided and ``images`` not in ``column_map``, or
-            ``texts`` not in ``column_map``.
+        ValueError: If ``column_map`` is provided and ``texts`` not in ``column_map``.
     """
 
     def __init__(
@@ -44,17 +43,13 @@ class TheCauldronToMessages(Transform):
         self.train_on_input = train_on_input
         self.new_system_prompt = new_system_prompt
         if column_map is not None:
-            if "images" not in column_map:
-                raise ValueError(
-                    "column_map must contain 'images' as a key if specified"
-                )
             if "texts" not in column_map:
                 raise ValueError(
                     "column_map must contain 'texts' as a key if specified"
                 )
             self._column_map = column_map
         else:
-            self._column_map = {"images": "images", "texts": "texts"}
+            self._column_map = {"texts": "texts"}
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         messages = []
@@ -83,7 +78,7 @@ class TheCauldronToMessages(Transform):
                 )
             ] + messages
 
-        return {"messages": messages, "images": sample[self._column_map["images"]]}
+        return {"messages": messages}
 
 
 def the_cauldron_dataset(

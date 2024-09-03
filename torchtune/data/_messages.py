@@ -4,10 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
 from typing import Any, Dict, List, Literal, Mapping, Optional, Union
 
-from PIL import Image
 from torchtune.data._utils import split_text_by_image_tag
 
 from torchtune.modules.transforms import Transform
@@ -291,7 +289,7 @@ class ChosenRejectedToMessages(Transform):
 class ShareGPTToMessages(Transform):
     """
     Convert a single chat sample adhering to the ShareGPT json structure to torchtune's :class:`~torchtune.data.Message`
-    structure. Additionally supports an optional image column for multimodal conversational datasets.
+    structure.
 
     A single sample typically consists of a single optional system prompt and one or multiple
     turns of user and assistant messages.
@@ -306,7 +304,6 @@ class ShareGPTToMessages(Transform):
                 },
                 ...
             ],
-            "image": <image_path>,
         }
 
     :class:`~torchtune.data.Message` follows::
@@ -332,9 +329,6 @@ class ShareGPTToMessages(Transform):
             and use placeholders for where the images are present in the text for proper tokenization. Set
             this if your dataset contains images and uses a specific string (ex: "<image>") to indicate the
             presence of an image. Leave this as None if your dataset does not contain images. Default is None.
-        image_dir (Optional[str]): if specified, load images from the specified directory. This requires
-            the image path to be stored in the ``image`` key in the sample dict. Leave this as None if your
-            dataset does not contain images or if PIL images are already provided. Default is None.
 
     Raises:
         ValueError: If ``column_map`` is provided and ``conversations`` not in ``column_map``.
@@ -395,23 +389,8 @@ class ShareGPTToMessages(Transform):
             masked = (role != "assistant") and (not self.train_on_input)
             messages.append(Message(role=role, content=content, masked=masked))
 
-        # Retrieve image from image_dir if specified
-        if "image" in sample and isinstance(sample["image"], str):
-            if self.image_dir is None:
-                raise ValueError(
-                    "You must specify an image_dir to load images specified with paths."
-                )
-            image_path = os.path.join(self.image_dir, sample["image"])
-            image = Image.open(image_path)
-        elif "image" in sample and isinstance(sample["image"], Image.Image):
-            image = sample["image"]
-        else:
-            image = None
 
-        processed_sample = {"messages": messages}
-        if image is not None:
-            processed_sample["images"] = [image]
-        return processed_sample
+        return {"messages": messages}
 
 
 class JSONToMessages(Transform):

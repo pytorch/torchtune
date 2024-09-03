@@ -15,7 +15,6 @@ from torchtune.modules.transforms import Transform
 def llava_instruct_dataset(
     model_transform: Transform,
     *,
-    coco_image_dir: str,
     source: str = "liuhaotian/LLaVA-Instruct-150K",
     column_map: Optional[Dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
@@ -49,7 +48,6 @@ def llava_instruct_dataset(
             and should operate on the "messages" field. Any model-specific image transforms should operate on
             the "images" field. The keys returned by the model should be aligned with the
             expected inputs into the model.
-        coco_image_dir (str): path to the directory containing the COCO Train 2017 images.
         source (str): path to dataset repository on Hugging Face. For local datasets,
             define source as the data file type (e.g. "json", "csv", "text") and pass
             in the filepath in ``data_files``. See `Hugging Face's
@@ -93,7 +91,6 @@ def llava_instruct_dataset(
         column_map=column_map,
         new_system_prompt=new_system_prompt,
         image_tag=image_tag,
-        image_dir=coco_image_dir,
     )
 
     ds = SFTDataset(
