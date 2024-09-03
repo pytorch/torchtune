@@ -97,14 +97,21 @@ class TestLoRAFinetuneDistributedRecipe:
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
     @pytest.mark.parametrize(
-        "config, model_type, ckpt_type",
+        "config, model_type, ckpt_type, save_adapter_weights_only",
         [
-            ("llama2/7B_lora", "llama2", "hf"),
-            ("llama3/8B_lora", "llama3", "tune"),
+            ("llama2/7B_lora", "llama2", "hf", False),
+            ("llama3/8B_lora", "llama3", "tune", False),
+            ("llama2/7B_lora", "llama2", "hf", True),
         ],
     )
     def test_training_state_on_resume(
-        self, config, model_type, ckpt_type, tmpdir, monkeypatch
+        self,
+        config,
+        model_type,
+        ckpt_type,
+        tmpdir,
+        monkeypatch,
+        save_adapter_weights_only,
     ):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
@@ -139,6 +146,7 @@ class TestLoRAFinetuneDistributedRecipe:
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
+            save_adapter_weights_only={save_adapter_weights_only} \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
