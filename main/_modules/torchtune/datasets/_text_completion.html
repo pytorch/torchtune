@@ -441,9 +441,6 @@
 <span class="sd">            for Hugging Face datasets or tabular data. For local datasets with a single column</span>
 <span class="sd">            (e.g. unstructured txt files), use the default &quot;text&quot; which is used by Hugging Face datasets</span>
 <span class="sd">            when loaded into memory. Default is &quot;text&quot;.</span>
-<span class="sd">        max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.</span>
-<span class="sd">            Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory</span>
-<span class="sd">            and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.</span>
 <span class="sd">        add_eos (bool): Whether to add an EOS token to the end of the sequence. Default is True.</span>
 <span class="sd">        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See</span>
 <span class="sd">            the Hugging Face `docs &lt;https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter&gt;`_ for more</span>
@@ -457,14 +454,12 @@
         <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
         <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">column</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span>
-        <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">add_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">filter_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span> <span class="o">=</span> <span class="n">tokenizer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">load_dataset</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">max_seq_len</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_column</span> <span class="o">=</span> <span class="n">column</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_eos</span> <span class="o">=</span> <span class="n">add_eos</span>
 
@@ -484,8 +479,8 @@
         <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span> <span class="n">add_bos</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">add_eos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">add_eos</span><span class="p">)</span>
 
         <span class="c1"># Truncate if needed, but don&#39;t coerce EOS id</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">tokens</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">tokens</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">tokens</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">tokens</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
 
         <span class="c1"># No need to offset labels by 1 - happens in the recipe</span>
         <span class="n">labels</span> <span class="o">=</span> <span class="n">tokens</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -497,10 +492,10 @@
     <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">column</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span>
-    <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">add_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">packed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">split_across_pack</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">split</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span>
     <span class="n">filter_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">TextCompletionDataset</span><span class="p">,</span> <span class="n">PackedDataset</span><span class="p">]:</span>
@@ -521,9 +516,6 @@
 <span class="sd">            for Hugging Face datasets or tabular data. For local datasets with a single column</span>
 <span class="sd">            (e.g. unstructured txt files), use the default &quot;text&quot; which is used by Hugging Face datasets</span>
 <span class="sd">            when loaded into memory. Default is &quot;text&quot;.</span>
-<span class="sd">        max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.</span>
-<span class="sd">            Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory</span>
-<span class="sd">            and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.</span>
 <span class="sd">        add_eos (bool): Whether to add an EOS token to the end of the sequence. Default is True.</span>
 <span class="sd">        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.</span>
 <span class="sd">        split_across_pack (bool): if the last sample in a pack does not fit in ``max_seq_len``,</span>
@@ -531,6 +523,8 @@
 <span class="sd">            For pre-training, typically this is set to True for general text completion. For</span>
 <span class="sd">            fine-tuning, typically this is set to False to avoid truncating sentences in instruct</span>
 <span class="sd">            tuning. This argument is ignored if ``packed=False``. Default is True.</span>
+<span class="sd">        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset</span>
+<span class="sd">            of a given split, e.g. ``split=&quot;train[:10%]&quot;``. Default is &quot;train&quot;.</span>
 <span class="sd">        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See</span>
 <span class="sd">            the Hugging Face `docs &lt;https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter&gt;`_ for more</span>
 <span class="sd">            details.</span>
@@ -542,9 +536,9 @@
 <span class="sd">        ...   tokenizer=tokenizer,</span>
 <span class="sd">        ...   source=&quot;allenai/c4&quot;,</span>
 <span class="sd">        ...   column=&quot;text&quot;,</span>
-<span class="sd">        ...   max_seq_len=2096,</span>
 <span class="sd">        ...   data_dir=&quot;realnewslike&quot;,</span>
 <span class="sd">        ...   packed=False,</span>
+<span class="sd">        ...   split=&quot;train&quot;,</span>
 <span class="sd">        ... )</span>
 
 <span class="sd">    This can also be accomplished via the yaml config::</span>
@@ -553,33 +547,35 @@
 <span class="sd">            _component_: torchtune.datasets.text_completion_dataset</span>
 <span class="sd">            source: allenai/c4</span>
 <span class="sd">            column: text</span>
-<span class="sd">            max_seq_len: 2096</span>
 <span class="sd">            data_dir: realnewslike</span>
 <span class="sd">            packed: False</span>
+<span class="sd">            split: train</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Union[TextCompletionDataset, PackedDataset]: the configured :class:`~torchtune.datasets.TextCompletionDataset`</span>
 <span class="sd">            or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If ``packed=True`` and ``tokenizer.max_seq_len`` is not set.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ds</span> <span class="o">=</span> <span class="n">TextCompletionDataset</span><span class="p">(</span>
         <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
         <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
         <span class="n">column</span><span class="o">=</span><span class="n">column</span><span class="p">,</span>
-        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
         <span class="n">add_eos</span><span class="o">=</span><span class="n">add_eos</span><span class="p">,</span>
+        <span class="n">split</span><span class="o">=</span><span class="n">split</span><span class="p">,</span>
         <span class="n">filter_fn</span><span class="o">=</span><span class="n">filter_fn</span><span class="p">,</span>
         <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">return</span> <span class="p">(</span>
-        <span class="n">PackedDataset</span><span class="p">(</span>
-            <span class="n">ds</span><span class="p">,</span>
-            <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
-            <span class="n">padding_idx</span><span class="o">=</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_id</span><span class="p">,</span>
-            <span class="n">split_across_pack</span><span class="o">=</span><span class="n">split_across_pack</span><span class="p">,</span>
+    <span class="k">if</span> <span class="n">packed</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;PackedDataset requires a max_seq_len to be set on the tokenizer.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">PackedDataset</span><span class="p">(</span>
+            <span class="n">ds</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">split_across_pack</span><span class="o">=</span><span class="n">split_across_pack</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="n">packed</span>
-        <span class="k">else</span> <span class="n">ds</span>
-    <span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">ds</span></div>
 </pre></div>
 
              </article>
