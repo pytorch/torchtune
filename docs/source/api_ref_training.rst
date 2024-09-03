@@ -38,15 +38,22 @@ Utilities for working in a reduced precision setting.
     validate_expected_param_dtype
     get_quantizer_mode
 
+.. _metric_logging_label:
 
-Miscellaneous
--------------
+Metric Logging
+--------------
+
+Various logging utilities.
 
 .. autosummary::
     :toctree: generated/
     :nosignatures:
 
-    set_seed
+    metric_logging.CometLogger
+    metric_logging.WandBLogger
+    metric_logging.TensorBoardLogger
+    metric_logging.StdoutLogger
+    metric_logging.DiskLogger
 
 .. _perf_profiling_label:
 
@@ -61,3 +68,13 @@ of your finetuning job.
     :nosignatures:
 
     setup_torch_profiler
+
+Miscellaneous
+-------------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    get_unmasked_sequence_lengths
+    set_seed

@@ -28,9 +28,11 @@ from torchtune import config, modules, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
+    DoRALinear,
     get_adapter_params,
     get_lora_module_names,
     get_merged_lora_ckpt,
+    load_dora_magnitudes,
     LoRALinear,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
@@ -226,9 +228,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=checkpoint_dict[training.OPT_KEY]
-            if self._resume_from_checkpoint
-            else None,
+            opt_state_dict=(
+                checkpoint_dict[training.OPT_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
         )
 
         # initialize loss
@@ -346,6 +350,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         for m in reversed(list(model.modules())):
             if isinstance(m, nn.Linear) and m.weight.requires_grad:
                 fully_shard(m, **fsdp_kwargs)
+            if isinstance(m, DoRALinear):
+                fully_shard(m, **fsdp_kwargs)
             # TransformerSelfAttentionLayer is wrapped by CheckpointWrapper
             # when enable_activation_checkpointing
             if enable_activation_checkpointing:
@@ -366,7 +372,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), self._device:
             lora_device = "cpu" if cfg_fsdp and cfg_fsdp.cpu_offload else self._device
             for m in model.modules():
-                if isinstance(m, LoRALinear) and not lora_weights_state_dict:
+                if (
+                    isinstance(m, LoRALinear) or isinstance(m, DoRALinear)
+                ) and not lora_weights_state_dict:
                     # lora may not be covered in state dict
                     # if finetune for the 1st time
                     m.lora_a.to_empty(device=lora_device)
@@ -379,6 +387,13 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         base_missing, base_unexpected = utils.load_from_full_model_state_dict(
             model, base_model_state_dict, self._device, self._is_rank_zero
         )
+        is_dora = False
+        for m in model.modules():
+            if hasattr(m, "initialize_dora_magnitude"):
+                is_dora = True
+                m.initialize_dora_magnitude()
+        if is_dora:
+            load_dora_magnitudes(model)
         validate_missing_and_unexpected_for_lora(
             lora_attn_modules=self._lora_attn_modules,
             apply_lora_to_mlp=self._apply_lora_to_mlp,
@@ -559,7 +574,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 ),
                 "peft_type": "LORA",
             }
-            checkpoint_dict.update({training.ADAPTER_CONFIG: adapter_config})
 
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
@@ -614,7 +628,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 input_pos = (
                     input_pos.to(self._device) if input_pos is not None else None
                 )
-
                 logits = self._model(tokens, mask=mask, input_pos=input_pos)
 
                 # Shift labels to compute loss

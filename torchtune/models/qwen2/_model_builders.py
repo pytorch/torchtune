@@ -135,6 +135,7 @@ def lora_qwen2_7b(
     lora_rank: int = 8,
     lora_alpha: float = 16,
     lora_dropout: float = 0.05,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
@@ -176,6 +177,7 @@ def lora_qwen2_7b(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 
@@ -186,6 +188,7 @@ def lora_qwen2_0_5b(
     lora_rank: int = 8,
     lora_alpha: float = 16,
     lora_dropout: float = 0.05,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TiedEmbeddingTransformerDecoder:
     """
@@ -230,6 +233,7 @@ def lora_qwen2_0_5b(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 
@@ -240,6 +244,7 @@ def lora_qwen2_1_5b(
     lora_rank: int = 8,
     lora_alpha: float = 16,
     lora_dropout: float = 0.05,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TiedEmbeddingTransformerDecoder:
     """
@@ -284,5 +289,6 @@ def lora_qwen2_1_5b(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )

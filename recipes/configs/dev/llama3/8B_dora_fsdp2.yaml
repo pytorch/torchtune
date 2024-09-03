@@ -1,4 +1,4 @@
-# Config for multi-device LoRA finetuning in lora_finetune_distributed.py
+# Config for multi-device DoRA finetuning in lora_finetune_fsdp2.py
 # using a Llama3 8B Instruct model
 #
 # This config assumes that you've run the following command before launching
@@ -6,22 +6,13 @@
 #   tune download meta-llama/Meta-Llama-3-8B-Instruct --output-dir /tmp/Meta-Llama-3-8B-Instruct --hf-token <HF_TOKEN>
 #
 # To launch on 2 devices, run the following command from root:
-#   tune run --nproc_per_node 2 lora_finetune_distributed --config llama3/8B_lora
+#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_fsdp2 --config llama3/8B_dora
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run --nproc_per_node 2 lora_finetune_distributed --config llama3/8B_lora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
-#
-# This config works best when the model is being fine-tuned on 2+ GPUs.
-# For single device LoRA finetuning please use 8B_lora_single_device.yaml
-# or 8B_qlora_single_device.yaml
+#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_fsdp2 --config llama3/8B_dora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 
-# Tokenizer
-tokenizer:
-  _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
-  max_seq_len: null
 
 # Model Arguments
 model:
@@ -31,9 +22,15 @@ model:
   apply_lora_to_output: False
   lora_rank: 8
   lora_alpha: 16
+  use_dora: True
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.llama3.llama3_tokenizer
+  path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
 
 checkpointer:
-  _component_: torchtune.training.FullModelMetaCheckpointer
+  _component_: torchtune.utils.FullModelMetaCheckpointer
   checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/original/
   checkpoint_files: [
     consolidated.00.pth
@@ -42,7 +39,6 @@ checkpointer:
   output_dir: /tmp/Meta-Llama-3-8B-Instruct/
   model_type: LLAMA3
 resume_from_checkpoint: False
-save_adapter_weights_only: False
 
 # Dataset and Sampler
 dataset:
@@ -61,17 +57,17 @@ lr_scheduler:
   num_warmup_steps: 100
 
 loss:
-  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+  _component_: torch.nn.CrossEntropyLoss
 
 # Training
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 32
+gradient_accumulation_steps: 1
 
 # Logging
-output_dir: /tmp/lora_finetune_output
+output_dir: /tmp/dora_finetune_output
 metric_logger:
-  _component_: torchtune.training.metric_logging.DiskLogger
+  _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
 log_peak_memory_stats: False

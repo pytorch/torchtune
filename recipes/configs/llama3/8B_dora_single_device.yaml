@@ -1,48 +1,45 @@
-# Config for single device LoRA finetuning in lora_finetune_single_device.py
-# using a Qwen2 7B model
+# Config for single device DoRA finetuning in lora_finetune_single_device.py
+# using a Llama3 8B Instruct model
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download Qwen/Qwen2-7B-Instruct --output-dir /tmp/Qwen2-7B-Instruct --ignore-patterns None
+#   tune download meta-llama/Meta-Llama-3-8B-Instruct --output-dir /tmp/Meta-Llama-3-8B-Instruct --hf-token <HF_TOKEN>
 #
 # To launch on a single device, run the following command from root:
-#   tune run lora_finetune_single_device --config qwen2/7B_lora_single_device
+#   tune run lora_finetune_single_device --config llama3/8B_dora_single_device
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run lora_finetune_single_device --config qwen2/7B_lora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run lora_finetune_single_device --config llama3/8B_dora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works only for training on single device.
 
 
 # Model Arguments
 model:
-  _component_: torchtune.models.qwen2.lora_qwen2_7b
+  _component_: torchtune.models.llama3.lora_llama3_8b
   lora_attn_modules: ['q_proj', 'v_proj']
   apply_lora_to_mlp: False
   apply_lora_to_output: False
   lora_rank: 8
   lora_alpha: 16
+  use_dora: True
 
+# Tokenizer
 tokenizer:
-  _component_: torchtune.models.qwen2.qwen2_tokenizer
-  path: /tmp/Qwen2-7B-Instruct/vocab.json
-  merges_file: /tmp/Qwen2-7B-Instruct/merges.txt
-  max_seq_len: null
+  _component_: torchtune.models.llama3.llama3_tokenizer
+  path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
 
 checkpointer:
-  _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Qwen2-7B-Instruct
+  _component_: torchtune.utils.FullModelMetaCheckpointer
+  checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/original/
   checkpoint_files: [
-    model-00001-of-00004.safetensors,
-    model-00002-of-00004.safetensors,
-    model-00003-of-00004.safetensors,
-    model-00004-of-00004.safetensors
+    consolidated.00.pth
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Qwen2-7B-Instruct-lora-finetune
-  model_type: QWEN2
+  output_dir: /tmp/Meta-Llama-3-8B-Instruct/
+  model_type: LLAMA3
 resume_from_checkpoint: False
 
 # Dataset and Sampler
@@ -62,7 +59,7 @@ lr_scheduler:
   num_warmup_steps: 100
 
 loss:
-  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+  _component_: torch.nn.CrossEntropyLoss
 
 # Training
 epochs: 1
@@ -71,9 +68,9 @@ gradient_accumulation_steps: 64
 compile: False
 
 # Logging
-output_dir: /tmp/Qwen2-7B-Instruct-lora-finetune
+output_dir: /tmp/dora_finetune_output
 metric_logger:
-  _component_: torchtune.training.metric_logging.DiskLogger
+  _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
 log_peak_memory_stats: False
@@ -86,7 +83,7 @@ enable_activation_checkpointing: True
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training
 profiler:
-  _component_: torchtune.training.setup_torch_profiler
+  _component_: torchtune.utils.setup_torch_profiler
   enabled: False
 
   #Output directory of trace artifacts

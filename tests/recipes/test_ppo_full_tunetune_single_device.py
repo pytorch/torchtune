@@ -83,7 +83,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             reward_checkpointer.checkpoint_dir='{ckpt_dir}' \
             reward_checkpointer.checkpoint_files=[{reward_ckpt_path}]\
 
-            metric_logger._component_=torchtune.utils.metric_logging.DiskLogger \
+            metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={log_file} \
         """.split()
 
@@ -173,7 +173,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             reward_checkpointer.checkpoint_dir='{ckpt_dir}' \
             reward_checkpointer.checkpoint_files=[{reward_ckpt_path}]\
 
-            metric_logger._component_=torchtune.utils.metric_logging.DiskLogger \
+            metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={log_file} \
         """.split()
 
@@ -227,7 +227,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             reward_checkpointer.checkpoint_files=[{reward_ckpt_path}]\
 
             resume_from_checkpoint=True \
-            metric_logger._component_=torchtune.utils.metric_logging.DiskLogger \
+            metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={resumed_log_file} \
         """.split()
 
@@ -293,7 +293,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             reward_checkpointer.checkpoint_dir='{ckpt_dir}' \
             reward_checkpointer.checkpoint_files=[{reward_ckpt_path}]\
 
-            metric_logger._component_=torchtune.utils.metric_logging.DiskLogger \
+            metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={log_file} \
 
             optimizer_in_bwd=True
@@ -349,7 +349,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             reward_checkpointer.checkpoint_files=[{reward_ckpt_path}]\
 
             resume_from_checkpoint=True \
-            metric_logger._component_=torchtune.utils.metric_logging.DiskLogger \
+            metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={resumed_log_file} \
 
             optimizer_in_bwd=True

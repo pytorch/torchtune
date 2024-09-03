@@ -31,6 +31,7 @@ from torchtune.training.checkpointing import (
     TOTAL_EPOCHS_KEY,
     update_state_dict_for_classifier,
 )
+from torchtune.training.pooling import get_unmasked_sequence_lengths
 from torchtune.training.precision import (
     get_dtype,
     set_default_dtype,
@@ -61,6 +62,7 @@ __all__ = [
     "TOTAL_EPOCHS_KEY",
     "get_quantizer_mode",
     "set_seed",
+    "get_unmasked_sequence_lengths",
     "DEFAULT_PROFILE_DIR",
     "DEFAULT_PROFILER_ACTIVITIES",
     "DEFAULT_SCHEDULE",

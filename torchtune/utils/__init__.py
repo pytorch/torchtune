@@ -35,7 +35,6 @@ from .memory import (  # noqa
     register_optim_in_bwd_hooks,
     set_activation_checkpointing,
 )
-from .pooling import get_unmasked_sequence_lengths
 
 __all__ = [
     "update_state_dict_for_classifier",
@@ -49,7 +48,6 @@ __all__ = [
     "is_distributed",
     "lora_fsdp_wrap_policy",
     "get_full_finetune_fsdp_wrap_policy",
-    "get_unmasked_sequence_lengths",
     "set_activation_checkpointing",
     "torch_version_ge",
     "OptimizerInBackwardWrapper",
