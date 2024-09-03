@@ -14,7 +14,7 @@ from torch import tensor
 from torchtune.models.phi3 import Phi3RotaryPositionalEmbeddings
 
 from torchtune.modules.position_embeddings import RotaryPositionalEmbeddings
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 
 @pytest.fixture(autouse=True)

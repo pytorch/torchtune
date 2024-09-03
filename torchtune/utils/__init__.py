@@ -19,8 +19,6 @@ from .memory import (  # noqa
     set_activation_checkpointing,
 )
 
-from .seed import set_seed
-
 __all__ = [
     "update_state_dict_for_classifier",
     "get_memory_stats",
@@ -29,7 +27,6 @@ __all__ = [
     "get_device",
     "get_logger",
     "set_activation_checkpointing",
-    "set_seed",
     "torch_version_ge",
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",

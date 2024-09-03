@@ -56,6 +56,7 @@ from torchtune.training.precision import (
     validate_expected_param_dtype,
 )
 from torchtune.training.quantization import get_quantizer_mode
+from torchtune.training.seed import set_seed
 
 __all__ = [
     "apply_selective_activation_checkpointing",
@@ -94,6 +95,7 @@ __all__ = [
     "get_full_optimizer_state_dict",
     "load_from_full_model_state_dict",
     "load_from_full_optimizer_state_dict",
+    "set_seed",
     "get_unmasked_sequence_lengths",
     "DEFAULT_PROFILE_DIR",
     "DEFAULT_PROFILER_ACTIVITIES",

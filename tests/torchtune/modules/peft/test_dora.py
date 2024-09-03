@@ -15,7 +15,7 @@ from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune import training
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 from torchtune.modules.peft import DoRALinear
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 RANK = 4
 ALPHA = 1.0

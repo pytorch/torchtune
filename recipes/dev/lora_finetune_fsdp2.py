@@ -136,7 +136,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # These attributes constitute the recipe state and are updated by ``load_checkpoint``
         # when ``resume_from_checkpoint`` is ``True``
-        self.seed = utils.set_seed(seed=cfg.seed)
+        self.seed = training.set_seed(seed=cfg.seed)
         self.epochs_run = 0
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
@@ -194,7 +194,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 message="""Configured value for seed, epochs or max_steps_per_epoch
                 does not match the value stored in checkpoint."""
             )
-        self.seed = utils.set_seed(seed=ckpt_dict[training.SEED_KEY])
+        self.seed = training.set_seed(seed=ckpt_dict[training.SEED_KEY])
         self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
         self.total_epochs = ckpt_dict[training.TOTAL_EPOCHS_KEY]
         self.max_steps_per_epoch = ckpt_dict[training.MAX_STEPS_KEY]
