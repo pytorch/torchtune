@@ -18,9 +18,7 @@ except ImportError as e:
     raise ImportError(
         """
     torchao not installed.
-    If you are using stable PyTorch please install via pip install torchao.
-    If you are using nightly PyTorch please install via
-    pip install --pre torchao --index-url https://download.pytorch.org/whl/nightly/cu121."
+    Please follow the instructions at https://pytorch.org/torchtune/main/install.html to install torchao.
     """
     ) from e
 
