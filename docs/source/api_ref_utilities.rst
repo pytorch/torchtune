@@ -36,7 +36,6 @@ of your finetuning job.
 
 .. _gen_label:
 
-
 Miscellaneous
 -------------
 
@@ -46,6 +45,5 @@ Miscellaneous
 
     get_device
     get_logger
-    set_seed
     generate
     torch_version_ge
