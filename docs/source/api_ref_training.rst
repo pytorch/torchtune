@@ -38,6 +38,35 @@ Utilities for working in a reduced precision setting.
     validate_expected_param_dtype
     get_quantizer_mode
 
+
+Memory Management
+-----------------
+
+Utilities to reduce memory consumption during training.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    apply_selective_activation_checkpointing
+
+.. _metric_logging_label:
+
+Metric Logging
+--------------
+
+Various logging utilities.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    metric_logging.CometLogger
+    metric_logging.WandBLogger
+    metric_logging.TensorBoardLogger
+    metric_logging.StdoutLogger
+    metric_logging.DiskLogger
+
 .. _perf_profiling_label:
 
 Performance and Profiling
@@ -51,3 +80,12 @@ of your finetuning job.
     :nosignatures:
 
     setup_torch_profiler
+
+Miscellaneous
+-------------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    get_unmasked_sequence_lengths

@@ -102,3 +102,36 @@ class TestSFTDataset:
         prompt, label = ds[0]["tokens"], ds[0]["labels"]
         assert prompt == expected_tokenized_prompts[0]
         assert label == expected_labels[0]
+
+    @pytest.fixture
+    def invalid_dialogue(self):
+        return [
+            {
+                "dialogue": [
+                    {
+                        "role": "user",
+                        "content": "What is the meaning of life?",
+                        "masked": True,
+                    },
+                    {
+                        "role": "system",
+                        "content": "You are an AI assistant.",
+                        "masked": True,
+                    },
+                ],
+            },
+        ]
+
+    @mock.patch("torchtune.datasets._sft.load_dataset")
+    def test_error_for_invalid_messages(self, mock_load_dataset, invalid_dialogue):
+        mock_load_dataset.return_value = invalid_dialogue
+
+        ds = SFTDataset(
+            source="iam/agoofy/goober",
+            message_transform=ToDummyMessages(),
+            model_transform=DummyTokenizer(),
+        )
+
+        msg = "system messages must come first"
+        with pytest.raises(ValueError, match=msg):
+            ds[0]

@@ -13,6 +13,7 @@ from torchtune.training._profiler import (
     PROFILER_KEY,
     setup_torch_profiler,
 )
+from torchtune.training.activations import apply_selective_activation_checkpointing
 from torchtune.training.checkpointing import (
     ADAPTER_CONFIG,
     ADAPTER_KEY,
@@ -31,6 +32,7 @@ from torchtune.training.checkpointing import (
     TOTAL_EPOCHS_KEY,
     update_state_dict_for_classifier,
 )
+from torchtune.training.pooling import get_unmasked_sequence_lengths
 from torchtune.training.precision import (
     get_dtype,
     set_default_dtype,
@@ -39,6 +41,7 @@ from torchtune.training.precision import (
 from torchtune.training.quantization import get_quantizer_mode
 
 __all__ = [
+    "apply_selective_activation_checkpointing",
     "get_dtype",
     "set_default_dtype",
     "validate_expected_param_dtype",
@@ -59,6 +62,7 @@ __all__ = [
     "STEPS_KEY",
     "TOTAL_EPOCHS_KEY",
     "get_quantizer_mode",
+    "get_unmasked_sequence_lengths",
     "DEFAULT_PROFILE_DIR",
     "DEFAULT_PROFILER_ACTIVITIES",
     "DEFAULT_SCHEDULE",
