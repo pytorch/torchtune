@@ -4,18 +4,16 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import pdb
 from unittest.mock import patch
 
 import pytest
 import torch
-from datasets import Dataset
 
 from tests.test_utils import DummyTokenizer
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
 from torchtune.datasets import the_cauldron_dataset
-from torchvision.transforms import PILToTensor, ToPILImage
+from torchvision.transforms import functional as F
 
 
 class TestTheCauldronDataset:
@@ -31,22 +29,20 @@ class TestTheCauldronDataset:
 
         image_tensor = torch.randint(0, 256, (3, 4, 4), dtype=torch.uint8)
         # mock the call to HF datasets
-        load_dataset.return_value = Dataset.from_list(
-            [
-                {
-                    "images": [ToPILImage()(image_tensor)],
-                    "texts": [
-                        {
-                            "user": "Question: What do respiration and combustion give out"
-                            "\nChoices:\nA. Oxygen\nB. Carbon dioxide\nC. Nitrogen\nD. Heat"
-                            "\nAnswer with the letter.",
-                            "assistant": "Answer: B",
-                            "source": "AI2D",
-                        }
-                    ],
-                }
-            ]
-        )
+        load_dataset.return_value = [
+            {
+                "images": [F.to_pil_image(image_tensor)],
+                "texts": [
+                    {
+                        "user": "Question: What do respiration and combustion give out"
+                        "\nChoices:\nA. Oxygen\nB. Carbon dioxide\nC. Nitrogen\nD. Heat"
+                        "\nAnswer with the letter.",
+                        "assistant": "Answer: B",
+                        "source": "AI2D",
+                    }
+                ],
+            }
+        ]
 
         ds = the_cauldron_dataset(
             model_transform=tokenizer, subset="dummy", train_on_input=True
@@ -87,8 +83,7 @@ class TestTheCauldronDataset:
             -1,
         ]
         assert labels == input
-        pdb.set_trace()
-        torch.testing.assert_close(PILToTensor()(images), image_tensor)
+        torch.testing.assert_close(F.pil_to_tensor(images), image_tensor)
 
     @patch("torchtune.datasets._sft.load_dataset")
     def test_label_masking(self, load_dataset, tokenizer):
@@ -98,22 +93,20 @@ class TestTheCauldronDataset:
 
         image_tensor = torch.randint(0, 256, (3, 4, 4), dtype=torch.uint8)
         # mock the call to HF datasets
-        load_dataset.return_value = Dataset.from_list(
-            [
-                {
-                    "images": [ToPILImage()(image_tensor)],
-                    "texts": [
-                        {
-                            "user": "Question: What do respiration and combustion give out"
-                            "\nChoices:\nA. Oxygen\nB. Carbon dioxide\nC. Nitrogen\nD. Heat"
-                            "\nAnswer with the letter.",
-                            "assistant": "Answer: B",
-                            "source": "AI2D",
-                        }
-                    ],
-                }
-            ]
-        )
+        load_dataset.return_value = [
+            {
+                "images": [F.to_pil_image(image_tensor)],
+                "texts": [
+                    {
+                        "user": "Question: What do respiration and combustion give out"
+                        "\nChoices:\nA. Oxygen\nB. Carbon dioxide\nC. Nitrogen\nD. Heat"
+                        "\nAnswer with the letter.",
+                        "assistant": "Answer: B",
+                        "source": "AI2D",
+                    }
+                ],
+            }
+        ]
 
         ds = the_cauldron_dataset(
             model_transform=tokenizer, subset="dummy", train_on_input=False
@@ -154,4 +147,4 @@ class TestTheCauldronDataset:
             -1,
         ]
         assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 24
-        torch.testing.assert_close(PILToTensor()(images), image_tensor)
+        torch.testing.assert_close(F.pil_to_tensor(images), image_tensor)
