@@ -118,7 +118,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
-        _, rank = utils.get_world_size_and_rank()
+        _, rank = training.get_world_size_and_rank()
         self._is_rank_zero = rank == 0
 
         # Training cfg
@@ -415,7 +415,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if custom_sharded_layers:
             fsdp_shard_conditions += [lambda n, m: n in custom_sharded_layers]
 
-        utils.shard_model(
+        training.shard_model(
             model=model,
             shard_conditions=fsdp_shard_conditions,
             cpu_offload=fsdp_cpu_offload,
@@ -430,12 +430,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # This method will convert the full model state dict into a sharded state
         # dict and load into the model
-        utils.load_from_full_model_state_dict(
+        training.load_from_full_model_state_dict(
             model, model_state_dict, self._device, self._is_rank_zero, strict=True
         )
 
         # Ensure no params and buffers are on meta device
-        utils.validate_no_params_on_meta_device(model)
+        training.validate_no_params_on_meta_device(model)
 
         if self._is_rank_zero:
             log.info(
@@ -454,7 +454,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
     ) -> Optimizer:
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
-            utils.load_from_full_optimizer_state_dict(
+            training.load_from_full_optimizer_state_dict(
                 optimizer,
                 opt_state_dict,
                 self._device,
@@ -475,7 +475,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = utils.get_world_size_and_rank()
+        world_size, rank = training.get_world_size_and_rank()
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -529,13 +529,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         intermediate_checkpoint = epoch + 1 < self.total_epochs
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
-        cpu_state_dict = utils.get_full_model_state_dict(
+        cpu_state_dict = training.get_full_model_state_dict(
             self._model,
             self._is_rank_zero,
         )
 
         if intermediate_checkpoint:
-            opt_state_dict = utils.get_full_optimizer_state_dict(
+            opt_state_dict = training.get_full_optimizer_state_dict(
                 self._optimizer,
                 self._is_rank_zero,
             )
@@ -574,7 +574,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         utils.cleanup_before_training()
 
-        _, rank = utils.get_world_size_and_rank()
+        _, rank = training.get_world_size_and_rank()
 
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
@@ -721,7 +721,7 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in config (see available configs through ``tune ls``)
         - Overwritten by arguments from the command-line
     """
-    if not utils.is_distributed():
+    if not training.is_distributed():
         raise RuntimeError(
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
@@ -730,7 +730,7 @@ def recipe_main(cfg: DictConfig) -> None:
     if cfg.get("fsdp_cpu_offload", False):
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU
-        utils.set_torch_num_threads()
+        training.set_torch_num_threads()
 
     config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
 

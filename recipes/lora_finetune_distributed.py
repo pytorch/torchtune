@@ -118,7 +118,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
-        _, rank = utils.get_world_size_and_rank()
+        _, rank = training.get_world_size_and_rank()
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
@@ -452,7 +452,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         model = FSDP(
             module=model,
-            auto_wrap_policy=utils.lora_fsdp_wrap_policy(
+            auto_wrap_policy=training.lora_fsdp_wrap_policy(
                 modules_to_wrap={modules.TransformerSelfAttentionLayer}
             ),
             sharding_strategy=self._fsdp_sharding_strategy,
@@ -472,7 +472,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         # Ensure no params and buffers are on meta device
-        utils.validate_no_params_on_meta_device(model)
+        training.validate_no_params_on_meta_device(model)
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
@@ -530,7 +530,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = utils.get_world_size_and_rank()
+        world_size, rank = training.get_world_size_and_rank()
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -658,7 +658,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         utils.cleanup_before_training()
 
-        _, rank = utils.get_world_size_and_rank()
+        _, rank = training.get_world_size_and_rank()
 
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
@@ -804,7 +804,7 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in config (see available configs through ``tune ls``)
         - Overwritten by arguments from the command-line
     """
-    if not utils.is_distributed():
+    if not training.is_distributed():
         raise RuntimeError(
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
