@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>get_full_finetune_fsdp_wrap_policy &mdash; torchtune main documentation</title>
+  <title>torchtune.training.FSDPPolicyType &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="lora_fsdp_wrap_policy" href="torchtune.utils.lora_fsdp_wrap_policy.html" />
-    <link rel="prev" title="get_world_size_and_rank" href="torchtune.utils.get_world_size_and_rank.html" />
+    <link rel="next" title="init_distributed" href="torchtune.training.init_distributed.html" />
+    <link rel="prev" title="get_quantizer_mode" href="torchtune.training.get_quantizer_mode.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -336,8 +336,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -378,15 +378,15 @@
       </li>
 
         
-          <li><a href="../api_ref_utilities.html">torchtune.utils</a> &gt;</li>
+          <li><a href="../api_ref_training.html">torchtune.training</a> &gt;</li>
         
-      <li>get_full_finetune_fsdp_wrap_policy</li>
+      <li>torchtune.training.FSDPPolicyType</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.utils.get_full_finetune_fsdp_wrap_policy.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.training.FSDPPolicyType.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -416,38 +416,31 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="get-full-finetune-fsdp-wrap-policy">
-<h1>get_full_finetune_fsdp_wrap_policy<a class="headerlink" href="#get-full-finetune-fsdp-wrap-policy" title="Permalink to this heading">¶</a></h1>
-<dl class="py function">
-<dt class="sig sig-object py" id="torchtune.utils.get_full_finetune_fsdp_wrap_policy">
-<span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">get_full_finetune_fsdp_wrap_policy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">memory_efficient_fsdp_wrap</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">modules_to_wrap</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Set" title="(in Python v3.12)"><span class="pre">Set</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.12)"><span class="pre">Type</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.12)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/utils/_distributed.html#get_full_finetune_fsdp_wrap_policy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.get_full_finetune_fsdp_wrap_policy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Retrieves an FSDP wrapping policy based on the specified flags <code class="docutils literal notranslate"><span class="pre">memory_efficient_fsdp_wrap</span></code> and
-<code class="docutils literal notranslate"><span class="pre">modules_to_wrap</span></code>. Specifically, if <code class="docutils literal notranslate"><span class="pre">memory_efficient_fsdp_wrap</span></code> is set to <code class="docutils literal notranslate"><span class="pre">True</span></code>, the returned
-policy will wrap the model’s token embedding and output projection in addition to the modules specified
-to maximize memory savings.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>memory_efficient_fsdp_wrap</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, will also wrap embedding and output projection layers with FSDP.</p></li>
-<li><p><strong>modules_to_wrap</strong> (<em>Set</em><em>[</em><em>Type</em><em>]</em>) – Set of module types to wrap.</p></li>
-</ul>
-</dd>
-</dl>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><code class="docutils literal notranslate"><span class="pre">memory_efficient_fsdp_wrap</span></code> memory improvements have currently only been verified on llama3 workloads
-where they provide ~15% memory improvement (when used alongside AC memory efficient wrapping). Other workloads
-have not been verified and may not see the same improvements.</p>
+  <section id="torchtune-training-fsdppolicytype">
+<h1>torchtune.training.FSDPPolicyType<a class="headerlink" href="#torchtune-training-fsdppolicytype" title="Permalink to this heading">¶</a></h1>
+<dl class="py data">
+<dt class="sig sig-object py" id="torchtune.training.FSDPPolicyType">
+<span class="sig-prename descclassname"><span class="pre">torchtune.training.</span></span><span class="sig-name descname"><span class="pre">FSDPPolicyType</span></span><a class="headerlink" href="#torchtune.training.FSDPPolicyType" title="Permalink to this definition">¶</a></dt>
+<dd><p>A datatype for a function that can be used as an FSDP wrapping policy.
+In particular, this type denotes a function that can accept an nn.Module, a boolean flag, and an integer
+and return a boolean indicating whether the module should be wrapped with FSDP. Objects of this type can
+be directly passed into PyTorch FSDP’s <code class="docutils literal notranslate"><span class="pre">auto_wrap_policy</span></code> argument to specify how FSDP wraps submodules.</p>
+<p>The below function serves as an example of creating and returning a function that obeys the contract of
+<code class="docutils literal notranslate"><span class="pre">FSDPPolicyType</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_fsdp_policy</span><span class="p">(</span><span class="n">module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">modules_to_wrap</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="n">Type</span><span class="p">],</span> <span class="n">min_num_params</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">my_fsdp_policy</span><span class="p">(</span><span class="n">module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">modules_to_wrap</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="n">Type</span><span class="p">],</span> <span class="n">recurse</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">min_num_params</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">recurse</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="c1"># Wrap layers that are of type in ``modules_to_wrap`` and layers with more than min_num_params</span>
+
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">modules_to_wrap</span><span class="p">))</span> <span class="ow">or</span> <span class="nb">sum</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">module</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">1000</span>
+
+    <span class="k">return</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">my_fsdp_policy</span><span class="p">,</span> <span class="n">modules_to_wrap</span><span class="o">=</span><span class="n">modules_to_wrap</span><span class="p">)</span>
+</pre></div>
 </div>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Wrapping policy that can be passed into <code class="docutils literal notranslate"><span class="pre">FullyShardedDataParallel</span></code> as the <code class="docutils literal notranslate"><span class="pre">auto_wrap_policy</span></code>
-argument. Please see documentation for <a class="reference internal" href="torchtune.utils.FSDPPolicyType.html#torchtune.utils.FSDPPolicyType" title="torchtune.utils.FSDPPolicyType"><code class="xref py py-const docutils literal notranslate"><span class="pre">FSDPPolicyType</span></code></a> for additional details.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>FSDPPolicyType</p>
-</dd>
-</dl>
+<p>Please see documentation of <code class="docutils literal notranslate"><span class="pre">auto_wrap_policy</span></code> at <a class="reference external" href="https://pytorch.org/docs/stable/fsdp.html">https://pytorch.org/docs/stable/fsdp.html</a> for additional details.</p>
+<p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>]</p>
 </dd></dl>
 
 </section>
@@ -460,10 +453,10 @@ argument. Please see documentation for <a class="reference internal" href="torch
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.utils.lora_fsdp_wrap_policy.html" class="btn btn-neutral float-right" title="lora_fsdp_wrap_policy" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.training.init_distributed.html" class="btn btn-neutral float-right" title="init_distributed" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.utils.get_world_size_and_rank.html" class="btn btn-neutral" title="get_world_size_and_rank" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.training.get_quantizer_mode.html" class="btn btn-neutral" title="get_quantizer_mode" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -495,7 +488,7 @@ argument. Please see documentation for <a class="reference internal" href="torch
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">get_full_finetune_fsdp_wrap_policy</a></li>
+<li><a class="reference internal" href="#">torchtune.training.FSDPPolicyType</a></li>
 </ul>
 
             </div>

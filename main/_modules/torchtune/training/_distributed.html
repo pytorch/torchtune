@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.utils._distributed &mdash; torchtune main documentation</title>
+  <title>torchtune.training._distributed &mdash; torchtune main documentation</title>
   
 
   
@@ -377,7 +377,7 @@
         
           <li><a href="../../index.html">Module code</a> &gt;</li>
         
-      <li>torchtune.utils._distributed</li>
+      <li>torchtune.training._distributed</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -409,7 +409,7 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>Source code for torchtune.utils._distributed</h1><div class="highlight"><pre>
+  <h1>Source code for torchtune.training._distributed</h1><div class="highlight"><pre>
 <span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
 <span class="c1"># All rights reserved.</span>
 <span class="c1">#</span>
@@ -482,7 +482,7 @@
     <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">ShardingStrategy</span><span class="p">,</span> <span class="n">strategy</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="is_distributed"><a class="viewcode-back" href="../../../generated/torchtune.utils.is_distributed.html#torchtune.utils.is_distributed">[docs]</a><span class="k">def</span> <span class="nf">is_distributed</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<div class="viewcode-block" id="is_distributed"><a class="viewcode-back" href="../../../generated/torchtune.training.is_distributed.html#torchtune.training.is_distributed">[docs]</a><span class="k">def</span> <span class="nf">is_distributed</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if all environment variables required to initialize torch.distributed are set</span>
 <span class="sd">    and distributed is properly installed. This indicates a distributed run.</span>
 <span class="sd">    https://pytorch.org/docs/stable/distributed.html#environment-variable-initialization</span>
@@ -525,7 +525,7 @@
         <span class="k">return</span> <span class="n">tensor</span>
 
 
-<div class="viewcode-block" id="init_distributed"><a class="viewcode-back" href="../../../generated/torchtune.utils.init_distributed.html#torchtune.utils.init_distributed">[docs]</a><span class="k">def</span> <span class="nf">init_distributed</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<div class="viewcode-block" id="init_distributed"><a class="viewcode-back" href="../../../generated/torchtune.training.init_distributed.html#torchtune.training.init_distributed">[docs]</a><span class="k">def</span> <span class="nf">init_distributed</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize process group required for ``torch.distributed``.</span>
 
 <span class="sd">    Args:</span>
@@ -562,7 +562,7 @@
     <span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Set intra op parallelism no. of threads to </span><span class="si">{</span><span class="n">num_threads</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="get_world_size_and_rank"><a class="viewcode-back" href="../../../generated/torchtune.utils.get_world_size_and_rank.html#torchtune.utils.get_world_size_and_rank">[docs]</a><span class="k">def</span> <span class="nf">get_world_size_and_rank</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<div class="viewcode-block" id="get_world_size_and_rank"><a class="viewcode-back" href="../../../generated/torchtune.training.get_world_size_and_rank.html#torchtune.training.get_world_size_and_rank">[docs]</a><span class="k">def</span> <span class="nf">get_world_size_and_rank</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Function that gets the current world size (aka total number</span>
 <span class="sd">    of ranks) and rank number of the current process in the default process group.</span>
 
@@ -654,7 +654,7 @@
     <span class="k">return</span> <span class="n">model</span>
 
 
-<div class="viewcode-block" id="lora_fsdp_wrap_policy"><a class="viewcode-back" href="../../../generated/torchtune.utils.lora_fsdp_wrap_policy.html#torchtune.utils.lora_fsdp_wrap_policy">[docs]</a><span class="k">def</span> <span class="nf">lora_fsdp_wrap_policy</span><span class="p">(</span><span class="n">modules_to_wrap</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="n">Type</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">FSDPPolicyType</span><span class="p">:</span>
+<div class="viewcode-block" id="lora_fsdp_wrap_policy"><a class="viewcode-back" href="../../../generated/torchtune.training.lora_fsdp_wrap_policy.html#torchtune.training.lora_fsdp_wrap_policy">[docs]</a><span class="k">def</span> <span class="nf">lora_fsdp_wrap_policy</span><span class="p">(</span><span class="n">modules_to_wrap</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="n">Type</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">FSDPPolicyType</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A default policy for wrapping models trained with LoRA using FSDP.</span>
 
@@ -692,7 +692,7 @@
 
 
 <span class="k">def</span> <span class="nf">load_from_full_model_state_dict</span><span class="p">(</span>
-    <span class="n">model</span><span class="p">:</span> <span class="s2">&quot;FSDPModule&quot;</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="s2">&quot;FSDPModule&quot;</span><span class="p">,</span>  <span class="c1"># noqa</span>
     <span class="n">full_sd</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
     <span class="n">is_rank_zero</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
@@ -756,7 +756,7 @@
 
 
 <span class="k">def</span> <span class="nf">get_full_model_state_dict</span><span class="p">(</span>
-    <span class="n">model</span><span class="p">:</span> <span class="s2">&quot;FSDPModule&quot;</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="s2">&quot;FSDPModule&quot;</span><span class="p">,</span>  <span class="c1"># noqa</span>
     <span class="n">is_rank_zero</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -899,7 +899,7 @@
     <span class="p">)</span>
 
 
-<div class="viewcode-block" id="get_full_finetune_fsdp_wrap_policy"><a class="viewcode-back" href="../../../generated/torchtune.utils.get_full_finetune_fsdp_wrap_policy.html#torchtune.utils.get_full_finetune_fsdp_wrap_policy">[docs]</a><span class="k">def</span> <span class="nf">get_full_finetune_fsdp_wrap_policy</span><span class="p">(</span>
+<div class="viewcode-block" id="get_full_finetune_fsdp_wrap_policy"><a class="viewcode-back" href="../../../generated/torchtune.training.get_full_finetune_fsdp_wrap_policy.html#torchtune.training.get_full_finetune_fsdp_wrap_policy">[docs]</a><span class="k">def</span> <span class="nf">get_full_finetune_fsdp_wrap_policy</span><span class="p">(</span>
     <span class="n">memory_efficient_fsdp_wrap</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">modules_to_wrap</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="n">Type</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FSDPPolicyType</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>

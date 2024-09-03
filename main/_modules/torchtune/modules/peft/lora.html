@@ -486,7 +486,7 @@
         <span class="c1"># params are initialized, as is done in initialize_parameters below).</span>
         <span class="c1"># For that reason, we patch reset_parameters directly on lora_a and lora_b submodules</span>
         <span class="c1"># when using meta device. This is done in</span>
-        <span class="c1"># torchtune.utils.prepare_model_for_fsdp_with_meta_device.</span>
+        <span class="c1"># torchtune.training.prepare_model_for_fsdp_with_meta_device.</span>
         <span class="c1"># See this issue for more details: https://github.com/pytorch/pytorch/issues/104187.</span>
         <span class="c1"># Without meta device, we only need the following:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">initialize_parameters</span><span class="p">()</span>

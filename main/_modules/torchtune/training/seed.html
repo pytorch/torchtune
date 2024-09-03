@@ -425,7 +425,7 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.utils._distributed</span> <span class="kn">import</span> <span class="n">_broadcast_tensor</span><span class="p">,</span> <span class="n">get_world_size_and_rank</span>
+<span class="kn">from</span> <span class="nn">torchtune.training._distributed</span> <span class="kn">import</span> <span class="n">_broadcast_tensor</span><span class="p">,</span> <span class="n">get_world_size_and_rank</span>
 <span class="kn">from</span> <span class="nn">torchtune.utils.logging</span> <span class="kn">import</span> <span class="n">get_logger</span>
 
 <span class="n">_log</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">()</span>

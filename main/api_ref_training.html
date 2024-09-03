@@ -460,6 +460,32 @@ checkpointing, please see the <a class="reference internal" href="deep_dives/che
 </tbody>
 </table>
 </section>
+<section id="distributed">
+<span id="dist-label"></span><h2>Distributed<a class="headerlink" href="#distributed" title="Permalink to this heading">¶</a></h2>
+<p>Utilities for enabling and working with distributed training.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.training.FSDPPolicyType.html#torchtune.training.FSDPPolicyType" title="torchtune.training.FSDPPolicyType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FSDPPolicyType</span></code></a></p></td>
+<td><p>A datatype for a function that can be used as an FSDP wrapping policy.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.training.init_distributed.html#torchtune.training.init_distributed" title="torchtune.training.init_distributed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_distributed</span></code></a></p></td>
+<td><p>Initialize process group required for <code class="docutils literal notranslate"><span class="pre">torch.distributed</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.training.is_distributed.html#torchtune.training.is_distributed" title="torchtune.training.is_distributed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_distributed</span></code></a></p></td>
+<td><p>Check if all environment variables required to initialize torch.distributed are set and distributed is properly installed.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.training.get_world_size_and_rank.html#torchtune.training.get_world_size_and_rank" title="torchtune.training.get_world_size_and_rank"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_world_size_and_rank</span></code></a></p></td>
+<td><p>Function that gets the current world size (aka total number of ranks) and rank number of the current process in the default process group.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.training.get_full_finetune_fsdp_wrap_policy.html#torchtune.training.get_full_finetune_fsdp_wrap_policy" title="torchtune.training.get_full_finetune_fsdp_wrap_policy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_full_finetune_fsdp_wrap_policy</span></code></a></p></td>
+<td><p>Retrieves an FSDP wrapping policy based on the specified flags <code class="docutils literal notranslate"><span class="pre">memory_efficient_fsdp_wrap</span></code> and <code class="docutils literal notranslate"><span class="pre">modules_to_wrap</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.training.lora_fsdp_wrap_policy.html#torchtune.training.lora_fsdp_wrap_policy" title="torchtune.training.lora_fsdp_wrap_policy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lora_fsdp_wrap_policy</span></code></a></p></td>
+<td><p>A default policy for wrapping models trained with LoRA using FSDP.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
 <section id="memory-management">
 <h2>Memory Management<a class="headerlink" href="#memory-management" title="Permalink to this heading">¶</a></h2>
 <p>Utilities to reduce memory consumption during training.</p>
@@ -567,6 +593,7 @@ of your finetuning job.</p>
 <li><a class="reference internal" href="#">torchtune.training</a><ul>
 <li><a class="reference internal" href="#checkpointing">Checkpointing</a></li>
 <li><a class="reference internal" href="#reduced-precision">Reduced Precision</a></li>
+<li><a class="reference internal" href="#distributed">Distributed</a></li>
 <li><a class="reference internal" href="#memory-management">Memory Management</a></li>
 <li><a class="reference internal" href="#metric-logging">Metric Logging</a></li>
 <li><a class="reference internal" href="#performance-and-profiling">Performance and Profiling</a></li>

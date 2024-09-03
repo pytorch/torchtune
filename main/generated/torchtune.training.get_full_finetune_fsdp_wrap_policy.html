@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>is_distributed &mdash; torchtune main documentation</title>
+  <title>get_full_finetune_fsdp_wrap_policy &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="get_world_size_and_rank" href="torchtune.utils.get_world_size_and_rank.html" />
-    <link rel="prev" title="init_distributed" href="torchtune.utils.init_distributed.html" />
+    <link rel="next" title="lora_fsdp_wrap_policy" href="torchtune.training.lora_fsdp_wrap_policy.html" />
+    <link rel="prev" title="get_world_size_and_rank" href="torchtune.training.get_world_size_and_rank.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -336,8 +336,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -378,15 +378,15 @@
       </li>
 
         
-          <li><a href="../api_ref_utilities.html">torchtune.utils</a> &gt;</li>
+          <li><a href="../api_ref_training.html">torchtune.training</a> &gt;</li>
         
-      <li>is_distributed</li>
+      <li>get_full_finetune_fsdp_wrap_policy</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.utils.is_distributed.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.training.get_full_finetune_fsdp_wrap_policy.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -416,27 +416,36 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="is-distributed">
-<h1>is_distributed<a class="headerlink" href="#is-distributed" title="Permalink to this heading">¶</a></h1>
+  <section id="get-full-finetune-fsdp-wrap-policy">
+<h1>get_full_finetune_fsdp_wrap_policy<a class="headerlink" href="#get-full-finetune-fsdp-wrap-policy" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.utils.is_distributed">
-<span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">is_distributed</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/torchtune/utils/_distributed.html#is_distributed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.is_distributed" title="Permalink to this definition">¶</a></dt>
-<dd><p>Check if all environment variables required to initialize torch.distributed are set
-and distributed is properly installed. This indicates a distributed run.
-<a class="reference external" href="https://pytorch.org/docs/stable/distributed.html#environment-variable-initialization">https://pytorch.org/docs/stable/distributed.html#environment-variable-initialization</a></p>
-<p>Checks the following conditions:</p>
-<ul class="simple">
-<li><p>torch.distributed is available</p></li>
-<li><p>master port and master address environment variables are set</p></li>
-<li><p>world size is &gt;1</p></li>
-<li><p>rank environment variable is set</p></li>
+<dt class="sig sig-object py" id="torchtune.training.get_full_finetune_fsdp_wrap_policy">
+<span class="sig-prename descclassname"><span class="pre">torchtune.training.</span></span><span class="sig-name descname"><span class="pre">get_full_finetune_fsdp_wrap_policy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">memory_efficient_fsdp_wrap</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">modules_to_wrap</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Set" title="(in Python v3.12)"><span class="pre">Set</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.12)"><span class="pre">Type</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.12)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/training/_distributed.html#get_full_finetune_fsdp_wrap_policy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.training.get_full_finetune_fsdp_wrap_policy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieves an FSDP wrapping policy based on the specified flags <code class="docutils literal notranslate"><span class="pre">memory_efficient_fsdp_wrap</span></code> and
+<code class="docutils literal notranslate"><span class="pre">modules_to_wrap</span></code>. Specifically, if <code class="docutils literal notranslate"><span class="pre">memory_efficient_fsdp_wrap</span></code> is set to <code class="docutils literal notranslate"><span class="pre">True</span></code>, the returned
+policy will wrap the model’s token embedding and output projection in addition to the modules specified
+to maximize memory savings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>memory_efficient_fsdp_wrap</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, will also wrap embedding and output projection layers with FSDP.</p></li>
+<li><p><strong>modules_to_wrap</strong> (<em>Set</em><em>[</em><em>Type</em><em>]</em>) – Set of module types to wrap.</p></li>
 </ul>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">memory_efficient_fsdp_wrap</span></code> memory improvements have currently only been verified on llama3 workloads
+where they provide ~15% memory improvement (when used alongside AC memory efficient wrapping). Other workloads
+have not been verified and may not see the same improvements.</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>True if all of the above conditions hold, False otherwise.</p>
+<dd class="field-odd"><p>Wrapping policy that can be passed into <code class="docutils literal notranslate"><span class="pre">FullyShardedDataParallel</span></code> as the <code class="docutils literal notranslate"><span class="pre">auto_wrap_policy</span></code>
+argument. Please see documentation for <code class="xref py py-const docutils literal notranslate"><span class="pre">FSDPPolicyType</span></code> for additional details.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)">bool</a></p>
+<dd class="field-even"><p>FSDPPolicyType</p>
 </dd>
 </dl>
 </dd></dl>
@@ -451,10 +460,10 @@ and distributed is properly installed. This indicates a distributed run.
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.utils.get_world_size_and_rank.html" class="btn btn-neutral float-right" title="get_world_size_and_rank" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.training.lora_fsdp_wrap_policy.html" class="btn btn-neutral float-right" title="lora_fsdp_wrap_policy" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.utils.init_distributed.html" class="btn btn-neutral" title="init_distributed" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.training.get_world_size_and_rank.html" class="btn btn-neutral" title="get_world_size_and_rank" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -486,7 +495,7 @@ and distributed is properly installed. This indicates a distributed run.
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">is_distributed</a></li>
+<li><a class="reference internal" href="#">get_full_finetune_fsdp_wrap_policy</a></li>
 </ul>
 
             </div>
