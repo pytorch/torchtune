@@ -19,12 +19,41 @@ class TheCauldronToMessages(Transform):
 
     Image placeholders are prepended to the text in the ``Message`` content. Images in the
     dataset are expected to be a list of a single PIL image, so they are simply passed through
-    with an optional column remapping if ``column_map`` is specified.
+    to the model transform with an optional column remapping if ``column_map`` is specified.
+
+    For example, a dataset row::
+
+        {
+            "texts": [
+                {
+                    "user": Q,
+                    "assistant": A,
+                },
+                ...
+            ],
+            "images": [
+                [PIL.Image.Image],
+            ],
+        }
+
+    will be converted to::
+
+        [
+            {
+                "role": "system" | "user" | "assistant",
+                "content":
+                    [
+                        {"type": "image"},
+                        {"type": "text", "content": "This is a sample image."},
+                    ],
+            },
+            ...
+        ]
 
     Args:
         train_on_input (bool): Whether the model is trained on the user prompt or not.
             Default is True.
-        column_map (Optional[Dict[str, str]]): a mapping to change the expected "texts" 
+        column_map (Optional[Dict[str, str]]): a mapping to change the expected "texts"
             column names to the actual column names in the dataset. Default is None,
             keeping the default column names.
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
@@ -43,13 +72,17 @@ class TheCauldronToMessages(Transform):
         self.train_on_input = train_on_input
         self.new_system_prompt = new_system_prompt
         if column_map is not None:
+            if "images" not in column_map:
+                raise ValueError(
+                    "column_map must map 'images' to your expected column name if specified"
+                )
             if "texts" not in column_map:
                 raise ValueError(
-                    "column_map must contain 'texts' as a key if specified"
+                    "column_map must map 'texts' to your expected column name if specified"
                 )
             self._column_map = column_map
         else:
-            self._column_map = {"texts": "texts"}
+            self._column_map = {"texts": "texts", "images": "images"}
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         messages = []
@@ -78,9 +111,10 @@ class TheCauldronToMessages(Transform):
                 )
             ] + messages
 
-        return {"messages": messages}
+        return {"messages": messages, "images": sample[self._column_map["images"]]}
 
 
+# TODO: point to Flamingo model transform as an example
 def the_cauldron_dataset(
     model_transform: Transform,
     *,
@@ -98,12 +132,14 @@ def the_cauldron_dataset(
     `The Cauldron<https://huggingface.co/datasets/HuggingFaceM4/the_cauldron>_`
     from Hugging Face Datasets.
 
+    The Cauldron consists of numerous datasets. You must specify one of the datasets
+    using the ``subset`` argument.
+
     Args:
-        model_transform (Transform): model-specific transform that takes in a sample dict and applies custom
-            transforms on the keys. The tokenizer used by the model should be encapsulated in the model transform
-            and should operate on the "messages" field. Any model-specific image transforms should operate on
-            the "images" field. The keys returned by the model should be aligned with the
-            expected inputs into the model.
+        model_transform (Transform): model-specific transform class that takes in a sample dict and applies custom
+            transforms on the keys. It should consist of at minimum two components: text tokenization (called
+            on the "messages" field) and image transform (called on the "images" field). The keys returned by
+            the model transform should be aligned with the expected inputs into the model.
         subset (str): name of the subset of the dataset to load. See the `dataset card
             <https://huggingface.co/datasets/HuggingFaceM4/the_cauldron>`_ for options.
         source (str): path to dataset repository on Hugging Face. For local datasets,
@@ -141,6 +177,7 @@ def the_cauldron_dataset(
     message_transform = TheCauldronToMessages(
         train_on_input=train_on_input,
         column_map=column_map,
+        new_system_prompt=new_system_prompt,
     )
 
     ds = SFTDataset(

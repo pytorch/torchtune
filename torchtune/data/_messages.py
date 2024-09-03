@@ -6,8 +6,6 @@
 
 from typing import Any, Dict, List, Literal, Mapping, Optional, Union
 
-from torchtune.data._utils import split_text_by_image_tag
-
 from torchtune.modules.transforms import Transform
 
 Role = Literal[
@@ -303,7 +301,7 @@ class ShareGPTToMessages(Transform):
                     "value": <message>,
                 },
                 ...
-            ],
+            ]
         }
 
     :class:`~torchtune.data.Message` follows::
@@ -325,10 +323,6 @@ class ShareGPTToMessages(Transform):
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
-        image_tag (Optional[str]): if specified, split the raw text content by the specified ``image_tag``
-            and use placeholders for where the images are present in the text for proper tokenization. Set
-            this if your dataset contains images and uses a specific string (ex: "<image>") to indicate the
-            presence of an image. Leave this as None if your dataset does not contain images. Default is None.
 
     Raises:
         ValueError: If ``column_map`` is provided and ``conversations`` not in ``column_map``.
@@ -339,13 +333,9 @@ class ShareGPTToMessages(Transform):
         train_on_input: bool = False,
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
-        image_tag: Optional[str] = None,
-        image_dir: Optional[str] = None,
     ):
         self.train_on_input = train_on_input
         self.new_system_prompt = new_system_prompt
-        self.image_tag = image_tag
-        self.image_dir = image_dir
         if column_map:
             if "conversations" not in column_map:
                 raise ValueError(
@@ -353,7 +343,7 @@ class ShareGPTToMessages(Transform):
                 )
             self._column_map = column_map
         else:
-            self._column_map = {"conversations": "conversations", "image": "image"}
+            self._column_map = {"conversations": "conversations"}
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         """
@@ -365,9 +355,6 @@ class ShareGPTToMessages(Transform):
 
         Returns:
             List[Message]: A list of messages with "role" and "content" fields.
-
-        Raises:
-            ValueError: If ``image_dir`` is not provided and sample contains image paths.
         """
         role_map = {"system": "system", "human": "user", "gpt": "assistant"}
         messages = []
@@ -381,14 +368,9 @@ class ShareGPTToMessages(Transform):
             role = role_map[message["from"]]
             if role == "system" and self.new_system_prompt is not None:
                 continue
-            content = (
-                split_text_by_image_tag(message["value"], self.image_tag)
-                if role == "user" and self.image_tag is not None
-                else message["value"]
-            )
+            content = message["value"]
             masked = (role != "assistant") and (not self.train_on_input)
             messages.append(Message(role=role, content=content, masked=masked))
-
 
         return {"messages": messages}
 

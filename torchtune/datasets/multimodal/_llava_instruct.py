@@ -4,21 +4,109 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Mapping, Optional, Union
 
-from torchtune.data import ShareGPTToMessages
+from torchtune.data import Message, split_text_by_image_tag
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.transforms import Transform
 
 
+class LlavaInstructToMessages(Transform):
+    """
+    Construct messages from a sample formatted similarly to
+    `LLaVA-Instruct-150K <https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K>_`.
+
+    Chat samples in the "conversations" column follow the ShareGPT format::
+
+        {
+            "conversations": [
+                {
+                    "from": "system" | "human" | "gpt",
+                    "value": "<image> This is a sample image.",
+                },
+                ...
+            ]
+        }
+
+    Image locations are indicated by "<image>" placeholder tags in the text content of each message.
+    These are replaced by dictionaries indicating to the tokenizer where to place image tokens.
+    Altogether, the above format is converted to torchtune's Message format::
+
+        [
+            {
+                "role": "system" | "user" | "assistant",
+                "content":
+                    [
+                        {"type": "image"},
+                        {"type": "text", "content": "This is a sample image."},
+                    ],
+            },
+            ...
+        ]
+
+    Args:
+        train_on_input (bool): whether the prompt should remain unmasked. Default: False
+        column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("conversations", "image")
+            to the new column names in the dataset. Keys should be "conversations" and "image" and values should
+            be the new column names. If None, keep the default "conversations" and "image".
+            Default is None.
+        new_system_prompt (Optional[str]): if specified, prepend a system message. This can
+            serve as instructions to guide the model response. Setting this will OVERRIDE any system
+            messages already present in the dataset. Default is None.
+
+    Raises:
+        ValueError: If ``column_map`` is provided and ``conversations`` not in ``column_map``.
+    """
+
+    def __init__(
+        self,
+        train_on_input: bool = False,
+        column_map: Optional[Dict[str, str]] = None,
+        new_system_prompt: Optional[str] = None,
+    ):
+        self.train_on_input = train_on_input
+        self.new_system_prompt = new_system_prompt
+        if column_map:
+            if "image" not in column_map:
+                raise ValueError(
+                    f"Expected a key of 'image' in column_map but found {column_map.keys()}."
+                )
+            if "conversations" not in column_map:
+                raise ValueError(
+                    f"Expected a key of 'conversations' in column_map but found {column_map.keys()}."
+                )
+            self._column_map = column_map
+        else:
+            self._column_map = {"conversations": "conversations", "image": "image"}
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        role_map = {"system": "system", "human": "user", "gpt": "assistant"}
+        messages = []
+        if self.new_system_prompt is not None:
+            messages.append(
+                Message(
+                    role="system", content=self.new_system_prompt, masked=True, eot=True
+                )
+            )
+        for message in sample[self._column_map["conversations"]]:
+            role = role_map[message["from"]]
+            if role == "system" and self.new_system_prompt is not None:
+                continue
+            content = split_text_by_image_tag(message["value"], "<image>")
+            masked = (role != "assistant") and (not self.train_on_input)
+            messages.append(Message(role=role, content=content, masked=masked))
+
+        return {"messages": messages, "images": sample[self._column_map["image"]]}
+
+
+# TODO: point to Flamingo model transform as an example
 def llava_instruct_dataset(
     model_transform: Transform,
     *,
     source: str = "liuhaotian/LLaVA-Instruct-150K",
     column_map: Optional[Dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
-    image_tag: Optional[str] = "<image>",
     train_on_input: bool = True,
     packed: bool = False,
     split: str = "train",
@@ -38,16 +126,14 @@ def llava_instruct_dataset(
         wget -c http://images.cocodataset.org/zips/train2017.zip
         unzip train2017.zip -d coco/
 
-    Then, you must pass in the directory containing all the images to the ``image_dir`` argument
-    so each file can be loaded as PIL images in the transform. In the example above, you would
-    set ``image_dir="coco/train2017"``.
+    The resulting directory should be passed into the model transform for loading
+    and processing of the images.
 
     Args:
-        model_transform (Transform): model-specific transform that takes in a sample dict and applies custom
-            transforms on the keys. The tokenizer used by the model should be encapsulated in the model transform
-            and should operate on the "messages" field. Any model-specific image transforms should operate on
-            the "images" field. The keys returned by the model should be aligned with the
-            expected inputs into the model.
+        model_transform (Transform): model-specific transform class that takes in a sample dict and applies custom
+            transforms on the keys. It should consist of at minimum two components: text tokenization (called
+            on the "messages" field) and image transform (called on the "images" field). The keys returned by
+            the model transform should be aligned with the expected inputs into the model.
         source (str): path to dataset repository on Hugging Face. For local datasets,
             define source as the data file type (e.g. "json", "csv", "text") and pass
             in the filepath in ``data_files``. See `Hugging Face's
@@ -58,10 +144,6 @@ def llava_instruct_dataset(
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
-        image_tag (Optional[str]): if specified, split the raw text content by the specified ``image_tag``
-            and use placeholders for where the images are present in the text for proper tokenization. Set
-            this if your dataset contains images and uses a specific string (ex: "<image>") to indicate the
-            presence of an image. Leave this as None if your dataset does not contain images. Default is "<image>".
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
@@ -86,11 +168,10 @@ def llava_instruct_dataset(
         >>> Batch size: 8
     """
 
-    message_transform = ShareGPTToMessages(
+    message_transform = LlavaInstructToMessages(
         train_on_input=train_on_input,
         column_map=column_map,
         new_system_prompt=new_system_prompt,
-        image_tag=image_tag,
     )
 
     ds = SFTDataset(
