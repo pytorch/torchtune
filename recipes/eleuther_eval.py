@@ -203,7 +203,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         self._quantization_mode = training.get_quantizer_mode(self._quantizer)
         self._enable_kv_cache = self._cfg.get("enable_kv_cache", True)
 
-        utils.set_seed(seed=self._cfg.seed)
+        training.set_seed(seed=self._cfg.seed)
 
         checkpointer = config.instantiate(self._cfg.checkpointer)
         if self._quantization_mode is None:

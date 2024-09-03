@@ -12,14 +12,14 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
-from torchtune import utils
+from torchtune import training
 from torchtune.modules.peft import (
     DoRALinear,
     get_merged_lora_ckpt,
     load_dora_magnitudes,
     LoRALinear,
 )
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 
 def compare_dora(self, dtype, use_bias, quantize_base):
@@ -52,7 +52,7 @@ def compare_dora(self, dtype, use_bias, quantize_base):
         return
 
     # build our DoRA module and a reference module for comparison
-    with utils.set_default_dtype(dtype):
+    with training.set_default_dtype(dtype):
         module = DoRALinear(**constructor_kwargs)
         ref = _DoraReference(dtype=dtype, **constructor_kwargs)
         lora_module = LoRALinear(**constructor_kwargs)

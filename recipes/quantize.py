@@ -50,7 +50,7 @@ class QuantizationRecipe:
         self._dtype = training.get_dtype(dtype=cfg.dtype, device=self._device)
         self._quantizer = config.instantiate(cfg.quantizer)
         self._quantization_mode = training.get_quantizer_mode(self._quantizer)
-        utils.set_seed(seed=cfg.seed)
+        training.set_seed(seed=cfg.seed)
 
     def load_checkpoint(self, checkpointer_cfg: DictConfig) -> Dict[str, Any]:
         self._checkpointer = config.instantiate(checkpointer_cfg)
