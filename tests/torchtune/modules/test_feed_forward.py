@@ -14,7 +14,7 @@ from tests.test_utils import assert_expected, fixed_init_model
 from torch import nn
 
 from torchtune.modules import FeedForward
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 
 @pytest.fixture(autouse=True)

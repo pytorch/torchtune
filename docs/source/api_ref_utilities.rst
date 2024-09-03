@@ -35,6 +35,5 @@ Miscellaneous
 
     get_logger
     get_device
-    set_seed
     generate
     torch_version_ge

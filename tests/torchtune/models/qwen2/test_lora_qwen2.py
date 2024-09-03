@@ -11,7 +11,7 @@ from tests.test_utils import assert_expected, fixed_init_model
 from torch import nn
 from torchtune.models.qwen2 import lora_qwen2, qwen2
 from torchtune.models.qwen2._component_builders import lora_qwen2_self_attention
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 RANK = 4
 ALPHA = 1.0
