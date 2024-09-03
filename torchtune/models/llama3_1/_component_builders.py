@@ -51,6 +51,7 @@ def llama3_1(
     rope_base: int = 500000.0,
     intermediate_dim: Optional[int] = None,
     norm_eps: float = 1e-5,
+    scale_factor: int = 8,
 ) -> TransformerDecoder:
     """
     Build the decoder associated with the Llama3.1 model. This includes:
@@ -75,13 +76,14 @@ def llama3_1(
         intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
             this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`
         norm_eps (float): epsilon in RMS norms.
+        scale_factor (int): scaling factor for RoPE. Default: 8
 
     Returns:
         TransformerDecoder: Instantiation of Llama3.1 model.
     """
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
-    rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+    rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base, scale_factor=scale_factor)
     self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,

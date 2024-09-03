@@ -84,7 +84,8 @@ Let's take a look at a minimal implementation of LoRA in native PyTorch.
 
 .. code-block:: python
 
-  from torch import nn, Tensor
+  import torch
+  from torch import nn
 
   class LoRALinear(nn.Module):
     def __init__(
@@ -114,7 +115,7 @@ Let's take a look at a minimal implementation of LoRA in native PyTorch.
       self.lora_a.weight.requires_grad = True
       self.lora_b.weight.requires_grad = True
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
       # This would be the output of the original model
       frozen_out = self.linear(x)
 
