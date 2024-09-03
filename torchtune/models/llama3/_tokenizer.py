@@ -248,22 +248,24 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
 
         Args:
             messages (List[Message]): The list of messages to tokenize.
-            add_eos (bool): Add the tokenizer's ``eos_id`` (end-of-sequence ID). Default True.
-            add_eot (bool): Add the tokenizer's ``eot_id`` (end-of-turn ID) to final assistant message. Default True.
+            add_eos (bool): Add the tokenizer's ``eos_id`` (end-of-sequence ID). For inference, this should be
+                set to False. Default True.
+            add_eot (bool): Add the tokenizer's ``eot_id`` (end-of-turn ID) to final assistant message. For inference,
+                this should be set to False. Default True.
 
         Examples:
             >>> # Tokenize a list of messages with default settings
             >>> messages = [
-            ...     Message(role="user", content="Hello world!", masked=False),
+            ...     Message(role="user", content="Hello world!", masked=True),
             ...     Message(role="assistant", content="How are you?", masked=False),
             ... ]
-            >>> tokenizer = Llama3Tokenizer("/path/to/model")
+            >>> tokenizer = Llama3Tokenizer("/path/to/tt_model")
             >>> tokenizer.tokenize_messages(messages)
-            ([1, 31587, 29644, 102, 2, 1, 31587, 29644, 102, 2], [True, True, True, True, True, False, False, False, False, True])
+            ([1, 31587, 29644, 102, 1, 31587, 29644, 102, 2], [True, True, True, True, True, False, False, False, True])
 
             >>> # Tokenize a list of messages with add_eos=False, add_eot=False
             >>> tokenizer.tokenize_messages(messages, add_eos=False, add_eot=False)
-            ([1, 31587, 29644, 102, 2, 1, 31587, 29644], [True, True, True, True, True, False, False, False])
+            ([1, 31587, 29644, 102, 1, 31587, 29644], [True, True, True, True, True, False, False])
 
         Returns:
             Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
