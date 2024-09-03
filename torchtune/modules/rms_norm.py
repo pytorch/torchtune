@@ -6,7 +6,7 @@
 
 import torch
 
-from torch import nn, Tensor
+from torch import nn
 
 
 class RMSNorm(nn.Module):
@@ -28,13 +28,13 @@ class RMSNorm(nn.Module):
         self.eps = eps
         self.scale = nn.Parameter(torch.ones(dim))
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            x (Tensor): input tensor to normalize
+            x (torch.Tensor): input tensor to normalize
 
         Returns:
-            Tensor: The output tensor after applying RMSNorm.
+            torch.Tensor: The output tensor after applying RMSNorm.
         """
         # computation is in fp32
         x_fp32 = x.float()

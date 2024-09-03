@@ -32,12 +32,14 @@ Excited? To get started, checkout some of our tutorials, including:
 - our :ref:`LoRA tutorial <lora_finetune_label>` to learn about parameter-efficient finetuning with torchtune.
 - our :ref:`QLoRA tutorial <qlora_finetune_label>` to attain maximal memory efficiency with torchtune.
 
+Eager for more? Check out our :ref:`recipes index<recipes_overview_label>` to see all the fine-tuning techniques we support.
+
 Key Concepts
 ------------
 
 As you go through the tutorials and code, there are two concepts which will help you better understand and use torchtune.
 
-**Configs.** YAML files which help you configure training settings (dataset, model, chekckpoint) and
+**Configs.** YAML files which help you configure training settings (dataset, model, checkpoint) and
 hyperparameters (batch size, learning rate) without modifying code.
 See the ":ref:`All About Configs<config_tutorial_label>`" deep-dive for more information.
 

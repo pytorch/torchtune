@@ -10,11 +10,11 @@ from typing import Dict, Optional, Union
 from torchtune.data import InputOutputToMessages
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
-from torchtune.modules.transforms import Transform
+from torchtune.modules.tokenizers import ModelTokenizer
 
 
 def grammar_dataset(
-    model_transform: Transform,
+    tokenizer: ModelTokenizer,
     *,
     source: str = "liweili/c4_200m",
     column_map: Optional[Dict[str, str]] = None,
@@ -37,27 +37,29 @@ def grammar_dataset(
     - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)
 
     Args:
-        model_transform (Transform): model specific transform to convert a list of messages
-            output by the dataset to tokens. This will always be a :class:`~torchtune.modules.tokenizers.ModelTokenizer`.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path to dataset repository on Hugging Face. For local datasets,
-            define source as the data file type (e.g. "json", "csv", "text") and pass
-            in the filepath in ``data_files``. See `Hugging Face's
+            define source as the data file type (e.g. "json", "csv", "text"), pass
+            in the filepath in ``data_files``, and set ``split="train"``. See `Hugging Face's
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details. Default is ``liweili/c4_200m``.
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the message transform
-            :class:`~torchtune.data.InputOutputToMessages` to the new column names in the dataset. If None, use
+            :class:`~torchtune.data.InputOutputToMessages` to the new column names in the dataset. Keys should be
+            "input" and "output" and values should be the actual column names. If None, use
             the default column names ``"input"`` and ``"output"``in ``liweili/c4_200m``.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         new_system_prompt (Optional[str]): if specified, prepend a system message to every sample. This can
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
-        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
+        packed (bool): Whether or not to pack the dataset to tokenizer's ``max_seq_len`` prior to training. Default is False.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
 
     Returns:
         Union[SFTDataset, PackedDataset]: dataset configured with source data and template
 
+    Raises:
+        ValueError: If ``packed=True`` and ``tokenizer.max_seq_len`` is not set.
 
     Example:
         >>> grammar_ds = grammar_dataset(model_transform=tokenizer)
@@ -74,7 +76,13 @@ def grammar_dataset(
     ds = SFTDataset(
         source=source,
         message_transform=message_transform,
-        model_transform=model_transform,
+        model_transform=tokenizer,
         split=split,
     )
-    return PackedDataset(ds) if packed else ds
+    if packed:
+        if tokenizer.max_seq_len is None:
+            raise ValueError(
+                "PackedDataset requires a max_seq_len to be set on the tokenizer."
+            )
+        return PackedDataset(ds, max_seq_len=tokenizer.max_seq_len)
+    return ds

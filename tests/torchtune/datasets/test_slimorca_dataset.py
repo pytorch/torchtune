@@ -45,7 +45,7 @@ class TestSlimOrcaDataset:
             ]
         )
         ds = slimorca_dataset(
-            model_transform=tokenizer,
+            tokenizer=tokenizer,
             train_on_input=train_on_input,
         )
         # Generate the input and labels

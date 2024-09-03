@@ -120,13 +120,12 @@ converted tensors to the CPU. This offloading is to avoid peaking memory; if we 
 on GPU.
 
 
+.. _qlora_compile_label:
 
 Putting it all together: QLoRA finetune
 -----------------------------------------
 
-.. TODO (SalmanMohammadi) ref lora recipe w qlora conf.
-
-Putting it all together, we can now finetune a model using torchtune's `LoRA recipe <https://github.com/pytorch/torchtune/blob/48626d19d2108f92c749411fbd5f0ff140023a25/recipes/lora_finetune.py>`_,
+Putting it all together, we can now finetune a model using torchtune's :ref:`LoRA single-device finetuning <lora_finetune_recipe_label>` recipe,
 with a `QLoRA configuration <https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_qlora_single_device.yaml>`_.
 
 Make sure that you have first downloaded the Llama2 weights and tokenizer by following :ref:`these instructions<download_llama_label>`.
@@ -196,7 +195,7 @@ A comparison of the smoothed loss curves between QLoRA and LoRA can be seen belo
 .. image:: /_static/img/qlora_exp.png
 
 .. note::
-    The above figure was generated with W&B. You can use torchtune's :class:`~torchtune.utils.metric_logging.WandBLogger`
+    The above figure was generated with W&B. You can use torchtune's :class:`~torchtune.training.metric_logging.WandBLogger`
     to generate similar loss curves, but you will need to install W&B and setup an account separately. For more details on
     using W&B in torchtune, see our ":ref:`wandb_logging`" recipe.
 
@@ -218,7 +217,8 @@ a vanilla minimal LoRA layer, taken from :ref:`the LoRA tutorial <lora_finetune_
 .. code-block:: python
   :emphasize-lines: 3, 13, 19, 20, 39, 40, 41
 
-  from torch import nn, Tensor
+  import torch
+  from torch import nn
   import torch.nn.functional as F
   from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
 
@@ -254,7 +254,7 @@ a vanilla minimal LoRA layer, taken from :ref:`the LoRA tutorial <lora_finetune_
       self.lora_a.weight.requires_grad = True
       self.lora_b.weight.requires_grad = True
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
       # frozen_out would be the output of the original model
       if quantize_base:
         # Call into torchao's linear_nf4 to run linear forward pass w/quantized weight.

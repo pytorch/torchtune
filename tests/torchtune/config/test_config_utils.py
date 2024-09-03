@@ -11,6 +11,7 @@ from unittest import mock
 
 import pytest
 from omegaconf import OmegaConf
+from torchtune.config._parse import TuneRecipeArgumentParser
 from torchtune.config._utils import (
     _get_component_from_path,
     _get_prompt_template,
@@ -21,7 +22,6 @@ from torchtune.config._utils import (
 )
 from torchtune.data._prompt_templates import PromptTemplate
 from torchtune.models.llama2 import Llama2ChatTemplate
-from torchtune.utils.argparse import TuneRecipeArgumentParser
 
 _CONFIG = {
     "a": 1,
@@ -53,7 +53,7 @@ class TestUtils:
         ):
             _ = _get_component_from_path("torchtune.models.dummy")
 
-    @mock.patch("torchtune.utils.argparse.OmegaConf.load", return_value=_CONFIG)
+    @mock.patch("torchtune.config._parse.OmegaConf.load", return_value=_CONFIG)
     def test_merge_yaml_and_cli_args(self, mock_load):
         parser = TuneRecipeArgumentParser("test parser")
         yaml_args, cli_args = parser.parse_known_args(

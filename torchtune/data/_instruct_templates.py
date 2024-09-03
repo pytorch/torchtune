@@ -10,6 +10,10 @@ from typing import Any, Dict, Mapping, Optional
 
 class InstructTemplate(ABC):
     """
+    Note:
+        This class is deprecated and will be removed in a future release. Please use
+        :class:`~torchtune.data.PromptTemplate` for custom instruct templates.
+
     Interface for instruction templates. Each template should include the template
     prompt with placeholders for the data inputs.
     """

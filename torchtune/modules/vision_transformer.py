@@ -268,8 +268,8 @@ class VisionTransformer(nn.Module):
         Notice that to batch it, you will have to pad n_imgs to max_n_imgs and max_num_tiles.
 
         Args:
-            images (torch.Tensor): Tensor with shape (bsz, n_imgs, n_tiles, n_channels, tile_size, tile_size).
-            aspect_ratio (Optional[torch.Tensor]): Tensor with shape (bsz, n_imgs, 2). If all
+            images (torch.Tensor): torch.Tensor with shape (bsz, n_imgs, n_tiles, n_channels, tile_size, tile_size).
+            aspect_ratio (Optional[torch.Tensor]): torch.Tensor with shape (bsz, n_imgs, 2). If all
                 images have a single tile, i.e. they were not tile-cropped, it should be None.
                 Used to calculate the positional embeddings for the tiles.
 

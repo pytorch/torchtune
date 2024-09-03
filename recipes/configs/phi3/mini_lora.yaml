@@ -30,10 +30,11 @@ model:
 tokenizer:
   _component_: torchtune.models.phi3.phi3_mini_tokenizer
   path: /tmp/Phi-3-mini-4k-instruct/tokenizer.model
+  max_seq_len: null
 
 # Checkpointer
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Phi-3-mini-4k-instruct
   checkpoint_files: [
     model-00001-of-00002.safetensors,
@@ -64,7 +65,7 @@ lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
 # Training env
 device: cuda
@@ -76,7 +77,7 @@ dtype: bf16
 # Logging
 output_dir: /tmp/phi3_lora_finetune_output
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: /tmp/Phi-3-mini-4k-instruct/logs
 log_every_n_steps: 1
 log_peak_memory_stats: False

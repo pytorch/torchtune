@@ -195,7 +195,7 @@ First, we modify ``custom_eval_config.yaml`` to include the fine-tuned checkpoin
 .. code-block:: yaml
 
     checkpointer:
-        _component_: torchtune.utils.FullModelHFCheckpointer
+        _component_: torchtune.training.FullModelHFCheckpointer
 
         # directory with the checkpoint files
         # this should match the output_dir specified during
@@ -262,7 +262,7 @@ Let's modify ``custom_generation_config.yaml`` to include the following changes.
 .. code-block:: yaml
 
     checkpointer:
-        _component_: torchtune.utils.FullModelHFCheckpointer
+        _component_: torchtune.training.FullModelHFCheckpointer
 
         # directory with the checkpoint files
         # this should match the output_dir specified during

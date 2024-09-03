@@ -149,7 +149,7 @@ Next, we modify ``custom_eval_config.yaml`` to include the fine-tuned checkpoint
       _component_: torchtune.models.llama3.llama3_8b
 
     checkpointer:
-      _component_: torchtune.utils.FullModelMetaCheckpointer
+      _component_: torchtune.training.FullModelMetaCheckpointer
 
       # directory with the checkpoint files
       # this should match the output_dir specified during
@@ -203,7 +203,7 @@ Now we modify ``custom_generation_config.yaml`` to point to our checkpoint and t
       _component_: torchtune.models.llama3.llama3_8b
 
     checkpointer:
-      _component_: torchtune.utils.FullModelMetaCheckpointer
+      _component_: torchtune.training.FullModelMetaCheckpointer
 
       # directory with the checkpoint files
       # this should match the output_dir specified during
