@@ -5,40 +5,15 @@
 # LICENSE file in the root directory of this source tree.
 
 from ._device import get_device
-from ._distributed import (  # noqa
-    contains_fsdp,
-    FSDPPolicyType,
-    get_full_finetune_fsdp_wrap_policy,
-    get_full_model_state_dict,
-    get_full_optimizer_state_dict,
-    get_world_size_and_rank,
-    init_distributed,
-    is_distributed,
-    load_from_full_model_state_dict,
-    load_from_full_optimizer_state_dict,
-    lora_fsdp_wrap_policy,
-    prepare_model_for_fsdp_with_meta_device,
-    set_torch_num_threads,
-    shard_model,
-    validate_no_params_on_meta_device,
-)
-from ._generation import generate, generate_next_token  # noqa
+from ._generation import generate, generate_next_token
 
 from ._version import torch_version_ge
 from .logging import get_logger
 
 __all__ = [
-    "update_state_dict_for_classifier",
-    "FSDPPolicyType",
     "get_device",
     "get_logger",
-    "get_world_size_and_rank",
-    "init_distributed",
-    "is_distributed",
-    "lora_fsdp_wrap_policy",
-    "get_full_finetune_fsdp_wrap_policy",
     "torch_version_ge",
     "generate",
     "generate_next_token",
-    "shard_model",
 ]
