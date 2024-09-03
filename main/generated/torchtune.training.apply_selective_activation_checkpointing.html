@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>get_quantizer_mode &mdash; torchtune main documentation</title>
+  <title>apply_selective_activation_checkpointing &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="apply_selective_activation_checkpointing" href="torchtune.training.apply_selective_activation_checkpointing.html" />
-    <link rel="prev" title="validate_expected_param_dtype" href="torchtune.training.validate_expected_param_dtype.html" />
+    <link rel="next" title="CometLogger" href="torchtune.training.metric_logging.CometLogger.html" />
+    <link rel="prev" title="get_quantizer_mode" href="torchtune.training.get_quantizer_mode.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -380,13 +380,13 @@
         
           <li><a href="../api_ref_training.html">torchtune.training</a> &gt;</li>
         
-      <li>get_quantizer_mode</li>
+      <li>apply_selective_activation_checkpointing</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.training.get_quantizer_mode.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.training.apply_selective_activation_checkpointing.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -416,28 +416,22 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="get-quantizer-mode">
-<h1>get_quantizer_mode<a class="headerlink" href="#get-quantizer-mode" title="Permalink to this heading">¶</a></h1>
+  <section id="apply-selective-activation-checkpointing">
+<h1>apply_selective_activation_checkpointing<a class="headerlink" href="#apply-selective-activation-checkpointing" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.training.get_quantizer_mode">
-<span class="sig-prename descclassname"><span class="pre">torchtune.training.</span></span><span class="sig-name descname"><span class="pre">get_quantizer_mode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quantizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.12)"><span class="pre">Callable</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/training/quantization.html#get_quantizer_mode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.training.get_quantizer_mode" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given a quantizer object, returns a string that specifies the type of quantization.</p>
-<p>For example, in the case of int4 weight only quantization, we’ll return “4w”.
-If the quantizer is not recognized as a known quantizer, we’ll return None.</p>
-<p>Currently supported:</p>
-<ul class="simple">
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Int8DynActInt4WeightQuantizer</span></code>: “8da4w” (requires <code class="docutils literal notranslate"><span class="pre">torch&gt;=2.3.0</span></code>)</p></li>
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Int8DynActInt4WeightQATQuantizer</span></code>: “8da4w-qat” (requires <code class="docutils literal notranslate"><span class="pre">torch&gt;=2.4.0</span></code>)</p></li>
-</ul>
+<dt class="sig sig-object py" id="torchtune.training.apply_selective_activation_checkpointing">
+<span class="sig-prename descclassname"><span class="pre">torchtune.training.</span></span><span class="sig-name descname"><span class="pre">apply_selective_activation_checkpointing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ac_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ac_option</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.12)"><span class="pre">Union</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/training/activations.html#apply_selective_activation_checkpointing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.training.apply_selective_activation_checkpointing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Utility to setup activation checkpointing and wrap the model for checkpointing.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>quantizer</strong> (<em>Optional</em><em>[</em><em>Callable</em><em>]</em>) – A callable object that implements the <cite>quantize</cite> method.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The quantization mode.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Optional[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a>]</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>nn.Module</em>) – Model to setup activation checkpointing.</p></li>
+<li><p><strong>ac_mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Activation checkpointing mode. [‘none’, ‘full’, ‘selective’]</p></li>
+<li><p><strong>ac_option</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em><em>]</em>) – Activation checkpointing option. If ac_mode is
+“selective”, ac_option can be an integer or a string representing the number of layers
+to checkpoint. If ac_mode is “selective” and ac_option is “op”, then selective op ac is run.
+If ac_mode is “none” or “full”, ac_option is ignored.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -452,10 +446,10 @@ If the quantizer is not recognized as a known quantizer, we’ll return None.</p
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.training.apply_selective_activation_checkpointing.html" class="btn btn-neutral float-right" title="apply_selective_activation_checkpointing" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.training.metric_logging.CometLogger.html" class="btn btn-neutral float-right" title="CometLogger" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.training.validate_expected_param_dtype.html" class="btn btn-neutral" title="validate_expected_param_dtype" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.training.get_quantizer_mode.html" class="btn btn-neutral" title="get_quantizer_mode" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -487,7 +481,7 @@ If the quantizer is not recognized as a known quantizer, we’ll return None.</p
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">get_quantizer_mode</a></li>
+<li><a class="reference internal" href="#">apply_selective_activation_checkpointing</a></li>
 </ul>
 
             </div>
