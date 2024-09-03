@@ -339,6 +339,26 @@ class TestLlama3Tokenizer:
         assert tokens == expected_tokens
         assert mask == expected_mask
 
+    def test_tokenize_message_drop_eot_and_eos(
+        self, tokenizer, user_text_message, assistant_text_message
+    ):
+        """
+        Test that the tokenizer will not add an EOS token or EOT token if user requests it.
+        This is the most common case for inference.
+        """
+        text_messages = [user_text_message[0], assistant_text_message[0]]
+        # Chop the end of the assistant message to remove the EOS token *and* EOT token
+        expected_tokens = user_text_message[1] + assistant_text_message[1][:-2]
+        # No need to mask out the EOS token *or* EOT token at the end since they are not there
+        expected_mask = [True] * len(user_text_message[1]) + [False] * (
+            len(assistant_text_message[1]) - 2
+        )
+        tokens, mask = tokenizer.tokenize_messages(
+            text_messages, add_eos=False, add_eot=False
+        )
+        assert tokens == expected_tokens
+        assert mask == expected_mask
+
     def test_tokenize_image_and_text_messages(
         self, tokenizer, user_image_text_message, assistant_text_message
     ):

@@ -241,13 +241,29 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         self,
         messages: List[Message],
         add_eos: bool = True,
+        add_eot: bool = True,
     ) -> Tuple[List[int], List[bool]]:
         """
         Tokenize a list of messages into a list of token ids and masks.
 
         Args:
             messages (List[Message]): The list of messages to tokenize.
-            add_eos (bool): Wether to add the tokenizer's eos_id. Default True.
+            add_eos (bool): Add the tokenizer's ``eos_id`` (end-of-sequence ID). Default True.
+            add_eot (bool): Add the tokenizer's ``eot_id`` (end-of-turn ID) to final assistant message. Default True.
+
+        Examples:
+            >>> # Tokenize a list of messages with default settings
+            >>> messages = [
+            ...     Message(role="user", content="Hello world!", masked=False),
+            ...     Message(role="assistant", content="How are you?", masked=False),
+            ... ]
+            >>> tokenizer = Llama3Tokenizer("/path/to/model")
+            >>> tokenizer.tokenize_messages(messages)
+            ([1, 31587, 29644, 102, 2, 1, 31587, 29644, 102, 2], [True, True, True, True, True, False, False, False, False, True])
+
+            >>> # Tokenize a list of messages with add_eos=False, add_eot=False
+            >>> tokenizer.tokenize_messages(messages, add_eos=False, add_eot=False)
+            ([1, 31587, 29644, 102, 2, 1, 31587, 29644], [True, True, True, True, True, False, False, False])
 
         Returns:
             Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
@@ -261,7 +277,11 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         # bos and eos are always masked
         mask = [True]
         for message in templated_messages:
-            tokenized_message = self.tokenize_message(message)
+            tokenized_message = self.tokenize_message(
+                message,
+                tokenize_header=True,
+                tokenize_end=add_eot if message.role == "assistant" else True,
+            )
 
             tokens = tokens + tokenized_message
             mask = mask + ([message.masked] * len(tokenized_message))
