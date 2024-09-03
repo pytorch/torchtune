@@ -4,6 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from pathlib import Path
+from textwrap import dedent
+
 import pytest
 from omegaconf import OmegaConf
 from torchtune.config._errors import InstantiationError
@@ -74,3 +77,18 @@ class TestInstantiate:
         del config.test.dim
         actual = instantiate(config.test, 3)
         assert self.get_dim(actual) == 3
+
+    def test_tokenizer_config_with_null(self):
+        assets = Path(__file__).parent.parent.parent / "assets"
+        s = dedent(
+            f"""\
+        tokenizer:
+          _component_: torchtune.models.llama2.llama2_tokenizer
+          max_seq_len: null
+          path: {assets / 'm.model'}
+        """
+        )
+        config = OmegaConf.create(s)
+
+        tokenizer = instantiate(config.tokenizer)
+        assert tokenizer.max_seq_len is None

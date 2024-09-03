@@ -7,8 +7,7 @@
 from typing import Optional
 
 import torch
-
-from torch import nn, Tensor
+from torch import nn
 
 
 class RotaryPositionalEmbeddings(nn.Module):
@@ -72,19 +71,21 @@ class RotaryPositionalEmbeddings(nn.Module):
         cache = torch.stack([torch.cos(idx_theta), torch.sin(idx_theta)], dim=-1)
         self.register_buffer("cache", cache, persistent=False)
 
-    def forward(self, x: Tensor, *, input_pos: Optional[Tensor] = None) -> Tensor:
+    def forward(
+        self, x: torch.Tensor, *, input_pos: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """
         Args:
-            x (Tensor): input tensor with shape
+            x (torch.Tensor): input tensor with shape
                 [b, s, n_h, h_d]
-            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b, s].
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
 
         Returns:
-            Tensor: output tensor with RoPE applied
+            torch.Tensor: output tensor with RoPE applied
 
         Notation used for tensor shapes:
             - b: batch size

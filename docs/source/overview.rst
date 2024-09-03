@@ -39,7 +39,7 @@ Key Concepts
 
 As you go through the tutorials and code, there are two concepts which will help you better understand and use torchtune.
 
-**Configs.** YAML files which help you configure training settings (dataset, model, chekckpoint) and
+**Configs.** YAML files which help you configure training settings (dataset, model, checkpoint) and
 hyperparameters (batch size, learning rate) without modifying code.
 See the ":ref:`All About Configs<config_tutorial_label>`" deep-dive for more information.
 

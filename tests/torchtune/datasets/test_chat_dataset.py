@@ -4,13 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from unittest import mock
-
 import pytest
+from tests.common import ASSETS
 from tests.test_utils import DummyChatFormat, DummyTokenizer
-from torchtune.data import Message
+from torchtune.data import get_sharegpt_messages
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.datasets import ChatDataset
+from torchtune.datasets import chat_dataset, ChatDataset
 
 
 class TestChatDataset:
@@ -18,49 +17,7 @@ class TestChatDataset:
     def chat_format(self):
         return DummyChatFormat
 
-    @pytest.fixture
-    def dialogue(self):
-        return [
-            {
-                "dialogue": [
-                    Message.from_dict(
-                        {
-                            "role": "system",
-                            "content": "You are an AI assistant.",
-                            "masked": True,
-                        }
-                    ),
-                    Message.from_dict(
-                        {
-                            "role": "user",
-                            "content": "What is the meaning of life?",
-                            "masked": True,
-                        }
-                    ),
-                    Message.from_dict(
-                        {
-                            "role": "assistant",
-                            "content": "The meaning of life is 42.",
-                            "masked": False,
-                        }
-                    ),
-                    Message.from_dict(
-                        {
-                            "role": "user",
-                            "content": "That's ridiculous.",
-                            "masked": True,
-                        }
-                    ),
-                    Message.from_dict(
-                        {"role": "assistant", "content": "I agree.", "masked": False}
-                    ),
-                ],
-            },
-        ]
-
-    @mock.patch("torchtune.datasets._chat.load_dataset")
-    def test_get_item(self, mock_load_dataset, chat_format, dialogue):
-        mock_load_dataset.return_value = dialogue
+    def test_get_item(self, chat_format):
         expected_tokenized_prompts = [
             [
                 0,
@@ -104,15 +61,68 @@ class TestChatDataset:
         ]
         ds = ChatDataset(
             tokenizer=DummyTokenizer(),
-            source="iam/agoofy/goober",
-            convert_to_messages=lambda x, y: x["dialogue"],
+            source="json",
+            convert_to_messages=get_sharegpt_messages,
             chat_format=chat_format,
             max_seq_len=100,
             train_on_input=False,
+            data_files=str(ASSETS / "chat_tiny.json"),
+            split="train",
         )
         assert len(ds) == 1
-        mock_load_dataset.assert_called_once()
+        prompt, label = ds[0]["tokens"], ds[0]["labels"]
+        assert prompt == expected_tokenized_prompts[0]
+        assert label == expected_labels[0]
 
+        expected_tokenized_prompts = [
+            [
+                0,
+                3,
+                3,
+                2,
+                2,
+                10,
+                4,
+                2,
+                3,
+                7,
+                2,
+                5,
+                3,
+                7,
+                2,
+                4,
+                2,
+                3,
+                -1,
+                0,
+                6,
+                11,
+                1,
+                6,
+                -1,
+            ]
+        ]
+        prompt_lengths = (12, 3)
+        expected_labels = [
+            [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[0]
+            + [3, 7, 2, 4, 2, 3, -1]
+            + [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[1]
+            + [1, 6, -1]
+        ]
+
+        ds = chat_dataset(
+            tokenizer=DummyTokenizer(),
+            source="json",
+            data_files=str(ASSETS / "chat_tiny.json"),
+            conversation_column="conversations",
+            conversation_style="sharegpt",
+            train_on_input=False,
+            packed=False,
+            split="train",
+        )
+
+        assert len(ds) == 1
         prompt, label = ds[0]["tokens"], ds[0]["labels"]
         assert prompt == expected_tokenized_prompts[0]
         assert label == expected_labels[0]

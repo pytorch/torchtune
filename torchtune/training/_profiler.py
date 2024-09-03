@@ -200,7 +200,7 @@ def setup_torch_profiler(
     .. code-block:: yaml
 
         profiler:
-          _component_: torchtune.utils.setup_torch_profiler
+          _component_: torchtune.training.setup_torch_profiler
           enabled: bool
           # Output directory of trace artifacts
           output_dir: str

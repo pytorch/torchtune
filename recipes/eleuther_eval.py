@@ -15,7 +15,7 @@ from omegaconf import DictConfig
 from torch import nn
 from torch.nn.utils.rnn import pad_sequence
 
-from torchtune import config, utils
+from torchtune import config, training, utils
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.recipe_interfaces import EvalRecipeInterface
@@ -48,6 +48,7 @@ class _EvalWrapper(HFLM):
         max_seq_length (int): The maximum sequence length to use.
         batch_size (int): The batch size per GPU to use.
         dtype (torch.dtype): dtype for the model caches during generation.
+        enable_kv_cache (bool): Whether to enable KV cache for generation.
     """
 
     def __init__(
@@ -59,6 +60,7 @@ class _EvalWrapper(HFLM):
         max_seq_length: int = 4096,
         batch_size: int = 8,
         dtype: torch.dtype = torch.float32,
+        enable_kv_cache: bool = True,
     ):
         super().__init__(pretrained="gpt2", device=str(device))
         self._model = model
@@ -66,6 +68,7 @@ class _EvalWrapper(HFLM):
         self._max_seq_length = max_seq_length
         self._batch_size = batch_size
         self._dtype = dtype
+        self._enable_kv_cache = enable_kv_cache
 
     @property
     def model(self):
@@ -90,6 +93,10 @@ class _EvalWrapper(HFLM):
     @property
     def device(self):
         return self._device
+
+    @property
+    def enable_kv_cache(self):
+        return self._enable_kv_cache
 
     def tok_encode(self, text: str, **kwargs) -> List[int]:
         # Note on add_bos flag: setting to False as this gives better results, for example
@@ -140,8 +147,9 @@ class _EvalWrapper(HFLM):
         # Technically this is not necessary, but it's a good way to ensure that
         # the caches won't error on a different batch size. In addition, caches
         # are not needed for a regular model call, so we just setup here
-        with context.device:
-            self._model.setup_caches(batch_size=curr_batch_size, dtype=self._dtype)
+        if self.enable_kv_cache:
+            with context.device:
+                self._model.setup_caches(batch_size=curr_batch_size, dtype=self._dtype)
 
         temperature = generation_kwargs.get("temperature", 0.0)
         do_sample = generation_kwargs.get("do_sample", False)
@@ -188,11 +196,12 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
     def setup(self) -> None:
         self._device = utils.get_device(device=self._cfg.device)
-        self._dtype = utils.get_dtype(dtype=self._cfg.dtype, device=self._device)
+        self._dtype = training.get_dtype(dtype=self._cfg.dtype, device=self._device)
         self._limit = self._cfg.limit
         self._tasks = list(self._cfg.tasks)
         self._quantizer = config.instantiate(self._cfg.quantizer)
-        self._quantization_mode = utils.get_quantizer_mode(self._quantizer)
+        self._quantization_mode = training.get_quantizer_mode(self._quantizer)
+        self._enable_kv_cache = self._cfg.get("enable_kv_cache", True)
 
         utils.set_seed(seed=self._cfg.seed)
 
@@ -207,7 +216,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
         self._model = self._setup_model(
             model_cfg=self._cfg.model,
-            model_state_dict=ckpt_dict[utils.MODEL_KEY],
+            model_state_dict=ckpt_dict[training.MODEL_KEY],
         )
         self._tokenizer = config.instantiate(self._cfg.tokenizer)
         logger.info("Tokenizer is initialized from file.")
@@ -217,7 +226,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         model_cfg: DictConfig,
         model_state_dict: Dict[str, Any],
     ) -> nn.Module:
-        with utils.set_default_dtype(self._dtype), self._device:
+        with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
         if self._quantization_mode is not None:
             model = self._quantizer.quantize(model)
@@ -231,7 +240,9 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         model.eval()
 
         # Validate model was loaded in with the expected dtype.
-        utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)
+        training.validate_expected_param_dtype(
+            model.named_parameters(), dtype=self._dtype
+        )
         logger.info(f"Model is initialized with precision {self._dtype}.")
         return model
 
@@ -246,6 +257,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
             max_seq_length=self._cfg.max_seq_length,
             batch_size=self._cfg.batch_size,
             dtype=self._dtype,
+            enable_kv_cache=self._enable_kv_cache,
         )
 
         # Task initialization API changed between v0.4.1 and 0.4.2

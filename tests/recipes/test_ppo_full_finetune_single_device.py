@@ -43,6 +43,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
             "tokenizer._component_=torchtune.models.llama2.llama2_tokenizer",
             "tokenizer.prompt_template=null",
+            "tokenizer.max_seq_len=64",
             "seed=9",
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
@@ -67,7 +68,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         tune run ppo_full_finetune_single_device \
             --config mistral/7B_full_ppo_low_memory \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{policy_ckpt_path}]\
             checkpointer.output_dir={policy_tmpdir} \
@@ -83,7 +84,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             reward_checkpointer.checkpoint_dir='{ckpt_dir}' \
             reward_checkpointer.checkpoint_files=[{reward_ckpt_path}]\
 
-            metric_logger._component_=torchtune.utils.metric_logging.DiskLogger \
+            metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={log_file} \
         """.split()
 
@@ -157,7 +158,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         tune run ppo_full_finetune_single_device \
             --config mistral/7B_full_ppo_low_memory \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{policy_ckpt_path}]\
             checkpointer.output_dir={policy_tmpdir} \
@@ -173,7 +174,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             reward_checkpointer.checkpoint_dir='{ckpt_dir}' \
             reward_checkpointer.checkpoint_files=[{reward_ckpt_path}]\
 
-            metric_logger._component_=torchtune.utils.metric_logging.DiskLogger \
+            metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={log_file} \
         """.split()
 
@@ -209,7 +210,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         tune run ppo_full_finetune_single_device \
             --config mistral/7B_full_ppo_low_memory \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{policy_tmpdir}' \
             checkpointer.checkpoint_files=[{os.path.join(policy_tmpdir, "hf_model_0001_0.pt")}]\
             checkpointer.recipe_checkpoint={os.path.join(policy_tmpdir, "recipe_state.pt")}\
@@ -227,7 +228,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             reward_checkpointer.checkpoint_files=[{reward_ckpt_path}]\
 
             resume_from_checkpoint=True \
-            metric_logger._component_=torchtune.utils.metric_logging.DiskLogger \
+            metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={resumed_log_file} \
         """.split()
 
@@ -277,7 +278,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         tune run ppo_full_finetune_single_device \
             --config mistral/7B_full_ppo_low_memory \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{policy_ckpt_path}]\
             checkpointer.output_dir={policy_tmpdir} \
@@ -293,7 +294,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             reward_checkpointer.checkpoint_dir='{ckpt_dir}' \
             reward_checkpointer.checkpoint_files=[{reward_ckpt_path}]\
 
-            metric_logger._component_=torchtune.utils.metric_logging.DiskLogger \
+            metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={log_file} \
 
             optimizer_in_bwd=True
@@ -331,7 +332,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         tune run ppo_full_finetune_single_device \
             --config mistral/7B_full_ppo_low_memory \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{policy_tmpdir}' \
             checkpointer.checkpoint_files=[{os.path.join(policy_tmpdir, "hf_model_0001_0.pt")}]\
             checkpointer.recipe_checkpoint={os.path.join(policy_tmpdir, "recipe_state.pt")}\
@@ -349,7 +350,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             reward_checkpointer.checkpoint_files=[{reward_ckpt_path}]\
 
             resume_from_checkpoint=True \
-            metric_logger._component_=torchtune.utils.metric_logging.DiskLogger \
+            metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={resumed_log_file} \
 
             optimizer_in_bwd=True
