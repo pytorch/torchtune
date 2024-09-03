@@ -15,6 +15,7 @@ import torch.nn as nn
 from torch._subclasses.fake_tensor import FakeTensorConverter, FakeTensorMode
 from torchao.dtypes.nf4tensor import NF4Tensor
 
+_use_low_cpu_ram: bool = False
 
 def reparametrize_as_dtype_state_dict_post_hook(
     model: nn.Module,
@@ -130,3 +131,32 @@ if torch.__version__ >= "2.5.0.dev20240830" and not sys.platform == "win32":
 
 else:
     _low_ram_reparametrize_as_dtype_state_dict_post_hook = None
+
+def _register_reparametrize_state_dict_hooks(
+    module: nn.Module,
+    dtype: torch.dtype = torch.bfloat16,
+    offload_to_cpu: bool = True,
+):
+    """
+    Register the reparametrize state dict hooks to the module and its submodules.
+
+    This function is a wrapper that is meant to toggle between the low_cpu_ram
+    and regular versions of the ``reparametrize_as_dtype`` state dict hooks.
+
+    Args:
+        module (nn.Module): the module to register the hooks to.
+    """
+    if _use_low_cpu_ram:
+        if torch.__version__ < "2.5.0.dev20240830":
+            raise RuntimeError(
+                "Low RAM reparametrize_as_dtype_state_dict_post_hook requires PyTorch 2.5.0.dev20240830 or later."
+            )
+        elif sys.platform == "win32":
+            raise RuntimeError(
+                "Low RAM reparametrize_as_dtype_state_dict_post_hook is not supported on Windows."
+            )
+        else:
+            hook = _low_ram_reparametrize_as_dtype_state_dict_post_hook
+    else:
+        hook = reparametrize_as_dtype_state_dict_post_hook
+    module._register_state_dict_post_hook(partial(hook, dtype=dtype, offload_to_cpu=offload_to_cpu))
