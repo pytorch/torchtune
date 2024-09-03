@@ -73,11 +73,10 @@ def apply_selective_activation_checkpointing(
     Args:
         model (nn.Module): Model to setup activation checkpointing.
         ac_mode (str): Activation checkpointing mode. ['none', 'full', 'selective']
-        ac_option (Optional[Union[int, str]]): Activation checkpointing option.
-            - If ac_mode is 'selective', ac_option can be an integer or a string
-              representing the number of layers to checkpoint.
-            - If ac_mode is 'selective' and ac_option is 'op', then selective op ac is run.
-            - If ac_mode is 'none' or 'full, ac_option is ignored.
+        ac_option (Optional[Union[int, str]]): Activation checkpointing option. If ac_mode is
+            "selective", ac_option can be an integer or a string representing the number of layers
+            to checkpoint. If ac_mode is "selective" and ac_option is "op", then selective op ac is run.
+            If ac_mode is "none" or "full", ac_option is ignored.
     """
 
     for layer_id, transformer_block in enumerate(model.layers):

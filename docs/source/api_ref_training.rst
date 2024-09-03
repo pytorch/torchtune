@@ -54,6 +54,17 @@ Utilities to reduce memory consumption during training.
     create_optim_in_bwd_wrapper
     register_optim_in_bwd_hooks
 
+Memory Management
+-----------------
+
+Utilities to reduce memory consumption during training.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    apply_selective_activation_checkpointing
+
 .. _metric_logging_label:
 
 Metric Logging

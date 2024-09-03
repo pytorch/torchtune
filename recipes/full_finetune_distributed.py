@@ -25,7 +25,7 @@ from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
-from torchtune.utils.activations import apply_selective_activation_checkpointing
+from torchtune.training.activations import apply_selective_activation_checkpointing
 
 from tqdm import tqdm
 
