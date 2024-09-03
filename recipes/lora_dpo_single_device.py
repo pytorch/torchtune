@@ -410,11 +410,10 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 }
             )
 
-        # Move to CPU to avoid a copy on GPU
-        state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
-
         # Construct the full state dict with LoRA weights merged into base LLM weights
         if not self._save_adapter_weights_only:
+            # Move to CPU to avoid a copy on GPU
+            state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
             merged_state_dict = get_merged_lora_ckpt(
                 state_dict,
                 rank=self._lora_rank,
