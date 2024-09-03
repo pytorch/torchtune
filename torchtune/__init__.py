@@ -17,10 +17,10 @@ try:
 except ImportError as e:
     raise ImportError(
         """
-    torchao not installed.
-    Please follow the instructions at https://pytorch.org/torchtune/main/install.html#pre-requisites
-    to install torchao.
-    """
+        torchao not installed.
+        Please follow the instructions at https://pytorch.org/torchtune/main/install.html#pre-requisites
+        to install torchao.
+        """
     ) from e
 
 from torchtune import datasets, models, modules, utils
