@@ -7,10 +7,11 @@
 <head>
   <meta name="robots" content="noindex">
   <meta charset="utf-8">
-  
+  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.utils.seed &mdash; torchtune main documentation</title>
+  <title>set_seed &mdash; torchtune main documentation</title>
   
 
   
@@ -26,20 +27,22 @@
 
   
 
-  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
-  <!-- <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" /> -->
-  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/copybutton.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/sg_gallery.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/sg_gallery-binder.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/sg_gallery-dataframe.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/sg_gallery-rendered-html.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/css/custom_torchtune.css" type="text/css" />
-    <link rel="index" title="Index" href="../../../genindex.html" />
-    <link rel="search" title="Search" href="../../../search.html" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="torchtune.utils" href="../api_ref_utilities.html" />
+    <link rel="prev" title="get_unmasked_sequence_lengths" href="torchtune.training.get_unmasked_sequence_lengths.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -50,16 +53,16 @@
   
 
   
-  <script src="../../../_static/js/modernizr.min.js"></script>
+  <script src="../_static/js/modernizr.min.js"></script>
 
   <!-- Preload the theme fonts -->
 
-<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
 
 <!-- Preload the katex fonts -->
 
@@ -279,7 +282,7 @@
 
 
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
     <input type="text" name="q" placeholder="Search Docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -296,45 +299,45 @@
             
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">torchtune Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tune_cli.html">torchtune CLI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tune_cli.html">torchtune CLI</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Finetuning Recipes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../recipes/recipes_overview.html">Recipes Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/recipes_overview.html">Recipes Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/configs.html">All About Configs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/comet_logging.html">Logging to Comet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All About Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_config.html">torchtune.config</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_data.html">torchtune.data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_datasets.html">torchtune.datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_models.html">torchtune.models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_modules.html">torchtune.modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_training.html">torchtune.training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_utilities.html">torchtune.utils</a></li>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -367,7 +370,7 @@
   <ul class="pytorch-breadcrumbs">
     
       <li>
-        <a href="../../../index.html">
+        <a href="../index.html">
           
             Docs
           
@@ -375,12 +378,16 @@
       </li>
 
         
-          <li><a href="../../index.html">Module code</a> &gt;</li>
+          <li><a href="../api_ref_training.html">torchtune.training</a> &gt;</li>
         
-      <li>torchtune.utils.seed</li>
+      <li>set_seed</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/generated/torchtune.training.set_seed.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+          
         
       </li>
     
@@ -409,96 +416,59 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>Source code for torchtune.utils.seed</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
-<span class="c1"># All rights reserved.</span>
-<span class="c1">#</span>
-<span class="c1"># This source code is licensed under the BSD-style license found in the</span>
-<span class="c1"># LICENSE file in the root directory of this source tree.</span>
+  <section id="set-seed">
+<h1>set_seed<a class="headerlink" href="#set-seed" title="Permalink to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="torchtune.training.set_seed">
+<span class="sig-prename descclassname"><span class="pre">torchtune.training.</span></span><span class="sig-name descname"><span class="pre">set_seed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.12)"><span class="pre">Union</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></span><a class="reference internal" href="../_modules/torchtune/training/seed.html#set_seed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.training.set_seed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function that sets seed for pseudo-random number generators across commonly used libraries.</p>
+<p>This seeds PyTorch, NumPy, and the python.random module. For distributed jobs, each local process
+sets its own seed, computed seed + rank.
+For more details, see <a class="reference external" href="https://pytorch.org/docs/stable/notes/randomness.html">https://pytorch.org/docs/stable/notes/randomness.html</a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>seed</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – the integer value seed. If <cite>None</cite>, a random seed will be generated and set.</p></li>
+<li><p><strong>debug_mode</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em><em>]</em>) – <p>Controls debug_mode settings for deterministic operations within PyTorch.</p>
+<ul>
+<li><p>If <cite>None</cite>, don’t set any PyTorch global values.</p></li>
+<li><p>If “default” or 0, don’t error or warn on nondeterministic operations and additionally enable PyTorch CuDNN benchmark.</p></li>
+<li><p>If “warn” or 1, warn on nondeterministic operations and disable PyTorch CuDNN benchmark.</p></li>
+<li><p>If “error” or 2, error on nondeterministic operations and disable PyTorch CuDNN benchmark.</p></li>
+<li><p>For more details, see <a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.set_deterministic_debug_mode.html#torch.set_deterministic_debug_mode" title="(in PyTorch v2.4)"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch.set_deterministic_debug_mode()</span></code></a> and
+<a class="reference external" href="https://pytorch.org/docs/stable/notes/randomness.html#avoiding-nondeterministic-algorithms">https://pytorch.org/docs/stable/notes/randomness.html#avoiding-nondeterministic-algorithms</a>.</p></li>
+</ul>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the current seed</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)">int</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If the input seed value is outside the required range.</p>
+</dd>
+</dl>
+</dd></dl>
 
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">os</span>
+</section>
 
-<span class="kn">import</span> <span class="nn">random</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
-
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">torch</span>
-
-<span class="kn">from</span> <span class="nn">torchtune.utils._distributed</span> <span class="kn">import</span> <span class="n">_broadcast_tensor</span><span class="p">,</span> <span class="n">get_world_size_and_rank</span>
-<span class="kn">from</span> <span class="nn">torchtune.utils.logging</span> <span class="kn">import</span> <span class="n">get_logger</span>
-
-<span class="n">_log</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">()</span>
-
-
-<div class="viewcode-block" id="set_seed"><a class="viewcode-back" href="../../../generated/torchtune.utils.set_seed.html#torchtune.utils.set_seed">[docs]</a><span class="k">def</span> <span class="nf">set_seed</span><span class="p">(</span>
-    <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">debug_mode</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Function that sets seed for pseudo-random number generators across commonly used libraries.</span>
-
-<span class="sd">    This seeds PyTorch, NumPy, and the python.random module. For distributed jobs, each local process</span>
-<span class="sd">    sets its own seed, computed seed + rank.</span>
-<span class="sd">    For more details, see https://pytorch.org/docs/stable/notes/randomness.html.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        seed (Optional[int]): the integer value seed. If `None`, a random seed will be generated and set.</span>
-<span class="sd">        debug_mode (Optional[Union[str, int]]): Controls debug_mode settings for deterministic operations within PyTorch.</span>
-
-<span class="sd">            * If `None`, don&#39;t set any PyTorch global values.</span>
-<span class="sd">            * If &quot;default&quot; or 0, don&#39;t error or warn on nondeterministic operations and additionally enable PyTorch CuDNN benchmark.</span>
-<span class="sd">            * If &quot;warn&quot; or 1, warn on nondeterministic operations and disable PyTorch CuDNN benchmark.</span>
-<span class="sd">            * If &quot;error&quot; or 2, error on nondeterministic operations and disable PyTorch CuDNN benchmark.</span>
-<span class="sd">            * For more details, see :func:`torch.set_deterministic_debug_mode` and</span>
-<span class="sd">              https://pytorch.org/docs/stable/notes/randomness.html#avoiding-nondeterministic-algorithms.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        int: the current seed</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If the input seed value is outside the required range.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">world_size</span><span class="p">,</span> <span class="n">rank</span> <span class="o">=</span> <span class="n">get_world_size_and_rank</span><span class="p">()</span>
-    <span class="n">max_val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">)</span><span class="o">.</span><span class="n">max</span> <span class="o">-</span> <span class="n">world_size</span> <span class="o">+</span> <span class="mi">1</span>
-    <span class="n">min_val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">)</span><span class="o">.</span><span class="n">min</span>
-    <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">rand_seed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">min_val</span><span class="p">,</span> <span class="n">max_val</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,))</span>
-        <span class="n">seed</span> <span class="o">=</span> <span class="n">_broadcast_tensor</span><span class="p">(</span><span class="n">rand_seed</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>  <span class="c1"># sync seed across ranks</span>
-    <span class="k">if</span> <span class="n">seed</span> <span class="o">&lt;</span> <span class="n">min_val</span> <span class="ow">or</span> <span class="n">seed</span> <span class="o">&gt;</span> <span class="n">max_val</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Invalid seed value provided: </span><span class="si">{</span><span class="n">seed</span><span class="si">}</span><span class="s2">. Value must be in the range [</span><span class="si">{</span><span class="n">min_val</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">max_val</span><span class="si">}</span><span class="s2">]&quot;</span>
-        <span class="p">)</span>
-    <span class="n">local_seed</span> <span class="o">=</span> <span class="n">seed</span> <span class="o">+</span> <span class="n">rank</span>
-    <span class="k">if</span> <span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Setting manual seed to local seed </span><span class="si">{</span><span class="n">local_seed</span><span class="si">}</span><span class="s2">. Local seed is seed + rank = </span><span class="si">{</span><span class="n">seed</span><span class="si">}</span><span class="s2"> + </span><span class="si">{</span><span class="n">rank</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="p">)</span>
-
-    <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">local_seed</span><span class="p">)</span>
-    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">local_seed</span><span class="p">)</span>
-    <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">local_seed</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">debug_mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Setting deterministic debug mode to </span><span class="si">{</span><span class="n">debug_mode</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">set_deterministic_debug_mode</span><span class="p">(</span><span class="n">debug_mode</span><span class="p">)</span>
-        <span class="n">deterministic_debug_mode</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">get_deterministic_debug_mode</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">deterministic_debug_mode</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Disabling cuDNN deterministic mode&quot;</span><span class="p">)</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">cudnn</span><span class="o">.</span><span class="n">deterministic</span> <span class="o">=</span> <span class="kc">False</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">cudnn</span><span class="o">.</span><span class="n">benchmark</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Enabling cuDNN deterministic mode&quot;</span><span class="p">)</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">cudnn</span><span class="o">.</span><span class="n">deterministic</span> <span class="o">=</span> <span class="kc">True</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">cudnn</span><span class="o">.</span><span class="n">benchmark</span> <span class="o">=</span> <span class="kc">False</span>
-            <span class="c1"># reference: https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;CUBLAS_WORKSPACE_CONFIG&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;:4096:8&quot;</span>
-
-    <span class="k">return</span> <span class="n">seed</span></div>
-</pre></div>
 
              </article>
              
             </div>
             <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../api_ref_utilities.html" class="btn btn-neutral float-right" title="torchtune.utils" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+      
+      
+        <a href="torchtune.training.get_unmasked_sequence_lengths.html" class="btn btn-neutral" title="get_unmasked_sequence_lengths" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+      
+    </div>
   
 
   
@@ -527,7 +497,10 @@
         <div class="pytorch-content-right" id="pytorch-content-right">
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
-              
+              <ul>
+<li><a class="reference internal" href="#">set_seed</a></li>
+</ul>
+
             </div>
           </div>
         </div>
@@ -540,24 +513,23 @@
   
 
      
-       <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
-         <script src="../../../_static/jquery.js"></script>
-         <script src="../../../_static/underscore.js"></script>
-         <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
-         <script src="../../../_static/doctools.js"></script>
-         <script src="../../../_static/clipboard.min.js"></script>
-         <script src="../../../_static/copybutton.js"></script>
-         <script src="../../../_static/tabs.js"></script>
-         <script src="../../../_static/design-tabs.js"></script>
+       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+         <script src="../_static/jquery.js"></script>
+         <script src="../_static/underscore.js"></script>
+         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../_static/doctools.js"></script>
+         <script src="../_static/clipboard.min.js"></script>
+         <script src="../_static/copybutton.js"></script>
+         <script src="../_static/design-tabs.js"></script>
      
 
   
 
-  <script type="text/javascript" src="../../../_static/js/vendor/popper.min.js"></script>
-  <script type="text/javascript" src="../../../_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
-  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
 
   <script type="text/javascript">
       jQuery(function () {
@@ -672,7 +644,7 @@
   <div class="cookie-banner-wrapper">
   <div class="container">
     <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
-    <img class="close-button" src="../../../_static/images/pytorch-x.svg">
+    <img class="close-button" src="../_static/images/pytorch-x.svg">
   </div>
 </div>
 
@@ -805,7 +777,7 @@
 
   <!-- End Mobile Menu -->
 
-  <script type="text/javascript" src="../../../_static/js/vendor/anchor.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/anchor.min.js"></script>
 
   <script type="text/javascript">
     $(document).ready(function() {

@@ -89,3 +89,4 @@ Miscellaneous
     :nosignatures:
 
     get_unmasked_sequence_lengths
+    set_seed
