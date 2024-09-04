@@ -11,7 +11,6 @@ from ._generation import (
 )
 
 from ._types import PPOStats, Trajectory
-from .collate import left_padded_collate, padded_collate_dpo
 from .rewards import (
     estimate_advantages,
     get_reward_penalty_mask,
@@ -35,8 +34,6 @@ __all__ = [
     "logits_to_logprobs",
     "truncate_sequence_for_logprobs",
     "get_reward_penalty_mask",
-    "left_padded_collate",
-    "padded_collate_dpo",
     "estimate_advantages",
     "get_rewards_ppo",
     "whiten",

@@ -74,6 +74,9 @@ Collaters used to collect samples into batches and handle any padding.
 
     padded_collate
     padded_collate_tiled_images_with_cross_attention
+    padded_collate_sft
+    padded_collate_dpo
+    left_pad_sequence
 
 Helper functions
 ----------------
