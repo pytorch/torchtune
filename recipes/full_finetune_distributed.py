@@ -431,7 +431,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # This method will convert the full model state dict into a sharded state
         # dict and load into the model
         training.load_from_full_model_state_dict(
-            model, model_state_dict, self._device, self._is_rank_zero, strict=True, cpu_offload=fsdp_cpu_offload
+            model,
+            model_state_dict,
+            self._device,
+            self._is_rank_zero,
+            strict=True,
+            cpu_offload=fsdp_cpu_offload,
         )
 
         # Ensure no params and buffers are on meta device
