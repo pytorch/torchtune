@@ -226,22 +226,18 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         Returns:
             List[int]: The list of token ids.
         """
-
         tokenized_header = self._tokenize_header(message) if tokenize_header else []
-
         tokenized_body = self._tokenize_body(message)
-
         tokenized_end = self._tokenize_end(message) if tokenize_end else []
 
         tokenized_message = tokenized_header + tokenized_body + tokenized_end
-
         return tokenized_message
 
     def tokenize_messages(
         self,
         messages: List[Message],
         add_eos: bool = True,
-        add_eot: bool = True,
+        add_final_eot: bool = True,
     ) -> Tuple[List[int], List[bool]]:
         """
         Tokenize a list of messages into a list of token ids and masks.
@@ -250,7 +246,7 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
             messages (List[Message]): The list of messages to tokenize.
             add_eos (bool): Add the tokenizer's ``eos_id`` (end-of-sequence ID). For inference, this should be
                 set to False. Default True.
-            add_eot (bool): Add the tokenizer's ``eot_id`` (end-of-turn ID) to final assistant message. For inference,
+            add_final_eot (bool): Add the tokenizer's ``eot_id`` (end-of-turn ID) to final assistant message. For inference,
                 this should be set to False. Default True.
 
         Examples:
@@ -263,8 +259,8 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
             >>> tokenizer.tokenize_messages(messages)
             ([1, 31587, 29644, 102, 1, 31587, 29644, 102, 2], [True, True, True, True, True, False, False, False, True])
 
-            >>> # Tokenize a list of messages with add_eos=False, add_eot=False
-            >>> tokenizer.tokenize_messages(messages, add_eos=False, add_eot=False)
+            >>> # Tokenize a list of messages with add_eos=False, add_final_eot=False
+            >>> tokenizer.tokenize_messages(messages, add_eos=False, add_final_eot=False)
             ([1, 31587, 29644, 102, 1, 31587, 29644], [True, True, True, True, True, False, False])
 
         Returns:
@@ -279,20 +275,29 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         # bos and eos are always masked
         mask = [True]
         for message in templated_messages:
-            tokenized_message = self.tokenize_message(
-                message,
-                tokenize_header=True,
-                tokenize_end=add_eot if message.role == "assistant" else True,
-            )
+            tokenized_message = self.tokenize_message(message)
 
             tokens = tokens + tokenized_message
             mask = mask + ([message.masked] * len(tokenized_message))
             if self.max_seq_len and len(tokens) >= self.max_seq_len:
                 break
 
+        # Remove final eot if add_final_eot is False
+        # and last message was from the assistant
+        if not add_final_eot:
+            if message.role == "assistant":
+                tokens = tokens[:-1]
+                mask = mask[:-1]
+            else:
+                logger.warning(
+                    "``add_final_eot=False`` but last message is not from the assistant. "
+                    "Last message will have eot token."
+                )
+
         if add_eos:
             tokens = tokens + [self.eos_id]
             mask = mask + [True]
+
         if self.max_seq_len:
             tokens = truncate(
                 tokens, self.max_seq_len, self.eos_id if add_eos else None

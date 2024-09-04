@@ -354,10 +354,17 @@ class TestLlama3Tokenizer:
             len(assistant_text_message[1]) - 2
         )
         tokens, mask = tokenizer.tokenize_messages(
-            text_messages, add_eos=False, add_eot=False
+            text_messages, add_eos=False, add_final_eot=False
         )
         assert tokens == expected_tokens
         assert mask == expected_mask
+
+        # Let's also make sure we error out if the last message is not from the assistant
+        with pytest.raises(ValueError, match="last message is not from the assistant"):
+            text_messages = [user_text_message[0]]
+            tokenizer.tokenize_messages(
+                text_messages, add_eos=False, add_final_eot=False
+            )
 
     def test_tokenize_image_and_text_messages(
         self, tokenizer, user_image_text_message, assistant_text_message
