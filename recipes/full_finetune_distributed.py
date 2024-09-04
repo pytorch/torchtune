@@ -15,9 +15,6 @@ from warnings import warn
 import torch
 from omegaconf import DictConfig, ListConfig
 
-import pickle
-torch.cuda.memory._record_memory_history(max_entries=1000000)
-
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 
@@ -654,10 +651,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
-
-                    if torch.distributed.get_rank() == 0:
-                        pickle.dump(torch.cuda.memory._snapshot(), open("full_finetune_fsdp2" + '.pickle', 'wb'))
-                    return
 
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
