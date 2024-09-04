@@ -38,7 +38,9 @@ class FlamingoProjectionHead(nn.Module):
         self.num_hidden = num_hidden_inputs
 
     def forward(
-        self, x: Tensor, hidden_states: Optional[List[Tensor]] = None
+        self,
+        x: Tensor,
+        hidden_states: Optional[List[Tensor]] = None,
     ) -> Tensor:
         """
         Args:
@@ -66,9 +68,11 @@ class FlamingoProjectionHead(nn.Module):
             x = layers(x)
         x = x.view(bsz, imgs, tiles, embeds, dim)
 
-        # concat hidden states
+        # interleave hidden states and cat with x
         if self.num_hidden > 0:
-            x = torch.cat([x, *hidden_states], dim=-1)
+            hidden_states = torch.stack(hidden_states, dim=-1)
+            hidden_states = hidden_states.view(bsz, imgs, tiles, embeds, -1)
+            x = torch.cat([x, hidden_states], dim=-1)
 
         # shape [b x s x d]
         x = self.output(x).reshape(bsz, imgs * tiles * embeds, -1)

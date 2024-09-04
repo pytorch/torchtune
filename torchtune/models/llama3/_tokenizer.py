@@ -25,7 +25,7 @@ SPECIAL_TOKENS = {
     "<|eom_id|>": 128008,
     "<|eot_id|>": 128009,
     "<|python_tag|>": 128010,
-    "<|image|>": 128011,
+    "<|image|>": 128256,
     "<|video|>": 128012,
 }
 

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 import torch
 from torch import nn
@@ -20,6 +20,7 @@ def clip_vision_encoder(
     embed_dim: int,
     num_layers: int,
     num_heads: int,
+    activation: Callable = nn.SiLU,
     cls_output_dim: int = 512,
     attn_bias: bool = True,
     out_indices: Optional[List[int]] = None,
@@ -41,6 +42,7 @@ def clip_vision_encoder(
         embed_dim (int): The dimensionality of each patch embedding (token).
         num_layers (int): The number of transformer layers.
         num_heads (int): The number of attention heads in each transformer layer.
+        activation (Callable): The activation function to use in the MLP layer.
         cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.
         attn_bias (bool): Boolean for if to use bias in the attention module. Default True.
         out_indices (Optional[List[int]]): The indices of hidden layers to return.
@@ -86,7 +88,7 @@ def clip_vision_encoder(
         in_dim=embed_dim,
         hidden_dim=4 * embed_dim,
         out_dim=embed_dim,
-        activation=nn.SiLU(),
+        activation=activation(),
     )
     transformer_layer = TransformerSelfAttentionLayer(
         attn=self_attn,

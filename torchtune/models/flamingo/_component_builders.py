@@ -87,6 +87,7 @@ def flamingo_vision_encoder(
         embed_dim=clip_embed_dim,
         num_layers=clip_num_layers,
         num_heads=num_heads,
+        activation=nn.GELU,
         out_indices=clip_hidden_states,
         max_num_tiles=max_num_tiles,
         in_channels=in_channels,

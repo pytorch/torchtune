@@ -251,7 +251,9 @@ class VisionTransformer(nn.Module):
         return self.patches_per_tile + 1  # +1 for CLS token
 
     def forward(
-        self, images: torch.Tensor, aspect_ratio: Optional[torch.Tensor] = None
+        self,
+        images: torch.Tensor,
+        aspect_ratio: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         """
         Processes images and returns the tokens and hidden states.
@@ -382,9 +384,8 @@ class VisionTransformer(nn.Module):
         x = x.reshape(bsz_and_n_imgs, n_tiles * n_tokens, embed_dim)
         for layer_idx, transformer_layer in enumerate(self.layers):
             if layer_idx in self.out_indices:
-                hidden_states.append(
-                    x.reshape(bsz, n_imgs, n_tiles, n_tokens, embed_dim)
-                )
+                h = x.reshape(bsz, n_imgs, n_tiles, n_tokens, embed_dim)
+                hidden_states.append(h)
             x = transformer_layer(x)
 
         # norm

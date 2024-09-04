@@ -62,6 +62,7 @@ class CLIPImageTransform:
             This will be used to generate possible_resolutions,
             e.g. [(224, 224), (224, 448), (448, 224)] if max_num_tiles = 2 and tile_size = 224.
             Default 4.
+        dtype (torch.dtype): Data type of the output image. Default torch.bfloat16.
         resample (str): Resampling method used when resizing images. Supports any enum of
             ``torchvision.transforms.InterpolationMode``, e.g. "nearest", "nearest_exact", "bilinear", "bicubic".
             Default 'bilinear'.
@@ -97,6 +98,7 @@ class CLIPImageTransform:
         possible_resolutions: Optional[List[Tuple[int, int]]] = None,
         tile_size: int = 224,
         max_num_tiles: Optional[int] = 4,
+        dtype: torch.dtype = torch.bfloat16,
         resample: str = "bilinear",
         resize_to_max_canvas: bool = False,
     ) -> None:
@@ -125,57 +127,67 @@ class CLIPImageTransform:
         assert (image_mean is None) == (
             image_std is None
         ), f"Need to provide both or none of image_mean and image_std. Got {image_mean=} and {image_std=}"
-        self.image_mean = image_mean
-        self.image_std = image_std
+        self.mean = image_mean
+        self.std = image_std
 
         # resize_with_pad
         self.max_size = None if resize_to_max_canvas else tile_size
+        self.dtype = dtype
         self.resample = torchvision.transforms.InterpolationMode[resample.upper()]
 
         # tile_crop
         self.tile_size = tile_size
         self.tile_crop = tile_crop
 
-    def __call__(self, *, image: Image.Image, **kwargs) -> Mapping[str, Any]:
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        """
+        Apply image decoding and transformations to the "image" field in the sample.
 
+        Args:
+            sample (Mapping[str, Any]): A sample with an "image" field containing
+                a List[Message] to tokenize
+
+        Returns:
+            Mapping[str, Any]: The sample with an updated "image" filed and added
+                "aspect_ratio" field.
+        """
+        image = sample["image"]
         assert isinstance(image, Image.Image), "Input image must be a PIL image."
 
-        # Make image torch.tensor((3, H, W), dtype='float32'), 0<=values<=1
-        image_tensor = F.to_dtype(
-            F.grayscale_to_rgb_image(F.to_image(image)), scale=True
-        )
+        # Make image torch.tensor((3, H, W), dtype=dtype), 0<=values<=1
+        image = F.to_image(image)
+        image = F.grayscale_to_rgb_image(image)
+        image = F.to_dtype(image, dtype=self.dtype, scale=True)
 
         # Find the best canvas to fit the image without distortion
         best_resolution = get_canvas_best_fit(
-            image=image_tensor,
+            image=image,
             possible_resolutions=self.possible_resolutions,
             resize_to_max_canvas=self.resize_to_max_canvas,
         )
 
         # resize without distortion + pad to fit best_resolution
-        image_tensor = resize_with_pad(
-            image=image_tensor,
+        image = resize_with_pad(
+            image=image,
             target_size=best_resolution,
             resample=self.resample,
             max_size=self.max_size,
         )
 
         # Normalize
-        if self.image_mean and self.image_std:
-            image_tensor = F.normalize(
-                image_tensor, mean=self.image_mean, std=self.image_std
-            )
+        if self.mean:
+            image = F.normalize(image, mean=self.mean, std=self.std)
 
         # Divide the image into equally sized tiles
-        image_tensor = self.tile_crop(image=image_tensor, tile_size=self.tile_size)
+        image = self.tile_crop(image=image, tile_size=self.tile_size)
 
         aspect_ratio = torch.tensor(best_resolution).reshape(-1) // self.tile_size
 
-        kwargs.update(
+        sample.update(
             {
-                "image": image_tensor,
+                "image": image,
                 "aspect_ratio": aspect_ratio,
             }
         )
 
-        return kwargs
+        return sample

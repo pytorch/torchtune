@@ -5,6 +5,8 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
+import torch
+from tests.test_utils import assert_expected, fixed_init_model, fixed_init_tensor
 from torchtune.models.flamingo._component_builders import flamingo_decoder
 
 
@@ -24,11 +26,35 @@ def decoder_config():
     }
 
 
-class TestFlamingoVisionEncoder:
-    def test_flamingo_text_decoder_initialization(self, decoder_config):
-        # Attempt to instantiate the Flamingo text decoder
-        try:
-            decoder = flamingo_decoder(**decoder_config)
-            print("Flamingo text decoder instantiated successfully.")
-        except Exception as e:
-            pytest.fail(f"Failed to instantiate Flamingo text decoder: {str(e)}")
+class TestFlamingoVisionDncoder:
+    @pytest.fixture(autouse=True)
+    def setup_class(self, decoder_config):
+        self.batch_size = 1
+        self.dim = decoder_config["embed_dim"]
+        self.vocab_size = decoder_config["vocab_size"]
+        self.seq_len = 128
+        self.input = {
+            "tokens": torch.arange(self.batch_size * self.seq_len).reshape(
+                self.batch_size, self.seq_len
+            ),
+            "encoder_input": fixed_init_tensor(
+                (self.batch_size, self.seq_len, self.dim), min_val=-1, max_val=1
+            ),
+            "encoder_mask": None,
+        }
+        self.decoder = flamingo_decoder(**decoder_config)
+        fixed_init_model(self.decoder, min_val=-1, max_val=1)
+
+    @torch.no_grad()
+    def test_flamingo_decoder(self):
+        # call model
+        output = self.decoder(**self.input)
+
+        # assertion
+        expected_shape = (self.batch_size, self.seq_len, self.vocab_size)
+
+        assert (
+            output.shape == expected_shape
+        ), f"Expected shape {expected_shape}, but got {output.shape}"
+
+        assert_expected(output.mean(), torch.tensor(-9.47548e-5), atol=1e-3, rtol=1e-3)

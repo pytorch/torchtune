@@ -7,9 +7,12 @@
 from ._component_builders import flamingo_decoder, flamingo_vision_encoder
 from ._encoder import FlamingoEncoder, FlamingoProjectionHead
 
+from ._transform import FlamingoTransform
+
 __all__ = [
     "flamingo_vision_encoder",
     "flamingo_decoder",
     "FlamingoEncoder",
     "FlamingoProjectionHead",
+    "FlamingoTransform",
 ]

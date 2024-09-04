@@ -135,7 +135,7 @@ class TestLlama3Tokenizer:
             128007,
             10,
             10,
-            128011,
+            128256,
             73,
             503,
             654,
@@ -186,7 +186,7 @@ class TestLlama3Tokenizer:
             128007,
             10,
             10,
-            128011,
+            128256,
             73,
             503,
             654,
@@ -194,7 +194,7 @@ class TestLlama3Tokenizer:
             376,
             110,
             46,
-            128011,
+            128256,
             1542,
             720,
             428,
@@ -306,11 +306,11 @@ class TestLlama3Tokenizer:
         assert tokenizer.eom_id == 128008
         assert tokenizer.eot_id == 128009
         assert tokenizer.python_tag == 128010
-        assert tokenizer.image_id == 128011
+        assert tokenizer.image_id == 128256
 
     def test_tokenizer_vocab_size(self, tokenizer):
         assert tokenizer.base_vocab_size == 2000
-        assert tokenizer.vocab_size == 128256
+        assert tokenizer.vocab_size == 128257
 
     def test_tokenize_text_messages(
         self, tokenizer, user_text_message, assistant_text_message
