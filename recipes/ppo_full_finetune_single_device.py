@@ -419,10 +419,10 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             value_model = config.instantiate(cfg_reward_value_model)
 
         if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(
+            training.set_activation_checkpointing(
                 policy_model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
-            utils.set_activation_checkpointing(
+            training.set_activation_checkpointing(
                 value_model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
@@ -496,8 +496,8 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             value_model.compile(backend=backend)
 
         if self._device.type == "cuda":
-            memory_stats = utils.get_memory_stats(device=self._device)
-            utils.log_memory_stats(memory_stats)
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(memory_stats)
 
         return policy_model, value_model, reward_model, ref_policy_model
 
@@ -517,17 +517,17 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 )
             }
             # Register optimizer step hooks on the models to run optimizer in backward.
-            utils.register_optim_in_bwd_hooks(
+            training.register_optim_in_bwd_hooks(
                 model=self._policy_model, optim_dict=optim_dict
             )
-            utils.register_optim_in_bwd_hooks(
+            training.register_optim_in_bwd_hooks(
                 model=self._value_model, optim_dict=optim_dict
             )
             # Create a wrapper for checkpoint save/load of optimizer states when running in backward.
-            self._optim_ckpt_wrapper = utils.create_optim_in_bwd_wrapper(
+            self._optim_ckpt_wrapper = training.create_optim_in_bwd_wrapper(
                 model=self._policy_model, optim_dict=optim_dict
             )
-            self._optim_ckpt_wrapper = utils.create_optim_in_bwd_wrapper(
+            self._optim_ckpt_wrapper = training.create_optim_in_bwd_wrapper(
                 model=self._value_model, optim_dict=optim_dict
             )
             # Load optimizer states. If optimizer states are being restored in an optimizer in backward
@@ -1033,7 +1033,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             "response_lengths": trajectory.seq_lens.float().mean(),
         }
         if self._device.type == "cuda" and self._log_peak_memory_stats:
-            log_dict.update(utils.get_memory_stats(device=self._device))
+            log_dict.update(training.get_memory_stats(device=self._device))
 
         self._metric_logger.log_dict(log_dict, step=self.global_step)
 
