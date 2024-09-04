@@ -11,10 +11,10 @@ import pytest
 import torch
 
 from tests.test_utils import assert_expected, fixed_init_model
-from torch import nn, Tensor
+from torch import nn
 
 from torchtune.modules import FeedForward
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 
 @pytest.fixture(autouse=True)
@@ -32,7 +32,7 @@ class TestFeedForward:
         return dim, hidden_dim
 
     @pytest.fixture
-    def input(self, input_params: Tuple[int, int]) -> Tensor:
+    def input(self, input_params: Tuple[int, int]) -> torch.Tensor:
         dim, _ = input_params
         return torch.randn(1, dim)
 
@@ -49,7 +49,7 @@ class TestFeedForward:
         ff.eval()
         return ff
 
-    def test_forward(self, input: Tensor, ffn: FeedForward) -> None:
+    def test_forward(self, input: torch.Tensor, ffn: FeedForward) -> None:
         with torch.no_grad():
             x_out = ffn(input)
         assert_expected(x_out.mean(), torch.tensor(251.5356), atol=1e-7, rtol=1e-3)

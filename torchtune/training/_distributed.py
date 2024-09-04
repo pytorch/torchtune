@@ -97,7 +97,7 @@ def _broadcast_tensor(tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
     """Broadcasts a tensor from a source to all other processes.
 
     Args:
-        tensor (torch.Tensor): Tensor to broadcast.
+        tensor (torch.Tensor): torch.Tensor to broadcast.
         src (int, optional): Source rank. Defaults to 0.
 
     Returns:
@@ -280,7 +280,7 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
 
 
 def load_from_full_model_state_dict(
-    model: "FSDPModule",
+    model: "FSDPModule",  # noqa
     full_sd: Dict[str, Any],
     device: torch.device,
     is_rank_zero: bool,
@@ -344,7 +344,7 @@ def load_from_full_model_state_dict(
 
 
 def get_full_model_state_dict(
-    model: "FSDPModule",
+    model: "FSDPModule",  # noqa
     is_rank_zero: bool,
 ) -> Dict[str, Any]:
     """

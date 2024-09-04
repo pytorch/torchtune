@@ -8,7 +8,7 @@ import logging
 from typing import Optional
 
 import torch
-from torch import nn, Tensor
+from torch import nn
 from torchtune.modules.kv_cache import KVCache
 
 logger = logging.getLogger(__name__)
@@ -171,23 +171,23 @@ class MultiHeadAttention(nn.Module):
 
     def forward(
         self,
-        x: Tensor,
-        y: Optional[Tensor] = None,
+        x: torch.Tensor,
+        y: Optional[torch.Tensor] = None,
         *,
-        mask: Optional[Tensor] = None,
-        input_pos: Optional[Tensor] = None,
-    ) -> Tensor:
+        mask: Optional[torch.Tensor] = None,
+        input_pos: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         """
         Args:
-            x (Tensor): input tensor with shape [b x s_x x d]
-            y (Optional[Tensor]): second input tensor for cross attention with shape [b x s_y x d]
-            mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask
+            x (torch.Tensor): input tensor with shape [b x s_x x d]
+            y (Optional[torch.Tensor]): second input tensor for cross attention with shape [b x s_y x d]
+            mask (Optional[torch.Tensor]): Optional boolean tensor which contains the attention mask
                 with shape [batch_size x seq_length x seq_length]. This is applied after
                 the query-key multiplication and before the softmax. A value of True in row i
                 and column j means token i attends to token j. A value of False means token i
                 does not attend to token j. If no mask is specified, a causal mask
                 is used by default. Default is None.
-            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.

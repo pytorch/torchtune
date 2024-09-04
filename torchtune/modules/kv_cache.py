@@ -7,7 +7,7 @@
 from typing import Tuple
 
 import torch
-from torch import nn, Tensor
+from torch import nn
 
 
 class KVCache(nn.Module):
@@ -48,14 +48,16 @@ class KVCache(nn.Module):
         self.k_cache.zero_()
         self.v_cache.zero_()
 
-    def update(self, k_val: Tensor, v_val: Tensor) -> Tuple[Tensor, Tensor]:
+    def update(
+        self, k_val: torch.Tensor, v_val: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Update KV cache with the new k_val, v_val and return the updated cache.
 
         Raises an assertion error
 
         Args:
-            k_val (Tensor): Current key tensor with shape [B, H, S, D]
-            v_val (Tensor): Current value tensor with shape [B, H, S, D]
+            k_val (torch.Tensor): Current key tensor with shape [B, H, S, D]
+            v_val (torch.Tensor): Current value tensor with shape [B, H, S, D]
 
         Returns:
             Tuple[Tensor, Tensor]: Updated KV cache with key first

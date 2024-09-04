@@ -41,7 +41,7 @@ class InferenceRecipe:
         self._quantizer = config.instantiate(cfg.quantizer)
         self._quantization_mode = training.get_quantizer_mode(self._quantizer)
 
-        utils.set_seed(seed=cfg.seed)
+        training.set_seed(seed=cfg.seed)
 
     def setup(self, cfg: DictConfig) -> None:
         checkpointer = config.instantiate(cfg.checkpointer)

@@ -26,7 +26,7 @@ from torchtune.training.checkpointing._utils import (
     ADAPTER_KEY,
     safe_torch_load,
 )
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 _VOCAB_SIZE = 100
 _DIM = 64
