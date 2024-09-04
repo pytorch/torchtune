@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import torch
 
@@ -109,12 +109,14 @@ def padded_collate_tiled_images_with_cross_attention(
         >>> batch = [
         ...     {
         ...         "tokens": [1, 2, 1, 3], "labels": [4, 5, 6, 7],
+        ...         # One image with two tiles, one image with three tiles
         ...         "images": [torch.ones(2, c, h, w), torch.ones(3, c, h, w)],
         ...         "encoder_mask": [torch.ones(4, 5 * 2), torch.ones(4, 5 * 3)],
         ...         "aspect_ratio": [torch.tensor([1, 2]), torch.tensor([1, 2])],
         ...     },
         ...     {
         ...         "tokens": [1, 4], "labels": [8, 9],
+        ...         # One image with four tiles
         ...         "images": [torch.ones(4, c, h, w)],
         ...         "encoder_mask": [torch.ones(2, 5 * 4)],
         ...         "aspect_ratio": [torch.tensor([1, 2])],
@@ -122,14 +124,16 @@ def padded_collate_tiled_images_with_cross_attention(
         ... ]
         >>> model_inputs = padded_collate_vision_text(batch=batch)
         >>> print(model_inputs["tokens"])
-        tensor([[1, 2, 1, 3], [1, 4, 0, 0]])
+        tensor([[1, 2, 1, 3],
+                [1, 4, 0, 0]])
         >>> print(model_inputs["labels"])
-        tensor([[4, 5, 6, 7], [8, 9, -100, -100]])
-        >>> print(model_inputs["images"].shape)
+        tensor([[4, 5, 6, 7],
+                [8, 9, -100, -100]])
+        >>> print(model_inputs["images"].shape)  # (bsz, max_num_images, max_num_tiles, c, h, w)
         torch.Size([2, 2, 4, 1, 1, 1])
-        >>> print(model_inputs["encoder_mask"].shape)
+        >>> print(model_inputs["encoder_mask"].shape)  # (bsz, max_num_images, max_num_tiles, tokens_per_tile * max_num_tiles)
         torch.Size([2, 2, 4, 20])
-        >>> print(model_inputs["aspect_ratio"].shape)
+        >>> print(model_inputs["aspect_ratio"].shape)  # (bsz, max_num_images, 2)
         torch.Size([2, 2, 2])
         >>> print(model_inputs["images"][0, 0, ...])  # Image with two tiles got padded to four
         tensor([[[[1.]]], [[[1.]]], [[[0.]]], [[[0.]]]])
