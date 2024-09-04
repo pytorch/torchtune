@@ -73,6 +73,7 @@ Collaters used to collect samples into batches and handle any padding.
     :nosignatures:
 
     padded_collate
+    padded_collate_tiled_images_with_cross_attention
 
 Helper functions
 ----------------
