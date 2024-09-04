@@ -338,7 +338,9 @@ class TransformerDecoder(nn.Module):
         super().__init__()
         if num_layers is None:
             if isinstance(layers, nn.Module):
-                raise AssertionError("If num_layers is undefined, it is assumed that a list of layers is provided.")
+                raise AssertionError(
+                    "If num_layers is undefined, it is assumed that a list of layers is provided."
+                )
             layers = nn.ModuleList(layers)
         else:
             if not isinstance(layers, nn.Module):
@@ -363,11 +365,23 @@ class TransformerDecoder(nn.Module):
         self.num_output_chunks = num_output_chunks
 
     def setup_caches(
-        self, batch_size: int, dtype: torch.dtype, *, encoder_max_seq_len: int = None, decoder_max_seq_len: int = None
+        self,
+        batch_size: int,
+        dtype: torch.dtype,
+        *,
+        encoder_max_seq_len: int = None,
+        decoder_max_seq_len: int = None,
     ):
-        self.cache_max_seq_len = decoder_max_seq_len if decoder_max_seq_len is not None else self.max_seq_len
+        self.cache_max_seq_len = (
+            decoder_max_seq_len if decoder_max_seq_len is not None else self.max_seq_len
+        )
         for layer in self.layers:
-            layer.setup_cache(batch_size, dtype, encoder_max_seq_len=None, decoder_max_seq_len=self.cache_max_seq_len)
+            layer.setup_cache(
+                batch_size,
+                dtype,
+                encoder_max_seq_len=None,
+                decoder_max_seq_len=self.cache_max_seq_len,
+            )
 
     def caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""
@@ -376,7 +390,9 @@ class TransformerDecoder(nn.Module):
     def reset_caches(self):
         """Reset the key value caches."""
         if not self.caches_are_enabled():
-            raise RuntimeError("Key value caches are not setup. Call ``setup_caches()`` first.")
+            raise RuntimeError(
+                "Key value caches are not setup. Call ``setup_caches()`` first."
+            )
 
         for layer in self.layers:
             layer.reset_cache()
@@ -436,7 +452,8 @@ class TransformerDecoder(nn.Module):
 
         if seq_len > self.max_seq_len:
             raise ValueError(
-                f"seq_len ({seq_len}) of input tensor should be smaller " f"than max_seq_len ({self.max_seq_len})"
+                f"seq_len ({seq_len}) of input tensor should be smaller "
+                f"than max_seq_len ({self.max_seq_len})"
             )
 
         # shape: [b, s, d]
@@ -444,9 +461,13 @@ class TransformerDecoder(nn.Module):
 
         if self.causal_mask is not None:
             if input_pos is None:
-                raise ValueError("Caches are setup, but the position of input token is missing")
+                raise ValueError(
+                    "Caches are setup, but the position of input token is missing"
+                )
             if mask is not None:
-                raise ValueError("An attention mask was set. Cannot use a non-causal mask for inference")
+                raise ValueError(
+                    "An attention mask was set. Cannot use a non-causal mask for inference"
+                )
             # shape: [1, input_pos_len, m_s]
             # in most cases input_pos_len should be 1
             mask = self.causal_mask[None, input_pos]
@@ -471,7 +492,9 @@ class TransformerDecoder(nn.Module):
             # shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size
             # Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,
             # before calling forward. Upcasting it done inside of the loss function.
-            output = [self.output(chunk) for chunk in h.chunk(self.num_output_chunks, dim=1)]
+            output = [
+                self.output(chunk) for chunk in h.chunk(self.num_output_chunks, dim=1)
+            ]
         else:
             # shape: [b, seq_len, out_dim]
             output = self.output(h).float()
@@ -529,7 +552,9 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         super().__init__()
         if num_layers is None:
             if isinstance(layers, nn.Module):
-                raise AssertionError("If num_layers is undefined, it is assumed that a list of layers is provided.")
+                raise AssertionError(
+                    "If num_layers is undefined, it is assumed that a list of layers is provided."
+                )
             layers = nn.ModuleList(layers)
         else:
             if not isinstance(layers, nn.Module):
@@ -553,11 +578,23 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         self.num_output_chunks = num_output_chunks
 
     def setup_caches(
-        self, batch_size: int, dtype: torch.dtype, *, encoder_max_seq_len: int = None, decoder_max_seq_len: int = None
+        self,
+        batch_size: int,
+        dtype: torch.dtype,
+        *,
+        encoder_max_seq_len: int = None,
+        decoder_max_seq_len: int = None,
     ):
-        self.cache_max_seq_len = decoder_max_seq_len if decoder_max_seq_len is not None else self.max_seq_len
+        self.cache_max_seq_len = (
+            decoder_max_seq_len if decoder_max_seq_len is not None else self.max_seq_len
+        )
         for layer in self.layers:
-            layer.setup_cache(batch_size, dtype, encoder_max_seq_len=None, decoder_max_seq_len=self.cache_max_seq_len)
+            layer.setup_cache(
+                batch_size,
+                dtype,
+                encoder_max_seq_len=None,
+                decoder_max_seq_len=self.cache_max_seq_len,
+            )
 
     def caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""
@@ -566,7 +603,9 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
     def reset_caches(self):
         """Reset the key value caches."""
         if not self.caches_are_enabled():
-            raise RuntimeError("Key value caches are not setup. Call ``setup_caches()`` first.")
+            raise RuntimeError(
+                "Key value caches are not setup. Call ``setup_caches()`` first."
+            )
 
         for layer in self.layers:
             layer.reset_cache()
@@ -625,7 +664,8 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
 
         if seq_len > self.max_seq_len:
             raise ValueError(
-                f"seq_len ({seq_len}) of input tensor should be smaller " f"than max_seq_len ({self.max_seq_len})"
+                f"seq_len ({seq_len}) of input tensor should be smaller "
+                f"than max_seq_len ({self.max_seq_len})"
             )
 
         # shape: [b, s, d]
@@ -633,9 +673,13 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
 
         if self.causal_mask is not None:
             if input_pos is None:
-                raise ValueError("Caches are setup, but the position of input token is missing")
+                raise ValueError(
+                    "Caches are setup, but the position of input token is missing"
+                )
             if mask is not None:
-                raise ValueError("An attention mask was set. Cannot use a non-causal mask for inference")
+                raise ValueError(
+                    "An attention mask was set. Cannot use a non-causal mask for inference"
+                )
             # shape: [1, input_pos_len, m_s]
             # in most cases input_pos_len should be 1
             mask = self.causal_mask[None, input_pos]
@@ -660,7 +704,10 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
             # shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size
             # Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,
             # before calling forward. Upcasting it done inside of the loss function.
-            output = [F.linear(chunk, self.tok_embeddings.weight) for chunk in h.chunk(self.num_output_chunks, dim=1)]
+            output = [
+                F.linear(chunk, self.tok_embeddings.weight)
+                for chunk in h.chunk(self.num_output_chunks, dim=1)
+            ]
         else:
             # shape: [b, seq_len, out_dim]
             output = F.linear(h, self.tok_embeddings.weight).float()

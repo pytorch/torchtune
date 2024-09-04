@@ -213,10 +213,6 @@ class MultiHeadAttention(nn.Module):
         y = y if y is not None else x
         s_y = y.shape[1]
 
-        if self.kv_cache and input_pos is None:
-            cache_size = self.kv_cache.size
-            input_pos = torch.arange(cache_size, cache_size + s_y, device=x.device)
-
         # q has shape [b, s_x, num_heads * head_dim]
         # k has shape [b, s_y, num_kv_heads * head_dim]
         # v has shape [b, s_y, num_kv_heads * head_dim]
@@ -266,7 +262,7 @@ class MultiHeadAttention(nn.Module):
 
         # Update key-value cache
         if self.kv_cache is not None:
-            k, v = self.kv_cache.update(input_pos, k, v)
+            k, v = self.kv_cache.update(k, v)
 
         # shape: [b, 1, s, s]
         if mask is not None:

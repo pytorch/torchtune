@@ -10,7 +10,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
-from torchtune.modules import KVCache
 
 from torchtune.modules.transformer import _get_clones, TransformerSelfAttentionLayer
 
@@ -72,19 +71,31 @@ class GemmaTransformerDecoder(nn.Module):
     def caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""
         return self.layers[0].cache_enabled
-# 
+
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
         This should be called before the first forward pass, in the recipe."""
         self.num_output_chunks = num_output_chunks
 
     def setup_caches(
-        self, batch_size: int, dtype: torch.dtype, *, encoder_max_seq_len: int = None, decoder_max_seq_len: int = None
+        self,
+        batch_size: int,
+        dtype: torch.dtype,
+        *,
+        encoder_max_seq_len: int = None,
+        decoder_max_seq_len: int = None,
     ):
-        self.cache_max_seq_len = decoder_max_seq_len if decoder_max_seq_len is not None else self.max_seq_len
+        self.cache_max_seq_len = (
+            decoder_max_seq_len if decoder_max_seq_len is not None else self.max_seq_len
+        )
         for layer in self.layers:
-            layer.setup_cache(batch_size, dtype, encoder_max_seq_len=None, decoder_max_seq_len=self.cache_max_seq_len)
-            
+            layer.setup_cache(
+                batch_size,
+                dtype,
+                encoder_max_seq_len=None,
+                decoder_max_seq_len=self.cache_max_seq_len,
+            )
+
     def forward(
         self,
         tokens: Tensor,
@@ -132,9 +143,13 @@ class GemmaTransformerDecoder(nn.Module):
 
         if self.causal_mask is not None:
             if input_pos is None:
-                raise ValueError("Caches are setup, but the position of input token is missing")
+                raise ValueError(
+                    "Caches are setup, but the position of input token is missing"
+                )
             if mask is not None:
-                raise ValueError("An attention mask was set. Cannot use a non-causal mask for inference")
+                raise ValueError(
+                    "An attention mask was set. Cannot use a non-causal mask for inference"
+                )
             # shape: [1, input_pos_len, m_s]
             # in most cases input_pos_len should be 1
             mask = self.causal_mask[None, input_pos]

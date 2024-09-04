@@ -46,7 +46,9 @@ class FusionLayer(nn.Module):
         fusion_first (bool): boolean to insert fusion layer before or after the decoder layer.
     """
 
-    def __init__(self, layer: nn.Module, fusion_layer: nn.Module, fusion_first: bool = True):
+    def __init__(
+        self, layer: nn.Module, fusion_layer: nn.Module, fusion_first: bool = True
+    ):
         super().__init__()
         self.layer = layer
         self.fusion_layer = fusion_layer
@@ -54,7 +56,9 @@ class FusionLayer(nn.Module):
 
         # Keep FusionLayer wrappings out of the state_dict
         self._register_state_dict_hook(FusionLayer._state_dict_hook)
-        self._register_load_state_dict_pre_hook(FusionLayer._load_state_dict_hook, with_module=True)
+        self._register_load_state_dict_pre_hook(
+            FusionLayer._load_state_dict_hook, with_module=True
+        )
         # TODO: Switch to register_load_state_dict_pre_hook and
         # register_state_dict_pre_hook after PyTorch v2.5
 
@@ -100,11 +104,17 @@ class FusionLayer(nn.Module):
             decoder_max_seq_len (int): this parameter is ignored in this layer.
         """
         self.layer.setup_cache(
-            batch_size, dtype, encoder_max_seq_len=encoder_max_seq_len, decoder_max_seq_len=decoder_max_seq_len
+            batch_size,
+            dtype,
+            encoder_max_seq_len=encoder_max_seq_len,
+            decoder_max_seq_len=decoder_max_seq_len,
         )
 
         self.fusion_layer.setup_cache(
-            batch_size, dtype, encoder_max_seq_len=encoder_max_seq_len, decoder_max_seq_len=decoder_max_seq_len
+            batch_size,
+            dtype,
+            encoder_max_seq_len=encoder_max_seq_len,
+            decoder_max_seq_len=decoder_max_seq_len,
         )
 
     @property
@@ -121,7 +131,9 @@ class FusionLayer(nn.Module):
         """
         Return parameters of fusion layer.
         """
-        fusion_params = [f"fusion_layer.{k}" for k, v in self.fusion_layer.named_parameters()]
+        fusion_params = [
+            f"fusion_layer.{k}" for k, v in self.fusion_layer.named_parameters()
+        ]
         return fusion_params
 
     def forward(self, x: Tensor, **kwargs: Dict) -> Tensor:
@@ -185,7 +197,9 @@ class FusionEmbedding(nn.Module):
 
         # Keep FusionLayer wrappings out of the state_dict
         self._register_state_dict_hook(FusionEmbedding._state_dict_hook)
-        self._register_load_state_dict_pre_hook(FusionEmbedding._load_state_dict_hook, with_module=True)
+        self._register_load_state_dict_pre_hook(
+            FusionEmbedding._load_state_dict_hook, with_module=True
+        )
         # TODO: Switch to register_load_state_dict_pre_hook and
         # register_state_dict_pre_hook after PyTorch v2.5
 
@@ -311,10 +325,19 @@ class DeepFusionModel(nn.Module):
         self.encoder = encoder
 
     def setup_caches(
-        self, batch_size: int, dtype: torch.dtype, *, encoder_max_seq_len: int = None, decoder_max_seq_len: int = None
+        self,
+        batch_size: int,
+        dtype: torch.dtype,
+        *,
+        encoder_max_seq_len: int = None,
+        decoder_max_seq_len: int = None,
     ):
-        self.encoder.setup_caches(batch_size, dtype, encoder_max_seq_len=encoder_max_seq_len)
-        self.decoder.setup_caches(batch_size, dtype, decoder_max_seq_len=decoder_max_seq_len)
+        self.encoder.setup_caches(
+            batch_size, dtype, encoder_max_seq_len=encoder_max_seq_len
+        )
+        self.decoder.setup_caches(
+            batch_size, dtype, decoder_max_seq_len=decoder_max_seq_len
+        )
 
     def caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""
