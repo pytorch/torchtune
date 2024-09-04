@@ -73,6 +73,9 @@ Collaters used to collect samples into batches and handle any padding.
     :nosignatures:
 
     padded_collate
+    padded_collate_sft
+    padded_collate_dpo
+    left_pad_sequence
 
 Helper functions
 ----------------
