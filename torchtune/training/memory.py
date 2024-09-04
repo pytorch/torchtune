@@ -228,7 +228,7 @@ def log_memory_stats(stats: Dict[str, float]) -> None:
     """
     Logs a dict containing memory stats to the logger. ``stats`` should contain the fields
     ``peak_memory_active``, ``peak_memory_alloc``, and ``peak_memory_reserved`` as
-    returned by :func:`torchtune.utils.get_memory_stats`.
+    returned by :func:`torchtune.training.get_memory_stats`.
 
     Args:
         stats (Dict[str, float]): A dictionary containing the peak memory active, peak memory
