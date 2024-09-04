@@ -291,7 +291,7 @@ def padded_collate_tiled_images_with_cross_attention(
     text_only = [
         {"tokens": sample["tokens"], "labels": sample["labels"]} for sample in batch
     ]
-    collated_text = padded_collate(text_only, padding_idx, ignore_idx)
+    collated_text = padded_collate_sft(text_only, padding_idx, ignore_idx)
     max_seq_len = collated_text["tokens"].shape[-1]
 
     # TODO: Figure out how to make this more efficient or vectorized. Setting
