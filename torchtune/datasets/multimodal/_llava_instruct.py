@@ -15,7 +15,7 @@ from torchtune.modules.transforms import Transform
 class LlavaInstructToMessages(Transform):
     """
     Construct messages from a sample formatted similarly to
-    `LLaVA-Instruct-150K <https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K>_`.
+    `LLaVA-Instruct-150K <https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K>`_.
 
     Chat samples in the "conversations" column follow the ShareGPT format::
 
@@ -115,7 +115,7 @@ def llava_instruct_dataset(
 ) -> Union[SFTDataset, PackedDataset]:
     """
     Support for family of image + text datasets similar to
-    `LLaVA-Instruct-150K <https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K>_`
+    `LLaVA-Instruct-150K <https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K>`_
     from Hugging Face Datasets.
 
     To use this dataset, you must first download the COCO Train 2017 image dataset. You can do so
@@ -128,6 +128,41 @@ def llava_instruct_dataset(
 
     The resulting directory should be passed into the model transform for loading
     and processing of the images.
+
+    The model transform is expected to be a callable that applies pre-processing steps specific
+    to a model. For multimodal datasets, this is expected to be at minimum a tokenizer and
+    an image transform. The tokenizer will convert text sequences into token IDs after the dataset
+    is converted to a list of :class:`~torchtune.data.Message`. The image transform will load the
+    image and process it in accordance to the model's requirements.
+
+    Here is a minimal example for illustrative purposes:
+
+    .. code-block:: python
+
+        from torchtune.models.llama3 import llama3_tokenizer
+        from torchtune.models.clip import CLIPImageTransform
+        from torchtune.modules.transforms import Transform
+
+        class MyModelTransform(Transform):
+            def __init__(
+                self,
+                tokenizer_path: str,
+                max_seq_len: Optional[int] = None,
+            ):
+                self.tokenizer = llama3_tokenizer(tokenizer_path)
+                self.image_transform = CLIPImageTransform()
+
+            def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+                tokens, mask = self.tokenizer.tokenize_messages(sample["messages"])
+                images = self.image_transform(sample["images"])
+                return {
+                    "tokens": tokens,
+                    "mask": mask,
+                    "images": images,
+                }
+
+    See :class:`~torchtune.datasets.SFTDataset` for more details about model transforms and
+    message transforms.
 
     Args:
         model_transform (Transform): model-specific transform class that takes in a sample dict and applies custom
@@ -185,7 +220,7 @@ def llava_instruct_dataset(
     if packed:
         if model_transform.max_seq_len is None:
             raise ValueError(
-                "PackedDataset requires a max_seq_len to be set on the tokenizer."
+                "PackedDataset requires a max_seq_len to be set on the model_transform."
             )
         return PackedDataset(ds, max_seq_len=model_transform.max_seq_len)
     return ds
