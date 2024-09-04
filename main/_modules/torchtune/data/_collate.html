@@ -415,16 +415,159 @@
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 <span class="kn">from</span> <span class="nn">torch.nn.utils.rnn</span> <span class="kn">import</span> <span class="n">pad_sequence</span>
 <span class="kn">from</span> <span class="nn">torchtune.data._common</span> <span class="kn">import</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span>
 
 
+<div class="viewcode-block" id="left_pad_sequence"><a class="viewcode-back" href="../../../generated/torchtune.data.left_pad_sequence.html#torchtune.data.left_pad_sequence">[docs]</a><span class="k">def</span> <span class="nf">left_pad_sequence</span><span class="p">(</span>
+    <span class="n">sequences</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+    <span class="n">batch_first</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">padding_value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function is identical to :func:`torch.nn.utils.rnn.pad_sequence`, but</span>
+<span class="sd">    instead pads a list of variable length Tensors from the left to the length</span>
+<span class="sd">    of the longest sequence.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        This function returns a Tensor of size ``T x B x *`` or ``B x T x *``</span>
+<span class="sd">        where `T` is the length of the longest sequence. This function assumes</span>
+<span class="sd">        trailing dimensions and type of all the Tensors in sequences are same.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sequences (List[torch.Tensor]): list of variable length sequences.</span>
+<span class="sd">        batch_first (bool): if ``True``, the output will be in ``B x T x *``</span>
+<span class="sd">            format, ``T x B x *`` otherwise. Default False.</span>
+<span class="sd">        padding_value (float): value for padded elements. Default: 0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tensor of size ``T x B x *`` if :attr:`batch_first` is ``False``.</span>
+<span class="sd">        Tensor of size ``B x T x *`` otherwise</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; a = torch.tensor([1, 2, 3])</span>
+<span class="sd">        &gt;&gt;&gt; b = torch.tensor([4, 5, 6, 7])</span>
+<span class="sd">        &gt;&gt;&gt; c = torch.tensor([8, 9, 10, 11, 12])</span>
+<span class="sd">        &gt;&gt;&gt; left_pad_sequence([a, b, c], batch_first=True, padding_value=0)</span>
+<span class="sd">        tensor([[ 0,  0,  1,  2,  3],</span>
+<span class="sd">                [ 0,  4,  5,  6,  7],</span>
+<span class="sd">                [ 8,  9, 10, 11, 12]])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">pad_sequence</span><span class="p">(</span>
+        <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">sequences</span><span class="p">),</span>
+        <span class="n">batch_first</span><span class="o">=</span><span class="n">batch_first</span><span class="p">,</span>
+        <span class="n">padding_value</span><span class="o">=</span><span class="n">padding_value</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span></div>
+
+
 <div class="viewcode-block" id="padded_collate"><a class="viewcode-back" href="../../../generated/torchtune.data.padded_collate.html#torchtune.data.padded_collate">[docs]</a><span class="k">def</span> <span class="nf">padded_collate</span><span class="p">(</span>
+    <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">pad_direction</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">keys_to_pad</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">padding_idx</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]],</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A generic padding collation function which pads ``keys_to_pad`` entries in a</span>
+<span class="sd">    batch of sequences from the given ``pad_direction`` to the maximum sequence length for</span>
+<span class="sd">    each entry in the batch.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        This function assumes all batch elements which are not in ``keys_to_pad`` do not require</span>
+<span class="sd">        any collation (see example below).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        batch (List[Dict[str, List[int]]]): A list of dictionaries containing inputs.</span>
+<span class="sd">        pad_direction (str): whether to pad entries from the left, or right. If ``pad_direction=&quot;right&quot;``, we use</span>
+<span class="sd">            :func:`torch.nn.utils.rnn.pad_sequence`, otherwise if ``pad_direction=&quot;left&quot;``,</span>
+<span class="sd">            we use :func:`torchtune.data.left_pad_sequence`.</span>
+<span class="sd">        keys_to_pad (List[str]): Batch element keys to apply padding to. Should be a subset</span>
+<span class="sd">            of keys in the batch.</span>
+<span class="sd">        padding_idx (Union[int, Dict[str, int]]): Either a single integer padding value to apply to all</span>
+<span class="sd">            ``keys_to_pad`` elements, or a mapping with keys identical to ``keys_to_pad`` with per-key</span>
+<span class="sd">            padding values.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: The padded tensor of input ids with shape [batch_size, max_seq_len].</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: if ``pad_direction`` is not one of &quot;left&quot; or &quot;right.</span>
+<span class="sd">        ValueError: if ``keys_to_pad`` is empty, or is not a list, or is not a subset of keys in the batch.</span>
+<span class="sd">        ValueError: if ``padding_idx`` is provided as a dictionary, but the keys are not identical to</span>
+<span class="sd">            ``keys_to_pad``.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; a = [1, 2, 3]</span>
+<span class="sd">        &gt;&gt;&gt; b = [4, 5, 6, 7]</span>
+<span class="sd">        &gt;&gt;&gt; c = [8, 9, 10, 11, 12]</span>
+<span class="sd">        &gt;&gt;&gt; batch = [</span>
+<span class="sd">        &gt;&gt;&gt;     {&quot;tokens&quot;: a, &quot;labels&quot;: 1},</span>
+<span class="sd">        &gt;&gt;&gt;     {&quot;tokens&quot;: b, &quot;labels&quot;: 3},</span>
+<span class="sd">        &gt;&gt;&gt;     {&quot;tokens&quot;: c, &quot;labels&quot;: 0},</span>
+<span class="sd">        &gt;&gt;&gt; ]</span>
+<span class="sd">        &gt;&gt;&gt; padded_collate(</span>
+<span class="sd">        &gt;&gt;&gt;     batch,</span>
+<span class="sd">        &gt;&gt;&gt;     pad_direction=&quot;left&quot;,</span>
+<span class="sd">        &gt;&gt;&gt;     keys_to_pad=[&quot;tokens&quot;],</span>
+<span class="sd">        &gt;&gt;&gt;     padding_idx=-10</span>
+<span class="sd">        &gt;&gt;&gt; )</span>
+<span class="sd">        {</span>
+<span class="sd">            &#39;labels&#39;: tensor([1, 3, 0]),</span>
+<span class="sd">            &#39;tokens&#39;: tensor([[-10, -10,   1,   2,   3],</span>
+<span class="sd">                              [-10,   4,   5,   6,   7],</span>
+<span class="sd">                              [  8,   9,  10,  11,  12]])</span>
+<span class="sd">        }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">pad_direction</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="s2">&quot;right&quot;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;pad_direction should be one of &#39;left&#39; or &#39;right&#39; but found </span><span class="si">{</span><span class="n">pad_direction</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">keys_to_pad</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">keys_to_pad</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;keys_to_pad should be a list of strings with at least one element, but found </span><span class="si">{</span><span class="n">keys_to_pad</span><span class="si">}</span><span class="s2">!&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">keys_to_pad</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">keys_to_pad</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">padding_idx</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">padding_idx</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="n">keys_to_pad</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;padding_idx was provided as a dictionary, but the keys (</span><span class="si">{</span><span class="n">padding_idx</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">) &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;are not the same as keys_to_pad (</span><span class="si">{</span><span class="n">keys_to_pad</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">keys_to_pad</span> <span class="o">&lt;=</span> <span class="nb">set</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;keys_to_pad should be a subset of keys in the batch, but found &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">keys_to_pad</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="nb">set</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">, respectively.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="c1"># let&#39;s pull out any batch elements which don&#39;t need any padding</span>
+    <span class="c1"># and convert to tensors</span>
+    <span class="n">batch_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">keys_to_pad</span><span class="p">]</span>
+    <span class="n">output_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">batch_keys</span><span class="p">}</span>
+
+    <span class="c1"># now pad the remaining keys</span>
+    <span class="n">pad_fn</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">rnn</span><span class="o">.</span><span class="n">pad_sequence</span>
+        <span class="k">if</span> <span class="n">pad_direction</span> <span class="o">==</span> <span class="s2">&quot;right&quot;</span>
+        <span class="k">else</span> <span class="n">left_pad_sequence</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys_to_pad</span><span class="p">:</span>
+        <span class="n">output_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">pad_fn</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">],</span>
+            <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">padding_value</span><span class="o">=</span><span class="n">padding_idx</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">padding_idx</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">padding_idx</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">output_dict</span></div>
+
+
+<div class="viewcode-block" id="padded_collate_sft"><a class="viewcode-back" href="../../../generated/torchtune.data.padded_collate_sft.html#torchtune.data.padded_collate_sft">[docs]</a><span class="k">def</span> <span class="nf">padded_collate_sft</span><span class="p">(</span>
     <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span>
     <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">ignore_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
@@ -481,6 +624,63 @@
             <span class="n">value</span><span class="o">=</span><span class="n">padding_idx</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">input_ids</span><span class="o">.</span><span class="n">long</span><span class="p">(),</span> <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="o">.</span><span class="n">long</span><span class="p">()}</span></div>
+
+
+<div class="viewcode-block" id="padded_collate_dpo"><a class="viewcode-back" href="../../../generated/torchtune.data.padded_collate_dpo.html#torchtune.data.padded_collate_dpo">[docs]</a><span class="k">def</span> <span class="nf">padded_collate_dpo</span><span class="p">(</span>
+    <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span>
+    <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">ignore_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Pad a batch of sequences for Direct Preference Optimization (DPO).</span>
+
+<span class="sd">    This function takes a batch of sequences, where each sequence is represented</span>
+<span class="sd">    as a dictionary with multiple key-value pairs. Each key corresponds to a different</span>
+<span class="sd">    sequence component, such as input_ids or labels.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        batch (List[Dict[str, List[int]]]): A list of dictionaries, where each dictionary</span>
+<span class="sd">            represents a sequence with multiple components, &#39;chosen_input_ids&#39;,</span>
+<span class="sd">            &#39;chosen_labels&#39;, &#39;rejected_input_ids&#39;, and &#39;rejected_labels&#39; are required.</span>
+<span class="sd">        padding_idx (int): Padding index for input ids. Defaults to 0.</span>
+<span class="sd">        ignore_idx (int): Padding index for labels. Defaults to -100.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple[torch.Tensor, torch.Tensor]: A tuple containing concatenated and padded</span>
+<span class="sd">        input ids and labels.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; batch = [</span>
+<span class="sd">        &gt;&gt;&gt;    {&#39;chosen_input_ids&#39;: [1, 2, 3], &#39;rejected_input_ids&#39;: [4, 5],</span>
+<span class="sd">        &gt;&gt;&gt;      &#39;chosen_labels&#39;: [6, 7, 8], &#39;rejected_labels&#39;: [9, 10]},</span>
+<span class="sd">        &gt;&gt;&gt;    {&#39;chosen_input_ids&#39;: [11, 12], &#39;rejected_input_ids&#39;: [13, 14, 15],</span>
+<span class="sd">        &gt;&gt;&gt;      &#39;chosen_labels&#39;: [16, 17], &#39;rejected_labels&#39;: [18, 19, 20]},</span>
+<span class="sd">        &gt;&gt;&gt; ]</span>
+<span class="sd">        &gt;&gt;&gt; padded_collate_dpo(batch)</span>
+<span class="sd">        &gt;&gt;&gt; (tensor([[ 1,  2,  3],</span>
+<span class="sd">        &gt;&gt;&gt;          [11, 12,  0],</span>
+<span class="sd">        &gt;&gt;&gt;          [ 4,  5,  0],</span>
+<span class="sd">        &gt;&gt;&gt;          [13, 14, 15]]),</span>
+<span class="sd">        &gt;&gt;&gt;  tensor([[ 6,  7,  8],</span>
+<span class="sd">        &gt;&gt;&gt;          [16, 17, -100],</span>
+<span class="sd">        &gt;&gt;&gt;          [ 9, 10, -100],</span>
+<span class="sd">        &gt;&gt;&gt;          [18, 19, 20]]))</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">chosen_input_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">ex</span><span class="p">[</span><span class="s2">&quot;chosen_input_ids&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">ex</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
+    <span class="n">rejected_input_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">ex</span><span class="p">[</span><span class="s2">&quot;rejected_input_ids&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">ex</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
+    <span class="n">chosen_labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">ex</span><span class="p">[</span><span class="s2">&quot;chosen_labels&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">ex</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
+    <span class="n">rejected_labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">ex</span><span class="p">[</span><span class="s2">&quot;rejected_labels&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">ex</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
+
+    <span class="n">to_pad_input_ids</span> <span class="o">=</span> <span class="n">chosen_input_ids</span> <span class="o">+</span> <span class="n">rejected_input_ids</span>
+    <span class="n">to_pad_labels</span> <span class="o">=</span> <span class="n">chosen_labels</span> <span class="o">+</span> <span class="n">rejected_labels</span>
+
+    <span class="n">concatenated_input_ids</span> <span class="o">=</span> <span class="n">pad_sequence</span><span class="p">(</span>
+        <span class="n">to_pad_input_ids</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="n">padding_idx</span>
+    <span class="p">)</span>
+    <span class="n">concatenated_labels</span> <span class="o">=</span> <span class="n">pad_sequence</span><span class="p">(</span>
+        <span class="n">to_pad_labels</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="n">ignore_idx</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">concatenated_input_ids</span><span class="p">,</span> <span class="n">concatenated_labels</span></div>
 </pre></div>
 
              </article>

@@ -502,7 +502,16 @@ and models.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.data.padded_collate.html#torchtune.data.padded_collate" title="torchtune.data.padded_collate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">padded_collate</span></code></a></p></td>
+<td><p>A generic padding collation function which pads <code class="docutils literal notranslate"><span class="pre">keys_to_pad</span></code> entries in a batch of sequences from the given <code class="docutils literal notranslate"><span class="pre">pad_direction</span></code> to the maximum sequence length for each entry in the batch.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.data.padded_collate_sft.html#torchtune.data.padded_collate_sft" title="torchtune.data.padded_collate_sft"><code class="xref py py-obj docutils literal notranslate"><span class="pre">padded_collate_sft</span></code></a></p></td>
 <td><p>Pad a batch of sequences to the longest sequence length in the batch, and convert integer lists to tensors.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.data.padded_collate_dpo.html#torchtune.data.padded_collate_dpo" title="torchtune.data.padded_collate_dpo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">padded_collate_dpo</span></code></a></p></td>
+<td><p>Pad a batch of sequences for Direct Preference Optimization (DPO).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.data.left_pad_sequence.html#torchtune.data.left_pad_sequence" title="torchtune.data.left_pad_sequence"><code class="xref py py-obj docutils literal notranslate"><span class="pre">left_pad_sequence</span></code></a></p></td>
+<td><p>This function is identical to <a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.utils.rnn.pad_sequence.html#torch.nn.utils.rnn.pad_sequence" title="(in PyTorch v2.4)"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch.nn.utils.rnn.pad_sequence()</span></code></a>, but instead pads a list of variable length Tensors from the left to the length of the longest sequence.</p></td>
 </tr>
 </tbody>
 </table>

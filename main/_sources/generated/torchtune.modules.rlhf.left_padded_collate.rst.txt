@@ -1,9 +1,0 @@
-﻿.. role:: hidden
-    :class: hidden-section
-.. currentmodule:: torchtune.modules.rlhf
-
-
-left_padded_collate
-===================
-
-.. autofunction:: left_padded_collate
