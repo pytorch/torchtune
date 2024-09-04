@@ -40,6 +40,31 @@ if TORCH_VERSION_AFTER_2_4:
     _quantizer_mode_to_disable_fake_quant["8da4w-qat"] = disable_8da4w_fake_quant
     _quantizer_mode_to_enable_fake_quant["8da4w-qat"] = enable_8da4w_fake_quant
 
+    try:
+        # Note: QAT tensor subclass implementation in torchao only works
+        # with FSDP2 today. For other distribution strategies like DDP and
+        # FSDP1, users will need to fall back to the old module swap flow.
+        # TODO: remove this try catch once we upgrade to torchao 0.5.0
+
+        from torchao.quantization.prototype.qat._module_swap_api import (
+            disable_8da4w_fake_quant_module_swap,
+            enable_8da4w_fake_quant_module_swap,
+            Int8DynActInt4WeightQATQuantizerModuleSwap,
+        )
+
+        __all__.append("Int8DynActInt4WeightQATQuantizerModuleSwap")
+        _quantizer_to_mode[
+            Int8DynActInt4WeightQATQuantizerModuleSwap
+        ] = "8da4w-qat-module-swap"
+        _quantizer_mode_to_disable_fake_quant[
+            "8da4w-qat-module-swap"
+        ] = disable_8da4w_fake_quant_module_swap
+        _quantizer_mode_to_enable_fake_quant[
+            "8da4w-qat-module-swap"
+        ] = enable_8da4w_fake_quant_module_swap
+    except ImportError:
+        pass
+
 
 def get_quantizer_mode(quantizer: Optional[Callable]) -> Optional[str]:
     """Given a quantizer object, returns a string that specifies the type of quantization.
