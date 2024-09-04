@@ -20,7 +20,7 @@ class ToDummyMessages(Transform):
         dialogue = sample["dialogue"]
         messages = [Message.from_dict(d) for d in dialogue]
         return {"messages": messages}
-    
+
 
 class DummyTokenizerInvalidModelTransform(DummyTokenizer):
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
