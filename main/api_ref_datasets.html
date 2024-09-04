@@ -417,9 +417,9 @@
   <section id="torchtune-datasets">
 <span id="datasets"></span><h1>torchtune.datasets<a class="headerlink" href="#torchtune-datasets" title="Permalink to this heading">¶</a></h1>
 <p>For a detailed general usage guide, please see our <a class="reference internal" href="tutorials/datasets.html#dataset-tutorial-label"><span class="std std-ref">datasets tutorial</span></a>.</p>
-<section id="example-datasets">
-<h2>Example datasets<a class="headerlink" href="#example-datasets" title="Permalink to this heading">¶</a></h2>
-<p>torchtune supports several widely used datasets to help quickly bootstrap your fine-tuning.</p>
+<section id="text-only-datasets">
+<h2>Text-only datasets<a class="headerlink" href="#text-only-datasets" title="Permalink to this heading">¶</a></h2>
+<p>torchtune supports several widely used text-only datasets to help quickly bootstrap your fine-tuning.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.alpaca_dataset.html#torchtune.datasets.alpaca_dataset" title="torchtune.datasets.alpaca_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">alpaca_dataset</span></code></a></p></td>
@@ -445,6 +445,19 @@
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.wikitext_dataset.html#torchtune.datasets.wikitext_dataset" title="torchtune.datasets.wikitext_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">wikitext_dataset</span></code></a></p></td>
 <td><p>Support for family of datasets similar to <a class="reference external" href="https://huggingface.co/datasets/EleutherAI/wikitext_document_level">wikitext</a>, an unstructured text corpus consisting of fulls articles from Wikipedia.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="multimodal-datasets">
+<h2>Multimodal datasets<a class="headerlink" href="#multimodal-datasets" title="Permalink to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.llava_instruct_dataset.html#torchtune.datasets.llava_instruct_dataset" title="torchtune.datasets.llava_instruct_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llava_instruct_dataset</span></code></a></p></td>
+<td><p>Support for family of image + text datasets similar to <a class="reference external" href="https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K">LLaVA-Instruct-150K</a> from Hugging Face Datasets.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.the_cauldron_dataset.html#torchtune.datasets.the_cauldron_dataset" title="torchtune.datasets.the_cauldron_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">the_cauldron_dataset</span></code></a></p></td>
+<td><p>Support for family of image + text datasets similar to <a class="reference external" href="https://huggingface.co/datasets/HuggingFaceM4/the_cauldron">The Cauldron</a> from Hugging Face Datasets.</p></td>
 </tr>
 </tbody>
 </table>
@@ -542,7 +555,8 @@ These are especially useful for specifying from a YAML config.</p>
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
 <li><a class="reference internal" href="#">torchtune.datasets</a><ul>
-<li><a class="reference internal" href="#example-datasets">Example datasets</a></li>
+<li><a class="reference internal" href="#text-only-datasets">Text-only datasets</a></li>
+<li><a class="reference internal" href="#multimodal-datasets">Multimodal datasets</a></li>
 <li><a class="reference internal" href="#generic-dataset-builders">Generic dataset builders</a></li>
 <li><a class="reference internal" href="#generic-dataset-classes">Generic dataset classes</a></li>
 </ul>

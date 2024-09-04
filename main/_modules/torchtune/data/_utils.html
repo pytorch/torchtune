@@ -418,7 +418,7 @@
 
 <span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">lru_cache</span><span class="p">,</span> <span class="n">wraps</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">TypeVar</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">TypeVar</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.data._messages</span> <span class="kn">import</span> <span class="n">Message</span>
 
@@ -449,7 +449,48 @@
     <span class="k">return</span> <span class="n">tokens_truncated</span></div>
 
 
-<div class="viewcode-block" id="validate_messages"><a class="viewcode-back" href="../../../generated/torchtune.data.validate_messages.html#torchtune.data.validate_messages">[docs]</a><span class="k">def</span> <span class="nf">validate_messages</span><span class="p">(</span>
+<span class="k">def</span> <span class="nf">split_text_by_image_tag</span><span class="p">(</span><span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">image_tag</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given a raw text string, split by the specified ``image_tag``</span>
+<span class="sd">    and form into list of dictionaries to be used in the ``Message`` content</span>
+<span class="sd">    field::</span>
+
+<span class="sd">        [</span>
+<span class="sd">            {</span>
+<span class="sd">                &quot;role&quot;: &quot;system&quot; | &quot;user&quot; | &quot;assistant&quot;,</span>
+<span class="sd">                &quot;content&quot;:</span>
+<span class="sd">                    [</span>
+<span class="sd">                        {&quot;type&quot;: &quot;image&quot;},</span>
+<span class="sd">                        {&quot;type&quot;: &quot;text&quot;, &quot;content&quot;: &quot;This is a sample image.&quot;},</span>
+<span class="sd">                    ],</span>
+<span class="sd">            },</span>
+<span class="sd">            ...</span>
+<span class="sd">        ]</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        content (str): raw message text</span>
+<span class="sd">        image_tag (str): string to split the text by</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[Dict[str, str]]: list of dictionaries to be used in the ``Message`` content field</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; content = split_text_by_image_tag(&quot;&lt;image&gt;hello &lt;image&gt;world&quot;, &quot;&lt;image&gt;&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; print(content)</span>
+<span class="sd">        [{&quot;type&quot;: &quot;image&quot;}, {&quot;type&quot;: &quot;text&quot;, &quot;content&quot;: &quot;hello &quot;}, {&quot;type&quot;: &quot;image&quot;}, {&quot;type&quot;: &quot;text&quot;, &quot;content&quot;: &quot;world&quot;}]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">split_content</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">image_tag</span><span class="p">)</span>
+    <span class="n">final_content_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">substr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">split_content</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">substr</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">final_content_list</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">substr</span><span class="p">})</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">split_content</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">final_content_list</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;image&quot;</span><span class="p">})</span>
+
+    <span class="k">return</span> <span class="n">final_content_list</span>
+
+
+<span class="k">def</span> <span class="nf">validate_messages</span><span class="p">(</span>
     <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -488,7 +529,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;System message at index </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> in messages, but system messages must come first&quot;</span>
             <span class="p">)</span>
-        <span class="n">last_turn</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span></div>
+        <span class="n">last_turn</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span>
 
 
 <span class="k">def</span> <span class="nf">deprecated</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">T</span><span class="p">],</span> <span class="n">T</span><span class="p">]:</span>

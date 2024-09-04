@@ -875,6 +875,48 @@
             <span class="n">updated_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Message</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">message</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">updated_messages</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="validate_messages"><a class="viewcode-back" href="../../../generated/torchtune.data.validate_messages.html#torchtune.data.validate_messages">[docs]</a><span class="k">def</span> <span class="nf">validate_messages</span><span class="p">(</span>
+    <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given a list of messages, ensure that messages form a valid</span>
+<span class="sd">    back-and-forth conversation. An error will be raised if:</span>
+
+<span class="sd">    - There is a system message that&#39;s not the first message</span>
+<span class="sd">    - There are two consecutive user messages</span>
+<span class="sd">    - An assistant message comes before the first user message</span>
+<span class="sd">    - The message is empty</span>
+<span class="sd">    - Messages are shorter than length of 2 (min. one user-assistant turn)</span>
+
+
+<span class="sd">    Args:</span>
+<span class="sd">        messages (List[Message]): the messages to validate.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the messages are invalid.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Messages must be at least length 2, but got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span><span class="si">}</span><span class="s2"> messages&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">last_turn</span> <span class="o">=</span> <span class="s2">&quot;assistant&quot;</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">message</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">messages</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;assistant&quot;</span> <span class="ow">and</span> <span class="n">last_turn</span> <span class="o">!=</span> <span class="s2">&quot;user&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Assistant message before expected user message at index </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> in messages&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;user&quot;</span> <span class="ow">and</span> <span class="n">last_turn</span> <span class="o">==</span> <span class="s2">&quot;user&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Two consecutive user messages at index </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> in messages&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;system&quot;</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;System message at index </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> in messages, but system messages must come first&quot;</span>
+            <span class="p">)</span>
+        <span class="n">last_turn</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span></div>
 </pre></div>
 
              </article>
