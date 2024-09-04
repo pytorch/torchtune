@@ -66,29 +66,15 @@ class GemmaTransformerDecoder(nn.Module):
         self.head_dim = head_dim
         self.causal_mask = None
         self.norm_embeddings = norm_embeddings
+        self.cache_max_seq_len = None
 
-    def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
-        """Setup key value caches for attention calculation.
-
-        Args:
-            batch_size (int): batch size for the caches.
-            dtype (torch.dtype): dtype for the caches.
-        """
+    def setup_caches(
+        self, batch_size: int, dtype: torch.dtype, *, encoder_max_seq_len: int = None, decoder_max_seq_len: int = None
+    ):
+        self.cache_max_seq_len = decoder_max_seq_len if decoder_max_seq_len is not None else self.max_seq_len
         for layer in self.layers:
-            layer.attn.kv_cache = KVCache(
-                batch_size=batch_size,
-                max_seq_len=self.max_seq_len,
-                num_heads=self.num_heads,
-                head_dim=self.head_dim,
-                dtype=dtype,
-            )
-
-        # causal_mask is used during inference to ensure we're attending
-        # to the right tokens
-        self.causal_mask = torch.tril(
-            torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
-        )
-
+            layer.setup_cache(batch_size, dtype, encoder_max_seq_len=None, decoder_max_seq_len=self.cache_max_seq_len)
+            
     def forward(
         self,
         tokens: Tensor,
@@ -136,13 +122,9 @@ class GemmaTransformerDecoder(nn.Module):
 
         if self.causal_mask is not None:
             if input_pos is None:
-                raise ValueError(
-                    "Caches are setup, but the position of input token is missing"
-                )
+                raise ValueError("Caches are setup, but the position of input token is missing")
             if mask is not None:
-                raise ValueError(
-                    "An attention mask was set. Cannot use a non-causal mask for inference"
-                )
+                raise ValueError("An attention mask was set. Cannot use a non-causal mask for inference")
             # shape: [1, input_pos_len, m_s]
             # in most cases input_pos_len should be 1
             mask = self.causal_mask[None, input_pos]
