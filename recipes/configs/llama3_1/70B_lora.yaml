@@ -16,6 +16,7 @@ model:
   apply_lora_to_output: False
   lora_rank: 16
   lora_alpha: 32
+  lora_dropout: 0.0
 
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
