@@ -10,6 +10,7 @@ on:
       # Release candidate tags look like: v1.11.0-rc1
       - v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+
   workflow_dispatch:
+  pull_request: # TODO: for testing (remove)
 
 permissions:
   id-token: write
@@ -40,5 +41,6 @@ jobs:
       pre-script: .github/scripts/pre_build_script.sh
       trigger-event: ${{ github.event_name }}
       build-platform: 'python-build-package'
-      pip-install-torch-extra-args: torchvision
-      pip-install-torch-extra-args: torchao
+      pip-install-torch-extra-args:
+        torchvision
+        torchao
