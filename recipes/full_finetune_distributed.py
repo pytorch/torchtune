@@ -15,6 +15,9 @@ from warnings import warn
 import torch
 from omegaconf import DictConfig, ListConfig
 
+import pickle
+torch.cuda.memory._record_memory_history(max_entries=1000000)
+
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 
@@ -431,7 +434,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # This method will convert the full model state dict into a sharded state
         # dict and load into the model
         training.load_from_full_model_state_dict(
-            model, model_state_dict, self._device, self._is_rank_zero, strict=True
+            model, model_state_dict, self._device, self._is_rank_zero, strict=True, cpu_offload=fsdp_cpu_offload
         )
 
         # Ensure no params and buffers are on meta device
@@ -651,6 +654,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
+
+                    if torch.distributed.get_rank() == 0:
+                        pickle.dump(torch.cuda.memory._snapshot(), open("full_finetune_fsdp2" + '.pickle', 'wb'))
+                    return
 
                     # Update the number of steps when the weights are updated
                     self.global_step += 1

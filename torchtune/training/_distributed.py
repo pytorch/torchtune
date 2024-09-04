@@ -285,6 +285,7 @@ def load_from_full_model_state_dict(
     device: torch.device,
     is_rank_zero: bool,
     strict: bool = False,
+    cpu_offload: bool = False,
 ):
     """
     Converting full state dict into a sharded state dict
@@ -338,6 +339,8 @@ def load_from_full_model_state_dict(
                 sharded_meta_param.device_mesh,
                 sharded_meta_param.placements,
             )
+        if cpu_offload:
+            sharded_tensor = sharded_tensor.cpu()
         sharded_sd[param_name] = nn.Parameter(sharded_tensor)
     # choose `assign=True` since we cannot call `copy_` on meta tensor
     return model.load_state_dict(sharded_sd, strict=strict, assign=True)
@@ -584,4 +587,4 @@ def shard_model(
             fully_shard(m, **fsdp_kwargs)
 
     # Finally shard the entire model to account for any stragglers
-    fully_shard(model)
+    fully_shard(model, **fsdp_kwargs)
