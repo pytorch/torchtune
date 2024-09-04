@@ -186,7 +186,7 @@ class FlamingoTransform(ModelTokenizer, Transform):
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         """
         Apply image decoding and transformations to the "images" field in the sample
-        and tokenizization to the "messages" field in the sample. Also returns the
+        and tokenization to the "messages" field in the sample. Also returns the
         encoder mask.
 
         Args:
