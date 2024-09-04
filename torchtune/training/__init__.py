@@ -49,6 +49,15 @@ from torchtune.training.checkpointing import (
     TOTAL_EPOCHS_KEY,
     update_state_dict_for_classifier,
 )
+from torchtune.training.memory import (
+    cleanup_before_training,
+    create_optim_in_bwd_wrapper,
+    get_memory_stats,
+    log_memory_stats,
+    OptimizerInBackwardWrapper,
+    register_optim_in_bwd_hooks,
+    set_activation_checkpointing,
+)
 from torchtune.training.pooling import get_unmasked_sequence_lengths
 from torchtune.training.precision import (
     get_dtype,
@@ -80,6 +89,13 @@ __all__ = [
     "STEPS_KEY",
     "TOTAL_EPOCHS_KEY",
     "get_quantizer_mode",
+    "cleanup_before_training",
+    "create_optim_in_bwd_wrapper",
+    "get_memory_stats",
+    "log_memory_stats",
+    "OptimizerInBackwardWrapper",
+    "register_optim_in_bwd_hooks",
+    "set_activation_checkpointing",
     "init_distributed",
     "is_distributed",
     "get_world_size_and_rank",

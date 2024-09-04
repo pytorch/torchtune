@@ -475,12 +475,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         training.validate_no_params_on_meta_device(model)
 
         if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(
+            training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
         if self._is_rank_zero:
-            memory_stats = utils.get_memory_stats(device=self._device)
-            utils.log_memory_stats(memory_stats)
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(memory_stats)
 
         # synchronize before training begins
         torch.distributed.barrier()
@@ -656,7 +656,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         The core training loop.
         """
         # clean up before training begins
-        utils.cleanup_before_training()
+        training.cleanup_before_training()
 
         _, rank = training.get_world_size_and_rank()
 
@@ -756,7 +756,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._log_peak_memory_stats:
-                            log_dict.update(utils.get_memory_stats(device=self._device))
+                            log_dict.update(
+                                training.get_memory_stats(device=self._device)
+                            )
                         self._metric_logger.log_dict(
                             log_dict,
                             step=self.global_step,

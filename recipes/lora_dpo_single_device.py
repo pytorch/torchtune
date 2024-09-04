@@ -269,7 +269,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         set_trainable_params(model, self.adapter_params)
 
         if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(
+            training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
@@ -313,8 +313,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
             model.compile(backend=backend)
         if self._device == torch.device("cuda"):
-            memory_stats = utils.get_memory_stats(device=self._device)
-            utils.log_memory_stats(memory_stats)
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(memory_stats)
         return model
 
     def _setup_optimizer(
@@ -580,7 +580,9 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                             "logits/chosen": policy_chosen_logits_mean.cpu(),
                         }
                         if self._log_peak_memory_stats:
-                            log_dict.update(utils.get_memory_stats(device=self._device))
+                            log_dict.update(
+                                training.get_memory_stats(device=self._device)
+                            )
                         self._metric_logger.log_dict(
                             log_dict,
                             step=self.global_step,

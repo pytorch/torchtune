@@ -24,7 +24,7 @@ from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 from torch.testing._internal.common_fsdp import FSDPTest, MLP
 from torchao.dtypes.nf4tensor import NF4Tensor
-from torchtune import modules, training, utils
+from torchtune import modules, training
 from torchtune.models.llama2._component_builders import llama2, lora_llama2
 from torchtune.models.llama3._component_builders import llama3
 from torchtune.modules import TransformerSelfAttentionLayer
@@ -440,7 +440,7 @@ class TestFullyShardState(FSDPTest):
             base_model = lora_llama2(**kwargs)
         set_trainable_params(base_model, get_adapter_params(base_model))
         if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(
+            training.set_activation_checkpointing(
                 base_model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
@@ -481,7 +481,7 @@ class TestFullyShardState(FSDPTest):
             fsdp_model_to_load = lora_llama2(**kwargs)
         set_trainable_params(fsdp_model_to_load, get_adapter_params(fsdp_model_to_load))
         if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(
+            training.set_activation_checkpointing(
                 fsdp_model_to_load,
                 auto_wrap_policy={modules.TransformerSelfAttentionLayer},
             )
