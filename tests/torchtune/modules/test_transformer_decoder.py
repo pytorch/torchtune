@@ -12,7 +12,7 @@ import torch
 
 from tests.test_utils import assert_expected
 
-from torch import nn, Tensor
+from torch import nn
 
 from torchtune.models.llama2 import llama2
 from torchtune.models.llama2._component_builders import llama2_mlp
@@ -28,7 +28,7 @@ from torchtune.modules import (
     TransformerDecoder,
     TransformerSelfAttentionLayer,
 )
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 
 @pytest.fixture(autouse=True)
@@ -54,7 +54,7 @@ class TestTransformerSelfAttentionLayer:
         return batch_size, seq_len, embed_dim
 
     @pytest.fixture
-    def input(self, input_params: Tuple[int, int, int]) -> Tensor:
+    def input(self, input_params: Tuple[int, int, int]) -> torch.Tensor:
         batch_size, seq_len, embed_dim = input_params
         return torch.randn(batch_size, seq_len, embed_dim)
 
@@ -100,7 +100,7 @@ class TestTransformerSelfAttentionLayer:
         return transformer_layer
 
     def test_forward(
-        self, input: Tensor, transformer_layer: TransformerSelfAttentionLayer
+        self, input: torch.Tensor, transformer_layer: TransformerSelfAttentionLayer
     ) -> None:
         with torch.no_grad():
             output = transformer_layer(input)
@@ -125,7 +125,7 @@ class TestTransformerCrossAttentionLayer:
         return batch_size, seq_len, encoder_seq_len, embed_dim
 
     @pytest.fixture
-    def input(self, input_params: Tuple[int, int, int, int]) -> Tensor:
+    def input(self, input_params: Tuple[int, int, int, int]) -> torch.Tensor:
         batch_size, seq_len, encoder_seq_len, embed_dim = input_params
         rand_x = torch.randn(batch_size, seq_len, embed_dim)
         rand_y = torch.randn(batch_size, 128, embed_dim)
@@ -185,7 +185,7 @@ class TestTransformerCrossAttentionLayer:
 
     def test_forward(
         self,
-        input: [Tensor, Tensor, Tensor],
+        input: [torch.Tensor, torch.Tensor, torch.Tensor],
         transformer_layer: TransformerSelfAttentionLayer,
     ) -> None:
         input_x, input_y, mask = input
@@ -215,7 +215,7 @@ class TestTransformerDecoder:
         return batch_size, seq_len, vocab_size
 
     @pytest.fixture
-    def input(self, input_params: Tuple[int, int, int]) -> Tensor:
+    def input(self, input_params: Tuple[int, int, int]) -> torch.Tensor:
         batch_size, seq_len, vocab_size = input_params
         return torch.randint(low=0, high=vocab_size, size=(batch_size, seq_len))
 
@@ -234,7 +234,7 @@ class TestTransformerDecoder:
         self,
         input_params: Tuple[int, int, int],
         decoder_params: Tuple[int, int, int, int, int, int],
-    ) -> Tensor:
+    ) -> torch.Tensor:
         batch_size, seq_len, vocab_size = input_params
         _, _, _, _, max_seq_len, _ = decoder_params
         seq_len = max_seq_len + 1
@@ -245,7 +245,7 @@ class TestTransformerDecoder:
         self,
         input_params: Tuple[int, int, int],
         decoder_params: Tuple[int, int, int, int, int, int],
-    ) -> Tensor:
+    ) -> torch.Tensor:
         batch_size, seq_len, vocab_size = input_params
         _, _, _, _, max_seq_len, _ = decoder_params
         batch_size = batch_size + 1
@@ -306,7 +306,7 @@ class TestTransformerDecoder:
 
     def test_forward(
         self,
-        input: Tensor,
+        input: torch.Tensor,
         input_params: Tuple[int, int, int],
         decoder: TransformerDecoder,
     ) -> None:
@@ -318,7 +318,7 @@ class TestTransformerDecoder:
 
     def test_max_seq_len_exceeded(
         self,
-        input_max_len_exceeded: Tensor,
+        input_max_len_exceeded: torch.Tensor,
         decoder: TransformerDecoder,
     ) -> None:
         with pytest.raises(Exception):
@@ -326,7 +326,7 @@ class TestTransformerDecoder:
 
     def test_kv_cache(
         self,
-        input: Tensor,
+        input: torch.Tensor,
         decoder_with_kv_cache_enabled: TransformerDecoder,
         decoder: TransformerDecoder,
     ) -> None:
@@ -340,7 +340,7 @@ class TestTransformerDecoder:
 
     def test_kv_cache_reset_values(
         self,
-        input: Tensor,
+        input: torch.Tensor,
         decoder_with_kv_cache_enabled: TransformerDecoder,
     ) -> None:
         _, seq_len = input.shape
@@ -375,7 +375,7 @@ class TestTransformerDecoder:
 
     def test_kv_cache_batch_size_exceeded(
         self,
-        input_max_bs_exceeded: Tensor,
+        input_max_bs_exceeded: torch.Tensor,
         decoder_with_kv_cache_enabled: TransformerDecoder,
     ) -> None:
         with pytest.raises(ValueError):

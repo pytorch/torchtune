@@ -13,9 +13,9 @@ import torch
 from torch.utils.data import Dataset
 
 CKPT_COMPONENT_MAP = {
-    "tune": "torchtune.utils.FullModelTorchTuneCheckpointer",
-    "meta": "torchtune.utils.FullModelMetaCheckpointer",
-    "hf": "torchtune.utils.FullModelHFCheckpointer",
+    "tune": "torchtune.training.FullModelTorchTuneCheckpointer",
+    "meta": "torchtune.training.FullModelMetaCheckpointer",
+    "hf": "torchtune.training.FullModelHFCheckpointer",
 }
 
 
@@ -72,7 +72,6 @@ def dummy_text_completion_alpaca_dataset_config():
         f"dataset.data_files={data_files}",
         "dataset.column='instruction'",
         "dataset.split='train[:10%]'",  # 10% of the dataset gets us 8 batches
-        "dataset.max_seq_len=64",
         "dataset.add_eos=False",
     ]
     return out

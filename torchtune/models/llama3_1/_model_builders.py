@@ -87,6 +87,7 @@ def lora_llama3_1_8b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
@@ -128,6 +129,7 @@ def lora_llama3_1_8b(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=0.05,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 
@@ -138,6 +140,7 @@ def lora_llama3_1_70b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
@@ -179,6 +182,7 @@ def lora_llama3_1_70b(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=0.05,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 

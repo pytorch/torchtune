@@ -8,7 +8,7 @@ import logging
 from typing import Optional
 
 import torch
-from torch import nn, Tensor
+from torch import nn
 from torchtune.modules.kv_cache import KVCache
 from torchtune.utils._version import torch_version_ge
 from torchtune.utils.attention_bias import _MaskType
@@ -23,13 +23,13 @@ if torch_version_ge("2.5.0"):
     flex_attention_compiled = torch.compile(flex_attention, dynamic=False)
 
     def _attention_call(
-        q: Tensor,
-        k: Tensor,
-        v: Tensor,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
         mask: Optional[_MaskType],
         dropout_p: float,
         is_causal: bool,
-    ) -> Tensor:
+    ) -> torch.Tensor:
 
         # Flex attention uses the BlockMask
         # (https://github.com/pytorch/pytorch/blob/main/torch/nn/attention/flex_attention.py#L168)
@@ -68,13 +68,13 @@ if torch_version_ge("2.5.0"):
 else:
 
     def _attention_call(
-        q: Tensor,
-        k: Tensor,
-        v: Tensor,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
         mask: Optional[_MaskType],
         dropout_p: float,
         is_causal: bool,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         # shape: [b, 1, s, s]
         if mask is not None:
             mask = mask[:, None, :, :]
@@ -247,16 +247,16 @@ class MultiHeadAttention(nn.Module):
 
     def forward(
         self,
-        x: Tensor,
-        y: Optional[Tensor] = None,
+        x: torch.Tensor,
+        y: Optional[torch.Tensor] = None,
         *,
         mask: Optional[_MaskType] = None,
-        input_pos: Optional[Tensor] = None,
-    ) -> Tensor:
+        input_pos: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         """
         Args:
-            x (Tensor): input tensor with shape [b x s_x x d]
-            y (Optional[Tensor]): second input tensor for cross attention with shape [b x s_y x d]
+            x (torch.Tensor): input tensor with shape [b x s_x x d]
+            y (Optional[torch.Tensor]): second input tensor for cross attention with shape [b x s_y x d]
             mask (Optional[_MaskType]): Optional boolean tensor which contains the attention mask
                 with shape [batch_size x seq_length x seq_length]. This is applied after
                 the query-key multiplication and before the softmax. A value of True in row i
@@ -265,7 +265,7 @@ class MultiHeadAttention(nn.Module):
                 is used by default. If a BlockMask is passed for document masking in a packed
                 sequence, we use :func:`~torch.nn.attention.flex_attention.flex_attention` when
                 computing attention. Default is None.
-            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.

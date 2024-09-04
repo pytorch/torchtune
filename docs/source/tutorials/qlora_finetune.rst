@@ -195,7 +195,7 @@ A comparison of the smoothed loss curves between QLoRA and LoRA can be seen belo
 .. image:: /_static/img/qlora_exp.png
 
 .. note::
-    The above figure was generated with W&B. You can use torchtune's :class:`~torchtune.utils.metric_logging.WandBLogger`
+    The above figure was generated with W&B. You can use torchtune's :class:`~torchtune.training.metric_logging.WandBLogger`
     to generate similar loss curves, but you will need to install W&B and setup an account separately. For more details on
     using W&B in torchtune, see our ":ref:`wandb_logging`" recipe.
 
@@ -217,7 +217,8 @@ a vanilla minimal LoRA layer, taken from :ref:`the LoRA tutorial <lora_finetune_
 .. code-block:: python
   :emphasize-lines: 3, 13, 19, 20, 39, 40, 41
 
-  from torch import nn, Tensor
+  import torch
+  from torch import nn
   import torch.nn.functional as F
   from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
 
@@ -253,7 +254,7 @@ a vanilla minimal LoRA layer, taken from :ref:`the LoRA tutorial <lora_finetune_
       self.lora_a.weight.requires_grad = True
       self.lora_b.weight.requires_grad = True
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
       # frozen_out would be the output of the original model
       if quantize_base:
         # Call into torchao's linear_nf4 to run linear forward pass w/quantized weight.

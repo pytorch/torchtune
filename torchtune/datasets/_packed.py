@@ -11,7 +11,7 @@ from torch.nn import functional as F
 
 from torch.utils.data import Dataset
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.utils import get_world_size_and_rank
+from torchtune.training import get_world_size_and_rank
 from tqdm import tqdm
 
 PACK_TYPE = Dict[str, Union[torch.Tensor, List[int]]]

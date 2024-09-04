@@ -20,7 +20,7 @@ def tile_crop(image: torch.Tensor, tile_size: int) -> torch.Tensor:
         tile_size (int): Size of each tile.
 
     Returns:
-        torch.Tensor: Tensor of shape [num_tiles, channel_size, tile_size, tile_size]
+        torch.Tensor: torch.Tensor of shape [num_tiles, channel_size, tile_size, tile_size]
 
     Examples:
         >>> image = torch.rand(3, 200, 300)
