@@ -115,6 +115,7 @@ def lora_llama3_8b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
         quantize_base (bool): Whether to quantize base model weights
         use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
             introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
@@ -138,7 +139,7 @@ def lora_llama3_8b(
         rope_base=500000.0,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
-        lora_dropout=0.05,
+        lora_dropout=lora_dropout,
         quantize_base=quantize_base,
         use_dora=use_dora,
     )
@@ -150,6 +151,7 @@ def lora_llama3_70b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
+    lora_dropout: float = 0.0,
     quantize_base: bool = False,
     use_dora: bool = False,
 ) -> TransformerDecoder:
@@ -170,6 +172,7 @@ def lora_llama3_70b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
         quantize_base (bool): Whether to quantize base model weights
         use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
             introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
@@ -193,7 +196,7 @@ def lora_llama3_70b(
         rope_base=500000.0,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
-        lora_dropout=0.05,
+        lora_dropout=lora_dropout,
         quantize_base=quantize_base,
         use_dora=use_dora,
     )

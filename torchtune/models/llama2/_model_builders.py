@@ -67,7 +67,7 @@ def lora_llama2_7b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
-    lora_dropout: float = 0.05,
+    lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
@@ -92,8 +92,7 @@ def lora_llama2_7b(
         use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
             introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base (bool): Whether to quantize base model weights
-        lora_dropout (float): dropout probability for LoRA linear layers. Default: 0.05
-
+        
     Returns:
         TransformerDecoder: Instantiation of Llama2 7B model with LoRA applied
     """
@@ -153,7 +152,7 @@ def lora_llama2_13b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
-    lora_dropout: float = 0.05,
+    lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
@@ -238,7 +237,7 @@ def lora_llama2_70b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
-    lora_dropout: float = 0.05,
+    lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
@@ -259,6 +258,7 @@ def lora_llama2_70b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): LoRA dropout probability. Default: 0.0
         use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
             introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base (bool): Whether to quantize base model weights
@@ -323,7 +323,7 @@ def lora_llama2_reward_7b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
-    lora_dropout: float = 0.05,
+    lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
@@ -344,6 +344,7 @@ def lora_llama2_reward_7b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): LoRA dropout probability. Default: 0.0
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
