@@ -67,6 +67,16 @@ class GemmaTransformerDecoder(nn.Module):
         self.causal_mask = None
         self.norm_embeddings = norm_embeddings
         self.cache_max_seq_len = None
+        self.num_output_chunks = 0
+
+    def caches_are_enabled(self) -> bool:
+        """Check if the key value caches are setup."""
+        return self.layers[0].cache_enabled
+# 
+    def set_num_output_chunks(self, num_output_chunks: int) -> None:
+        """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
+        This should be called before the first forward pass, in the recipe."""
+        self.num_output_chunks = num_output_chunks
 
     def setup_caches(
         self, batch_size: int, dtype: torch.dtype, *, encoder_max_seq_len: int = None, decoder_max_seq_len: int = None
@@ -140,6 +150,15 @@ class GemmaTransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.norm(h)
 
-        # shape: [b, s, v]
-        output = F.linear(h, self.tok_embeddings.weight).float()
+        if self.num_output_chunks > 0:
+            # shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size
+            # Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,
+            # before calling forward. Upcasting it done inside of the loss function.
+            output = [
+                F.linear(chunk, self.tok_embeddings.weight)
+                for chunk in h.chunk(self.num_output_chunks, dim=1)
+            ]
+        else:
+            # shape: [b, seq_len, out_dim]
+            output = F.linear(h, self.tok_embeddings.weight).float()
         return output

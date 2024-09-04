@@ -5,12 +5,12 @@
 # LICENSE file in the root directory of this source tree.
 from typing import Union
 
-from torchtune.utils._checkpointing._checkpointer import (
+from torchtune.training.checkpointing._checkpointer import (
     FullModelHFCheckpointer,
     FullModelMetaCheckpointer,
     FullModelTorchTuneCheckpointer,
 )
-from torchtune.utils._checkpointing._utils import (
+from torchtune.training.checkpointing._utils import (
     ADAPTER_CONFIG,
     ADAPTER_KEY,
     EPOCHS_KEY,

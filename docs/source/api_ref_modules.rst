@@ -132,3 +132,4 @@ Losses
    rlhf.loss.RSOLoss
    rlhf.loss.IPOLoss
    rlhf.loss.SimPOLoss
+   loss.CEWithChunkedOutputLoss

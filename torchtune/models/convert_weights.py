@@ -209,6 +209,7 @@ def tune_to_hf(
 _TO_PEFT_KEYS = {
     "lora_a": "lora_A",
     "lora_b": "lora_B",
+    "magnitude": "lora_magnitude_vector",
 }
 
 # Mapping from torchtune module names to target modules for PEFT adapter config
