@@ -12,20 +12,23 @@ import torch
 
 from tests.test_utils import assert_expected
 
-from torch import nn, Tensor
+from torch import nn
 
 from torchtune.models.llama2 import llama2
 from torchtune.models.llama2._component_builders import llama2_mlp
 
 from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
 from torchtune.modules import (
-    CausalSelfAttention,
+    FeedForward,
+    MultiHeadAttention,
     RMSNorm,
     RotaryPositionalEmbeddings,
+    TanhGate,
+    TransformerCrossAttentionLayer,
     TransformerDecoder,
-    TransformerDecoderLayer,
+    TransformerSelfAttentionLayer,
 )
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 
 @pytest.fixture(autouse=True)
@@ -33,9 +36,9 @@ def random():
     set_seed(16)
 
 
-class TestTransformerDecoderLayer:
+class TestTransformerSelfAttentionLayer:
     """
-    Class for testing our TransformerDecoderLayer implementation.
+    Class for testing our TransformerSelfAttentionLayer implementation.
 
     The expected tensors are computed from the reference implementation
     below by using the same seed, same params and same initialization used
@@ -51,7 +54,7 @@ class TestTransformerDecoderLayer:
         return batch_size, seq_len, embed_dim
 
     @pytest.fixture
-    def input(self, input_params: Tuple[int, int, int]) -> Tensor:
+    def input(self, input_params: Tuple[int, int, int]) -> torch.Tensor:
         batch_size, seq_len, embed_dim = input_params
         return torch.randn(batch_size, seq_len, embed_dim)
 
@@ -66,11 +69,11 @@ class TestTransformerDecoderLayer:
     @pytest.fixture
     def transformer_layer(
         self, layer_params: Tuple[int, int, int, int]
-    ) -> TransformerDecoderLayer:
+    ) -> TransformerSelfAttentionLayer:
         num_heads, num_kv_heads, embed_dim, max_seq_len = layer_params
         head_dim = embed_dim // num_heads
         rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
-        self_attn = CausalSelfAttention(
+        self_attn = MultiHeadAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
@@ -84,7 +87,7 @@ class TestTransformerDecoderLayer:
         )
         hidden_dim = scale_hidden_dim_for_mlp(embed_dim)
         mlp = llama2_mlp(dim=embed_dim, hidden_dim=hidden_dim)
-        transformer_layer = TransformerDecoderLayer(
+        transformer_layer = TransformerSelfAttentionLayer(
             attn=self_attn,
             mlp=mlp,
             sa_norm=RMSNorm(dim=embed_dim),
@@ -97,7 +100,7 @@ class TestTransformerDecoderLayer:
         return transformer_layer
 
     def test_forward(
-        self, input: Tensor, transformer_layer: TransformerDecoderLayer
+        self, input: torch.Tensor, transformer_layer: TransformerSelfAttentionLayer
     ) -> None:
         with torch.no_grad():
             output = transformer_layer(input)
@@ -105,9 +108,98 @@ class TestTransformerDecoderLayer:
         assert_expected(output.shape, input.shape)
 
 
+class TestTransformerCrossAttentionLayer:
+    """
+    Class for testing our TransformerCrossAttentionLayer implementation.
+    The expected tensors are computed from the reference implementation
+    below by using the same seed, same params and same initialization used
+    in the fixtures below.
+    """
+
+    @pytest.fixture
+    def input_params(self) -> Tuple[int, int, int, int]:
+        batch_size = 2
+        seq_len = 8
+        encoder_seq_len = 128
+        embed_dim = 4096
+        return batch_size, seq_len, encoder_seq_len, embed_dim
+
+    @pytest.fixture
+    def input(self, input_params: Tuple[int, int, int, int]) -> torch.Tensor:
+        batch_size, seq_len, encoder_seq_len, embed_dim = input_params
+        rand_x = torch.randn(batch_size, seq_len, embed_dim)
+        rand_y = torch.randn(batch_size, 128, embed_dim)
+        mask = torch.ones(batch_size, seq_len, 128, dtype=torch.bool)
+        mask[:, : seq_len // 2] = False
+        return rand_x, rand_y, mask
+
+    @pytest.fixture
+    def layer_params(self) -> Tuple[int, int, int, int]:
+        num_heads = 32
+        num_kv_heads = 8
+        embed_dim = 4096
+        max_seq_len = 4096
+        return num_heads, num_kv_heads, embed_dim, max_seq_len
+
+    @pytest.fixture
+    def transformer_layer(
+        self, layer_params: Tuple[int, int, int, int]
+    ) -> TransformerCrossAttentionLayer:
+        num_heads, num_kv_heads, embed_dim, max_seq_len = layer_params
+        head_dim = embed_dim // num_heads
+        attn = MultiHeadAttention(
+            embed_dim=embed_dim,
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            head_dim=head_dim,
+            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            q_norm=RMSNorm(dim=head_dim, eps=1e-05),
+            k_norm=RMSNorm(dim=head_dim, eps=1e-05),
+            pos_embeddings=None,
+            max_seq_len=max_seq_len,
+            is_causal=False,
+            attn_dropout=0.0,
+        )
+        hidden_dim = scale_hidden_dim_for_mlp(embed_dim * 1.25, 1024)
+        gate_proj = nn.Linear(embed_dim, hidden_dim, bias=False)
+        down_proj = nn.Linear(hidden_dim, embed_dim, bias=False)
+        up_proj = nn.Linear(embed_dim, hidden_dim, bias=False)
+        mlp = FeedForward(gate_proj=gate_proj, down_proj=down_proj, up_proj=up_proj)
+
+        transformer_layer = TransformerCrossAttentionLayer(
+            attn=attn,
+            mlp=mlp,
+            ca_norm=RMSNorm(dim=embed_dim),
+            mlp_norm=RMSNorm(dim=embed_dim),
+            ca_scale=TanhGate(),
+            mlp_scale=TanhGate(),
+        )
+        # TODO: fix weight initialization to use fixed_init_model
+        for p in transformer_layer.parameters():
+            nn.init.constant_(p, 0.05)
+        transformer_layer.eval()
+        return transformer_layer
+
+    def test_forward(
+        self,
+        input: [torch.Tensor, torch.Tensor, torch.Tensor],
+        transformer_layer: TransformerSelfAttentionLayer,
+    ) -> None:
+        input_x, input_y, mask = input
+        with torch.no_grad():
+            output = transformer_layer(
+                input_x, encoder_input=input_y, encoder_mask=mask
+            )
+        assert_expected(output.mean(), torch.tensor(1.7762), atol=1e-8, rtol=1e-3)
+        assert_expected(output.shape, input_x.shape)
+
+
 class TestTransformerDecoder:
     """
-    Class for testing our TransformerDecoderLayer implementation.
+    Class for testing our TransformerSelfAttentionLayer implementation.
 
     The expected tensors are computed from the reference implementation
     below by using the same seed, same params and same initialization used
@@ -123,7 +215,7 @@ class TestTransformerDecoder:
         return batch_size, seq_len, vocab_size
 
     @pytest.fixture
-    def input(self, input_params: Tuple[int, int, int]) -> Tensor:
+    def input(self, input_params: Tuple[int, int, int]) -> torch.Tensor:
         batch_size, seq_len, vocab_size = input_params
         return torch.randint(low=0, high=vocab_size, size=(batch_size, seq_len))
 
@@ -142,7 +234,7 @@ class TestTransformerDecoder:
         self,
         input_params: Tuple[int, int, int],
         decoder_params: Tuple[int, int, int, int, int, int],
-    ) -> Tensor:
+    ) -> torch.Tensor:
         batch_size, seq_len, vocab_size = input_params
         _, _, _, _, max_seq_len, _ = decoder_params
         seq_len = max_seq_len + 1
@@ -153,7 +245,7 @@ class TestTransformerDecoder:
         self,
         input_params: Tuple[int, int, int],
         decoder_params: Tuple[int, int, int, int, int, int],
-    ) -> Tensor:
+    ) -> torch.Tensor:
         batch_size, seq_len, vocab_size = input_params
         _, _, _, _, max_seq_len, _ = decoder_params
         batch_size = batch_size + 1
@@ -214,7 +306,7 @@ class TestTransformerDecoder:
 
     def test_forward(
         self,
-        input: Tensor,
+        input: torch.Tensor,
         input_params: Tuple[int, int, int],
         decoder: TransformerDecoder,
     ) -> None:
@@ -226,7 +318,7 @@ class TestTransformerDecoder:
 
     def test_max_seq_len_exceeded(
         self,
-        input_max_len_exceeded: Tensor,
+        input_max_len_exceeded: torch.Tensor,
         decoder: TransformerDecoder,
     ) -> None:
         with pytest.raises(Exception):
@@ -234,7 +326,7 @@ class TestTransformerDecoder:
 
     def test_kv_cache(
         self,
-        input: Tensor,
+        input: torch.Tensor,
         decoder_with_kv_cache_enabled: TransformerDecoder,
         decoder: TransformerDecoder,
     ) -> None:
@@ -248,7 +340,7 @@ class TestTransformerDecoder:
 
     def test_kv_cache_reset_values(
         self,
-        input: Tensor,
+        input: torch.Tensor,
         decoder_with_kv_cache_enabled: TransformerDecoder,
     ) -> None:
         _, seq_len = input.shape
@@ -283,7 +375,7 @@ class TestTransformerDecoder:
 
     def test_kv_cache_batch_size_exceeded(
         self,
-        input_max_bs_exceeded: Tensor,
+        input_max_bs_exceeded: torch.Tensor,
         decoder_with_kv_cache_enabled: TransformerDecoder,
     ) -> None:
         with pytest.raises(ValueError):

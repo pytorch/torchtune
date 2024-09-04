@@ -1,0 +1,82 @@
+# Config for single device full finetuning in full_finetune_single_device.py
+# using a Qwen2 1.5B
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download Qwen/Qwen2-1.5B-Instruct --output-dir /tmp/Qwen2-1.5B-Instruct --ignore-patterns None
+#
+# The default config uses an optimizer from bitsandbytes. If you do not have it installed,
+# you can install it with
+#   pip install bitsandbytes
+#
+# To launch on a single device, run the following command from root:
+#   tune run full_finetune_single_device --config qwen2/1.5B_full_single_device
+#
+# You can add specific overrides through the command line. For example
+# to override the checkpointer directory while launching training
+# you can run:
+#   tune run full_finetune_single_device --config qwen2/1.5B_full_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#
+# This config works only for training on single device.
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.qwen2.qwen2_tokenizer
+  path: /tmp/Qwen2-1.5B-Instruct/vocab.json
+  merges_file: /tmp/Qwen2-1.5B-Instruct/merges.txt
+  max_seq_len: null
+
+# Dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+
+seed: null
+shuffle: True
+
+# Model Arguments
+model:
+  _component_: torchtune.models.qwen2.qwen2_1_5b
+
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Qwen2-1.5B-Instruct
+  checkpoint_files: [
+    model.safetensors
+  ]
+  recipe_checkpoint: null
+  output_dir: /tmp/Qwen2-1.5B-Instruct-finetune
+  model_type: QWEN2
+resume_from_checkpoint: False
+
+# Fine-tuning arguments
+batch_size: 2
+epochs: 1
+optimizer:
+  _component_: bitsandbytes.optim.PagedAdamW
+  lr: 2e-5
+
+optimizer_in_bwd: True
+
+loss:
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+
+max_steps_per_epoch: null
+gradient_accumulation_steps: 1
+compile: False
+
+# Training environment
+device: cuda
+
+# Memory management
+enable_activation_checkpointing: True
+
+# Reduced precision
+dtype: bf16
+
+# Logging
+metric_logger:
+  _component_: torchtune.training.metric_logging.DiskLogger
+  log_dir: ${output_dir}
+output_dir: /tmp/Qwen2-1.5B-Instruct-finetune
+log_every_n_steps: 1
+log_peak_memory_stats: False

@@ -43,6 +43,7 @@ class TestLoRAFinetuneDistributedRecipe:
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
             "gradient_accumulation_steps=1",
+            "compile=False",
         ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self, model_type):
@@ -68,13 +69,14 @@ class TestLoRAFinetuneDistributedRecipe:
         tune run --nnodes 1 --nproc_per_node 2 lora_finetune_fsdp2
             --config llama2/7B_lora \
             output_dir={tmpdir} \
-            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             metric_logger.filename={log_file} \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
@@ -135,6 +137,7 @@ class TestLoRAFinetuneDistributedRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
+            tokenizer.prompt_template=null \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
@@ -156,6 +159,7 @@ class TestLoRAFinetuneDistributedRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
+            tokenizer.prompt_template=null \
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
         """.split()
@@ -202,6 +206,7 @@ class TestLoRAFinetuneDistributedRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
+            tokenizer.prompt_template=null \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]

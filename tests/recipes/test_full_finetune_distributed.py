@@ -52,14 +52,17 @@ class TestFullFinetuneDistributedRecipe:
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize(
-        "config, model_type, ckpt_type",
+        "config, model_type, ckpt_type, fsdp_sharding_strategy",
         [
-            ("llama2/7B_full", "llama2", "hf"),
-            ("llama3/8B_full", "llama3", "tune"),
+            ("llama2/7B_full", "llama2", "hf", None),
+            ("llama3/8B_full", "llama3", "tune", None),
+            ("llama3/8B_full", "llama3", "tune", "NO_SHARD"),
         ],
     )
     @gpu_test(gpu_count=2)
-    def test_loss(self, config, model_type, ckpt_type, tmpdir, monkeypatch):
+    def test_loss(
+        self, config, model_type, ckpt_type, fsdp_sharding_strategy, tmpdir, monkeypatch
+    ):
         ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
         ckpt = model_type + "_" + ckpt_type
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -80,8 +83,11 @@ class TestFullFinetuneDistributedRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
+            tokenizer.prompt_template=null \
             metric_logger.filename={log_file} \
         """.split()
+        if fsdp_sharding_strategy:
+            cmd.append(f"fsdp_sharding_strategy={fsdp_sharding_strategy}")
         model_config = MODEL_TEST_CONFIGS[model_type]
         cmd = cmd + self._get_test_config_overrides() + model_config
 

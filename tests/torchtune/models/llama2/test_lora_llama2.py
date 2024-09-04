@@ -12,12 +12,12 @@ import torch
 from tests.test_utils import assert_expected, fixed_init_model
 from torch import nn
 from torchao.dtypes.nf4tensor import NF4Tensor
-from torchtune import utils
+from torchtune import training
 from torchtune.models.llama2 import llama2, lora_llama2
 from torchtune.models.llama2._component_builders import lora_llama2_self_attention
-from torchtune.modules.peft import LoRALinear
-from torchtune.modules.peft.peft_utils import get_merged_lora_ckpt
-from torchtune.utils.seed import set_seed
+from torchtune.modules.low_precision import FrozenNF4Linear
+from torchtune.modules.peft import get_merged_lora_ckpt, LoRALinear
+from torchtune.training.seed import set_seed
 
 RANK = 4
 ALPHA = 1.0
@@ -188,7 +188,7 @@ class TestLoRALlama2:
         assert not unexpected
         assert all(["lora" in key for key in missing])
 
-    def test_lora_linear_quantize_base(self):
+    def test_qlora_linear_quantize_base(self):
         model = self.get_lora_llama2(
             lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
             apply_lora_to_mlp=True,
@@ -203,9 +203,29 @@ class TestLoRALlama2:
             if isinstance(module, LoRALinear):
                 assert module._quantize_base
 
+    def test_qlora_linear_quantize_base_weights(self):
+        # this test checks that modules that don't have LoRA applied to them
+        # have their base weights quantized
+        model = self.get_lora_llama2(
+            lora_modules=["q_proj", "v_proj"],
+            apply_lora_to_mlp=True,
+            # quantize_base
+            apply_lora_to_output=False,
+            vocab_size=50,
+            quantize_base=True,
+            embed_dim=512,
+            dtype=torch.bfloat16,
+        )
+        for name, module in model.named_modules():
+            if isinstance(module, LoRALinear):
+                assert module._quantize_base
+            elif name in ["k_proj", "output_proj"]:
+                assert isinstance(module, FrozenNF4Linear)
+                assert isinstance(module.weight, NF4Tensor)
+
     @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
     def test_qlora_llama2_parity(self, dtype, inputs):
-        with utils.set_default_dtype(dtype):
+        with training.set_default_dtype(dtype):
             model_ref = self.get_lora_llama2(
                 lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
                 apply_lora_to_mlp=True,
@@ -235,7 +255,7 @@ class TestLoRALlama2:
 
     @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
     def test_qlora_llama2_state_dict(self, dtype):
-        with utils.set_default_dtype(dtype):
+        with training.set_default_dtype(dtype):
             model_ref = self.get_lora_llama2(
                 lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
                 apply_lora_to_mlp=True,
@@ -271,7 +291,7 @@ class TestLoRALlama2:
 
     @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
     def test_qlora_llama2_merged_state_dict(self, dtype):
-        with utils.set_default_dtype(dtype):
+        with training.set_default_dtype(dtype):
             qlora = self.get_lora_llama2(
                 lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
                 apply_lora_to_mlp=True,
@@ -292,7 +312,7 @@ class TestLoRALlama2:
             assert v.dtype == dtype
 
         # Ensure checkpoint can be loaded into non-LoRA model
-        with utils.set_default_dtype(dtype):
+        with training.set_default_dtype(dtype):
             llama2 = self.get_ref_llama2(vocab_size=50, embed_dim=512)
 
         llama2.load_state_dict(merged_ckpt)

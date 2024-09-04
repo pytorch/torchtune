@@ -14,7 +14,7 @@ from torch import tensor
 from torchtune.models.phi3 import Phi3RotaryPositionalEmbeddings
 
 from torchtune.modules.position_embeddings import RotaryPositionalEmbeddings
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 
 @pytest.fixture(autouse=True)
@@ -128,7 +128,7 @@ class TestRotaryPositionEmbedding:
                 dim=head_dim, max_seq_len=max_seq_len
             )
 
-        meta_rope._rope_init()
+        meta_rope.rope_init()
         for p1, p2 in zip(rope_on_device.buffers(), meta_rope.buffers()):
             torch.testing.assert_close(p1, p2)
 

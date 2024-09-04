@@ -66,10 +66,11 @@ Each recipe consists of three components:
 
 .. note::
 
+  Check out our :ref:`recipes index<recipes_overview_label>` to see all the fine-tuning techniques we support.
   To learn more about the concept of "recipes", check out our technical deep-dive: :ref:`recipe_deepdive`.
 
 torchtune provides built-in recipes for finetuning on single device, on multiple devices with `FSDP <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/>`_,
-using memory efficient techniques like `LoRA <https://arxiv.org/abs/2106.09685>`_, and more! You can view all built-in recipes `on GitHub <https://github.com/pytorch/torchtune/tree/main/recipes>`_. You can also utilize the
+using memory efficient techniques like `LoRA <https://arxiv.org/abs/2106.09685>`_, and more! Check out all our built-in recipes in our :ref:`recipe index<recipes_overview_label>`. You can also utilize the
 :code:`tune ls` command to print out all recipes and corresponding configs.
 
 .. code-block:: bash
@@ -92,7 +93,7 @@ a single device. For a more in-depth discussion on LoRA in torchtune, you can se
 .. note::
 
   **Why have a separate recipe for single device vs. distributed?** This is discussed in
-  :ref:`recipe_deepdive` but one of our core principles in torchtune is minimal abstraction and boilerplate code.
+  ":ref:`recipe_deepdive`" but one of our :ref:`core principles <design_principles_label>` in torchtune is minimal abstraction and boilerplate code.
   If you only want to train on a single GPU, our single-device recipe ensures you don't have to worry about additional
   features like FSDP that are only required for distributed training.
 
@@ -119,7 +120,7 @@ you want to set the number of training epochs to 1.
 
 **Copy the config through `tune cp` and modify directly**
 
-If you want to make more substantial changes to the config, you can use the :code:`tune` CLI to copy it to your local directory.
+If you want to make more substantial changes to the config, you can use the :ref:`tune <cli_label>` CLI to copy it to your local directory.
 
 .. code-block:: bash
 
@@ -139,7 +140,7 @@ Training a model
 ----------------
 Now that you have a model in the proper format and a config that suits your needs, let's get training!
 
-Just like all the other steps, you will be using the :code:`tune` CLI tool to launch your finetuning run.
+Just like all the other steps, you will be using the :ref:`tune <cli_label>` CLI tool to launch your finetuning run.
 
 .. code-block:: bash
 

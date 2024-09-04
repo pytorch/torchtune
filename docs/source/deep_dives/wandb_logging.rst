@@ -12,10 +12,10 @@ This deep-dive will guide you through how to set up logging to Weights & Biases
     .. grid-item-card:: :octicon:`mortar-board;1em;` What this deep-dive will cover
 
       * How to get started with W&B
-      * How to use the :class:`~torchtune.utils.metric_logging.WandBLogger`
+      * How to use the :class:`~torchtune.training.metric_logging.WandBLogger`
       * How to log configs, metrics, and model checkpoints to W&B
 
-Torchtune supports logging your training runs to `Weights & Biases <https://wandb.ai)>`_.
+torchtune supports logging your training runs to `Weights & Biases <https://wandb.ai)>`_.
 An example W&B workspace from a torchtune fine-tuning run can be seen in the screenshot below.
 
 .. image:: ../_static/img/torchtune_workspace.png
@@ -48,7 +48,7 @@ The only change you need to make is to add the metric logger to your config. Wei
 
     # enable logging to the built-in WandBLogger
     metric_logger:
-      _component_: torchtune.utils.metric_logging.WandBLogger
+      _component_: torchtune.training.metric_logging.WandBLogger
       # the W&B project to log to
       project: torchtune
 
@@ -87,10 +87,10 @@ A suggested approach would be something like this:
             description="Model checkpoint",
             # you can add whatever metadata you want as a dict
             metadata={
-                utils.SEED_KEY: self.seed,
-                utils.EPOCHS_KEY: self.epochs_run,
-                utils.TOTAL_EPOCHS_KEY: self.total_epochs,
-                utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                training.SEED_KEY: self.seed,
+                training.EPOCHS_KEY: self.epochs_run,
+                training.TOTAL_EPOCHS_KEY: self.total_epochs,
+                training.MAX_STEPS_KEY: self.max_steps_per_epoch,
             }
         )
         wandb_at.add_file(checkpoint_file)

@@ -9,10 +9,10 @@ torchtune.datasets
 For a detailed general usage guide, please see our :ref:`datasets tutorial <dataset_tutorial_label>`.
 
 
-Example datasets
-----------------
+Text-only datasets
+------------------
 
-torchtune supports several widely used datasets to help quickly bootstrap your fine-tuning.
+torchtune supports several widely used text-only datasets to help quickly bootstrap your fine-tuning.
 
 .. autosummary::
     :toctree: generated/
@@ -23,9 +23,20 @@ torchtune supports several widely used datasets to help quickly bootstrap your f
     grammar_dataset
     samsum_dataset
     slimorca_dataset
-    stack_exchanged_paired_dataset
+    stack_exchange_paired_dataset
     cnn_dailymail_articles_dataset
     wikitext_dataset
+
+Multimodal datasets
+-------------------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    llava_instruct_dataset
+    the_cauldron_dataset
+
 
 Generic dataset builders
 ------------------------
@@ -56,3 +67,4 @@ Class representations for the above dataset builders.
     ConcatDataset
     PackedDataset
     PreferenceDataset
+    SFTDataset

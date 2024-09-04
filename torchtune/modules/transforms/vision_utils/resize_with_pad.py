@@ -21,11 +21,11 @@ def resize_with_pad(
     image: torch.Tensor,
     target_size: Tuple[int, int],
     resample: torchvision.transforms.InterpolationMode,
-    max_upscaling_size: Optional[int] = None,
+    max_size: Optional[int] = None,
 ) -> torch.Tensor:
     """
     Resizes and pads an image to target_size without causing distortion.
-    The user can set max_upscaling_size to limit upscaling when target_size exceeds image_size.
+    The user can set max_size to limit upscaling when target_size exceeds image_size.
 
     Args:
         image (torch.Tensor): The input image tensor in the format [..., H, W].
@@ -33,7 +33,7 @@ def resize_with_pad(
         resample (torchvision.transforms.InterpolationMode): Resampling method used when resizing images.
             Supports torchvision.transforms.InterpolationMode.NEAREST, InterpolationMode.NEAREST_EXACT,
             InterpolationMode.BILINEAR and InterpolationMode.BICUBIC.
-        max_upscaling_size (int): The maximum size to upscale the image to.
+        max_size (Optional[int]): The maximum size to upscale the image to.
             If None, will upscale up to target_size.
 
     Returns:
@@ -44,38 +44,38 @@ def resize_with_pad(
         Example 1: The image will be upscaled from (300, 800) to (448, 1194), since 448 is the limiting side,
         and then padded from (448, 1194) to (448, 1344).
 
-            >>> max_upscaling_size = None
+            >>> max_size = None
             >>> image = torch.rand([3, 300, 800])
             >>> target_size = (448, 1344)
             >>> resample = torchvision.transforms.InterpolationMode.BILINEAR
-            >>> output = resize_with_pad(image, target_size, resample, max_upscaling_size)
+            >>> output = resize_with_pad(image, target_size, resample, max_size)
 
         Example 2: The image will stay as is, since 800 > 600, and then padded from (300, 800) to (448, 1344).
 
-            >>> max_upscaling_size = 600
+            >>> max_size = 600
             >>> image = torch.rand([3, 300, 800])
             >>> target_size = (448, 1344)
             >>> resample = torchvision.transforms.InterpolationMode.BILINEAR
-            >>> output = resize_with_pad(image, target_size, resample, max_upscaling_size)
+            >>> output = resize_with_pad(image, target_size, resample, max_size)
 
         Example 3: The image will be downscaled from (500, 1000) to (224, 448),
         and padded from (224, 448) to (448, 448).
 
-            >>> max_upscaling_size = 600
+            >>> max_size = 600
             >>> image = torch.rand([3, 500, 1000])
             >>> target_size = (448, 488)
             >>> resample = torchvision.transforms.InterpolationMode.BILINEAR
-            >>> output = resize_with_pad(image, target_size, resample, max_upscaling_size)
+            >>> output = resize_with_pad(image, target_size, resample, max_size)
 
     """
 
     image_height, image_width = image.shape[-2:]
     image_size = (image_height, image_width)
 
-    # If target_size requires upscaling, we might want to limit the upscaling to max_upscaling_size
-    if max_upscaling_size is not None:
-        new_target_height = min(max(image_height, max_upscaling_size), target_size[0])
-        new_target_width = min(max(image_width, max_upscaling_size), target_size[1])
+    # If target_size requires upscaling, we might want to limit the upscaling to max_size
+    if max_size is not None:
+        new_target_height = min(max(image_height, max_size), target_size[0])
+        new_target_width = min(max(image_width, max_size), target_size[1])
         target_size_resize = (new_target_height, new_target_width)
     else:
         target_size_resize = target_size
@@ -130,7 +130,6 @@ def _get_max_res_without_distortion(
     image_size: Tuple[int, int],
     target_size: Tuple[int, int],
 ) -> Tuple[int, int]:
-
     """
     Determines the maximum resolution to which an image can be resized to without distorting its
     aspect ratio, based on the target resolution.

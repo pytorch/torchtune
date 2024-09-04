@@ -11,10 +11,10 @@ import pytest
 import torch
 
 from tests.test_utils import assert_expected, fixed_init_model
-from torch import nn, Tensor
+from torch import nn
 
-from torchtune.modules import CausalSelfAttention, KVCache, RotaryPositionalEmbeddings
-from torchtune.utils.seed import set_seed
+from torchtune.modules import KVCache, MultiHeadAttention, RotaryPositionalEmbeddings
+from torchtune.training.seed import set_seed
 
 
 @pytest.fixture(autouse=True)
@@ -22,9 +22,9 @@ def random():
     set_seed(16)
 
 
-class TestCausalSelfAttention:
+class TestMultiHeadAttention:
     """
-    Class for testing our CausalSelfAttention implementation.
+    Class for testing our MultiHeadAttention implementation.
 
     The expected tensors are computed from the reference implementation
     below by using the same seed, same params and same initialization used
@@ -40,7 +40,7 @@ class TestCausalSelfAttention:
         return batch_size, seq_len, embed_dim
 
     @pytest.fixture
-    def input(self, input_params: Tuple[int, int, int]) -> Tensor:
+    def input(self, input_params: Tuple[int, int, int]) -> torch.Tensor:
         batch_size, seq_len, embed_dim = input_params
         x = torch.randn(batch_size, seq_len, embed_dim)
         return x
@@ -58,7 +58,7 @@ class TestCausalSelfAttention:
         self,
         input_params: Tuple[int, int, int],
         attn_params_gqa: Tuple[int, int, int, int],
-    ) -> Tensor:
+    ) -> torch.Tensor:
         batch_size, seq_len, embed_dim = input_params
         _, _, _, max_seq_len = attn_params_gqa
         seq_len = max_seq_len + 1
@@ -69,7 +69,7 @@ class TestCausalSelfAttention:
         self,
         input_params: Tuple[int, int, int],
         attn_params_gqa: Tuple[int, int, int, int],
-    ) -> Tensor:
+    ) -> torch.Tensor:
         batch_size, seq_len, embed_dim = input_params
         _, _, _, max_seq_len = attn_params_gqa
         batch_size += 1
@@ -91,12 +91,12 @@ class TestCausalSelfAttention:
         return num_heads, num_kv_heads, embed_dim, max_seq_len
 
     @pytest.fixture
-    def gqa(self, attn_params_gqa: Tuple[int, int, int, int]) -> CausalSelfAttention:
+    def gqa(self, attn_params_gqa: Tuple[int, int, int, int]) -> MultiHeadAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_gqa
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
         rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
-        attn = CausalSelfAttention(
+        attn = MultiHeadAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
@@ -116,7 +116,7 @@ class TestCausalSelfAttention:
     @pytest.fixture
     def gqa_kv_cache(
         self, attn_params_gqa: Tuple[int, int, int, int]
-    ) -> CausalSelfAttention:
+    ) -> MultiHeadAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_gqa
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
         head_dim = embed_dim // num_heads
@@ -128,7 +128,7 @@ class TestCausalSelfAttention:
             dtype=torch.float32,
         )
         rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
-        attn = CausalSelfAttention(
+        attn = MultiHeadAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
@@ -146,12 +146,12 @@ class TestCausalSelfAttention:
         return attn
 
     @pytest.fixture
-    def mha(self, attn_params_mha: Tuple[int, int, int, int]) -> CausalSelfAttention:
+    def mha(self, attn_params_mha: Tuple[int, int, int, int]) -> MultiHeadAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mha
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
         rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
-        attn = CausalSelfAttention(
+        attn = MultiHeadAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
@@ -170,7 +170,7 @@ class TestCausalSelfAttention:
     @pytest.fixture
     def mha_kv_cache(
         self, attn_params_mha: Tuple[int, int, int, int]
-    ) -> CausalSelfAttention:
+    ) -> MultiHeadAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mha
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
@@ -182,7 +182,7 @@ class TestCausalSelfAttention:
             dtype=torch.float32,
         )
         rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
-        attn = CausalSelfAttention(
+        attn = MultiHeadAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
@@ -200,12 +200,12 @@ class TestCausalSelfAttention:
         return attn
 
     @pytest.fixture
-    def mqa(self, attn_params_mqa: Tuple[int, int, int, int]) -> CausalSelfAttention:
+    def mqa(self, attn_params_mqa: Tuple[int, int, int, int]) -> MultiHeadAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mqa
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
         rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
-        attn = CausalSelfAttention(
+        attn = MultiHeadAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
@@ -224,7 +224,7 @@ class TestCausalSelfAttention:
     @pytest.fixture
     def mqa_kv_cache(
         self, attn_params_mqa: Tuple[int, int, int, int]
-    ) -> CausalSelfAttention:
+    ) -> MultiHeadAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mqa
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
@@ -236,7 +236,7 @@ class TestCausalSelfAttention:
             dtype=torch.float32,
         )
         rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
-        attn = CausalSelfAttention(
+        attn = MultiHeadAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
@@ -253,7 +253,7 @@ class TestCausalSelfAttention:
         attn.eval()
         return attn
 
-    def test_forward_gqa(self, input: Tensor, gqa: CausalSelfAttention) -> None:
+    def test_forward_gqa(self, input: torch.Tensor, gqa: MultiHeadAttention) -> None:
         with torch.no_grad():
             output = gqa(input)
         assert_expected(
@@ -262,7 +262,7 @@ class TestCausalSelfAttention:
         assert_expected(output.shape, input.shape)
 
     def test_forward_gqa_kv_cache(
-        self, input: Tensor, gqa_kv_cache: CausalSelfAttention, attn_params_gqa
+        self, input: torch.Tensor, gqa_kv_cache: MultiHeadAttention, attn_params_gqa
     ) -> None:
 
         _, _, _, max_seq_len = attn_params_gqa
@@ -279,7 +279,7 @@ class TestCausalSelfAttention:
         )
         assert_expected(output.shape, input.shape)
 
-    def test_forward_mha(self, input: Tensor, mha: CausalSelfAttention) -> None:
+    def test_forward_mha(self, input: torch.Tensor, mha: MultiHeadAttention) -> None:
         with torch.no_grad():
             output = mha(input)
         assert_expected(
@@ -288,7 +288,7 @@ class TestCausalSelfAttention:
         assert_expected(output.shape, input.shape)
 
     def test_forward_mha_kv_cache(
-        self, input: Tensor, mha_kv_cache: CausalSelfAttention, attn_params_mha
+        self, input: torch.Tensor, mha_kv_cache: MultiHeadAttention, attn_params_mha
     ) -> None:
 
         _, _, _, max_seq_len = attn_params_mha
@@ -305,7 +305,7 @@ class TestCausalSelfAttention:
         )
         assert_expected(output.shape, input.shape)
 
-    def test_forward_mqa(self, input: Tensor, mqa: CausalSelfAttention) -> None:
+    def test_forward_mqa(self, input: torch.Tensor, mqa: MultiHeadAttention) -> None:
         with torch.no_grad():
             output = mqa(input)
         assert_expected(
@@ -314,7 +314,7 @@ class TestCausalSelfAttention:
         assert_expected(output.shape, input.shape)
 
     def test_forward_mqa_kv_cache(
-        self, input: Tensor, mqa_kv_cache: CausalSelfAttention, attn_params_mqa
+        self, input: torch.Tensor, mqa_kv_cache: MultiHeadAttention, attn_params_mqa
     ) -> None:
         _, _, _, max_seq_len = attn_params_mqa
         _, seq_len, _ = input.shape
@@ -332,16 +332,16 @@ class TestCausalSelfAttention:
 
     def test_max_seq_len_exceeded(
         self,
-        input_max_len_exceeded: Tensor,
-        gqa: CausalSelfAttention,
+        input_max_len_exceeded: torch.Tensor,
+        gqa: MultiHeadAttention,
     ) -> None:
         with pytest.raises(Exception):
             _ = gqa(input_max_len_exceeded)
 
     def test_batch_size_exceeded(
         self,
-        input_max_bs_exceeded: Tensor,
-        gqa_kv_cache: CausalSelfAttention,
+        input_max_bs_exceeded: torch.Tensor,
+        gqa_kv_cache: MultiHeadAttention,
     ) -> None:
         with pytest.raises(Exception):
             _ = gqa_kv_cache(input_max_bs_exceeded)

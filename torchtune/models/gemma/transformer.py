@@ -9,10 +9,9 @@ from typing import Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch import Tensor
 from torchtune.modules import KVCache
 
-from torchtune.modules.transformer import _get_clones, TransformerDecoderLayer
+from torchtune.modules.transformer import _get_clones, TransformerSelfAttentionLayer
 
 
 class GemmaTransformerDecoder(nn.Module):
@@ -26,7 +25,7 @@ class GemmaTransformerDecoder(nn.Module):
     Args:
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move
             tokens to an embedding space and as the output projection.
-        layer (TransformerDecoderLayer): Transformer Decoder layer.
+        layer (TransformerSelfAttentionLayer): Transformer Decoder layer.
         num_layers (int): Number of Transformer Decoder layers.
         max_seq_len (int): maximum sequence length the model will be run with, as used
             by :func:`~torchtune.modules.KVCache`
@@ -49,7 +48,7 @@ class GemmaTransformerDecoder(nn.Module):
     def __init__(
         self,
         tok_embeddings: nn.Embedding,
-        layer: TransformerDecoderLayer,
+        layer: TransformerSelfAttentionLayer,
         num_layers: int,
         max_seq_len: int,
         num_heads: int,
@@ -66,6 +65,16 @@ class GemmaTransformerDecoder(nn.Module):
         self.head_dim = head_dim
         self.causal_mask = None
         self.norm_embeddings = norm_embeddings
+        self.num_output_chunks = 0
+
+    def caches_are_enabled(self) -> bool:
+        """Check if the key value caches are setup."""
+        return self.layers[0].cache_enabled
+
+    def set_num_output_chunks(self, num_output_chunks: int) -> None:
+        """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
+        This should be called before the first forward pass, in the recipe."""
+        self.num_output_chunks = num_output_chunks
 
     def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
         """Setup key value caches for attention calculation.
@@ -91,20 +100,20 @@ class GemmaTransformerDecoder(nn.Module):
 
     def forward(
         self,
-        tokens: Tensor,
+        tokens: torch.Tensor,
         *,
-        mask: Optional[Tensor] = None,
-        input_pos: Optional[Tensor] = None,
-    ) -> Tensor:
+        mask: Optional[torch.Tensor] = None,
+        input_pos: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         """
         Args:
-            tokens (Tensor): input tensor with shape [b x s]
-            mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask
+            tokens (torch.Tensor): input tensor with shape [b x s]
+            mask (Optional[torch.Tensor]): Optional boolean tensor which contains the attention mask
                 with shape [b x s x s]. This is applied after the query-key multiplication and
                 before the softmax. A value of True in row i and column j means token i attends
                 to token j. A value of False means token i does not attend to token j. If no
                 mask is specified, a causal mask is used by default. Default is None.
-            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.
@@ -158,6 +167,15 @@ class GemmaTransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.norm(h)
 
-        # shape: [b, s, v]
-        output = F.linear(h, self.tok_embeddings.weight).float()
+        if self.num_output_chunks > 0:
+            # shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size
+            # Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,
+            # before calling forward. Upcasting it done inside of the loss function.
+            output = [
+                F.linear(chunk, self.tok_embeddings.weight)
+                for chunk in h.chunk(self.num_output_chunks, dim=1)
+            ]
+        else:
+            # shape: [b, seq_len, out_dim]
+            output = F.linear(h, self.tok_embeddings.weight).float()
         return output

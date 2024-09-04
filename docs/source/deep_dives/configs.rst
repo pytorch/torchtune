@@ -47,8 +47,8 @@ for a particular run.
     enable_fsdp: True
     ...
 
-Configuring components using :code:`instantiate`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Configuring components using :func:`instantiate<torchtune.config.instantiate>`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Many fields will require specifying torchtune objects with associated keyword
 arguments as parameters. Models, datasets, optimizers, and loss functions are
 common examples of this. You can easily do this using the :code:`_component_`
@@ -147,15 +147,15 @@ will automatically resolve it for you.
 
     output_dir: /tmp/alpaca-llama2-finetune
     metric_logger:
-      _component_: torchtune.utils.metric_logging.DiskLogger
+      _component_: torchtune.training.metric_logging.DiskLogger
       log_dir: ${output_dir}
 
 Validating your config
 ^^^^^^^^^^^^^^^^^^^^^^
-We provide a convenient CLI utility, :code:`tune validate`, to quickly verify that
+We provide a convenient CLI utility, :ref:`tune validate<validate_cli_label>`, to quickly verify that
 your config is well-formed and all components can be instantiated properly. You
 can also pass in overrides if you want to test out the exact commands you will run
-your experiments with. If any parameters are not well-formed, :code:`tune validate`
+your experiments with. If any parameters are not well-formed, :ref:`tune validate<validate_cli_label>`
 will list out all the locations where an error was found.
 
 .. code-block:: bash
@@ -216,7 +216,7 @@ the config itself. To enable quick experimentation, you can specify override val
 to parameters in your config via the :code:`tune` command. These should be specified
 as key-value pairs :code:`k1=v1 k2=v2 ...`
 
-For example, to run the :code:`lora_finetune_single_device` recipe with custom model and tokenizer directories, you can provide overrides:
+For example, to run the :ref:`LoRA single-device finetuning <lora_finetune_recipe_label>` recipe with custom model and tokenizer directories, you can provide overrides:
 
 .. code-block:: bash
 
@@ -248,9 +248,10 @@ Removing config fields
 You may need to remove certain parameters from the config when changing components
 through overrides that require different keyword arguments. You can do so by using
 the `~` flag and specify the dotpath of the config field you would like to remove.
-For example, if you want to override a built-in config and use the ``bitsandbytes.optim.PagedAdamW8bit``
+For example, if you want to override a built-in config and use the
+`bitsandbytes.optim.PagedAdamW8bit <https://huggingface.co/docs/bitsandbytes/main/en/reference/optim/adamw#bitsandbytes.optim.PagedAdamW8bit>`_
 optimizer, you may need to delete parameters like ``foreach`` which are
-specific to PyTorch optimizers. Note that this example requires that you have ``bitsandbytes``
+specific to PyTorch optimizers. Note that this example requires that you have `bitsandbytes <https://github.com/bitsandbytes-foundation/bitsandbytes>`_
 installed.
 
 .. code-block:: yaml

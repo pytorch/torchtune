@@ -10,15 +10,16 @@ from functools import partial
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 
 from torchtune.modules import (
-    CausalSelfAttention,
+    MultiHeadAttention,
     FeedForward,
+    FrozenNF4Linear,
     RotaryPositionalEmbeddings,
-    TransformerDecoderLayer,
+    TransformerSelfAttentionLayer,
 )
 from torchtune.models.gemma.rms_norm import GemmaRMSNorm
 from torchtune.models.gemma.transformer import GemmaTransformerDecoder
 
-from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
+from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 
 """
 Component builders for the Gemma 2B models and popular variants such as LoRA.
@@ -26,7 +27,7 @@ Component builders for the Gemma 2B models and popular variants such as LoRA.
 torchtune provides composable building blocks. Builder functions help
 stitch these building blocks into higher-level components. This design has
 two benefits:
-- The building blocks themselves are very flexible. For example, ``CausalSelfAttention``
+- The building blocks themselves are very flexible. For example, ``MultiHeadAttention``
 can take either nn.Linear or nn.LoRALinear for ``q_proj``.
 - Builder functions expose a set of configurable params which keep the constructors of
 the building blocks simple.
@@ -50,7 +51,7 @@ def gemma(
     """
     Build the decoder associated with the gemma model. This includes:
     - Token embeddings
-    - num_layers number of TransformerDecoderLayer blocks
+    - num_layers number of TransformerSelfAttentionLayer blocks
     - RMS Norm layer applied to the output of the transformer
     - Final projection into token space
 
@@ -78,7 +79,7 @@ def gemma(
         GemmaTransformerDecoder: Instantiation of gemma model.
     """
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_att = CausalSelfAttention(
+    self_att = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -93,7 +94,7 @@ def gemma(
         attn_dropout=attn_dropout,
     )
     mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
-    layer = TransformerDecoderLayer(
+    layer = TransformerSelfAttentionLayer(
         attn=self_att,
         mlp=mlp,
         sa_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
@@ -113,7 +114,7 @@ def gemma(
     return model
 
 
-def gemma_mlp(dim: int, hidden_dim: int) -> FeedForward:
+def gemma_mlp(dim: int, hidden_dim: int, quantize_base: bool = False) -> FeedForward:
     """
     Build the MLP layer associated with the Gemma model.
 
@@ -121,9 +122,9 @@ def gemma_mlp(dim: int, hidden_dim: int) -> FeedForward:
         dim (int): input dimension to the MLP
         hidden_dim (int): hidden dimension of the MLP
     """
-    gate_proj = nn.Linear(dim, hidden_dim, bias=False)
-    down_proj = nn.Linear(hidden_dim, dim, bias=False)
-    up_proj = nn.Linear(dim, hidden_dim, bias=False)
+    gate_proj = nn.Linear(dim, hidden_dim, bias=False) if not quantize_base else FrozenNF4Linear(dim, hidden_dim, bias=False)
+    down_proj = nn.Linear(hidden_dim, dim, bias=False) if not quantize_base else FrozenNF4Linear(hidden_dim, dim, bias=False)
+    up_proj = nn.Linear(dim, hidden_dim, bias=False) if not quantize_base else FrozenNF4Linear(dim, hidden_dim, bias=False)
     activation = nn.GELU(approximate="tanh")
     return FeedForward(gate_proj=gate_proj, down_proj=down_proj, up_proj=up_proj, activation=activation)
 
@@ -149,6 +150,7 @@ def lora_gemma(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> GemmaTransformerDecoder:
     """
@@ -179,6 +181,8 @@ def lora_gemma(
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
@@ -199,6 +203,7 @@ def lora_gemma(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 
@@ -208,13 +213,14 @@ def lora_gemma(
             hidden_dim=intermediate_dim,
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
-            quantize_base=quantize_base,
             lora_dropout=lora_dropout,
+            use_dora=use_dora,
+            quantize_base=quantize_base,
         )
     else:
-        mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
+        mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim, quantize_base=quantize_base)
 
-    layer = TransformerDecoderLayer(
+    layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
         sa_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
@@ -252,7 +258,7 @@ def lora_gemma(
 def lora_gemma_self_attention(
     lora_modules: List[LORA_ATTN_MODULES],
     *,
-    # CausalSelfAttention args
+    # MultiHeadAttention args
     embed_dim: int,
     num_heads: int,
     head_dim: int,
@@ -264,66 +270,88 @@ def lora_gemma_self_attention(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
-) -> CausalSelfAttention:
+) -> MultiHeadAttention:
     if not lora_modules:
         raise ValueError(
             f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules"
         )
 
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
+    adapter_cls = DoRALinear if use_dora else LoRALinear
 
     q_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             num_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            use_dora=use_dora,
         )
         if "q_proj" in lora_modules
-        else nn.Linear(embed_dim, num_heads * head_dim, bias=False)
+        else (
+            nn.Linear(embed_dim, num_heads * head_dim, bias=False)
+            if not quantize_base
+            else FrozenNF4Linear(embed_dim, num_heads * head_dim, bias=False)
+        )
     )
     k_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             num_kv_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            use_dora=use_dora,
         )
         if "k_proj" in lora_modules
-        else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+        else (
+            nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+            if not quantize_base
+            else FrozenNF4Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+        )
     )
     v_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             num_kv_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            use_dora=use_dora,
         )
         if "v_proj" in lora_modules
-        else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+        else (
+            nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+            if not quantize_base
+            else FrozenNF4Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+        )
     )
     output_proj = (
-        LoRALinear(
+        adapter_cls(
             num_heads * head_dim,
             embed_dim,
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            use_dora=use_dora,
         )
         if "output_proj" in lora_modules
-        else nn.Linear(num_heads * head_dim, embed_dim, bias=False)
+        else (
+            nn.Linear(num_heads * head_dim, embed_dim, bias=False)
+            if not quantize_base
+            else FrozenNF4Linear(num_heads * head_dim, embed_dim, bias=False)
+        )
     )
 
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = CausalSelfAttention(
+    self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -346,31 +374,36 @@ def lora_gemma_mlp(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> FeedForward:
-    gate_proj = LoRALinear(
+    adapter_cls = DoRALinear if use_dora else LoRALinear
+    gate_proj = adapter_cls(
         in_dim=dim,
         out_dim=hidden_dim,
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
+        use_dora=use_dora,
     )
-    down_proj = LoRALinear(
+    down_proj = adapter_cls(
         in_dim=hidden_dim,
         out_dim=dim,
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
+        use_dora=use_dora,
     )
-    up_proj = LoRALinear(
+    up_proj = adapter_cls(
         in_dim=dim,
         out_dim=hidden_dim,
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
+        use_dora=use_dora,
     )
     activation = nn.GELU(approximate="tanh")
 

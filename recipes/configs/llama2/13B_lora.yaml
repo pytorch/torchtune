@@ -29,7 +29,7 @@ model:
   lora_alpha: 16
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Llama-2-13b-hf/
   checkpoint_files: [
     pytorch_model-00001-of-00003.bin,
@@ -41,11 +41,13 @@ checkpointer:
   output_dir: /tmp/Llama-2-13b-hf/
   model_type: LLAMA2
 resume_from_checkpoint: False
+save_adapter_weights_only: False
 
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama2.llama2_tokenizer
   path: /tmp/Llama-2-13b-hf/tokenizer.model
+  max_seq_len: null
 
 # Dataset and Sampler
 dataset:
@@ -64,7 +66,7 @@ lr_scheduler:
   num_warmup_steps: 100
 
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
 # Training
 epochs: 1
@@ -74,7 +76,7 @@ gradient_accumulation_steps: 16
 # Logging
 output_dir: /tmp/lora_finetune_output
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
 log_peak_memory_stats: False

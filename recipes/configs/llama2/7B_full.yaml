@@ -22,6 +22,7 @@
 tokenizer:
   _component_: torchtune.models.llama2.llama2_tokenizer
   path: /tmp/Llama-2-7b-hf/tokenizer.model
+  max_seq_len: null
 
 # Dataset
 dataset:
@@ -34,7 +35,7 @@ model:
   _component_: torchtune.models.llama2.llama2_7b
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Llama-2-7b-hf
   checkpoint_files: [
     pytorch_model-00001-of-00002.bin,
@@ -52,7 +53,7 @@ optimizer:
   _component_: torch.optim.AdamW
   lr: 2e-5
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
 
@@ -62,14 +63,13 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True
-memory_efficient_fsdp_wrap: False
 
 # Reduced precision
 dtype: bf16
 
 # Logging
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 output_dir: /tmp/alpaca-llama2-finetune
 log_every_n_steps: 1

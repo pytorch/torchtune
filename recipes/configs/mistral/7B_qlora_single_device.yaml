@@ -24,6 +24,7 @@
 tokenizer:
   _component_: torchtune.models.mistral.mistral_tokenizer
   path: /tmp/Mistral-7B-v0.1/tokenizer.model
+  max_seq_len: null
 
 # Dataset
 dataset:
@@ -41,7 +42,7 @@ model:
   lora_alpha: 16
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Mistral-7B-v0.1
   checkpoint_files: [
     pytorch_model-00001-of-00002.bin,
@@ -51,6 +52,7 @@ checkpointer:
   output_dir: /tmp/Mistral-7B-v0.1
   model_type: MISTRAL
 resume_from_checkpoint: False
+save_adapter_weights_only: False
 
 optimizer:
   _component_: torch.optim.AdamW
@@ -61,7 +63,7 @@ lr_scheduler:
   num_warmup_steps: 100
 
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
 # Fine-tuning arguments
 batch_size: 4
@@ -81,7 +83,7 @@ dtype: bf16
 
 # Logging
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 output_dir: /tmp/Mistral-7B-v0.1
 log_every_n_steps: 1
@@ -90,7 +92,7 @@ log_peak_memory_stats: False
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training
 profiler:
-  _component_: torchtune.utils.setup_torch_profiler
+  _component_: torchtune.training.setup_torch_profiler
   enabled: False
 
   #Output directory of trace artifacts

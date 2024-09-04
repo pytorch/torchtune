@@ -9,24 +9,28 @@ from torchtune.datasets._chat import chat_dataset, ChatDataset
 from torchtune.datasets._cnn_dailymail import cnn_dailymail_articles_dataset
 from torchtune.datasets._concat import ConcatDataset
 from torchtune.datasets._grammar import grammar_dataset
+from torchtune.datasets._hh_rlhf_helpful import hh_rlhf_helpful_dataset
 from torchtune.datasets._instruct import instruct_dataset, InstructDataset
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._preference import PreferenceDataset
 from torchtune.datasets._samsum import samsum_dataset
+from torchtune.datasets._sft import SFTDataset
 from torchtune.datasets._slimorca import slimorca_dataset
-from torchtune.datasets._stack_exchanged_paired import stack_exchanged_paired_dataset
+from torchtune.datasets._stack_exchange_paired import stack_exchange_paired_dataset
 from torchtune.datasets._text_completion import (
     text_completion_dataset,
     TextCompletionDataset,
 )
 from torchtune.datasets._wikitext import wikitext_dataset
+from torchtune.datasets.multimodal._llava_instruct import llava_instruct_dataset
+from torchtune.datasets.multimodal._the_cauldron import the_cauldron_dataset
 
 __all__ = [
     "alpaca_dataset",
     "alpaca_cleaned_dataset",
     "grammar_dataset",
     "samsum_dataset",
-    "stack_exchanged_paired_dataset",
+    "stack_exchange_paired_dataset",
     "InstructDataset",
     "slimorca_dataset",
     "ChatDataset",
@@ -39,4 +43,8 @@ __all__ = [
     "ConcatDataset",
     "wikitext_dataset",
     "PreferenceDataset",
+    "the_cauldron_dataset",
+    "SFTDataset",
+    "hh_rlhf_helpful_dataset",
+    "llava_instruct_dataset",
 ]

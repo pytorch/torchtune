@@ -7,21 +7,23 @@
 
 from typing import Any
 
-from torch import nn, Tensor
+import torch
+from torch import nn
 
 
 class Fp32LayerNorm(nn.LayerNorm):
     """
-    Wrapper around nn.functional.layer_norm to support mixed-precision training.
+    Wrapper around :class:`~torch.nn.LayerNorm` to support mixed-precision training.
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
             x (torch.Tensor): Input tensor.
+
         Returns:
             torch.Tensor: The normalized output tensor.
         """

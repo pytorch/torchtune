@@ -7,7 +7,7 @@
 from typing import Tuple
 
 import torch
-from torch import nn, Tensor
+from torch import nn
 
 
 class KVCache(nn.Module):
@@ -40,6 +40,7 @@ class KVCache(nn.Module):
         self.register_buffer(
             "v_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False
         )
+        self.size = 0
         self.batch_size = batch_size
 
     def reset(self) -> None:
@@ -48,22 +49,22 @@ class KVCache(nn.Module):
         self.v_cache.zero_()
 
     def update(
-        self, input_pos: Tensor, k_val: Tensor, v_val: Tensor
-    ) -> Tuple[Tensor, Tensor]:
+        self, input_pos: torch.Tensor, k_val: torch.Tensor, v_val: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Update KV cache with the new k_val, v_val and return the updated cache.
 
-        Args:
-            input_pos (Tensor): Current position tensor with shape [S]
-            k_val (Tensor): Current key tensor with shape [B, H, S, D]
-            v_val (Tensor): Current value tensor with shape [B, H, S, D]
+        Raises an assertion error if ``input_pos`` is longer than the maximum sequence length.
 
-        Raises:
-            ValueError: if ``input_pos`` is longer than the maximum sequence length
+        Args:
+            input_pos (torch.Tensor): Current position tensor with shape [S]
+            k_val (torch.Tensor): Current key tensor with shape [B, H, S, D]
+            v_val (torch.Tensor): Current value tensor with shape [B, H, S, D]
 
         Returns:
-            Tuple[Tensor, Tensor]: Updated KV cache with key first
+            Tuple[torch.Tensor, torch.Tensor]: Updated KV cache with key first
         """
         assert input_pos.shape[0] == k_val.shape[2]
+        self.size = input_pos.max().item() + 1
 
         k_out = self.k_cache
         v_out = self.v_cache
