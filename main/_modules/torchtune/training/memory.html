@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.utils.memory &mdash; torchtune main documentation</title>
+  <title>torchtune.training.memory &mdash; torchtune main documentation</title>
   
 
   
@@ -377,7 +377,7 @@
         
           <li><a href="../../index.html">Module code</a> &gt;</li>
         
-      <li>torchtune.utils.memory</li>
+      <li>torchtune.training.memory</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -409,7 +409,7 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>Source code for torchtune.utils.memory</h1><div class="highlight"><pre>
+  <h1>Source code for torchtune.training.memory</h1><div class="highlight"><pre>
 <span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
 <span class="c1"># All rights reserved.</span>
 <span class="c1">#</span>
@@ -435,7 +435,7 @@
 <span class="n">ACWrapPolicyType</span><span class="p">:</span> <span class="n">Type</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">Set</span><span class="p">[</span><span class="n">Type</span><span class="p">],</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]]</span>
 
 
-<div class="viewcode-block" id="set_activation_checkpointing"><a class="viewcode-back" href="../../../generated/torchtune.utils.set_activation_checkpointing.html#torchtune.utils.set_activation_checkpointing">[docs]</a><span class="k">def</span> <span class="nf">set_activation_checkpointing</span><span class="p">(</span>
+<div class="viewcode-block" id="set_activation_checkpointing"><a class="viewcode-back" href="../../../generated/torchtune.training.set_activation_checkpointing.html#torchtune.training.set_activation_checkpointing">[docs]</a><span class="k">def</span> <span class="nf">set_activation_checkpointing</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">auto_wrap_policy</span><span class="p">:</span> <span class="n">ACWrapPolicyType</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Utility to apply activation checkpointing to the passed-in model.</span>
@@ -464,7 +464,7 @@
     <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">reset_peak_memory_stats</span><span class="p">()</span>
 
 
-<div class="viewcode-block" id="OptimizerInBackwardWrapper"><a class="viewcode-back" href="../../../generated/torchtune.utils.OptimizerInBackwardWrapper.html#torchtune.utils.OptimizerInBackwardWrapper">[docs]</a><span class="k">class</span> <span class="nc">OptimizerInBackwardWrapper</span><span class="p">:</span>
+<div class="viewcode-block" id="OptimizerInBackwardWrapper"><a class="viewcode-back" href="../../../generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper">[docs]</a><span class="k">class</span> <span class="nc">OptimizerInBackwardWrapper</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A bare-bones class meant for checkpoint save and load for optimizers running</span>
 <span class="sd">    in backward. Usage is limited to the following:</span>
@@ -504,7 +504,7 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">optim_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">]):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">optim_map</span> <span class="o">=</span> <span class="n">optim_map</span>
 
-<div class="viewcode-block" id="OptimizerInBackwardWrapper.state_dict"><a class="viewcode-back" href="../../../generated/torchtune.utils.OptimizerInBackwardWrapper.html#torchtune.utils.OptimizerInBackwardWrapper.state_dict">[docs]</a>    <span class="k">def</span> <span class="nf">state_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<div class="viewcode-block" id="OptimizerInBackwardWrapper.state_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper.state_dict">[docs]</a>    <span class="k">def</span> <span class="nf">state_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Returns a state dict mapping parameter names to optimizer states. This</span>
 <span class="sd">        state_dict is only loadable by this same class.</span>
@@ -514,7 +514,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="n">opt</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">opt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">optim_map</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span></div>
 
-<div class="viewcode-block" id="OptimizerInBackwardWrapper.load_state_dict"><a class="viewcode-back" href="../../../generated/torchtune.utils.OptimizerInBackwardWrapper.html#torchtune.utils.OptimizerInBackwardWrapper.load_state_dict">[docs]</a>    <span class="k">def</span> <span class="nf">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">optim_ckpt_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]):</span>
+<div class="viewcode-block" id="OptimizerInBackwardWrapper.load_state_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper.load_state_dict">[docs]</a>    <span class="k">def</span> <span class="nf">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">optim_ckpt_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Load optimizer states from a state dict produced by this class&#39;s</span>
 <span class="sd">        state_dict method.</span>
@@ -540,7 +540,7 @@
                 <span class="sa">f</span><span class="s2">&quot;Expected to load optimizer state for params </span><span class="si">{</span><span class="n">missing_params</span><span class="si">}</span><span class="s2">!&quot;</span>
             <span class="p">)</span></div>
 
-<div class="viewcode-block" id="OptimizerInBackwardWrapper.get_optim_key"><a class="viewcode-back" href="../../../generated/torchtune.utils.OptimizerInBackwardWrapper.html#torchtune.utils.OptimizerInBackwardWrapper.get_optim_key">[docs]</a>    <span class="k">def</span> <span class="nf">get_optim_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<div class="viewcode-block" id="OptimizerInBackwardWrapper.get_optim_key"><a class="viewcode-back" href="../../../generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper.get_optim_key">[docs]</a>    <span class="k">def</span> <span class="nf">get_optim_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Returns value of key from an arbitrary optimizer running in backward. Note that</span>
 <span class="sd">        this assumes all optimizer in backwards have the same value for the key, i.e.,</span>
@@ -549,7 +549,7 @@
         <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optim_map</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">key</span><span class="p">]</span></div></div>
 
 
-<div class="viewcode-block" id="create_optim_in_bwd_wrapper"><a class="viewcode-back" href="../../../generated/torchtune.utils.create_optim_in_bwd_wrapper.html#torchtune.utils.create_optim_in_bwd_wrapper">[docs]</a><span class="k">def</span> <span class="nf">create_optim_in_bwd_wrapper</span><span class="p">(</span>
+<div class="viewcode-block" id="create_optim_in_bwd_wrapper"><a class="viewcode-back" href="../../../generated/torchtune.training.create_optim_in_bwd_wrapper.html#torchtune.training.create_optim_in_bwd_wrapper">[docs]</a><span class="k">def</span> <span class="nf">create_optim_in_bwd_wrapper</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">optim_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OptimizerInBackwardWrapper</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -571,7 +571,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="register_optim_in_bwd_hooks"><a class="viewcode-back" href="../../../generated/torchtune.utils.register_optim_in_bwd_hooks.html#torchtune.utils.register_optim_in_bwd_hooks">[docs]</a><span class="k">def</span> <span class="nf">register_optim_in_bwd_hooks</span><span class="p">(</span>
+<div class="viewcode-block" id="register_optim_in_bwd_hooks"><a class="viewcode-back" href="../../../generated/torchtune.training.register_optim_in_bwd_hooks.html#torchtune.training.register_optim_in_bwd_hooks">[docs]</a><span class="k">def</span> <span class="nf">register_optim_in_bwd_hooks</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">optim_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -596,7 +596,7 @@
         <span class="n">p</span><span class="o">.</span><span class="n">register_post_accumulate_grad_hook</span><span class="p">(</span><span class="n">optim_step</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="get_memory_stats"><a class="viewcode-back" href="../../../generated/torchtune.utils.get_memory_stats.html#torchtune.utils.get_memory_stats">[docs]</a><span class="k">def</span> <span class="nf">get_memory_stats</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">reset_stats</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<div class="viewcode-block" id="get_memory_stats"><a class="viewcode-back" href="../../../generated/torchtune.training.get_memory_stats.html#torchtune.training.get_memory_stats">[docs]</a><span class="k">def</span> <span class="nf">get_memory_stats</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">reset_stats</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Computes a memory summary for the passed in device. If ``reset_stats`` is ``True``, this will</span>
 <span class="sd">    also reset CUDA&#39;s peak memory tracking. This is useful to get data around relative use of peak</span>
@@ -636,11 +636,11 @@
     <span class="k">return</span> <span class="n">memory_stats</span></div>
 
 
-<div class="viewcode-block" id="log_memory_stats"><a class="viewcode-back" href="../../../generated/torchtune.utils.log_memory_stats.html#torchtune.utils.log_memory_stats">[docs]</a><span class="k">def</span> <span class="nf">log_memory_stats</span><span class="p">(</span><span class="n">stats</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="log_memory_stats"><a class="viewcode-back" href="../../../generated/torchtune.training.log_memory_stats.html#torchtune.training.log_memory_stats">[docs]</a><span class="k">def</span> <span class="nf">log_memory_stats</span><span class="p">(</span><span class="n">stats</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Logs a dict containing memory stats to the logger. ``stats`` should contain the fields</span>
 <span class="sd">    ``peak_memory_active``, ``peak_memory_alloc``, and ``peak_memory_reserved`` as</span>
-<span class="sd">    returned by :func:`torchtune.utils.get_memory_stats`.</span>
+<span class="sd">    returned by :func:`torchtune.training.get_memory_stats`.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        stats (Dict[str, float]): A dictionary containing the peak memory active, peak memory</span>

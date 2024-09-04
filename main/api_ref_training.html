@@ -487,12 +487,24 @@ checkpointing, please see the <a class="reference internal" href="deep_dives/che
 </table>
 </section>
 <section id="memory-management">
-<h2>Memory Management<a class="headerlink" href="#memory-management" title="Permalink to this heading">¶</a></h2>
+<span id="ac-label"></span><h2>Memory Management<a class="headerlink" href="#memory-management" title="Permalink to this heading">¶</a></h2>
 <p>Utilities to reduce memory consumption during training.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.training.apply_selective_activation_checkpointing.html#torchtune.training.apply_selective_activation_checkpointing" title="torchtune.training.apply_selective_activation_checkpointing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_selective_activation_checkpointing</span></code></a></p></td>
 <td><p>Utility to setup activation checkpointing and wrap the model for checkpointing.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.training.set_activation_checkpointing.html#torchtune.training.set_activation_checkpointing" title="torchtune.training.set_activation_checkpointing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_activation_checkpointing</span></code></a></p></td>
+<td><p>Utility to apply activation checkpointing to the passed-in model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper" title="torchtune.training.OptimizerInBackwardWrapper"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OptimizerInBackwardWrapper</span></code></a></p></td>
+<td><p>A bare-bones class meant for checkpoint save and load for optimizers running in backward.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.training.create_optim_in_bwd_wrapper.html#torchtune.training.create_optim_in_bwd_wrapper" title="torchtune.training.create_optim_in_bwd_wrapper"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_optim_in_bwd_wrapper</span></code></a></p></td>
+<td><p>Create a wrapper for optimizer step running in backward.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.training.register_optim_in_bwd_hooks.html#torchtune.training.register_optim_in_bwd_hooks" title="torchtune.training.register_optim_in_bwd_hooks"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_optim_in_bwd_hooks</span></code></a></p></td>
+<td><p>Register hooks for optimizer step running in backward.</p></td>
 </tr>
 </tbody>
 </table>
@@ -526,6 +538,12 @@ checkpointing, please see the <a class="reference internal" href="deep_dives/che
 of your finetuning job.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.training.get_memory_stats.html#torchtune.training.get_memory_stats" title="torchtune.training.get_memory_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_memory_stats</span></code></a></p></td>
+<td><p>Computes a memory summary for the passed in device.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.training.log_memory_stats.html#torchtune.training.log_memory_stats" title="torchtune.training.log_memory_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">log_memory_stats</span></code></a></p></td>
+<td><p>Logs a dict containing memory stats to the logger.</p></td>
+</tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.training.setup_torch_profiler.html#torchtune.training.setup_torch_profiler" title="torchtune.training.setup_torch_profiler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup_torch_profiler</span></code></a></p></td>
 <td><p>Sets up <a class="reference external" href="https://pytorch.org/docs/stable/profiler.html#torch.profiler.profile" title="(in PyTorch v2.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">profile</span></code></a> and returns the profiler config with post-setup updates.</p></td>
 </tr>

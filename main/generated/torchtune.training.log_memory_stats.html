@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>register_optim_in_bwd_hooks &mdash; torchtune main documentation</title>
+  <title>log_memory_stats &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="get_memory_stats" href="torchtune.utils.get_memory_stats.html" />
-    <link rel="prev" title="create_optim_in_bwd_wrapper" href="torchtune.utils.create_optim_in_bwd_wrapper.html" />
+    <link rel="next" title="setup_torch_profiler" href="torchtune.training.setup_torch_profiler.html" />
+    <link rel="prev" title="get_memory_stats" href="torchtune.training.get_memory_stats.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -336,8 +336,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -378,15 +378,15 @@
       </li>
 
         
-          <li><a href="../api_ref_utilities.html">torchtune.utils</a> &gt;</li>
+          <li><a href="../api_ref_training.html">torchtune.training</a> &gt;</li>
         
-      <li>register_optim_in_bwd_hooks</li>
+      <li>log_memory_stats</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.utils.register_optim_in_bwd_hooks.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.training.log_memory_stats.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -416,23 +416,18 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="register-optim-in-bwd-hooks">
-<h1>register_optim_in_bwd_hooks<a class="headerlink" href="#register-optim-in-bwd-hooks" title="Permalink to this heading">¶</a></h1>
+  <section id="log-memory-stats">
+<h1>log_memory_stats<a class="headerlink" href="#log-memory-stats" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.utils.register_optim_in_bwd_hooks">
-<span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">register_optim_in_bwd_hooks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.parameter.Parameter.html#torch.nn.parameter.Parameter" title="(in PyTorch v2.4)"><span class="pre">Parameter</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pytorch.org/docs/stable/optim.html#torch.optim.Optimizer" title="(in PyTorch v2.4)"><span class="pre">Optimizer</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/utils/memory.html#register_optim_in_bwd_hooks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.register_optim_in_bwd_hooks" title="Permalink to this definition">¶</a></dt>
-<dd><p>Register hooks for optimizer step running in backward.</p>
-<p>When fusing the optimizer step into backward, we need to call <code class="docutils literal notranslate"><span class="pre">.step()</span></code> on the optimizer
-for a given parameter as soon as its gradient is ready. This utility registers post-accumulate-grad
-hooks on all parameters in the model to achieve this.</p>
+<dt class="sig sig-object py" id="torchtune.training.log_memory_stats">
+<span class="sig-prename descclassname"><span class="pre">torchtune.training.</span></span><span class="sig-name descname"><span class="pre">log_memory_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stats</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/training/memory.html#log_memory_stats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.training.log_memory_stats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Logs a dict containing memory stats to the logger. <code class="docutils literal notranslate"><span class="pre">stats</span></code> should contain the fields
+<code class="docutils literal notranslate"><span class="pre">peak_memory_active</span></code>, <code class="docutils literal notranslate"><span class="pre">peak_memory_alloc</span></code>, and <code class="docutils literal notranslate"><span class="pre">peak_memory_reserved</span></code> as
+returned by <a class="reference internal" href="torchtune.training.get_memory_stats.html#torchtune.training.get_memory_stats" title="torchtune.training.get_memory_stats"><code class="xref py py-func docutils literal notranslate"><span class="pre">torchtune.training.get_memory_stats()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><em>torch.nn.Module</em></a>) – Model whose parameters will be optimized. Note that currently
-hooks for ALL parameters in the model will be registered.</p></li>
-<li><p><strong>optim_dict</strong> (<em>Dict</em><em>[</em><em>torch.nn.Parameter</em><em>, </em><a class="reference external" href="https://pytorch.org/docs/stable/optim.html#torch.optim.Optimizer" title="(in PyTorch v2.4)"><em>torch.optim.Optimizer</em></a><em>]</em>) – Mapping from
-parameters to optimizers.</p></li>
-</ul>
+<dd class="field-odd"><p><strong>stats</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>]</em>) – A dictionary containing the peak memory active, peak memory
+allocated, and peak memory reserved stats.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -447,10 +442,10 @@ parameters to optimizers.</p></li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.utils.get_memory_stats.html" class="btn btn-neutral float-right" title="get_memory_stats" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.training.setup_torch_profiler.html" class="btn btn-neutral float-right" title="setup_torch_profiler" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.utils.create_optim_in_bwd_wrapper.html" class="btn btn-neutral" title="create_optim_in_bwd_wrapper" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.training.get_memory_stats.html" class="btn btn-neutral" title="get_memory_stats" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -482,7 +477,7 @@ parameters to optimizers.</p></li>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">register_optim_in_bwd_hooks</a></li>
+<li><a class="reference internal" href="#">log_memory_stats</a></li>
 </ul>
 
             </div>

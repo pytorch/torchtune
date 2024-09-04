@@ -56,6 +56,7 @@ Utilities for enabling and working with distributed training.
     get_full_finetune_fsdp_wrap_policy
     lora_fsdp_wrap_policy
 
+.. _ac_label:
 
 Memory Management
 -----------------
@@ -67,6 +68,10 @@ Utilities to reduce memory consumption during training.
     :nosignatures:
 
     apply_selective_activation_checkpointing
+    set_activation_checkpointing
+    OptimizerInBackwardWrapper
+    create_optim_in_bwd_wrapper
+    register_optim_in_bwd_hooks
 
 .. _metric_logging_label:
 
@@ -97,6 +102,8 @@ of your finetuning job.
     :toctree: generated/
     :nosignatures:
 
+    get_memory_stats
+    log_memory_stats
     setup_torch_profiler
 
 Miscellaneous

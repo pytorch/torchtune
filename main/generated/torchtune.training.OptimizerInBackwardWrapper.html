@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>create_optim_in_bwd_wrapper &mdash; torchtune main documentation</title>
+  <title>OptimizerInBackwardWrapper &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="register_optim_in_bwd_hooks" href="torchtune.utils.register_optim_in_bwd_hooks.html" />
-    <link rel="prev" title="OptimizerInBackwardWrapper" href="torchtune.utils.OptimizerInBackwardWrapper.html" />
+    <link rel="next" title="create_optim_in_bwd_wrapper" href="torchtune.training.create_optim_in_bwd_wrapper.html" />
+    <link rel="prev" title="set_activation_checkpointing" href="torchtune.training.set_activation_checkpointing.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -336,8 +336,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -378,15 +378,15 @@
       </li>
 
         
-          <li><a href="../api_ref_utilities.html">torchtune.utils</a> &gt;</li>
+          <li><a href="../api_ref_training.html">torchtune.training</a> &gt;</li>
         
-      <li>create_optim_in_bwd_wrapper</li>
+      <li>OptimizerInBackwardWrapper</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.utils.create_optim_in_bwd_wrapper.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.training.OptimizerInBackwardWrapper.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -416,30 +416,85 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="create-optim-in-bwd-wrapper">
-<h1>create_optim_in_bwd_wrapper<a class="headerlink" href="#create-optim-in-bwd-wrapper" title="Permalink to this heading">¶</a></h1>
-<dl class="py function">
-<dt class="sig sig-object py" id="torchtune.utils.create_optim_in_bwd_wrapper">
-<span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">create_optim_in_bwd_wrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.parameter.Parameter.html#torch.nn.parameter.Parameter" title="(in PyTorch v2.4)"><span class="pre">Parameter</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pytorch.org/docs/stable/optim.html#torch.optim.Optimizer" title="(in PyTorch v2.4)"><span class="pre">Optimizer</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.utils.OptimizerInBackwardWrapper.html#torchtune.utils.OptimizerInBackwardWrapper" title="torchtune.utils.memory.OptimizerInBackwardWrapper"><span class="pre">OptimizerInBackwardWrapper</span></a></span></span><a class="reference internal" href="../_modules/torchtune/utils/memory.html#create_optim_in_bwd_wrapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.create_optim_in_bwd_wrapper" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create a wrapper for optimizer step running in backward.</p>
+  <section id="optimizerinbackwardwrapper">
+<h1>OptimizerInBackwardWrapper<a class="headerlink" href="#optimizerinbackwardwrapper" title="Permalink to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="torchtune.training.OptimizerInBackwardWrapper">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.training.</span></span><span class="sig-name descname"><span class="pre">OptimizerInBackwardWrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">optim_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pytorch.org/docs/stable/optim.html#torch.optim.Optimizer" title="(in PyTorch v2.4)"><span class="pre">Optimizer</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/training/memory.html#OptimizerInBackwardWrapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.training.OptimizerInBackwardWrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>A bare-bones class meant for checkpoint save and load for optimizers running
+in backward. Usage is limited to the following:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This wrapper is only meant to be used for single-device use cases.
+Distributed use cases such as FSDP, which require specialized optimizer state checkpointing, are not supported.</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><em>torch.nn.Module</em></a>) – Model that contains parameters that are being optimized. For now,
-it is assumed that all parameters being optimized belong to a single top-level model.
-<code class="docutils literal notranslate"><span class="pre">named_parameters</span></code> attribute of <code class="docutils literal notranslate"><span class="pre">model</span></code> will be accessed to look up parameter names for
-parameters being optimized.</p></li>
-<li><p><strong>optim_dict</strong> (<em>Dict</em><em>[</em><em>torch.nn.Parameter</em><em>, </em><a class="reference external" href="https://pytorch.org/docs/stable/optim.html#torch.optim.Optimizer" title="(in PyTorch v2.4)"><em>torch.optim.Optimizer</em></a><em>]</em>) – Mapping from
-parameters to optimizers.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Wrapper for optimizer states running in backward.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">OptimizerInBackwardWrapper</span></code></p>
+<dd class="field-odd"><p><strong>optim_map</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://pytorch.org/docs/stable/optim.html#torch.optim.Optimizer" title="(in PyTorch v2.4)"><em>torch.optim.Optimizer</em></a><em>]</em>) – Mapping from parameter names to optimizers.</p>
 </dd>
 </dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">optim_dict</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">p</span><span class="p">:</span> <span class="n">config</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span><span class="n">cfg_optimizer</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">parameters</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Save checkpoint</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ckpt</span> <span class="o">=</span> <span class="n">OptimizerInBackwardWrapper</span><span class="p">(</span><span class="n">optim_dict</span><span class="p">)</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;/tmp/optim_ckpt&quot;</span><span class="p">,</span> <span class="n">ckpt</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Load checkpoint</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">placeholder_optim_dict</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">p</span><span class="p">:</span> <span class="n">config</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span><span class="n">cfg_optimizer</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">parameters</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wrapper</span> <span class="o">=</span> <span class="n">OptimInBackwardWrapper</span><span class="p">(</span><span class="n">placeholder_optim_dict</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># load_state_dict expects a dict produced by this class&#39;s</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># state_dict method.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wrapper</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;/tmp/optim_ckpt&quot;</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># placeholder_optim_dict now has updated optimizer states.</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.training.OptimizerInBackwardWrapper.get_optim_key">
+<span class="sig-name descname"><span class="pre">get_optim_key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a></span></span><a class="reference internal" href="../_modules/torchtune/training/memory.html#OptimizerInBackwardWrapper.get_optim_key"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.training.OptimizerInBackwardWrapper.get_optim_key" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns value of key from an arbitrary optimizer running in backward. Note that
+this assumes all optimizer in backwards have the same value for the key, i.e.,
+are initialized with the same hyperparameters.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.training.OptimizerInBackwardWrapper.load_state_dict">
+<span class="sig-name descname"><span class="pre">load_state_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">optim_ckpt_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/training/memory.html#OptimizerInBackwardWrapper.load_state_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.training.OptimizerInBackwardWrapper.load_state_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load optimizer states from a state dict produced by this class’s
+state_dict method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>optim_ckpt_map</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – state dict mapping parameter names to optimizer states.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.12)"><strong>RuntimeError</strong></a> – If the optimizer state dict does not contain all the expected parameters.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.training.OptimizerInBackwardWrapper.state_dict">
+<span class="sig-name descname"><span class="pre">state_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/training/memory.html#OptimizerInBackwardWrapper.state_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.training.OptimizerInBackwardWrapper.state_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a state dict mapping parameter names to optimizer states. This
+state_dict is only loadable by this same class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>state dict mapping parameter names to optimizer states.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a>, Any]</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -452,10 +507,10 @@ parameters to optimizers.</p></li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.utils.register_optim_in_bwd_hooks.html" class="btn btn-neutral float-right" title="register_optim_in_bwd_hooks" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.training.create_optim_in_bwd_wrapper.html" class="btn btn-neutral float-right" title="create_optim_in_bwd_wrapper" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.utils.OptimizerInBackwardWrapper.html" class="btn btn-neutral" title="OptimizerInBackwardWrapper" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.training.set_activation_checkpointing.html" class="btn btn-neutral" title="set_activation_checkpointing" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -487,7 +542,7 @@ parameters to optimizers.</p></li>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">create_optim_in_bwd_wrapper</a></li>
+<li><a class="reference internal" href="#">OptimizerInBackwardWrapper</a></li>
 </ul>
 
             </div>
