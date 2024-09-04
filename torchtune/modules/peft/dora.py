@@ -68,7 +68,7 @@ class DoRALinear(nn.Module, AdapterModule):
         # and disabling it to treat the base model as the reference model
         self.disabled = False
 
-        self.dropout = nn.Dropout(p=dropout)
+        self.dropout = nn.Dropout(p=dropout) if dropout > 0.0 else nn.Identity()
         self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=False)
         self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=False)
         self.magnitude = nn.Parameter(torch.empty(out_dim))
