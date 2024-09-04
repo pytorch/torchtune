@@ -153,6 +153,6 @@ class TestSFTDataset:
             model_transform=DummyTokenizerInvalidModelTransform(),
         )
 
-        msg = "model_transform must return a dictionary with 'tokens' and 'mask' keys"
+        msg = "model_transform returned the following keys: mask. Must return 'tokens' and 'mask' as keys."
         with pytest.raises(ValueError, match=msg):
             ds[0]
