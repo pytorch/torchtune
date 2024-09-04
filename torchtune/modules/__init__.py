@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from .attention import MultiHeadAttention  # noqa
-from .common_utils import reparametrize_as_dtype_state_dict_post_hook, setup_caches
+from .common_utils import reparametrize_as_dtype_state_dict_post_hook
 from .feed_forward import FeedForward  # noqa
 from .kv_cache import KVCache  # noqa
 
@@ -30,7 +30,6 @@ __all__ = [
     "FrozenNF4Linear",
     "get_cosine_schedule_with_warmup",
     "KVCache",
-    "setup_caches",
     "RotaryPositionalEmbeddings",
     "RMSNorm",
     "Fp32LayerNorm",

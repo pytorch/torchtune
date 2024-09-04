@@ -144,7 +144,7 @@ class _EvalWrapper(HFLM):
         # are not needed for a regular model call, so we just setup here
         if self.enable_kv_cache:
             with context.device:
-                setup_caches(batch_size=curr_batch_size, dtype=self._dtype)
+                self._model.setup_caches(batch_size=curr_batch_size, dtype=self._dtype)
 
         temperature = generation_kwargs.get("temperature", 0.0)
         do_sample = generation_kwargs.get("do_sample", False)

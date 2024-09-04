@@ -15,7 +15,6 @@ from torch import nn
 from torchtune import config, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import ChatFormat, InstructTemplate, Message
-from torchtune.modules import setup_caches
 
 logger = utils.get_logger("DEBUG")
 
@@ -84,7 +83,7 @@ class InferenceRecipe:
         # Ensure the cache is setup on the right device
         if enable_kv_cache:
             with self._device:
-                setup_caches(batch_size=1, dtype=self._dtype)
+                model.setup_caches(batch_size=1, dtype=self._dtype)
 
         return model
 
