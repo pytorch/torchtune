@@ -18,7 +18,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
-from torchtune.data import left_pad_sequence, padded_collate
+from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
 from torchtune.modules import rlhf
 from torchtune.modules.rlhf import PPOStats, Trajectory
@@ -583,7 +583,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             batch_size=batch_size,
             collate_fn=partial(
                 padded_collate,
-                pad_fn=left_pad_sequence,
+                pad_direction="left",
                 keys_to_pad=["tokens", "labels"],
                 padding_idx=self._tokenizer.pad_id,
             ),

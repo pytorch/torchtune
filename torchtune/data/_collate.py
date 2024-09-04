@@ -3,10 +3,9 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import Callable, Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 import torch
-
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
@@ -56,13 +55,13 @@ def left_pad_sequence(
 def padded_collate(
     batch: List[Dict[str, List[int]]],
     *,
-    pad_fn: Callable,
+    pad_direction: str,
     keys_to_pad: List[str],
     padding_idx: Union[int, Dict[str, int]],
 ):
     """
     A generic padding collation function which pads ``keys_to_pad`` entries in a
-    batch of sequences with the given `pad_fn` to the maximum sequence length for
+    batch of sequences from the given ``pad_direction`` to the maximum sequence length for
     each entry in the batch.
 
     Note:
@@ -71,9 +70,9 @@ def padded_collate(
 
     Args:
         batch (List[Dict[str, List[int]]]): A list of dictionaries containing inputs.
-        pad_fn (Callable): padding function to apply to ``keys_to_pad`` batch elements.
-            This should have an identical signature to :func:`torch.nn.utils.rnn.pad_sequence`, e.g.
-            :func:`torchtune.data.left_pad_sequence`.
+        pad_direction (str): whether to pad entries from the left, or right. If ``pad_direction="right"``, we use
+            :func:`torch.nn.utils.rnn.pad_sequence`, otherwise if ``pad_direction="left"``,
+            we use :func:`torchtune.data.left_pad_sequence`.
         keys_to_pad (List[str]): Batch element keys to apply padding to. Should be a subset
             of keys in the batch.
         padding_idx (Union[int, Dict[str, int]]): Either a single integer padding value to apply to all
@@ -84,6 +83,7 @@ def padded_collate(
         torch.Tensor: The padded tensor of input ids with shape [batch_size, max_seq_len].
 
     Raises:
+        ValueError: if ``pad_direction`` is not one of "left" or "right.
         ValueError: if ``keys_to_pad`` is empty, or is not a list, or is not a subset of keys in the batch.
         ValueError: if ``padding_idx`` is provided as a dictionary, but the keys are not identical to
             ``keys_to_pad``.
@@ -99,7 +99,7 @@ def padded_collate(
         >>> ]
         >>> padded_collate(
         >>>     batch,
-        >>>     pad_fn=left_pad_sequence,
+        >>>     pad_direction="left",
         >>>     keys_to_pad=["tokens"],
         >>>     padding_idx=-10
         >>> )
@@ -110,26 +110,40 @@ def padded_collate(
                               [  8,   9,  10,  11,  12]])
         }
     """
+    if pad_direction not in ["left", "right"]:
+        raise ValueError(
+            f"pad_direction should be one of 'left' or 'right' but found {pad_direction}"
+        )
+
     if not isinstance(keys_to_pad, list) or not keys_to_pad:
         raise ValueError(
             f"keys_to_pad should be a list of strings with at least one element, but found {keys_to_pad}!"
         )
+
+    keys_to_pad = set(keys_to_pad)
     if isinstance(padding_idx, dict):
-        if isinstance(padding_idx, dict) and not set(padding_idx.keys()) == set(
-            keys_to_pad
-        ):
+        if not set(padding_idx.keys()) == keys_to_pad:
             raise ValueError(
                 f"padding_idx was provided as a dictionary, but the keys ({padding_idx.keys()}) "
                 f"are not the same as keys_to_pad ({keys_to_pad})"
             )
-        if not set(keys_to_pad) <= set(batch[0].keys()):
+        if not keys_to_pad <= set(batch[0].keys()):
             raise ValueError(
                 "keys_to_pad should be a subset of keys in the batch, but found "
-                f"{set(keys_to_pad)} and {set(batch[0].keys())}, respectively."
+                f"{keys_to_pad} and {set(batch[0].keys())}, respectively."
             )
 
+    # let's pull out any batch elements which don't need any padding
+    # and convert to tensors
     batch_keys = [k for k in batch[0].keys() if k not in keys_to_pad]
     output_dict = {k: torch.tensor([x[k] for x in batch]) for k in batch_keys}
+
+    # now pad the remaining keys
+    pad_fn = (
+        torch.nn.utils.rnn.pad_sequence
+        if pad_direction == "right"
+        else left_pad_sequence
+    )
     for k in keys_to_pad:
         output_dict[k] = pad_fn(
             [torch.tensor(x[k]) for x in batch],

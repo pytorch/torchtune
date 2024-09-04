@@ -112,9 +112,7 @@ class _EvalWrapper(HFLM):
 
         # pad left
         x = left_pad_sequence(
-            [
-                torch.tensor(x[::-1]) for x in tokenized_text
-            ],  # first flip each sequence and pad
+            [torch.tensor(x) for x in tokenized_text],
             batch_first=True,
             padding_value=self._tokenizer.pad_id,
         )

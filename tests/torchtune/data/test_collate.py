@@ -67,7 +67,7 @@ class TestPaddedCollate:
         ]
         result = padded_collate(
             batch,
-            pad_fn=torch.nn.utils.rnn.pad_sequence,
+            pad_direction="right",
             keys_to_pad=["tokens"],
             padding_idx=-10,
         )
@@ -83,7 +83,7 @@ class TestPaddedCollate:
         ]
         result = padded_collate(
             batch,
-            pad_fn=left_pad_sequence,
+            pad_direction="left",
             keys_to_pad=["tokens", "labels_0"],
             padding_idx={"tokens": 0, "labels_0": -1},
         )
@@ -97,16 +97,14 @@ class TestPaddedCollate:
     def test_value_error_raised_when_empty_keys_to_pad(self):
         batch = [{"labels": [1]}, {"labels": [2]}]
         with pytest.raises(ValueError):
-            padded_collate(
-                batch, pad_fn=left_pad_sequence, keys_to_pad=[], padding_idx=0
-            )
+            padded_collate(batch, pad_direction="left", keys_to_pad=[], padding_idx=0)
 
     def test_value_error_raised_when_mismatched_padding_idx_keys(self):
         batch = [{"tokens": [1, 2], "labels": [1, 1]}]
         with pytest.raises(ValueError):
             padded_collate(
                 batch,
-                pad_fn=left_pad_sequence,
+                pad_direction="left",
                 keys_to_pad=["tokens", "labels"],
                 padding_idx={"tokens": 0},
             )
@@ -116,7 +114,17 @@ class TestPaddedCollate:
         with pytest.raises(ValueError):
             padded_collate(
                 batch,
-                pad_fn=left_pad_sequence,
+                pad_direction="left",
+                keys_to_pad=["tokens", "labels_0"],
+                padding_idx={"tokens": 0},
+            )
+
+    def test_value_error_raised_when_invalid_pad_direction(self):
+        batch = [{"tokens": [1, 2], "labels": [1, 1]}]
+        with pytest.raises(ValueError):
+            padded_collate(
+                batch,
+                pad_direction="oogabooga",
                 keys_to_pad=["tokens", "labels_0"],
                 padding_idx={"tokens": 0},
             )
