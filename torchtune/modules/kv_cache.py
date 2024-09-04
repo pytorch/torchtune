@@ -79,9 +79,7 @@ class KVCache(nn.Module):
                 f"The current cache has been setup with a sequence length of {self.k_cache.shape[2]}"
                 f", but the cache has reached a sequence length of {(self.size + seq_len)}!"
             )
-        cache_pos = torch.arange(
-            self.size, self.size + seq_len, device=k_val.device
-        ).unsqueeze(0)
+        cache_pos = torch.arange(self.size, self.size + seq_len, device=k_val.device)
         self.size += seq_len
 
         k_out = self.k_cache

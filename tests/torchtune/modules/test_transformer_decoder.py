@@ -304,6 +304,33 @@ class TestTransformerDecoder:
         decoder.setup_caches(batch_size=4, dtype=torch.float32)
         return decoder
 
+    @pytest.fixture
+    def decoder_with_kv_cache_fixed_length(
+        self, decoder_params: Tuple[int, int, int, int, int, int]
+    ) -> TransformerDecoder:
+        (
+            vocab_size,
+            embed_dim,
+            num_layers,
+            num_heads,
+            max_seq_len,
+            num_kv_heads,
+        ) = decoder_params
+        decoder = llama2(
+            vocab_size=vocab_size,
+            num_layers=num_layers,
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            embed_dim=embed_dim,
+            max_seq_len=max_seq_len,
+        )
+        # TODO: fix weight initialization to use fixed_init_model
+        for p in decoder.parameters():
+            nn.init.constant_(p, 0.2)
+        decoder.eval()
+        decoder.setup_caches(batch_size=4, dtype=torch.float32, decoder_max_seq_len=12)
+        return decoder
+
     def test_forward(
         self,
         input: torch.Tensor,
