@@ -61,9 +61,7 @@ class TestLlama3ScaledRoPE:
 
     def test_cache_equality(self, input, rope) -> None:
         # Have to explicitly call _rope_init() to initialize theta matrix
-        rope.rope_init(
-            scale_factor=8, low_freq_factor=1, high_freq_factor=4, old_context_len=8192
-        )
+        rope.rope_init()
         cache = rope.cache
 
         assert_expected(cache.mean(), self.EXPECTED_FREQS_CIS_MEAN, atol=1e-4)
@@ -134,9 +132,7 @@ class TestLlama3ScaledRoPE:
         with torch.device("meta"):
             meta_rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len)
 
-        meta_rope.rope_init(
-            scale_factor=8, low_freq_factor=1, high_freq_factor=4, old_context_len=8192
-        )
+        meta_rope.rope_init()
         for p1, p2 in zip(rope_on_device.buffers(), meta_rope.buffers()):
             torch.testing.assert_close(p1, p2)
 
