@@ -491,8 +491,8 @@ self.training is False. Default value is 0.0.</p></li>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – input tensor with shape [b x s_x x d] for the query</p></li>
-<li><p><strong>y</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – second input tensor for key and value with shape [b x s_y x d].
-Optional only with kv_cache enabled.</p></li>
+<li><p><strong>y</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – second input tensor with shape [b x s_y x d], is the input
+for k and v. For self attention, x=y. Optional only with kv_cache enabled.</p></li>
 <li><p><strong>mask</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – Optional boolean tensor which contains the attention mask
 with shape [batch_size x seq_length x seq_length]. This is applied after
 the query-key multiplication and before the softmax. A value of True in row i

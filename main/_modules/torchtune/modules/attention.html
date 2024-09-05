@@ -589,8 +589,8 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): input tensor with shape [b x s_x x d] for the query</span>
-<span class="sd">            y (Optional[torch.Tensor]): second input tensor for key and value with shape [b x s_y x d].</span>
-<span class="sd">                Optional only with kv_cache enabled.</span>
+<span class="sd">            y (Optional[torch.Tensor]): second input tensor with shape [b x s_y x d], is the input</span>
+<span class="sd">                for k and v. For self attention, x=y. Optional only with kv_cache enabled.</span>
 <span class="sd">            mask (Optional[torch.Tensor]): Optional boolean tensor which contains the attention mask</span>
 <span class="sd">                with shape [batch_size x seq_length x seq_length]. This is applied after</span>
 <span class="sd">                the query-key multiplication and before the softmax. A value of True in row i</span>
@@ -656,6 +656,8 @@
             <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kv_cache</span><span class="o">.</span><span class="n">k_cache</span>
             <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kv_cache</span><span class="o">.</span><span class="n">v_cache</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Update k and v shape, positional embeddings, and normalization</span>
+
             <span class="c1"># k has shape [b, s_y, num_kv_heads * head_dim]</span>
             <span class="c1"># v has shape [b, s_y, num_kv_heads * head_dim]</span>
             <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_proj</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
