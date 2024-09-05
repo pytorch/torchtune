@@ -9,7 +9,13 @@ On this page, we'll walk through an overview of torchtune, including features, k
 What is torchtune?
 ------------------
 
-torchtune is a PyTorch library for easily authoring, fine-tuning and experimenting with LLMs. The library emphasizes 4 key aspects:
+torchtune is a native PyTorch library for easily authoring, fine-tuning and experimenting with LLMs.
+
+.. image:: images/llm-lifecycle.png
+  :width: 400
+  :alt: LLM lifecycle diagram that shows the relationship among pre-training, fine-tuning, and inference.
+
+The library emphasizes four key aspects:
 
 - **Simplicity and Extensibility**. Native-PyTorch, componentized design and easy-to-reuse abstractions
 - **Correctness**. High bar on proving the correctness of components and recipes
