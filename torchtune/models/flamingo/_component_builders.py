@@ -53,7 +53,7 @@ def flamingo_vision_encoder(
     projection head fusion module. This includes:
     - Spatial positional encodings
     - CLIP model backbone
-    - Proection head on top of CLIP
+    - Projection head on top of CLIP
     - Final projection into token embedding dimension
 
     Args:
