@@ -404,7 +404,7 @@ class Qwen2Tokenizer(ModelTokenizer):
             inference (bool): Whether the template is being used for inference or not.
         """
         messages = sample.pop("messages")
-        tokens, mask = self.tokenize_messages(messages, add_end_tokens=not inference)
+        tokens, mask = self.tokenize_messages(messages)
         sample["tokens"] = tokens
         sample["mask"] = mask
         return sample
