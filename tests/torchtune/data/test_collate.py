@@ -78,7 +78,7 @@ class TestPaddedCollateSFT:
         mask_3 = torch.concat([torch.ones(2, 5 * 4), torch.zeros(2, 20)], dim=0)
         sample_1 = torch.stack([mask_1, mask_2])
         sample_2 = torch.stack([mask_3, torch.zeros(4, 20)])
-        expected_mask = torch.stack([sample_1, sample_2])
+        expected_mask = torch.stack([sample_1, sample_2]).view(2, 4, -1)
 
         expected = {
             "tokens": torch.tensor([[1, 2, 1, 3], [1, 4, 0, 0]]),

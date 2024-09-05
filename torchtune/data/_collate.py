@@ -232,7 +232,7 @@ def padded_collate_tiled_images_with_cross_attention(
             - "aspect_ratio": List[torch.Tensor], each with shape (2, ) to indicate h_ratio, w_ratio
         - "encoder_mask": List[Tensor], each with shape (text_seq_len, image_seq_len)
 
-    where c = channel dim, h = height dim, w = weight dim. For each element in the batch, 
+    where c = channel dim, h = height dim, w = weight dim. For each element in the batch,
     len(images) == len(encoder_mask) == len(aspect_ratio).
 
     This collater does the following:
@@ -253,7 +253,7 @@ def padded_collate_tiled_images_with_cross_attention(
             - tokens: Tensor of shape (bsz, max_seq_len)
             - labels: Tensor of shape (bsz, max_seq_len)
             - images: Tensor of shape (bsz, max_num_images, max_num_tiles, c, h, w)
-            - encoder_mask: Tensor of shape (bsz, max_num_images, max_seq_len, tokens_per_tile * max_num_tiles)
+            - encoder_mask: Tensor of shape (bsz, max_seq_len, tokens_per_tile * max_num_tiles * max_num_images)
             - aspect_ratio: Tensor of shape (bsz, max_num_images, 2)
 
     Example:
@@ -291,8 +291,8 @@ def padded_collate_tiled_images_with_cross_attention(
                 [8, 9, -100, -100]])
         >>> print(model_inputs["encoder_input"]["images"].shape)  # (bsz, max_num_images, max_num_tiles, c, h, w)
         torch.Size([2, 2, 4, 1, 1, 1])
-        >>> print(model_inputs["encoder_mask"].shape)  # (bsz, max_num_images, max_num_tiles, tokens_per_tile * max_num_tiles)
-        torch.Size([2, 2, 4, 20])
+        >>> print(model_inputs["encoder_mask"].shape)  # (bsz, max_text_seq_len, tokens_per_tile * max_num_tiles * max_num_images)
+        torch.Size([2, 4, 40])
         >>> print(model_inputs["encoder_input"]["aspect_ratio"].shape)  # (bsz, max_num_images, 2)
         torch.Size([2, 2, 2])
         >>> print(model_inputs["encoder_input"]["images"][0, 0, ...])  # Image with two tiles got padded to four
@@ -310,6 +310,7 @@ def padded_collate_tiled_images_with_cross_attention(
     ]
     collated_text = padded_collate_sft(text_only, padding_idx, ignore_idx)
     max_seq_len = collated_text["tokens"].shape[-1]
+    bsz = len(batch)
 
     # TODO: Figure out how to make this more efficient or vectorized. Setting
     # max_num_tiles beforehand will save one nested for loop but may incur more
@@ -362,6 +363,9 @@ def padded_collate_tiled_images_with_cross_attention(
         batch_aspect_ratios, batch_first=True, padding_value=1
     )
 
+    # Concatenate masks for multiple images across image_seq_len dimension
+    concat_masks = collated_masks.view(bsz, max_seq_len, -1)
+
     return {
         "tokens": collated_text["tokens"],
         "labels": collated_text["labels"],
@@ -369,7 +373,7 @@ def padded_collate_tiled_images_with_cross_attention(
             "images": collated_images,
             "aspect_ratio": collated_aspect_ratios,
         },
-        "encoder_mask": collated_masks,
+        "encoder_mask": concat_masks,
     }
 
 
