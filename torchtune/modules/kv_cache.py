@@ -47,13 +47,30 @@ class KVCache(nn.Module):
         """Reset the cache to zero."""
         self.k_cache.zero_()
         self.v_cache.zero_()
+        self.size = 0
 
     def update(
         self, k_val: torch.Tensor, v_val: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Update KV cache with the new k_val, v_val and return the updated cache.
 
-        Raises an assertion error
+        Note:
+            When updating the KV cache, it is assumed that subsequent updates should update key-value
+            positions in consecutive sequence positions. If you wish to update cache values which have
+            already been filled, use ``.reset()``, which will reset the cache to the zero-th position.
+
+        Example:
+            >>> cache = KVCache(batch_size=2, max_seq_len=16, num_heads=4, head_dim=32, dtype=torch.bfloat16)
+            >>> keys, values = torch.ones((2, 4, 8, 32)), torch.ones((2, 4, 8, 32))
+            >>> cache.update(keys, values)
+            >>> # now positions 0 through 7 are filled
+            >>> cache.size
+            >>> 8
+            >>> keys, values = torch.ones((2, 4, 1, 32)), torch.ones((2, 4, 1, 32))
+            >>> cache.update(keys, values)
+            >>> # this will fill at position 8
+            >>> cache.size
+            >>> 9
 
         Args:
             k_val (torch.Tensor): Current key tensor with shape [B, H, S, D]

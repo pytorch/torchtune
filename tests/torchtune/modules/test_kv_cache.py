@@ -18,11 +18,28 @@ DTYPE = torch.float32
 class TestKVCache:
     @pytest.fixture()
     def k_vals_full(self):
-        return torch.ones((BSZ, NUM_HEADS, MAX_SEQ_LEN, HEAD_DIM))
+        return (
+            torch.tril(torch.ones(MAX_SEQ_LEN, HEAD_DIM))[
+                None,
+                None,
+                :,
+                :,
+            ]
+            .repeat(BSZ, NUM_HEADS, 1, 1)
+            .to(DTYPE)
+        )
 
     @pytest.fixture()
     def v_vals_full(self):
-        return torch.ones((BSZ, NUM_HEADS, MAX_SEQ_LEN, HEAD_DIM)) * 2
+        return (
+            torch.tril(torch.ones(MAX_SEQ_LEN, HEAD_DIM))[
+                None,
+                None,
+                :,
+                :,
+            ].repeat(BSZ, NUM_HEADS, 1, 1)
+            * 2
+        ).to(DTYPE)
 
     @pytest.fixture()
     def kv_cache(self):
@@ -36,6 +53,7 @@ class TestKVCache:
         kv_cache.update(k_vals_full, v_vals_full)
         kv_cache.reset()
         assert (kv_cache.k_cache == 0).all() and (kv_cache.v_cache == 0).all()
+        assert kv_cache.size == 0
 
     def test_kv_cache_error_when_bsz_exceeded(self, kv_cache, k_vals_full, v_vals_full):
         with pytest.raises(ValueError):
@@ -78,3 +96,58 @@ class TestKVCache:
             v_vals_full[:, :, (MAX_SEQ_LEN // 2) + 1].unsqueeze(-2),
         )
         assert kv_cache.size == (MAX_SEQ_LEN // 2) + 1
+
+    def test_kv_cache_single_update(self, kv_cache, k_vals_full, v_vals_full):
+        # tests that the kv_cache is correctly returning the updated cache values
+        # after a single cache update
+
+        # make a valid update filling half the cache - like a prefill
+        k_out, v_out = kv_cache.update(
+            k_vals_full[:, :, : (MAX_SEQ_LEN // 2)],
+            v_vals_full[:, :, : (MAX_SEQ_LEN // 2)],
+        )
+
+        expected_k_out = torch.zeros_like(k_vals_full)
+        expected_v_out = torch.zeros_like(v_vals_full)
+
+        expected_k_out[:, :, torch.arange(0, (MAX_SEQ_LEN // 2))] = k_vals_full[
+            :, :, : (MAX_SEQ_LEN // 2)
+        ]
+        expected_v_out[:, :, torch.arange(0, (MAX_SEQ_LEN // 2))] = v_vals_full[
+            :, :, : (MAX_SEQ_LEN // 2)
+        ]
+
+        assert torch.equal(expected_k_out, k_out)
+        assert torch.equal(expected_v_out, v_out)
+
+    def test_kv_cache_multiple_updates(self, kv_cache, k_vals_full, v_vals_full):
+        # tests that the kv_cache is correctly returning the updated cache values
+        # after a single cache update, followed by another cache update with seq_len=1
+
+        # make an update filling half the cache - like a prefill
+        # fills position 0 through to (MAX_SEQ_LEN // 2) - 1
+        kv_cache.update(
+            k_vals_full[:, :, : (MAX_SEQ_LEN // 2)],
+            v_vals_full[:, :, : (MAX_SEQ_LEN // 2)],
+        )
+
+        # make an update for one more token, which is the value at
+        # (MAX_SEQ_LEN // 2)
+        k_out, v_out = kv_cache.update(
+            k_vals_full[:, :, (MAX_SEQ_LEN // 2)].unsqueeze(2),
+            v_vals_full[:, :, (MAX_SEQ_LEN // 2)].unsqueeze(2),
+        )
+
+        expected_k_out = torch.zeros_like(k_vals_full)
+        expected_v_out = torch.zeros_like(v_vals_full)
+
+        # cache should be incremented by one position
+        expected_k_out[:, :, torch.arange(0, ((MAX_SEQ_LEN // 2) + 1))] = k_vals_full[
+            :, :, : ((MAX_SEQ_LEN // 2) + 1)
+        ]
+        expected_v_out[:, :, torch.arange(0, ((MAX_SEQ_LEN // 2) + 1))] = v_vals_full[
+            :, :, : ((MAX_SEQ_LEN // 2) + 1)
+        ]
+
+        assert torch.equal(expected_k_out, k_out)
+        assert torch.equal(expected_v_out, v_out)

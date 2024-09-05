@@ -332,9 +332,6 @@ class DeepFusionModel(nn.Module):
         encoder_max_seq_len: int = None,
         decoder_max_seq_len: int = None,
     ):
-        self.encoder.setup_caches(
-            batch_size, dtype, encoder_max_seq_len=encoder_max_seq_len
-        )
         self.decoder.setup_caches(
             batch_size, dtype, decoder_max_seq_len=decoder_max_seq_len
         )
