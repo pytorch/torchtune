@@ -166,6 +166,8 @@ class VisionCrossAttentionMask(Transform):
         # which can vary based on number of tiles since they are not yet tile padded.
         # The masks are padded and concatenated together in the batch collator
         text_seq_len = len(tokens)
+        max_text_size = self.max_seq_len if inference else None
+        max_image_size = self.encoder_max_seq_len if inference else None
         masks = []
         for image_num, interval in enumerate(intervals):
             # Identify what part of text sequence should be attended
@@ -175,10 +177,14 @@ class VisionCrossAttentionMask(Transform):
             image_seq_len = n_tiles * (self.patches_per_tile + 1)  # +1 for CLS token
             # Mask will be block of 1s at the corresponding interval in the text.
             # It is not a causal block because all the image tokens correspond
-            # to a single image, so text tokens attend to all the image's tokens
-            text_size = text_seq_len if not inference else self.max_seq_len
-            image_size = image_seq_len if not inference else self.encoder_max_seq_len
-            mask = torch.zeros(text_size, image_size, dtype=torch.bool)
+            # to a single image, so text tokens attend to all the image's tokens.
+            # The mask is mask_text_size x mask_image_size if defined, otherwise
+            # it uses current text/image sequence lengths.
+            mask = torch.zeros(
+                max_text_size or text_seq_len,
+                max_image_size or text_seq_len,
+                dtype=torch.bool,
+            )
             mask[start:end, :image_seq_len] = True
             masks.append(mask)
 
