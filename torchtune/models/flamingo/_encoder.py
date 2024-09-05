@@ -64,8 +64,8 @@ class FlamingoProjectionHead(nn.Module):
 
         # apply transformer layers
         x = x.view(bsz * imgs, tiles * embeds, dim)
-        for layers in self.layers:
-            x = layers(x)
+        for layer in self.layers:
+            x = layer(x)
         x = x.view(bsz, imgs, tiles, embeds, dim)
 
         # interleave hidden states and cat with x
