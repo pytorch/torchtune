@@ -155,7 +155,7 @@ def lora_qwen2_7b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
-        lora_droppout (float): dropout probability for the low-rank approximation. Default: 0.0
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
@@ -207,7 +207,7 @@ def lora_qwen2_0_5b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
-        lora_droppout (float): dropout probability for the low-rank approximation. Default: 0.0
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
@@ -264,7 +264,7 @@ def lora_qwen2_1_5b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
-        lora_droppout (float): dropout probability for the low-rank approximation. Default: 0.0
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
