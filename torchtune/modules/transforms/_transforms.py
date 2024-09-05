@@ -55,8 +55,6 @@ class VisionCrossAttentionMask(Transform):
             E.g. for patch_size = 40, a tile of shape (400, 400) will have 10x10 grid of patches
             with shape (40, 40) each.
         image_token_id (int): Token ID of the image special token.
-        max_seq_len (Optional[int]): Maximum sequence length of the text sequence, used to pad mask
-            during inference. Defaults to None.
         encoder_max_seq_len (Optional[int]): Maximum sequence length of the vision sequence, used to
             pad mask during inference. Defaults to None.
     """
@@ -66,14 +64,12 @@ class VisionCrossAttentionMask(Transform):
         tile_size: int,
         patch_size: int,
         image_token_id: int,
-        max_seq_len: Optional[int] = None,
         encoder_max_seq_len: Optional[int] = None,
     ):
         patch_grid_size = tile_size // patch_size
         self.patches_per_tile = patch_grid_size**2
         self.image_token_id = image_token_id
 
-        self.max_seq_len = max_seq_len
         self.encoder_max_seq_len = encoder_max_seq_len
 
     def _get_image_attention_intervals(self, tokens: List[int]) -> List[List[int]]:
@@ -166,7 +162,6 @@ class VisionCrossAttentionMask(Transform):
         # which can vary based on number of tiles since they are not yet tile padded.
         # The masks are padded and concatenated together in the batch collator
         text_seq_len = len(tokens)
-        max_text_size = self.max_seq_len if inference else None
         max_image_size = self.encoder_max_seq_len if inference else None
         masks = []
         for image_num, interval in enumerate(intervals):
@@ -178,12 +173,10 @@ class VisionCrossAttentionMask(Transform):
             # Mask will be block of 1s at the corresponding interval in the text.
             # It is not a causal block because all the image tokens correspond
             # to a single image, so text tokens attend to all the image's tokens.
-            # The mask is mask_text_size x mask_image_size if defined, otherwise
+            # The mask is text_seq_len x mask_image_size if defined, otherwise
             # it uses current text/image sequence lengths.
             mask = torch.zeros(
-                max_text_size or text_seq_len,
-                max_image_size or image_seq_len,
-                dtype=torch.bool,
+                text_seq_len, max_image_size or image_seq_len, dtype=torch.bool
             )
             mask[start:end, :image_seq_len] = True
             masks.append(mask)
