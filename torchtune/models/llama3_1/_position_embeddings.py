@@ -65,6 +65,10 @@ class Llama3ScaledRoPE(nn.Module):
         self.rope_init()
 
     def rope_init(self):
+        """
+        Warning: this is called in recipes before torch.compile,
+        so that the cache is built in advance.
+        """
         freqs = 1.0 / (
             self.base
             ** (torch.arange(0, self.dim, 2)[: (self.dim // 2)].float() / self.dim)
