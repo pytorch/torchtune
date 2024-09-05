@@ -26,7 +26,7 @@ def decoder_config():
     }
 
 
-class TestFlamingoVisionDncoder:
+class TestFlamingoVisionDecoder:
     @pytest.fixture(autouse=True)
     def setup_class(self, decoder_config):
         self.batch_size = 1
