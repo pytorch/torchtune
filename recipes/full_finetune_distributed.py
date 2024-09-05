@@ -537,12 +537,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         cpu_state_dict = training.get_full_model_state_dict(
             self._model,
             self._is_rank_zero,
+            device=self._device,
         )
 
         if intermediate_checkpoint:
             opt_state_dict = training.get_full_optimizer_state_dict(
                 self._optimizer,
                 self._is_rank_zero,
+                device=self._device,
             )
         else:
             opt_state_dict = None
