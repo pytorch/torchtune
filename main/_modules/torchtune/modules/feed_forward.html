@@ -416,6 +416,9 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
 
@@ -427,7 +430,7 @@
 <span class="sd">        gate_proj (nn.Module): Projection from input dim to hidden dim, fed through activation</span>
 <span class="sd">            and multiplied by up_proj.</span>
 <span class="sd">        down_proj (nn.Module): Final projection to output dim.</span>
-<span class="sd">        up_proj (nn.Module): Projection from input dim to hidden dim, multiplied by</span>
+<span class="sd">        up_proj (Optional[nn.Module]): Projection from input dim to hidden dim, multiplied by</span>
 <span class="sd">            activation(gate_proj).</span>
 <span class="sd">        activation (nn.Module): Activation function to use. Default is nn.SiLU().</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -437,7 +440,7 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">gate_proj</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
         <span class="n">down_proj</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
-        <span class="n">up_proj</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+        <span class="n">up_proj</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">activation</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">SiLU</span><span class="p">(),</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -447,7 +450,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="n">activation</span>
 
 <div class="viewcode-block" id="FeedForward.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.FeedForward.html#torchtune.modules.FeedForward.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">w2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">activation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">w1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">w3</span><span class="p">(</span><span class="n">x</span><span class="p">))</span></div></div>
+        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">activation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">w1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">w3</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">h</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">w3</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">w2</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">h</span></div></div>
 </pre></div>
 
              </article>

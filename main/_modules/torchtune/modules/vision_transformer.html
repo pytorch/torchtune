@@ -643,7 +643,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">token_pos_embedding</span> <span class="o">=</span> <span class="n">token_pos_embedding</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">cls_projection</span> <span class="o">=</span> <span class="n">cls_projection</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">transformer_layers</span> <span class="o">=</span> <span class="n">_get_clones</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">_get_clones</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">)</span>
 
         <span class="c1"># other modules</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">conv</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span>
@@ -663,7 +663,9 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">patches_per_tile</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># +1 for CLS token</span>
 
 <div class="viewcode-block" id="VisionTransformer.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.VisionTransformer.html#torchtune.modules.VisionTransformer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">images</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">aspect_ratio</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">images</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">aspect_ratio</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Processes images and returns the tokens and hidden states.</span>
@@ -792,11 +794,10 @@
 
         <span class="c1"># transformer with optional hidden layer outputs</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bsz_and_n_imgs</span><span class="p">,</span> <span class="n">n_tiles</span> <span class="o">*</span> <span class="n">n_tokens</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">layer_idx</span><span class="p">,</span> <span class="n">transformer_layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transformer_layers</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">layer_idx</span><span class="p">,</span> <span class="n">transformer_layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">layer_idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_indices</span><span class="p">:</span>
-                <span class="n">hidden_states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bsz</span><span class="p">,</span> <span class="n">n_imgs</span><span class="p">,</span> <span class="n">n_tiles</span><span class="p">,</span> <span class="n">n_tokens</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
-                <span class="p">)</span>
+                <span class="n">h</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bsz</span><span class="p">,</span> <span class="n">n_imgs</span><span class="p">,</span> <span class="n">n_tiles</span><span class="p">,</span> <span class="n">n_tokens</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
+                <span class="n">hidden_states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
             <span class="n">x</span> <span class="o">=</span> <span class="n">transformer_layer</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 
         <span class="c1"># norm</span>
@@ -832,13 +833,13 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="n">scale</span> <span class="o">=</span> <span class="n">embed_dim</span><span class="o">**-</span><span class="mf">0.5</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cls_embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">scale</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">scale</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 
         <span class="c1"># add 1 CLS token to every tile</span>
         <span class="n">bsz_and_n_imgs</span><span class="p">,</span> <span class="n">n_tiles</span><span class="p">,</span> <span class="n">n_tokens</span><span class="p">,</span> <span class="n">embed_dim</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
-        <span class="n">cls_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cls_embedding</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">bsz_and_n_imgs</span><span class="p">,</span> <span class="n">n_tiles</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
+        <span class="n">cls_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">bsz_and_n_imgs</span><span class="p">,</span> <span class="n">n_tiles</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">cls_emb</span><span class="p">,</span> <span class="n">x</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
 
@@ -856,14 +857,14 @@
 
         <span class="n">scale</span> <span class="o">=</span> <span class="n">embed_dim</span><span class="o">**-</span><span class="mf">0.5</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cls_output_dim</span> <span class="o">=</span> <span class="n">cls_output_dim</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">projection</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">scale</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">cls_output_dim</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">scale</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">cls_output_dim</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="n">bsz</span><span class="p">,</span> <span class="n">n_imgs</span><span class="p">,</span> <span class="n">n_tiles</span><span class="p">,</span> <span class="n">n_tokens</span><span class="p">,</span> <span class="n">embed_dim</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bsz</span> <span class="o">*</span> <span class="n">n_imgs</span> <span class="o">*</span> <span class="n">n_tiles</span><span class="p">,</span> <span class="n">n_tokens</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
 
         <span class="c1"># out: (bsz * n_tiles, cls_output_dim)</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span>
 
         <span class="c1"># num_tokens becomes 1 because we only return the CLS token projection</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bsz</span><span class="p">,</span> <span class="n">n_imgs</span><span class="p">,</span> <span class="n">n_tiles</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cls_output_dim</span><span class="p">)</span>

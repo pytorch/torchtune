@@ -539,16 +539,15 @@
 <span class="sd">                    (n_tiles, c, h, w) each.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Mapping[str, Any]: updated sample with the following keys:</span>
-<span class="sd">                - encoder_mask (List[torch.Tensor]): list of masks with shape (text_seq_len, image_seq_len),</span>
-<span class="sd">                    where length of list == number of images in sample</span>
-<span class="sd">                - tokens (List[int]): original tokens</span>
-<span class="sd">                - images (List[torch.Tensor]): original images</span>
+<span class="sd">            Mapping[str, Any]: sample with a new key encoder_mask, with a mask per image with shape</span>
+<span class="sd">                (text_seq_len, image_seq_len) where text_seq_len == len(tokens) and</span>
+<span class="sd">                image_seq_len == max_tiles * (patches_per_tile + 1). These masks get padded and concatenated</span>
+<span class="sd">                in the batch collator.</span>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            RuntimeError: if the number of images in the batch does not match the number of image tokens in the batch.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">tokens</span><span class="p">,</span> <span class="n">images</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">],</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;images&quot;</span><span class="p">]</span>
+        <span class="n">tokens</span><span class="p">,</span> <span class="n">images</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">],</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">][</span><span class="s2">&quot;images&quot;</span><span class="p">]</span>
         <span class="c1"># One sample can have multiple images - verify the number of image tokens</span>
         <span class="c1"># is the same</span>
         <span class="n">n_img</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">)</span>

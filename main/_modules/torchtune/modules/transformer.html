@@ -692,8 +692,6 @@
 <span class="sd">        tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move</span>
 <span class="sd">            tokens to an embedding space.</span>
 <span class="sd">        layers (Union[nn.Module, List[nn.Module]]): Transformer Decoder layer or a list of layers.</span>
-<span class="sd">        num_layers (Optional[int]): Number of Transformer Decoder layers, only define when</span>
-<span class="sd">            layer is not a list.</span>
 <span class="sd">        max_seq_len (int): maximum sequence length the model will be run with, as used</span>
 <span class="sd">            by :func:`~torchtune.modules.KVCache`</span>
 <span class="sd">        num_heads (int): number of query heads. For MHA this is also the</span>
@@ -705,6 +703,8 @@
 <span class="sd">            before final MLP.</span>
 <span class="sd">        output (nn.Linear): Callable that applies a linear transformation to the output of</span>
 <span class="sd">            the decoder.</span>
+<span class="sd">        num_layers (Optional[int]): Number of Transformer Decoder layers, only define when</span>
+<span class="sd">            layers is not a list.</span>
 <span class="sd">        output_hidden_states (Optional[List[int]]): List of layers (indices) to include in the output</span>
 
 <span class="sd">    Raises:</span>
@@ -719,14 +719,15 @@
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
         <span class="n">tok_embeddings</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">,</span>
         <span class="n">layers</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]],</span>
-        <span class="n">num_layers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
         <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">head_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">norm</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
         <span class="n">output</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">output_hidden_states</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -750,6 +751,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">num_heads</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span> <span class="o">=</span> <span class="n">head_dim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span> <span class="o">=</span> <span class="mi">0</span>
 
 <div class="viewcode-block" id="TransformerDecoder.set_num_output_chunks"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.set_num_output_chunks">[docs]</a>    <span class="k">def</span> <span class="nf">set_num_output_chunks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_output_chunks</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -771,7 +773,8 @@
         <span class="c1"># to the right tokens</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tril</span><span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="mi">0</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder.caches_are_enabled"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.caches_are_enabled">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the key value caches are setup.&quot;&quot;&quot;</span>
@@ -785,7 +788,9 @@
             <span class="p">)</span>
 
         <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
-            <span class="n">layer</span><span class="o">.</span><span class="n">reset_cache</span><span class="p">()</span></div>
+            <span class="n">layer</span><span class="o">.</span><span class="n">reset_cache</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="mi">0</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -825,8 +830,8 @@
 <span class="sd">                final output tensor appended to the list.</span>
 
 <span class="sd">        Raises:</span>
-<span class="sd">            ValueError: if causal_mask is set but input_pos is None</span>
 <span class="sd">            ValueError: if seq_len of x is bigger than max_seq_len</span>
+<span class="sd">            ValueError: if a mask is provided and the model is in inference mode</span>
 
 <span class="sd">        Notation used for tensor shapes:</span>
 <span class="sd">            - b: batch size</span>
@@ -850,14 +855,14 @@
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">input_pos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">&quot;Caches are setup, but the position of input token is missing&quot;</span>
-                <span class="p">)</span>
             <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="s2">&quot;An attention mask was set. Cannot use a non-causal mask for inference&quot;</span>
                 <span class="p">)</span>
+            <span class="c1"># Track the input position</span>
+            <span class="k">if</span> <span class="n">input_pos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">input_pos</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">+</span> <span class="n">seq_len</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">h</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="n">input_pos</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span>
             <span class="c1"># shape: [1, input_pos_len, m_s]</span>
             <span class="c1"># in most cases input_pos_len should be 1</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">]</span>
@@ -905,8 +910,6 @@
 <span class="sd">        tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move</span>
 <span class="sd">            tokens to an embedding space.</span>
 <span class="sd">        layers (Union[nn.Module, List[nn.Module]]): Transformer Decoder layer or a list of layers.</span>
-<span class="sd">        num_layers (Optional[int]): Number of Transformer Decoder layers, only define when</span>
-<span class="sd">            layer is not a list.</span>
 <span class="sd">        max_seq_len (int): maximum sequence length the model will be run with, as used</span>
 <span class="sd">            by :func:`~torchtune.modules.KVCache`</span>
 <span class="sd">        num_heads (int): number of query heads. For MHA this is also the</span>
@@ -916,6 +919,8 @@
 <span class="sd">            to setup the :func:`~torchtune.modules.KVCache`</span>
 <span class="sd">        norm (nn.Module): Callable that applies normalization to the output of the decoder,</span>
 <span class="sd">            before final MLP.</span>
+<span class="sd">        num_layers (Optional[int]): Number of Transformer Decoder layers, only define when</span>
+<span class="sd">            layers is not a list.</span>
 <span class="sd">        output_hidden_states (Optional[List[int]]): List of layers (indices) to include in the output</span>
 
 <span class="sd">    Raises:</span>
@@ -930,13 +935,14 @@
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
         <span class="n">tok_embeddings</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">,</span>
         <span class="n">layers</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]],</span>
-        <span class="n">num_layers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
         <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">head_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">norm</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">output_hidden_states</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -959,6 +965,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">num_heads</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span> <span class="o">=</span> <span class="n">head_dim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span> <span class="o">=</span> <span class="mi">0</span>
 
 <div class="viewcode-block" id="TiedEmbeddingTransformerDecoder.set_num_output_chunks"><a class="viewcode-back" href="../../../generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.set_num_output_chunks">[docs]</a>    <span class="k">def</span> <span class="nf">set_num_output_chunks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_output_chunks</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -980,7 +987,8 @@
         <span class="c1"># to the right tokens</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tril</span><span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="mi">0</span></div>
 
 <div class="viewcode-block" id="TiedEmbeddingTransformerDecoder.caches_are_enabled"><a class="viewcode-back" href="../../../generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.caches_are_enabled">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the key value caches are setup.&quot;&quot;&quot;</span>
@@ -994,7 +1002,9 @@
             <span class="p">)</span>
 
         <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
-            <span class="n">layer</span><span class="o">.</span><span class="n">reset_cache</span><span class="p">()</span></div>
+            <span class="n">layer</span><span class="o">.</span><span class="n">reset_cache</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="mi">0</span></div>
 
 <div class="viewcode-block" id="TiedEmbeddingTransformerDecoder.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -1034,7 +1044,8 @@
 <span class="sd">                final output tensor appended to the list.</span>
 
 <span class="sd">        Raises:</span>
-<span class="sd">            ValueError: if causal_mask is set but input_pos is None</span>
+<span class="sd">            ValueError: if seq_len of x is bigger than max_seq_len</span>
+<span class="sd">            ValueError: if a mask is provided and the model is in inference mode</span>
 
 <span class="sd">        Notation used for tensor shapes:</span>
 <span class="sd">            - b: batch size</span>
@@ -1058,14 +1069,14 @@
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">input_pos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">&quot;Caches are setup, but the position of input token is missing&quot;</span>
-                <span class="p">)</span>
             <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="s2">&quot;An attention mask was set. Cannot use a non-causal mask for inference&quot;</span>
                 <span class="p">)</span>
+            <span class="c1"># Track the input position</span>
+            <span class="k">if</span> <span class="n">input_pos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">input_pos</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">+</span> <span class="n">seq_len</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">h</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="n">input_pos</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span>
             <span class="c1"># shape: [1, input_pos_len, m_s]</span>
             <span class="c1"># in most cases input_pos_len should be 1</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">]</span>

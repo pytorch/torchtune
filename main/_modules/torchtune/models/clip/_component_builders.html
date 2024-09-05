@@ -410,15 +410,21 @@
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
   <h1>Source code for torchtune.models.clip._component_builders</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+
 <span class="kn">from</span> <span class="nn">torchtune.modules.vision_transformer</span> <span class="kn">import</span> <span class="n">VisionTransformer</span><span class="p">,</span> <span class="n">CLSProjection</span>
 <span class="kn">from</span> <span class="nn">torchtune.models.clip._position_embeddings</span> <span class="kn">import</span> <span class="n">TokenPositionalEmbedding</span><span class="p">,</span> <span class="n">TiledTokenPositionalEmbedding</span><span class="p">,</span> <span class="n">TilePositionalEmbedding</span>
 
-<span class="kn">import</span> <span class="nn">logging</span>
-
-<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">TransformerSelfAttentionLayer</span><span class="p">,</span>
+    <span class="n">MultiHeadAttention</span><span class="p">,</span>
+    <span class="n">TanhGate</span><span class="p">,</span>
+    <span class="n">FeedForward</span><span class="p">,</span>
+    <span class="n">Fp32LayerNorm</span>
+<span class="p">)</span> 
 
 <div class="viewcode-block" id="clip_vision_encoder"><a class="viewcode-back" href="../../../../generated/torchtune.models.clip.clip_vision_encoder.html#torchtune.models.clip.clip_vision_encoder">[docs]</a><span class="k">def</span> <span class="nf">clip_vision_encoder</span><span class="p">(</span>
     <span class="n">tile_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -426,7 +432,9 @@
     <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">activation</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">SiLU</span><span class="p">,</span>
     <span class="n">cls_output_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span>
+    <span class="n">attn_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">out_indices</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">output_cls_projection</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">max_num_tiles</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -436,7 +444,7 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builds the vision encoder associated with the clip model. This includes:</span>
 <span class="sd">    </span>
-<span class="sd">    - num_layers TransformerEncoderLayers</span>
+<span class="sd">    - TransformerEncoderLayer</span>
 <span class="sd">    - positional embeddings</span>
 <span class="sd">    - CLS projection (optional)</span>
 
@@ -444,21 +452,23 @@
 <span class="sd">    :class:`torchtune.modules.vision_transformer.VisionTransformer`.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,</span>
-<span class="sd">            the size of the input image. In this case, the function will consider your image as a single tile.</span>
-<span class="sd">        patch_size (int): The size of each patch. Used to divide the tiles into patches.</span>
-<span class="sd">            E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches</span>
-<span class="sd">            with shape (40, 40) each.</span>
 <span class="sd">        embed_dim (int): The dimensionality of each patch embedding (token).</span>
 <span class="sd">        num_layers (int): The number of transformer layers.</span>
 <span class="sd">        num_heads (int): The number of attention heads in each transformer layer.</span>
+<span class="sd">        activation (Callable): The activation function to use in the MLP layer.</span>
 <span class="sd">        cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.</span>
+<span class="sd">        attn_bias (bool): Boolean for if to use bias in the attention module. Default True.</span>
 <span class="sd">        out_indices (Optional[List[int]]): The indices of hidden layers to return.</span>
 <span class="sd">            If provided, it will return the intermediate results of the transformer layers</span>
 <span class="sd">            before they go through a next layer. For example, ``out_indices=[0,3]`` will</span>
 <span class="sd">            return the tokens before they go through the first and fourth layers.</span>
 <span class="sd">        output_cls_projection (bool): If True, only the CLS token projection will be outputted,</span>
 <span class="sd">            instead of all tokens. Defaults to False.</span>
+<span class="sd">        tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,</span>
+<span class="sd">            the size of the input image. In this case, the function will consider your image as a single tile.</span>
+<span class="sd">        patch_size (int): The size of each patch. Used to divide the tiles into patches.</span>
+<span class="sd">            E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches</span>
+<span class="sd">            with shape (40, 40) each.</span>
 <span class="sd">        max_num_tiles (int): The maximum number of tiles that can be processed. This is used to</span>
 <span class="sd">            determine the size of the positional embeddings.</span>
 <span class="sd">        in_channels (int): The number of image input channels.</span>
@@ -466,22 +476,42 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">        A `VisionTransformer` object.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        AssertionError: If ``embed_dim`` is not divisible by ``num_heads``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">embed_dim</span> <span class="o">%</span> <span class="n">num_heads</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;embed_dim must be divisible by num_heads&quot;</span>
 
     <span class="n">cls_projection</span> <span class="o">=</span> <span class="n">CLSProjection</span><span class="p">(</span><span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">cls_output_dim</span><span class="o">=</span><span class="n">cls_output_dim</span><span class="p">)</span> <span class="k">if</span> <span class="n">output_cls_projection</span> <span class="k">else</span> <span class="kc">None</span>
-    
-    <span class="c1"># TODO (Felipe): Replace with torchtune native encoder module</span>
-    <span class="n">mlp_ratio</span> <span class="o">=</span> <span class="mf">4.0</span>
-    <span class="n">transformer_layer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">TransformerEncoderLayer</span><span class="p">(</span>
-        <span class="n">d_model</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> 
-        <span class="n">nhead</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span> 
-        <span class="n">dim_feedforward</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">mlp_ratio</span> <span class="o">*</span> <span class="n">embed_dim</span><span class="p">),</span> 
-        <span class="n">dropout</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> 
-        <span class="n">activation</span><span class="o">=</span><span class="n">intermediate_act</span><span class="p">,</span> 
-        <span class="n">layer_norm_eps</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> 
-        <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> 
-        <span class="n">norm_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> 
-        <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># transformer layer</span>
+    <span class="n">self_attn</span> <span class="o">=</span> <span class="n">MultiHeadAttention</span><span class="p">(</span>
+            <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+            <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+            <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+            <span class="n">head_dim</span><span class="o">=</span><span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads</span><span class="p">,</span>
+            <span class="n">q_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">),</span>
+            <span class="n">k_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">),</span>
+            <span class="n">v_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">),</span>
+            <span class="n">output_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">),</span>
+            <span class="n">pos_embeddings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">attn_dropout</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">mlp</span> <span class="o">=</span> <span class="n">clip_mlp</span><span class="p">(</span>
+        <span class="n">in_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+        <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">4</span> <span class="o">*</span> <span class="n">embed_dim</span><span class="p">,</span>
+        <span class="n">out_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+        <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">(),</span>
+    <span class="p">)</span>
+    <span class="n">transformer_layer</span> <span class="o">=</span> <span class="n">TransformerSelfAttentionLayer</span><span class="p">(</span>
+        <span class="n">attn</span><span class="o">=</span><span class="n">self_attn</span><span class="p">,</span>
+        <span class="n">mlp</span><span class="o">=</span><span class="n">mlp</span><span class="p">,</span>
+        <span class="n">sa_norm</span><span class="o">=</span> <span class="n">Fp32LayerNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">),</span>
+        <span class="n">mlp_norm</span><span class="o">=</span> <span class="n">Fp32LayerNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">),</span>
+        <span class="n">sa_scale</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">mlp_scale</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="c1"># position embeddings</span>
     <span class="k">if</span> <span class="n">max_num_tiles</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
@@ -513,6 +543,15 @@
         <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
         <span class="n">in_channels</span><span class="o">=</span><span class="n">in_channels</span><span class="p">,</span>
     <span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">clip_mlp</span><span class="p">(</span><span class="n">in_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">activation</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FeedForward</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build the MLP layer associated with the clip model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">gate_proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">quantize_base</span> <span class="k">else</span> <span class="n">FrozenNF4Linear</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">)</span>
+    <span class="n">down_proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">quantize_base</span> <span class="k">else</span> <span class="n">FrozenNF4Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">FeedForward</span><span class="p">(</span><span class="n">gate_proj</span><span class="o">=</span><span class="n">gate_proj</span><span class="p">,</span> <span class="n">down_proj</span><span class="o">=</span><span class="n">down_proj</span><span class="p">,</span> <span class="n">up_proj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">)</span>
 </pre></div>
 
              </article>

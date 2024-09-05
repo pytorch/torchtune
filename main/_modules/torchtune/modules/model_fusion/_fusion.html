@@ -474,7 +474,7 @@
         <span class="c1"># TODO: Switch to register_load_state_dict_pre_hook and</span>
         <span class="c1"># register_state_dict_pre_hook after PyTorch v2.5</span>
 
-    <span class="k">def</span> <span class="nf">_state_dict_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_state_dict_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove &quot;layer&quot; from the original layer in the state_dict</span>
 <span class="sd">        name. This keeps the orginal state dict name for the layer</span>
 <span class="sd">        from before fusing with the FusionLayer.</span>
@@ -483,19 +483,21 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">state_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;layer&quot;</span><span class="p">):</span>
-                <span class="n">new_key</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;layer.&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="n">local_key</span> <span class="o">=</span> <span class="n">key</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="p">:]</span>
+            <span class="k">if</span> <span class="n">local_key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;layer&quot;</span><span class="p">):</span>
+                <span class="n">new_key</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="n">local_key</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;layer.&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
                 <span class="n">state_dict</span><span class="p">[</span><span class="n">new_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
                 <span class="k">del</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">_load_state_dict_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_load_state_dict_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply extra &quot;layer&quot; prefix to the state_dict key to</span>
 <span class="sd">        account for the FusionLayer wrapping.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">state_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;fusion_layer&quot;</span><span class="p">):</span>
-                <span class="n">new_key</span> <span class="o">=</span> <span class="s2">&quot;layer.&quot;</span> <span class="o">+</span> <span class="n">key</span>
+            <span class="n">local_key</span> <span class="o">=</span> <span class="n">key</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="p">:]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">local_key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;fusion_layer&quot;</span><span class="p">):</span>
+                <span class="n">new_key</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;layer.&quot;</span> <span class="o">+</span> <span class="n">local_key</span>
                 <span class="n">state_dict</span><span class="p">[</span><span class="n">new_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
                 <span class="k">del</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
@@ -602,17 +604,17 @@
 
 <span class="sd">        [!Note] This update changes the order of the OrderedDict</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">key</span> <span class="o">=</span> <span class="s2">&quot;embedding.weight&quot;</span>
-        <span class="n">new_key</span> <span class="o">=</span> <span class="s2">&quot;weight&quot;</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;embedding.weight&quot;</span>
+        <span class="n">new_key</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;weight&quot;</span>
         <span class="n">destination</span><span class="p">[</span><span class="n">new_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">destination</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
         <span class="k">del</span> <span class="n">destination</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">_load_state_dict_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_load_state_dict_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply extra &quot;embedding&quot; prefix to the state_dict key to</span>
 <span class="sd">        account for the FusionEmbedding wrapping.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">key</span> <span class="o">=</span> <span class="s2">&quot;weight&quot;</span>
-        <span class="n">new_key</span> <span class="o">=</span> <span class="s2">&quot;embedding.weight&quot;</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;weight&quot;</span>
+        <span class="n">new_key</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;embedding.weight&quot;</span>
         <span class="n">state_dict</span><span class="p">[</span><span class="n">new_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
         <span class="k">del</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
