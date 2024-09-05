@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, List, Mapping, Protocol
+from typing import Any, List, Mapping, Optional, Protocol
 
 import torch
 
@@ -55,12 +55,26 @@ class VisionCrossAttentionMask(Transform):
             E.g. for patch_size = 40, a tile of shape (400, 400) will have 10x10 grid of patches
             with shape (40, 40) each.
         image_token_id (int): Token ID of the image special token.
+        max_seq_len (Optional[int]): Maximum sequence length of the text sequence, used to pad mask
+            during inference. Defaults to None.
+        encoder_max_seq_len (Optional[int]): Maximum sequence length of the vision sequence, used to
+            pad mask during inference. Defaults to None.
     """
 
-    def __init__(self, tile_size: int, patch_size: int, image_token_id: int):
+    def __init__(
+        self,
+        tile_size: int,
+        patch_size: int,
+        image_token_id: int,
+        max_seq_len: Optional[int] = None,
+        encoder_max_seq_len: Optional[int] = None,
+    ):
         patch_grid_size = tile_size // patch_size
         self.patches_per_tile = patch_grid_size**2
         self.image_token_id = image_token_id
+
+        self.max_seq_len = max_seq_len
+        self.encoder_max_seq_len = encoder_max_seq_len
 
     def _get_image_attention_intervals(self, tokens: List[int]) -> List[List[int]]:
         """
@@ -114,7 +128,9 @@ class VisionCrossAttentionMask(Transform):
             last_mask_end = vision_mask[1]
         return vision_masks
 
-    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+    def __call__(
+        self, sample: Mapping[str, Any], inference: bool = False
+    ) -> Mapping[str, Any]:
         """
         Generates the vision cross-attention mask for the given sample based on
         the image token locations interleaved in the text sequence.
@@ -125,6 +141,7 @@ class VisionCrossAttentionMask(Transform):
                     image token IDs in the sequence must match the number of images.
                 - images (List[torch.Tensor]): List of image Tensors post-tiling of shape
                     (n_tiles, c, h, w) each.
+            inference (bool): Whether the template is being used for inference or not.
 
         Returns:
             Mapping[str, Any]: sample with a new key encoder_mask, with a mask per image with shape
@@ -159,8 +176,10 @@ class VisionCrossAttentionMask(Transform):
             # Mask will be block of 1s at the corresponding interval in the text.
             # It is not a causal block because all the image tokens correspond
             # to a single image, so text tokens attend to all the image's tokens
-            mask = torch.zeros(text_seq_len, image_seq_len, dtype=torch.bool)
-            mask[start:end, :] = True
+            text_size = text_seq_len if not inference else self.max_seq_len
+            image_size = image_seq_len if not inference else self.encoder_max_seq_len
+            mask = torch.zeros(text_size, image_size, dtype=torch.bool)
+            mask[start:end, :image_seq_len] = True
             masks.append(mask)
 
         sample.update({"encoder_mask": masks})

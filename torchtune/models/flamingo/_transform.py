@@ -184,7 +184,9 @@ class FlamingoTransform(ModelTokenizer, Transform):
             add_eos=add_eos,
         )
 
-    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+    def __call__(
+        self, sample: Mapping[str, Any], inference: bool = False
+    ) -> Mapping[str, Any]:
         """
         Apply image decoding and transformations to the "images" field in the sample
         and tokenization to the "messages" field in the sample. Also returns the
@@ -193,6 +195,7 @@ class FlamingoTransform(ModelTokenizer, Transform):
         Args:
             sample (Mapping[str, Any]): A sample with a "tokens", "mask",
                 "encoder_input" and "encoder_mask" field to feed directly into the model.
+            inference (bool): Whether the template is being used for inference or not.
 
         Returns:
             Mapping[str, Any]: The sample with an updated "image" filed and added
@@ -201,10 +204,10 @@ class FlamingoTransform(ModelTokenizer, Transform):
         encoder_input = {"images": [], "aspect_ratio": []}
         pil_images = sample.pop("images")
         for image in pil_images:
-            out = self.transform_image({"image": image})
+            out = self.transform_image({"image": image}, inference=inference)
             encoder_input["images"].append(out["image"])
             encoder_input["aspect_ratio"].append(out["aspect_ratio"])
         sample["encoder_input"] = encoder_input
-        sample = self.tokenizer(sample)
-        sample = self.xattn_mask(sample)
+        sample = self.tokenizer(sample, inference=inference)
+        sample = self.xattn_mask(sample, inference=inference)
         return sample
