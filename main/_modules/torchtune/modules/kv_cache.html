@@ -458,7 +458,8 @@
 <div class="viewcode-block" id="KVCache.reset"><a class="viewcode-back" href="../../../generated/torchtune.modules.KVCache.html#torchtune.modules.KVCache.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the cache to zero.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">k_cache</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">v_cache</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v_cache</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="mi">0</span></div>
 
 <div class="viewcode-block" id="KVCache.update"><a class="viewcode-back" href="../../../generated/torchtune.modules.KVCache.html#torchtune.modules.KVCache.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">k_val</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">v_val</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
@@ -476,7 +477,7 @@
 <span class="sd">            Tuple[torch.Tensor, torch.Tensor]: Updated KV cache with key first</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">input_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">k_val</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">input_pos</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">input_pos</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span>
 
         <span class="n">k_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_cache</span>
         <span class="n">v_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">v_cache</span>

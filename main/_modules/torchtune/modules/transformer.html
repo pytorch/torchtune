@@ -508,7 +508,8 @@
         <span class="c1"># Input tensor and attention output have the same shape</span>
         <span class="c1"># [b, s, d]</span>
         <span class="c1"># Norm applied before self-attention</span>
-        <span class="n">attn_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sa_norm</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">)</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sa_norm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">attn_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">)</span>
 
         <span class="c1"># Residual connection; shape: [batch_size, seq_length, embed_dim]</span>
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sa_scale</span><span class="p">(</span><span class="n">attn_out</span><span class="p">)</span> <span class="o">+</span> <span class="n">x</span>
