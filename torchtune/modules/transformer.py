@@ -386,7 +386,7 @@ class TransformerDecoder(nn.Module):
         encoder_max_seq_len = (
             encoder_max_seq_len if encoder_max_seq_len is not None else self.max_seq_len
         )
-        decoder_max_seq_len(
+        decoder_max_seq_len = (
             decoder_max_seq_len if decoder_max_seq_len is not None else self.max_seq_len
         )
         for layer in self.layers:
