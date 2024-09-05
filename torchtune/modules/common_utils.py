@@ -147,6 +147,8 @@ def _register_reparametrize_state_dict_hooks(
 
     Args:
         module (nn.Module): the module to register the hooks to.
+        dtype (torch.dtype): the dtype to restore the weight to. Default is ``torch.bfloat16``.
+        offload_to_cpu (bool): whether to offload the restored weight to CPU. Default is ``True``.
 
     Raises:
         RuntimeError: If the low RAM reparametrize hook is used on Windows or an incompatible torch version.
