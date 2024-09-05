@@ -332,7 +332,19 @@ class DeepFusionModel(nn.Module):
         encoder_max_seq_len: int = None,
         decoder_max_seq_len: int = None,
     ):
-        """Sets up caches for self-attention, cross-attention, and fusion layers in the decoder."""
+        """
+        Sets up key-value attention caches for inference for ``self.decoder``.
+        For each layer in ``self.decoder.layers``:
+        - :class:`torchtune.modules.TransformerSelfAttentionLayer` will use ``decoder_max_seq_len``.
+        - :class:`torchtune.modules.TransformerCrossAttentionLayer` will use ``encoder_max_seq_len``.
+        - :class:`torchtune.modules.fusion.FusionLayer` will use both ``decoder_max_seq_len`` and ``encoder_max_seq_len``.
+
+        Args:
+            batch_size (int): batch size for the caches.
+            dtype (torch.dtype): dtype for the caches.
+            encoder_max_seq_len (int): maximum encoder cache sequence length.
+            decoder_max_seq_len (int): maximum decoder cache sequence length.
+        """
         self.decoder.setup_caches(
             batch_size,
             dtype,
