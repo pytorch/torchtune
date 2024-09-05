@@ -278,7 +278,7 @@ class TestTransformerDecoder:
         return decoder
 
     @pytest.fixture
-    def decoder_with_kv_cache_enabled(
+    def decoder_with_kv_cache(
         self, decoder_params: Tuple[int, int, int, int, int, int]
     ) -> TransformerDecoder:
         (
@@ -328,7 +328,9 @@ class TestTransformerDecoder:
         for p in decoder.parameters():
             nn.init.constant_(p, 0.2)
         decoder.eval()
-        decoder.setup_caches(batch_size=4, dtype=torch.float32, decoder_max_seq_len=12)
+        decoder.setup_caches(
+            batch_size=4, dtype=torch.float32, decoder_max_seq_len=max_seq_len + 512
+        )
         return decoder
 
     def test_forward(
@@ -351,30 +353,42 @@ class TestTransformerDecoder:
         with pytest.raises(Exception):
             output = decoder(input_max_len_exceeded)
 
+    @pytest.mark.parametrize(
+        "decoder_with_kv_cache_enabled",
+        ["decoder_with_kv_cache", "decoder_with_kv_cache_fixed_length"],
+    )
     def test_kv_cache(
         self,
+        request,
         input: torch.Tensor,
-        decoder_with_kv_cache_enabled: TransformerDecoder,
+        decoder_with_kv_cache_enabled: str,
         decoder: TransformerDecoder,
     ) -> None:
         _, seq_len = input.shape
-        input_pos = torch.arange(seq_len)
-
+        decoder_with_kv_cache_enabled = request.getfixturevalue(
+            decoder_with_kv_cache_enabled
+        )
         with torch.no_grad():
-            output_cache = decoder_with_kv_cache_enabled(input, input_pos=input_pos)
+            output_cache = decoder_with_kv_cache_enabled(input)
             output_no_cache = decoder(input)
         assert_expected(output_cache.mean(), output_no_cache.mean())
 
+    @pytest.mark.parametrize(
+        "decoder_with_kv_cache_enabled",
+        ["decoder_with_kv_cache", "decoder_with_kv_cache_fixed_length"],
+    )
     def test_kv_cache_reset_values(
         self,
+        request,
         input: torch.Tensor,
         decoder_with_kv_cache_enabled: TransformerDecoder,
     ) -> None:
-        _, seq_len = input.shape
-        input_pos = torch.arange(seq_len)
+        decoder_with_kv_cache_enabled = request.getfixturevalue(
+            decoder_with_kv_cache_enabled
+        )
 
         with torch.no_grad():
-            _ = decoder_with_kv_cache_enabled(input, input_pos=input_pos)
+            _ = decoder_with_kv_cache_enabled(input)
             kv_cache_k_val = decoder_with_kv_cache_enabled.layers[
                 0
             ].attn.kv_cache.k_cache.clone()
@@ -400,11 +414,20 @@ class TestTransformerDecoder:
         with pytest.raises(RuntimeError, match="Key value caches are not setup"):
             decoder.reset_caches()
 
+    @pytest.mark.parametrize(
+        "decoder_with_kv_cache_enabled",
+        ["decoder_with_kv_cache", "decoder_with_kv_cache_fixed_length"],
+    )
     def test_kv_cache_batch_size_exceeded(
         self,
+        request,
         input_max_bs_exceeded: torch.Tensor,
         decoder_with_kv_cache_enabled: TransformerDecoder,
     ) -> None:
+
+        decoder_with_kv_cache_enabled = request.getfixturevalue(
+            decoder_with_kv_cache_enabled
+        )
         with pytest.raises(ValueError):
             decoder_with_kv_cache_enabled(input_max_bs_exceeded)
 

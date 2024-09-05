@@ -100,8 +100,8 @@ class FusionLayer(nn.Module):
         Args:
             batch_size (int): batch size for the caches.
             dtype (torch.dtype): dtype for the caches.
-            encoder_max_seq_len (int): maximum cache sequence length.
-            decoder_max_seq_len (int): this parameter is ignored in this layer.
+            encoder_max_seq_len (int): maximum cache sequence length for cross-attention layer.
+            decoder_max_seq_len (int): maximum cache sequence length for self-attention layer.
         """
         self.layer.setup_cache(
             batch_size,
