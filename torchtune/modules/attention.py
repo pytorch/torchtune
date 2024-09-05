@@ -177,8 +177,8 @@ class MultiHeadAttention(nn.Module):
         """
         Args:
             x (torch.Tensor): input tensor with shape [b x s_x x d] for the query
-            y (Optional[torch.Tensor]): second input tensor for key and value with shape [b x s_y x d].
-                Optional only with kv_cache enabled.
+            y (Optional[torch.Tensor]): second input tensor with shape [b x s_y x d], is the input
+                for k and v. For self attention, x=y. Optional only with kv_cache enabled.
             mask (Optional[torch.Tensor]): Optional boolean tensor which contains the attention mask
                 with shape [batch_size x seq_length x seq_length]. This is applied after
                 the query-key multiplication and before the softmax. A value of True in row i
@@ -244,6 +244,8 @@ class MultiHeadAttention(nn.Module):
             k = self.kv_cache.k_cache
             v = self.kv_cache.v_cache
         else:
+            # Update k and v shape, positional embeddings, and normalization
+
             # k has shape [b, s_y, num_kv_heads * head_dim]
             # v has shape [b, s_y, num_kv_heads * head_dim]
             k = self.k_proj(y)
