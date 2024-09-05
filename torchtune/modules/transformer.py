@@ -356,7 +356,6 @@ class TransformerDecoder(nn.Module):
         self.num_heads = num_heads
         self.head_dim = head_dim
         self.causal_mask = None
-        self.cache_max_seq_len = None
         self.num_output_chunks = 0
 
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
@@ -372,15 +371,18 @@ class TransformerDecoder(nn.Module):
         encoder_max_seq_len: int = None,
         decoder_max_seq_len: int = None,
     ):
-        self.cache_max_seq_len = (
+        encoder_max_seq_len = (
+            encoder_max_seq_len if encoder_max_seq_len is not None else self.max_seq_len
+        )
+        decoder_max_seq_len(
             decoder_max_seq_len if decoder_max_seq_len is not None else self.max_seq_len
         )
         for layer in self.layers:
             layer.setup_cache(
                 batch_size,
                 dtype,
-                encoder_max_seq_len=None,
-                decoder_max_seq_len=self.cache_max_seq_len,
+                encoder_max_seq_len=encoder_max_seq_len,
+                decoder_max_seq_len=decoder_max_seq_len,
             )
 
     def caches_are_enabled(self) -> bool:
@@ -569,7 +571,6 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         self.num_heads = num_heads
         self.head_dim = head_dim
         self.causal_mask = None
-        self.cache_max_seq_len = None
         self.num_output_chunks = 0
 
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
@@ -585,15 +586,18 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         encoder_max_seq_len: int = None,
         decoder_max_seq_len: int = None,
     ):
-        self.cache_max_seq_len = (
+        encoder_max_seq_len = (
+            encoder_max_seq_len if encoder_max_seq_len is not None else self.max_seq_len
+        )
+        decoder_max_seq_len = (
             decoder_max_seq_len if decoder_max_seq_len is not None else self.max_seq_len
         )
         for layer in self.layers:
             layer.setup_cache(
                 batch_size,
                 dtype,
-                encoder_max_seq_len=None,
-                decoder_max_seq_len=self.cache_max_seq_len,
+                encoder_max_seq_len=encoder_max_seq_len,
+                decoder_max_seq_len=decoder_max_seq_len,
             )
 
     def caches_are_enabled(self) -> bool:
