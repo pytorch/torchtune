@@ -160,7 +160,7 @@ def flamingo_decoder(
     intermediate_dim: Optional[int] = None,
 ) -> TransformerDecoder:
     """
-    Build the decoder associated with the Llama3 model with additonal fused
+    Build the decoder associated with the Llama3 model with additional fused
     cross attention layers. This includes:
     - Token embeddings
     - num_layers number of CausalSelfAttention blocks
