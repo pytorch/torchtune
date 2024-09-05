@@ -105,4 +105,5 @@ profiler:
   active_steps: 2
   num_cycles: 1
 
-low_cpu_ram: True
+# For colab
+low_cpu_ram: False
