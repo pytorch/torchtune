@@ -64,19 +64,17 @@ class Llama3ScaledRoPE(nn.Module):
     def reset_parameters(self):
         self.rope_init()
 
-    def rope_init(
-        self,
-        scale_factor: int,
-        low_freq_factor: int,
-        high_freq_factor: int,
-        old_context_len: int,
-    ):
+    def rope_init(self):
         freqs = 1.0 / (
             self.base
             ** (torch.arange(0, self.dim, 2)[: (self.dim // 2)].float() / self.dim)
         )
         theta = self.apply_scaling(
-            freqs, scale_factor, low_freq_factor, high_freq_factor, old_context_len
+            freqs,
+            self.scale_factor,
+            self.low_freq_factor,
+            self.high_freq_factor,
+            self.old_context_len,
         )
         self.register_buffer("theta", theta, persistent=False)
         self.build_rope_cache(self.max_seq_len)
@@ -149,12 +147,7 @@ class Llama3ScaledRoPE(nn.Module):
         # TODO: remove once our distributed recipes are on FSDP2
         if not self.is_cache_built:
             with torch.device(x.device):
-                self.rope_init(
-                    scale_factor=self.scale_factor,
-                    low_freq_factor=self.low_freq_factor,
-                    high_freq_factor=self.high_freq_factor,
-                    old_context_len=self.old_context_len,
-                )
+                self.rope_init()
 
         # input tensor has shape [b, s, n_h, h_d]
         seq_len = x.size(1)
