@@ -176,8 +176,9 @@ class MultiHeadAttention(nn.Module):
     ) -> torch.Tensor:
         """
         Args:
-            x (torch.Tensor): input tensor with shape [b x s_x x d]
-            y (Optional[torch.Tensor]): second input tensor for cross attention with shape [b x s_y x d]
+            x (torch.Tensor): input tensor with shape [b x s_x x d] for the query
+            y (Optional[torch.Tensor]): second input tensor for key and value with shape [b x s_y x d].
+                Optional only with kv_cache enabled.
             mask (Optional[torch.Tensor]): Optional boolean tensor which contains the attention mask
                 with shape [batch_size x seq_length x seq_length]. This is applied after
                 the query-key multiplication and before the softmax. A value of True in row i
@@ -189,6 +190,9 @@ class MultiHeadAttention(nn.Module):
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
+
+        Raises:
+            ValueError: If no `y` input and `kv_cache` is not enabled.
 
         Returns:
             torch.Tensor: output tensor with attention applied
@@ -233,7 +237,10 @@ class MultiHeadAttention(nn.Module):
             q = self.q_norm(q)
 
         if y is None:
-            assert self.kv_cache is not None, "Must use kv_cache or provide y input"
+            if self.kv_cache is None:
+                raise ValueError(
+                    "Must provide y input or use kv_cache to enable streaming decoding"
+                )
             k = self.kv_cache.k_cache
             v = self.kv_cache.v_cache
         else:
