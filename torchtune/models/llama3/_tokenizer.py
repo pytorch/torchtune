@@ -272,8 +272,10 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
             tokens = tokens + [self.eos_id]
             mask = mask + [True]
         if self.max_seq_len:
-            tokens = truncate(tokens, self.max_seq_len, self.eos_id)
-            mask = truncate(mask, self.max_seq_len, True)
+            tokens = truncate(
+                tokens, self.max_seq_len, self.eos_id if add_eos else None
+            )
+            mask = truncate(mask, self.max_seq_len, True if add_eos else None)
 
         return tokens, mask
 

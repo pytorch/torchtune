@@ -116,8 +116,6 @@ Components for RLHF algorithms like PPO.
     rlhf.estimate_advantages
     rlhf.get_rewards_ppo
     rlhf.truncate_sequence_at_first_stop_token
-    rlhf.left_padded_collate
-    rlhf.padded_collate_dpo
 
 Losses
 ^^^^^^
@@ -131,3 +129,4 @@ Losses
    rlhf.loss.RSOLoss
    rlhf.loss.IPOLoss
    rlhf.loss.SimPOLoss
+   loss.CEWithChunkedOutputLoss

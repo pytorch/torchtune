@@ -84,7 +84,8 @@ Let's take a look at a minimal implementation of LoRA in native PyTorch.
 
 .. code-block:: python
 
-  from torch import nn, Tensor
+  import torch
+  from torch import nn
 
   class LoRALinear(nn.Module):
     def __init__(
@@ -114,7 +115,7 @@ Let's take a look at a minimal implementation of LoRA in native PyTorch.
       self.lora_a.weight.requires_grad = True
       self.lora_b.weight.requires_grad = True
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
       # This would be the output of the original model
       frozen_out = self.linear(x)
 
@@ -297,10 +298,11 @@ A comparison of the (smoothed) loss curves between this run and our baseline ove
 .. image:: /_static/img/lora_experiment_loss_curves.png
 
 .. note::
-    The above figure was generated with W&B. You can use torchtune's :class:`~torchtune.utils.metric_logging.WandBLogger`
+    The above figure was generated with W&B. You can use torchtune's :class:`~torchtune.training.metric_logging.WandBLogger`
     to generate similar loss curves, but you will need to install W&B and setup an account separately. For more details on
     using W&B in torchtune, see our ":ref:`wandb_logging`" recipe.
 
+.. _lora_tutorial_memory_tradeoff_label:
 
 Trading off memory and model performance with LoRA
 --------------------------------------------------

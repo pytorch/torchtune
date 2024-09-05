@@ -156,14 +156,15 @@ You can find a full list of all our Llama3 configs [here](recipes/configs/llama3
 
 ## Installation
 
-**Step 1:** [Install PyTorch](https://pytorch.org/get-started/locally/). torchtune is tested with the latest stable PyTorch release as well as the preview nightly version. For fine-tuning the multimodal LLMs available in the repo, you'll need to install torchvision as well.
+**Step 1:** [Install PyTorch](https://pytorch.org/get-started/locally/). torchtune is tested with the latest stable PyTorch release as well as the preview nightly version. torchtune leverages
+torchvision for fine-tuning multimodal LLMs and torchao for the latest in quantization techniques, you should install these as well.
 
 ```
-# Install stable version of PyTorch using pip
-pip install torch torchvision
+# Install stable version of PyTorch libraries using pip
+pip install torch torchvision torchao
 
 # Nightly install for latest features
-pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu121
+pip install --pre torch torchvision torchao --index-url https://download.pytorch.org/whl/nightly/cu121
 ```
 
 **Step 2:** The latest stable version of torchtune is hosted on PyPI and can be downloaded with the following command:

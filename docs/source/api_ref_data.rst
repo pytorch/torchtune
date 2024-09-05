@@ -25,11 +25,7 @@ and models.
     PromptTemplate
     PromptTemplateInterface
     ChatMLTemplate
-
     ChatFormat
-    ChatMLFormat
-    Llama2ChatFormat
-    MistralChatFormat
 
 Types
 -----
@@ -66,6 +62,20 @@ Converts data from common schema and conversation JSON formats into a list of to
     ShareGPTToMessages
     JSONToMessages
     ChosenRejectedToMessages
+
+Collaters
+---------
+
+Collaters used to collect samples into batches and handle any padding.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    padded_collate
+    padded_collate_sft
+    padded_collate_dpo
+    left_pad_sequence
 
 Helper functions
 ----------------

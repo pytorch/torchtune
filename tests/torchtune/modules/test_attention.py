@@ -11,10 +11,10 @@ import pytest
 import torch
 
 from tests.test_utils import assert_expected, fixed_init_model
-from torch import nn, Tensor
+from torch import nn
 
 from torchtune.modules import KVCache, MultiHeadAttention, RotaryPositionalEmbeddings
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 
 @pytest.fixture(autouse=True)
@@ -40,7 +40,7 @@ class TestMultiHeadAttention:
         return batch_size, seq_len, embed_dim
 
     @pytest.fixture
-    def input(self, input_params: Tuple[int, int, int]) -> Tensor:
+    def input(self, input_params: Tuple[int, int, int]) -> torch.Tensor:
         batch_size, seq_len, embed_dim = input_params
         x = torch.randn(batch_size, seq_len, embed_dim)
         return x
@@ -58,7 +58,7 @@ class TestMultiHeadAttention:
         self,
         input_params: Tuple[int, int, int],
         attn_params_gqa: Tuple[int, int, int, int],
-    ) -> Tensor:
+    ) -> torch.Tensor:
         batch_size, seq_len, embed_dim = input_params
         _, _, _, max_seq_len = attn_params_gqa
         seq_len = max_seq_len + 1
@@ -69,7 +69,7 @@ class TestMultiHeadAttention:
         self,
         input_params: Tuple[int, int, int],
         attn_params_gqa: Tuple[int, int, int, int],
-    ) -> Tensor:
+    ) -> torch.Tensor:
         batch_size, seq_len, embed_dim = input_params
         _, _, _, max_seq_len = attn_params_gqa
         batch_size += 1
@@ -253,7 +253,7 @@ class TestMultiHeadAttention:
         attn.eval()
         return attn
 
-    def test_forward_gqa(self, input: Tensor, gqa: MultiHeadAttention) -> None:
+    def test_forward_gqa(self, input: torch.Tensor, gqa: MultiHeadAttention) -> None:
         with torch.no_grad():
             output = gqa(input)
         assert_expected(
@@ -262,7 +262,7 @@ class TestMultiHeadAttention:
         assert_expected(output.shape, input.shape)
 
     def test_forward_gqa_kv_cache(
-        self, input: Tensor, gqa_kv_cache: MultiHeadAttention, attn_params_gqa
+        self, input: torch.Tensor, gqa_kv_cache: MultiHeadAttention, attn_params_gqa
     ) -> None:
 
         _, _, _, max_seq_len = attn_params_gqa
@@ -279,7 +279,7 @@ class TestMultiHeadAttention:
         )
         assert_expected(output.shape, input.shape)
 
-    def test_forward_mha(self, input: Tensor, mha: MultiHeadAttention) -> None:
+    def test_forward_mha(self, input: torch.Tensor, mha: MultiHeadAttention) -> None:
         with torch.no_grad():
             output = mha(input)
         assert_expected(
@@ -288,7 +288,7 @@ class TestMultiHeadAttention:
         assert_expected(output.shape, input.shape)
 
     def test_forward_mha_kv_cache(
-        self, input: Tensor, mha_kv_cache: MultiHeadAttention, attn_params_mha
+        self, input: torch.Tensor, mha_kv_cache: MultiHeadAttention, attn_params_mha
     ) -> None:
 
         _, _, _, max_seq_len = attn_params_mha
@@ -305,7 +305,7 @@ class TestMultiHeadAttention:
         )
         assert_expected(output.shape, input.shape)
 
-    def test_forward_mqa(self, input: Tensor, mqa: MultiHeadAttention) -> None:
+    def test_forward_mqa(self, input: torch.Tensor, mqa: MultiHeadAttention) -> None:
         with torch.no_grad():
             output = mqa(input)
         assert_expected(
@@ -314,7 +314,7 @@ class TestMultiHeadAttention:
         assert_expected(output.shape, input.shape)
 
     def test_forward_mqa_kv_cache(
-        self, input: Tensor, mqa_kv_cache: MultiHeadAttention, attn_params_mqa
+        self, input: torch.Tensor, mqa_kv_cache: MultiHeadAttention, attn_params_mqa
     ) -> None:
         _, _, _, max_seq_len = attn_params_mqa
         _, seq_len, _ = input.shape
@@ -332,7 +332,7 @@ class TestMultiHeadAttention:
 
     def test_max_seq_len_exceeded(
         self,
-        input_max_len_exceeded: Tensor,
+        input_max_len_exceeded: torch.Tensor,
         gqa: MultiHeadAttention,
     ) -> None:
         with pytest.raises(Exception):
@@ -340,7 +340,7 @@ class TestMultiHeadAttention:
 
     def test_batch_size_exceeded(
         self,
-        input_max_bs_exceeded: Tensor,
+        input_max_bs_exceeded: torch.Tensor,
         gqa_kv_cache: MultiHeadAttention,
     ) -> None:
         with pytest.raises(Exception):

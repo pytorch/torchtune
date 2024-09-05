@@ -4,9 +4,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, List, Optional
+import warnings
+from functools import lru_cache, wraps
+from typing import Any, Callable, Dict, List, Optional, TypeVar
 
 from torchtune.data._messages import Message
+
+T = TypeVar("T", bound=type)
 
 
 def truncate(
@@ -31,6 +35,47 @@ def truncate(
     if eos_id is not None and tokens_truncated[-1] != eos_id:
         tokens_truncated[-1] = eos_id
     return tokens_truncated
+
+
+def split_text_by_image_tag(content: str, image_tag: str) -> List[Dict[str, str]]:
+    """
+    Given a raw text string, split by the specified ``image_tag``
+    and form into list of dictionaries to be used in the ``Message`` content
+    field::
+
+        [
+            {
+                "role": "system" | "user" | "assistant",
+                "content":
+                    [
+                        {"type": "image"},
+                        {"type": "text", "content": "This is a sample image."},
+                    ],
+            },
+            ...
+        ]
+
+    Args:
+        content (str): raw message text
+        image_tag (str): string to split the text by
+
+    Returns:
+        List[Dict[str, str]]: list of dictionaries to be used in the ``Message`` content field
+
+    Example:
+        >>> content = split_text_by_image_tag("<image>hello <image>world", "<image>")
+        >>> print(content)
+        [{"type": "image"}, {"type": "text", "content": "hello "}, {"type": "image"}, {"type": "text", "content": "world"}]
+    """
+    split_content = content.split(image_tag)
+    final_content_list = []
+    for i, substr in enumerate(split_content):
+        if len(substr) > 0:
+            final_content_list.append({"type": "text", "content": substr})
+        if i < len(split_content) - 1:
+            final_content_list.append({"type": "image"})
+
+    return final_content_list
 
 
 def validate_messages(
@@ -73,3 +118,34 @@ def validate_messages(
                 f"System message at index {i} in messages, but system messages must come first"
             )
         last_turn = message.role
+
+
+def deprecated(msg: str = "") -> Callable[[T], T]:
+    """
+    Decorator to mark an object as deprecated and print additional message.
+
+    Args:
+        msg (str): additional information to print after warning.
+
+    Returns:
+        Callable[[T], T]: the decorated object.
+    """
+
+    @lru_cache(maxsize=1)
+    def warn(obj):
+        warnings.warn(
+            f"{obj.__name__} is deprecated and will be removed in future versions. "
+            + msg,
+            category=FutureWarning,
+            stacklevel=3,
+        )
+
+    def decorator(obj):
+        @wraps(obj)
+        def wrapper(*args, **kwargs):
+            warn(obj)
+            return obj(*args, **kwargs)
+
+        return wrapper
+
+    return decorator

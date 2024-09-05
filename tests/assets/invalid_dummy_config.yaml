@@ -1,8 +1,8 @@
 test1:
-  _component_: torchtune.utils.get_dtype
+  _component_: torchtune.training.get_dtype
   dtype: fp32
   dummy: 3
 test2:
-  _component_: torchtune.utils.get_dtype
+  _component_: torchtune.training.get_dtype
   dtype: fp32
   dummy: 3

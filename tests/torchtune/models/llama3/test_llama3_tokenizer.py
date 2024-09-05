@@ -4,13 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from pathlib import Path
-
 import pytest
+from tests.common import ASSETS
 from torchtune.data._messages import Message
 from torchtune.models.llama3 import llama3_tokenizer, Llama3Tokenizer
-
-ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
 
 
 class TestLlama3Tokenizer:
@@ -20,6 +17,7 @@ class TestLlama3Tokenizer:
         # https://gist.github.com/ebsmothers/54b133dd87db6679b14318545aaa2de4
         return llama3_tokenizer(
             path=str(ASSETS / "tiktoken_small.model"),
+            max_seq_len=2048,
         )
 
     @pytest.fixture
@@ -323,6 +321,21 @@ class TestLlama3Tokenizer:
             + [True]
         )
         tokens, mask = tokenizer.tokenize_messages(text_messages)
+        assert tokens == expected_tokens
+        assert mask == expected_mask
+
+    def test_tokenize_message_drop_eos(
+        self, tokenizer, user_text_message, assistant_text_message
+    ):
+        """Test that the tokenizer will not add an EOS token if user requests it."""
+        text_messages = [user_text_message[0], assistant_text_message[0]]
+        # Chop the end of the assistant message to remove the EOS token
+        expected_tokens = user_text_message[1] + assistant_text_message[1][:-1]
+        # No need to mask out the EOS token at the end since it's not there
+        expected_mask = [True] * len(user_text_message[1]) + [False] * (
+            len(assistant_text_message[1]) - 1
+        )
+        tokens, mask = tokenizer.tokenize_messages(text_messages, add_eos=False)
         assert tokens == expected_tokens
         assert mask == expected_mask
 

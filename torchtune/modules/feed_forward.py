@@ -4,9 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+
 from typing import Optional
 
-from torch import nn, Tensor
+import torch
+from torch import nn
 
 
 class FeedForward(nn.Module):
@@ -35,7 +37,7 @@ class FeedForward(nn.Module):
         self.w3 = up_proj
         self.activation = activation
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         h = self.activation(self.w1(x))
         if self.w3 is not None:
             h = h * self.w3(x)

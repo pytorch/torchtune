@@ -15,7 +15,7 @@ from torchtune.models.clip._transform import CLIPImageTransform
 from torchtune.models.clip.inference._transform import (
     CLIPImageTransform as CLIPImageTransformInference,
 )
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 
 @pytest.fixture(autouse=True)
