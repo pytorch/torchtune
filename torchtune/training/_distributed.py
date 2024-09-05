@@ -8,7 +8,7 @@
 import logging
 import os
 from itertools import chain
-from typing import Any, Callable, cast, Dict, List, Set, Tuple, Type, Optional
+from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type
 
 import torch
 import torch.distributed as dist
