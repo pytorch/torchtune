@@ -127,16 +127,15 @@ class VisionCrossAttentionMask(Transform):
                     (n_tiles, c, h, w) each.
 
         Returns:
-            Mapping[str, Any]: updated sample with the following keys:
-                - encoder_mask (List[torch.Tensor]): list of masks with shape (text_seq_len, image_seq_len),
-                    where length of list == number of images in sample
-                - tokens (List[int]): original tokens
-                - images (List[torch.Tensor]): original images
+            Mapping[str, Any]: sample with a new key encoder_mask, with a mask per image with shape
+                (text_seq_len, image_seq_len) where text_seq_len == len(tokens) and
+                image_seq_len == max_tiles * (patches_per_tile + 1). These masks get padded and concatenated
+                in the batch collator.
 
         Raises:
             RuntimeError: if the number of images in the batch does not match the number of image tokens in the batch.
         """
-        tokens, images = sample["tokens"], sample["images"]
+        tokens, images = sample["tokens"], sample["encoder_input"]["images"]
         # One sample can have multiple images - verify the number of image tokens
         # is the same
         n_img = len(images)

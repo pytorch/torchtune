@@ -68,6 +68,7 @@ class TestVisionTransformer:
         )
         self.image = fixed_init_tensor(image.shape, min_val=-1, max_val=1)
 
+    @torch.no_grad()
     def test_vision_transformer_without_hidden_layers(
         self, vision_transformer, transformer_config
     ):
@@ -102,6 +103,7 @@ class TestVisionTransformer:
         except ValueError:
             pass  # If ValueError is raised, the test passes
 
+    @torch.no_grad()
     def test_vision_transformer_with_cls_projection(self, transformer_config):
         transformer_config = transformer_config.copy()
         transformer_config["output_cls_projection"] = True
@@ -126,6 +128,7 @@ class TestVisionTransformer:
 
         assert_expected(output.mean(), torch.tensor(9.6240), atol=1e-3, rtol=1e-3)
 
+    @torch.no_grad()
     def test_vision_transformer_return_hidden_layers(self, transformer_config):
         transformer_config = transformer_config.copy()
         transformer_config["out_indices"] = [
@@ -173,13 +176,15 @@ class TestVisionTransformer:
                 hidden_layer.shape == expected_shape_hidden_layers
             ), f"Expected shape {expected_shape_hidden_layers}, but got {hidden_layer.shape=}"
 
+        # Target based off of reference nn.TransformerEncoderLayer implementation
         assert_expected(
             torch.stack(hidden_layers, dim=-1).mean(),
-            torch.tensor(6.6938),
+            torch.tensor(8.3112),
             atol=1e-3,
             rtol=1e-3,
         )
 
+    @torch.no_grad()
     def test_vision_transformer_single_tile(self, transformer_config):
         transformer_config = transformer_config.copy()
         transformer_config["max_num_tiles"] = 1

@@ -62,7 +62,7 @@ class FusionLayer(nn.Module):
         # TODO: Switch to register_load_state_dict_pre_hook and
         # register_state_dict_pre_hook after PyTorch v2.5
 
-    def _state_dict_hook(self, state_dict, *args, **kwargs):
+    def _state_dict_hook(self, state_dict, prefix, *args, **kwargs):
         """Remove "layer" from the original layer in the state_dict
         name. This keeps the orginal state dict name for the layer
         from before fusing with the FusionLayer.
@@ -71,19 +71,21 @@ class FusionLayer(nn.Module):
         """
         keys = list(state_dict.keys())
         for key in keys:
-            if key.startswith("layer"):
-                new_key = key.replace("layer.", "")
+            local_key = key[len(prefix) :]
+            if local_key.startswith("layer"):
+                new_key = prefix + local_key.replace("layer.", "")
                 state_dict[new_key] = state_dict[key]
                 del state_dict[key]
 
-    def _load_state_dict_hook(self, state_dict, *args, **kwargs):
+    def _load_state_dict_hook(self, state_dict, prefix, *args, **kwargs):
         """Apply extra "layer" prefix to the state_dict key to
         account for the FusionLayer wrapping.
         """
         keys = list(state_dict.keys())
         for key in keys:
-            if not key.startswith("fusion_layer"):
-                new_key = "layer." + key
+            local_key = key[len(prefix) :]
+            if not local_key.startswith("fusion_layer"):
+                new_key = prefix + "layer." + local_key
                 state_dict[new_key] = state_dict[key]
                 del state_dict[key]
 
@@ -190,17 +192,17 @@ class FusionEmbedding(nn.Module):
 
         [!Note] This update changes the order of the OrderedDict
         """
-        key = "embedding.weight"
-        new_key = "weight"
+        key = prefix + "embedding.weight"
+        new_key = prefix + "weight"
         destination[new_key] = destination[key]
         del destination[key]
 
-    def _load_state_dict_hook(self, state_dict, *args, **kwargs):
+    def _load_state_dict_hook(self, state_dict, prefix, *args, **kwargs):
         """Apply extra "embedding" prefix to the state_dict key to
         account for the FusionEmbedding wrapping.
         """
-        key = "weight"
-        new_key = "embedding.weight"
+        key = prefix + "weight"
+        new_key = prefix + "embedding.weight"
         state_dict[new_key] = state_dict[key]
         del state_dict[key]
 
