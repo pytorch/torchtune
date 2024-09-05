@@ -180,7 +180,7 @@ class FlamingoTransform(ModelTokenizer, Transform):
             Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
         """
         return self.tokenizer.tokenize_messages(
-            messages=message,
+            messages=messages,
             add_eos=add_eos,
         )
 
