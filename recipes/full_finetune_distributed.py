@@ -21,7 +21,7 @@ from torch.distributed import destroy_process_group, init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
-from torchtune.data import padded_collate
+from torchtune.data import padded_collate_sft
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
@@ -431,7 +431,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # This method will convert the full model state dict into a sharded state
         # dict and load into the model
         training.load_from_full_model_state_dict(
-            model, model_state_dict, self._device, self._is_rank_zero, strict=True
+            model,
+            model_state_dict,
+            self._device,
+            self._is_rank_zero,
+            strict=True,
+            cpu_offload=fsdp_cpu_offload,
         )
 
         # Ensure no params and buffers are on meta device
@@ -495,13 +500,15 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
-            collate_fn=partial(
-                padded_collate,
-                padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
-            )
-            if not packed
-            else None,
+            collate_fn=(
+                partial(
+                    padded_collate_sft,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else None
+            ),
         )
 
         if self._is_rank_zero:
@@ -532,12 +539,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         cpu_state_dict = training.get_full_model_state_dict(
             self._model,
             self._is_rank_zero,
+            device=self._device,
         )
 
         if intermediate_checkpoint:
             opt_state_dict = training.get_full_optimizer_state_dict(
                 self._optimizer,
                 self._is_rank_zero,
+                device=self._device,
             )
         else:
             opt_state_dict = None
