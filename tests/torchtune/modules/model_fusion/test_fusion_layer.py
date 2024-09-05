@@ -153,5 +153,5 @@ class TestFusionLayer:
         assert fused_layer.layer.decoder_max_seq_len == 10
         assert fused_layer.fusion_layer.encoder_max_seq_len == 5
 
-        assert not fused_layer.layer.hasattr("encoder_max_seq_len")
-        assert not fused_layer.fusion_layer.hasattr("decoder_max_seq_len")
+        assert not hasattr(fused_layer.layer, "encoder_max_seq_len")
+        assert not hasattr(fused_layer.fusion_layer, "decoder_max_seq_len")

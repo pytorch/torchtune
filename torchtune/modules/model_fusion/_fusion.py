@@ -332,18 +332,21 @@ class DeepFusionModel(nn.Module):
         encoder_max_seq_len: int = None,
         decoder_max_seq_len: int = None,
     ):
+        """Sets up caches for self-attention, cross-attention, and fusion layers in the decoder."""
         self.decoder.setup_caches(
-            batch_size, dtype, decoder_max_seq_len=decoder_max_seq_len
+            batch_size,
+            dtype,
+            encoder_max_seq_len=encoder_max_seq_len,
+            decoder_max_seq_len=decoder_max_seq_len,
         )
 
     def caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""
-        return self.decoder.caches_are_enabled() and self.encoder.caches_are_enabled()
+        return self.decoder.caches_are_enabled()
 
     def reset_caches(self):
         """Reset the key value caches."""
         self.decoder.reset_caches()
-        self.encoder.reset_caches()
 
     def forward(
         self,
