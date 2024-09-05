@@ -287,6 +287,17 @@ _ALL_RECIPES = [
         ],
         supports_distributed=True,
     ),
+    Recipe(
+        name="kd_single_device",
+        file_path="kd_single_device.py",
+        configs=[
+            Config(
+                name="llama3_1/kd_single_device",
+                file_path="llama3_1/kd_single_device.yaml",
+            ),
+        ],
+        supports_distributed=False,
+    ),
 ]
 
 
