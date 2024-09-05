@@ -62,7 +62,7 @@ class TestLoRAQwen2SelfAttention:
     )
     def test_forward(self, inputs, lora_modules, expected):
         lora_qwen2_sa = self.get_lora_qwen2_self_attention(lora_modules)
-        actual = lora_qwen2_sa(inputs)
+        actual = lora_qwen2_sa(inputs, inputs)
         assert_expected(actual.shape, (BSZ, SEQ_LEN, EMBED_DIM))
         assert_expected(actual.mean(), expected, atol=1e-4, rtol=1e-6)
 
