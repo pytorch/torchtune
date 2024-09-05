@@ -156,13 +156,16 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
             max_seq_len=self.max_seq_len,
         )
 
-    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+    def __call__(
+        self, sample: Mapping[str, Any], inference: bool = False
+    ) -> Mapping[str, Any]:
         """
         Apply ``tokenize_messages`` to the "messages" field in the sample.
 
         Args:
             sample (Mapping[str, Any]): A sample with a "messages" field containing
                 a List[Message] to tokenize
+            inference (bool): Whether the template is being used for inference or not.
 
         Returns:
             Mapping[str, Any]: The sample with added "tokens" and "mask" fields

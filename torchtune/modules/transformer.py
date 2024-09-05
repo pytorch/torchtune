@@ -100,11 +100,8 @@ class TransformerSelfAttentionLayer(nn.Module):
         # Input tensor and attention output have the same shape
         # [b, s, d]
         # Norm applied before self-attention
-        attn_out = self.attn(
-            self.sa_norm(x),
-            mask=mask,
-            input_pos=input_pos,
-        )
+        h = self.sa_norm(x)
+        attn_out = self.attn(h, h, mask=mask, input_pos=input_pos)
 
         # Residual connection; shape: [batch_size, seq_length, embed_dim]
         h = self.sa_scale(attn_out) + x
