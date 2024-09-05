@@ -16,6 +16,8 @@ def padded_collate(
     batch: List[Dict[str, List[int]]],
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
+    pad_labels: bool = True,
+    num_classes: int = None,
 ) -> Dict[str, torch.Tensor]:
     """Pad a batch of sequences to the longest sequence length in the batch, and
     convert integer lists to tensors.
@@ -24,6 +26,8 @@ def padded_collate(
         batch (List[Dict[str, List[int]]]): A list of dictionaries containing input, label pairs.
         padding_idx (int): Padding index for input ids. Defaults to 0.
         ignore_idx (int): Padding index for labels. Defaults to -100.
+        pad_labels (bool): Whether to pad labels. Defaults to True.
+        num_classes (int): Number of classes for one hot encoding labels. Defaults to None.
 
     Returns:
         Dict[str, torch.Tensor]: Collated input and label tensors.
@@ -48,24 +52,38 @@ def padded_collate(
         batch_first=True,
         padding_value=padding_idx,
     )
-    labels = pad_sequence(
-        [torch.tensor(x["labels"]) for x in batch],
-        batch_first=True,
-        padding_value=ignore_idx,
-    )
 
-    input_ids_seq_len = input_ids.shape[-1]
-    labels_seq_len = labels.shape[-1]
+    # Hack to 1 hot encode multiclass labels
+    if num_classes is not None:
+        labels = torch.stack(
+            [
+                F.one_hot(torch.tensor(x["labels"]), num_classes=num_classes)
+                for x in batch
+            ]
+        )
+    else:
+        # Allow option of not padding labels for prompt completion
+        labels = torch.stack([torch.tensor(x["labels"]) for x in batch])
 
-    # Hack to pad correctly and not use max_seq_len, which is costly
-    if input_ids_seq_len > labels_seq_len:
-        labels = F.pad(
-            labels, (0, input_ids_seq_len - labels_seq_len), value=ignore_idx
+    if pad_labels:
+        labels = pad_sequence(
+            labels,
+            batch_first=True,
+            padding_value=ignore_idx,
         )
-    elif labels_seq_len > input_ids_seq_len:
-        input_ids = F.pad(
-            input_ids,
-            (0, labels_seq_len - input_ids_seq_len),
-            value=padding_idx,
-        )
+
+        input_ids_seq_len = input_ids.shape[-1]
+        labels_seq_len = labels.shape[-1]
+
+        # Hack to pad correctly and not use max_seq_len, which is costly
+        if input_ids_seq_len > labels_seq_len:
+            labels = F.pad(
+                labels, (0, input_ids_seq_len - labels_seq_len), value=ignore_idx
+            )
+        elif labels_seq_len > input_ids_seq_len:
+            input_ids = F.pad(
+                input_ids,
+                (0, labels_seq_len - input_ids_seq_len),
+                value=padding_idx,
+            )
     return {"tokens": input_ids.long(), "labels": labels.long()}

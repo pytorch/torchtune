@@ -316,7 +316,6 @@ def llama2_reward_7b() -> TransformerDecoder:
         norm_eps=1e-5,
     )
 
-
 def lora_llama2_reward_7b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
@@ -354,6 +353,83 @@ def lora_llama2_reward_7b(
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
         num_classes=1,
+        vocab_size=32_000,
+        num_layers=32,
+        num_heads=32,
+        num_kv_heads=32,
+        embed_dim=4096,
+        max_seq_len=4096,
+        attn_dropout=0.0,
+        norm_eps=1e-5,
+        lora_rank=lora_rank,
+        lora_alpha=lora_alpha,
+        lora_dropout=lora_dropout,
+        use_dora=use_dora,
+        quantize_base=quantize_base,
+    )
+
+# Add llama multi classification model builders
+# This could technically replace the reward model since it is a generalization of it
+def llama2_classification_7b(num_classes: int = 1) -> TransformerDecoder:
+    """
+    Builder for creating a Llama2 model initialized w/ the default 7B parameter values
+    from https://arxiv.org/abs/2307.09288, where the output layer is a classification layer
+    projecting to multi class.
+
+    Returns:
+        TransformerDecoder: Instantiation of Llama2 7B model
+    """
+    return llama2_classifier(
+        num_classes=num_classes,
+        vocab_size=32_000,
+        num_layers=32,
+        num_heads=32,
+        num_kv_heads=32,
+        embed_dim=4096,
+        max_seq_len=4096,
+        attn_dropout=0.0,
+        norm_eps=1e-5,
+    )
+
+
+def lora_llama2_classification_7b(
+    lora_attn_modules: List[LORA_ATTN_MODULES],
+    apply_lora_to_mlp: bool = False,
+    apply_lora_to_output: bool = False,
+    lora_rank: int = 8,
+    lora_alpha: float = 16,
+    lora_dropout: float = 0.05,
+    use_dora: bool = False,
+    quantize_base: bool = False,
+    num_classes: int = 1,
+) -> TransformerDecoder:
+    """
+    Builder for creating a Llama2 7B multi class model with LoRA enabled.
+
+    The Llama2 classifier defaults are the same as in :func:`~torchtune.models.llama2.llama2_reward_7b`,
+    while LoRA default params are based on
+    https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43.
+
+    Args:
+        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+            LoRA should be applied to in each self-attention block. Options are
+            ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
+        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
+            Default: False
+        apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
+            Default: False
+        lora_rank (int): rank of each low-rank approximation
+        lora_alpha (float): scaling factor for the low-rank approximation
+        quantize_base (bool): Whether to quantize base model weights
+
+    Returns:
+        TransformerDecoder: Instantiation of Llama2 7B model with LoRA applied
+    """
+    return lora_llama2_classifier(
+        lora_attn_modules=lora_attn_modules,
+        apply_lora_to_mlp=apply_lora_to_mlp,
+        apply_lora_to_output=apply_lora_to_output,
+        num_classes=num_classes,
         vocab_size=32_000,
         num_layers=32,
         num_heads=32,
