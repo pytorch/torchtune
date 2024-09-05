@@ -32,9 +32,9 @@ class Message:
             as follows::
 
                 [
-                    {"type": "image"}
+                    {"type": "image", "content": Image},
                     {"type": "text", "content": "hello"},
-                    {"type": "image"}
+                    {"type": "image", "content": Image},
                     {"type": "text", "content": "world"},
                 ]
 
@@ -59,6 +59,7 @@ class Message:
         eot: bool = True,
     ):
         self.role = role
+        # What is this?
         self.content = (
             [{"type": "text", "content": content}]
             if isinstance(content, str)

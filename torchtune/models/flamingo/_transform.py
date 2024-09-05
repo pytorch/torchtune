@@ -199,11 +199,13 @@ class FlamingoTransform(ModelTokenizer, Transform):
                 "aspect_ratio" field.
         """
         encoder_input = {"images": [], "aspect_ratio": []}
-        pil_images = sample.pop("images")
-        for image in pil_images:
-            out = self.transform_image({"image": image})
-            encoder_input["images"].append(out["image"])
-            encoder_input["aspect_ratio"].append(out["aspect_ratio"])
+        
+        for message in messages:
+            if message.contains_media():
+                out = self.transform_image({"image": image})
+                encoder_input["images"].append(out["image"])
+                encoder_input["aspect_ratio"].append(out["aspect_ratio"])
+        
         sample["encoder_input"] = encoder_input
         sample = self.tokenizer(sample)
         sample = self.xattn_mask(sample)

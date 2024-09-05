@@ -38,7 +38,7 @@ class LlavaInstructToMessages(Transform):
                 "role": "system" | "user" | "assistant",
                 "content":
                     [
-                        {"type": "image"},
+                        {"type": "image", "content": Image},
                         {"type": "text", "content": "This is a sample image."},
                     ],
             },
@@ -89,6 +89,8 @@ class LlavaInstructToMessages(Transform):
                     role="system", content=self.new_system_prompt, masked=True, eot=True
                 )
             )
+        
+        # Add in image stuffs / load from file
         for message in sample[self._column_map["conversations"]]:
             role = role_map[message["from"]]
             if role == "system" and self.new_system_prompt is not None:
@@ -97,7 +99,7 @@ class LlavaInstructToMessages(Transform):
             masked = (role != "assistant") and (not self.train_on_input)
             messages.append(Message(role=role, content=content, masked=masked))
 
-        return {"messages": messages, "images": sample[self._column_map["image"]]}
+        return messages
 
 
 # TODO: point to Flamingo model transform as an example
