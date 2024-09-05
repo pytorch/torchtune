@@ -227,7 +227,9 @@ def padded_collate_tiled_images_with_cross_attention(
         - "labels": List[int] of length text_seq_len, varies across samples
         - "images": List[Tensor], each with shape (n_tiles, c, h, w)
         - "encoder_mask": List[Tensor], each with shape (text_seq_len, image_seq_len)
-        - "aspect_ratio": List[Tensor], each with shape (h_ratio, w_ratio)
+        - "aspect_ratio": List[Tensor], each with shape (2, ) to indicate h_ratio, w_ratio
+
+    For each element in the batch, len(images) == len(encoder_mask) == len(aspect_ratio).
 
     This collater does the following:
         (1) Pad text sequence and encoder mask to the longest sequence length in the batch
@@ -244,6 +246,11 @@ def padded_collate_tiled_images_with_cross_attention(
 
     Returns:
         Dict[str, Tensor]: Collated tokens, labels, images, encoder_mask, aspect_ratio tensors.
+            - tokens: Tensor of shape (bsz, max_seq_len)
+            - labels: Tensor of shape (bsz, max_seq_len)
+            - images: Tensor of shape (bsz, max_num_images, max_num_tiles, c, h, w)
+            - encoder_mask: Tensor of shape (bsz, max_num_images, max_seq_len, tokens_per_tile * max_num_tiles)
+            - aspect_ratio: Tensor of shape (bsz, max_num_images, 2)
 
     Example:
         >>> image_id = 1
