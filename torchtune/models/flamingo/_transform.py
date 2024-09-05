@@ -53,12 +53,12 @@ class FlamingoTransform(ModelTokenizer, Transform):
             The extra text will still get tokenized as normal text, not as special tokens. Default is None.
 
     Examples:
-        >>> model_transform = FlamingoTransform("/path/to/tokenizer.model", tile_size=256)
+        >>> model_transform = FlamingoTransform("/path/to/tokenizer.model", tile_size=224, patch_size=14)
         >>> transformed_data = model_transform({"messages": user_message, "images": [img1, img2]})
         >>> print(transformed_data["tokens"])
         [1, 31587, 29644, 102, 2]
         >>> print(transformed_data["images"][0].shape)
-        torch.Size([4, 3, 256, 256])
+        torch.Size([4, 3, 224, 224])
     """
 
     def __init__(

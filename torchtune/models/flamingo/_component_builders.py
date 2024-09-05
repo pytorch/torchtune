@@ -39,7 +39,7 @@ def flamingo_vision_encoder(
     num_heads: int,
     clip_embed_dim: int,
     clip_num_layers: int,
-    clip_hidden_states: List[int],
+    clip_hidden_states: Optional[List[int]],
     # projection parameters
     num_layers_projection: int,
     decoder_embed_dim: int,

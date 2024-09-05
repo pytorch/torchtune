@@ -8,14 +8,15 @@ from typing import List, Optional
 
 import torch
 
-from torch import nn, Tensor
+from torch import nn
 from torchtune.modules.model_fusion import register_fusion_module
 from torchtune.modules.transformer import _get_clones
 
 
 class FlamingoProjectionHead(nn.Module):
     """Projection transformer to adapt the output of a
-    pretrained encoder to a pretrained decoder model.
+    pretrained frozen encoder (CLIP) to a pretrained decoder model.
+    For example, nn.Sequential(CLIP(), FlamingoProjectionHead()).
 
     Args:
         layer (nn.Module): Transformer Decoder layer
@@ -39,13 +40,13 @@ class FlamingoProjectionHead(nn.Module):
 
     def forward(
         self,
-        x: Tensor,
-        hidden_states: Optional[List[Tensor]] = None,
-    ) -> Tensor:
+        x: torch.Tensor,
+        hidden_states: Optional[List[torch.Tensor]] = None,
+    ) -> torch.Tensor:
         """
         Args:
-            x (Tensor): input tensor with shape [b x i x t x e x d]
-            hidden_states (Optional[List[Tensor]]): list of hidden states
+            x (torch.Tensor): input tensor with shape [b x i x t x e x d]
+            hidden_states (Optional[List[torch.Tensor]]): list of hidden states
                 from the encoder. Each hidden state has the same shape as x.
 
         Returns:
@@ -98,11 +99,13 @@ class FlamingoEncoder(nn.Module):
         self.projection = projection_head
         register_fusion_module(self.projection)
 
-    def forward(self, images: Tensor, aspect_ratio: Optional[Tensor] = None) -> Tensor:
+    def forward(
+        self, images: torch.Tensor, aspect_ratio: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """
         Args:
-            images (Tensor): Image tensor with shape [b x i x t x c x w x h]
-            aspect_ratio (Optional[Tensor]): Tensor with shape [b x i x 2]. If all
+            images (torch.Tensor): Image tensor with shape [b x i x t x c x w x h]
+            aspect_ratio (Optional[torch.Tensor]): Tensor with shape [b x i x 2]. If all
                 images have a single tile, i.e. they were not tile-cropped, it should be None.
                 Used to calculate the positional embeddings for the tiles.
 
