@@ -17,6 +17,7 @@ from torchao.dtypes.nf4tensor import NF4Tensor
 
 _use_low_cpu_ram: bool = False
 
+
 def reparametrize_as_dtype_state_dict_post_hook(
     model: nn.Module,
     state_dict: Dict[str, Any],
@@ -132,6 +133,7 @@ if torch.__version__ >= "2.5.0.dev20240830" and not sys.platform == "win32":
 else:
     _low_ram_reparametrize_as_dtype_state_dict_post_hook = None
 
+
 def _register_reparametrize_state_dict_hooks(
     module: nn.Module,
     dtype: torch.dtype = torch.bfloat16,
@@ -145,6 +147,9 @@ def _register_reparametrize_state_dict_hooks(
 
     Args:
         module (nn.Module): the module to register the hooks to.
+
+    Raises:
+        RuntimeError: If the low RAM reparametrize hook is used on Windows or an incompatible torch version.
     """
     if _use_low_cpu_ram:
         if torch.__version__ < "2.5.0.dev20240830":
@@ -159,4 +164,6 @@ def _register_reparametrize_state_dict_hooks(
             hook = _low_ram_reparametrize_as_dtype_state_dict_post_hook
     else:
         hook = reparametrize_as_dtype_state_dict_post_hook
-    module._register_state_dict_post_hook(partial(hook, dtype=dtype, offload_to_cpu=offload_to_cpu))
+    module._register_state_dict_post_hook(
+        partial(hook, dtype=dtype, offload_to_cpu=offload_to_cpu)
+    )
