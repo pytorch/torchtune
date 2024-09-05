@@ -288,8 +288,6 @@ class TransformerDecoder(nn.Module):
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move
             tokens to an embedding space.
         layers (Union[nn.Module, List[nn.Module]]): Transformer Decoder layer or a list of layers.
-        num_layers (Optional[int]): Number of Transformer Decoder layers, only define when
-            layer is not a list.
         max_seq_len (int): maximum sequence length the model will be run with, as used
             by :func:`~torchtune.modules.KVCache`
         num_heads (int): number of query heads. For MHA this is also the
@@ -301,6 +299,8 @@ class TransformerDecoder(nn.Module):
             before final MLP.
         output (nn.Linear): Callable that applies a linear transformation to the output of
             the decoder.
+        num_layers (Optional[int]): Number of Transformer Decoder layers, only define when
+            layers is not a list.
         output_hidden_states (Optional[List[int]]): List of layers (indices) to include in the output
 
     Raises:
@@ -315,14 +315,15 @@ class TransformerDecoder(nn.Module):
 
     def __init__(
         self,
+        *,
         tok_embeddings: nn.Embedding,
         layers: Union[nn.Module, List[nn.Module]],
-        num_layers: Optional[int],
         max_seq_len: int,
         num_heads: int,
         head_dim: int,
         norm: nn.Module,
         output: nn.Linear,
+        num_layers: Optional[int] = None,
         output_hidden_states: Optional[List[int]] = None,
     ) -> None:
         super().__init__()
@@ -346,6 +347,7 @@ class TransformerDecoder(nn.Module):
         self.num_heads = num_heads
         self.head_dim = head_dim
         self.causal_mask = None
+        self.pos = None
         self.num_output_chunks = 0
 
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
@@ -368,6 +370,7 @@ class TransformerDecoder(nn.Module):
         self.causal_mask = torch.tril(
             torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
         )
+        self.pos = 0
 
     def caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""
@@ -382,6 +385,8 @@ class TransformerDecoder(nn.Module):
 
         for layer in self.layers:
             layer.reset_cache()
+
+        self.pos = 0
 
     def forward(
         self,
@@ -424,8 +429,8 @@ class TransformerDecoder(nn.Module):
                 final output tensor appended to the list.
 
         Raises:
-            ValueError: if causal_mask is set but input_pos is None
             ValueError: if seq_len of x is bigger than max_seq_len
+            ValueError: if a mask is provided and the model is in inference mode
 
         Notation used for tensor shapes:
             - b: batch size
@@ -449,14 +454,14 @@ class TransformerDecoder(nn.Module):
         h = self.tok_embeddings(tokens)
 
         if self.causal_mask is not None:
-            if input_pos is None:
-                raise ValueError(
-                    "Caches are setup, but the position of input token is missing"
-                )
             if mask is not None:
                 raise ValueError(
                     "An attention mask was set. Cannot use a non-causal mask for inference"
                 )
+            # Track the input position
+            if input_pos is None:
+                input_pos = torch.arange(self.pos, self.pos + seq_len, device=h.device)
+            self.pos = input_pos.max() + 1
             # shape: [1, input_pos_len, m_s]
             # in most cases input_pos_len should be 1
             mask = self.causal_mask[None, input_pos]
@@ -504,8 +509,6 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move
             tokens to an embedding space.
         layers (Union[nn.Module, List[nn.Module]]): Transformer Decoder layer or a list of layers.
-        num_layers (Optional[int]): Number of Transformer Decoder layers, only define when
-            layer is not a list.
         max_seq_len (int): maximum sequence length the model will be run with, as used
             by :func:`~torchtune.modules.KVCache`
         num_heads (int): number of query heads. For MHA this is also the
@@ -515,6 +518,8 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
             to setup the :func:`~torchtune.modules.KVCache`
         norm (nn.Module): Callable that applies normalization to the output of the decoder,
             before final MLP.
+        num_layers (Optional[int]): Number of Transformer Decoder layers, only define when
+            layers is not a list.
         output_hidden_states (Optional[List[int]]): List of layers (indices) to include in the output
 
     Raises:
@@ -529,13 +534,14 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
 
     def __init__(
         self,
+        *,
         tok_embeddings: nn.Embedding,
         layers: Union[nn.Module, List[nn.Module]],
-        num_layers: Optional[int],
         max_seq_len: int,
         num_heads: int,
         head_dim: int,
         norm: nn.Module,
+        num_layers: Optional[int] = None,
         output_hidden_states: Optional[List[int]] = None,
     ) -> None:
         super().__init__()
@@ -558,6 +564,7 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         self.num_heads = num_heads
         self.head_dim = head_dim
         self.causal_mask = None
+        self.pos = None
         self.num_output_chunks = 0
 
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
@@ -580,6 +587,7 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         self.causal_mask = torch.tril(
             torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
         )
+        self.pos = 0
 
     def caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""
@@ -594,6 +602,8 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
 
         for layer in self.layers:
             layer.reset_cache()
+
+        self.pos = 0
 
     def forward(
         self,
@@ -636,7 +646,8 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
                 final output tensor appended to the list.
 
         Raises:
-            ValueError: if causal_mask is set but input_pos is None
+            ValueError: if seq_len of x is bigger than max_seq_len
+            ValueError: if a mask is provided and the model is in inference mode
 
         Notation used for tensor shapes:
             - b: batch size
@@ -660,14 +671,14 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         h = self.tok_embeddings(tokens)
 
         if self.causal_mask is not None:
-            if input_pos is None:
-                raise ValueError(
-                    "Caches are setup, but the position of input token is missing"
-                )
             if mask is not None:
                 raise ValueError(
                     "An attention mask was set. Cannot use a non-causal mask for inference"
                 )
+            # Track the input position
+            if input_pos is None:
+                input_pos = torch.arange(self.pos, self.pos + seq_len, device=h.device)
+            self.pos = input_pos.max() + 1
             # shape: [1, input_pos_len, m_s]
             # in most cases input_pos_len should be 1
             mask = self.causal_mask[None, input_pos]

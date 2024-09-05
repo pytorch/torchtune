@@ -211,7 +211,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             self._metric_logger.log_config(cfg)
 
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
-        self._model_compile = cfg.compile
+        self._model_compile = cfg.get("compile", False)
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
@@ -521,12 +521,14 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         cpu_state_dict = training.get_full_model_state_dict(
             self._model,
             self._is_rank_zero,
+            device=self._device,
         )
 
         if intermediate_checkpoint:
             opt_state_dict = training.get_full_optimizer_state_dict(
                 self._optimizer,
                 self._is_rank_zero,
+                device=self._device,
             )
         else:
             opt_state_dict = None
