@@ -624,42 +624,55 @@
 <div class="viewcode-block" id="Llama3Tokenizer.tokenize_message"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3.Llama3Tokenizer.html#torchtune.models.llama3.Llama3Tokenizer.tokenize_message">[docs]</a>    <span class="k">def</span> <span class="nf">tokenize_message</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">message</span><span class="p">:</span> <span class="n">Message</span><span class="p">,</span>
-        <span class="n">tokenize_header</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="n">tokenize_end</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">add_start_tokens</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">add_end_tokens</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Tokenize a message into a list of token ids.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            message (Message): The message to tokenize.</span>
-<span class="sd">            tokenize_header (bool): Whether to prepend a tokenized header to the message.</span>
-<span class="sd">            tokenize_end (bool): Whether to append eot or eom id at the end of the message.</span>
+<span class="sd">            add_start_tokens (bool): Whether to prepend a tokenized header to the message. Default is True.</span>
+<span class="sd">            add_end_tokens (bool): Whether to append eot or eom id at the end of the message. Default is True.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            List[int]: The list of token ids.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="n">tokenized_header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenize_header</span><span class="p">(</span><span class="n">message</span><span class="p">)</span> <span class="k">if</span> <span class="n">tokenize_header</span> <span class="k">else</span> <span class="p">[]</span>
-
+        <span class="n">tokenized_header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenize_header</span><span class="p">(</span><span class="n">message</span><span class="p">)</span> <span class="k">if</span> <span class="n">add_start_tokens</span> <span class="k">else</span> <span class="p">[]</span>
         <span class="n">tokenized_body</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenize_body</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
-
-        <span class="n">tokenized_end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenize_end</span><span class="p">(</span><span class="n">message</span><span class="p">)</span> <span class="k">if</span> <span class="n">tokenize_end</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="n">tokenized_end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenize_end</span><span class="p">(</span><span class="n">message</span><span class="p">)</span> <span class="k">if</span> <span class="n">add_end_tokens</span> <span class="k">else</span> <span class="p">[]</span>
 
         <span class="n">tokenized_message</span> <span class="o">=</span> <span class="n">tokenized_header</span> <span class="o">+</span> <span class="n">tokenized_body</span> <span class="o">+</span> <span class="n">tokenized_end</span>
-
         <span class="k">return</span> <span class="n">tokenized_message</span></div>
 
 <div class="viewcode-block" id="Llama3Tokenizer.tokenize_messages"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3.Llama3Tokenizer.html#torchtune.models.llama3.Llama3Tokenizer.tokenize_messages">[docs]</a>    <span class="k">def</span> <span class="nf">tokenize_messages</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
-        <span class="n">add_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">add_end_tokens</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Tokenize a list of messages into a list of token ids and masks.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            messages (List[Message]): The list of messages to tokenize.</span>
-<span class="sd">            add_eos (bool): Wether to add the tokenizer&#39;s eos_id. Default True.</span>
+<span class="sd">            add_end_tokens (bool): Whether to append end tokens ids (end-of-seq, end-of-turn, end-of-message) at the end of the</span>
+<span class="sd">                last assistant message. This value should be set to False for generation. Default is True.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; # Tokenize a list of messages with default settings</span>
+<span class="sd">            &gt;&gt;&gt; messages = [</span>
+<span class="sd">            ...     Message(role=&quot;user&quot;, content=&quot;Hello world!&quot;, masked=True),</span>
+<span class="sd">            ...     Message(role=&quot;assistant&quot;, content=&quot;How are you?&quot;, masked=False),</span>
+<span class="sd">            ... ]</span>
+<span class="sd">            &gt;&gt;&gt; tokenizer = Llama3Tokenizer(&quot;/path/to/tt_model&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; tokenizer.tokenize_messages(messages)</span>
+<span class="sd">            ([1, 31587, 29644, 102, 1, 31587, 29644, 102, 2], [True, True, True, True, True, False, False, False, True])</span>
+
+<span class="sd">            &gt;&gt;&gt; # Tokenize a list of messages with add_end_tokens set to False</span>
+<span class="sd">            &gt;&gt;&gt; tokenizer.tokenize_messages(messages, add_end_tokens=False)</span>
+<span class="sd">            ([1, 31587, 29644, 102, 1, 31587, 29644], [True, True, True, True, True, False, False])</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Tuple[List[int], List[bool]]: The list of token ids and the list of masks.</span>
@@ -672,22 +685,32 @@
         <span class="n">tokens</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span><span class="p">]</span>
         <span class="c1"># bos and eos are always masked</span>
         <span class="n">mask</span> <span class="o">=</span> <span class="p">[</span><span class="kc">True</span><span class="p">]</span>
-        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">templated_messages</span><span class="p">:</span>
-            <span class="n">tokenized_message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenize_message</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+        <span class="n">num_messages</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">templated_messages</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">message</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">templated_messages</span><span class="p">):</span>
+            <span class="c1"># Add end tokens to the last assistant message if add_end_tokens is True</span>
+            <span class="c1"># Otherwise, end tokens should always be added</span>
+            <span class="n">add_end_tokens_to_message</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">add_end_tokens</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">num_messages</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">else</span> <span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="n">tokenized_message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenize_message</span><span class="p">(</span>
+                <span class="n">message</span><span class="p">,</span> <span class="n">add_end_tokens</span><span class="o">=</span><span class="n">add_end_tokens_to_message</span>
+            <span class="p">)</span>
 
             <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokens</span> <span class="o">+</span> <span class="n">tokenized_message</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">+</span> <span class="p">([</span><span class="n">message</span><span class="o">.</span><span class="n">masked</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokenized_message</span><span class="p">))</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">:</span>
                 <span class="k">break</span>
 
-        <span class="k">if</span> <span class="n">add_eos</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">add_end_tokens</span><span class="p">:</span>
             <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokens</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">]</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">+</span> <span class="p">[</span><span class="kc">True</span><span class="p">]</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">:</span>
             <span class="n">tokens</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span>
-                <span class="n">tokens</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span> <span class="k">if</span> <span class="n">add_eos</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="n">tokens</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span> <span class="k">if</span> <span class="n">add_end_tokens</span> <span class="k">else</span> <span class="kc">None</span>
             <span class="p">)</span>
-            <span class="n">mask</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">add_eos</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">add_end_tokens</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span></div>
 
