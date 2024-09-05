@@ -49,7 +49,7 @@ def flamingo_vision_encoder(
     in_channels: int = 3,
     ) -> FlamingoEncoder:
     """
-    Build the Flamingo encoder by combing the CLIP image model with an additonal
+    Build the Flamingo encoder by combining the CLIP image model with an additional
     projection head fusion module. This includes:
     - Spatial positional encodings
     - CLIP model backbone
