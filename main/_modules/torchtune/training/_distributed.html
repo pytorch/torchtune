@@ -420,7 +420,7 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.distributed</span> <span class="k">as</span> <span class="nn">dist</span>
@@ -697,6 +697,7 @@
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
     <span class="n">is_rank_zero</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">cpu_offload</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converting full state dict into a sharded state dict</span>
@@ -750,6 +751,8 @@
                 <span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
                 <span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">placements</span><span class="p">,</span>
             <span class="p">)</span>
+        <span class="k">if</span> <span class="n">cpu_offload</span><span class="p">:</span>
+            <span class="n">sharded_tensor</span> <span class="o">=</span> <span class="n">sharded_tensor</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
         <span class="n">sharded_sd</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">sharded_tensor</span><span class="p">)</span>
     <span class="c1"># choose `assign=True` since we cannot call `copy_` on meta tensor</span>
     <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">sharded_sd</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">,</span> <span class="n">assign</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -758,6 +761,7 @@
 <span class="k">def</span> <span class="nf">get_full_model_state_dict</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="s2">&quot;FSDPModule&quot;</span><span class="p">,</span>  <span class="c1"># noqa</span>
     <span class="n">is_rank_zero</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converting sharded state dict into a full state dict on cpu</span>
@@ -805,6 +809,13 @@
             <span class="n">module</span><span class="o">.</span><span class="n">reshard</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">sharded_param</span> <span class="ow">in</span> <span class="n">sharded_sd</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">sharded_param</span><span class="o">.</span><span class="n">is_cpu</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">device</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">,</span> <span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Expect cuda but got device=</span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">. &quot;</span>
+                    <span class="s2">&quot;Please call get_full_model_state_dict(..., device=self._device),&quot;</span>
+                    <span class="s2">&quot; so DTensor can communicate over NCCL.&quot;</span>
+                <span class="p">)</span>
+                <span class="n">sharded_param</span> <span class="o">=</span> <span class="n">sharded_param</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
             <span class="n">full_param</span> <span class="o">=</span> <span class="n">sharded_param</span><span class="o">.</span><span class="n">full_tensor</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">is_rank_zero</span><span class="p">:</span>
                 <span class="n">cpu_state_dict</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">full_param</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
@@ -816,6 +827,7 @@
 <span class="k">def</span> <span class="nf">get_full_optimizer_state_dict</span><span class="p">(</span>
     <span class="n">opt</span><span class="p">:</span> <span class="n">Optimizer</span><span class="p">,</span>
     <span class="n">is_rank_zero</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converting optimizer state from sharded to full</span>
@@ -829,8 +841,15 @@
     <span class="k">for</span> <span class="n">group_id</span><span class="p">,</span> <span class="n">sharded_group</span> <span class="ow">in</span> <span class="n">sharded_state</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="n">group_state</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">sharded_tensor</span> <span class="ow">in</span> <span class="n">sharded_group</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># &quot;exp_avg&quot; in AdamW is `DTensor`</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sharded_tensor</span><span class="p">,</span> <span class="n">DTensor</span><span class="p">):</span>
-                <span class="c1"># &quot;exp_avg&quot; in AdamW is `DTensor`</span>
+                <span class="k">if</span> <span class="n">sharded_tensor</span><span class="o">.</span><span class="n">is_cpu</span><span class="p">:</span>
+                    <span class="k">assert</span> <span class="n">device</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">,</span> <span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Expect cuda but got device=</span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">. &quot;</span>
+                        <span class="s2">&quot;Please call get_full_optimizer_state_dict(..., device=self._device),&quot;</span>
+                        <span class="s2">&quot; so DTensor can communicate over NCCL.&quot;</span>
+                    <span class="p">)</span>
+                    <span class="n">sharded_tensor</span> <span class="o">=</span> <span class="n">sharded_tensor</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
                 <span class="n">full_tensor</span> <span class="o">=</span> <span class="n">sharded_tensor</span><span class="o">.</span><span class="n">full_tensor</span><span class="p">()</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># &quot;step&quot; in AdamW is plain tensor</span>
@@ -996,7 +1015,7 @@
             <span class="n">fully_shard</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="o">**</span><span class="n">fsdp_kwargs</span><span class="p">)</span>
 
     <span class="c1"># Finally shard the entire model to account for any stragglers</span>
-    <span class="n">fully_shard</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+    <span class="n">fully_shard</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">fsdp_kwargs</span><span class="p">)</span>
 </pre></div>
 
              </article>
