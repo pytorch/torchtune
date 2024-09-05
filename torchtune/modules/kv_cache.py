@@ -77,7 +77,7 @@ class KVCache(nn.Module):
             v_val (torch.Tensor): Current value tensor with shape [B, H, S, D]
 
         Returns:
-            Tuple[Tensor, Tensor]: Updated KV cache with key first
+            Tuple[torch.Tensor, torch.Tensor]: Updated key and value cache tensors, respectively.
 
         Raises:
             ValueError: if the sequence length of ``k_val`` is longer than the maximum cache sequence length.
