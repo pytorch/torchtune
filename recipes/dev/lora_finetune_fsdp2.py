@@ -516,20 +516,19 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         checkpoint_dict = {}
 
         intermediate_checkpoint = epoch + 1 < self.total_epochs
-        intermediate_checkpoint = True
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
         cpu_state_dict = training.get_full_model_state_dict(
             self._model,
             self._is_rank_zero,
-            self._device,
+            device=self._device,
         )
 
         if intermediate_checkpoint:
             opt_state_dict = training.get_full_optimizer_state_dict(
                 self._optimizer,
                 self._is_rank_zero,
-                self._device,
+                device=self._device,
             )
         else:
             opt_state_dict = None
