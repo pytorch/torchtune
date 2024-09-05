@@ -15,6 +15,7 @@ from torchtune.modules.transforms.vision_utils.get_canvas_best_fit import (
     find_supported_resolutions,
     get_canvas_best_fit,
 )
+from torchtune.modules.transforms.vision_utils.pad_dim_to_size import pad_dim_to_size
 from torchtune.modules.transforms.vision_utils.resize_with_pad import resize_with_pad
 from torchtune.modules.transforms.vision_utils.tile_crop import tile_crop
 
@@ -62,6 +63,7 @@ class CLIPImageTransform:
             This will be used to generate possible_resolutions,
             e.g. [(224, 224), (224, 448), (448, 224)] if max_num_tiles = 2 and tile_size = 224.
             Default 4.
+        pad_max_tiles (bool): If True, the image will be padded to have tiles == max_num_tiles. Default False.
         dtype (torch.dtype): Data type of the output image. Default torch.bfloat16.
         resample (str): Resampling method used when resizing images. Supports any enum of
             ``torchvision.transforms.InterpolationMode``, e.g. "nearest", "nearest_exact", "bilinear", "bicubic".
@@ -93,11 +95,13 @@ class CLIPImageTransform:
 
     def __init__(
         self,
+        *,
         image_mean: Optional[List[float]] = None,
         image_std: Optional[List[float]] = None,
         possible_resolutions: Optional[List[Tuple[int, int]]] = None,
         tile_size: int = 224,
         max_num_tiles: Optional[int] = 4,
+        pad_max_tiles: bool = False,
         dtype: torch.dtype = torch.bfloat16,
         resample: str = "bilinear",
         resize_to_max_canvas: bool = False,
@@ -138,6 +142,7 @@ class CLIPImageTransform:
         # tile_crop
         self.tile_size = tile_size
         self.tile_crop = tile_crop
+        self.pad_tile_size = max_num_tiles if pad_max_tiles else None
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         """
@@ -180,6 +185,8 @@ class CLIPImageTransform:
 
         # Divide the image into equally sized tiles
         image = self.tile_crop(image=image, tile_size=self.tile_size)
+        if self.pad_tile_size:
+            image = pad_dim_to_size(image, size=self.pad_tile_size, dim=0)
 
         aspect_ratio = torch.tensor(best_resolution).reshape(-1) // self.tile_size
 
