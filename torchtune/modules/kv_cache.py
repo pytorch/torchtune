@@ -52,7 +52,7 @@ class KVCache(nn.Module):
     def update(
         self, k_val: torch.Tensor, v_val: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Update KV cache with the new k_val, v_val and return the updated cache.
+        """Update KV cache with the new ``k_val``, ``v_val`` and return the updated cache.
 
         Note:
             When updating the KV cache, it is assumed that subsequent updates should update key-value
