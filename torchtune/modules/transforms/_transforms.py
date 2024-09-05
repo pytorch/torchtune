@@ -182,7 +182,7 @@ class VisionCrossAttentionMask(Transform):
             # it uses current text/image sequence lengths.
             mask = torch.zeros(
                 max_text_size or text_seq_len,
-                max_image_size or text_seq_len,
+                max_image_size or image_seq_len,
                 dtype=torch.bool,
             )
             mask[start:end, :image_seq_len] = True
