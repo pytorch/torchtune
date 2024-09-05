@@ -437,6 +437,7 @@
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
+        <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Format each role&#39;s message(s) according to the prompt template</span>
@@ -444,6 +445,7 @@
 <span class="sd">        Args:</span>
 <span class="sd">            messages (List[Message]): a single conversation, structured as a list</span>
 <span class="sd">                of :class:`~torchtune.data.Message` objects</span>
+<span class="sd">            inference (bool): Whether the template is being used for inference or not.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            The formatted list of messages</span>
@@ -499,13 +501,16 @@
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">template</span> <span class="o">=</span> <span class="n">template</span>
 
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span> <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Format each role&#39;s message(s) according to the prompt template by prepending</span>
 <span class="sd">        and appending the defined tags.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            messages (List[Message]): list of messages to apply the template to</span>
+<span class="sd">            inference (bool): Whether the template is being used for inference or not.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            List[Message]: The formatted list of messages</span>
@@ -563,6 +568,7 @@
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
+        <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Format user, assistant, and system messages with appropriate tags.</span>
@@ -570,6 +576,7 @@
 <span class="sd">        Args:</span>
 <span class="sd">            messages (List[Message]): a single conversation, structured as a list</span>
 <span class="sd">                of `Message` objects</span>
+<span class="sd">            inference (bool): Whether the template is being used for inference or not.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            The formatted list of messages</span>
