@@ -55,7 +55,7 @@ class TestPaddedCollateSFT:
                 "labels": [4, 5, 6, 7],
                 "encoder_input": {
                     "images": [torch.ones(2, 1, 1, 1), torch.ones(3, 1, 1, 1)],
-                    "aspect_ratio": [torch.tensor([1, 2]), torch.tensor([1, 2])],
+                    "aspect_ratio": [torch.tensor([1, 2]), torch.tensor([1, 3])],
                 },
                 "encoder_mask": [torch.ones(4, 5 * 2), torch.ones(4, 5 * 3)],
             },
@@ -64,7 +64,7 @@ class TestPaddedCollateSFT:
                 "labels": [8, 9],
                 "encoder_input": {
                     "images": [torch.ones(4, 1, 1, 1)],
-                    "aspect_ratio": [torch.tensor([1, 2])],
+                    "aspect_ratio": [torch.tensor([2, 2])],
                 },
                 "encoder_mask": [torch.ones(2, 5 * 4)],
             },
@@ -96,7 +96,7 @@ class TestPaddedCollateSFT:
                         ],
                     ]
                 ),
-                "aspect_ratio": torch.tensor([[[1, 2], [1, 2]], [[1, 2], [1, 1]]]),
+                "aspect_ratio": torch.tensor([[[1, 2], [1, 3]], [[2, 2], [1, 1]]]),
             },
             "encoder_mask": expected_mask,
         }

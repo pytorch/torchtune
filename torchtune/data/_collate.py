@@ -232,7 +232,8 @@ def padded_collate_tiled_images_with_cross_attention(
             - "aspect_ratio": List[torch.Tensor], each with shape (2, ) to indicate h_ratio, w_ratio
         - "encoder_mask": List[Tensor], each with shape (text_seq_len, image_seq_len)
 
-    For each element in the batch, len(images) == len(encoder_mask) == len(aspect_ratio).
+    where c = channel dim, h = height dim, w = weight dim. For each element in the batch, 
+    len(images) == len(encoder_mask) == len(aspect_ratio).
 
     This collater does the following:
         (1) Pad text sequence and encoder mask to the longest sequence length in the batch
@@ -265,8 +266,9 @@ def padded_collate_tiled_images_with_cross_attention(
         ...         "encoder_input": {
         ...             # One image with two tiles, one image with three tiles
         ...             "images": [torch.ones(2, c, h, w), torch.ones(3, c, h, w)],
-        ...             "aspect_ratio": [torch.tensor([1, 2]), torch.tensor([1, 2])],
+        ...             "aspect_ratio": [torch.tensor([1, 2]), torch.tensor([1, 3])],
         ...         },
+        ...         # Mask is shape (text_seq_len, tokens_per_tile * n_tiles)
         ...         "encoder_mask": [torch.ones(4, 5 * 2), torch.ones(4, 5 * 3)],
         ...     },
         ...     {
@@ -274,8 +276,9 @@ def padded_collate_tiled_images_with_cross_attention(
         ...         "encoder_input": {
         ...             # One image with four tiles
         ...             "images": [torch.ones(4, c, h, w)],
-        ...             "aspect_ratio": [torch.tensor([1, 2])],
+        ...             "aspect_ratio": [torch.tensor([2, 2])],
         ...         },
+        ...         # Mask is shape (text_seq_len, tokens_per_tile * n_tiles)
         ...         "encoder_mask": [torch.ones(2, 5 * 4)],
         ...     },
         ... ]
