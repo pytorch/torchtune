@@ -214,6 +214,8 @@ def padded_collate_sft(
     return {"tokens": input_ids.long(), "labels": labels.long()}
 
 
+# TODO: Generalize this to support any type of encoder input, right now this assumes
+# a specific encoder_input signature
 def padded_collate_tiled_images_with_cross_attention(
     batch: List[Dict[str, Any]],
     padding_idx: int = 0,
@@ -225,9 +227,10 @@ def padded_collate_tiled_images_with_cross_attention(
     ``batch`` is expected to be a list of sample dicts containing the following:
         - "tokens": List[int] of length text_seq_len, varies across samples
         - "labels": List[int] of length text_seq_len, varies across samples
-        - "images": List[Tensor], each with shape (n_tiles, c, h, w)
+        - "encoder_input": Dict[str, List[torch.Tensor]]
+            - "images": List[torch.Tensor], each with shape (n_tiles, c, h, w)
+            - "aspect_ratio": List[torch.Tensor], each with shape (2, ) to indicate h_ratio, w_ratio
         - "encoder_mask": List[Tensor], each with shape (text_seq_len, image_seq_len)
-        - "aspect_ratio": List[Tensor], each with shape (2, ) to indicate h_ratio, w_ratio
 
     For each element in the batch, len(images) == len(encoder_mask) == len(aspect_ratio).
 
@@ -259,17 +262,21 @@ def padded_collate_tiled_images_with_cross_attention(
         >>> batch = [
         ...     {
         ...         "tokens": [1, 2, 1, 3], "labels": [4, 5, 6, 7],
-        ...         # One image with two tiles, one image with three tiles
-        ...         "images": [torch.ones(2, c, h, w), torch.ones(3, c, h, w)],
+        ...         "encoder_input": {
+        ...             # One image with two tiles, one image with three tiles
+        ...             "images": [torch.ones(2, c, h, w), torch.ones(3, c, h, w)],
+        ...             "aspect_ratio": [torch.tensor([1, 2]), torch.tensor([1, 2])],
+        ...         },
         ...         "encoder_mask": [torch.ones(4, 5 * 2), torch.ones(4, 5 * 3)],
-        ...         "aspect_ratio": [torch.tensor([1, 2]), torch.tensor([1, 2])],
         ...     },
         ...     {
         ...         "tokens": [1, 4], "labels": [8, 9],
-        ...         # One image with four tiles
-        ...         "images": [torch.ones(4, c, h, w)],
+        ...         "encoder_input": {
+        ...             # One image with four tiles
+        ...             "images": [torch.ones(4, c, h, w)],
+        ...             "aspect_ratio": [torch.tensor([1, 2])],
+        ...         },
         ...         "encoder_mask": [torch.ones(2, 5 * 4)],
-        ...         "aspect_ratio": [torch.tensor([1, 2])],
         ...     },
         ... ]
         >>> model_inputs = padded_collate_vision_text(batch=batch)
@@ -279,19 +286,19 @@ def padded_collate_tiled_images_with_cross_attention(
         >>> print(model_inputs["labels"])
         tensor([[4, 5, 6, 7],
                 [8, 9, -100, -100]])
-        >>> print(model_inputs["images"].shape)  # (bsz, max_num_images, max_num_tiles, c, h, w)
+        >>> print(model_inputs["encoder_input"]["images"].shape)  # (bsz, max_num_images, max_num_tiles, c, h, w)
         torch.Size([2, 2, 4, 1, 1, 1])
         >>> print(model_inputs["encoder_mask"].shape)  # (bsz, max_num_images, max_num_tiles, tokens_per_tile * max_num_tiles)
         torch.Size([2, 2, 4, 20])
-        >>> print(model_inputs["aspect_ratio"].shape)  # (bsz, max_num_images, 2)
+        >>> print(model_inputs["encoder_input"]["aspect_ratio"].shape)  # (bsz, max_num_images, 2)
         torch.Size([2, 2, 2])
-        >>> print(model_inputs["images"][0, 0, ...])  # Image with two tiles got padded to four
+        >>> print(model_inputs["encoder_input"]["images"][0, 0, ...])  # Image with two tiles got padded to four
         tensor([[[[1.]]], [[[1.]]], [[[0.]]], [[[0.]]]])
-        >>> print(model_inputs["images"][0, 1, ...])  # Image with three tiles got padded to four
+        >>> print(model_inputs["encoder_input"]["images"][0, 1, ...])  # Image with three tiles got padded to four
         tensor([[[[1.]]], [[[1.]]], [[[1.]]], [[[0.]]]])
-        >>> print(model_inputs["images"][1, 0, ...])  # Image with four tiles did not get padded
+        >>> print(model_inputs["encoder_input"]["images"][1, 0, ...])  # Image with four tiles did not get padded
         tensor([[[[1.]]], [[[1.]]], [[[1.]]], [[[1.]]]])
-        >>> print(model_inputs["images"][1, 1, ...])  # Extra padding image was added to second sample
+        >>> print(model_inputs["encoder_input"]["images"][1, 1, ...])  # Extra padding image was added to second sample
         tensor([[[[0.]]], [[[0.]]], [[[0.]]], [[[0.]]]])
     """
     # Text tokens can be handled independently by existing collater
@@ -307,7 +314,9 @@ def padded_collate_tiled_images_with_cross_attention(
 
     # First loop: get max number of tiles in batch
     max_num_tiles = max(
-        image.shape[0] for sample in batch for image in sample["images"]
+        image.shape[0]
+        for sample in batch
+        for image in sample["encoder_input"]["images"]
     )
     # Second loop: pad images and masks to max number of tiles, max text seq len in batch
     batch_images = []
@@ -316,7 +325,9 @@ def padded_collate_tiled_images_with_cross_attention(
     for sample in batch:
         sample_images = []
         sample_masks = []
-        for image, mask in zip(sample["images"], sample["encoder_mask"]):
+        for image, mask in zip(
+            sample["encoder_input"]["images"], sample["encoder_mask"]
+        ):
             # Single image in each sample has shape (n_tiles, c, h, w)
             n_tiles = image.shape[0]
             # Single mask in each sample corresponds to a single image and has shape (text_seq_len, image_seq_len)
@@ -337,7 +348,7 @@ def padded_collate_tiled_images_with_cross_attention(
         # Stack multiple images and masks per sample in num_images dimension
         batch_images.append(torch.stack(sample_images))
         batch_masks.append(torch.stack(sample_masks))
-        batch_aspect_ratios.append(torch.stack(sample["aspect_ratio"]))
+        batch_aspect_ratios.append(torch.stack(sample["encoder_input"]["aspect_ratio"]))
     # Finally, pad images, masks, aspect ratios to max number of images in batch
     # (bsz, max_num_images, max_num_tiles, c, h, w)
     collated_images = pad_sequence(batch_images, batch_first=True, padding_value=0)
@@ -351,9 +362,11 @@ def padded_collate_tiled_images_with_cross_attention(
     return {
         "tokens": collated_text["tokens"],
         "labels": collated_text["labels"],
-        "images": collated_images,
+        "encoder_input": {
+            "images": collated_images,
+            "aspect_ratio": collated_aspect_ratios,
+        },
         "encoder_mask": collated_masks,
-        "aspect_ratio": collated_aspect_ratios,
     }
 
 

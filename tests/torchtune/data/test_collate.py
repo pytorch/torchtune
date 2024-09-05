@@ -53,16 +53,20 @@ class TestPaddedCollateSFT:
             {
                 "tokens": [1, 2, 1, 3],
                 "labels": [4, 5, 6, 7],
-                "images": [torch.ones(2, 1, 1, 1), torch.ones(3, 1, 1, 1)],
+                "encoder_input": {
+                    "images": [torch.ones(2, 1, 1, 1), torch.ones(3, 1, 1, 1)],
+                    "aspect_ratio": [torch.tensor([1, 2]), torch.tensor([1, 2])],
+                },
                 "encoder_mask": [torch.ones(4, 5 * 2), torch.ones(4, 5 * 3)],
-                "aspect_ratio": [torch.tensor([1, 2]), torch.tensor([1, 2])],
             },
             {
                 "tokens": [1, 4],
                 "labels": [8, 9],
-                "images": [torch.ones(4, 1, 1, 1)],
+                "encoder_input": {
+                    "images": [torch.ones(4, 1, 1, 1)],
+                    "aspect_ratio": [torch.tensor([1, 2])],
+                },
                 "encoder_mask": [torch.ones(2, 5 * 4)],
-                "aspect_ratio": [torch.tensor([1, 2])],
             },
         ]
         actual = padded_collate_tiled_images_with_cross_attention(
@@ -79,23 +83,28 @@ class TestPaddedCollateSFT:
         expected = {
             "tokens": torch.tensor([[1, 2, 1, 3], [1, 4, 0, 0]]),
             "labels": torch.tensor([[4, 5, 6, 7], [8, 9, -100, -100]]),
-            "images": torch.tensor(
-                [
+            "encoder_input": {
+                "images": torch.tensor(
                     [
-                        [[[[1.0]]], [[[1.0]]], [[[0.0]]], [[[0.0]]]],
-                        [[[[1.0]]], [[[1.0]]], [[[1.0]]], [[[0.0]]]],
-                    ],
-                    [
-                        [[[[1.0]]], [[[1.0]]], [[[1.0]]], [[[1.0]]]],
-                        [[[[0.0]]], [[[0.0]]], [[[0.0]]], [[[0.0]]]],
-                    ],
-                ]
-            ),
+                        [
+                            [[[[1.0]]], [[[1.0]]], [[[0.0]]], [[[0.0]]]],
+                            [[[[1.0]]], [[[1.0]]], [[[1.0]]], [[[0.0]]]],
+                        ],
+                        [
+                            [[[[1.0]]], [[[1.0]]], [[[1.0]]], [[[1.0]]]],
+                            [[[[0.0]]], [[[0.0]]], [[[0.0]]], [[[0.0]]]],
+                        ],
+                    ]
+                ),
+                "aspect_ratio": torch.tensor([[[1, 2], [1, 2]], [[1, 2], [1, 1]]]),
+            },
             "encoder_mask": expected_mask,
-            "aspect_ratio": torch.tensor([[[1, 2], [1, 2]], [[1, 2], [1, 1]]]),
         }
 
         for k in expected:
+            if isinstance(expected[k], dict):
+                for k1 in expected[k]:
+                    torch.testing.assert_close(actual[k][k1], expected[k][k1])
             torch.testing.assert_close(actual[k], expected[k])
 
 
