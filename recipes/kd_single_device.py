@@ -18,7 +18,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
-from torchtune.data import padded_collate
+from torchtune.data import padded_collate_sft
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     get_adapter_params,
@@ -61,7 +61,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
-        self.seed = utils.set_seed(seed=cfg.seed)
+        self.seed = training.set_seed(seed=cfg.seed)
         self.epochs_run = 0
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
@@ -102,6 +102,9 @@ class KDRecipeSingleDevice(FTRecipeInterface):
 
         self._model_compile = cfg.compile
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
+        teacher_checkpoint_dict = self.load_checkpoint(
+            cfg_checkpointer=cfg.teacher_checkpointer
+        )
 
         # set up model
         self._model = self._setup_model(
@@ -114,6 +117,11 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                 if self._resume_from_checkpoint
                 else None
             ),
+        )
+
+        self._teacher_model = self._setup_teacher_model(
+            model_cfg=cfg.teacher_model,
+            model_state_dict=teacher_checkpoint_dict[training.MODEL_KEY],
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
@@ -321,8 +329,30 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         log.info(f"Model is initialized with precision {self._dtype}.")
 
         if self._device.type == "cuda":
-            memory_stats = utils.get_memory_stats(device=self._device)
-            utils.log_memory_stats(memory_stats)
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(memory_stats)
+        return model
+
+    def _setup_teacher_model(
+        self,
+        model_cfg: DictConfig,
+        model_state_dict: Dict[str, Any],
+    ) -> nn.Module:
+        with training.set_default_dtype(self._dtype), self._device:
+            model = config.instantiate(model_cfg)
+
+        model.load_state_dict(model_state_dict)
+
+        # Put model in eval mode.
+        # Note: This will not disable the dropout applied in SDPA,
+        # see https://github.com/pytorch/pytorch/issues/124464
+        model.eval()
+
+        # Validate model was loaded in with the expected dtype.
+        training.validate_expected_param_dtype(
+            model.named_parameters(), dtype=self._dtype
+        )
+        log.info(f"Teacher model is initialized with precision {self._dtype}.")
         return model
 
     def _setup_optimizer(
@@ -386,7 +416,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             batch_size=batch_size,
             collate_fn=(
                 partial(
-                    padded_collate,
+                    padded_collate_sft,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
                 )
@@ -574,7 +604,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                                 and self._log_peak_memory_stats
                             ):
                                 log_dict.update(
-                                    utils.get_memory_stats(device=self._device)
+                                    training.get_memory_stats(device=self._device)
                                 )
                             if self._clip_grad_norm is not None:
                                 log_dict.update({"grad_norm": grad_norm})
