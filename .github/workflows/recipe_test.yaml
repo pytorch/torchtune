@@ -31,8 +31,9 @@ jobs:
       runner: ${{ matrix.runs-on }}
       gpu-arch-type: ${{ matrix.gpu-arch-type }}
       gpu-arch-version: ${{ matrix.gpu-arch-version }}
+      # Python=3.10 for now cause bitsandbytes?
       script: |
-        conda create -n venv python=3.9 -y
+        conda create -n venv python=3.10 -y
         conda activate venv
         echo "::group::Install newer objcopy that supports --set-section-alignment"
         yum install -y  devtoolset-10-binutils
