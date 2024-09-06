@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets._packed import PACK_TYPE
-from torchtune.utils.attention_bias import packed_block_causal_mask
+from torchtune.modules.attention_utils import packed_block_causal_mask
 
 
 def left_pad_sequence(
@@ -218,7 +218,6 @@ def padded_collate_sft(
 
 def padded_collate_packed(
     batch: List[PACK_TYPE],
-    device: torch.device = torch.device("cuda"),
 ) -> Dict[str, torch.Tensor]:
     """Collate packed sequences into a batch. Only convert the seq lens into
     a block mask for use with attention. Tokens, labels, and input_pos are
@@ -230,7 +229,6 @@ def padded_collate_packed(
             - labels: label token ids
             - input_pos: relative position ids for each sequence in pack
             - seq_lens: lengths of each sample within the pack
-        device (torch.device): device to create block mask on. Default is "cuda".
 
     Returns:
         Dict[str, torch.Tensor]: Collated input, label, input_pos, mask tensors.
@@ -275,7 +273,6 @@ def padded_collate_packed(
 
     block_mask = packed_block_causal_mask(
         seq_lens=seq_lens,
-        device=device,
     )
 
     return {

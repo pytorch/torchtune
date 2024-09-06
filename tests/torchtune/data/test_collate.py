@@ -17,8 +17,7 @@ from torchtune.data import (
     padded_collate_packed,
     padded_collate_sft,
 )
-
-from torchtune.utils import torch_version_ge
+from torchtune.modules.attention_utils import _SUPPORTS_FLEX_ATTENTION
 
 
 class TestPaddedCollateSFT:
@@ -53,7 +52,7 @@ class TestPaddedCollateSFT:
             padded_label, torch.tensor([10, ignore_idx, ignore_idx])
         )
 
-    @mock.patch("torchtune.utils.attention_bias.torch_version_ge")
+    @mock.patch("torchtune.modules.attention_utils.torch_version_ge")
     def test_padded_collate_packed_sdpa(self, mock_version):
         mock_version.return_value = False
         token_pairs = [
@@ -112,7 +111,7 @@ class TestPaddedCollateSFT:
         )
 
     @pytest.mark.skipif(
-        not torch_version_ge("2.5.0"),
+        not _SUPPORTS_FLEX_ATTENTION,
         reason="Please install a nightly build of torch to run this test.",
     )
     def test_padded_collate_packed_flex(self):

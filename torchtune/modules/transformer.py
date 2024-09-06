@@ -12,7 +12,7 @@ from torch import nn
 
 from torchtune.modules import MultiHeadAttention
 
-from torchtune.utils.attention_bias import _MaskType
+from torchtune.modules.attention_utils import _MaskType
 
 
 class TransformerSelfAttentionLayer(nn.Module):
