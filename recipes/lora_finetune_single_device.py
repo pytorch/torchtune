@@ -241,7 +241,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
         if self._compile:
-            compile_loss(self.loss_fn)
+            self._loss_fn = training.compile_loss(self._loss_fn)
 
         if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
             # set num_output_chunks for model

@@ -353,7 +353,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             model = config.instantiate(cfg_model)
 
         if compile_model:
-            training.compile_model(self._model)
+            training.compile_model(model)
 
         if enable_activation_checkpointing:
             training.set_activation_checkpointing(

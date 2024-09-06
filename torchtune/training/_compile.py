@@ -7,11 +7,11 @@
 import os
 from typing import Union
 
-from torchtune.modules import (
-    CEWithChunkedOutputLoss,
-    TiedEmbeddingTransformerDecoder,
-    TransformerDecoder,
-)
+import torch
+from torch import nn
+
+from torchtune.modules import TiedEmbeddingTransformerDecoder, TransformerDecoder
+from torchtune.modules.loss import CEWithChunkedOutputLoss
 from torchtune.utils import get_logger, torch_version_ge
 
 log = get_logger("INFO")
@@ -51,7 +51,7 @@ def compile_model(
 
 def compile_loss(loss: nn.Module, verbose: bool = True) -> None:
     """
-    Utility to compile loss function inplace. If the loss function is chunked cross-entropy,
+    Utility to compile and return loss function. If the loss function is chunked cross-entropy,
     we only compile the upcast + cross-entropy calculation, not the chunking. For other losses
     we compile the entire loss function.
 
@@ -59,12 +59,26 @@ def compile_loss(loss: nn.Module, verbose: bool = True) -> None:
         loss (nn.Module): A loss function to compile.
         verbose (bool): Whether to log compile info. Default: True
     Returns:
-        None
+        loss (nn.Module): loss with either entire module compiled or (in the case of
+            CEWithChunkedOutputLoss) only the upcast and cross-entropy calculation compiled.
+
+    Raises:
+        RuntimeError: If attempting to compile CEWithChunkedOutputLoss on PyTorch < 2.5.0
     """
     backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
     if verbose:
         log.info("Compiling loss with torch.compile...")
     if isinstance(loss, CEWithChunkedOutputLoss):
-        loss.compute_cross_entropy.compile(backend=backend)
+        if not torch_version_ge("2.5.0"):
+            raise RuntimeError(
+                """
+                Compiling CEWithChunkedOutputLoss requires PyTorch 2.5.0 or higher.
+                Please upgrade your PyTorch version or set loss=torch.nn.CrossEntropyLoss
+                """
+            )
+        loss.compute_cross_entropy = torch.compile(
+            loss.compute_cross_entropy, backend=backend
+        )
     else:
-        loss.compile(backend=backend)
+        loss = torch.compile(loss, backend=backend)
+    return loss
