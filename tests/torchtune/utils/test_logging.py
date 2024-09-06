@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
-from torchtune.data._utils import deprecated
+from torchtune.utils.logging import deprecated
 
 
 def test_deprecated():
