@@ -15,13 +15,8 @@ permissions:
   id-token: write
   contents: read
 
-defaults:
-  run:
-    shell: bash -l -eo pipefail {0}
-
 jobs:
   recipe_test:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
