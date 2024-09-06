@@ -128,12 +128,37 @@ class TestUtils:
         handler = logging.StreamHandler(stream)
         logger.addHandler(handler)
 
-        with mock.patch("torchtune.config._utils.get_logger", return_value=logger):
-            log_config("test", cfg)
-            output = stream.getvalue().strip()
-            assert (
-                "Running test with resolved config:\n\ntest:\n  a: 1\n  b: 2" in output
-            )
+        with mock.patch(
+            "torchtune.config._utils.get_logger", return_value=logger
+        ), mock.patch(
+            "torchtune.config._utils.dist.is_available", return_value=True
+        ), mock.patch(
+            "torchtune.config._utils.dist.is_initialized", return_value=True
+        ):
+            # Make sure rank 0 logs as expected
+            with mock.patch(
+                "torchtune.config._utils.dist.get_rank",
+                return_value=0,
+            ):
+                log_config("test", cfg)
+                output = stream.getvalue().strip()
+                assert (
+                    "Running test with resolved config:\n\ntest:\n  a: 1\n  b: 2"
+                    in output
+                )
+
+            # Clear the stream
+            stream.truncate(0)
+            stream.seek(0)
+
+            # Make sure all other ranks do not log anything
+            with mock.patch(
+                "torchtune.config._utils.dist.get_rank",
+                return_value=1,
+            ):
+                log_config("test", cfg)
+                output = stream.getvalue().strip()
+                assert not output
 
     def test_remove_key_by_dotpath(self):
         # Test removing a component raises

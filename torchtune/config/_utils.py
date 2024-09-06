@@ -10,6 +10,7 @@ from types import ModuleType
 from typing import Any, Dict, List, Union
 
 from omegaconf import DictConfig, OmegaConf
+from torch import distributed as dist
 
 from torchtune.config._errors import InstantiationError
 from torchtune.utils.logging import get_logger
@@ -17,12 +18,17 @@ from torchtune.utils.logging import get_logger
 
 def log_config(recipe_name: str, cfg: DictConfig) -> None:
     """
-    Logs the resolved config (merged YAML file and CLI overrides).
+    Logs the resolved config (merged YAML file and CLI overrides) to rank zero.
 
     Args:
         recipe_name (str): name of the recipe to display
         cfg (DictConfig): parsed config object
     """
+    # Log the config only on rank 0
+    rank = dist.get_rank() if dist.is_available() and dist.is_initialized() else 0
+    if rank != 0:
+        return
+
     logger = get_logger("DEBUG")
     cfg_str = OmegaConf.to_yaml(cfg, resolve=True, sort_keys=True)
     logger.info(msg=f"Running {recipe_name} with resolved config:\n\n{cfg_str}")

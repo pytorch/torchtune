@@ -784,9 +784,7 @@ def recipe_main(cfg: DictConfig) -> None:
         # speed up when benchmarking fused AdamW on CPU
         training.set_torch_num_threads()
 
-    _, rank = training.get_world_size_and_rank()
-    if rank == 0:
-        config.log_config(recipe_name="QATRecipeDistributed", cfg=cfg)
+    config.log_config(recipe_name="QATRecipeDistributed", cfg=cfg)
 
     recipe = QATRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)

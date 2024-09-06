@@ -734,9 +734,7 @@ def recipe_main(cfg: DictConfig) -> None:
 
     init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
 
-    _, rank = training.get_world_size_and_rank()
-    if rank == 0:
-        config.log_config(recipe_name="LoRADPORecipeDistributed", cfg=cfg)
+    config.log_config(recipe_name="LoRADPORecipeDistributed", cfg=cfg)
 
     recipe = LoRADPORecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)
