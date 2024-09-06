@@ -184,27 +184,35 @@ class FlamingoTransform(ModelTokenizer, Transform):
             add_eos=add_eos,
         )
 
-    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+    def __call__(self, sample: Mapping[str, Any], inference: bool = True) -> Mapping[str, Any]:
         """
-        Apply image decoding and transformations to the "images" field in the sample
-        and tokenization to the "messages" field in the sample. Also returns the
-        encoder mask.
+        Apply image decoding, transformations and tokenization to messages in the sample.
 
         Args:
-            sample (Mapping[str, Any]): A sample with a "tokens", "mask",
-                "encoder_input" and "encoder_mask" field to feed directly into the model.
+            sample (Mapping[str, Any]): A sample with a "messages" field.
+            inference (bool): Whether to run in inference mode. Default is True.
 
         Returns:
-            Mapping[str, Any]: The sample with an updated "image" filed and added
-                "aspect_ratio" field.
+            Mapping[str, Any]: The transformed sample with the following fields:
+                - tokens: List[int] of tokenized messages
+                - mask: List[bool] of masks for the tokenized messages
+                - encoder_input: Dict[str, Any] of transformed images
+                - encoder_mask: List[bool] of masks for the transformed images
         """
         encoder_input = {"images": [], "aspect_ratio": []}
+
+        # Get messages from sample
+        messages = sample["messages"]
         
         for message in messages:
-            if message.contains_media():
-                out = self.transform_image({"image": image})
-                encoder_input["images"].append(out["image"])
-                encoder_input["aspect_ratio"].append(out["aspect_ratio"])
+            if message.role == "user" and message.contains_media():
+                # Find the image(s) in the message content
+                for elem in message.content:
+                    if elem["type"] == "image":
+                        # Transform the image and append to encoder_input
+                        out = self.transform_image({"image": elem["content"]}, inference=inference)
+                        encoder_input["images"].append(out["image"])
+                        encoder_input["aspect_ratio"].append(out["aspect_ratio"])
         
         sample["encoder_input"] = encoder_input
         sample = self.tokenizer(sample)

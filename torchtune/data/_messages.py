@@ -27,14 +27,14 @@ class Message:
         role (Role): role of the message writer. Can be "system" for system prompts,
             "user" for human prompts, "assistant" for model responses, or "ipython"
             for tool call returns.
-        content (Union[str, List[Dict[str, str]]]): content of the message. If it is text only content,
+        content (List[Dict[str, str]]): content of the message. If it is text only content,
             you can pass in a string. If it is multimodal content, pass in a list of dictionaries formatted
             as follows::
 
                 [
-                    {"type": "image", "content": Image},
+                    {"type": "image", "content": "https://path/to/image"},
                     {"type": "text", "content": "hello"},
-                    {"type": "image", "content": Image},
+                    {"type": "image", "content": "/Desktop/image.png"},
                     {"type": "text", "content": "world"},
                 ]
 
@@ -53,18 +53,13 @@ class Message:
     def __init__(
         self,
         role: Role,
-        content: Union[str, List[Dict[str, str]]],
+        content: List[Dict[str, str]],
         masked: bool = False,
         ipython: bool = False,
         eot: bool = True,
     ):
         self.role = role
-        # What is this?
-        self.content = (
-            [{"type": "text", "content": content}]
-            if isinstance(content, str)
-            else content
-        )
+        self.content = content
         self.masked = masked
         self.ipython = ipython
         self.eot = eot
