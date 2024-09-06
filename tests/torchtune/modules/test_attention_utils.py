@@ -24,7 +24,7 @@ from torchtune.modules.attention_utils import (
 class TestBlockCausalMask:
     @pytest.fixture
     def seq_lens(self):
-        return [torch.tensor([2, 3, 1, 0]), torch.tensor([2, 2, 2, 0])]
+        return [torch.tensor([2, 3, 1]), torch.tensor([2, 2, 2, 0])]
 
     def test_get_document_ids_from_seq_lens(self, seq_lens):
         actual = _get_document_ids_from_seq_lens(seq_lens)
