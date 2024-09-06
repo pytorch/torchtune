@@ -616,6 +616,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         mask = batch.get("mask", None)  # shape [b, s, s]
         input_pos = batch.get("input_pos", None)  # shape [b, s]
 
+        # run model
         with self.activations_handling_ctx:
             logits = self._model(tokens, mask=mask, input_pos=input_pos)
 
