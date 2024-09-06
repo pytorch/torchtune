@@ -155,9 +155,13 @@ def generate(
     tokens = generate_next_token(
         model,
         mask=mask[:, :prompt_length] if mask is not None else None,
-        encoder_mask=encoder_mask[:, :prompt_length]
-        if encoder_mask is not None
-        else None,
+        encoder_mask=(
+            encoder_mask[:, :prompt_length]
+            if encoder_mask is not None
+            else None
+            if encoder_mask is not None
+            else None
+        ),
         input_pos=input_pos[:prompt_length],
         x=prompt,
         temperature=temperature,
