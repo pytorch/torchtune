@@ -47,6 +47,7 @@ class KVCache(nn.Module):
         """Reset the cache to zero."""
         self.k_cache.zero_()
         self.v_cache.zero_()
+        self.size = 0
 
     def update(
         self, input_pos: torch.Tensor, k_val: torch.Tensor, v_val: torch.Tensor
@@ -64,7 +65,7 @@ class KVCache(nn.Module):
             Tuple[torch.Tensor, torch.Tensor]: Updated KV cache with key first
         """
         assert input_pos.shape[0] == k_val.shape[2]
-        self.size = input_pos.max().item() + 1
+        self.size = input_pos.max() + 1
 
         k_out = self.k_cache
         v_out = self.v_cache
