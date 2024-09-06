@@ -40,6 +40,7 @@ class FlamingoTransform(ModelTokenizer, Transform):
             Llama3 special tokens.
         max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
             after which the input will be truncated. Default is None.
+        encoder_max_seq_len (Optional[int]): maximum sequence length for the encoder input. Default is None.
         image_mean (Optional[Tuple[float, float, float]]): Mean values of each channel, used for normalization.
         image_std (Optional[Tuple[float, float, float]]): Standard deviations for each channel, used for normalization.
         prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
@@ -70,6 +71,7 @@ class FlamingoTransform(ModelTokenizer, Transform):
         max_num_tiles: int = 4,
         special_tokens: Optional[Dict[str, int]] = None,
         max_seq_len: Optional[int] = None,
+        encoder_max_seq_len: Optional[int] = None,
         image_mean: Optional[Tuple[float, float, float]] = None,
         image_std: Optional[Tuple[float, float, float]] = None,
         prompt_template: Optional[PromptTemplate] = None,
@@ -94,6 +96,7 @@ class FlamingoTransform(ModelTokenizer, Transform):
             tile_size=tile_size,
             patch_size=patch_size,
             image_token_id=self.tokenizer.image_id,
+            encoder_max_seq_len=encoder_max_seq_len,
         )
 
         self.stop_tokens = self.tokenizer.stop_tokens
@@ -180,11 +183,13 @@ class FlamingoTransform(ModelTokenizer, Transform):
             Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
         """
         return self.tokenizer.tokenize_messages(
-            messages=message,
+            messages=messages,
             add_eos=add_eos,
         )
 
-    def __call__(self, sample: Mapping[str, Any], inference: bool = True) -> Mapping[str, Any]:
+    def __call__(
+        self, sample: Mapping[str, Any], inference: bool = False
+    ) -> Mapping[str, Any]:
         """
         Apply image decoding, transformations and tokenization to messages in the sample.
 
@@ -215,6 +220,6 @@ class FlamingoTransform(ModelTokenizer, Transform):
                         encoder_input["aspect_ratio"].append(out["aspect_ratio"])
         
         sample["encoder_input"] = encoder_input
-        sample = self.tokenizer(sample)
-        sample = self.xattn_mask(sample)
+        sample = self.tokenizer(sample, inference=inference)
+        sample = self.xattn_mask(sample, inference=inference)
         return sample

@@ -156,6 +156,7 @@ def flamingo_decoder(
     num_kv_heads: int,
     embed_dim: int,
     max_seq_len: int,
+    encoder_max_seq_len: int,
     rope_base: int = 500000.0,
     intermediate_dim: Optional[int] = None,
 ) -> TransformerDecoder:
@@ -180,6 +181,8 @@ def flamingo_decoder(
             for GQA `num_kv_heads` < `num_heads`, and for MQA set `num_kv_heads` == 1.
         embed_dim (int): embedding dimension for self-attention.
         max_seq_len (int): maximum sequence length the model will be run with, as used
+            by :func:`~torchtune.modules.KVCache`.
+        encoder_max_seq_len (int): maximum sequence length the encoder will be run with, as used
             by :func:`~torchtune.modules.KVCache`.
         intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
             this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`.
@@ -231,7 +234,7 @@ def flamingo_decoder(
                 q_norm=RMSNorm(dim=head_dim, eps=1e-05),
                 k_norm=RMSNorm(dim=head_dim, eps=1e-05),
                 pos_embeddings=None,
-                max_seq_len=max_seq_len,
+                max_seq_len=encoder_max_seq_len,
                 is_causal=False,
                 attn_dropout=0.0,
             )
