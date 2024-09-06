@@ -1,7 +1,7 @@
 Welcome to the torchtune Documentation
 =======================================
 
-torchtune is a native PyTorch library for easily authoring, fine-tuning and experimenting with LLMs. The library emphasizes 4 key aspects:
+torchtune is a native PyTorch library for easily authoring, fine-tuning and experimenting with LLMs.
 
 Getting Started
 ~~~~~~~~~~~~~~~

@@ -11,37 +11,29 @@ What is torchtune?
 
 torchtune is a native PyTorch library for easily authoring, fine-tuning and experimenting with LLMs.
 
-.. image:: images/llm-lifecycle.png
-  :width: 400
-  :alt: LLM lifecycle diagram that shows the relationship among pre-training, fine-tuning, and inference.
+The library emphasizes four key principles:
 
-**Testing**
-
-Definition lists:
-
-what
-    Definition lists associate a term with a definition.
-
-how
-    The term is a one-line phrase, and the definition is one or more paragraphs or
-    body elements, indented relative to the term. Blank lines are not allowed between term and definition.
-
-The library emphasizes four key aspects:
-
-- **Simplicity and Extensibility**. Native-PyTorch, componentized design and easy-to-reuse abstractions
+- **Simplicity and Extensibility**. Native PyTorch, componentized design and easy-to-reuse abstractions
 - **Correctness**. High bar on proving the correctness of components and recipes
 - **Stability**. PyTorch just works. So should torchtune
 - **Democratizing LLM fine-tuning**. Works out-of-the-box on different hardware
 
 
-torchtune provides:
+torchtune features
+------------------
 
-- Modular native-PyTorch implementations of popular LLMs
+torchtune provides the following features:
+
+- Modular, native PyTorch implementations of popular LLMs
 - Interoperability with popular model zoos through checkpoint-conversion utilities
 - Training recipes for a variety of fine-tuning techniques
 - Integration with `Hugging Face Datasets <https://huggingface.co/docs/datasets/en/index>`_ for training and `EleutherAI's Eval Harness <https://github.com/EleutherAI/lm-evaluation-harness>`_ for evaluation
 - Support for distributed training using `FSDP <https://pytorch.org/docs/stable/fsdp.html>`_
 - YAML configs for easily configuring training runs
+
+
+
+
 
 Excited? To get started, checkout some of our tutorials, including:
 
@@ -77,7 +69,7 @@ torchtune embodies `PyTorch’s design philosophy <https://pytorch.org/docs/stab
 
 **Native PyTorch**
 
-torchtune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: `Hugging Face Datasets <https://huggingface.co/docs/datasets/en/index>`_,
+torchtune is a native PyTorch library. While we provide integrations with the surrounding ecosystem (eg: `Hugging Face Datasets <https://huggingface.co/docs/datasets/en/index>`_,
 `EleutherAI's Eval Harness <https://github.com/EleutherAI/lm-evaluation-harness>`_), all of the core functionality is written in PyTorch.
 
 
