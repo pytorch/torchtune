@@ -743,7 +743,9 @@ def recipe_main(cfg: DictConfig) -> None:
         # speed up when benchmarking fused AdamW on CPU
         training.set_torch_num_threads()
 
-    config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
+    _, rank = training.get_world_size_and_rank()
+    if rank == 0:
+        config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
 
     recipe = FullFinetuneRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)

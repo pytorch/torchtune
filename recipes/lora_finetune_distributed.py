@@ -814,7 +814,9 @@ def recipe_main(cfg: DictConfig) -> None:
     os.environ["TORCH_NCCL_AVOID_RECORD_STREAMS"] = "1"
     init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
 
-    config.log_config(recipe_name="LoRAFinetuneRecipeDistributed", cfg=cfg)
+    _, rank = training.get_world_size_and_rank()
+    if rank == 0:
+        config.log_config(recipe_name="LoRAFinetuneRecipeDistributed", cfg=cfg)
 
     recipe = LoRAFinetuneRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)

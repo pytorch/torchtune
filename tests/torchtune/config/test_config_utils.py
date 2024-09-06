@@ -132,30 +132,11 @@ class TestUtils:
         logger.addHandler(handler)
 
         with mock.patch("torchtune.config._utils.get_logger", return_value=logger):
-            # Make sure rank 0 logs as expected
-            with mock.patch(
-                "torchtune.config._utils.get_world_size_and_rank",
-                return_value=(None, 0),
-            ):
-                log_config("test", cfg)
-                output = stream.getvalue().strip()
-                assert (
-                    "Running test with resolved config:\n\ntest:\n  a: 1\n  b: 2"
-                    in output
-                )
-
-            # Clear the stream
-            stream.truncate(0)
-            stream.seek(0)
-
-            # Make sure all other ranks do not log anything
-            with mock.patch(
-                "torchtune.config._utils.get_world_size_and_rank",
-                return_value=(None, 1),
-            ):
-                log_config("test", cfg)
-                output = stream.getvalue().strip()
-                assert not output
+            log_config("test", cfg)
+            output = stream.getvalue().strip()
+            assert (
+                "Running test with resolved config:\n\ntest:\n  a: 1\n  b: 2" in output
+            )
 
     def test_remove_key_by_dotpath(self):
         # Test removing a component raises
