@@ -28,7 +28,7 @@ from torchtune.modules import (
     TransformerDecoder,
     TransformerSelfAttentionLayer,
 )
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 
 @pytest.fixture(autouse=True)
@@ -378,7 +378,7 @@ class TestTransformerDecoder:
         input_max_bs_exceeded: torch.Tensor,
         decoder_with_kv_cache_enabled: TransformerDecoder,
     ) -> None:
-        with pytest.raises(ValueError):
+        with pytest.raises(RuntimeError, match="shape mismatch:"):
             decoder_with_kv_cache_enabled(input_max_bs_exceeded)
 
     def test_rms_norm_propagation(

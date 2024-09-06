@@ -8,7 +8,7 @@ import pytest
 import torch
 from tests.test_utils import fixed_init_model
 from torchtune.models.llama3 import llama3
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 EMBED_DIM = 128
 NUM_LAYERS = 4

@@ -38,6 +38,25 @@ Utilities for working in a reduced precision setting.
     validate_expected_param_dtype
     get_quantizer_mode
 
+.. _dist_label:
+
+Distributed
+-----------
+
+Utilities for enabling and working with distributed training.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    FSDPPolicyType
+    init_distributed
+    is_distributed
+    get_world_size_and_rank
+    get_full_finetune_fsdp_wrap_policy
+    lora_fsdp_wrap_policy
+
+.. _ac_label:
 
 Memory Management
 -----------------
@@ -49,6 +68,10 @@ Utilities to reduce memory consumption during training.
     :nosignatures:
 
     apply_selective_activation_checkpointing
+    set_activation_checkpointing
+    OptimizerInBackwardWrapper
+    create_optim_in_bwd_wrapper
+    register_optim_in_bwd_hooks
 
 .. _metric_logging_label:
 
@@ -79,6 +102,8 @@ of your finetuning job.
     :toctree: generated/
     :nosignatures:
 
+    get_memory_stats
+    log_memory_stats
     setup_torch_profiler
 
 Miscellaneous
@@ -89,3 +114,4 @@ Miscellaneous
     :nosignatures:
 
     get_unmasked_sequence_lengths
+    set_seed
