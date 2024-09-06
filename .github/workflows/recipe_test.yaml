@@ -39,7 +39,7 @@ jobs:
         yum install -y  devtoolset-10-binutils
         export PATH=/opt/rh/devtoolset-10/root/usr/bin/:$PATH
         python -m pip install --upgrade pip
-        pip install torch torchvision torchao
+        python -m pip install --pre torch torchvision torchao --index-url https://download.pytorch.org/whl/nightly/cu121
         pip install .
         pip install lm-eval==0.4.* bitsandbytes>=0.43.0 comet_ml>=3.44.2 pre-commit pytest==7.4.0 pytest-cov pytest-mock pytest-integration tensorboard wandb expecttest
         pytest tests -m integration_test --cov=. --cov-report=xml --durations=20 -vv
