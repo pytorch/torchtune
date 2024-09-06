@@ -566,9 +566,9 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
             collate_fn=(
                 partial(
                     padded_collate,
+                    pad_direction="right",
+                    keys_to_pad=["tokens"],
                     padding_idx=self._tokenizer.pad_id,
-                    # ignore_idx=self._loss_fn.ignore_index,
-                    pad_labels=False,
                     num_classes=ds.num_classes,
                 )
                 if not packed
