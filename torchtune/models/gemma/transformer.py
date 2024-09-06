@@ -79,8 +79,8 @@ class GemmaTransformerDecoder(nn.Module):
         batch_size: int,
         dtype: torch.dtype,
         *,
-        encoder_max_seq_len: int = None,
-        decoder_max_seq_len: int = None,
+        encoder_max_seq_len: Optional[int] = None,
+        decoder_max_seq_len: Optional[int] = None,
     ):
         """
         Sets up key-value attention caches for inference. For each layer in ``self.layers``:
@@ -91,8 +91,8 @@ class GemmaTransformerDecoder(nn.Module):
         Args:
             batch_size (int): batch size for the caches.
             dtype (torch.dtype): dtype for the caches.
-            encoder_max_seq_len (int): maximum encoder cache sequence length.
-            decoder_max_seq_len (int): maximum decoder cache sequence length.
+            encoder_max_seq_len (Optional[int]): maximum encoder cache sequence length.
+            decoder_max_seq_len (Optional[int]): maximum decoder cache sequence length.
         """
         if encoder_max_seq_len is not None:
             self.encoder_max_seq_len = encoder_max_seq_len

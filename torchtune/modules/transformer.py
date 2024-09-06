@@ -375,8 +375,8 @@ class TransformerDecoder(nn.Module):
         batch_size: int,
         dtype: torch.dtype,
         *,
-        encoder_max_seq_len: int = None,
-        decoder_max_seq_len: int = None,
+        encoder_max_seq_len: Optional[int] = None,
+        decoder_max_seq_len: Optional[int] = None,
     ):
         """
         Sets up key-value attention caches for inference. For each layer in ``self.layers``:
@@ -387,8 +387,8 @@ class TransformerDecoder(nn.Module):
         Args:
             batch_size (int): batch size for the caches.
             dtype (torch.dtype): dtype for the caches.
-            encoder_max_seq_len (int): maximum encoder cache sequence length.
-            decoder_max_seq_len (int): maximum decoder cache sequence length.
+            encoder_max_seq_len (Optional[int]): maximum encoder cache sequence length.
+            decoder_max_seq_len (Optional[int]): maximum decoder cache sequence length.
         """
 
         has_encoder_layers = any(
@@ -639,8 +639,8 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         batch_size: int,
         dtype: torch.dtype,
         *,
-        encoder_max_seq_len: int = None,
-        decoder_max_seq_len: int = None,
+        encoder_max_seq_len: Optional[int] = None,
+        decoder_max_seq_len: Optional[int] = None,
     ):
         """
         Sets up key-value attention caches for inference. For each layer in ``self.layers``:
@@ -651,8 +651,8 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         Args:
             batch_size (int): batch size for the caches.
             dtype (torch.dtype): dtype for the caches.
-            encoder_max_seq_len (int): maximum encoder cache sequence length.
-            decoder_max_seq_len (int): maximum decoder cache sequence length.
+            encoder_max_seq_len (Optional[int]): maximum encoder cache sequence length.
+            decoder_max_seq_len (Optional[int]): maximum decoder cache sequence length.
         """
         has_encoder_layers = any(
             isinstance(l, TransformerCrossAttentionLayer) or isinstance(l, FusionLayer)
