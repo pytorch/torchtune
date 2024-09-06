@@ -133,7 +133,7 @@ class TestLlama3Tokenizer:
             128007,
             10,
             10,
-            128011,
+            128256,
             73,
             503,
             654,
@@ -184,7 +184,7 @@ class TestLlama3Tokenizer:
             128007,
             10,
             10,
-            128011,
+            128256,
             73,
             503,
             654,
@@ -192,7 +192,7 @@ class TestLlama3Tokenizer:
             376,
             110,
             46,
-            128011,
+            128256,
             1542,
             720,
             428,
@@ -304,11 +304,11 @@ class TestLlama3Tokenizer:
         assert tokenizer.eom_id == 128008
         assert tokenizer.eot_id == 128009
         assert tokenizer.python_tag == 128010
-        assert tokenizer.image_id == 128011
+        assert tokenizer.image_id == 128256
 
     def test_tokenizer_vocab_size(self, tokenizer):
         assert tokenizer.base_vocab_size == 2000
-        assert tokenizer.vocab_size == 128256
+        assert tokenizer.vocab_size == 128257
 
     def test_tokenize_text_messages(
         self, tokenizer, user_text_message, assistant_text_message
@@ -324,18 +324,21 @@ class TestLlama3Tokenizer:
         assert tokens == expected_tokens
         assert mask == expected_mask
 
-    def test_tokenize_message_drop_eos(
+    def test_tokenize_message_drop_eot_and_eos(
         self, tokenizer, user_text_message, assistant_text_message
     ):
-        """Test that the tokenizer will not add an EOS token if user requests it."""
+        """
+        Test that the tokenizer will not add an EOS token or EOT token if user requests it.
+        This is the most common case for inference.
+        """
         text_messages = [user_text_message[0], assistant_text_message[0]]
-        # Chop the end of the assistant message to remove the EOS token
-        expected_tokens = user_text_message[1] + assistant_text_message[1][:-1]
-        # No need to mask out the EOS token at the end since it's not there
+        # Chop the end of the assistant message to remove the EOS token *and* EOT token
+        expected_tokens = user_text_message[1] + assistant_text_message[1][:-2]
+        # No need to mask out the EOS token *or* EOT token at the end since they are not there
         expected_mask = [True] * len(user_text_message[1]) + [False] * (
-            len(assistant_text_message[1]) - 1
+            len(assistant_text_message[1]) - 2
         )
-        tokens, mask = tokenizer.tokenize_messages(text_messages, add_eos=False)
+        tokens, mask = tokenizer.tokenize_messages(text_messages, add_end_tokens=False)
         assert tokens == expected_tokens
         assert mask == expected_mask
 

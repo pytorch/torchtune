@@ -19,7 +19,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import config, modules, training, utils
-from torchtune.data import padded_collate
+from torchtune.data import padded_collate_sft
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
@@ -369,7 +369,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     m.compile(backend=backend)
 
         if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(
+            training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
@@ -382,8 +382,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         log.info(f"Model is initialized with precision {self._dtype}.")
 
         if self._device.type == "cuda":
-            memory_stats = utils.get_memory_stats(device=self._device)
-            utils.log_memory_stats(memory_stats)
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(memory_stats)
 
         return model
 
@@ -403,9 +403,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 for p in self._model.parameters()
             }
             # Register optimizer step hooks on the model to run optimizer in backward.
-            utils.register_optim_in_bwd_hooks(model=self._model, optim_dict=optim_dict)
+            training.register_optim_in_bwd_hooks(
+                model=self._model, optim_dict=optim_dict
+            )
             # Create a wrapper for checkpoint save/load of optimizer states when running in backward.
-            self._optim_ckpt_wrapper = utils.create_optim_in_bwd_wrapper(
+            self._optim_ckpt_wrapper = training.create_optim_in_bwd_wrapper(
                 model=self._model, optim_dict=optim_dict
             )
             # Load optimizer states. If optimizer states are being restored in an optimizer in backward
@@ -462,13 +464,15 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
-            collate_fn=partial(
-                padded_collate,
-                padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
-            )
-            if not packed
-            else None,
+            collate_fn=(
+                partial(
+                    padded_collate_sft,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else None
+            ),
         )
 
         log.info("Dataset and Sampler are initialized.")
@@ -612,7 +616,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._device.type == "cuda" and self._log_peak_memory_stats:
-                            log_dict.update(utils.get_memory_stats(device=self._device))
+                            log_dict.update(
+                                training.get_memory_stats(device=self._device)
+                            )
                         if self._clip_grad_norm is not None:
                             log_dict.update({"grad_norm": grad_norm})
                         self._metric_logger.log_dict(

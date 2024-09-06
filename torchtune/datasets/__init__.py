@@ -26,6 +26,8 @@ from torchtune.datasets._text_completion import (
     TextCompletionDataset,
 )
 from torchtune.datasets._wikitext import wikitext_dataset
+from torchtune.datasets.multimodal._llava_instruct import llava_instruct_dataset
+from torchtune.datasets.multimodal._the_cauldron import the_cauldron_dataset
 
 __all__ = [
     "alpaca_dataset",
@@ -47,6 +49,8 @@ __all__ = [
     "ConcatDataset",
     "wikitext_dataset",
     "PreferenceDataset",
+    "the_cauldron_dataset",
     "SFTDataset",
     "hh_rlhf_helpful_dataset",
+    "llava_instruct_dataset",
 ]

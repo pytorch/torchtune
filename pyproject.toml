@@ -3,7 +3,7 @@
 name = "torchtune"
 description = "A native-PyTorch library for LLM fine-tuning"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = {file = "LICENSE"}
 authors = [
     { name = "PyTorch Team", email = "packages@pytorch.org" },
