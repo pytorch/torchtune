@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.utils._generation &mdash; torchtune main documentation</title>
+  <title>torchtune.generation._generation &mdash; torchtune main documentation</title>
   
 
   
@@ -331,6 +331,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_config.html">torchtune.config</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_data.html">torchtune.data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_modules.html">torchtune.modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_training.html">torchtune.training</a></li>
@@ -377,7 +378,7 @@
         
           <li><a href="../../index.html">Module code</a> &gt;</li>
         
-      <li>torchtune.utils._generation</li>
+      <li>torchtune.generation._generation</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -409,7 +410,7 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>Source code for torchtune.utils._generation</h1><div class="highlight"><pre>
+  <h1>Source code for torchtune.generation._generation</h1><div class="highlight"><pre>
 <span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
 <span class="c1"># All rights reserved.</span>
 <span class="c1">#</span>
@@ -472,7 +473,7 @@
     <span class="k">return</span> <span class="n">stop_token_reached</span>
 
 
-<div class="viewcode-block" id="generate"><a class="viewcode-back" href="../../../generated/torchtune.utils.generate.html#torchtune.utils.generate">[docs]</a><span class="nd">@torch</span><span class="o">.</span><span class="n">inference_mode</span><span class="p">()</span>
+<div class="viewcode-block" id="generate"><a class="viewcode-back" href="../../../generated/torchtune.generation.generate.html#torchtune.generation.generate">[docs]</a><span class="nd">@torch</span><span class="o">.</span><span class="n">inference_mode</span><span class="p">()</span>
 <span class="k">def</span> <span class="nf">generate</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">TransformerDecoder</span><span class="p">,</span>
     <span class="n">prompt</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
