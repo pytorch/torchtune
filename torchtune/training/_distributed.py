@@ -8,7 +8,7 @@
 import logging
 import os
 from itertools import chain
-from typing import Any, Callable, cast, Dict, List, Set, Tuple, Type
+from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type
 
 import torch
 import torch.distributed as dist
@@ -285,6 +285,7 @@ def load_from_full_model_state_dict(
     device: torch.device,
     is_rank_zero: bool,
     strict: bool = False,
+    cpu_offload: bool = False,
 ):
     """
     Converting full state dict into a sharded state dict
@@ -338,6 +339,8 @@ def load_from_full_model_state_dict(
                 sharded_meta_param.device_mesh,
                 sharded_meta_param.placements,
             )
+        if cpu_offload:
+            sharded_tensor = sharded_tensor.cpu()
         sharded_sd[param_name] = nn.Parameter(sharded_tensor)
     # choose `assign=True` since we cannot call `copy_` on meta tensor
     return model.load_state_dict(sharded_sd, strict=strict, assign=True)
@@ -346,6 +349,7 @@ def load_from_full_model_state_dict(
 def get_full_model_state_dict(
     model: "FSDPModule",  # noqa
     is_rank_zero: bool,
+    device: Optional[torch.device] = None,
 ) -> Dict[str, Any]:
     """
     Converting sharded state dict into a full state dict on cpu
@@ -393,6 +397,13 @@ def get_full_model_state_dict(
             module.reshard()
     else:
         for param_name, sharded_param in sharded_sd.items():
+            if sharded_param.is_cpu:
+                assert device is not None and device.type == "cuda", (
+                    f"Expect cuda but got device={device}. "
+                    "Please call get_full_model_state_dict(..., device=self._device),"
+                    " so DTensor can communicate over NCCL."
+                )
+                sharded_param = sharded_param.to(device)
             full_param = sharded_param.full_tensor()
             if is_rank_zero:
                 cpu_state_dict[param_name] = full_param.cpu()
@@ -404,6 +415,7 @@ def get_full_model_state_dict(
 def get_full_optimizer_state_dict(
     opt: Optimizer,
     is_rank_zero: bool,
+    device: Optional[torch.device] = None,
 ) -> Dict[str, Any]:
     """
     Converting optimizer state from sharded to full
@@ -417,8 +429,15 @@ def get_full_optimizer_state_dict(
     for group_id, sharded_group in sharded_state.items():
         group_state = {}
         for attr, sharded_tensor in sharded_group.items():
+            # "exp_avg" in AdamW is `DTensor`
             if isinstance(sharded_tensor, DTensor):
-                # "exp_avg" in AdamW is `DTensor`
+                if sharded_tensor.is_cpu:
+                    assert device is not None and device.type == "cuda", (
+                        f"Expect cuda but got device={device}. "
+                        "Please call get_full_optimizer_state_dict(..., device=self._device),"
+                        " so DTensor can communicate over NCCL."
+                    )
+                    sharded_tensor = sharded_tensor.to(device)
                 full_tensor = sharded_tensor.full_tensor()
             else:
                 # "step" in AdamW is plain tensor
@@ -584,4 +603,4 @@ def shard_model(
             fully_shard(m, **fsdp_kwargs)
 
     # Finally shard the entire model to account for any stragglers
-    fully_shard(model)
+    fully_shard(model, **fsdp_kwargs)

@@ -428,7 +428,7 @@ class TestTransformerDecoder:
         decoder_with_kv_cache_enabled = request.getfixturevalue(
             decoder_with_kv_cache_enabled
         )
-        with pytest.raises(ValueError):
+        with pytest.raises(RuntimeError, match="shape mismatch:"):
             decoder_with_kv_cache_enabled(input_max_bs_exceeded)
 
     def test_rms_norm_propagation(
