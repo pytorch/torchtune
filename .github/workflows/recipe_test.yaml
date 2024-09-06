@@ -32,6 +32,7 @@ jobs:
       gpu-arch-type: ${{ matrix.gpu-arch-type }}
       gpu-arch-version: ${{ matrix.gpu-arch-version }}
       # Python=3.10 for now cause bitsandbytes?
+      # also for some reason pip install -e ".[dev]" doesn't work?
       script: |
         conda create -n venv python=3.10 -y
         conda activate venv
@@ -41,5 +42,4 @@ jobs:
         pip install torch torchvision torchao
         pip install .
         pip install lm-eval==0.4.* bitsandbytes>=0.43.0 comet_ml>=3.44.2 pre-commit pytest==7.4.0 pytest-cov pytest-mock pytest-integration tensorboard wandb expecttest
-        pytest test --verbose -s
         pytest tests -m integration_test --cov=. --cov-report=xml --durations=20 -vv
