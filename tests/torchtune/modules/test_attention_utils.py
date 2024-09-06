@@ -6,10 +6,12 @@
 
 # (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 
+import pdb
 from unittest import mock
 
 import pytest
 import torch
+from tests.test_utils import gpu_test
 
 from torchtune.modules.attention_utils import (
     _get_document_ids_from_seq_lens,
@@ -23,7 +25,7 @@ from torchtune.modules.attention_utils import (
 class TestBlockCausalMask:
     @pytest.fixture
     def seq_lens(self):
-        return torch.tensor([[2, 3, 1, 0], [2, 2, 2, 0]])
+        return [torch.tensor([2, 3, 1, 0]), torch.tensor([2, 2, 2, 0])]
 
     def test_get_document_ids_from_seq_lens(self, seq_lens):
         actual = _get_document_ids_from_seq_lens(seq_lens)
@@ -57,7 +59,7 @@ class TestBlockCausalMask:
 
     @mock.patch("torchtune.modules.attention_utils._SUPPORTS_FLEX_ATTENTION", False)
     def test_packed_block_causal_mask_sdpa(self, mock_supports_flex, seq_lens):
-        actual = packed_block_causal_mask(seq_lens, device="cpu")
+        actual = packed_block_causal_mask(seq_lens)
         expected = torch.tensor(
             [
                 [
@@ -85,9 +87,11 @@ class TestBlockCausalMask:
         not _SUPPORTS_FLEX_ATTENTION,
         reason="Please install a nightly build of torch (>=2.5.0) to run this test.",
     )
+    @gpu_test(gpu_count=1)
     def test_packed_block_causal_mask_flex(self, mock_version, seq_lens):
         mock_version.return_value = False
-        actual = packed_block_causal_mask(seq_lens, device="cpu")
+        actual = packed_block_causal_mask(seq_lens)
+        pdb.set_trace()
         expected = torch.tensor(
             [
                 [

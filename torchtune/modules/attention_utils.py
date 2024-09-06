@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import Callable, Optional, Union
+from typing import Callable, List, Optional, Union
 
 import torch
 
@@ -33,20 +33,21 @@ _log: logging.Logger = get_logger()
 
 
 def _get_document_ids_from_seq_lens(
-    seq_lens: torch.Tensor,
+    seq_lens: List[torch.Tensor],
 ) -> torch.Tensor:
     """
     Convert a batch tensor of seq lens into integer IDs denoting sample ownership.
     For example, seq_lens = [2, 3, 1] would return [0, 0, 1, 1, 1, 2].
 
     Args:
-        seq_lens (torch.Tensor): Sequence lengths of samples in each pack in the batch,
-            shape (batch_size, n), where n is the max number of sequences across packs.
+        seq_lens (List[torch.Tensor]): Sequence lengths of samples in each pack in the batch,
+            shape (batch_size, n), where n is the max number of sequences in a pack and can vary
+            across packs.
 
     Returns:
         Tensor: Document IDs of shape (batch_size, max_seq_len).
     """
-    batch_size = seq_lens.shape[0]
+    batch_size = len(seq_lens)
     batch_document_ids = []
     for sample_idx in range(batch_size):
         # We assume seq lens sum to max seq lens, so document_ids should be of
@@ -62,7 +63,7 @@ def _get_document_ids_from_seq_lens(
     return batch_document_ids
 
 
-def create_block_causal_mask(seq_lens: torch.Tensor) -> torch.Tensor:
+def create_block_causal_mask(seq_lens: List[torch.Tensor]) -> torch.Tensor:
     """
     Given a batch tensor of seq lens defining the lengths of samples in each pack,
     Construct a 2D block causal mask for each pack in the batch. For example, if
@@ -78,14 +79,16 @@ def create_block_causal_mask(seq_lens: torch.Tensor) -> torch.Tensor:
         ]
 
     Args:
-        seq_lens (torch.Tensor): Sequence lengths of samples in each pack in the batch,
-            shape (batch_size, n), where n is the max number of sequences across packs.
+        seq_lens (List[torch.Tensor]): Sequence lengths of samples in each pack in the batch,
+            shape (batch_size, n), where n is the max number of sequences in a pack and can vary
+            across packs.
+
 
     Returns:
         Tensor: Block causal mask of shape (batch_size, max_seq_len, max_seq_len).
     """
     batch_block_attn_masks = []
-    batch_size = seq_lens.shape[0]
+    batch_size = len(seq_lens)
     for sample_idx in range(batch_size):
         block_attn_masks = [
             torch.tril(
@@ -99,7 +102,7 @@ def create_block_causal_mask(seq_lens: torch.Tensor) -> torch.Tensor:
 
 
 def packed_block_causal_mask(
-    seq_lens: torch.Tensor,
+    seq_lens: List[torch.Tensor],
 ) -> _MaskType:
     """
     Create a block causal document mask for a batch of packed sequences. If on
@@ -109,8 +112,9 @@ def packed_block_causal_mask(
     mask. If on an older version, a standard 2D block causal mask is created and returned.
 
     Args:
-        seq_lens (torch.Tensor): Sequence lengths of samples in each pack in the batch,
-            shape (batch_size, n), where n is the max number of sequences across packs.
+        seq_lens (List[torch.Tensor]): Sequence lengths of samples in each pack in the batch,
+            shape (batch_size, n), where n is the max number of sequences in a pack and can vary
+            across packs.
 
     Returns:
         _MaskType: BlockMask or Tensor if torch version < 2.5.0.
@@ -120,6 +124,11 @@ def packed_block_causal_mask(
         batch_size, max_seq_len = document_ids.shape
         document_ids = document_ids.to("cuda")
 
+        # Instead of passing a tensor mask, flex attention requires a mask_mod function
+        # that determines which elements of QK^T should be included in the attention
+        # computation prior to the softmax. For sample packing, we need both the
+        # logic for both causal mask and document mask. See PyTorch's official
+        # blog post for more details: https://pytorch.org/blog/flexattention/#mask-mods
         def mask_mod(b, h, q_idx, kv_idx):
             causal_mask = q_idx >= kv_idx
             document_mask = document_ids[b, q_idx] == document_ids[b, kv_idx]
