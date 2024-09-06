@@ -26,7 +26,7 @@ def get_reward_penalty_mask(
     - If ``penalise_no_eos`` is True, scores for sequences with no EOS token are penalised.
 
     Args:
-        padding_masks (torch.Tensor): Tensor where True indicates a padding token in the generated
+        padding_masks (torch.Tensor): torch.Tensor where True indicates a padding token in the generated
             sequence, and False otherwise. Shape: (b, reponse_len)
         seq_lens (torch.Tensor): The length of each generated sequence. Shape: (b,)
         penalise_no_eos (bool, optional): Whether to penalise sequences with no EOS token. Defaults to True.

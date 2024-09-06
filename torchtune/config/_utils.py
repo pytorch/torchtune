@@ -17,7 +17,7 @@ from torchtune.data._prompt_templates import (
     PromptTemplate,
     PromptTemplateInterface,
 )
-from torchtune.utils._distributed import get_world_size_and_rank
+from torchtune.training._distributed import get_world_size_and_rank
 from torchtune.utils.logging import get_logger
 
 

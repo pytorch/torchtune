@@ -15,6 +15,7 @@ from torchtune.models.llama3_1._position_embeddings import Llama3ScaledRoPE
 from torchtune.modules import (
     MultiHeadAttention,
     FeedForward,
+    FrozenNF4Linear,
     KVCache,
     RMSNorm,
     TransformerDecoder,
@@ -51,6 +52,7 @@ def llama3_1(
     rope_base: int = 500000.0,
     intermediate_dim: Optional[int] = None,
     norm_eps: float = 1e-5,
+    scale_factor: int = 8,
 ) -> TransformerDecoder:
     """
     Build the decoder associated with the Llama3.1 model. This includes:
@@ -75,13 +77,14 @@ def llama3_1(
         intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
             this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`
         norm_eps (float): epsilon in RMS norms.
+        scale_factor (int): scaling factor for RoPE. Default: 8
 
     Returns:
         TransformerDecoder: Instantiation of Llama3.1 model.
     """
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
-    rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+    rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base, scale_factor=scale_factor)
     self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
@@ -116,14 +119,15 @@ def llama3_1(
         output=output_proj,
     )
 
-def llama3_mlp(dim: int, hidden_dim: int) -> FeedForward:
+def llama3_mlp(dim: int, hidden_dim: int, quantize_base: bool = False) -> FeedForward:
     """
     Build the MLP layer associated with the Llama model.
     """
-    gate_proj = nn.Linear(dim, hidden_dim, bias=False)
-    down_proj = nn.Linear(hidden_dim, dim, bias=False)
-    up_proj = nn.Linear(dim, hidden_dim, bias=False)
+    gate_proj = nn.Linear(dim, hidden_dim, bias=False) if not quantize_base else FrozenNF4Linear(dim, hidden_dim, bias=False)
+    down_proj = nn.Linear(hidden_dim, dim, bias=False) if not quantize_base else FrozenNF4Linear(hidden_dim, dim, bias=False)
+    up_proj = nn.Linear(dim, hidden_dim, bias=False) if not quantize_base else FrozenNF4Linear(dim, hidden_dim, bias=False)
     return FeedForward(gate_proj=gate_proj, down_proj=down_proj, up_proj=up_proj)
+
 
 
 
@@ -221,7 +225,7 @@ def lora_llama3_1(
             use_dora=use_dora,
         )
     else:
-        mlp = llama3_mlp(dim=embed_dim, hidden_dim=hidden_dim)
+        mlp = llama3_mlp(dim=embed_dim, hidden_dim=hidden_dim, quantize_base=quantize_base)
 
     layer = TransformerSelfAttentionLayer(
         attn=self_attn,
@@ -326,7 +330,11 @@ def lora_llama3_1_self_attention(
             quantize_base=quantize_base,
         )
         if "q_proj" in lora_modules
-        else nn.Linear(embed_dim, num_heads * head_dim, bias=False)
+        else (
+            nn.Linear(embed_dim, num_heads * head_dim, bias=False)
+            if not quantize_base
+            else FrozenNF4Linear(embed_dim, num_heads * head_dim, bias=False)
+        )
     )
     k_proj = (
         adapter_cls(
@@ -338,7 +346,11 @@ def lora_llama3_1_self_attention(
             quantize_base=quantize_base,
         )
         if "k_proj" in lora_modules
-        else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+        else (
+            nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+            if not quantize_base
+            else FrozenNF4Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+        )
     )
     v_proj = (
         adapter_cls(
@@ -350,7 +362,11 @@ def lora_llama3_1_self_attention(
             quantize_base=quantize_base,
         )
         if "v_proj" in lora_modules
-        else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+        else (
+            nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+            if not quantize_base
+            else FrozenNF4Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+        )
     )
     output_proj = (
         adapter_cls(
@@ -362,7 +378,11 @@ def lora_llama3_1_self_attention(
             quantize_base=quantize_base,
         )
         if "output_proj" in lora_modules
-        else nn.Linear(embed_dim, embed_dim, bias=False)
+        else (
+            nn.Linear(embed_dim, embed_dim, bias=False)
+            if not quantize_base
+            else FrozenNF4Linear(embed_dim, embed_dim, bias=False)
+        )
     )
     rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
     self_attn = MultiHeadAttention(

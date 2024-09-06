@@ -11,11 +11,11 @@ import pytest
 import torch
 from tests.test_utils import assert_expected
 
-from torchtune.models.clip._transforms import CLIPImageTransform
-from torchtune.models.clip.inference._transforms import (
+from torchtune.models.clip._transform import CLIPImageTransform
+from torchtune.models.clip.inference._transform import (
     CLIPImageTransform as CLIPImageTransformInference,
 )
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 
 @pytest.fixture(autouse=True)
@@ -74,6 +74,7 @@ class TestCLIPImageTransform:
             possible_resolutions=None,
             max_num_tiles=4,
             resample="bilinear",
+            dtype=torch.float32,
             resize_to_max_canvas=params["resize_to_max_canvas"],
         )
 
@@ -98,7 +99,7 @@ class TestCLIPImageTransform:
         image = PIL.Image.fromarray(image)
 
         # Apply the transformation
-        output = image_transform(image=image)
+        output = image_transform({"image": image})
         output_image = output["image"]
         output_ar = output["aspect_ratio"]
 
