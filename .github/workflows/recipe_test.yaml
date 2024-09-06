@@ -21,9 +21,9 @@ jobs:
       matrix:
         include:
           - name: CPU
-            runs-on: linux.2xlarge
-            gpu-arch-type: "cpu"
-            gpu-arch-version: ""
+            runs-on: linux.g5.12xlarge.nvidia.gpu
+            gpu-arch-type: "cuda"
+            gpu-arch-version: "12.1"
 
     uses: pytorch/test-infra/.github/workflows/linux_job.yml@main
     with:
