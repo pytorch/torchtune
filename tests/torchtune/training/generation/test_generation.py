@@ -9,9 +9,8 @@ import torch
 
 from tests.test_utils import fixed_init_model
 
-from torchtune import training
 from torchtune.models.llama2 import llama2
-from torchtune.training._generation import sample
+from torchtune.training.generation._generation import generate, sample
 
 
 class TestTextGenerate:
@@ -119,7 +118,7 @@ class TestTextGenerate:
         top_k = 100
 
         torch.manual_seed(42)
-        outputs_first = training.generate(
+        outputs_first = generate(
             model=model1,
             prompt=prompt,
             max_generated_tokens=10,
@@ -128,7 +127,7 @@ class TestTextGenerate:
         )
 
         torch.manual_seed(42)
-        outputs_second = training.generate(
+        outputs_second = generate(
             model=model2,
             prompt=prompt,
             max_generated_tokens=10,
@@ -145,7 +144,7 @@ class TestTextGenerate:
 
         torch.manual_seed(42)
 
-        output = training.generate(
+        output = generate(
             model=generation_model_batched,
             prompt=prompt_tokens_batched,
             max_generated_tokens=10,
@@ -215,7 +214,7 @@ class TestTextGenerate:
 
         torch.manual_seed(42)
 
-        outputs = training.generate(
+        outputs = generate(
             model=generation_model,
             prompt=prompt_tokens,
             max_generated_tokens=10,
@@ -242,7 +241,7 @@ class TestTextGenerate:
 
         torch.manual_seed(42)
 
-        outputs = training.generate(
+        outputs = generate(
             model=generation_model_batched,
             prompt=prompt_tokens_batched,
             max_generated_tokens=10,
@@ -275,7 +274,7 @@ class TestTextGenerate:
 
         torch.manual_seed(42)
 
-        outputs = training.generate(
+        outputs = generate(
             model=generation_model_batched,
             prompt=prompt_tokens_batched,
             max_generated_tokens=10,

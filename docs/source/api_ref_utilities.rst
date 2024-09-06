@@ -16,5 +16,4 @@ Miscellaneous
 
     get_device
     get_logger
-    generate
     torch_version_ge
