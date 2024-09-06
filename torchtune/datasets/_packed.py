@@ -11,7 +11,6 @@ from torch.nn import functional as F
 
 from torch.utils.data import Dataset
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.training import get_world_size_and_rank
 from tqdm import tqdm
 
 PACK_TYPE = Dict[str, Union[torch.Tensor, List[int]]]
@@ -115,7 +114,11 @@ class PackedDataset(Dataset):
         }
 
         # Only show progress bar on rank 0
-        _, rank = get_world_size_and_rank()
+        rank = (
+            torch.distributed.get_rank()
+            if torch.distributed.is_available() and torch.distributed.is_initialized()
+            else 0
+        )
         if rank == 0:
             pbar = tqdm(total=len(self.ds), desc="Packing dataset", dynamic_ncols=True)
 
