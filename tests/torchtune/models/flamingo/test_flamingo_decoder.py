@@ -21,6 +21,7 @@ def decoder_config():
         "num_kv_heads": 4,
         "embed_dim": 512,
         "max_seq_len": 512,
+        "encoder_max_seq_len": 512,
         "rope_base": 500000.0,
         "intermediate_dim": 2048,
     }

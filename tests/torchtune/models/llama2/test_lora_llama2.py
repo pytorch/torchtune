@@ -67,7 +67,7 @@ class TestLoRALlamaSelfAttention:
     )
     def test_forward(self, inputs, lora_modules, expected):
         lora_llama_sa = self.get_lora_llama_self_attention(lora_modules)
-        actual = lora_llama_sa(inputs)
+        actual = lora_llama_sa(inputs, inputs)
         assert_expected(actual.shape, (BSZ, SEQ_LEN, EMBED_DIM))
         assert_expected(actual.mean(), expected, atol=1e-4, rtol=1e-6)
 
