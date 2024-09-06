@@ -119,7 +119,7 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
-        _, rank = utils.get_world_size_and_rank()
+        _, rank = training.get_world_size_and_rank()
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
@@ -155,6 +155,8 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
         base model weights. If resume_from_checkpoint is True, this also includes
         the adapter weights and recipe state
         """
+        # this is for eval only
+        cfg_checkpointer.pop("eval_adapter_checkpoint")
         self._checkpointer = config.instantiate(
             cfg_checkpointer,
             resume_from_checkpoint=self._resume_from_checkpoint,
@@ -460,7 +462,7 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
 
         model = FSDP(
             module=model,
-            auto_wrap_policy=utils.lora_fsdp_wrap_policy(
+            auto_wrap_policy=training.lora_fsdp_wrap_policy(
                 modules_to_wrap={modules.TransformerSelfAttentionLayer}
             ),
             sharding_strategy=self._fsdp_sharding_strategy,
@@ -480,15 +482,15 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
         )
 
         # Ensure no params and buffers are on meta device
-        utils.validate_no_params_on_meta_device(model)
+        training.validate_no_params_on_meta_device(model)
 
         if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(
+            training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
         if self._is_rank_zero:
-            memory_stats = utils.get_memory_stats(device=self._device)
-            utils.log_memory_stats(memory_stats)
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(memory_stats)
 
         # synchronize before training begins
         torch.distributed.barrier()
@@ -538,7 +540,7 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = utils.get_world_size_and_rank()
+        world_size, rank = training.get_world_size_and_rank()
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -669,9 +671,9 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
         The core training loop.
         """
         # clean up before training begins
-        utils.cleanup_before_training()
+        training.cleanup_before_training()
 
-        _, rank = utils.get_world_size_and_rank()
+        _, rank = training.get_world_size_and_rank()
 
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
@@ -801,7 +803,9 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._log_peak_memory_stats:
-                            log_dict.update(utils.get_memory_stats(device=self._device))
+                            log_dict.update(
+                                training.get_memory_stats(device=self._device)
+                            )
                         self._metric_logger.log_dict(
                             log_dict,
                             step=self.global_step,
@@ -874,7 +878,7 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
         The validation loop.
         """
         self._val_sampler.set_epoch(curr_epoch)
-        _, rank = utils.get_world_size_and_rank()
+        _, rank = training.get_world_size_and_rank()
         running_val_loss = 0.0
         running_correct = 0.0
         running_total = 0.0
@@ -953,7 +957,7 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
         if rank == 0:
             log_dict = {"val_loss": running_val_loss, "val_accuracy": total_accuracy}
             if self._log_peak_memory_stats:
-                log_dict.update(utils.get_memory_stats(device=self._device))
+                log_dict.update(training.get_memory_stats(device=self._device))
             self._metric_logger.log_dict(
                 log_dict,
                 step=self.global_step,
@@ -974,7 +978,7 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in config (see available configs through ``tune ls``)
         - Overwritten by arguments from the command-line
     """
-    if not utils.is_distributed():
+    if not training.is_distributed():
         raise RuntimeError(
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"

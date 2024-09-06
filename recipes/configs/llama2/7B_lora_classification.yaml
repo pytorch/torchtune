@@ -42,6 +42,7 @@ checkpointer:
   checkpoint_dir: ${base_model_path}/Llama-2-7b-hf
   checkpoint_files: [pytorch_model-00001-of-00002.bin, pytorch_model-00002-of-00002.bin]
   adapter_checkpoint:
+  eval_adapter_checkpoint: ${output_dir_parent}/${xp_name}/adapter_1.pt
   recipe_checkpoint:
   output_dir: ${output_dir_parent}/${xp_name}
   model_type: LLAMA2
