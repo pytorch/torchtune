@@ -25,28 +25,19 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.9', '3.10', '3.11']
-    steps:
-      - name: Check out repo
-        uses: actions/checkout@v3
-      - name: Setup conda env
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          auto-update-conda: true
-          miniconda-version: "latest"
-          activate-environment: test
-          python-version: ${{ matrix.python-version }}
-      - name: Install gcc
-        run: |
-          yum install -y  devtoolset-10-binutils
-          export PATH=/opt/rh/devtoolset-10/root/usr/bin/:$PATH
-      - name: Update pip
-        run: python -m pip install --upgrade pip
-      - name: Install dependencies
-        run: |
-          python -m pip install torch torchvision torchao
-          python -m pip install -e ".[dev]"
-          python -m pip install lm-eval==0.4.*
-      - name: Run recipe tests with coverage
-        run: pytest tests -m integration_test --cov=. --cov-report=xml --durations=20 -vv
-      - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@v3
+    uses: pytorch/test-infra/.github/workflows/linux_job.yml@main
+    with:
+      timeout: 60
+      runner: linux.2xlarge
+      script: |
+        conda create -n venv python=3.9 -y
+        conda activate venv
+        echo "::group::Install newer objcopy that supports --set-section-alignment"
+        yum install -y  devtoolset-10-binutils
+        export PATH=/opt/rh/devtoolset-10/root/usr/bin/:$PATH
+        python -m pip install --upgrade pip
+        python -m pip install torch torchvision torchao
+        python -m pip install -e ".[dev]"
+        python -m pip install lm-eval==0.4.*
+        pytest test --verbose -s
+        pytest tests -m integration_test --cov=. --cov-report=xml --durations=20 -vv
