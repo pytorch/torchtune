@@ -24,11 +24,18 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11']
+        include:
+          - name: CPU
+            runs-on: linux.2xlarge
+            gpu-arch-type: "cpu"
+            gpu-arch-version: ""
+
     uses: pytorch/test-infra/.github/workflows/linux_job.yml@main
     with:
       timeout: 60
-      runner: linux.2xlarge
+      runner: ${{ matrix.runs-on }}
+      gpu-arch-type: ${{ matrix.gpu-arch-type }}
+      gpu-arch-version: ${{ matrix.gpu-arch-version }}
       script: |
         conda create -n venv python=3.9 -y
         conda activate venv
