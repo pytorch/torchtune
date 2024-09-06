@@ -40,11 +40,15 @@ def generate_next_token(
     x: torch.Tensor,
     temperature: float = 1.0,
     top_k: int = None,
+    *,
+    # this will all be better once https://github.com/pytorch/torchtune/pull/1424 lands. stopgap for now
+    mask: torch.Tensor = None,
+    encoder_mask: torch.Tensor = None,
 ) -> torch.Tensor:
     """Generates the next tokens."""
     # model produces logits in [bsz, seq_length, vocab_size]
     # we want to take the last token's logits as the input to the next model call
-    logits = model(x, input_pos=input_pos)[:, -1]
+    logits = model(x, mask=mask, encoder_mask=encoder_mask, input_pos=input_pos)[:, -1]
     return sample(logits, temperature, top_k)
 
 
@@ -114,6 +118,35 @@ def generate(
         (bsz, prompt_length + 1), dtype=torch.int32, device=prompt.device
     )
 
+    # if key value caches are enabled, we can incrementally decode
+    incremental_decoding = (
+        model.encoder_caches_are_enabled or model.decoder_caches_are_enabled
+    )
+
+    # setup encoder+/decoder masks for caches
+    mask, encoder_mask = None, None
+    curr_mask, curr_encoder_mask = None, None
+    if model.encoder_caches_are_enabled:
+        # generation for bsz=1 isn't supported right now anyway, broadcasting is fine here
+        encoder_mask = torch.tril(
+            torch.ones(
+                1,
+                model.encoder_max_cache_seq_len,
+                model.encoder_max_cache_seq_len,
+                device=prompt.device,
+            )
+        )
+    if model.decoder_caches_are_enabled:
+        # generation for bsz=1 isn't supported right now anyway, broadcasting is fine here
+        mask = torch.tril(
+            torch.ones(
+                1,
+                model.decoder_max_cache_seq_len,
+                model.decoder_max_cache_seq_len,
+                device=prompt.device,
+            )
+        )
+
     if custom_generate_next_token is None:
         custom_generate_next_token = generate_next_token
 
@@ -121,6 +154,10 @@ def generate(
     input_pos = torch.arange(0, model.max_seq_len, device=prompt.device)
     tokens = generate_next_token(
         model,
+        mask=mask[:, :prompt_length] if mask is not None else None,
+        encoder_mask=encoder_mask[:, :prompt_length]
+        if encoder_mask is not None
+        else None,
         input_pos=input_pos[:prompt_length],
         x=prompt,
         temperature=temperature,
@@ -137,8 +174,6 @@ def generate(
             return generated_tokens.tolist()
 
     curr_pos = prompt_length
-    # if key value caches are enabled, we can incrementally decode
-    incremental_decoding = model.caches_are_enabled()
     for _ in range(max_generated_tokens - 1):
         # update stop_token_mask if we reached a stop token in a previous step
         # by appending the logical not of stop_token_reached to the end of the mask
@@ -152,12 +187,20 @@ def generate(
         # otherwise, we take the whole sequence up to the current position
         if incremental_decoding:
             curr_input_pos = input_pos[curr_pos].unsqueeze(0)
+            curr_mask = mask[:, curr_pos, None, :] if mask is not None else None
+            curr_encoder_mask = (
+                encoder_mask[:, curr_pos, None, :]
+                if curr_encoder_mask is not None
+                else None
+            )
         else:
             curr_input_pos = input_pos[: curr_pos + 1]
             tokens = generated_tokens.clone()
 
         tokens = custom_generate_next_token(
             model,
+            mask=curr_mask,
+            encoder_mask=encoder_mask,
             input_pos=curr_input_pos,
             x=tokens,
             temperature=temperature,

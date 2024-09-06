@@ -3,12 +3,13 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
+from __future__ import annotations
 
 from typing import Dict, List, Optional, Union
 
 import torch
+import torchtune
 from torch import nn
-from torchtune.modules import TransformerDecoder
 
 
 class FusionLayer(nn.Module):
@@ -313,13 +314,13 @@ class DeepFusionModel(nn.Module):
         >>> output = model(tokens, mask, encoder_input, encoder_mask, input_pos)
 
     Args:
-        decoder (TransformerDecoder): decoder module
+        decoder (torchtune.modules.TransformerDecoder): decoder module
         encoder (nn.Module): encoder module
     """
 
     def __init__(
         self,
-        decoder: TransformerDecoder,
+        decoder: torchtune.modules.TransformerDecoder,
         encoder: nn.Module,
     ):
         super().__init__()

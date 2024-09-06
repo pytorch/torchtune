@@ -11,6 +11,7 @@ import torch.nn.functional as F
 from torch import nn
 
 from torchtune.modules import MultiHeadAttention
+from torchtune.modules.model_fusion import FusionLayer
 
 
 class TransformerSelfAttentionLayer(nn.Module):
@@ -360,6 +361,10 @@ class TransformerDecoder(nn.Module):
         self.causal_mask = None
         self.num_output_chunks = 0
 
+        # attributes for KV caches during inference
+        self.encoder_max_cache_seq_len = None
+        self.decoder_max_cache_seq_len = None
+
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
         This should be called before the first forward pass, in the recipe."""
@@ -375,9 +380,9 @@ class TransformerDecoder(nn.Module):
     ):
         """
         Sets up key-value attention caches for inference. For each layer in ``self.layers``:
-        - :class:`torchtune.modules.TransformerSelfAttentionLayer` will use ``decoder_max_seq_len``.
-        - :class:`torchtune.modules.TransformerCrossAttentionLayer` will use ``encoder_max_seq_len``.
-        - :class:`torchtune.modules.fusion.FusionLayer` will use both ``decoder_max_seq_len`` and ``encoder_max_seq_len``.
+        - :class:`~torchtune.modules.TransformerSelfAttentionLayer` will use ``decoder_max_seq_len``.
+        - :class:`~torchtune.modules.TransformerCrossAttentionLayer` will use ``encoder_max_seq_len``.
+        - :class:`~torchtune.modules.fusion.FusionLayer` will use both ``decoder_max_seq_len`` and ``encoder_max_seq_len``.
 
         Args:
             batch_size (int): batch size for the caches.
@@ -385,35 +390,55 @@ class TransformerDecoder(nn.Module):
             encoder_max_seq_len (int): maximum encoder cache sequence length.
             decoder_max_seq_len (int): maximum decoder cache sequence length.
         """
-        encoder_max_seq_len = (
-            encoder_max_seq_len if encoder_max_seq_len is not None else self.max_seq_len
+
+        has_encoder_layers = any(
+            isinstance(l, TransformerCrossAttentionLayer) or isinstance(l, FusionLayer)
+            for l in self.layers
         )
-        decoder_max_seq_len = (
-            decoder_max_seq_len if decoder_max_seq_len is not None else self.max_seq_len
+        has_decoder_layers = any(
+            isinstance(l, TransformerSelfAttentionLayer) for l in self.layers
         )
+        if has_encoder_layers:
+            if encoder_max_seq_len is not None:
+                self.encoder_max_cache_seq_len = encoder_max_seq_len
+            else:
+                self.encoder_max_cache_seq_len = self.max_seq_len
+
+        if has_decoder_layers:
+            if decoder_max_seq_len is not None:
+                self.decoder_max_cache_seq_len = decoder_max_seq_len
+            else:
+                self.decoder_max_cache_seq_len = self.max_seq_len
+
         for layer in self.layers:
             layer.setup_cache(
                 batch_size,
                 dtype,
-                encoder_max_seq_len=encoder_max_seq_len,
-                decoder_max_seq_len=decoder_max_seq_len,
+                encoder_max_seq_len=self.encoder_max_cache_seq_len,
+                decoder_max_seq_len=self.decoder_max_cache_seq_len,
             )
 
-    def caches_are_enabled(self) -> bool:
+    @property
+    def encoder_caches_are_enabled(self) -> bool:
+        """Checks if there are any :class:`~torchtune.modules.TransformerCrossAttentionLayer`,
+        or :class:`~torchtune.modules.fusion.FusionLayer` layers which have cache enabled.
+        """
+        return self.encoder_max_cache_seq_len is not None
+
+    @property
+    def decoder_caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""
-        return self.layers[0].cache_enabled
+        return self.decoder_max_cache_seq_len is not None
 
     def reset_caches(self):
         """Reset the key value caches."""
-        if not self.caches_are_enabled():
+        if not (self.encoder_caches_are_enabled or self.decoder_caches_are_enabled):
             raise RuntimeError(
                 "Key value caches are not setup. Call ``setup_caches()`` first."
             )
 
         for layer in self.layers:
             layer.reset_cache()
-
-        self.pos = 0
 
     def forward(
         self,
@@ -431,16 +456,20 @@ class TransformerDecoder(nn.Module):
                 with shape [b x s x s]. This is applied after the query-key multiplication and
                 before the softmax. A value of True in row i and column j means token i attends
                 to token j. A value of False means token i does not attend to token j. If no
-                mask is specified, a causal mask is used by default. Default is None.
+                mask is specified, a causal mask is used by default. Default is None,
+                but this is required during inference if the model has been setup with any
+                self-attention layers.
             encoder_input (Optional[torch.Tensor]): Optional input embeds from the encoder. Shape [b x s_e x d_e]
             encoder_mask (Optional[torch.Tensor]):  Boolean tensor defining a relational matrix between
                 tokens and encoder embeddings. A True value at position i,j means token i can attend
-                to embedding j in the decoder. Mask has shape [b x s x s_e]. Default is None.
+                to embedding j in the decoder. Mask has shape [b x s x s_e]. Default is None,
+                but this is required during inference if the model has been setup with any layers
+                which use encoder embeddings.
             input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
-                During inference, this indicates the position of the current token.
-                If none, assume the index of the token is its position id. Default is None.
+                During inference, this indicates the position of the current token, and
+                is a required parameter. Default is None.
 
         Note: At the very first step of inference, when the model is provided with a prompt,
         ``input_pos`` would contain the positions of all of the tokens in the prompt
@@ -477,18 +506,24 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
-        if self.causal_mask is not None:
-            if mask is not None:
+        if self.decoder_caches_are_enabled:
+            if mask is None:
                 raise ValueError(
-                    "An attention mask was set. Cannot use a non-causal mask for inference"
+                    "KV-caches for self-attention layers are setup for inference mode, causal masks must be provided!"
+                    " Use the `mask` arg to provide a causal mask."
                 )
-            # Track the input position
-            if input_pos is None:
-                input_pos = torch.arange(self.pos, self.pos + seq_len, device=h.device)
-            self.pos = input_pos.max() + 1
-            # shape: [1, input_pos_len, m_s]
-            # in most cases input_pos_len should be 1
-            mask = self.causal_mask[None, input_pos]
+        if self.encoder_caches_are_enabled:
+            if encoder_mask is None:
+                raise ValueError(
+                    "KV-caches for cross-attention/fusion layers are setup for inference mode, causal masks must be provided!"
+                    " Use the `encoder_mask` arg to provide a causal mask."
+                )
+        if (
+            self.encoder_caches_are_enabled or self.decoder_caches_are_enabled
+        ) and input_pos is None:
+            raise ValueError(
+                "KV-caches are setup for inference mode, input positions must be provided!"
+            )
 
         hidden = []
         for i, layer in enumerate(self.layers):
@@ -590,6 +625,10 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         self.causal_mask = None
         self.num_output_chunks = 0
 
+        # attributes for KV caches during inference
+        self.encoder_max_cache_seq_len = None
+        self.decoder_max_cache_seq_len = None
+
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
         This should be called before the first forward pass, in the recipe."""
@@ -605,9 +644,9 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
     ):
         """
         Sets up key-value attention caches for inference. For each layer in ``self.layers``:
-        - :class:`torchtune.modules.TransformerSelfAttentionLayer` will use ``decoder_max_seq_len``.
-        - :class:`torchtune.modules.TransformerCrossAttentionLayer` will use ``encoder_max_seq_len``.
-        - :class:`torchtune.modules.fusion.FusionLayer` will use both ``decoder_max_seq_len`` and ``encoder_max_seq_len``.
+        - :class:`~torchtune.modules.TransformerSelfAttentionLayer` will use ``decoder_max_seq_len``.
+        - :class:`~torchtune.modules.TransformerCrossAttentionLayer` will use ``encoder_max_seq_len``.
+        - :class:`~torchtune.modules.fusion.FusionLayer` will use both ``decoder_max_seq_len`` and ``encoder_max_seq_len``.
 
         Args:
             batch_size (int): batch size for the caches.
@@ -615,35 +654,54 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
             encoder_max_seq_len (int): maximum encoder cache sequence length.
             decoder_max_seq_len (int): maximum decoder cache sequence length.
         """
-        encoder_max_seq_len = (
-            encoder_max_seq_len if encoder_max_seq_len is not None else self.max_seq_len
+        has_encoder_layers = any(
+            isinstance(l, TransformerCrossAttentionLayer) or isinstance(l, FusionLayer)
+            for l in self.layers
         )
-        decoder_max_seq_len = (
-            decoder_max_seq_len if decoder_max_seq_len is not None else self.max_seq_len
+        has_decoder_layers = any(
+            isinstance(l, TransformerSelfAttentionLayer) for l in self.layers
         )
+        if has_encoder_layers:
+            if encoder_max_seq_len is not None:
+                self.encoder_max_cache_seq_len = encoder_max_seq_len
+            else:
+                self.encoder_max_cache_seq_len = self.max_seq_len
+
+        if has_decoder_layers:
+            if decoder_max_seq_len is not None:
+                self.decoder_max_cache_seq_len = decoder_max_seq_len
+            else:
+                self.decoder_max_cache_seq_len = self.decoder_max_cache_seq_len
+
         for layer in self.layers:
             layer.setup_cache(
                 batch_size,
                 dtype,
-                encoder_max_seq_len=encoder_max_seq_len,
-                decoder_max_seq_len=decoder_max_seq_len,
+                self.encoder_max_cache_seq_len,
+                self.decoder_max_cache_seq_len,
             )
 
-    def caches_are_enabled(self) -> bool:
+    @property
+    def encoder_caches_are_enabled(self) -> bool:
+        """Checks if there are any :class:`~torchtune.modules.TransformerCrossAttentionLayer`,
+        or :class:`~torchtune.modules.fusion.FusionLayer` layers which have cache enabled.
+        """
+        return self.encoder_max_cache_seq_len is not None
+
+    @property
+    def decoder_caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""
-        return self.layers[0].cache_enabled
+        return self.decoder_max_cache_seq_len is not None
 
     def reset_caches(self):
         """Reset the key value caches."""
-        if not self.caches_are_enabled():
+        if not (self.encoder_caches_are_enabled or self.decoder_caches_are_enabled):
             raise RuntimeError(
                 "Key value caches are not setup. Call ``setup_caches()`` first."
             )
 
         for layer in self.layers:
             layer.reset_cache()
-
-        self.pos = 0
 
     def forward(
         self,
@@ -653,7 +711,7 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         encoder_input: Optional[torch.Tensor] = None,
         encoder_mask: Optional[torch.Tensor] = None,
         input_pos: Optional[torch.Tensor] = None,
-    ) -> torch.Tensor:
+    ) -> Union[torch.Tensor, List[torch.Tensor]]:
         """
         Args:
             tokens (torch.Tensor): input tensor with shape [b x s]
@@ -678,7 +736,7 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         KV values for each position.
 
         Returns:
-            torch.Tensor: output tensor with shape [b x s x v] or a list of layer
+            Union[torch.Tensor, List[torch.Tensor]]: output tensor with shape [b x s x v] or a list of layer
                 output tensors defined by ``output_hidden_states`` with the
                 final output tensor appended to the list.
 
@@ -707,18 +765,26 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
-        if self.causal_mask is not None:
+        if self.decoder_caches_are_enabled:
             if mask is not None:
                 raise ValueError(
-                    "An attention mask was set. Cannot use a non-causal mask for inference"
+                    "KV-caches for self-attention layers are setup for inference mode, causal masks must be provided!"
+                    " Use the `mask` arg to provide a causal mask."
                 )
-            # Track the input position
-            if input_pos is None:
-                input_pos = torch.arange(self.pos, self.pos + seq_len, device=h.device)
-            self.pos = input_pos.max() + 1
-            # shape: [1, input_pos_len, m_s]
-            # in most cases input_pos_len should be 1
-            mask = self.causal_mask[None, input_pos]
+        if self.encoder_caches_are_enabled:
+            if encoder_mask is not None:
+                raise ValueError(
+                    "KV-caches for cross-attention/fusion layers are setup for inference mode, causal masks must be provided!"
+                    " Use the `encoder_mask` arg to provide a causal mask."
+                )
+        if (
+            self.encoder_caches_are_enabled
+            or self.decoder_caches_are_enabled
+            and input_pos is None
+        ):
+            raise ValueError(
+                "KV-caches are setup for inference mode, input positions must be provided!"
+            )
 
         hidden = []
         for i, layer in enumerate(self.layers):

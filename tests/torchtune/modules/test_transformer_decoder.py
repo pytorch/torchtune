@@ -9,7 +9,6 @@ from typing import Tuple
 import pytest
 
 import torch
-
 from tests.test_utils import assert_expected
 
 from torch import nn
@@ -185,7 +184,7 @@ class TestTransformerCrossAttentionLayer:
 
     def test_forward(
         self,
-        input: [torch.Tensor, torch.Tensor, torch.Tensor],
+        input: Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
         transformer_layer: TransformerSelfAttentionLayer,
     ) -> None:
         input_x, input_y, mask = input
@@ -218,6 +217,20 @@ class TestTransformerDecoder:
     def input(self, input_params: Tuple[int, int, int]) -> torch.Tensor:
         batch_size, seq_len, vocab_size = input_params
         return torch.randint(low=0, high=vocab_size, size=(batch_size, seq_len))
+
+    @pytest.fixture
+    def causal_mask(self, input_params: Tuple[int, int, int]) -> torch.Tensor:
+        batch_size, seq_len, _ = input_params
+        return (
+            torch.tril(torch.ones((seq_len, seq_len)))
+            .unsqueeze(0)
+            .repeat(batch_size, 1, 1)
+        )
+
+    @pytest.fixture
+    def input_pos(self, input_params: Tuple[int, int, int]) -> torch.Tensor:
+        batch_size, seq_len, _ = input_params
+        return torch.arange(0, seq_len).unsqueeze(0).repeat(batch_size, 1)
 
     @pytest.fixture
     def decoder_params(self) -> Tuple[int, int, int, int, int, int]:
@@ -278,7 +291,7 @@ class TestTransformerDecoder:
         return decoder
 
     @pytest.fixture
-    def decoder_with_kv_cache(
+    def decoder_with_kv_cache_enabled(
         self, decoder_params: Tuple[int, int, int, int, int, int]
     ) -> TransformerDecoder:
         (
@@ -304,35 +317,6 @@ class TestTransformerDecoder:
         decoder.setup_caches(batch_size=4, dtype=torch.float32)
         return decoder
 
-    @pytest.fixture
-    def decoder_with_kv_cache_fixed_length(
-        self, decoder_params: Tuple[int, int, int, int, int, int]
-    ) -> TransformerDecoder:
-        (
-            vocab_size,
-            embed_dim,
-            num_layers,
-            num_heads,
-            max_seq_len,
-            num_kv_heads,
-        ) = decoder_params
-        decoder = llama2(
-            vocab_size=vocab_size,
-            num_layers=num_layers,
-            num_heads=num_heads,
-            num_kv_heads=num_kv_heads,
-            embed_dim=embed_dim,
-            max_seq_len=max_seq_len,
-        )
-        # TODO: fix weight initialization to use fixed_init_model
-        for p in decoder.parameters():
-            nn.init.constant_(p, 0.2)
-        decoder.eval()
-        decoder.setup_caches(
-            batch_size=4, dtype=torch.float32, decoder_max_seq_len=max_seq_len + 512
-        )
-        return decoder
-
     def test_forward(
         self,
         input: torch.Tensor,
@@ -353,42 +337,34 @@ class TestTransformerDecoder:
         with pytest.raises(Exception):
             output = decoder(input_max_len_exceeded)
 
-    @pytest.mark.parametrize(
-        "decoder_with_kv_cache_enabled",
-        ["decoder_with_kv_cache", "decoder_with_kv_cache_fixed_length"],
-    )
     def test_kv_cache(
         self,
-        request,
         input: torch.Tensor,
-        decoder_with_kv_cache_enabled: str,
+        causal_mask: torch.Tensor,
+        input_pos: torch.Tensor,
+        decoder_with_kv_cache_enabled: TransformerDecoder,
         decoder: TransformerDecoder,
     ) -> None:
         _, seq_len = input.shape
-        decoder_with_kv_cache_enabled = request.getfixturevalue(
-            decoder_with_kv_cache_enabled
-        )
         with torch.no_grad():
-            output_cache = decoder_with_kv_cache_enabled(input)
+            output_cache = decoder_with_kv_cache_enabled(
+                input, mask=causal_mask, input_pos=input_pos
+            )
             output_no_cache = decoder(input)
         assert_expected(output_cache.mean(), output_no_cache.mean())
 
-    @pytest.mark.parametrize(
-        "decoder_with_kv_cache_enabled",
-        ["decoder_with_kv_cache", "decoder_with_kv_cache_fixed_length"],
-    )
     def test_kv_cache_reset_values(
         self,
-        request,
         input: torch.Tensor,
+        causal_mask: torch.Tensor,
+        input_pos: torch.Tensor,
         decoder_with_kv_cache_enabled: TransformerDecoder,
     ) -> None:
-        decoder_with_kv_cache_enabled = request.getfixturevalue(
-            decoder_with_kv_cache_enabled
-        )
 
         with torch.no_grad():
-            _ = decoder_with_kv_cache_enabled(input)
+            _ = decoder_with_kv_cache_enabled(
+                input, mask=causal_mask, input_pos=input_pos
+            )
             kv_cache_k_val = decoder_with_kv_cache_enabled.layers[
                 0
             ].attn.kv_cache.k_cache.clone()
@@ -414,22 +390,37 @@ class TestTransformerDecoder:
         with pytest.raises(RuntimeError, match="Key value caches are not setup"):
             decoder.reset_caches()
 
-    @pytest.mark.parametrize(
-        "decoder_with_kv_cache_enabled",
-        ["decoder_with_kv_cache", "decoder_with_kv_cache_fixed_length"],
-    )
-    def test_kv_cache_batch_size_exceeded(
+    def test_kv_cache_setup_no_mask_in_forward(
         self,
-        request,
-        input_max_bs_exceeded: torch.Tensor,
+        input: torch.Tensor,
         decoder_with_kv_cache_enabled: TransformerDecoder,
     ) -> None:
 
-        decoder_with_kv_cache_enabled = request.getfixturevalue(
-            decoder_with_kv_cache_enabled
-        )
-        with pytest.raises(RuntimeError, match="shape mismatch:"):
-            decoder_with_kv_cache_enabled(input_max_bs_exceeded)
+        with pytest.raises(ValueError, match="causal masks must be provided"):
+            decoder_with_kv_cache_enabled(input)
+
+    def test_kv_cache_setup_mask_no_input_pos_in_forward(
+        self,
+        input: torch.Tensor,
+        causal_mask: torch.Tensor,
+        decoder_with_kv_cache_enabled: TransformerDecoder,
+    ) -> None:
+
+        with pytest.raises(ValueError, match="input positions must be provided!"):
+            decoder_with_kv_cache_enabled(input, mask=causal_mask)
+
+    def test_kv_cache_batch_size_exceeded(
+        self,
+        input_max_bs_exceeded: torch.Tensor,
+        causal_mask: torch.Tensor,
+        input_pos: torch.Tensor,
+        decoder_with_kv_cache_enabled: TransformerDecoder,
+    ) -> None:
+
+        with pytest.raises(RuntimeError, match="The size of tensor a"):
+            decoder_with_kv_cache_enabled(
+                input_max_bs_exceeded, mask=causal_mask, input_pos=input_pos
+            )
 
     def test_rms_norm_propagation(
         self, decoder_params: Tuple[int, int, int, int, int, int]

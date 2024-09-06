@@ -94,12 +94,10 @@ class GemmaTransformerDecoder(nn.Module):
             encoder_max_seq_len (int): maximum encoder cache sequence length.
             decoder_max_seq_len (int): maximum decoder cache sequence length.
         """
-        encoder_max_seq_len = (
-            encoder_max_seq_len if encoder_max_seq_len is not None else self.max_seq_len
-        )
-        decoder_max_seq_len = (
-            decoder_max_seq_len if decoder_max_seq_len is not None else self.max_seq_len
-        )
+        if encoder_max_seq_len is not None:
+            self.encoder_max_seq_len = encoder_max_seq_len
+        if decoder_max_seq_len is not None:
+            self.decoder_max_seq_len = decoder_max_seq_len
         for layer in self.layers:
             layer.setup_cache(
                 batch_size,
@@ -126,16 +124,16 @@ class GemmaTransformerDecoder(nn.Module):
             input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
-                During inference, this indicates the position of the current token.
-                If none, assume the index of the token is its position id. Default is None.
+                During inference, this indicates the position of the current token and
+                is required.
 
         Note: At the very first step of inference, when the model is provided with a prompt,
-        ``input_pos`` would contain the positions of all of the tokens in the prompt
+        ``input_pos`` should contain the positions of all of the tokens in the prompt
         (eg: ``torch.arange(prompt_length)``). This is because we will need to compute the
         KV values for each position.
 
         Returns:
-            Tensor: output tensor with shape [b x s x v]
+            torch.Tensor: output tensor with shape [b x s x v]
 
         Raises:
             ValueError: if causal_mask is set but input_pos is None
