@@ -9,7 +9,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Union
 
 import torch
 from omegaconf import DictConfig, ListConfig
@@ -29,6 +29,11 @@ from torchtune.modules.peft import (
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.training import DummyProfiler, PROFILER_KEY
+
+from tqdm import tqdm
+
+log = utils.get_logger("DEBUG")
 
 
 class KDRecipeSingleDevice(FTRecipeInterface):
@@ -176,15 +181,81 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             last_epoch=self.global_step - 1,
         )
 
-        # TODO: add after KD recipe is implemented
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False
-        # self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
+        self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
 
         # Used to ignore labels for loss computation
         self.ignore_labels_cache = torch.full(
             (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
         )
+
+    def _setup_profiler(
+        self, cfg_profiler: Optional[DictConfig] = None
+    ) -> Union[torch.profiler.profile, DummyProfiler]:
+        """
+        Parses the `profiler` section of top-level `cfg` and sets up profiler
+
+        Args:
+            cfg_profiler (Optional[DictConfig]): ``profiler`` section of the top-level ``cfg`` (the main config passed to
+                `recipe.main`). Default None.
+
+        Returns:
+            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
+            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
+            that the instrumented training loop does not need to be changed profiling is disabled.
+
+        The profiler config can be provided in configs under the `profiler` key with the following layout:
+
+        .. code-block:: yaml
+            profiler:
+                enabled: bool
+
+                #Output directory of trace artifacts
+                output_dir: str
+
+            #`torch.profiler.ProfilerActivity` types to trace
+            cpu: bool
+            cuda: bool
+
+                #Trace options
+                profile_memory: bool
+                with_stack: bool
+                record_shapes: bool
+                with_flops: bool
+
+            # `torch.profiler.schedule` options:
+            # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+            wait_steps: int
+            warmup_steps: int
+            active_steps: int
+            num_cycles: int
+        """
+
+        # Missing profiler section in config, assume disabled
+        if cfg_profiler is None:
+            cfg_profiler = DictConfig({"enabled": False})
+
+        # Check that component is included and set correctly
+        if cfg_profiler.get("_component_", None) is None:
+            cfg_profiler["_component_"] = "torchtune.training.setup_torch_profiler"
+        else:
+            assert (
+                cfg_profiler.get("_component_")
+                == "torchtune.training.setup_torch_profiler"
+            ), "Only torch profiler supported currently: component must be `torchtune.training.setup_torch_profiler`"
+
+        profiler, profiler_cfg = config.instantiate(cfg_profiler)
+
+        log.info(f" Profiler config after instantiation: {profiler_cfg}")
+
+        self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
+        if profiler_cfg["enabled"]:
+            self.profiler_wait_steps = profiler_cfg["wait_steps"]
+            self.profiler_warmup_steps = profiler_cfg["warmup_steps"]
+            self.profiler_active_steps = profiler_cfg["active_steps"]
+
+        return profiler
 
     def _setup_model(
         self,
