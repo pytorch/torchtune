@@ -8,7 +8,7 @@ from typing import Dict, List, Tuple, Union
 import torch
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
-from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets._packed import PACK_TYPE
 from torchtune.modules.attention_utils import packed_block_causal_mask
 
@@ -263,13 +263,7 @@ def padded_collate_packed(
     tokens = torch.stack([x["tokens"] for x in batch])
     labels = torch.stack([x["labels"] for x in batch])
     input_pos = torch.stack([x["input_pos"] for x in batch])
-
-    # Different number of samples in each pack, so pad seq lens with 0 to even out the batch
-    seq_lens = pad_sequence(
-        [x["seq_lens"] for x in batch],
-        batch_first=True,
-        padding_value=0,
-    )
+    seq_lens = [x["seq_lens"] for x in batch]
 
     block_mask = packed_block_causal_mask(
         seq_lens=seq_lens,

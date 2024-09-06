@@ -6,7 +6,6 @@
 
 # (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 
-import pdb
 from unittest import mock
 
 import pytest
@@ -58,7 +57,7 @@ class TestBlockCausalMask:
         torch.testing.assert_close(actual, expected)
 
     @mock.patch("torchtune.modules.attention_utils._SUPPORTS_FLEX_ATTENTION", False)
-    def test_packed_block_causal_mask_sdpa(self, mock_supports_flex, seq_lens):
+    def test_packed_block_causal_mask_sdpa(self, seq_lens):
         actual = packed_block_causal_mask(seq_lens)
         expected = torch.tensor(
             [
@@ -88,39 +87,55 @@ class TestBlockCausalMask:
         reason="Please install a nightly build of torch (>=2.5.0) to run this test.",
     )
     @gpu_test(gpu_count=1)
-    def test_packed_block_causal_mask_flex(self, mock_version, seq_lens):
-        mock_version.return_value = False
-        actual = packed_block_causal_mask(seq_lens)
-        pdb.set_trace()
-        expected = torch.tensor(
-            [
-                [
-                    [1, 0, 0, 0, 0, 0],
-                    [1, 1, 0, 0, 0, 0],
-                    [0, 0, 1, 0, 0, 0],
-                    [0, 0, 1, 1, 0, 0],
-                    [0, 0, 1, 1, 1, 0],
-                    [0, 0, 0, 0, 0, 1],
-                ],
-                [
-                    [1, 0, 0, 0, 0, 0],
-                    [1, 1, 0, 0, 0, 0],
-                    [0, 0, 1, 0, 0, 0],
-                    [0, 0, 1, 1, 0, 0],
-                    [0, 0, 0, 0, 1, 0],
-                    [0, 0, 0, 0, 1, 1],
-                ],
-            ],
-            dtype=torch.bool,
+    def test_packed_block_causal_mask_flex(self):
+        actual = packed_block_causal_mask(
+            [torch.tensor([64, 64]), torch.tensor([64, 64])]
         )
-        torch.testing.assert_close(actual, expected)
+        expected = torch.tensor([[[[1]]], [[[1]]]], device="cuda:0", dtype=torch.int32)
+        torch.testing.assert_close(actual.to_dense(), expected)
 
 
 class TestSDPAOrFlexAttention:
+    @pytest.mark.skipif(
+        not _SUPPORTS_FLEX_ATTENTION,
+        reason="Please install a nightly build of torch (>=2.5.0) to run this test.",
+    )
+    @mock.patch("torchtune.modules.attention_utils.torch.compile")
+    @mock.patch(
+        "torchtune.modules.attention_utils.nn.functional.scaled_dot_product_attention"
+    )
+    def test_flex_attention(self, mock_sdpa, mock_compile):
+        mock_flex = mock.MagicMock()
+        mock_compile.return_value = mock_flex
+        q = torch.ones(2, 3, 4)
+        k = torch.ones(2, 3, 4)
+        v = torch.ones(2, 3, 4)
+        attn_mask = torch.ones(2, 3, 4)
+        dropout_p = 0.0
+        is_causal = False
+
+        # Pretend that mask is actually a BlockMask
+        with mock.patch(
+            "torchtune.modules.attention_utils.isinstance", return_value=True
+        ):
+            _attention_call = _sdpa_or_flex_attention()
+            _ = _attention_call(q, k, v, attn_mask, dropout_p, is_causal)
+            mock_sdpa.assert_not_called()
+            mock_flex.assert_called_with(q, k, v, block_mask=attn_mask)
+        # If mask is not a BlockMask, then we should call SDPA
+        _attention_call = _sdpa_or_flex_attention()
+        _ = _attention_call(q, k, v, attn_mask, dropout_p, is_causal)
+        mock_sdpa.assert_called_once()
+        assert mock_flex.call_count == 1
+
     @mock.patch("torchtune.modules.attention_utils._SUPPORTS_FLEX_ATTENTION", False)
-    @mock.patch("torchtune.modules.attention_utils.flex_attention_compiled")
-    @mock.patch("torchtune.modules.attention_utils.nn.scaled_dot_product_attention")
-    def test_sdpa_attention(self, mock_sdpa, mock_flex, mock_supports_flex):
+    @mock.patch("torchtune.modules.attention_utils.torch.compile")
+    @mock.patch(
+        "torchtune.modules.attention_utils.nn.functional.scaled_dot_product_attention"
+    )
+    def test_sdpa_attention(self, mock_sdpa, mock_compile):
+        mock_flex = mock.MagicMock()
+        mock_compile.return_value = mock_flex
         q = torch.ones(2, 3, 4)
         k = torch.ones(2, 3, 4)
         v = torch.ones(2, 3, 4)
@@ -131,21 +146,3 @@ class TestSDPAOrFlexAttention:
         _ = _attention_call(q, k, v, attn_mask, dropout_p, is_causal)
         mock_sdpa.assert_called_once()
         mock_flex.assert_not_called()
-
-    @pytest.mark.skipif(
-        not _SUPPORTS_FLEX_ATTENTION,
-        reason="Please install a nightly build of torch (>=2.5.0) to run this test.",
-    )
-    @mock.patch("torchtune.modules.attention_utils.flex_attention_compiled")
-    @mock.patch("torchtune.modules.attention_utils.nn.scaled_dot_product_attention")
-    def test_flex_attention(self, mock_sdpa, mock_flex):
-        q = torch.ones(2, 3, 4)
-        k = torch.ones(2, 3, 4)
-        v = torch.ones(2, 3, 4)
-        attn_mask = torch.ones(2, 3, 4)
-        dropout_p = 0.0
-        is_causal = False
-        _attention_call = _sdpa_or_flex_attention()
-        _ = _attention_call(q, k, v, attn_mask, dropout_p, is_causal)
-        mock_sdpa.assert_not_called()
-        mock_flex.assert_called_once()

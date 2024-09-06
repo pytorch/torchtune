@@ -54,7 +54,7 @@ def _get_document_ids_from_seq_lens(
         # shape (max_seq_len, )
         document_ids = torch.cat(
             [
-                torch.full((seq_len,), i, dtype=torch.long, device=seq_lens.device)
+                torch.full((seq_len,), i, dtype=torch.long, device=seq_len.device)
                 for i, seq_len in enumerate(seq_lens[sample_idx])
             ]
         )
@@ -92,7 +92,7 @@ def create_block_causal_mask(seq_lens: List[torch.Tensor]) -> torch.Tensor:
     for sample_idx in range(batch_size):
         block_attn_masks = [
             torch.tril(
-                torch.ones(seq_len, seq_len, dtype=torch.bool, device=seq_lens.device)
+                torch.ones(seq_len, seq_len, dtype=torch.bool, device=seq_len.device)
             )
             for i, seq_len in enumerate(seq_lens[sample_idx])
         ]
@@ -140,6 +140,7 @@ def packed_block_causal_mask(
             None,
             max_seq_len,
             max_seq_len,
+            device="cuda",
         )
     else:
         return create_block_causal_mask(seq_lens=seq_lens)

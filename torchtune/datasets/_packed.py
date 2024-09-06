@@ -4,17 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 import torch
 from torch.nn import functional as F
 
 from torch.utils.data import Dataset
-from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.training import get_world_size_and_rank
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX, PACK_TYPE
 from tqdm import tqdm
-
-PACK_TYPE = Dict[str, Union[torch.Tensor, List[int]]]
 
 
 class PackedDataset(Dataset):
@@ -115,7 +112,11 @@ class PackedDataset(Dataset):
         }
 
         # Only show progress bar on rank 0
-        _, rank = get_world_size_and_rank()
+        rank = (
+            torch.distributed.get_rank()
+            if torch.distributed.is_available() and torch.distributed.is_initialized()
+            else 0
+        )
         if rank == 0:
             pbar = tqdm(total=len(self.ds), desc="Packing dataset", dynamic_ncols=True)
 
