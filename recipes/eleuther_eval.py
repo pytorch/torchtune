@@ -13,12 +13,11 @@ import torch
 from omegaconf import DictConfig
 
 from torch import nn
-from torchtune import config, training, utils
+from torchtune import config, generation, training, utils
 from torchtune.data import left_pad_sequence
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.recipe_interfaces import EvalRecipeInterface
-from torchtune.training.generation import generate
 
 logger = utils.get_logger("DEBUG")
 
@@ -155,7 +154,7 @@ class _EvalWrapper(HFLM):
                 "``do_sample`` for generation tasks is not supported yet in torchtune."
             )
 
-        toks = generate(
+        toks = generation.generate(
             self._model,
             context,
             max_generated_tokens=self.max_gen_toks,

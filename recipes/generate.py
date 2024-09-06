@@ -12,10 +12,9 @@ import torch
 from omegaconf import DictConfig
 from torch import nn
 
-from torchtune import config, training, utils
+from torchtune import config, generation, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import ChatFormat, InstructTemplate, Message
-from torchtune.training.generation import generate, generate_next_token
 
 logger = utils.get_logger("DEBUG")
 
@@ -148,10 +147,10 @@ class InferenceRecipe:
         if self._quantization_mode is not None:
             logger.info("Starting compilation to improve generation performance ...")
             custom_generate_next_token = torch.compile(
-                generate_next_token, mode="max-autotune", fullgraph=True
+                generation.generate_next_token, mode="max-autotune", fullgraph=True
             )
             t0 = time.perf_counter()
-            _ = generate(
+            _ = generation.generate(
                 model=self._model,
                 prompt=prompt,
                 max_generated_tokens=2,

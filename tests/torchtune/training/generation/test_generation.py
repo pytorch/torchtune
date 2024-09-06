@@ -8,9 +8,9 @@ import pytest
 import torch
 
 from tests.test_utils import fixed_init_model
+from torchtune.generation._generation import generate, sample
 
 from torchtune.models.llama2 import llama2
-from torchtune.training.generation._generation import generate, sample
 
 
 class TestTextGenerate:
