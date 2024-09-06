@@ -35,7 +35,6 @@ jobs:
       script: |
         conda create -n venv python=3.10 -y
         conda activate venv
-        echo "::group::Install newer objcopy that supports --set-section-alignment"
         yum install -y  devtoolset-10-binutils
         export PATH=/opt/rh/devtoolset-10/root/usr/bin/:$PATH
         python -m pip install --upgrade pip
