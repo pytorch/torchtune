@@ -83,6 +83,33 @@ and in most cases training can slow-down quite a bit as a result of this activat
 To enable activation checkpointing, use the ``enable_activation_checkpointing`` config entry or flag
 in any of our recipes, e.g. ``enable_activation_checkpointing=True``.
 
+.. _glossary_act_off:
+
+Activation Offloading
+---------------------
+
+*What's going on here?*
+
+You may have just read about activation checkpointing! Similar to checkpointing, offloading is a memory
+efficiency technique that allows saving GPU VRAM by temporarily moving activations to CPU and bringing
+them back when needed in the backward pass.
+
+See `PyTorch autograd hook tutorial <https://pytorch.org/tutorials/intermediate/autograd_saved_tensors_hooks_tutorial.html#saving-tensors-to-cpu>`_
+for more details about how this is implemented through saved_tensors_hooks.
+
+This setting is especially helpful for larger batch sizes, or longer context lengths when you're memory constrained.
+However, these savings in memory can come at the cost of training speed (i.e. tokens per-second), as it takes runtime
+and resources to move Tensors from GPU to CPU and back. The implementation in torchtune uses multiple CUDA streams
+in order to overlap the extra communication with the computation to hide the extra runtime. As the communication
+workload is variable depending on the number and size of tensors being offloaded, it is common to not offload every
+single activation. In fact, once can use offloading in conjunction with activations checkpointing, where all
+activations will either be recomputed later in the backward or brought back from the CPU.
+
+*Sounds great! How do I use it?*
+
+To enable activation offloading, use the ``enable_activation_offloading`` config entry or flag
+in our lora finetuning single device recipe, e.g. ``enable_activation_offloading=True``.
+
 .. _glossary_grad_accm:
 
 Gradient Accumulation
