@@ -10,7 +10,7 @@ import torch
 from tests.test_utils import fixed_init_model
 from torchtune.models.llama2 import llama2
 from torchtune.modules import rlhf
-from torchtune.utils._generation import sample
+from torchtune.training._generation import sample
 
 
 class TestGenerateNextTokenWithLogits:

@@ -3,7 +3,6 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-
 from torchtune.training._distributed import (
     contains_fsdp,
     FSDPPolicyType,
@@ -67,6 +66,8 @@ from torchtune.training.precision import (
 from torchtune.training.quantization import get_quantizer_mode
 from torchtune.training.seed import set_seed
 
+from ._generation import generate, generate_next_token
+
 __all__ = [
     "apply_selective_activation_checkpointing",
     "get_dtype",
@@ -120,4 +121,6 @@ __all__ = [
     "DummyProfiler",
     "PROFILER_KEY",
     "setup_torch_profiler",
+    "generate",
+    "generate_next_token",
 ]

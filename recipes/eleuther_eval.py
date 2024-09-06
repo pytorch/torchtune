@@ -155,7 +155,7 @@ class _EvalWrapper(HFLM):
                 "``do_sample`` for generation tasks is not supported yet in torchtune."
             )
 
-        toks = utils.generate(
+        toks = training.generate(
             self._model,
             context,
             max_generated_tokens=self.max_gen_toks,

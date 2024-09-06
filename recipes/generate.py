@@ -147,10 +147,10 @@ class InferenceRecipe:
         if self._quantization_mode is not None:
             logger.info("Starting compilation to improve generation performance ...")
             custom_generate_next_token = torch.compile(
-                utils.generate_next_token, mode="max-autotune", fullgraph=True
+                training.generate_next_token, mode="max-autotune", fullgraph=True
             )
             t0 = time.perf_counter()
-            _ = utils.generate(
+            _ = training.generate(
                 model=self._model,
                 prompt=prompt,
                 max_generated_tokens=2,
@@ -163,7 +163,7 @@ class InferenceRecipe:
             logger.info(f"Warmup run for quantized model takes: {t:.02f} sec")
 
         t0 = time.perf_counter()
-        generated_tokens = utils.generate(
+        generated_tokens = training.generate(
             model=self._model,
             prompt=prompt,
             max_generated_tokens=cfg.max_new_tokens,
