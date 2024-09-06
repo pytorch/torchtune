@@ -17,10 +17,6 @@ from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
-from torch.distributed._composable.fsdp import fully_shard
-from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
-    CheckpointWrapper,
-)
 
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
@@ -225,6 +221,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
+            reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
             base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
             lora_weights_state_dict=(
                 checkpoint_dict[training.ADAPTER_KEY]
@@ -377,6 +375,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
+        fsdp_cpu_offload: bool,
+        reshard_after_forward: bool,
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
         cfg_fsdp: Optional[Union[DictConfig, None]] = None,
@@ -440,12 +440,15 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # If wrapping any layers separately, we can add another shard condition
         # A layer will be sharded if any of the fsdp_shard_conditions are met
-        if custom_sharded_layers:
-            fsdp_shard_conditions += [lambda n, m: n in custom_sharded_layers]
+        # TODO: do we want to add support for this?
+        # if custom_sharded_layers:
+        #     fsdp_shard_conditions += [lambda n, m: n in custom_sharded_layers]
 
-        # TODO (ebs): check on these conditions (e.g. https://github.com/pytorch/torchtune/pull/1445)
+        # TODO: check on these conditions (e.g. https://github.com/pytorch/torchtune/pull/1445)
         fsdp_shard_conditions += [lambda n, m: isinstance(m, DoRALinear)]
-        # fsdp_shard_conditions += [lambda n, m: isinstance(m, nn.Linear) and m.weight.requires_grad]
+        fsdp_shard_conditions += [
+            lambda n, m: isinstance(m, nn.Linear) and m.weight.requires_grad
+        ]
 
         training.shard_model(
             model=model,
@@ -453,28 +456,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             cpu_offload=fsdp_cpu_offload,
             reshard_after_forward=reshard_after_forward,
         )
-
-        fsdp_kwargs = {}
-        if cfg_fsdp and cfg_fsdp.cpu_offload:
-            from torch.distributed._composable.fsdp import CPUOffloadPolicy
-
-            fsdp_kwargs["offload_policy"] = CPUOffloadPolicy()
-        # iterating from lowerer modules to higher
-        # eg grouping lora adapters before transformer block
-        for m in reversed(list(model.modules())):
-            if isinstance(m, nn.Linear) and m.weight.requires_grad:
-                fully_shard(m, **fsdp_kwargs)
-            if isinstance(m, DoRALinear):
-                fully_shard(m, **fsdp_kwargs)
-            # TransformerSelfAttentionLayer is wrapped by CheckpointWrapper
-            # when enable_activation_checkpointing
-            if enable_activation_checkpointing:
-                if isinstance(m, CheckpointWrapper):
-                    fully_shard(m, **fsdp_kwargs)
-            else:
-                if isinstance(m, modules.TransformerSelfAttentionLayer):
-                    fully_shard(m, **fsdp_kwargs)
-        fully_shard(model, **fsdp_kwargs)
 
         if lora_weights_state_dict:
             lora_missing, lora_unexpected = training.load_from_full_model_state_dict(

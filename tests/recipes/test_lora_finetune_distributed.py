@@ -57,13 +57,13 @@ class TestLoRAFinetuneDistributedRecipe:
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
     @pytest.mark.parametrize(
-        "fsdp_sharding_strategy",
+        "reshard_after_forward",
         [
-            (None),
-            ("NO_SHARD"),
+            True,
+            False,
         ],
     )
-    def test_loss(self, fsdp_sharding_strategy, tmpdir, monkeypatch):
+    def test_loss(self, reshard_after_forward, tmpdir, monkeypatch):
         ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
@@ -81,8 +81,8 @@ class TestLoRAFinetuneDistributedRecipe:
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
         """.split()
-        if fsdp_sharding_strategy:
-            cmd.append(f"fsdp_sharding_strategy={fsdp_sharding_strategy}")
+        if reshard_after_forward:
+            cmd.append(f"reshard_after_forward={reshard_after_forward}")
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
 
