@@ -115,4 +115,4 @@ Miscellaneous
 
     get_unmasked_sequence_lengths
     set_seed
-    generate
+    generation.generate
