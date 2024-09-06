@@ -208,17 +208,19 @@ class FlamingoTransform(ModelTokenizer, Transform):
 
         # Get messages from sample
         messages = sample["messages"]
-        
+
         for message in messages:
             if message.role == "user" and message.contains_media():
                 # Find the image(s) in the message content
                 for elem in message.content:
                     if elem["type"] == "image":
                         # Transform the image and append to encoder_input
-                        out = self.transform_image({"image": elem["content"]}, inference=inference)
+                        out = self.transform_image(
+                            {"image": elem["content"]}, inference=inference
+                        )
                         encoder_input["images"].append(out["image"])
                         encoder_input["aspect_ratio"].append(out["aspect_ratio"])
-        
+
         sample["encoder_input"] = encoder_input
         sample = self.tokenizer(sample, inference=inference)
         sample = self.xattn_mask(sample, inference=inference)
