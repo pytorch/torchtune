@@ -6,6 +6,7 @@
 
 # Original from lora_finetune_distributed.py
 
+import gc
 import os
 import sys
 import time
@@ -37,13 +38,6 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
-
-# Hack for now to import from local directory
-sys.path.append(
-    os.path.abspath("/home/qhsu/build/datascience/notebooks/relevance/torchtune")
-)
-
-import gc
 
 from tqdm import tqdm
 
@@ -460,6 +454,9 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
         # Note: this needs to be set before wrapping with FSDP
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
+        for k, v in model.named_parameters():
+            if k == "output.weight":
+                v.requires_grad_(True)
 
         model = FSDP(
             module=model,
@@ -742,7 +739,10 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
                 # This code is copied from huggingface's implementation of LlamaForSequenceClassification
                 # at https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L1391
                 ############################
-                # if no pad token found, use modulo instead of reverse indexing for ONNX compatibility
+                # find the location of the eos_id token in the sequence
+                # Note, this is different from the huggingface implementation since that one looks
+                # for the token before the last pad token. We always add an eos token
+                # to the end of the prompt from the dataloader, so we can find the end with that
                 sequence_lengths = (
                     torch.eq(tokens, self._tokenizer.eos_id).int().argmax(-1) - 1
                 )
@@ -895,7 +895,10 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
 
                 logits = self._model(tokens, mask=None, input_pos=None)
 
-                # if no pad token found, use modulo instead of reverse indexing for ONNX compatibility
+                # find the location of the eos_id token in the sequence
+                # Note, this is different from the huggingface implementation since that one looks
+                # for the token before the last pad token. We always add an eos token
+                # to the end of the prompt from the dataloader, so we can find the end with that
                 sequence_lengths = (
                     torch.eq(tokens, self._tokenizer.eos_id).int().argmax(-1) - 1
                 )
@@ -923,10 +926,12 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
 
                 ############################
                 # Compute accuracy
-                # I think this is wrong right now since I am not comparing the indicies of predicted
                 ############################
-                _, predicted = torch.max(logits, 1)
-                correct = (predicted == torch.argmax(labels, dim=1)).sum().item()
+                correct = (
+                    (torch.argmax(logits, dim=1) == torch.argmax(labels, dim=1))
+                    .sum()
+                    .item()
+                )
                 total = labels.size(0)
                 running_correct += correct
                 running_total += total
