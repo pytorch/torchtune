@@ -34,8 +34,12 @@ def compile_model(
         verbose (bool): Whether to log compile info. Default: True
     Returns:
         None
+    Raises:
+        ValueError: Just to make pydoctlint happy, will remove
     """
     backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+    log.error(f"Backend is {backend}")
+    raise ValueError("Done")
     if torch_version_ge("2.5.0"):
         if verbose:
             log.info("Compiling model layers with torch.compile...")
