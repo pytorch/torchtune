@@ -3,6 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
+from torchtune.training._compile import compile_loss, compile_model
 from torchtune.training._distributed import (
     contains_fsdp,
     FSDPPolicyType,
@@ -119,4 +120,6 @@ __all__ = [
     "DummyProfiler",
     "PROFILER_KEY",
     "setup_torch_profiler",
+    "compile_loss",
+    "compile_model",
 ]
