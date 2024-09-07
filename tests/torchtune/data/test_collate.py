@@ -10,6 +10,7 @@ from unittest import mock
 
 import pytest
 import torch
+from tests.test_utils import gpu_test
 from torchtune.data import (
     left_pad_sequence,
     padded_collate,
@@ -39,7 +40,6 @@ class TestPaddedCollateSFT:
         ]
         padded = padded_collate_sft(
             batch=token_pairs,
-            device="cpu",
             padding_idx=padding_idx,
             ignore_idx=ignore_idx,
         )
@@ -52,9 +52,8 @@ class TestPaddedCollateSFT:
             padded_label, torch.tensor([10, ignore_idx, ignore_idx])
         )
 
-    @mock.patch("torchtune.modules.attention_utils.torch_version_ge")
-    def test_padded_collate_packed_sdpa(self, mock_version):
-        mock_version.return_value = False
+    @mock.patch("torchtune.modules.attention_utils._SUPPORTS_FLEX_ATTENTION", False)
+    def test_padded_collate_packed_sdpa(self):
         token_pairs = [
             {
                 "tokens": torch.tensor([1, 2, 3, 4, 5, 6]),
@@ -71,7 +70,6 @@ class TestPaddedCollateSFT:
         ]
         collated = padded_collate_packed(
             batch=token_pairs,
-            device="cpu",
         )
         torch.testing.assert_close(
             collated["tokens"],
@@ -114,6 +112,7 @@ class TestPaddedCollateSFT:
         not _SUPPORTS_FLEX_ATTENTION,
         reason="Please install a nightly build of torch to run this test.",
     )
+    @gpu_test(gpu_count=1)
     def test_padded_collate_packed_flex(self):
         # create_block_mask requires that seq_len be divisible by 128, the default block size.
         # see https://github.com/pytorch/pytorch/blob/main/torch/nn/attention/flex_attention.py#L636
@@ -133,20 +132,28 @@ class TestPaddedCollateSFT:
         ]
         collated = padded_collate_packed(
             batch=batch,
-            device="cpu",
         )
         torch.testing.assert_close(
-            collated["tokens"], torch.stack([torch.ones(128), torch.ones(128)])
+            collated["tokens"],
+            torch.stack(
+                [torch.ones(128, dtype=torch.long), torch.ones(128, dtype=torch.long)]
+            ),
         )
         torch.testing.assert_close(
-            collated["labels"], torch.stack([torch.ones(128), torch.ones(128)])
+            collated["labels"],
+            torch.stack(
+                [torch.ones(128, dtype=torch.long), torch.ones(128, dtype=torch.long)]
+            ),
         )
         torch.testing.assert_close(
-            collated["input_pos"], torch.stack([torch.zeros(128), torch.zeros(128)])
+            collated["input_pos"],
+            torch.stack(
+                [torch.zeros(128, dtype=torch.long), torch.zeros(128, dtype=torch.long)]
+            ),
         )
         torch.testing.assert_close(
-            collated["mask"],
-            torch.tensor([[[[1]]], [[[1]]]], dtype=torch.long),
+            collated["mask"].to_dense(),
+            torch.tensor([[[[1]]], [[[1]]]], dtype=torch.int32, device="cuda"),
         )
 
 

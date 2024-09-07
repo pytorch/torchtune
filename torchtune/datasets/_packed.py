@@ -168,7 +168,8 @@ class PackedDataset(Dataset):
         if self.split_across_pack:
             boundary = self.max_seq_len
             # The last elem in ``seq_lens`` ensures that ``sum(seq_lens) == self.max_seq_len``
-            seq_len_padding = [self.max_seq_len - sum(current_pack["seq_lens"][:-1])]
+            leftover_seq_len = self.max_seq_len - sum(current_pack["seq_lens"][:-1])
+            seq_len_padding = [leftover_seq_len] if leftover_seq_len > 0 else []
         else:
             boundary = self.previous_sample_boundary
             # If we aren't splitting across packs, we leave out the last sample b/c
@@ -232,8 +233,11 @@ class PackedDataset(Dataset):
         )
 
         # Add padding tokens as a last seq len to ensure sum is max_seq_len
-        padded_seq_lens = torch.cat(
-            [pack["seq_lens"], torch.tensor([self.max_seq_len - len(pack["tokens"])])]
+        num_padding_tokens = self.max_seq_len - len(pack["tokens"])
+        padded_seq_lens = (
+            torch.cat([pack["seq_lens"], torch.tensor([num_padding_tokens])])
+            if num_padding_tokens > 0
+            else pack["seq_lens"]
         )
 
         # Pad input_pos continuing the sequence from last value

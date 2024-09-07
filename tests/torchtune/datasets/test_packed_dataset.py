@@ -143,6 +143,8 @@ class TestPackedDataset:
         ) = self._get_expected_seq_lens_and_input_pos(
             max_seq_len, sample_size, split_across_pack
         )
+        print(max_seq_len, sample_size, max_packs, split_across_pack)
+        print(packed[0]["seq_lens"])
         torch.testing.assert_close(packed[0]["seq_lens"], expected_seq_lens)
         torch.testing.assert_close(packed[0]["input_pos"], expected_input_pos)
 
