@@ -18,10 +18,10 @@ from torchtune.data import (
     ShareGPTToMessages,
     validate_messages,
 )
-from torchtune.data._utils import deprecated
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.utils.logging import deprecated
 
 
 @deprecated(msg="Please use `torchtune.datasets.SFTDataset` for custom chat data.")
