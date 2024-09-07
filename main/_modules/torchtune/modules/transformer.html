@@ -422,7 +422,6 @@
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
-
 <span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">MultiHeadAttention</span>
 
 
@@ -794,6 +793,28 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="mi">0</span></div>
 
+<div class="viewcode-block" id="TransformerDecoder.chunked_output"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.chunked_output">[docs]</a>    <span class="nd">@torch</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">disable</span>
+    <span class="k">def</span> <span class="nf">chunked_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">last_hidden_state</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply output projection in chunks. This should be applied in conjunction with</span>
+<span class="sd">        :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss` as upcasting to fp32 is done there.</span>
+
+<span class="sd">        To use this method, you should first call</span>
+<span class="sd">        :func:`~torchtune.modules.TransformerDecoder.set_num_output_chunks`.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            last_hidden_state (torch.Tensor): last hidden state of the decoder, having shape</span>
+<span class="sd">                [b, seq_len, embed_dim].</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List[torch.Tensor]: List of num_chunks output tensors, each with shape</span>
+<span class="sd">                [b, seq_len/num_chunks, out_dim], where out_dim is usually the vocab size.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">last_hidden_state</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">]</span></div>
+
 <div class="viewcode-block" id="TransformerDecoder.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tokens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -886,12 +907,7 @@
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="c1"># shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size</span>
-            <span class="c1"># Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,</span>
-            <span class="c1"># before calling forward. Upcasting it done inside of the loss function.</span>
-            <span class="n">output</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">h</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-            <span class="p">]</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunked_output</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># shape: [b, seq_len, out_dim]</span>
             <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">h</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
@@ -1008,6 +1024,28 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="mi">0</span></div>
 
+<div class="viewcode-block" id="TiedEmbeddingTransformerDecoder.chunked_output"><a class="viewcode-back" href="../../../generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.chunked_output">[docs]</a>    <span class="nd">@torch</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">disable</span>
+    <span class="k">def</span> <span class="nf">chunked_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">last_hidden_state</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply output projection in chunks. This should be applied in conjunction with</span>
+<span class="sd">        :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss` as upcasting to fp32 is done there.</span>
+
+<span class="sd">        To use this method, you should first call</span>
+<span class="sd">        :func:`~torchtune.modules.TiedEmbeddingTransformerDecoder.set_num_output_chunks`.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            last_hidden_state (torch.Tensor): last hidden state of the decoder, having shape</span>
+<span class="sd">                [b, seq_len, embed_dim].</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List[torch.Tensor]: List of num_chunks output tensors, each with shape</span>
+<span class="sd">                [b, seq_len/num_chunks, out_dim], where out_dim is usually the vocab size.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">F</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">last_hidden_state</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">]</span></div>
+
 <div class="viewcode-block" id="TiedEmbeddingTransformerDecoder.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tokens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -1100,13 +1138,7 @@
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="c1"># shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size</span>
-            <span class="c1"># Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,</span>
-            <span class="c1"># before calling forward. Upcasting it done inside of the loss function.</span>
-            <span class="n">output</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="n">F</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">h</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-            <span class="p">]</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunked_output</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># shape: [b, seq_len, out_dim]</span>
             <span class="n">output</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>

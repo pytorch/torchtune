@@ -702,7 +702,6 @@
             <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
             <span class="n">dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
             <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
-            <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;q_proj&quot;</span> <span class="ow">in</span> <span class="n">lora_modules</span>
         <span class="k">else</span> <span class="p">(</span>
@@ -719,7 +718,6 @@
             <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
             <span class="n">dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
             <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
-            <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;k_proj&quot;</span> <span class="ow">in</span> <span class="n">lora_modules</span>
         <span class="k">else</span> <span class="p">(</span>
@@ -736,7 +734,6 @@
             <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
             <span class="n">dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
             <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
-            <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;v_proj&quot;</span> <span class="ow">in</span> <span class="n">lora_modules</span>
         <span class="k">else</span> <span class="p">(</span>
@@ -753,7 +750,6 @@
             <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
             <span class="n">dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
             <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
-            <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;output_proj&quot;</span> <span class="ow">in</span> <span class="n">lora_modules</span>
         <span class="k">else</span> <span class="p">(</span>
@@ -798,7 +794,6 @@
         <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
         <span class="n">dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
         <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
-        <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">down_proj</span> <span class="o">=</span> <span class="n">adapter_cls</span><span class="p">(</span>
         <span class="n">in_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
@@ -807,7 +802,6 @@
         <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
         <span class="n">dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
         <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
-        <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">up_proj</span> <span class="o">=</span> <span class="n">adapter_cls</span><span class="p">(</span>
         <span class="n">in_dim</span><span class="o">=</span><span class="n">dim</span><span class="p">,</span>
@@ -816,7 +810,6 @@
         <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
         <span class="n">dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
         <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
-        <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">activation</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">GELU</span><span class="p">(</span><span class="n">approximate</span><span class="o">=</span><span class="s2">&quot;tanh&quot;</span><span class="p">)</span>
 
