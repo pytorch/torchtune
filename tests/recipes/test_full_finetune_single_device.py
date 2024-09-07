@@ -30,7 +30,6 @@ from tests.test_utils import (
     get_loss_values_from_metric_logger,
     TOKENIZER_PATHS,
 )
-from torchtune.utils import torch_version_ge
 
 
 class TestFullFinetuneSingleDeviceRecipe:
@@ -75,6 +74,9 @@ class TestFullFinetuneSingleDeviceRecipe:
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
 
+        # To workaround https://github.com/pytorch/torchtune/issues/676
+        if compile:
+            os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
         cmd = f"""
         tune run full_finetune_single_device \
             --config {config} \
@@ -89,15 +91,6 @@ class TestFullFinetuneSingleDeviceRecipe:
             metric_logger.filename={log_file} \
             compile={compile} \
         """.split()
-
-        # To workaround https://github.com/pytorch/torchtune/issues/676
-        if compile:
-            os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
-            if not torch_version_ge("2.5.0"):
-                # Chunked cross entropy not support on 2.4
-                cmd = cmd + [
-                    "loss=torch.nn.CrossEntropyLoss",
-                ]
 
         model_config = MODEL_TEST_CONFIGS[model_type]
         cmd = cmd + self._get_test_config_overrides() + model_config

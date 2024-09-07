@@ -9,7 +9,6 @@ from typing import Dict, List, Optional, Union
 import torch
 import torch.nn.functional as F
 from torch import nn
-
 from torchtune.modules import MultiHeadAttention
 
 
@@ -381,6 +380,18 @@ class TransformerDecoder(nn.Module):
 
         self.pos = 0
 
+    @torch.compiler.disable
+    def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:
+        """
+        shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size
+        Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,
+        before calling forward. Upcasting it done inside of the loss function.
+        """
+        return [
+            self.output(chunk)
+            for chunk in last_hidden_state.chunk(self.num_output_chunks, dim=1)
+        ]
+
     def forward(
         self,
         tokens: torch.Tensor,
@@ -473,12 +484,7 @@ class TransformerDecoder(nn.Module):
         h = self.norm(h)
 
         if self.num_output_chunks > 0:
-            # shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size
-            # Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,
-            # before calling forward. Upcasting it done inside of the loss function.
-            output = [
-                self.output(chunk) for chunk in h.chunk(self.num_output_chunks, dim=1)
-            ]
+            output = self.chunked_output(h)
         else:
             # shape: [b, seq_len, out_dim]
             output = self.output(h).float()
@@ -595,6 +601,18 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
 
         self.pos = 0
 
+    @torch.compiler.disable
+    def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:
+        """
+        shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size
+        Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,
+        before calling forward. Upcasting it done inside of the loss function.
+        """
+        return [
+            F.linear(chunk, self.tok_embeddings.weight)
+            for chunk in last_hidden_state.chunk(self.num_output_chunks, dim=1)
+        ]
+
     def forward(
         self,
         tokens: torch.Tensor,
@@ -687,13 +705,7 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         h = self.norm(h)
 
         if self.num_output_chunks > 0:
-            # shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size
-            # Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,
-            # before calling forward. Upcasting it done inside of the loss function.
-            output = [
-                F.linear(chunk, self.tok_embeddings.weight)
-                for chunk in h.chunk(self.num_output_chunks, dim=1)
-            ]
+            output = self.chunked_output(h)
         else:
             # shape: [b, seq_len, out_dim]
             output = F.linear(h, self.tok_embeddings.weight).float()

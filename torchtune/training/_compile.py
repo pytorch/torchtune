@@ -66,20 +66,11 @@ def compile_loss(loss: nn.Module, verbose: bool = True) -> None:
         loss (nn.Module): loss with either entire module compiled or (in the case of
             CEWithChunkedOutputLoss) only the upcast and cross-entropy calculation compiled.
 
-    Raises:
-        RuntimeError: If attempting to compile CEWithChunkedOutputLoss on PyTorch < 2.5.0
     """
     backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
     if verbose:
         log.info("Compiling loss with torch.compile...")
     if isinstance(loss, CEWithChunkedOutputLoss):
-        if not torch_version_ge("2.5.0"):
-            raise RuntimeError(
-                """
-                Compiling CEWithChunkedOutputLoss requires PyTorch 2.5.0 or higher.
-                Please upgrade your PyTorch version or set loss=torch.nn.CrossEntropyLoss
-                """
-            )
         loss.compute_cross_entropy = torch.compile(
             loss.compute_cross_entropy, backend=backend
         )
