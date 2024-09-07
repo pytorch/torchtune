@@ -75,10 +75,6 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
 
-        # To workaround https://github.com/pytorch/torchtune/issues/676
-        if compile:
-            os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
-
         cmd = f"""
         tune run lora_finetune_single_device \
             --config {config} \
@@ -93,6 +89,13 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             metric_logger.filename={log_file} \
             compile={compile} \
         """.split()
+
+        # To workaround https://github.com/pytorch/torchtune/issues/676
+        if compile:
+            os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
+            if not torch_version_ge("2.5.0"):
+                # Chunked cross entropy not support on 2.4
+                cmd = cmd + ["loss=torch.nn.CrossEntropyLoss"]
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
 
@@ -120,10 +123,6 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
 
-        # To workaround https://github.com/pytorch/torchtune/issues/676
-        if compile:
-            os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
-
         cmd = f"""
         tune run lora_finetune_single_device
             --config llama2/7B_qlora_single_device \
@@ -138,6 +137,12 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             tokenizer.prompt_template=null \
             compile={compile} \
         """.split()
+
+        if compile:
+            os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
+            if not torch_version_ge("2.5.0"):
+                # Chunked cross entropy not support on 2.4
+                cmd = cmd + ["loss=torch.nn.CrossEntropyLoss"]
 
         model_config = MODEL_TEST_CONFIGS["llama2_qlora"]
 
