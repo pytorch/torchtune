@@ -10,7 +10,11 @@ from typing import Union
 import torch
 from torch import nn
 
-from torchtune.modules import TiedEmbeddingTransformerDecoder, TransformerDecoder
+from torchtune.modules import (
+    TiedEmbeddingTransformerDecoder,
+    TransformerDecoder,
+    TransformerSelfAttentionLayer,
+)
 from torchtune.modules.loss import CEWithChunkedOutputLoss
 from torchtune.utils import get_logger, torch_version_ge
 
@@ -36,7 +40,7 @@ def compile_model(
         if verbose:
             log.info("Compiling model layers with torch.compile...")
         for m in reversed(list(model.modules())):
-            if isinstance(m, modules.transformer.TransformerSelfAttentionLayer):
+            if isinstance(m, TransformerSelfAttentionLayer):
                 m.compile(backend=backend)
     else:
         if verbose:
