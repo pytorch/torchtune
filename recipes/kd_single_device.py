@@ -93,7 +93,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         Setup the recipe state. This includes recipe state (if resume_from_checkpoint is True),
         model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
         """
-        # TODO: Add teacher model setup and KD loss
 
         self._metric_logger = config.instantiate(cfg.metric_logger)
 
@@ -142,6 +141,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
             # set num_output_chunks for model
             self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+            self._teacher_model.set_num_output_chunks(self._loss_fn.num_output_chunks)
             if self._model_compile:
                 log.info("Compiling loss with torch.compile...")
                 # For CEWithChunkedOutputLoss, if we compile the entire class
@@ -491,8 +491,9 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             adapter_only=self._save_adapter_weights_only,
         )
 
-    def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
-        # TODO: get logits from teacher and compute KD loss
+    def _loss_step(
+        self, batch: Dict[str, torch.Tensor]
+    ) -> (torch.Tensor, torch.Tensor):
 
         # Both are shape [b, s]
         tokens, labels = batch["tokens"], batch["labels"]
@@ -515,14 +516,43 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             labels = labels.reshape(-1)
             logits = logits.reshape(-1, logits.size(-1))
 
+        # Compute KD loss
+        teacher_logits = self._teacher_model(tokens, mask=mask, input_pos=input_pos)
+        # reshape logits to [bsz, s, v]
+        teacher_logits = [
+            logit_chunk.reshape(-1, logit_chunk.size(-1))
+            for logit_chunk in teacher_logits
+        ]
+        student_logits = [
+            logit_chunk.reshape(-1, logit_chunk.size(-1)) for logit_chunk in logits
+        ]
+        distill_labels = [
+            target_chunk.reshape(-1)
+            for target_chunk in labels.chunk(self._loss_fn.num_output_chunks, dim=1)
+        ]
+        total_distill_loss = 0.0
+        for teacher_chunk, student_chunk, label_chunk in zip(
+            teacher_logits, student_logits, distill_labels
+        ):
+            teacher_prob = torch.nn.functional.softmax(teacher_chunk, dim=-1)
+            inf_mask = torch.isinf(student_chunk)
+            student_logprob = torch.nn.functional.log_softmax(student_chunk, dim=-1)
+            prod_probs = torch.masked_fill(teacher_prob * student_logprob, inf_mask, 0)
+            x = torch.sum(prod_probs, dim=-1).view(-1)
+            mask = (label_chunk != -100).int()
+            total_distill_loss += -torch.sum(x * mask.view(-1), dim=0) / torch.sum(
+                mask.view(-1), dim=0
+            )
+
         # Compute loss
         loss = self._loss_fn(logits, labels)
 
         # free logits otherwise it peaks backward memory
         del logits
+        del teacher_logits
+        del student_logits
 
-        # TODO: return class and KD loss
-        return loss
+        return loss, total_distill_loss
 
     def train(self) -> None:
         """
@@ -566,8 +596,8 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                     batch = {k: v.to(self._device) for k, v in batch.items()}
                     num_tokens += batch["tokens"].numel()
 
-                    # TODO: compute total loss and log losses
-                    loss = self._loss_step(batch)
+                    class_loss, kd_loss = self._loss_step(batch)
+                    loss = 0.5 * class_loss + 0.5 * kd_loss
                     loss = loss / self._gradient_accumulation_steps
                     running_loss += loss
                     loss.backward()
