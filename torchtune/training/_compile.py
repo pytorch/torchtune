@@ -46,9 +46,9 @@ def compile_model(
         if verbose:
             log.info(
                 """
-            Compiling full model with torch.compile...
-            For faster compile times via per-layer compile, please run on PyTorch nightlies.
-            """
+                Compiling full model with torch.compile...
+                For faster compile times via per-layer compile, please run on PyTorch nightlies.
+                """
             )
         model.compile(backend=backend)
 
