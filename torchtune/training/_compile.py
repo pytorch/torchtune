@@ -38,8 +38,8 @@ def compile_model(
         ValueError: Just to make pydoctlint happy, will remove
     """
     backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-    log.error(f"Backend is {backend}")
-    raise ValueError("Done")
+    if backend != "inductor":
+        raise ValueError(f"Expected inductor backend, got {backend}")
     if torch_version_ge("2.5.0"):
         if verbose:
             log.info("Compiling model layers with torch.compile...")
@@ -69,9 +69,13 @@ def compile_loss(loss: nn.Module, verbose: bool = True) -> None:
     Returns:
         loss (nn.Module): loss with either entire module compiled or (in the case of
             CEWithChunkedOutputLoss) only the upcast and cross-entropy calculation compiled.
+    Raises:
+        ValueError: Just to make pydoctlint happy, will remove
 
     """
     backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+    if backend != "inductor":
+        raise ValueError(f"Expected inductor backend, got {backend}")
     if verbose:
         log.info("Compiling loss with torch.compile...")
     if isinstance(loss, CEWithChunkedOutputLoss):
