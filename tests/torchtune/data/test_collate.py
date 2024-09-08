@@ -57,6 +57,12 @@ class TestLeftPadSequence:
         expected = torch.tensor([[0, 0, 1, 2, 3], [0, 4, 5, 6, 7], [8, 9, 10, 11, 12]])
         assert torch.equal(result, expected)
 
+        result = left_pad_sequence([a, b, c], batch_first=False, padding_value=0)
+        expected = torch.tensor(
+            [[0, 0, 8], [0, 4, 9], [1, 5, 10], [2, 6, 11], [3, 7, 12]]
+        )
+        assert torch.equal(result, expected)
+
 
 class TestPaddedCollate:
     def test_padded_collate_classifier_labels(self):
