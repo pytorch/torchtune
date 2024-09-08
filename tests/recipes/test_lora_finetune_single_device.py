@@ -78,7 +78,6 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         # To workaround https://github.com/pytorch/torchtune/issues/676
         if compile:
             os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
-
         cmd = f"""
         tune run lora_finetune_single_device \
             --config {config} \
