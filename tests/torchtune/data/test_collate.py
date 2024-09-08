@@ -58,7 +58,10 @@ class TestLeftPadSequence:
         assert torch.equal(result, expected)
 
         result = left_pad_sequence([a, b, c], batch_first=False, padding_value=0)
-        assert torch.equal(result, expected.transpose(0, 1))
+        expected = torch.tensor(
+            [[0, 0, 8], [0, 4, 9], [1, 5, 10], [2, 6, 11], [3, 7, 12]]
+        )
+        assert torch.equal(result, expected)
 
 
 class TestPaddedCollate:
