@@ -47,6 +47,7 @@ _FROM_HF = {
 
 def get_mapped_key(key: str, mapping_dict: Dict[str, str]) -> str:
     try:
+        # Checks if there is a layer # in the key
         if any(k.isdigit() for k in key.split(".")):
             # Replace layer number with "{}" to create key for lookup
             abstract_key = re.sub(r"(\.\d+)", ".{}", key)
