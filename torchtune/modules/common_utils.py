@@ -109,9 +109,7 @@ def _low_ram_reparametrize_as_dtype_state_dict_post_hook(
     with torch.serialization.skip_data(materialize_fake_tensors=True):
         torch.save(fake_state_dict, dest_state_dict_path)
     with torch.serialization.set_default_mmap_options(mmap.MAP_SHARED):
-        dest_state_dict = torch.load(
-            dest_state_dict_path, mmap=True, weights_only=True
-        )
+        dest_state_dict = torch.load(dest_state_dict_path, mmap=True, weights_only=True)
 
     # Do D2H and upcast one by one and since dest_state_dict is backed by mmap --> won't OOM
     # even when there is no swap space (e.g. colab)
