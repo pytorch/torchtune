@@ -80,9 +80,8 @@ class TestLoRAFinetuneDistributedRecipe:
             metric_logger.filename={log_file} \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
+            reshard_after_forward={reshard_after_forward} \
         """.split()
-        if reshard_after_forward:
-            cmd.append(f"reshard_after_forward={reshard_after_forward}")
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
 
