@@ -10,10 +10,9 @@ from types import ModuleType
 from typing import Any, Dict, List, Union
 
 from omegaconf import DictConfig, OmegaConf
-from torch import distributed as dist
 
 from torchtune.config._errors import InstantiationError
-from torchtune.utils.logging import get_logger
+from torchtune.utils.logging import get_logger, log_rank_zero
 
 
 def log_config(recipe_name: str, cfg: DictConfig) -> None:
@@ -24,14 +23,11 @@ def log_config(recipe_name: str, cfg: DictConfig) -> None:
         recipe_name (str): name of the recipe to display
         cfg (DictConfig): parsed config object
     """
-    # Log the config only on rank 0
-    rank = dist.get_rank() if dist.is_available() and dist.is_initialized() else 0
-    if rank != 0:
-        return
-
     logger = get_logger("DEBUG")
     cfg_str = OmegaConf.to_yaml(cfg, resolve=True, sort_keys=True)
-    logger.info(msg=f"Running {recipe_name} with resolved config:\n\n{cfg_str}")
+    log_rank_zero(
+        logger=logger, msg=f"Running {recipe_name} with resolved config:\n\n{cfg_str}"
+    )
 
 
 def _has_component(node: Union[Dict[str, Any], DictConfig]) -> bool:
