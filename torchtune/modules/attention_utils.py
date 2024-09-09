@@ -25,6 +25,17 @@ if _SUPPORTS_FLEX_ATTENTION:
         flex_attention,
     )
 
+    flex_attention_compiled = torch.compile(flex_attention, dynamic=False)
+
+    @torch.compiler.disable
+    def compile_friendly_flex_attention(
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+        block_mask: BlockMask,
+    ) -> torch.Tensor:
+        return flex_attention_compiled(q, k, v, block_mask=block_mask)
+
     _MaskType = Union[torch.Tensor, BlockMask]
 else:
     _MaskType = torch.Tensor
@@ -179,7 +190,7 @@ def _sdpa_or_flex_attention() -> Callable:
                     "Using flex attention for attention computation since a BlockMask was passed in.",
                     level=logging.DEBUG,
                 )
-                return flex_attention(
+                return compile_friendly_flex_attention(
                     q,
                     k,
                     v,
