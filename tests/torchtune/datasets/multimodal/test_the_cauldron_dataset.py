@@ -47,10 +47,9 @@ class TestTheCauldronDataset:
         ds = the_cauldron_dataset(
             model_transform=tokenizer, subset="dummy", train_on_input=True
         )
-        input, labels, images = (
+        input, labels = (
             ds[0]["tokens"],
             ds[0]["labels"],
-            ds[0]["images"][0],
         )
 
         assert input == [
@@ -83,7 +82,6 @@ class TestTheCauldronDataset:
             -1,
         ]
         assert labels == input
-        torch.testing.assert_close(F.pil_to_tensor(images), image_tensor)
 
     @patch("torchtune.datasets._sft.load_dataset")
     def test_label_masking(self, load_dataset, tokenizer):
@@ -111,10 +109,9 @@ class TestTheCauldronDataset:
         ds = the_cauldron_dataset(
             model_transform=tokenizer, subset="dummy", train_on_input=False
         )
-        input, labels, images = (
+        input, labels = (
             ds[0]["tokens"],
             ds[0]["labels"],
-            ds[0]["images"][0],
         )
 
         assert input == [
@@ -147,4 +144,3 @@ class TestTheCauldronDataset:
             -1,
         ]
         assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 24
-        torch.testing.assert_close(F.pil_to_tensor(images), image_tensor)

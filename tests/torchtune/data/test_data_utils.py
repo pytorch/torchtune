@@ -5,7 +5,12 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
-from torchtune.data import Message, split_text_by_image_tag, truncate, validate_messages
+from torchtune.data import (
+    format_content_with_images,
+    Message,
+    truncate,
+    validate_messages,
+)
 
 
 def test_truncate():
@@ -90,43 +95,69 @@ def test_validate_messages():
         validate_messages(messages)
 
 
-def test_split_text_by_image_tag():
+def test_format_content_with_images():
     # Test single image tag in the middle
     text = "hello <image>world"
-    assert split_text_by_image_tag(text, "<image>") == [
+    assert format_content_with_images(
+        text,
+        image_tag="<image>",
+        images=["image1.png"],
+    ) == [
         {"type": "text", "content": "hello "},
-        {"type": "image"},
+        {"type": "image", "content": "image1.png"},
         {"type": "text", "content": "world"},
     ]
 
     # Test multiple image tags and image tag in beginning
     text = "[image]hello [image]world"
-    assert split_text_by_image_tag(text, "[image]") == [
-        {"type": "image"},
+    assert format_content_with_images(
+        text,
+        image_tag="[image]",
+        images=["image1.png", "image2.png"],
+    ) == [
+        {"type": "image", "content": "image1.png"},
         {"type": "text", "content": "hello "},
-        {"type": "image"},
+        {"type": "image", "content": "image2.png"},
         {"type": "text", "content": "world"},
     ]
 
     # Test an image tag that is not present in the text
     text = "hello world"
-    assert split_text_by_image_tag(text, "asdfghjkl;") == [
+    assert format_content_with_images(text, image_tag="asdfghjkl;", images=[]) == [
         {"type": "text", "content": "hello world"}
     ]
 
     # Test consecutive image tags
     text = "<image><image>hello <image>world"
-    assert split_text_by_image_tag(text, "<image>") == [
-        {"type": "image"},
-        {"type": "image"},
+    assert format_content_with_images(
+        text,
+        image_tag="<image>",
+        images=["image1.png", "image2.png", "image3.png"],
+    ) == [
+        {"type": "image", "content": "image1.png"},
+        {"type": "image", "content": "image2.png"},
         {"type": "text", "content": "hello "},
-        {"type": "image"},
+        {"type": "image", "content": "image3.png"},
         {"type": "text", "content": "world"},
     ]
 
     # Test image tag at the end
     text = "hello <image>"
-    assert split_text_by_image_tag(text, "<image>") == [
+    assert format_content_with_images(
+        text,
+        image_tag="<image>",
+        images=["image1.png"],
+    ) == [
         {"type": "text", "content": "hello "},
-        {"type": "image"},
+        {"type": "image", "content": "image1.png"},
     ]
+
+    # Test errors when the number of images does not match the number of image tags
+    text = "hello <image>world"
+    with pytest.raises(
+        ValueError,
+        match="does not match number of image tags",
+    ):
+        format_content_with_images(
+            text, image_tag="<image>", images=["image1.png", "image2.png"]
+        )

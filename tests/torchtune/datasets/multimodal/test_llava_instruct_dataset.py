@@ -55,7 +55,8 @@ class TestLLaVAInstructDataset:
             model_transform=tokenizer,
             train_on_input=True,
         )
-        input, labels, images = ds[0]["tokens"], ds[0]["labels"], ds[0]["images"]
+
+        input, labels = ds[0]["tokens"], ds[0]["labels"]
 
         expected_count = {
             3: 17,
@@ -76,7 +77,6 @@ class TestLLaVAInstructDataset:
 
         assert Counter(input) == expected_count
         assert Counter(labels) == expected_count
-        assert images == "test_image.jpg"
 
     @patch("torchtune.datasets._sft.load_dataset")
     def test_label_masking(self, load_dataset, tokenizer):
@@ -112,7 +112,7 @@ class TestLLaVAInstructDataset:
             model_transform=tokenizer,
             train_on_input=False,
         )
-        input, labels, images = ds[0]["tokens"], ds[0]["labels"], ds[0]["images"]
+        input, labels = ds[0]["tokens"], ds[0]["labels"]
 
         expected_count = {
             3: 17,
@@ -133,4 +133,3 @@ class TestLLaVAInstructDataset:
 
         assert Counter(input) == expected_count
         assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 11
-        assert images == "test_image.jpg"

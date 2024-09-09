@@ -31,7 +31,7 @@ class TestMessage:
             role="user",
             content=[
                 {"type": "text", "content": "hello"},
-                {"type": "image"},
+                {"type": "image", "content": "https://test.com/image.png"},
                 {"type": "text", "content": " world"},
             ],
         )
@@ -53,7 +53,7 @@ class TestMessage:
         ):
             message = Message(
                 role="user",
-                content=[{"type": "image"}],
+                content=[{"type": "image", "content": "https://test.com/image.png"}],
                 ipython=True,
             )
 
@@ -68,6 +68,10 @@ class TestMessage:
     def test_contains_media(self, text_message, image_message):
         assert not text_message.contains_media
         assert image_message.contains_media
+
+    def test_get_media(self, text_message, image_message):
+        assert text_message.get_media() == []
+        assert image_message.get_media() == ["https://test.com/image.png"]
 
     def test_text_content(self, text_message, image_message):
         assert text_message.text_content == "hello world"

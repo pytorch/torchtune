@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List, Literal, Mapping, Optional
+from typing import Any, Dict, List, Literal, Mapping, Optional, Union
 
 from torchtune.modules.transforms import Transform
 
@@ -27,15 +27,13 @@ class Message:
         role (Role): role of the message writer. Can be "system" for system prompts,
             "user" for human prompts, "assistant" for model responses, or "ipython"
             for tool call returns.
-        content (List[Dict[str, str]]): content of the message. If it is text only content,
+        content (Union[str, List[Dict[str, str]]]): content of the message. If it is text only content,
             you can pass in a string. If it is multimodal content, pass in a list of dictionaries formatted
             as follows::
 
                 [
                     {"type": "image", "content": "https://path/to/image"},
-                    {"type": "text", "content": "hello"},
-                    {"type": "image", "content": "./Desktop/image.png"},
-                    {"type": "text", "content": "world"},
+                    {"type": "text", "content": "What is in this image?"},
                 ]
 
         masked (bool): whether the message is masked in the sample. If True, do not use
@@ -53,18 +51,30 @@ class Message:
     def __init__(
         self,
         role: Role,
-        content: List[Dict[str, str]],
+        content: Union[str, List[Dict[str, str]]],
         masked: bool = False,
         ipython: bool = False,
         eot: bool = True,
     ):
         self.role = role
-        self.content = content
+        self.content = self._convert_to_list_of_dict(content)
         self.masked = masked
         self.ipython = ipython
         self.eot = eot
 
         self._validate_message()
+
+    def _convert_to_list_of_dict(self, content) -> List[Dict[str, str]]:
+        """User is currently allowed to pass in a string for text-only content.
+        This ensures that the content is formatted as a list of dictionaries."""
+        if isinstance(content, str):
+            return [{"type": "text", "content": content}]
+
+        assert isinstance(
+            content, list
+        ), f"content must be of type List[Dict[str, str]], got {content}"
+
+        return content
 
     @classmethod
     def from_dict(cls, d: dict) -> "Message":

@@ -114,7 +114,7 @@ class TheCauldronToMessages(Transform):
                 )
             ] + messages
 
-        return {"messages": messages, "images": sample[self._column_map["images"]]}
+        return {"messages": messages}
 
 
 # TODO: point to Flamingo model transform as an example

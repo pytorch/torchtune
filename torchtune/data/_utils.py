@@ -37,7 +37,9 @@ def truncate(
     return tokens_truncated
 
 
-def split_text_by_image_tag(content: str, image_tag: str) -> List[Dict[str, str]]:
+def format_content_with_images(
+    content: str, *, image_tag: str, images: List[str]
+) -> List[Dict[str, str]]:
     """
     Given a raw text string, split by the specified ``image_tag``
     and form into list of dictionaries to be used in the ``Message`` content
@@ -48,7 +50,7 @@ def split_text_by_image_tag(content: str, image_tag: str) -> List[Dict[str, str]
                 "role": "system" | "user" | "assistant",
                 "content":
                     [
-                        {"type": "image"},
+                        {"type": "image", "content": "path/to/image1.png"},
                         {"type": "text", "content": "This is a sample image."},
                     ],
             },
@@ -58,22 +60,41 @@ def split_text_by_image_tag(content: str, image_tag: str) -> List[Dict[str, str]
     Args:
         content (str): raw message text
         image_tag (str): string to split the text by
+        images (List[str]): list of image paths to be used in the content
+
+    Raises:
+        ValueError: If the number of images does not match the number of image tags in the content
+
+    Example:
+        >>> content = format_content_with_media(
+        ...     "<image>hello <image>world",
+        ...     image_tag="<image>",
+        ...     images=["image1.png", "image2.png"]
+        ... )
+        >>> print(content)
+        [
+            {"type": "image", "content": "image1.png"},
+            {"type": "text", "content": "hello "},
+            {"type": "image", "content": "image2.png"},
+            {"type": "text", "content": "world"}
+        ]
 
     Returns:
         List[Dict[str, str]]: list of dictionaries to be used in the ``Message`` content field
-
-    Example:
-        >>> content = split_text_by_image_tag("<image>hello <image>world", "<image>")
-        >>> print(content)
-        [{"type": "image"}, {"type": "text", "content": "hello "}, {"type": "image"}, {"type": "text", "content": "world"}]
     """
+    num_image_tags_in_content = content.count(image_tag)
+    if len(images) != num_image_tags_in_content:
+        raise ValueError(
+            f"Number of images ({len(images)}) does not match number of image tags ({num_image_tags_in_content})"
+        )
+
     split_content = content.split(image_tag)
     final_content_list = []
     for i, substr in enumerate(split_content):
         if len(substr) > 0:
             final_content_list.append({"type": "text", "content": substr})
         if i < len(split_content) - 1:
-            final_content_list.append({"type": "image"})
+            final_content_list.append({"type": "image", "content": images.pop(0)})
 
     return final_content_list
 

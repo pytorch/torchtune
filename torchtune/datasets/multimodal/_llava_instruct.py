@@ -6,7 +6,7 @@
 
 from typing import Any, Dict, Mapping, Optional, Union
 
-from torchtune.data import Message, split_text_by_image_tag
+from torchtune.data import format_content_with_images, Message
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.transforms import Transform
@@ -20,6 +20,7 @@ class LlavaInstructToMessages(Transform):
     Chat samples in the "conversations" column follow the ShareGPT format::
 
         {
+            "image": "image0001.png",
             "conversations": [
                 {
                     "from": "system" | "human" | "gpt",
@@ -38,7 +39,7 @@ class LlavaInstructToMessages(Transform):
                 "role": "system" | "user" | "assistant",
                 "content":
                     [
-                        {"type": "image", "content": "https://path/to/image.png"},
+                        {"type": "image", "content": "image0001.png"},
                         {"type": "text", "content": "This is a sample image."},
                     ],
             },
@@ -93,14 +94,19 @@ class LlavaInstructToMessages(Transform):
         # Add in image stuffs / load from file
         for message in sample[self._column_map["conversations"]]:
             role = role_map[message["from"]]
+            content = message["value"]
             if role == "system" and self.new_system_prompt is not None:
                 continue
-            content = split_text_by_image_tag(message["value"], "<image>")
-            content["image"]["content"] = sample[self._column_map["image"]]
+            if role == "user":
+                content = format_content_with_images(
+                    content,
+                    image_tag="<image>",
+                    images=[sample[self._column_map["image"]]],
+                )
             masked = (role != "assistant") and (not self.train_on_input)
             messages.append(Message(role=role, content=content, masked=masked))
 
-        return messages
+        return {"messages": messages}
 
 
 # TODO: point to Flamingo model transform as an example
