@@ -31,7 +31,7 @@ from torchtune.data._prompt_templates import (
     QuestionAnswerTemplate,
     SummarizeTemplate,
 )
-from torchtune.data._utils import format_content_with_images, truncate
+from torchtune.data._utils import format_content_with_images, load_image, truncate
 
 __all__ = [
     "ChatFormat",
@@ -58,4 +58,5 @@ __all__ = [
     "padded_collate_dpo",
     "left_pad_sequence",
     "padded_collate",
+    "load_image",
 ]

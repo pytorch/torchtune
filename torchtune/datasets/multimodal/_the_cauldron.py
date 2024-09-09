@@ -43,7 +43,7 @@ class TheCauldronToMessages(Transform):
                 "role": "system" | "user" | "assistant",
                 "content":
                     [
-                        {"type": "image", "content": "https://path/to/image.png"},
+                        {"type": "image", "content": <PIL.Image.Image>},
                         {"type": "text", "content": "This is a sample image."},
                     ],
             },

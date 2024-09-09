@@ -27,12 +27,12 @@ class Message:
         role (Role): role of the message writer. Can be "system" for system prompts,
             "user" for human prompts, "assistant" for model responses, or "ipython"
             for tool call returns.
-        content (Union[str, List[Dict[str, str]]]): content of the message. If it is text only content,
+        content (Union[str, List[Dict[str, Any]]]): content of the message. If it is text only content,
             you can pass in a string. If it is multimodal content, pass in a list of dictionaries formatted
             as follows::
 
                 [
-                    {"type": "image", "content": "https://path/to/image"},
+                    {"type": "image", "content": <PIL.JpegImagePlugin.JpegImageFile ...>},
                     {"type": "text", "content": "What is in this image?"},
                 ]
 
@@ -46,12 +46,16 @@ class Message:
             - For multiple consecutive assistant messages (i.e., tool calls
               by assistant), only the last assistant message will have ``eot=True``
             - All ipython messages (tool call returns) should set ``eot=False``.
+
+    Note:
+        Message class expects any image content to be in
+        `PIL Image format <https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.Image>`_.
     """
 
     def __init__(
         self,
         role: Role,
-        content: Union[str, List[Dict[str, str]]],
+        content: Union[str, List[Dict[str, Any]]],
         masked: bool = False,
         ipython: bool = False,
         eot: bool = True,
@@ -64,7 +68,7 @@ class Message:
 
         self._validate_message()
 
-    def _convert_to_list_of_dict(self, content) -> List[Dict[str, str]]:
+    def _convert_to_list_of_dict(self, content) -> List[Dict[str, Any]]:
         """User is currently allowed to pass in a string for text-only content.
         This ensures that the content is formatted as a list of dictionaries."""
         if isinstance(content, str):
@@ -72,7 +76,7 @@ class Message:
 
         assert isinstance(
             content, list
-        ), f"content must be of type List[Dict[str, str]], got {content}"
+        ), f"content must be of type List[Dict[str, Any]], got {content}"
 
         return content
 

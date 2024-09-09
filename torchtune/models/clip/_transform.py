@@ -6,7 +6,6 @@
 
 import logging
 from typing import Any, List, Mapping, Optional, Tuple
-from urllib import request
 
 import torch
 import torchvision
@@ -23,36 +22,6 @@ from torchtune.modules.transforms.vision_utils.tile_crop import tile_crop
 from torchvision.transforms.v2 import functional as F
 
 logger = logging.getLogger(__name__)
-
-
-def _load_image(image_path: str) -> Image.Image:
-    """
-    Load an image from a file path or a binary stream.
-
-    Args:
-        image_path (str): The image to load from either remote source of local file.
-
-    Raises:
-        ValueError: If the image cannot be loaded from remote source.
-        ValueError: If the image cannot be opened as a PIL.Image.
-
-    Returns:
-        Image.Image: The loaded image.
-    """
-    # If a remote source, try to load to local
-    if image_path.startswith("http"):
-        try:
-            image_path = request.urlopen(image_path)
-        except Exception as e:
-            raise ValueError(f"Failed to load image from {image_path}") from e
-
-    # Open the local image as a PIL image
-    try:
-        image = Image.open(image_path)
-    except Exception as e:
-        raise ValueError(f"Failed to open image as PIL.Image from {image_path}") from e
-
-    return image
 
 
 class CLIPImageTransform:

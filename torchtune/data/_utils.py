@@ -4,7 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import sys
 from typing import Any, Dict, List, Optional, TypeVar
+from urllib import request
 
 from torchtune.config._utils import _get_component_from_path
 
@@ -42,8 +44,54 @@ def truncate(
     return tokens_truncated
 
 
+def load_image(image_path: str) -> "PIL.Image.Image":
+    """
+    Load an image from a file path or a binary stream.
+
+    Args:
+        image_path (str): The image to load from either remote source of local file.
+
+    Raises:
+        ValueError: If the image cannot be loaded from remote source.
+        ValueError: If the image cannot be opened as a PIL.Image.
+        ImportError: If PIL is not installed.
+
+    Returns:
+        PIL.Image.Image: The loaded image.
+    """
+    # Hackily import PIL to avoid burdensome import in the main module
+    # TODO: Fix this
+    if "PIL" not in sys.modules:
+        try:
+            from PIL import Image
+        except ImportError as e:
+            raise ImportError(
+                """
+                In order to use multimodal functionalities in torchtune, please install the Pillow (PIL) package.
+                Please follow the instructions at
+                https://pillow.readthedocs.io/en/stable/installation/basic-installation.html#basic-installation
+                to install the package.
+                """
+            ) from e
+
+    # If a remote source, try to load to local
+    if image_path.startswith("http"):
+        try:
+            image_path = request.urlopen(image_path)
+        except Exception as e:
+            raise ValueError(f"Failed to load image from {image_path}") from e
+
+    # Open the local image as a PIL image
+    try:
+        image = Image.open(image_path)
+    except Exception as e:
+        raise ValueError(f"Failed to open image as PIL.Image from {image_path}") from e
+
+    return image
+
+
 def format_content_with_images(
-    content: str, *, image_tag: str, images: List[str]
+    content: str, *, image_tag: str, images: List["PIL.Image.Image"]
 ) -> List[Dict[str, str]]:
     """
     Given a raw text string, split by the specified ``image_tag``
@@ -65,22 +113,22 @@ def format_content_with_images(
     Args:
         content (str): raw message text
         image_tag (str): string to split the text by
-        images (List[str]): list of image paths to be used in the content
+        images (List["PIL.Image.Image"]): list of images to be used in the content
 
     Raises:
         ValueError: If the number of images does not match the number of image tags in the content
 
     Example:
         >>> content = format_content_with_media(
-        ...     "<image>hello <image>world",
-        ...     image_tag="<image>",
-        ...     images=["image1.png", "image2.png"]
+        ...     "<|image|>hello <|image|>world",
+        ...     image_tag="<|image|>",
+        ...     images=[<PIL.Image.Image>, <PIL.Image.Image>"]
         ... )
         >>> print(content)
         [
-            {"type": "image", "content": "image1.png"},
+            {"type": "image", "content": <PIL.Image.Image>},
             {"type": "text", "content": "hello "},
-            {"type": "image", "content": "image2.png"},
+            {"type": "image", "content": <PIL.Image.Image>},
             {"type": "text", "content": "world"}
         ]
 

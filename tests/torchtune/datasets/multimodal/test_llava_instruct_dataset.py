@@ -7,6 +7,8 @@
 from collections import Counter
 from unittest.mock import patch
 
+import PIL
+
 import pytest
 from datasets import Dataset
 
@@ -22,10 +24,15 @@ class TestLLaVAInstructDataset:
         return DummyTokenizer()
 
     @patch("torchtune.datasets._sft.load_dataset")
-    def test_label_no_masking(self, load_dataset, tokenizer):
+    @patch("torchtune.datasets.multimodal._llava_instruct.load_image")
+    def test_label_no_masking(self, load_image, load_dataset, tokenizer):
         """
         Test whether the input and the labels are correctly created when the input is not masked.
+
+        WARNING: careful with these mocks, they are applied in bottom up order
         """
+        # mock the call to load_image
+        load_image.return_value = PIL.Image.new(mode="RGB", size=(10, 10))
 
         # mock the call to HF datasets
         load_dataset.return_value = Dataset.from_list(
@@ -79,10 +86,15 @@ class TestLLaVAInstructDataset:
         assert Counter(labels) == expected_count
 
     @patch("torchtune.datasets._sft.load_dataset")
-    def test_label_masking(self, load_dataset, tokenizer):
+    @patch("torchtune.datasets.multimodal._llava_instruct.load_image")
+    def test_label_masking(self, load_image, load_dataset, tokenizer):
         """
         Test whether the input and the labels are correctly created when the input is masked.
+
+        WARNING: careful with these mocks, they are applied in bottom up order
         """
+        # mock the call to load_image
+        load_image.return_value = PIL.Image.new(mode="RGB", size=(10, 10))
 
         # mock the call to HF datasets
         load_dataset.return_value = Dataset.from_list(
