@@ -6,50 +6,12 @@
 
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
-from urllib import request
-
-from PIL import Image
-
 from torchtune.data import Message, PromptTemplate
 
 from torchtune.models.clip import CLIPImageTransform
 from torchtune.models.llama3 import llama3_tokenizer
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform, VisionCrossAttentionMask
-
-
-def _load_image(image_path: str) -> Image.Image:
-    """
-    Load an image from a file path or a binary stream.
-
-    Args:
-        image_path (str): The image to load from either remote source of local file.
-
-    Raises:
-        ValueError: If the image cannot be loaded.
-        ValueError: If the image cannot be opened as a PIL.Image.
-
-    Returns:
-        Image.Image: The loaded image.
-    """
-
-    # First try to load the bytes
-    try:
-        if image_path.startswith("http"):
-            x = request.urlopen(image_path)
-        else:
-            with open(image_path, "rb") as f:
-                x = f.read()
-    except Exception as e:
-        raise ValueError(f"Failed to load image from {image_path}") from e
-
-    # Then open the image as a PIL image
-    try:
-        image = Image.open(x)
-    except Exception as e:
-        raise ValueError(f"Failed to open image as PIL.Image from {image_path}") from e
-
-    return image
 
 
 class FlamingoTransform(ModelTokenizer, Transform):
@@ -243,24 +205,13 @@ class FlamingoTransform(ModelTokenizer, Transform):
                 - encoder_mask: List[bool] of masks for the transformed images
         """
         encoder_input = {"images": [], "aspect_ratio": []}
-
-        # Get messages from sample
         messages = sample["messages"]
 
         for message in messages:
-            if message.role == "user" and message.contains_media():
-                # Find the image(s) in the message content
-                for elem in message.content:
-                    if elem["type"] == "image":
-                        # Load image into PIL format
-                        image = _load_image(elem["content"])
-
-                        # Transform the image and append to encoder_input
-                        out = self.transform_image(
-                            {"image": image}, inference=inference
-                        )
-                        encoder_input["images"].append(out["image"])
-                        encoder_input["aspect_ratio"].append(out["aspect_ratio"])
+            for image in message.get_media():
+                out = self.transform_image({"image": image}, inference=inference)
+                encoder_input["images"].append(out["image"])
+                encoder_input["aspect_ratio"].append(out["aspect_ratio"])
 
         sample["encoder_input"] = encoder_input
         sample = self.tokenizer(sample, inference=inference)

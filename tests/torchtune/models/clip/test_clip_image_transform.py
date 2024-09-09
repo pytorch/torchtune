@@ -4,14 +4,19 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
+
 import numpy as np
 import PIL
 import pytest
 
 import torch
+from PIL import Image
+
+from tests.common import ASSETS
 from tests.test_utils import assert_expected
 
-from torchtune.models.clip._transform import CLIPImageTransform
+from torchtune.models.clip._transform import _load_image, CLIPImageTransform
 from torchtune.models.clip.inference._transform import (
     CLIPImageTransform as CLIPImageTransformInference,
 )
@@ -24,6 +29,80 @@ def random():
 
 
 class TestCLIPImageTransform:
+    @pytest.fixture
+    def tmp_image(self):
+        return str(ASSETS / "dog_on_skateboard.jpg")
+
+    def test_load_image_local_file(self, tmp_image):
+        # Load the image
+        image = _load_image(tmp_image)
+
+        # Check that the image is loaded correctly
+        assert isinstance(image, Image.Image)
+        assert image.size == (580, 403)
+
+    def test_load_image_remote_file(self, monkeypatch, tmp_image):
+        # Mock the urlopen function to return a BytesIO object
+        def mock_urlopen(url):
+            return open(tmp_image, "rb")
+
+        monkeypatch.setattr("urllib.request.urlopen", mock_urlopen)
+
+        # Load the image
+        image = _load_image("http://example.com/test_image.jpg")
+
+        # Check that the image is loaded correctly
+        assert isinstance(image, Image.Image)
+        assert image.size == (580, 403)
+
+    def test_load_image_invalid_path(self):
+        # Test that a ValueError is raised when the image path is invalid
+        with pytest.raises(ValueError, match="Failed to open image as PIL.Image"):
+            _load_image("invalid_path")
+
+    def test_load_image_invalid_image_data(self, tmp_path):
+        # Create a temporary file with invalid image data
+        image_path = tmp_path / "test_image.jpg"
+        with open(image_path, "w") as f:
+            f.write("Invalid image data")
+
+        # Test that a ValueError is raised when the image data is invalid
+        with pytest.raises(ValueError, match="Failed to open image as PIL.Image"):
+            _load_image(str(image_path))
+
+    def test_load_image_http_error(self, monkeypatch):
+        # Mock the urlopen function to raise an exception
+        def mock_urlopen(url):
+            raise Exception("Failed to load image")
+
+        monkeypatch.setattr("urllib.request.urlopen", mock_urlopen)
+
+        # Test that a ValueError is raised when there is an HTTP error
+        with pytest.raises(ValueError, match="Failed to load image"):
+            _load_image("http://example.com/test_image.jpg")
+
+    def test_load_image_io_error(self, tmp_path):
+        # Create a temporary file that cannot be read
+        image_path = tmp_path / "test_image.jpg"
+        with open(image_path, "w") as f:
+            f.write("Test data")
+        os.chmod(image_path, 0o000)  # Remove read permissions
+
+        # Test that a ValueError is raised when there is an IO error
+        with pytest.raises(ValueError, match="Failed to open image as PIL.Image"):
+            _load_image(str(image_path))
+        os.chmod(image_path, 0o644)  # Restore read permissions
+
+    def test_load_image_pil_error(self, tmp_path):
+        # Create a temporary file with invalid image data
+        image_path = tmp_path / "test_image.jpg"
+        with open(image_path, "wb") as f:
+            f.write(b"Invalid image data")
+
+        # Test that a ValueError is raised when PIL cannot open the image
+        with pytest.raises(ValueError, match="Failed to open image as PIL.Image"):
+            _load_image(str(image_path))
+
     @pytest.mark.parametrize(
         "params",
         [

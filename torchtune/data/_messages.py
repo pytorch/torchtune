@@ -85,12 +85,20 @@ class Message:
             eot=d.get("eot", True),
         )
 
+    def get_media(self) -> List[str]:
+        """
+        Returns media content of the message.
+        """
+        return [
+            content["content"] for content in self.content if content["type"] == "image"
+        ]
+
     @property
     def contains_media(self) -> bool:
         """
-        Returns True if message contains non-text content.
+        Returns whether the message contains media.
         """
-        return any(content["type"] != "text" for content in self.content)
+        return any(content["type"] == "image" for content in self.content)
 
     @property
     def text_content(self) -> str:

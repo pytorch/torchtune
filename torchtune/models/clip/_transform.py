@@ -6,6 +6,7 @@
 
 import logging
 from typing import Any, List, Mapping, Optional, Tuple
+from urllib import request
 
 import torch
 import torchvision
@@ -22,6 +23,36 @@ from torchtune.modules.transforms.vision_utils.tile_crop import tile_crop
 from torchvision.transforms.v2 import functional as F
 
 logger = logging.getLogger(__name__)
+
+
+def _load_image(image_path: str) -> Image.Image:
+    """
+    Load an image from a file path or a binary stream.
+
+    Args:
+        image_path (str): The image to load from either remote source of local file.
+
+    Raises:
+        ValueError: If the image cannot be loaded from remote source.
+        ValueError: If the image cannot be opened as a PIL.Image.
+
+    Returns:
+        Image.Image: The loaded image.
+    """
+    # If a remote source, try to load to local
+    if image_path.startswith("http"):
+        try:
+            image_path = request.urlopen(image_path)
+        except Exception as e:
+            raise ValueError(f"Failed to load image from {image_path}") from e
+
+    # Open the local image as a PIL image
+    try:
+        image = Image.open(image_path)
+    except Exception as e:
+        raise ValueError(f"Failed to open image as PIL.Image from {image_path}") from e
+
+    return image
 
 
 class CLIPImageTransform:
@@ -159,8 +190,12 @@ class CLIPImageTransform:
             Mapping[str, Any]: The sample with an updated "image" filed and added
                 "aspect_ratio" field.
         """
+
         image = sample["image"]
-        assert isinstance(image, Image.Image), "Input image must be a PIL image."
+        # If we get a string, we assume it's a path to an image (either remote or local)
+        if isinstance(image, str):
+            image = _load_image(image)
+        assert isinstance(image, Image.Image), f"Expected PIL.Image, got {type(image)}"
 
         # Make image torch.tensor((3, H, W), dtype=dtype), 0<=values<=1
         image = F.to_image(image)
