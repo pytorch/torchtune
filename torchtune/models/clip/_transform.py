@@ -161,7 +161,7 @@ class CLIPImageTransform:
         """
 
         image = sample["image"]
-        assert isinstance(image, Image.Image), f"Expected PIL.Image, got {type(image)}"
+        assert isinstance(image, Image.Image), "Input image must be a PIL image."
 
         # Make image torch.tensor((3, H, W), dtype=dtype), 0<=values<=1
         image = F.to_image(image)
