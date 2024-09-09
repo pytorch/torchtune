@@ -7,7 +7,7 @@
 from typing import Any, List, Mapping
 
 from torchtune.data._messages import Message
-from torchtune.data._utils import deprecated
+from torchtune.utils.logging import deprecated
 
 
 @deprecated(

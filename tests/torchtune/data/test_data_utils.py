@@ -6,11 +6,14 @@
 
 import pytest
 from torchtune.data import (
-    format_content_with_images,
     Message,
+    PromptTemplate,
+    format_content_with_images,
     truncate,
     validate_messages,
 )
+from torchtune.data._utils import _get_prompt_template
+from torchtune.models.llama2 import Llama2ChatTemplate
 
 
 def test_truncate():
@@ -161,3 +164,18 @@ def test_format_content_with_images():
         format_content_with_images(
             text, image_tag="<image>", images=["image1.png", "image2.png"]
         )
+
+def test_get_prompt_template():
+    template = _get_prompt_template("torchtune.models.llama2.Llama2ChatTemplate")
+    assert isinstance(template, Llama2ChatTemplate)
+
+    template = _get_prompt_template({"user": ("1", "2"), "assistant": ("3", "4")})
+    assert isinstance(template, PromptTemplate)
+    assert template.template["user"] == ("1", "2")
+    assert template.template["assistant"] == ("3", "4")
+
+    with pytest.raises(
+        ValueError,
+        match="Prompt template must be a dotpath string or dictionary with custom template",
+    ):
+        _ = _get_prompt_template(["user", "assistant"])
