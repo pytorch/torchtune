@@ -6,9 +6,9 @@
 
 import pytest
 from torchtune.data import (
+    format_content_with_images,
     Message,
     PromptTemplate,
-    format_content_with_images,
     truncate,
     validate_messages,
 )
@@ -164,6 +164,7 @@ def test_format_content_with_images():
         format_content_with_images(
             text, image_tag="<image>", images=["image1.png", "image2.png"]
         )
+
 
 def test_get_prompt_template():
     template = _get_prompt_template("torchtune.models.llama2.Llama2ChatTemplate")
