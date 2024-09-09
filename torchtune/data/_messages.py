@@ -32,7 +32,7 @@ class Message:
             as follows::
 
                 [
-                    {"type": "image", "content": <PIL.JpegImagePlugin.JpegImageFile ...>},
+                    {"type": "image", "content": <PIL.Image.Image>},
                     {"type": "text", "content": "What is in this image?"},
                 ]
 

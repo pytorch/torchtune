@@ -53,24 +53,13 @@ def load_image(image_path: str) -> "PIL.Image.Image":
     Raises:
         ValueError: If the image cannot be loaded from remote source.
         ValueError: If the image cannot be opened as a PIL.Image.
-        ImportError: If PIL is not installed.
 
     Returns:
         PIL.Image.Image: The loaded image.
     """
     # Hackily import PIL to avoid burdensome import in the main module
     # TODO: Fix this
-    try:
-        from PIL import Image
-    except ImportError as e:
-        raise ImportError(
-            """
-            In order to use multimodal functionalities in torchtune, please install the Pillow (PIL) package.
-            Please follow the instructions at
-            https://pillow.readthedocs.io/en/stable/installation/basic-installation.html#basic-installation
-            to install the package.
-            """
-        ) from e
+    from PIL import Image
 
     # If a remote source, try to load to local
     if image_path.startswith("http"):
@@ -83,7 +72,7 @@ def load_image(image_path: str) -> "PIL.Image.Image":
     try:
         image = Image.open(image_path)
     except Exception as e:
-        raise ValueError(f"Failed to open image as PIL.Image from {image_path}") from e
+        raise ValueError(f"Failed to open image as PIL Image from {image_path}") from e
 
     return image
 
