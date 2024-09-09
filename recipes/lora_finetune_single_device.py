@@ -489,7 +489,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             if not packed
             else partial(
                 padded_collate_packed,
-                device=self._device,
             ),
         )
 
