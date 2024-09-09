@@ -15,6 +15,7 @@ from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune import training
 from torchtune.models.llama2 import llama2, lora_llama2
 from torchtune.models.llama2._component_builders import lora_llama2_self_attention
+from torchtune.modules import RotaryPositionalEmbeddings
 from torchtune.modules.low_precision import FrozenNF4Linear
 from torchtune.modules.peft import get_merged_lora_ckpt, LoRALinear
 from torchtune.training.seed import set_seed
@@ -27,6 +28,7 @@ EMBED_DIM = 64
 NUM_HEADS = 4
 NUM_KV_HEADS = 2
 MAX_SEQ_LEN = 64
+ROPE_BASE = 10000.0
 
 
 @pytest.fixture(autouse=True)
@@ -41,7 +43,13 @@ class TestLoRALlamaSelfAttention:
         return inputs
 
     def get_lora_llama_self_attention(self, lora_modules):
+        head_dim = EMBED_DIM // NUM_HEADS
+        rope = RotaryPositionalEmbeddings(
+            dim=head_dim, max_seq_len=MAX_SEQ_LEN, base=ROPE_BASE
+        )
         lora_llama_sa = lora_llama2_self_attention(
+            pos_embeddings=rope,
+            head_dim=head_dim,
             lora_modules=lora_modules,
             embed_dim=EMBED_DIM,
             num_heads=NUM_HEADS,

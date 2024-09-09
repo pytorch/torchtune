@@ -15,6 +15,7 @@ from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune import training
 from torchtune.models.phi3 import lora_phi3, phi3
 from torchtune.models.phi3._component_builders import lora_phi3_self_attention
+from torchtune.models.phi3._position_embeddings import Phi3RotaryPositionalEmbeddings
 from torchtune.modules.peft import get_merged_lora_ckpt, LoRALinear
 from torchtune.training.seed import set_seed
 
@@ -27,6 +28,7 @@ INTER_DIM = 128
 NUM_HEADS = 4
 NUM_KV_HEADS = 2
 MAX_SEQ_LEN = 64
+ROPE_BASE = 10_000.0
 
 
 @pytest.fixture(autouse=True)
@@ -41,8 +43,14 @@ class TestLoRAPhi3SelfAttention:
         return inputs
 
     def get_lora_phi_self_attention(self, lora_modules):
+        head_dim = EMBED_DIM // NUM_HEADS
+        rope = Phi3RotaryPositionalEmbeddings(
+            dim=head_dim, max_seq_len=MAX_SEQ_LEN, base=ROPE_BASE
+        )
         lora_phi_sa = lora_phi3_self_attention(
             lora_modules=lora_modules,
+            pos_embeddings=rope,
+            head_dim=head_dim,
             embed_dim=EMBED_DIM,
             num_heads=NUM_HEADS,
             num_kv_heads=NUM_KV_HEADS,

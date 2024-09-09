@@ -11,6 +11,9 @@ from tests.test_utils import assert_expected, fixed_init_model
 from torch import nn
 from torchtune.models.qwen2 import lora_qwen2, qwen2
 from torchtune.models.qwen2._component_builders import lora_qwen2_self_attention
+from torchtune.models.qwen2._positional_embeddings import (
+    Qwen2RotaryPositionalEmbeddings,
+)
 from torchtune.training.seed import set_seed
 
 RANK = 4
@@ -22,6 +25,7 @@ INTERMEDIATE_DIM = 168
 NUM_HEADS = 4
 NUM_KV_HEADS = 2
 MAX_SEQ_LEN = 64
+ROPE_BASE = 1000000.0
 
 
 @pytest.fixture(autouse=True)
@@ -36,8 +40,14 @@ class TestLoRAQwen2SelfAttention:
         return inputs
 
     def get_lora_qwen2_self_attention(self, lora_modules):
+        head_dim = EMBED_DIM // NUM_HEADS
+        rope = Qwen2RotaryPositionalEmbeddings(
+            dim=head_dim, max_seq_len=MAX_SEQ_LEN, base=ROPE_BASE
+        )
         lora_qwen2 = lora_qwen2_self_attention(
             lora_modules=lora_modules,
+            pos_embeddings=rope,
+            head_dim=head_dim,
             embed_dim=EMBED_DIM,
             num_heads=NUM_HEADS,
             num_kv_heads=NUM_KV_HEADS,
