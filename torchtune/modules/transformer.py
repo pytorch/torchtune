@@ -279,7 +279,7 @@ class TransformerDecoder(nn.Module):
     Args:
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move
             tokens to an embedding space.
-        layers (Union[nn.Module, List[nn.Module]]): Transformer Decoder layer or a list of layers.
+        layers (Union[nn.Module, List[nn.Module], nn.ModuleList]): Transformer Decoder layer or a list of layers.
         max_seq_len (int): maximum sequence length the model will be run with, as used
             by :func:`~torchtune.modules.KVCache`
         num_heads (int): number of query heads. For MHA this is also the
@@ -296,8 +296,8 @@ class TransformerDecoder(nn.Module):
         output_hidden_states (Optional[List[int]]): List of layers (indices) to include in the output
 
     Raises:
-        AssertionError: num_layers is set and layer is a list
-        AssertionError: num_layers is not set and layer is an nn.Module
+        AssertionError: layers is neither a list or ModuleList and layers is not a nn.Module
+        AssertionError: layers is neither a list or ModuleList and num_layers is not defined
 
     Note:
         Arg values are checked for correctness (eg: ``attn_dropout`` belongs to [0,1])
@@ -309,7 +309,7 @@ class TransformerDecoder(nn.Module):
         self,
         *,
         tok_embeddings: nn.Embedding,
-        layers: Union[nn.Module, List[nn.Module]],
+        layers: Union[nn.Module, List[nn.Module], nn.ModuleList],
         max_seq_len: int,
         num_heads: int,
         head_dim: int,
@@ -319,15 +319,15 @@ class TransformerDecoder(nn.Module):
         output_hidden_states: Optional[List[int]] = None,
     ) -> None:
         super().__init__()
-        if num_layers is None:
-            if isinstance(layers, nn.Module):
-                raise AssertionError(
-                    "If num_layers is undefined, it is assumed that a list of layers is provided."
-                )
+        if isinstance(layers, nn.ModuleList):
+            pass
+        elif isinstance(layers, list):
             layers = nn.ModuleList(layers)
         else:
             if not isinstance(layers, nn.Module):
                 raise AssertionError("num_layers is defined, layers must be a module")
+            if num_layers is None:
+                raise AssertionError("num_layers is not defined, layers must be a list")
             layers = _get_clones(layers, num_layers)
 
         self.tok_embeddings = tok_embeddings
@@ -514,7 +514,7 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
     Args:
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move
             tokens to an embedding space.
-        layers (Union[nn.Module, List[nn.Module]]): Transformer Decoder layer or a list of layers.
+        layers (Union[nn.Module, List[nn.Module], nn.ModuleList]): Transformer Decoder layer or a list of layers.
         max_seq_len (int): maximum sequence length the model will be run with, as used
             by :func:`~torchtune.modules.KVCache`
         num_heads (int): number of query heads. For MHA this is also the
@@ -529,8 +529,8 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         output_hidden_states (Optional[List[int]]): List of layers (indices) to include in the output
 
     Raises:
-        AssertionError: num_layers is set and layer is a list
-        AssertionError: num_layers is not set and layer is an nn.Module
+        AssertionError: layers is neither a list or ModuleList and layers is not a nn.Module
+        AssertionError: layers is neither a list or ModuleList and num_layers is not defined
 
     Note:
         Arg values are checked for correctness (eg: ``attn_dropout`` belongs to [0,1])
@@ -542,7 +542,7 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         self,
         *,
         tok_embeddings: nn.Embedding,
-        layers: Union[nn.Module, List[nn.Module]],
+        layers: Union[nn.Module, List[nn.Module], nn.ModuleList],
         max_seq_len: int,
         num_heads: int,
         head_dim: int,
@@ -551,15 +551,15 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         output_hidden_states: Optional[List[int]] = None,
     ) -> None:
         super().__init__()
-        if num_layers is None:
-            if isinstance(layers, nn.Module):
-                raise AssertionError(
-                    "If num_layers is undefined, it is assumed that a list of layers is provided."
-                )
+        if isinstance(layers, nn.ModuleList):
+            pass
+        elif isinstance(layers, list):
             layers = nn.ModuleList(layers)
         else:
             if not isinstance(layers, nn.Module):
                 raise AssertionError("num_layers is defined, layers must be a module")
+            if num_layers is None:
+                raise AssertionError("num_layers is not defined, layers must be a list")
             layers = _get_clones(layers, num_layers)
 
         self.tok_embeddings = tok_embeddings

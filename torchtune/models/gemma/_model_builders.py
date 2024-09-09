@@ -6,7 +6,7 @@
 from typing import List, Optional
 
 from torchtune.models.gemma._component_builders import gemma, lora_gemma
-from torchtune.models.gemma.transformer import GemmaTransformerDecoder
+from torchtune.modules import TiedEmbeddingTransformerDecoder
 
 from torchtune.models.gemma._tokenizer import GemmaTokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
@@ -21,13 +21,13 @@ the ``gemma_2b`` model builder uses the ``gemma`` component builder.
 """
 
 
-def gemma_2b() -> GemmaTransformerDecoder:
+def gemma_2b() -> TiedEmbeddingTransformerDecoder:
     """
     Builder for creating a Gemma 2B model initialized w/ the default 2b parameter values
     from: https://blog.google/technology/developers/gemma-open-models/
 
     Returns:
-        GemmaTransformerDecoder: Instantiation of Gemma 2B model
+        TiedEmbeddingTransformerDecoder: Instantiation of Gemma 2B model
     """
     return gemma(
         vocab_size=256_000,
@@ -70,7 +70,7 @@ def lora_gemma_2b(
     lora_alpha: float = 16,
     use_dora: bool = False,
     quantize_base: bool = False,
-) -> GemmaTransformerDecoder:
+) -> TiedEmbeddingTransformerDecoder:
     """
     Builder for creating a Gemma 2B model with LoRA enabled.
 
@@ -91,7 +91,7 @@ def lora_gemma_2b(
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        GemmaTransformerDecoder: Instantiation of Gemma 2B model with LoRA applied
+        TiedEmbeddingTransformerDecoder: Instantiation of Gemma 2B model with LoRA applied
     """
     return lora_gemma(
         lora_attn_modules=lora_attn_modules,
@@ -123,13 +123,13 @@ Please see `lora_gemma_2b` for full API arguments.
 
 
 
-def gemma_7b() -> GemmaTransformerDecoder:
+def gemma_7b() -> TiedEmbeddingTransformerDecoder:
     """
     Builder for creating a Gemma 7B model initialized w/ the default 7b parameter values
     from: https://blog.google/technology/developers/gemma-open-models/
 
     Returns:
-        GemmaTransformerDecoder: Instantiation of Gemma 7B model
+        TiedEmbeddingTransformerDecoder: Instantiation of Gemma 7B model
     """
     return gemma(
         vocab_size=256_000,
@@ -152,7 +152,7 @@ def lora_gemma_7b(
     lora_alpha: float = 16,
     use_dora: bool = False,
     quantize_base: bool = False,
-) -> GemmaTransformerDecoder:
+) -> TiedEmbeddingTransformerDecoder:
     """
     Builder for creating a Gemma 7B model with LoRA enabled.
 
@@ -173,7 +173,7 @@ def lora_gemma_7b(
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        GemmaTransformerDecoder: Instantiation of Gemma 7B model with LoRA applied
+        TiedEmbeddingTransformerDecoder: Instantiation of Gemma 7B model with LoRA applied
     """
     return lora_gemma(
         lora_attn_modules=lora_attn_modules,

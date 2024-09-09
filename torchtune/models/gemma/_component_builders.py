@@ -17,7 +17,8 @@ from torchtune.modules import (
     TransformerSelfAttentionLayer,
 )
 from torchtune.models.gemma.rms_norm import GemmaRMSNorm
-from torchtune.models.gemma.transformer import GemmaTransformerDecoder
+from torchtune.models.gemma.embed_norm import EmbeddingNorm
+from torchtune.modules.transformer import TiedEmbeddingTransformerDecoder
 
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 
@@ -47,7 +48,7 @@ def gemma(
     norm_eps: float = 1e-6,
     rope_base: int = 10_000,
     norm_embeddings: bool = True,
-) -> GemmaTransformerDecoder:
+) -> TiedEmbeddingTransformerDecoder:
     """
     Build the decoder associated with the gemma model. This includes:
     - Token embeddings
@@ -76,41 +77,49 @@ def gemma(
             and mlp layers. Default: True
 
     Returns:
-        GemmaTransformerDecoder: Instantiation of gemma model.
+        TiedEmbeddingTransformerDecoder: Instantiation of gemma model.
     """
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_att = MultiHeadAttention(
-        embed_dim=embed_dim,
-        num_heads=num_heads,
-        num_kv_heads=num_kv_heads,
-        head_dim=head_dim,
-        q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
-        k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
-        v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
-        output_proj=nn.Linear(num_heads * head_dim, embed_dim, bias=False),
-        pos_embeddings=rope,
-        kv_cache=None,
-        max_seq_len=max_seq_len,
-        attn_dropout=attn_dropout,
-    )
-    mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
-    layer = TransformerSelfAttentionLayer(
-        attn=self_att,
-        mlp=mlp,
-        sa_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
-        mlp_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
-    )
+    layers = []
+
+    # Add it as the first layer, so it normalizes the input embeddings
+    # before the transformer layers
+    if norm_embeddings:
+        layers.append(EmbeddingNorm())
+
+    for _ in range(num_layers):
+        self_att = MultiHeadAttention(
+            embed_dim=embed_dim,
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            head_dim=head_dim,
+            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            output_proj=nn.Linear(num_heads * head_dim, embed_dim, bias=False),
+            pos_embeddings=rope,
+            kv_cache=None,
+            max_seq_len=max_seq_len,
+            attn_dropout=attn_dropout,
+        )
+        mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
+        layer = TransformerSelfAttentionLayer(
+            attn=self_att,
+            mlp=mlp,
+            sa_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
+            mlp_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
+        )
+        layers.append(layer)
+    layers = nn.ModuleList(layers)
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
-    model = GemmaTransformerDecoder(
-        tok_embeddings=tok_embeddings,
-        layer=layer,
-        num_layers=num_layers,
-        max_seq_len=max_seq_len,
-        num_heads=num_heads,
-        head_dim=head_dim,
-        norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
-        norm_embeddings=norm_embeddings,
-    )
+    model = TiedEmbeddingTransformerDecoder(
+            tok_embeddings=tok_embeddings,
+            layers=layers,
+            max_seq_len=max_seq_len,
+            num_heads=num_heads,
+            head_dim=head_dim,
+            norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
+        )
     return model
 
 
@@ -152,7 +161,7 @@ def lora_gemma(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
-) -> GemmaTransformerDecoder:
+) -> TiedEmbeddingTransformerDecoder:
     """
     Return a version of Gemma with LoRA applied based on the passed in configuration.
     Note: output projection lora is not supported because it is tied to token embeddings
@@ -188,56 +197,66 @@ def lora_gemma(
             supported for quantization currently.
 
     Returns:
-        GemmaTransformerDecoder: Instantiation of Gemma model with LoRA applied to
+        TiedEmbeddingTransformerDecoder: Instantiation of Gemma model with LoRA applied to
         a subset of the attention projections in each layer.
     """
-    self_attn = lora_gemma_self_attention(
-        lora_modules=lora_attn_modules,
-        embed_dim=embed_dim,
-        head_dim=head_dim,
-        num_heads=num_heads,
-        num_kv_heads=num_kv_heads,
-        max_seq_len=max_seq_len,
-        attn_dropout=attn_dropout,
-        rope_base=rope_base,
-        lora_rank=lora_rank,
-        lora_alpha=lora_alpha,
-        lora_dropout=lora_dropout,
-        use_dora=use_dora,
-        quantize_base=quantize_base,
-    )
+    rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+    layers = []
 
-    if apply_lora_to_mlp:
-        mlp = lora_gemma_mlp(
-            dim=embed_dim,
-            hidden_dim=intermediate_dim,
+    # Add it as the first layer, so it normalizes the input embeddings
+    # before the transformer layers
+    if norm_embeddings:
+        layers.append(EmbeddingNorm())
+
+    for _ in range(num_layers):
+        self_attn = lora_gemma_self_attention(
+            lora_modules=lora_attn_modules,
+            pos_embeddings=rope,
+            embed_dim=embed_dim,
+            head_dim=head_dim,
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            max_seq_len=max_seq_len,
+            attn_dropout=attn_dropout,
+            rope_base=rope_base,
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
             lora_dropout=lora_dropout,
             use_dora=use_dora,
             quantize_base=quantize_base,
         )
-    else:
-        mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim, quantize_base=quantize_base)
 
-    layer = TransformerSelfAttentionLayer(
-        attn=self_attn,
-        mlp=mlp,
-        sa_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
-        mlp_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
-    )
+        if apply_lora_to_mlp:
+            mlp = lora_gemma_mlp(
+                dim=embed_dim,
+                hidden_dim=intermediate_dim,
+                lora_rank=lora_rank,
+                lora_alpha=lora_alpha,
+                lora_dropout=lora_dropout,
+                use_dora=use_dora,
+                quantize_base=quantize_base,
+            )
+        else:
+            mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim, quantize_base=quantize_base)
+
+        layer = TransformerSelfAttentionLayer(
+            attn=self_attn,
+            mlp=mlp,
+            sa_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
+            mlp_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
+        )
+        layers.append(layer)
+    layers = nn.ModuleList(layers)
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
-
-    model = GemmaTransformerDecoder(
+    
+    model = TiedEmbeddingTransformerDecoder(
         tok_embeddings=tok_embeddings,
-        layer=layer,
-        num_layers=num_layers,
+        layers=layers,
         max_seq_len=max_seq_len,
         num_heads=num_heads,
         head_dim=head_dim,
         norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
-        norm_embeddings=norm_embeddings,
-    )
+        )
 
     if quantize_base:
         # For QLoRA, we reparametrize 4-bit tensors to higher precision, and offload to CPU on the fly
@@ -257,11 +276,12 @@ def lora_gemma(
 
 def lora_gemma_self_attention(
     lora_modules: List[LORA_ATTN_MODULES],
+    pos_embeddings: nn.Module,
     *,
     # MultiHeadAttention args
+    head_dim: int,
     embed_dim: int,
     num_heads: int,
-    head_dim: int,
     num_kv_heads: int,
     max_seq_len: int,
     attn_dropout: float = 0.0,
@@ -346,7 +366,6 @@ def lora_gemma_self_attention(
         )
     )
 
-    rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
     self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
@@ -356,7 +375,7 @@ def lora_gemma_self_attention(
         k_proj=k_proj,
         v_proj=v_proj,
         output_proj=output_proj,
-        pos_embeddings=rope,
+        pos_embeddings=pos_embeddings,
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )

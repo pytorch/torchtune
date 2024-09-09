@@ -239,7 +239,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._loss_fn = config.instantiate(cfg.loss)
 
         if self._compile:
-            training.compile_loss(self.loss_fn, verbose=self._is_rank_zero)
+            training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
         if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
             # set num_output_chunks for model
@@ -321,7 +321,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         set_trainable_params(model, self.adapter_params)
 
         if self._compile:
-            training.compile_model(self._model, verbose=self._is_rank_zero)
+            training.compile_model(model, verbose=self._is_rank_zero)
 
         if enable_activation_checkpointing:
             training.set_activation_checkpointing(
@@ -336,10 +336,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # iterating from lowerer modules to higher
         # eg grouping lora adapters before transformer block
         for m in reversed(list(model.modules())):
-            if isinstance(m, nn.Linear) and m.weight.requires_grad:
-                fully_shard(m, **fsdp_kwargs)
-            if isinstance(m, DoRALinear):
-                fully_shard(m, **fsdp_kwargs)
             # TransformerSelfAttentionLayer is wrapped by CheckpointWrapper
             # when enable_activation_checkpointing
             if enable_activation_checkpointing:

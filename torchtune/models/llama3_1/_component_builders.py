@@ -85,33 +85,37 @@ def llama3_1(
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base, scale_factor=scale_factor)
-    self_attn = MultiHeadAttention(
-        embed_dim=embed_dim,
-        num_heads=num_heads,
-        num_kv_heads=num_kv_heads,
-        head_dim=head_dim,
-        q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
-        k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
-        v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
-        output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
-        pos_embeddings=rope,
-        max_seq_len=max_seq_len,
-        attn_dropout=attn_dropout,
-    )
-    hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
-    mlp = llama3_mlp(dim=embed_dim, hidden_dim=hidden_dim)
-    layer = TransformerSelfAttentionLayer(
-        attn=self_attn,
-        mlp=mlp,
-        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
-        mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
-    )
+    layers = []
+    for _ in range(num_layers):
+        self_attn = MultiHeadAttention(
+            embed_dim=embed_dim,
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            head_dim=head_dim,
+            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            pos_embeddings=rope,
+            max_seq_len=max_seq_len,
+            attn_dropout=attn_dropout,
+        )
+        hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
+        mlp = llama3_mlp(dim=embed_dim, hidden_dim=hidden_dim)
+        layer = TransformerSelfAttentionLayer(
+            attn=self_attn,
+            mlp=mlp,
+            sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+            mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        )
+        layers.append(layer)
+    layers = nn.ModuleList(layers)
+
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
     output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
     return TransformerDecoder(
         tok_embeddings=tok_embeddings,
-        layers=layer,
-        num_layers=num_layers,
+        layers=layers,
         max_seq_len=max_seq_len,
         num_heads=num_heads,
         head_dim=head_dim,
@@ -198,42 +202,48 @@ def lora_llama3_1(
 
     """
 
-    self_attn = lora_llama3_1_self_attention(
-        lora_modules=lora_attn_modules,
-        embed_dim=embed_dim,
-        num_heads=num_heads,
-        num_kv_heads=num_kv_heads,
-        max_seq_len=max_seq_len,
-        attn_dropout=attn_dropout,
-        rope_base=rope_base,
-        lora_rank=lora_rank,
-        lora_alpha=lora_alpha,
-        lora_dropout=lora_dropout,
-        use_dora=use_dora,
-        quantize_base=quantize_base,
-    )
-
     hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
-    if apply_lora_to_mlp:
-        mlp = lora_llama3_mlp(
-            dim=embed_dim,
-            hidden_dim=hidden_dim,
+    head_dim = embed_dim // num_heads
+    rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+    layers = []
+    for _ in range(num_layers):
+        self_attn = lora_llama3_1_self_attention(
+            lora_modules=lora_attn_modules,
+            pos_embeddings=rope,
+            head_dim=head_dim,
+            embed_dim=embed_dim,
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            max_seq_len=max_seq_len,
+            attn_dropout=attn_dropout,
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
-            quantize_base=quantize_base,
             lora_dropout=lora_dropout,
             use_dora=use_dora,
+            quantize_base=quantize_base,
         )
-    else:
-        mlp = llama3_mlp(dim=embed_dim, hidden_dim=hidden_dim, quantize_base=quantize_base)
 
-    layer = TransformerSelfAttentionLayer(
-        attn=self_attn,
-        mlp=mlp,
-        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
-        mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
-    )
+        if apply_lora_to_mlp:
+            mlp = lora_llama3_mlp(
+                dim=embed_dim,
+                hidden_dim=hidden_dim,
+                lora_rank=lora_rank,
+                lora_alpha=lora_alpha,
+                quantize_base=quantize_base,
+                lora_dropout=lora_dropout,
+                use_dora=use_dora,
+            )
+        else:
+            mlp = llama3_mlp(dim=embed_dim, hidden_dim=hidden_dim, quantize_base=quantize_base)
 
+        layer = TransformerSelfAttentionLayer(
+            attn=self_attn,
+            mlp=mlp,
+            sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+            mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        )
+        layers.append(layer)
+    layers = nn.ModuleList(layers)
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
     # TODO: quantize_base is not applied to final output_proj currently.
@@ -245,8 +255,7 @@ def lora_llama3_1(
     )
     model = TransformerDecoder(
         tok_embeddings=tok_embeddings,
-        layers=layer,
-        num_layers=num_layers,
+        layers=layers,
         max_seq_len=max_seq_len,
         num_heads=num_heads,
         head_dim=(embed_dim // num_heads),
@@ -266,14 +275,15 @@ def lora_llama3_1(
 
 def lora_llama3_1_self_attention(
     lora_modules: List[LORA_ATTN_MODULES],
+    pos_embeddings: nn.Module,
     *,
     # MultiHeadAttention args
+    head_dim: int,
     embed_dim: int,
     num_heads: int,
     num_kv_heads: int,
     max_seq_len: int,
     attn_dropout: float = 0.0,
-    rope_base: float = 500000.0,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,
@@ -289,6 +299,10 @@ def lora_llama3_1_self_attention(
         lora_modules (List[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to. Options are ``{"q_proj", "k_proj", "v_proj",
             "output_proj"}``.
+        pos_embeddings (nn.Module): positional embeddings module to be passed to
+            MultiHeadAttention.
+        head_dim (int): dimension of each head in the multihead attention. Usually
+            computed as ``embed_dim // num_heads``.
         embed_dim (int): embedding dimension for self-attention
         num_heads (int): number of query heads. For MHA this is also the
             number of heads for key and value
@@ -317,7 +331,6 @@ def lora_llama3_1_self_attention(
             f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules"
         )
 
-    head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     adapter_cls = DoRALinear if use_dora else LoRALinear
     q_proj = (
@@ -384,7 +397,7 @@ def lora_llama3_1_self_attention(
             else FrozenNF4Linear(embed_dim, embed_dim, bias=False)
         )
     )
-    rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+
     self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
@@ -394,7 +407,7 @@ def lora_llama3_1_self_attention(
         k_proj=k_proj,
         v_proj=v_proj,
         output_proj=output_proj,
-        pos_embeddings=rope,
+        pos_embeddings=pos_embeddings,
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
