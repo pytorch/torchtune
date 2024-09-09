@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List, Literal, Mapping, Optional, Union
+from typing import Any, Dict, List, Literal, Mapping, Optional
 
 from torchtune.modules.transforms import Transform
 
@@ -34,7 +34,7 @@ class Message:
                 [
                     {"type": "image", "content": "https://path/to/image"},
                     {"type": "text", "content": "hello"},
-                    {"type": "image", "content": "/Desktop/image.png"},
+                    {"type": "image", "content": "./Desktop/image.png"},
                     {"type": "text", "content": "world"},
                 ]
 

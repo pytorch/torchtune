@@ -38,7 +38,7 @@ class LlavaInstructToMessages(Transform):
                 "role": "system" | "user" | "assistant",
                 "content":
                     [
-                        {"type": "image", "content": Image},
+                        {"type": "image", "content": "https://path/to/image.png"},
                         {"type": "text", "content": "This is a sample image."},
                     ],
             },
@@ -89,13 +89,14 @@ class LlavaInstructToMessages(Transform):
                     role="system", content=self.new_system_prompt, masked=True, eot=True
                 )
             )
-        
+
         # Add in image stuffs / load from file
         for message in sample[self._column_map["conversations"]]:
             role = role_map[message["from"]]
             if role == "system" and self.new_system_prompt is not None:
                 continue
             content = split_text_by_image_tag(message["value"], "<image>")
+            content["image"]["content"] = sample[self._column_map["image"]]
             masked = (role != "assistant") and (not self.train_on_input)
             messages.append(Message(role=role, content=content, masked=masked))
 
