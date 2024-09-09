@@ -104,15 +104,19 @@ def test_validate_messages():
 
 
 def test_format_content_with_images():
+    test_image_1 = Image.new(mode="RGB", size=(4, 4))
+    test_image_2 = Image.new(mode="RGB", size=(4, 4))
+    test_image_3 = Image.new(mode="RGB", size=(4, 4))
+
     # Test single image tag in the middle
     text = "hello <image>world"
     assert format_content_with_images(
         text,
         image_tag="<image>",
-        images=["image1.png"],
+        images=[test_image_1],
     ) == [
         {"type": "text", "content": "hello "},
-        {"type": "image", "content": "image1.png"},
+        {"type": "image", "content": test_image_1},
         {"type": "text", "content": "world"},
     ]
 
@@ -121,11 +125,11 @@ def test_format_content_with_images():
     assert format_content_with_images(
         text,
         image_tag="[image]",
-        images=["image1.png", "image2.png"],
+        images=[test_image_1, test_image_2],
     ) == [
-        {"type": "image", "content": "image1.png"},
+        {"type": "image", "content": test_image_1},
         {"type": "text", "content": "hello "},
-        {"type": "image", "content": "image2.png"},
+        {"type": "image", "content": test_image_2},
         {"type": "text", "content": "world"},
     ]
 
@@ -140,12 +144,12 @@ def test_format_content_with_images():
     assert format_content_with_images(
         text,
         image_tag="<image>",
-        images=["image1.png", "image2.png", "image3.png"],
+        images=[test_image_1, test_image_2, test_image_3],
     ) == [
-        {"type": "image", "content": "image1.png"},
-        {"type": "image", "content": "image2.png"},
+        {"type": "image", "content": test_image_1},
+        {"type": "image", "content": test_image_2},
         {"type": "text", "content": "hello "},
-        {"type": "image", "content": "image3.png"},
+        {"type": "image", "content": test_image_3},
         {"type": "text", "content": "world"},
     ]
 
@@ -154,10 +158,10 @@ def test_format_content_with_images():
     assert format_content_with_images(
         text,
         image_tag="<image>",
-        images=["image1.png"],
+        images=[test_image_1],
     ) == [
         {"type": "text", "content": "hello "},
-        {"type": "image", "content": "image1.png"},
+        {"type": "image", "content": test_image_1},
     ]
 
     # Test errors when the number of images does not match the number of image tags
@@ -167,7 +171,7 @@ def test_format_content_with_images():
         match="does not match number of image tags",
     ):
         format_content_with_images(
-            text, image_tag="<image>", images=["image1.png", "image2.png"]
+            text, image_tag="<image>", images=[test_image_1, test_image_2]
         )
 
 
