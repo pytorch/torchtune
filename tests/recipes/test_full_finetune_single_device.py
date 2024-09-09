@@ -45,6 +45,9 @@ class TestFullFinetuneSingleDeviceRecipe:
             "max_steps_per_epoch=2",
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
+            "lr_scheduler=torch.optim.lr_scheduler.ConstantLR",
+            "lr_scheduler.factor=1.0",
+            "~lr_scheduler.num_warmup_steps",
             "log_every_n_steps=1",
             "clip_grad_norm=100",
         ] + dummy_alpaca_dataset_config()
