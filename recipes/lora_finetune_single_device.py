@@ -214,6 +214,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._compile = cfg.compile
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
+        # hack to toggle to the low cpu ram version of the reparametrize_as_dtype
+        # hook based on the config.
+        common_utils._use_low_cpu_ram = cfg.get("low_cpu_ram", False)
+
         # set up model
         self._model = self._setup_model(
             cfg_model=cfg.model,
@@ -702,12 +706,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     prof.step()
 
                 self.epochs_run += 1
-                start_save_checkpoint = time.time()
+                start_save_checkpoint = time.perf_counter()
                 log.info("Starting checkpoint save...")
                 self.save_checkpoint(epoch=curr_epoch)
                 log.info(
                     "Checkpoint saved in {:.2f} seconds.".format(
-                        time.time() - start_save_checkpoint
+                        time.perf_counter() - start_save_checkpoint
                     )
                 )
 
@@ -725,8 +729,6 @@ def recipe_main(cfg: DictConfig) -> None:
         - Overwritten by arguments from the command-line
     """
     config.log_config(recipe_name="LoRAFinetuneRecipeSingleDevice", cfg=cfg)
-    if cfg.get("low_cpu_ram", False):
-        common_utils._use_low_cpu_ram = True
     recipe = LoRAFinetuneRecipeSingleDevice(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
