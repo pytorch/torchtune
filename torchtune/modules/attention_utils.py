@@ -158,6 +158,8 @@ def _sdpa_or_flex_attention() -> Callable:
 
     if _SUPPORTS_FLEX_ATTENTION:
 
+        flex_attention_compiled = torch.compile(flex_attention, dynamic=False)
+
         def _attention_call(
             q: torch.Tensor,
             k: torch.Tensor,
@@ -166,9 +168,6 @@ def _sdpa_or_flex_attention() -> Callable:
             dropout_p: float,
             is_causal: bool,
         ) -> torch.Tensor:
-
-            flex_attention_compiled = torch.compile(flex_attention, dynamic=False)
-
             # Flex attention uses the BlockMask
             # (https://github.com/pytorch/pytorch/blob/main/torch/nn/attention/flex_attention.py#L168)
             # instead of a traditional boolean tensor mask. If this is passed in,
