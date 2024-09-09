@@ -159,7 +159,6 @@ class CLIPImageTransform:
             Mapping[str, Any]: The sample with an updated "image" filed and added
                 "aspect_ratio" field.
         """
-
         image = sample["image"]
         assert isinstance(image, Image.Image), "Input image must be a PIL image."
 
