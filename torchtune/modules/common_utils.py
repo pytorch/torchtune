@@ -159,6 +159,6 @@ def _register_reparametrize_state_dict_hooks(
             hook = _low_ram_reparametrize_as_dtype_state_dict_post_hook
     else:
         hook = reparametrize_as_dtype_state_dict_post_hook
-    module._register_state_dict_post_hook(
+    module._register_state_dict_hook(
         partial(hook, dtype=dtype, offload_to_cpu=offload_to_cpu)
     )
