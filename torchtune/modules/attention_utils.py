@@ -157,7 +157,6 @@ def _sdpa_or_flex_attention() -> Callable:
     """
 
     if _SUPPORTS_FLEX_ATTENTION:
-        flex_attention_compiled = torch.compile(flex_attention, dynamic=False)
 
         def _attention_call(
             q: torch.Tensor,
@@ -180,7 +179,7 @@ def _sdpa_or_flex_attention() -> Callable:
                     "Using flex attention for attention computation since a BlockMask was passed in.",
                     level=logging.DEBUG,
                 )
-                return flex_attention_compiled(
+                return flex_attention(
                     q,
                     k,
                     v,
