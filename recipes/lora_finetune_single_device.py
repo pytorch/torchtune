@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
 import sys
 import time
 
@@ -211,7 +210,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # log config with parameter override
         self._metric_logger.log_config(cfg)
 
-        self._model_compile = cfg.compile
+        self._compile = cfg.compile
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
         # set up model
@@ -241,22 +240,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
-        backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+        if self._compile:
+            self._loss_fn = training.compile_loss(self._loss_fn)
+
         if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
             # set num_output_chunks for model
             self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
-            if self._model_compile:
-                log.info("Compiling loss with torch.compile...")
-                # For CEWithChunkedOutputLoss, if we compile the entire class
-                # we lose the benefits from the chunked loss.
-                # Therefore, we only compile the cross entropy function + upcasting
-                self._loss_fn.compute_cross_entropy = torch.compile(
-                    self._loss_fn.compute_cross_entropy, backend=backend
-                )
-        else:
-            if self._model_compile:
-                log.info("Compiling loss with torch.compile...")
-                self._loss_fn = torch.compile(self._loss_fn, backend=backend)
+
         log.info("Loss is initialized.")
 
         # Dataloader depends on the tokenizer and loss_fn and should be
@@ -389,11 +379,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         set_trainable_params(model, self.adapter_params)
 
         if compile_model:
-            log.info("Compiling model layers with torch.compile...")
-            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-            for m in reversed(list(model.modules())):
-                if isinstance(m, modules.transformer.TransformerSelfAttentionLayer):
-                    m.compile(backend=backend)
+            training.compile_model(model)
 
         if enable_activation_checkpointing:
             training.set_activation_checkpointing(
@@ -608,7 +594,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         The core training loop.
         """
 
-        if self._model_compile:
+        if self._compile:
             log.info(
                 "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
             )
