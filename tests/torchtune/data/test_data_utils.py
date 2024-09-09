@@ -4,7 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
+
 import pytest
+from PIL import Image
+
+from tests.common import ASSETS
 from torchtune.data import (
     format_content_with_images,
     Message,
@@ -12,7 +17,7 @@ from torchtune.data import (
     truncate,
     validate_messages,
 )
-from torchtune.data._utils import _get_prompt_template
+from torchtune.data._utils import _get_prompt_template, load_image
 from torchtune.models.llama2 import Llama2ChatTemplate
 
 
@@ -164,6 +169,65 @@ def test_format_content_with_images():
         format_content_with_images(
             text, image_tag="<image>", images=["image1.png", "image2.png"]
         )
+
+
+def test_load_image(monkeypatch, tmp_path):
+    tmp_image = str(ASSETS / "dog_on_skateboard.jpg")
+
+    # Test loading from local file
+    image = load_image(tmp_image)
+    assert isinstance(image, Image.Image)
+    assert image.size == (580, 403)
+
+    # Test loading from remote file
+    # Mock the urlopen function to return a BytesIO object
+    def mock_urlopen(url):
+        return open(tmp_image, "rb")
+
+    monkeypatch.setattr("urllib.request.urlopen", mock_urlopen)
+    image = load_image("http://example.com/test_image.jpg")
+    assert isinstance(image, Image.Image)
+    assert image.size == (580, 403)
+
+    # Test that a ValueError is raised when the image path is invalid
+    with pytest.raises(ValueError, match="Failed to open image as PIL.Image"):
+        load_image("invalid_path")
+
+    # Test a temporary file with invalid image data
+    image_path = tmp_path / "test_image.jpg"
+    with open(image_path, "w") as f:
+        f.write("Invalid image data")
+
+    # Test that a ValueError is raised when the image data is invalid
+    with pytest.raises(ValueError, match="Failed to open image as PIL.Image"):
+        load_image(str(image_path))
+
+    # Test that a ValueError is raised when there is an HTTP error
+    # Mock the urlopen function to raise an exception
+    def mock_urlopen(url):
+        raise Exception("Failed to load image")
+
+    monkeypatch.setattr("urllib.request.urlopen", mock_urlopen)
+    with pytest.raises(ValueError, match="Failed to load image"):
+        load_image("http://example.com/test_image.jpg")
+
+    # Test that a ValueError is raised when there is an IO error
+    # Create a temporary file that cannot be read
+    image_path = tmp_path / "test_image.jpg"
+    with open(image_path, "w") as f:
+        f.write("Test data")
+    os.chmod(image_path, 0o000)  # Remove read permissions
+    with pytest.raises(ValueError, match="Failed to open image as PIL.Image"):
+        load_image(str(image_path))
+    os.chmod(image_path, 0o644)  # Restore read permissions
+
+    # Test that a ValueError is raised with invalid image data is read
+    # Create a temporary file with invalid image data
+    image_path = tmp_path / "test_image.jpg"
+    with open(image_path, "wb") as f:
+        f.write(b"Invalid image data")
+    with pytest.raises(ValueError, match="Failed to open image as PIL.Image"):
+        load_image(str(image_path))
 
 
 def test_get_prompt_template():

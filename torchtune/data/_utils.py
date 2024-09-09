@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import sys
 from typing import Any, Dict, List, Optional, TypeVar
 from urllib import request
 
@@ -61,18 +60,17 @@ def load_image(image_path: str) -> "PIL.Image.Image":
     """
     # Hackily import PIL to avoid burdensome import in the main module
     # TODO: Fix this
-    if "PIL" not in sys.modules:
-        try:
-            from PIL import Image
-        except ImportError as e:
-            raise ImportError(
-                """
-                In order to use multimodal functionalities in torchtune, please install the Pillow (PIL) package.
-                Please follow the instructions at
-                https://pillow.readthedocs.io/en/stable/installation/basic-installation.html#basic-installation
-                to install the package.
-                """
-            ) from e
+    try:
+        from PIL import Image
+    except ImportError as e:
+        raise ImportError(
+            """
+            In order to use multimodal functionalities in torchtune, please install the Pillow (PIL) package.
+            Please follow the instructions at
+            https://pillow.readthedocs.io/en/stable/installation/basic-installation.html#basic-installation
+            to install the package.
+            """
+        ) from e
 
     # If a remote source, try to load to local
     if image_path.startswith("http"):

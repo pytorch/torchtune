@@ -161,9 +161,6 @@ class CLIPImageTransform:
         """
 
         image = sample["image"]
-        # If we get a string, we assume it's a path to an image (either remote or local)
-        if isinstance(image, str):
-            image = _load_image(image)
         assert isinstance(image, Image.Image), f"Expected PIL.Image, got {type(image)}"
 
         # Make image torch.tensor((3, H, W), dtype=dtype), 0<=values<=1
