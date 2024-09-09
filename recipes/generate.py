@@ -163,7 +163,7 @@ class InferenceRecipe:
             logger.info(f"Warmup run for quantized model takes: {t:.02f} sec")
 
         t0 = time.perf_counter()
-        generated_tokens = generate(
+        generated_tokens = generation.generate(
             model=self._model,
             prompt=prompt,
             max_generated_tokens=cfg.max_new_tokens,

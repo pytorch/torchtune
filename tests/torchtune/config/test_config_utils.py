@@ -14,14 +14,11 @@ from omegaconf import OmegaConf
 from torchtune.config._parse import TuneRecipeArgumentParser
 from torchtune.config._utils import (
     _get_component_from_path,
-    _get_prompt_template,
     _merge_yaml_and_cli_args,
     _remove_key_by_dotpath,
     InstantiationError,
     log_config,
 )
-from torchtune.data._prompt_templates import PromptTemplate
-from torchtune.models.llama2 import Llama2ChatTemplate
 
 _CONFIG = {
     "a": 1,
@@ -131,11 +128,17 @@ class TestUtils:
         handler = logging.StreamHandler(stream)
         logger.addHandler(handler)
 
-        with mock.patch("torchtune.config._utils.get_logger", return_value=logger):
+        with mock.patch(
+            "torchtune.config._utils.get_logger", return_value=logger
+        ), mock.patch(
+            "torchtune.config._utils.dist.is_available", return_value=True
+        ), mock.patch(
+            "torchtune.config._utils.dist.is_initialized", return_value=True
+        ):
             # Make sure rank 0 logs as expected
             with mock.patch(
-                "torchtune.config._utils.get_world_size_and_rank",
-                return_value=(None, 0),
+                "torchtune.config._utils.dist.get_rank",
+                return_value=0,
             ):
                 log_config("test", cfg)
                 output = stream.getvalue().strip()
@@ -150,8 +153,8 @@ class TestUtils:
 
             # Make sure all other ranks do not log anything
             with mock.patch(
-                "torchtune.config._utils.get_world_size_and_rank",
-                return_value=(None, 1),
+                "torchtune.config._utils.dist.get_rank",
+                return_value=1,
             ):
                 log_config("test", cfg)
                 output = stream.getvalue().strip()
@@ -184,18 +187,3 @@ class TestUtils:
         cfg = copy.deepcopy(_CONFIG)
         with pytest.raises(KeyError, match="'g'"):
             _remove_key_by_dotpath(cfg, "g")
-
-    def test_get_prompt_template(self):
-        template = _get_prompt_template("torchtune.models.llama2.Llama2ChatTemplate")
-        assert isinstance(template, Llama2ChatTemplate)
-
-        template = _get_prompt_template({"user": ("1", "2"), "assistant": ("3", "4")})
-        assert isinstance(template, PromptTemplate)
-        assert template.template["user"] == ("1", "2")
-        assert template.template["assistant"] == ("3", "4")
-
-        with pytest.raises(
-            ValueError,
-            match="Prompt template must be a dotpath string or dictionary with custom template",
-        ):
-            _ = _get_prompt_template(["user", "assistant"])

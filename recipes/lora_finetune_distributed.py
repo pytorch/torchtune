@@ -217,7 +217,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             self._metric_logger.log_config(cfg)
 
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
-        self._model_compile = cfg.get("compile", False)
+        self._compile = cfg.get("compile", False)
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
@@ -245,22 +245,14 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
-        backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+
+        if self._compile:
+            training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
+
         if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
             # set num_output_chunks for model
             self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
-            if self._model_compile:
-                log.info("Compiling loss with torch.compile...")
-                # For CEWithChunkedOutputLoss, if we compile the entire class
-                # we lose the benefits from the chunked loss.
-                # Therefore, we only compile the cross entropy function + upcasting
-                self._loss_fn.compute_cross_entropy = torch.compile(
-                    self._loss_fn.compute_cross_entropy, backend=backend
-                )
-        else:
-            if self._model_compile:
-                log.info("Compiling loss with torch.compile...")
-                self._loss_fn = torch.compile(self._loss_fn, backend=backend)
+
         log.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
@@ -409,12 +401,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
 
-        if self._model_compile:
-            log.info("Compiling model layers with torch.compile...")
-            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-            for m in reversed(list(model.modules())):
-                if isinstance(m, modules.TransformerSelfAttentionLayer):
-                    m.compile(backend=backend)
+        if self._compile:
+            training.compile_model(model, verbose=self._is_rank_zero)
 
         if enable_activation_checkpointing:
             training.set_activation_checkpointing(

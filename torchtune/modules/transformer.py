@@ -9,7 +9,6 @@ from typing import Dict, List, Optional, Union
 import torch
 import torch.nn.functional as F
 from torch import nn
-
 from torchtune.modules import MultiHeadAttention
 
 
@@ -381,6 +380,28 @@ class TransformerDecoder(nn.Module):
 
         self.pos = 0
 
+    @torch.compiler.disable
+    def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:
+        """
+        Apply output projection in chunks. This should be applied in conjunction with
+        :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss` as upcasting to fp32 is done there.
+
+        To use this method, you should first call
+        :func:`~torchtune.modules.TransformerDecoder.set_num_output_chunks`.
+
+        Args:
+            last_hidden_state (torch.Tensor): last hidden state of the decoder, having shape
+                [b, seq_len, embed_dim].
+
+        Returns:
+            List[torch.Tensor]: List of num_chunks output tensors, each with shape
+                [b, seq_len/num_chunks, out_dim], where out_dim is usually the vocab size.
+        """
+        return [
+            self.output(chunk)
+            for chunk in last_hidden_state.chunk(self.num_output_chunks, dim=1)
+        ]
+
     def forward(
         self,
         tokens: torch.Tensor,
@@ -473,12 +494,7 @@ class TransformerDecoder(nn.Module):
         h = self.norm(h)
 
         if self.num_output_chunks > 0:
-            # shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size
-            # Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,
-            # before calling forward. Upcasting it done inside of the loss function.
-            output = [
-                self.output(chunk) for chunk in h.chunk(self.num_output_chunks, dim=1)
-            ]
+            output = self.chunked_output(h)
         else:
             # shape: [b, seq_len, out_dim]
             output = self.output(h).float()
@@ -595,6 +611,28 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
 
         self.pos = 0
 
+    @torch.compiler.disable
+    def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:
+        """
+        Apply output projection in chunks. This should be applied in conjunction with
+        :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss` as upcasting to fp32 is done there.
+
+        To use this method, you should first call
+        :func:`~torchtune.modules.TiedEmbeddingTransformerDecoder.set_num_output_chunks`.
+
+        Args:
+            last_hidden_state (torch.Tensor): last hidden state of the decoder, having shape
+                [b, seq_len, embed_dim].
+
+        Returns:
+            List[torch.Tensor]: List of num_chunks output tensors, each with shape
+                [b, seq_len/num_chunks, out_dim], where out_dim is usually the vocab size.
+        """
+        return [
+            F.linear(chunk, self.tok_embeddings.weight)
+            for chunk in last_hidden_state.chunk(self.num_output_chunks, dim=1)
+        ]
+
     def forward(
         self,
         tokens: torch.Tensor,
@@ -687,13 +725,7 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         h = self.norm(h)
 
         if self.num_output_chunks > 0:
-            # shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size
-            # Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,
-            # before calling forward. Upcasting it done inside of the loss function.
-            output = [
-                F.linear(chunk, self.tok_embeddings.weight)
-                for chunk in h.chunk(self.num_output_chunks, dim=1)
-            ]
+            output = self.chunked_output(h)
         else:
             # shape: [b, seq_len, out_dim]
             output = F.linear(h, self.tok_embeddings.weight).float()
