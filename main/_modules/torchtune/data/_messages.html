@@ -440,15 +440,13 @@
 <span class="sd">        role (Role): role of the message writer. Can be &quot;system&quot; for system prompts,</span>
 <span class="sd">            &quot;user&quot; for human prompts, &quot;assistant&quot; for model responses, or &quot;ipython&quot;</span>
 <span class="sd">            for tool call returns.</span>
-<span class="sd">        content (Union[str, List[Dict[str, str]]]): content of the message. If it is text only content,</span>
+<span class="sd">        content (Union[str, List[Dict[str, Any]]]): content of the message. If it is text only content,</span>
 <span class="sd">            you can pass in a string. If it is multimodal content, pass in a list of dictionaries formatted</span>
 <span class="sd">            as follows::</span>
 
 <span class="sd">                [</span>
-<span class="sd">                    {&quot;type&quot;: &quot;image&quot;}</span>
-<span class="sd">                    {&quot;type&quot;: &quot;text&quot;, &quot;content&quot;: &quot;hello&quot;},</span>
-<span class="sd">                    {&quot;type&quot;: &quot;image&quot;}</span>
-<span class="sd">                    {&quot;type&quot;: &quot;text&quot;, &quot;content&quot;: &quot;world&quot;},</span>
+<span class="sd">                    {&quot;type&quot;: &quot;image&quot;, &quot;content&quot;: &lt;PIL.Image.Image&gt;},</span>
+<span class="sd">                    {&quot;type&quot;: &quot;text&quot;, &quot;content&quot;: &quot;What is in this image?&quot;},</span>
 <span class="sd">                ]</span>
 
 <span class="sd">        masked (bool): whether the message is masked in the sample. If True, do not use</span>
@@ -461,27 +459,39 @@
 <span class="sd">            - For multiple consecutive assistant messages (i.e., tool calls</span>
 <span class="sd">              by assistant), only the last assistant message will have ``eot=True``</span>
 <span class="sd">            - All ipython messages (tool call returns) should set ``eot=False``.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        Message class expects any image content to be in</span>
+<span class="sd">        `PIL Image format &lt;https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.Image&gt;`_.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">role</span><span class="p">:</span> <span class="n">Role</span><span class="p">,</span>
-        <span class="n">content</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]],</span>
+        <span class="n">content</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
         <span class="n">masked</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">ipython</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">eot</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">role</span> <span class="o">=</span> <span class="n">role</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">content</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="p">[{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">content</span><span class="p">}]</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
-            <span class="k">else</span> <span class="n">content</span>
-        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_to_list_of_dict</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">masked</span> <span class="o">=</span> <span class="n">masked</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ipython</span> <span class="o">=</span> <span class="n">ipython</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">eot</span> <span class="o">=</span> <span class="n">eot</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_message</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_convert_to_list_of_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">content</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;User is currently allowed to pass in a string for text-only content.</span>
+<span class="sd">        This ensures that the content is formatted as a list of dictionaries.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">content</span><span class="p">}]</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">content</span><span class="p">,</span> <span class="nb">list</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;content must be of type List[Dict[str, Any]], got </span><span class="si">{</span><span class="n">content</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="k">return</span> <span class="n">content</span>
 
 <div class="viewcode-block" id="Message.from_dict"><a class="viewcode-back" href="../../../generated/torchtune.data.Message.html#torchtune.data.Message.from_dict">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Message&quot;</span><span class="p">:</span>
@@ -502,12 +512,20 @@
             <span class="n">eot</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;eot&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
         <span class="p">)</span></div>
 
+<div class="viewcode-block" id="Message.get_media"><a class="viewcode-back" href="../../../generated/torchtune.data.Message.html#torchtune.data.Message.get_media">[docs]</a>    <span class="k">def</span> <span class="nf">get_media</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="s2">&quot;PIL.Image.Image&quot;</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns media content of the message.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">content</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">content</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">content</span> <span class="k">if</span> <span class="n">content</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;image&quot;</span>
+        <span class="p">]</span></div>
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">contains_media</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Returns True if message contains non-text content.</span>
+<span class="sd">        Returns whether the message contains media.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;text&quot;</span> <span class="k">for</span> <span class="n">content</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;image&quot;</span> <span class="k">for</span> <span class="n">content</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">text_content</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
