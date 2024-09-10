@@ -353,7 +353,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         if lora_weights_state_dict:
             lora_missing, lora_unexpected = training.load_from_full_model_state_dict(
-                model, lora_weights_state_dict, self._device, self._is_rank_zero, cpu_offload=cpu_offload
+                model,
+                lora_weights_state_dict,
+                self._device,
+                self._is_rank_zero,
+                cpu_offload=cpu_offload,
             )
         else:
             lora_missing, lora_unexpected = None, None
@@ -374,7 +378,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     m.reset_parameters()
 
         base_missing, base_unexpected = training.load_from_full_model_state_dict(
-            model, base_model_state_dict, self._device, self._is_rank_zero, cpu_offload=cpu_offload
+            model,
+            base_model_state_dict,
+            self._device,
+            self._is_rank_zero,
+            cpu_offload=cpu_offload,
         )
         is_dora = False
         for m in model.modules():
