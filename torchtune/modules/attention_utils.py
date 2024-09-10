@@ -25,6 +25,21 @@ if _SUPPORTS_FLEX_ATTENTION:
         flex_attention,
     )
 
+    flex_attention_compiled = torch.compile(flex_attention, dynamic=False)
+
+    # We cannot do nested compile, but flex attention only has perf benefits
+    # when compiled. To insulate it from the compiler, we wrap it with
+    # compiler.disable so that it can be used regardless of whether the model
+    # is compiled or not, and flex attention always remains compiled.
+    @torch.compiler.disable(recursive=False)
+    def compile_friendly_flex_attention(
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+        block_mask: BlockMask,
+    ) -> torch.Tensor:
+        return flex_attention_compiled(q, k, v, block_mask=block_mask)
+
     _MaskType = Union[torch.Tensor, BlockMask]
 else:
     _MaskType = torch.Tensor
@@ -157,7 +172,6 @@ def _sdpa_or_flex_attention() -> Callable:
     """
 
     if _SUPPORTS_FLEX_ATTENTION:
-        flex_attention_compiled = torch.compile(flex_attention) if not torch.compiler.is_dynamo_compiling() else flex_attention
 
         def _attention_call(
             q: torch.Tensor,
@@ -167,6 +181,7 @@ def _sdpa_or_flex_attention() -> Callable:
             dropout_p: float,
             is_causal: bool,
         ) -> torch.Tensor:
+
             # Flex attention uses the BlockMask
             # (https://github.com/pytorch/pytorch/blob/main/torch/nn/attention/flex_attention.py#L168)
             # instead of a traditional boolean tensor mask. If this is passed in,
@@ -179,7 +194,7 @@ def _sdpa_or_flex_attention() -> Callable:
                     "Using flex attention for attention computation since a BlockMask was passed in.",
                     level=logging.DEBUG,
                 )
-                return flex_attention_compiled(
+                return compile_friendly_flex_attention(
                     q,
                     k,
                     v,
