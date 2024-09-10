@@ -119,7 +119,7 @@ def format_content_with_images(
         ValueError: If the number of images does not match the number of image tags in the content
 
     Examples:
-        >>> content = format_content_with_media(
+        >>> content = format_content_with_images(
         ...     "<|image|>hello <|image|>world",
         ...     image_tag="<|image|>",
         ...     images=[<PIL.Image.Image>, <PIL.Image.Image>]
