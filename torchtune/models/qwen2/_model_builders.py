@@ -7,7 +7,7 @@ from typing import List, Optional
 
 from torchtune.models.qwen2._component_builders import qwen2, lora_qwen2
 from torchtune.models.qwen2._tokenizer import Qwen2Tokenizer
-from torchtune.modules import TransformerDecoder, TiedEmbeddingTransformerDecoder
+from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from torchtune.modules.tokenizers import parse_hf_tokenizer_json
 from torchtune.data._prompt_templates import _TemplateType
@@ -42,17 +42,17 @@ def qwen2_7b() -> TransformerDecoder:
     )
 
 
-def qwen2_0_5b() -> TiedEmbeddingTransformerDecoder:
+def qwen2_0_5b() -> TransformerDecoder:
     """
     Builder for creating a Qwen2 model initialized w/ the default 0.5B parameter values
     from https://huggingface.co/Qwen/Qwen2-0.5B-Instruct
 
     Returns:
-        TiedEmbeddingTransformerDecoder: Instantiation of Qwen2 0.5B model
+        TransformerDecoder: Instantiation of Qwen2 0.5B model
 
     Note:
         Qwen2 0.5B and Qwen2 1.5B model builders will enable `tie_word_embeddings` by default
-        and returns an instance of `TiedEmbeddingTransformerDecoder`.
+        and returns an instance of `TransformerDecoder`.
     """
     return qwen2(
         vocab_size=151936,
@@ -69,17 +69,17 @@ def qwen2_0_5b() -> TiedEmbeddingTransformerDecoder:
     )
 
 
-def qwen2_1_5b() -> TiedEmbeddingTransformerDecoder:
+def qwen2_1_5b() -> TransformerDecoder:
     """
     Builder for creating a Qwen2 model initialized w/ the default 1.5B parameter values
     from https://huggingface.co/Qwen/Qwen2-1.5B-Instruct
 
     Returns:
-        TiedEmbeddingTransformerDecoder: Instantiation of Qwen2 1.5B model
+        TransformerDecoder: Instantiation of Qwen2 1.5B model
 
     Note:
         Qwen2 0.5B and Qwen2 1.5B model builders will enable `tie_word_embeddings` by default
-        and returns an instance of `TiedEmbeddingTransformerDecoder`.
+        and returns an instance of `TransformerDecoder`.
     """
     return qwen2(
         vocab_size=151936,
@@ -190,7 +190,7 @@ def lora_qwen2_0_5b(
     lora_dropout: float = 0.05,
     use_dora: bool = False,
     quantize_base: bool = False,
-) -> TiedEmbeddingTransformerDecoder:
+) -> TransformerDecoder:
     """
     Builder for creating a Qwen2 0.5B model with LoRA enabled.
 
@@ -209,11 +209,11 @@ def lora_qwen2_0_5b(
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        TiedEmbeddingTransformerDecoder: Instantiation of Qwen2 0.5B model with LoRA applied
+        TransformerDecoder: Instantiation of Qwen2 0.5B model with LoRA applied
 
     Note:
         Qwen2 0.5B and Qwen2 1.5B model builders will enable `tie_word_embeddings` by default
-        and returns an instance of `TiedEmbeddingTransformerDecoder`.
+        and returns an instance of `TransformerDecoder`.
     """
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
@@ -246,7 +246,7 @@ def lora_qwen2_1_5b(
     lora_dropout: float = 0.05,
     use_dora: bool = False,
     quantize_base: bool = False,
-) -> TiedEmbeddingTransformerDecoder:
+) -> TransformerDecoder:
     """
     Builder for creating a Qwen2 1.5B model with LoRA enabled.
 
@@ -265,11 +265,11 @@ def lora_qwen2_1_5b(
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        TiedEmbeddingTransformerDecoder: Instantiation of Qwen2 1.5B model with LoRA applied
+        TransformerDecoder: Instantiation of Qwen2 1.5B model with LoRA applied
 
     Note:
         Qwen2 0.5B and Qwen2 1.5B model builders will enable `tie_word_embeddings` by default
-        and returns an instance of `TiedEmbeddingTransformerDecoder`.
+        and returns an instance of `TransformerDecoder`.
     """
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,

@@ -8,11 +8,13 @@
 from typing import Optional
 
 import torch
+import torch.nn.functional as F
 from torch import nn
 
 
 class FeedForward(nn.Module):
-    """This class implements the feed-forward network derived from Llama2.
+    """This class implements the SwiGlu feed-forward. For more details, see
+    https://arxiv.org/pdf/2002.05202.
 
     Args:
         gate_proj (nn.Module): Projection from input dim to hidden dim, fed through activation
@@ -43,3 +45,17 @@ class FeedForward(nn.Module):
             h = h * self.w3(x)
         h = self.w2(h)
         return h
+
+
+class TiedLinear:
+    """
+    A tied linear layer that shares the same weight as another linear layer.
+    A module is required, instead of the weight of the module, so it
+    can work with FSDP. Otherwise, the memory reference will be lost.
+    """
+
+    def __init__(self, tied_module: nn.Module):
+        self.tied_module = tied_module
+
+    def __call__(self, x: torch.tensor) -> torch.tensor:
+        return F.linear(x, self.tied_module.weight)
