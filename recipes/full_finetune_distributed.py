@@ -217,12 +217,25 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
-        self._optimizer = self._setup_optimizer(
-            cfg_optimizer=cfg.optimizer,
-            opt_state_dict=checkpoint_dict[training.OPT_KEY]
-            if self._resume_from_checkpoint
-            else None,
-        )
+        optim_dict = {
+            p: config.instantiate(cfg.optimizer, [p])
+            for p in self._model.parameters()
+        }
+        def optim_step(param) -> None:
+            optim_dict[param].step()
+            optim_dict[param].zero_grad()
+
+        for p in self._model.parameters():
+            p.register_post_accumulate_grad_hook(optim_step)
+        self._optimizer_in_bwd = {n: optim_dict[p] for n, p in self._model.named_parameters()}
+        if self._resume_from_checkpoint:
+            optim_ckpt_map = checkpoint_dict[training.OPT_KEY]
+            for param_name in optim_ckpt_map.keys():
+                if param_name not in self._optimizer_in_bwd:
+                    raise RuntimeError(
+                        f"Trying to load optimizer state for unexpected param {param_name}"
+                    )
+                self._optimizer_in_bwd[param_name].load_state_dict(optim_ckpt_map[param_name])
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
@@ -535,10 +548,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         if intermediate_checkpoint:
-            opt_state_dict = utils.get_full_optimizer_state_dict(
-                self._optimizer,
-                self._is_rank_zero,
-            )
+            if self._is_rank_zero:
+                opt_state_dict = {p: opt.state_dict() for p, opt in self._optimizer_in_bwd.items()}
         else:
             opt_state_dict = None
 
@@ -576,9 +587,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         _, rank = utils.get_world_size_and_rank()
 
-        # zero out the gradients before starting training
-        self._optimizer.zero_grad()
-
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
         running_loss = 0
@@ -591,7 +599,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
-
             pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
             for idx, batch in enumerate(self._dataloader):
                 if (
@@ -645,16 +652,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 loss = loss / self._gradient_accumulation_steps
                 running_loss += loss
-                loss.backward()
 
+                loss.backward()
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    self._optimizer.step()
-                    self._optimizer.zero_grad(set_to_none=True)
-
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
-
                     loss_to_log = running_loss.item()
                     pbar.update(1)
                     pbar.set_description(
@@ -669,7 +672,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
                             "loss": loss_to_log,
-                            "lr": self._optimizer.param_groups[0]["lr"],
+                            "lr": list(self._optimizer_in_bwd.values())[0].param_groups[0]["lr"],
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._log_peak_memory_stats:
