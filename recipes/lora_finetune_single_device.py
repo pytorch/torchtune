@@ -12,6 +12,7 @@ from typing import Any, Dict, Optional, Tuple, Union
 from warnings import warn
 
 import torch
+import torchtune.modules.common_utils as common_utils
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
@@ -212,6 +213,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         self._compile = cfg.compile
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
+
+        # hack to toggle to the low cpu ram version of the reparametrize_as_dtype
+        # hook based on the config.
+        common_utils._use_low_cpu_ram = cfg.get("low_cpu_ram", False)
 
         # set up model
         self._model = self._setup_model(
@@ -531,6 +536,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Move to CPU to avoid a copy on GPU
         state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
 
+        # Construct the adapter weights
+        # Do this using the state_dict to avoid running upcast and H2D in state_dict post hook twice
+        # Must be before get_merged_lora_ckpt because get_merged_lora_ckpt will remove lora keys
+        adapter_key_filter = lambda x: x in self.adapter_params
+        adapter_state_dict = {
+            k: v for k, v in state_dict.items() if adapter_key_filter(k)
+        }
+
         # Construct the full state dict with LoRA weights merged into base LLM weights
         merged_state_dict = get_merged_lora_ckpt(
             state_dict,
@@ -539,11 +552,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
         ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
 
-        # Construct the adapter weights
-        adapter_key_filter = lambda x: x in self.adapter_params
-        adapter_state_dict = {
-            k: v for k, v in self._model.state_dict().items() if adapter_key_filter(k)
-        }
         ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
         adapter_config = {
             "r": self._lora_rank,
@@ -704,7 +712,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     prof.step()
 
                 self.epochs_run += 1
+                start_save_checkpoint = time.perf_counter()
+                log.info("Starting checkpoint save...")
                 self.save_checkpoint(epoch=curr_epoch)
+                log.info(
+                    "Checkpoint saved in {:.2f} seconds.".format(
+                        time.perf_counter() - start_save_checkpoint
+                    )
+                )
 
     def cleanup(self) -> None:
         self._metric_logger.close()
