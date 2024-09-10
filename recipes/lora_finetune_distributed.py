@@ -105,7 +105,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-
         self._device = utils.get_device(device=cfg.device)
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
 
@@ -252,8 +251,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
             # set num_output_chunks for model
             self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
-
-        log.info("Loss is initialized.")
+        if self._is_rank_zero:
+            log.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -426,18 +425,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             return len(s_list) == 2 and s_list[0] == "layers" and str.isdigit(s_list[1])
 
         fsdp_shard_conditions = [lambda n, m: _is_layer_fqn(n)]
-
-        # If wrapping any layers separately, we can add another shard condition
-        # A layer will be sharded if any of the fsdp_shard_conditions are met
-        # TODO: do we want to add support for this?
-        # if custom_sharded_layers:
-        #     fsdp_shard_conditions += [lambda n, m: n in custom_sharded_layers]
-
-        # TODO: check on these conditions (e.g. https://github.com/pytorch/torchtune/pull/1445)
-        fsdp_shard_conditions += [lambda n, m: isinstance(m, DoRALinear)]
-        fsdp_shard_conditions += [
-            lambda n, m: isinstance(m, nn.Linear) and m.weight.requires_grad
-        ]
 
         training.shard_model(
             model=model,
