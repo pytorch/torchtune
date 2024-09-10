@@ -56,14 +56,15 @@ def load_image(image_loc: Union[Path, str]) -> "PIL.Image.Image":
         ValueError: If the image cannot be loaded from remote source.
         ValueError: If the image cannot be opened as a PIL.Image.
 
-    Example:
-        # Load from remote source
+    Examples:
+        >>> # Load from remote source
         >>> image = load_image("https://www.wikipedia.org/en/bird.jpg")
-        # Load from local file path
+
+        >>> # Load from local file path
         >>> image = load_image(Path("/home/user/bird.jpg"))
 
     Note:
-        If loading from a remote source, ``load_image`` expects the URL to start with "http"
+        If loading an image from a remote source, ``load_image`` expects the URL to start with "http"
         or "https".
 
     Returns:
@@ -94,7 +95,7 @@ def format_content_with_images(
 ) -> List[Dict[str, Any]]:
     """
     Given a raw text string, split by the specified ``image_tag``
-    and form into list of dictionaries to be used in the ``Message`` content
+    and form into list of dictionaries to be used in the :class:`~torchtune.data.Message` content
     field::
 
         [
@@ -117,7 +118,7 @@ def format_content_with_images(
     Raises:
         ValueError: If the number of images does not match the number of image tags in the content
 
-    Example:
+    Examples:
         >>> content = format_content_with_media(
         ...     "<|image|>hello <|image|>world",
         ...     image_tag="<|image|>",
@@ -132,7 +133,8 @@ def format_content_with_images(
         ]
 
     Returns:
-        List[Dict[str, Any]]: list of dictionaries to be used in the ``Message`` content field
+        List[Dict[str, Any]]: list of dictionaries to be used in the :class:`~torchtune.data.Message`
+            content field
     """
     num_image_tags_in_content = content.count(image_tag)
     if len(images) != num_image_tags_in_content:
