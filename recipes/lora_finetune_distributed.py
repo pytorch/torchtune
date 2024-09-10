@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
 import sys
 import time
 
@@ -105,6 +104,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
+        torch.cuda.set_per_process_memory_fraction(0.35)
         self._device = utils.get_device(device=cfg.device)
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
 
@@ -229,7 +229,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 if self._resume_from_checkpoint
                 else None
             ),
-            cfg_fsdp=cfg.fsdp if hasattr(cfg, "fsdp") else None,
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
@@ -371,7 +370,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         reshard_after_forward: bool,
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
-        cfg_fsdp: Optional[Union[DictConfig, None]] = None,
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
@@ -411,37 +409,43 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # For FSDP sharding, we can condition on either the module or its name
         # Shard conditions should be callables taking name (relative to model root)
         # and the module itself and returning a bool on whether to shard the given module
-        fsdp_shard_conditions = []
 
         # Shard transformer decoder layers (or AC-wrapped versions)
         # Alternatively we could condition on the module type (TransformerDecoder or CheckpointWrapper)
         # But directly using the name is more concise
-        def _is_layer_fqn(s: str) -> bool:
+        def _is_layer_name(name: str, module: nn.Module) -> bool:
             """
             Return True for layers.i and False for all other module names
             Covers sharding for both AC-wrapped and non-AC-wrapped modules in one shot
             """
-            s_list = s.split(".")
-            return len(s_list) == 2 and s_list[0] == "layers" and str.isdigit(s_list[1])
-
-        fsdp_shard_conditions = [lambda n, m: _is_layer_fqn(n)]
+            name_list = name.split(".")
+            return (
+                len(name_list) == 2
+                and name_list[0] == "layers"
+                and str.isdigit(name_list[1])
+            )
 
         training.shard_model(
             model=model,
-            shard_conditions=fsdp_shard_conditions,
+            shard_conditions=[_is_layer_name],
             cpu_offload=fsdp_cpu_offload,
             reshard_after_forward=reshard_after_forward,
         )
 
         if lora_weights_state_dict:
             lora_missing, lora_unexpected = training.load_from_full_model_state_dict(
-                model, lora_weights_state_dict, self._device, self._is_rank_zero
+                model,
+                lora_weights_state_dict,
+                self._device,
+                self._is_rank_zero,
+                cpu_offload=fsdp_cpu_offload,
             )
         else:
             lora_missing, lora_unexpected = None, None
 
+        # Initialize LoRA params and RoPE buffers
         with training.set_default_dtype(self._dtype), self._device:
-            lora_device = "cpu" if cfg_fsdp and cfg_fsdp.cpu_offload else self._device
+            lora_device = "cpu" if fsdp_cpu_offload else self._device
             for m in model.modules():
                 if (
                     isinstance(m, LoRALinear) or isinstance(m, DoRALinear)
@@ -456,7 +460,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     m.rope_init()
 
         base_missing, base_unexpected = training.load_from_full_model_state_dict(
-            model, base_model_state_dict, self._device, self._is_rank_zero
+            model,
+            base_model_state_dict,
+            self._device,
+            self._is_rank_zero,
+            cpu_offload=fsdp_cpu_offload,
         )
         is_dora = False
         for m in model.modules():
@@ -578,6 +586,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         - Merged weights with key MODEL_KEY
         - Adapter weights with key ADAPTER_KEY
         - Relevant recipe state if training is not complete
+        - If the `self._save_adapter_weights_only` option is True, the checkpointer will save only the adapter weights
 
         Checkpointer will save the merged weights, adapter weights and recipe state in
         different checkpoint files. To correctly resume from training, the adapter weights
@@ -816,7 +825,10 @@ def recipe_main(cfg: DictConfig) -> None:
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
-    os.environ["TORCH_NCCL_AVOID_RECORD_STREAMS"] = "1"
+    if cfg.get("fsdp_cpu_offload", False):
+        # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
+        # speed up when benchmarking fused AdamW on CPU
+        training.set_torch_num_threads()
     init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
 
     config.log_config(recipe_name="LoRAFinetuneRecipeDistributed", cfg=cfg)
