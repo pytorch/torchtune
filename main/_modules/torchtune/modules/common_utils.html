@@ -417,12 +417,19 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
+<span class="kn">import</span> <span class="nn">mmap</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
 <span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">from</span> <span class="nn">torch._subclasses.fake_tensor</span> <span class="kn">import</span> <span class="n">FakeTensorConverter</span><span class="p">,</span> <span class="n">FakeTensorMode</span>
 <span class="kn">from</span> <span class="nn">torchao.dtypes.nf4tensor</span> <span class="kn">import</span> <span class="n">NF4Tensor</span>
+
+<span class="n">_use_low_cpu_ram</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 
 
 <div class="viewcode-block" id="reparametrize_as_dtype_state_dict_post_hook"><a class="viewcode-back" href="../../../generated/torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.html#torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook">[docs]</a><span class="k">def</span> <span class="nf">reparametrize_as_dtype_state_dict_post_hook</span><span class="p">(</span>
@@ -461,6 +468,114 @@
             <span class="n">state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">offload_to_cpu</span><span class="p">:</span>
                 <span class="n">state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span></div>
+
+
+<span class="k">def</span> <span class="nf">_low_ram_reparametrize_as_dtype_state_dict_post_hook</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">,</span>
+    <span class="n">offload_to_cpu</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A state_dict hook that replaces NF4 tensors with their restored</span>
+<span class="sd">    higher-precision weight and optionally offloads the restored weight to CPU.</span>
+<span class="sd">    Use this hook to avoid increased peak GPU memory usage during checkpoint</span>
+<span class="sd">    save when training with QLoRA.</span>
+
+<span class="sd">    This hook is similar to ``reparametrize_as_dtype_state_dict_post_hook`` but uses</span>
+<span class="sd">    FakeTensor and mmap(2) to avoid CPU OOM on colab.</span>
+
+<span class="sd">    This function is meant to be used with PyTorch&#39;s ``nn.Module._register_state_dict_hook``, i.e.</span>
+
+<span class="sd">    &gt;&gt;&gt; m = MyModule()</span>
+<span class="sd">    &gt;&gt;&gt; m._register_state_dict_hook(reparametrize_as_dtype_state_dict_post_hook)</span>
+
+<span class="sd">    If the hook is registered per the above process, this hook will be called _after_ the module&#39;s</span>
+<span class="sd">    ``state_dict`` method is called. The hook will replace all ``NF4Tensor`` instances by unquantizing</span>
+<span class="sd">    them to the original dtype, and optionally offload the restored weight to CPU.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model (nn.Module): the model to take ``state_dict()`` on</span>
+<span class="sd">        state_dict (Dict[str, Any]): the state dict to modify</span>
+<span class="sd">        *args (Tuple[Any, ...]): Unused args passed when running this as a state_dict hook.</span>
+<span class="sd">        dtype (torch.dtype): the dtype to restore the weight to. Default is ``torch.bfloat16``.</span>
+<span class="sd">        offload_to_cpu (bool): whether to offload the restored weight to CPU. Default is ``True``.</span>
+<span class="sd">        **kwargs (Dict[Any, Any]): Unused keyword args passed when running this as a state_dict hook.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Create a state dict of FakeTensors that matches the state_dict</span>
+    <span class="n">mode</span> <span class="o">=</span> <span class="n">FakeTensorMode</span><span class="p">()</span>
+    <span class="n">converter</span> <span class="o">=</span> <span class="n">FakeTensorConverter</span><span class="p">()</span>
+    <span class="n">fake_state_dict</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">NF4Tensor</span><span class="p">):</span>
+            <span class="n">fake_state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">converter</span><span class="o">.</span><span class="n">from_real_tensor</span><span class="p">(</span><span class="n">mode</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fake_state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">converter</span><span class="o">.</span><span class="n">from_real_tensor</span><span class="p">(</span><span class="n">mode</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">offload_to_cpu</span><span class="p">:</span>
+            <span class="n">fake_state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">fake_state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+
+    <span class="c1"># Create a state_dict on disk with space reserved for storage bytes</span>
+    <span class="c1"># Then load with mmap and MAP_SHARED (can writeback to disk file)</span>
+    <span class="n">dest_state_dict_path</span> <span class="o">=</span> <span class="s2">&quot;/tmp/fake_state_dict.pt&quot;</span>
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">serialization</span><span class="o">.</span><span class="n">skip_data</span><span class="p">(</span><span class="n">materialize_fake_tensors</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">fake_state_dict</span><span class="p">,</span> <span class="n">dest_state_dict_path</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">serialization</span><span class="o">.</span><span class="n">set_default_mmap_options</span><span class="p">(</span><span class="n">mmap</span><span class="o">.</span><span class="n">MAP_SHARED</span><span class="p">):</span>
+        <span class="n">dest_state_dict</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">dest_state_dict_path</span><span class="p">,</span> <span class="n">mmap</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Do D2H and upcast one by one and since dest_state_dict is backed by mmap --&gt; won&#39;t OOM</span>
+    <span class="c1"># even when there is no swap space (e.g. colab)</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">NF4Tensor</span><span class="p">):</span>
+            <span class="n">dest_state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dest_state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+
+    <span class="c1"># In place update original state_dict object. Although the private state dict</span>
+    <span class="c1"># post hook supports out of place behavior, the semantic actually buggy. We eventually want</span>
+    <span class="c1"># to use the public state_dict post hook which does not support out of place behavior.</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">dest_state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_register_reparametrize_state_dict_hooks</span><span class="p">(</span>
+    <span class="n">module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">,</span>
+    <span class="n">offload_to_cpu</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Register the reparametrize state dict hooks to the module and its submodules.</span>
+
+<span class="sd">    This function is a wrapper that is meant to toggle between the low_cpu_ram</span>
+<span class="sd">    and regular versions of the ``reparametrize_as_dtype`` state dict hooks.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        module (nn.Module): the module to register the hooks to.</span>
+<span class="sd">        dtype (torch.dtype): the dtype to restore the weight to. Default is ``torch.bfloat16``.</span>
+<span class="sd">        offload_to_cpu (bool): whether to offload the restored weight to CPU. Default is ``True``.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        RuntimeError: If the low RAM reparametrize hook is used on Windows or an incompatible torch version.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">_use_low_cpu_ram</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">__version__</span> <span class="o">&lt;</span> <span class="s2">&quot;2.5.0.dev20240906&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;Low RAM reparametrize_as_dtype_state_dict_post_hook requires PyTorch 2.5.0.dev20240906 or later.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s2">&quot;win32&quot;</span><span class="p">:</span>
+            <span class="c1"># mmap.MAP_SHARED is not supported on Windows but this change targets colab.</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;Low RAM reparametrize_as_dtype_state_dict_post_hook is not supported on Windows.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">hook</span> <span class="o">=</span> <span class="n">_low_ram_reparametrize_as_dtype_state_dict_post_hook</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">hook</span> <span class="o">=</span> <span class="n">reparametrize_as_dtype_state_dict_post_hook</span>
+    <span class="n">module</span><span class="o">.</span><span class="n">_register_state_dict_hook</span><span class="p">(</span>
+        <span class="n">partial</span><span class="p">(</span><span class="n">hook</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">offload_to_cpu</span><span class="o">=</span><span class="n">offload_to_cpu</span><span class="p">)</span>
+    <span class="p">)</span>
 </pre></div>
 
              </article>
