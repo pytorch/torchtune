@@ -53,7 +53,7 @@ def load_image(image_loc: Union[Path, str]) -> "PIL.Image.Image":
             which will be loaded in PIL format.
 
     Note:
-        If loading an image from a remote source, the function expects the URL provided in ``image_loc`
+        If loading an image from a remote source, the function expects the URL provided in ``image_loc``
         to start with "http" or "https" e.g. "https://www.wikipedia.org/en/bird.jpg".
 
     Raises:
