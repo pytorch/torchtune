@@ -137,6 +137,24 @@ torchtune tutorials.
 .. toctree::
    :glob:
    :maxdepth: 1
+   :caption: General Usage
+   :hidden:
+
+   usage/tokenizers
+   usage/messages
+   usage/sample_packing
+   usage/model_transforms
+   usage/message_transforms
+   usage/instruct_datasets
+   usage/chat_datasets
+   usage/multimodal_datasets
+   usage/preference_datasets
+   usage/text_completion_datasets
+   usage/custom_datasets
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
    :caption: API Reference
    :hidden:
 
