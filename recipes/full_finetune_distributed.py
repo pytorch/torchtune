@@ -230,7 +230,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # set num_output_chunks for model
             self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
 
-        log.info("Loss is initialized.")
+        if self._is_rank_zero:
+            log.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
