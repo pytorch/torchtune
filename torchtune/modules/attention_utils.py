@@ -157,8 +157,7 @@ def _sdpa_or_flex_attention() -> Callable:
     """
 
     if _SUPPORTS_FLEX_ATTENTION:
-
-        flex_attention_compiled = torch.compile(flex_attention, dynamic=False)
+        flex_attention_compiled = torch.compile(flex_attention) if not torch.compiler.is_dynamo_compiling() else flex_attention
 
         def _attention_call(
             q: torch.Tensor,
