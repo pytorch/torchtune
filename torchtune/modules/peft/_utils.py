@@ -251,10 +251,9 @@ def get_merged_lora_ckpt(
 
             lora_weight = (alpha / rank) * lora_b_weight @ lora_a_weight
             merged_weight = base_weight + lora_weight
-            if lora_magnitude is not None:
-                weight_norm = torch.linalg.norm(base_weight + lora_weight, dim=1)
-                mag_norm_scale = (lora_magnitude / weight_norm).view(-1, 1)
-                merged_weight *= mag_norm_scale
+            weight_norm = torch.linalg.norm(base_weight + lora_weight, dim=1)
+            mag_norm_scale = (lora_magnitude / weight_norm).view(-1, 1)
+            merged_weight *= mag_norm_scale
             state_dict[f"{module}.weight"] = merged_weight
             del state_dict[f"{module}.magnitude"]
 
