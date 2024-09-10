@@ -329,7 +329,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             )
 
         fsdp_kwargs = {}
-        if cfg_fsdp and cfg_fsdp.cpu_offload:
+        cpu_offload = cfg_fsdp and cfg_fsdp.cpu_offload
+        if cpu_offload:
             from torch.distributed._composable.fsdp import CPUOffloadPolicy
 
             fsdp_kwargs["offload_policy"] = CPUOffloadPolicy()
@@ -352,13 +353,13 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         if lora_weights_state_dict:
             lora_missing, lora_unexpected = training.load_from_full_model_state_dict(
-                model, lora_weights_state_dict, self._device, self._is_rank_zero
+                model, lora_weights_state_dict, self._device, self._is_rank_zero, cpu_offload=cpu_offload
             )
         else:
             lora_missing, lora_unexpected = None, None
 
         with training.set_default_dtype(self._dtype), self._device:
-            lora_device = "cpu" if cfg_fsdp and cfg_fsdp.cpu_offload else self._device
+            lora_device = "cpu" if cpu_offload else self._device
             for m in model.modules():
                 if (
                     isinstance(m, LoRALinear) or isinstance(m, DoRALinear)
@@ -373,7 +374,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     m.reset_parameters()
 
         base_missing, base_unexpected = training.load_from_full_model_state_dict(
-            model, base_model_state_dict, self._device, self._is_rank_zero
+            model, base_model_state_dict, self._device, self._is_rank_zero, cpu_offload=cpu_offload
         )
         is_dora = False
         for m in model.modules():
