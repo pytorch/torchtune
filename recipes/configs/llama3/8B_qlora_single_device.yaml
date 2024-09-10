@@ -104,3 +104,6 @@ profiler:
   warmup_steps: 5
   active_steps: 2
   num_cycles: 1
+
+# For colab use True
+low_cpu_ram: False
