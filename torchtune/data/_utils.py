@@ -91,7 +91,7 @@ def load_image(image_loc: Union[Path, str]) -> "PIL.Image.Image":
 
 def format_content_with_images(
     content: str, *, image_tag: str, images: List["PIL.Image.Image"]
-) -> List[Dict[str, str]]:
+) -> List[Dict[str, Any]]:
     """
     Given a raw text string, split by the specified ``image_tag``
     and form into list of dictionaries to be used in the ``Message`` content
@@ -102,7 +102,7 @@ def format_content_with_images(
                 "role": "system" | "user" | "assistant",
                 "content":
                     [
-                        {"type": "image", "content": "path/to/image1.png"},
+                        {"type": "image", "content": <PIL.Image.Image>},
                         {"type": "text", "content": "This is a sample image."},
                     ],
             },
@@ -121,7 +121,7 @@ def format_content_with_images(
         >>> content = format_content_with_media(
         ...     "<|image|>hello <|image|>world",
         ...     image_tag="<|image|>",
-        ...     images=[<PIL.Image.Image>, <PIL.Image.Image>"]
+        ...     images=[<PIL.Image.Image>, <PIL.Image.Image>]
         ... )
         >>> print(content)
         [
@@ -132,7 +132,7 @@ def format_content_with_images(
         ]
 
     Returns:
-        List[Dict[str, str]]: list of dictionaries to be used in the ``Message`` content field
+        List[Dict[str, Any]]: list of dictionaries to be used in the ``Message`` content field
     """
     num_image_tags_in_content = content.count(image_tag)
     if len(images) != num_image_tags_in_content:
