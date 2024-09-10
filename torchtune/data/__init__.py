@@ -32,7 +32,7 @@ from torchtune.data._prompt_templates import (
     QuestionAnswerTemplate,
     SummarizeTemplate,
 )
-from torchtune.data._utils import split_text_by_image_tag, truncate
+from torchtune.data._utils import format_content_with_images, load_image, truncate
 
 __all__ = [
     "ChatFormat",
@@ -46,7 +46,7 @@ __all__ = [
     "Message",
     "validate_messages",
     "Role",
-    "split_text_by_image_tag",
+    "format_content_with_images",
     "PromptTemplateInterface",
     "PromptTemplate",
     "InputOutputToMessages",
@@ -60,4 +60,5 @@ __all__ = [
     "left_pad_sequence",
     "padded_collate",
     "padded_collate_packed",
+    "load_image",
 ]

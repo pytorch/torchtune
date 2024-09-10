@@ -26,6 +26,7 @@ class DummyTokenizerInvalidModelTransform(DummyTokenizer):
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         sample = super().__call__(sample)
         del sample["tokens"]
+        del sample["images"]
         return sample
 
 
