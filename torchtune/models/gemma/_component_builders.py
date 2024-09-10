@@ -289,7 +289,6 @@ def lora_gemma_self_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
-            use_dora=use_dora,
         )
         if "q_proj" in lora_modules
         else (
@@ -306,7 +305,6 @@ def lora_gemma_self_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
-            use_dora=use_dora,
         )
         if "k_proj" in lora_modules
         else (
@@ -323,7 +321,6 @@ def lora_gemma_self_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
-            use_dora=use_dora,
         )
         if "v_proj" in lora_modules
         else (
@@ -340,7 +337,6 @@ def lora_gemma_self_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
-            use_dora=use_dora,
         )
         if "output_proj" in lora_modules
         else (
@@ -385,7 +381,6 @@ def lora_gemma_mlp(
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
-        use_dora=use_dora,
     )
     down_proj = adapter_cls(
         in_dim=hidden_dim,
@@ -394,7 +389,6 @@ def lora_gemma_mlp(
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
-        use_dora=use_dora,
     )
     up_proj = adapter_cls(
         in_dim=dim,
@@ -403,7 +397,6 @@ def lora_gemma_mlp(
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
-        use_dora=use_dora,
     )
     activation = nn.GELU(approximate="tanh")
 
