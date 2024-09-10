@@ -218,16 +218,16 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
         optim_dict = {
-            p: config.instantiate(cfg.optimizer, [p])
-            for p in self._model.parameters()
+            param: config.instantiate(cfg.optimizer, [param])
+            for param in self._model.parameters()
         }
-        def optim_step(param) -> None:
+        def optim_hook(param) -> None:
             optim_dict[param].step()
             optim_dict[param].zero_grad()
 
-        for p in self._model.parameters():
-            p.register_post_accumulate_grad_hook(optim_step)
-        self._optimizer_in_bwd = {n: optim_dict[p] for n, p in self._model.named_parameters()}
+        for param in self._model.parameters():
+            param.register_post_accumulate_grad_hook(optim_hook)
+        self._optimizer_in_bwd = {name: optim_dict[param] for name, param in self._model.named_parameters()}
         if self._resume_from_checkpoint:
             optim_ckpt_map = checkpoint_dict[training.OPT_KEY]
             for param_name in optim_ckpt_map.keys():
@@ -547,9 +547,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._is_rank_zero,
         )
 
-        if intermediate_checkpoint:
-            if self._is_rank_zero:
-                opt_state_dict = {p: opt.state_dict() for p, opt in self._optimizer_in_bwd.items()}
+        if intermediate_checkpoint and self._is_rank_zero:
+            opt_state_dict = {param: opt.state_dict() for param, opt in self._optimizer_in_bwd.items()}
         else:
             opt_state_dict = None
 
@@ -599,6 +598,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
+
             pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
             for idx, batch in enumerate(self._dataloader):
                 if (
@@ -652,12 +652,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 loss = loss / self._gradient_accumulation_steps
                 running_loss += loss
-
                 loss.backward()
+
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
+
                     loss_to_log = running_loss.item()
                     pbar.update(1)
                     pbar.set_description(
