@@ -13,6 +13,7 @@ Modeling Components and Building Blocks
 
     MultiHeadAttention
     FeedForward
+    TiedLinear
     KVCache
     get_cosine_schedule_with_warmup
     RotaryPositionalEmbeddings
@@ -22,7 +23,6 @@ Modeling Components and Building Blocks
     TransformerSelfAttentionLayer
     TransformerCrossAttentionLayer
     TransformerDecoder
-    TiedEmbeddingTransformerDecoder
     VisionTransformer
 
 Base Tokenizers
