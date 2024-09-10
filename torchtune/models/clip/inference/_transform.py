@@ -34,6 +34,7 @@ class _CLIPImageTransform(torch.nn.Module):
         tile_size: int,
         max_num_tiles: int,
         antialias: bool,
+        pad_max_tiles: bool = False,
     ):
         super().__init__()
         self.resample = resample
@@ -41,6 +42,7 @@ class _CLIPImageTransform(torch.nn.Module):
         self.image_std = image_std
         self.tile_size = tile_size
         self.max_num_tiles = max_num_tiles
+        self.pad_tile_size = max_num_tiles if pad_max_tiles else None
         self.antialias = antialias
         self.tile_crop = tile_crop
         self.pad = torch.nn.functional.pad
@@ -118,6 +120,14 @@ class _CLIPImageTransform(torch.nn.Module):
         # Reshape.
         tiles = self.tile_crop(output, self.tile_size)
 
+        if self.pad_tile_size:
+            # Pad the batch dimension to self.pad_tile_size.
+            # padding args: w_left, w_right, h_top, h_bottom, c_front, c_back, n_front, n_back
+            tile_padding = [0, 0, 0, 0, 0, 0, 0, self.pad_tile_size - tiles.shape[0]]
+            tiles = self.pad(
+                tiles, [0, 0, 0, 0, 0, 0, 0, self.pad_tile_size - tiles.shape[0]]
+            )
+
         # Calculate aspect ratio.
         aspect_ratio = canvas_size // self.tile_size
 
@@ -175,6 +185,7 @@ class CLIPImageTransform:
             If False, it will pick the resolution that minimizes downscaling, including no downscaling at all.
             In this case, the image will only be upscaled if it's size < tile_size. Default False.
         antialias (bool): Whether to apply antialiasing when resizing the image. Default True.
+        pad_max_tiles (bool): If True, the image will be padded to have tiles == max_num_tiles.
     Examples:
         >>> image_transform = CLIPImageTransform(
         ...    image_mean=None,
@@ -205,6 +216,7 @@ class CLIPImageTransform:
         resample: str = "bilinear",
         resize_to_max_canvas: bool = False,
         antialias: bool = True,
+        pad_max_tiles: bool = False,
     ) -> None:
 
         # get_canvas_best_fit
@@ -250,6 +262,7 @@ class CLIPImageTransform:
             tile_size=self.tile_size,
             max_num_tiles=self.max_num_tiles,
             antialias=self.antialias,
+            pad_max_tiles=pad_max_tiles,
         )
 
     def __call__(self, *, image: Image.Image, **kwargs) -> Mapping[str, Any]:
