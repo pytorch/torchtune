@@ -99,7 +99,7 @@ class Message:
             eot=d.get("eot", True),
         )
 
-    def get_media(self) -> List[str]:
+    def get_media(self) -> List["PIL.Image.Image"]:
         """
         Returns media content of the message.
         """

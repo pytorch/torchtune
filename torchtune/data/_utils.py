@@ -52,6 +52,10 @@ def load_image(image_loc: Union[Path, str]) -> "PIL.Image.Image":
         image_loc (Union[Path, str]): Local file path or remote source pointing to the image
             which will be loaded in PIL format.
 
+    Note:
+        If loading an image from a remote source, the function expects the URL provided in ``image_loc`
+        to start with "http" or "https" e.g. "https://www.wikipedia.org/en/bird.jpg".
+
     Raises:
         ValueError: If the image cannot be loaded from remote source.
         ValueError: If the image cannot be opened as a PIL.Image.
@@ -62,10 +66,6 @@ def load_image(image_loc: Union[Path, str]) -> "PIL.Image.Image":
 
         >>> # Load from local file path
         >>> image = load_image(Path("/home/user/bird.jpg"))
-
-    Note:
-        If loading an image from a remote source, ``load_image`` expects the URL to start with "http"
-        or "https".
 
     Returns:
         PIL.Image.Image: The loaded image.
@@ -133,8 +133,7 @@ def format_content_with_images(
         ]
 
     Returns:
-        List[Dict[str, Any]]: list of dictionaries to be used in the :class:`~torchtune.data.Message`
-            content field
+        List[Dict[str, Any]]: list of dictionaries to be used in the :class:`~torchtune.data.Message` content field
     """
     num_image_tags_in_content = content.count(image_tag)
     if len(images) != num_image_tags_in_content:
