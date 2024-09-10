@@ -69,7 +69,7 @@ class TestLLaVAInstructDataset:
             train_on_input=True,
         )
 
-        input, labels = ds[0]["tokens"], ds[0]["labels"]
+        input, labels, images = ds[0]["tokens"], ds[0]["labels"], ds[0]["images"]
 
         expected_count = {
             3: 17,
@@ -90,6 +90,7 @@ class TestLLaVAInstructDataset:
 
         assert Counter(input) == expected_count
         assert Counter(labels) == expected_count
+        assert images == [test_image_pil]
 
     @patch("torchtune.datasets._sft.load_dataset")
     @patch("torchtune.datasets.multimodal._llava_instruct.load_image")
@@ -130,7 +131,7 @@ class TestLLaVAInstructDataset:
             model_transform=tokenizer,
             train_on_input=False,
         )
-        input, labels = ds[0]["tokens"], ds[0]["labels"]
+        input, labels, images = ds[0]["tokens"], ds[0]["labels"], ds[0]["images"]
 
         expected_count = {
             3: 17,
@@ -151,3 +152,4 @@ class TestLLaVAInstructDataset:
 
         assert Counter(input) == expected_count
         assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 11
+        assert images == [test_image_pil]

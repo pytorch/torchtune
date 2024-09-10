@@ -32,7 +32,7 @@ class TestTheCauldronDataset:
         # mock the call to HF datasets
         load_dataset.return_value = [
             {
-                "images": [test_image_pil],
+                "images": test_image_pil,
                 "texts": [
                     {
                         "user": "Question: What do respiration and combustion give out"
@@ -48,10 +48,7 @@ class TestTheCauldronDataset:
         ds = the_cauldron_dataset(
             model_transform=tokenizer, subset="dummy", train_on_input=True
         )
-        input, labels = (
-            ds[0]["tokens"],
-            ds[0]["labels"],
-        )
+        input, labels, images = (ds[0]["tokens"], ds[0]["labels"], ds[0]["images"])
 
         assert input == [
             0,
@@ -83,6 +80,7 @@ class TestTheCauldronDataset:
             -1,
         ]
         assert labels == input
+        assert images == [test_image_pil]
 
     @patch("torchtune.datasets._sft.load_dataset")
     def test_label_masking(self, load_dataset, tokenizer, test_image_pil):
@@ -92,7 +90,7 @@ class TestTheCauldronDataset:
         # mock the call to HF datasets
         load_dataset.return_value = [
             {
-                "images": [test_image_pil],
+                "images": test_image_pil,
                 "texts": [
                     {
                         "user": "Question: What do respiration and combustion give out"
@@ -108,10 +106,7 @@ class TestTheCauldronDataset:
         ds = the_cauldron_dataset(
             model_transform=tokenizer, subset="dummy", train_on_input=False
         )
-        input, labels = (
-            ds[0]["tokens"],
-            ds[0]["labels"],
-        )
+        input, labels, images = (ds[0]["tokens"], ds[0]["labels"], ds[0]["images"])
 
         assert input == [
             0,
@@ -143,3 +138,4 @@ class TestTheCauldronDataset:
             -1,
         ]
         assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 24
+        assert images == [test_image_pil]
