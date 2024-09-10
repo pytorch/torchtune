@@ -88,6 +88,23 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             raise RuntimeError("Resume from checkpoint is not supported yet.")
         return checkpoint_dict
 
+    def load_teacher_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
+        """
+        Extract the checkpoint state from file and validate. This includes the
+        base model weights. If resume_from_checkpoint is True, this also includes
+        the adapter weights and recipe state
+        """
+        teacher_checkpointer = config.instantiate(
+            cfg_checkpointer,
+            resume_from_checkpoint=self._resume_from_checkpoint,
+        )
+        checkpoint_dict = teacher_checkpointer.load_checkpoint()
+
+        if self._resume_from_checkpoint:
+            # TODO: Add after KD recipe is implemented
+            raise RuntimeError("Resume from checkpoint is not supported yet.")
+        return checkpoint_dict
+
     def setup(self, cfg: DictConfig) -> None:
         """
         Setup the recipe state. This includes recipe state (if resume_from_checkpoint is True),
@@ -101,7 +118,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
 
         self._model_compile = cfg.compile
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
-        teacher_checkpoint_dict = self.load_checkpoint(
+        teacher_checkpoint_dict = self.load_teacher_checkpoint(
             cfg_checkpointer=cfg.teacher_checkpointer
         )
 
@@ -517,12 +534,13 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             logits = logits.reshape(-1, logits.size(-1))
 
         # Compute KD loss
-        teacher_logits = self._teacher_model(tokens, mask=mask, input_pos=input_pos)
-        # reshape logits to [bsz, s, v]
-        teacher_logits = [
-            logit_chunk.reshape(-1, logit_chunk.size(-1))
-            for logit_chunk in teacher_logits
-        ]
+        with torch.no_grad():
+            teacher_logits = self._teacher_model(tokens, mask=mask, input_pos=input_pos)
+            # reshape logits to [bsz, s, v]
+            teacher_logits = [
+                logit_chunk.reshape(-1, logit_chunk.size(-1))
+                for logit_chunk in teacher_logits
+            ]
         student_logits = [
             logit_chunk.reshape(-1, logit_chunk.size(-1)) for logit_chunk in logits
         ]
@@ -551,6 +569,9 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         del logits
         del teacher_logits
         del student_logits
+        del teacher_prob
+        del student_logprob
+        del prod_probs
 
         return loss, total_distill_loss
 
@@ -567,6 +588,8 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
         running_loss = 0
+        running_class_loss = 0
+        running_kd_loss = 0
         num_tokens = 0
 
         with self._profiler as prof:
@@ -600,6 +623,8 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                     loss = 0.5 * class_loss + 0.5 * kd_loss
                     loss = loss / self._gradient_accumulation_steps
                     running_loss += loss
+                    running_class_loss += class_loss / self._gradient_accumulation_steps
+                    running_kd_loss += kd_loss / self._gradient_accumulation_steps
                     loss.backward()
 
                     # Step with optimizer
@@ -626,6 +651,8 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                             time_per_step = time.perf_counter() - t0
                             log_dict = {
                                 "loss": loss_to_log,
+                                "class_loss": running_class_loss.item(),
+                                "kd_loss": running_kd_loss.item(),
                                 "lr": self._optimizer.param_groups[0]["lr"],
                                 "tokens_per_second_per_gpu": num_tokens / time_per_step,
                             }
@@ -645,6 +672,8 @@ class KDRecipeSingleDevice(FTRecipeInterface):
 
                         # Reset running stats for the next step
                         running_loss = 0
+                        running_class_loss = 0
+                        running_kd_loss = 0
                         num_tokens = 0
                         t0 = time.perf_counter()
 

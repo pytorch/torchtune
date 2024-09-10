@@ -55,9 +55,9 @@ checkpointer:
 # TODO: add teacher checkpointer
 teacher_checkpointer:
   _component_: torchtune.training.FullModelMetaCheckpointer
-  checkpoint_dir: /tmp/Meta-Llama-3.1-8B-Instruct/original/
+  checkpoint_dir: /tmp/Meta-Llama-3.1-8B-Instruct/lora_finetuned_single_device_epoch_1/
   checkpoint_files: [
-    consolidated.00.pth
+    meta_model_0.pt
   ]
   recipe_checkpoint: null
   output_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
