@@ -378,6 +378,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._is_dora = any(["magnitude" in k for k in self.adapter_params.keys()])
         set_trainable_params(model, self.adapter_params)
 
+        with training.set_default_dtype(self._dtype), self._device:
+            for m in model.modules():
+                # RoPE is not covered in state dict
+                if hasattr(m, "rope_init") and not m.is_cache_built:
+                    m.rope_init()
+
         if compile_model:
             training.compile_model(model)
 
