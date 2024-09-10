@@ -255,7 +255,7 @@ class TestMultiHeadAttention:
 
     def test_forward_gqa(self, input: torch.Tensor, gqa: MultiHeadAttention) -> None:
         with torch.no_grad():
-            output = gqa(input)
+            output = gqa(input, input)
         assert_expected(
             output.mean(), torch.tensor(-2545.42236328125), atol=1e-8, rtol=1e-3
         )
@@ -273,7 +273,7 @@ class TestMultiHeadAttention:
         mask = causal_mask[None, input_pos]
 
         with torch.no_grad():
-            output = gqa_kv_cache(input, mask=mask, input_pos=input_pos)
+            output = gqa_kv_cache(input, input, mask=mask, input_pos=input_pos)
         assert_expected(
             output.mean(), torch.tensor(-2545.42236328125), atol=1e-8, rtol=1e-3
         )
@@ -281,7 +281,7 @@ class TestMultiHeadAttention:
 
     def test_forward_mha(self, input: torch.Tensor, mha: MultiHeadAttention) -> None:
         with torch.no_grad():
-            output = mha(input)
+            output = mha(input, input)
         assert_expected(
             output.mean(), torch.tensor(-2597.248046875), atol=1e-8, rtol=1e-3
         )
@@ -299,7 +299,7 @@ class TestMultiHeadAttention:
         mask = causal_mask[None, input_pos]
 
         with torch.no_grad():
-            output = mha_kv_cache(input, mask=mask, input_pos=input_pos)
+            output = mha_kv_cache(input, input, mask=mask, input_pos=input_pos)
         assert_expected(
             output.mean(), torch.tensor(-2597.248046875), atol=1e-8, rtol=1e-3
         )
@@ -307,7 +307,7 @@ class TestMultiHeadAttention:
 
     def test_forward_mqa(self, input: torch.Tensor, mqa: MultiHeadAttention) -> None:
         with torch.no_grad():
-            output = mqa(input)
+            output = mqa(input, input)
         assert_expected(
             output.mean(), torch.tensor(-2108.07666015625), atol=1e-8, rtol=1e-3
         )
@@ -324,7 +324,7 @@ class TestMultiHeadAttention:
         mask = causal_mask[None, input_pos]
 
         with torch.no_grad():
-            output = mqa_kv_cache(input, mask=mask, input_pos=input_pos)
+            output = mqa_kv_cache(input, input, mask=mask, input_pos=input_pos)
         assert_expected(
             output.mean(), torch.tensor(-2108.076660156255), atol=1e-8, rtol=1e-3
         )

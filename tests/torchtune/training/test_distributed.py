@@ -24,7 +24,7 @@ from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 from torch.testing._internal.common_fsdp import FSDPTest, MLP
 from torchao.dtypes.nf4tensor import NF4Tensor
-from torchtune import modules, utils
+from torchtune import modules, training
 from torchtune.models.llama2._component_builders import llama2, lora_llama2
 from torchtune.models.llama3._component_builders import llama3
 from torchtune.modules import TransformerSelfAttentionLayer
@@ -39,7 +39,7 @@ from torchtune.modules.peft import (
 class TestDistributed:
     def test_init_distributed(self) -> None:
         """Integration test to confirm consistency across device initialization utilities."""
-        distributed = utils.init_distributed()
+        distributed = training.init_distributed()
         assert (
             not distributed
         ), "Should return False as there are no distributed environment variables"
@@ -52,7 +52,7 @@ class TestDistributed:
         if init_pg_explicit:
             torch.distributed.init_process_group(backend="gloo")
         if not torch.distributed.is_initialized():
-            utils.init_distributed(backend="gloo")
+            training.init_distributed(backend="gloo")
         if not torch.distributed.is_initialized():
             raise AssertionError("Expected torch.distributed to be initialized")
         pg_backend = torch.distributed.get_backend()
@@ -62,8 +62,8 @@ class TestDistributed:
 
     @staticmethod
     def _test_world_size_with_cpu_device(expected_world_size: int) -> None:
-        utils.init_distributed(backend="gloo")
-        world_size, _ = utils.get_world_size_and_rank()
+        training.init_distributed(backend="gloo")
+        world_size, _ = training.get_world_size_and_rank()
         if world_size != expected_world_size:
             raise AssertionError(
                 f"Expected different world size: received {world_size}, expected {expected_world_size}"
@@ -100,7 +100,7 @@ class TestDistributed:
             model = torch.nn.Linear(3, 3)
 
         with pytest.raises(RuntimeError, match="Unexpected param or buffer"):
-            utils.validate_no_params_on_meta_device(model)
+            training.validate_no_params_on_meta_device(model)
 
         # Test model with only buffer
         model = torch.nn.Linear(3, 3)
@@ -108,11 +108,11 @@ class TestDistributed:
         model.register_buffer("buffer", buffer)
 
         with pytest.raises(RuntimeError, match="Unexpected param or buffer"):
-            utils.validate_no_params_on_meta_device(model)
+            training.validate_no_params_on_meta_device(model)
 
     def test_get_fsdp_wrap_policies(self) -> None:
         with single_box_init():
-            llama3_policy = utils.get_full_finetune_fsdp_wrap_policy(
+            llama3_policy = training.get_full_finetune_fsdp_wrap_policy(
                 memory_efficient_fsdp_wrap=True,
                 modules_to_wrap={modules.TransformerSelfAttentionLayer},
             )
@@ -133,7 +133,7 @@ class TestDistributed:
             for layer in wrapped_l3.layers:
                 assert isinstance(layer, FSDP)
 
-            llama2_policy = utils.get_full_finetune_fsdp_wrap_policy(
+            llama2_policy = training.get_full_finetune_fsdp_wrap_policy(
                 memory_efficient_fsdp_wrap=False,
                 modules_to_wrap={modules.TransformerSelfAttentionLayer},
             )
@@ -201,10 +201,10 @@ class TestLoRAFSDP:
         set_trainable_params(model, adapter_params)
         num_lora_ab, num_transformer_layers = _get_n_lora_and_tformer_layers(model)
         with single_box_init():
-            lora_wrap_policy = utils.lora_fsdp_wrap_policy(
+            lora_wrap_policy = training.lora_fsdp_wrap_policy(
                 modules_to_wrap={TransformerSelfAttentionLayer}
             )
-            utils.prepare_model_for_fsdp_with_meta_device(model)
+            training.prepare_model_for_fsdp_with_meta_device(model)
             wrapped_lora = FSDP(
                 model,
                 auto_wrap_policy=lora_wrap_policy,
@@ -247,7 +247,7 @@ class TestLoRAFSDP:
                 lora_rank=4,
                 lora_alpha=8,
             )
-        utils.prepare_model_for_fsdp_with_meta_device(lora)
+        training.prepare_model_for_fsdp_with_meta_device(lora)
         for m in lora.modules():
             m.to_empty(device=torch.device("cpu"), recurse=False)
             m.reset_parameters()
@@ -312,10 +312,10 @@ class TestFullyShardState(FSDPTest):
             fsdp_optim_to_save.zero_grad()
         expected_model_sd = base_model.state_dict()
         expected_optim_sd = base_optim.state_dict()
-        model_full_sd = utils.get_full_model_state_dict(
+        model_full_sd = training.get_full_model_state_dict(
             fsdp_model_to_save, is_rank_zero
         )
-        optim_full_sd = utils.get_full_optimizer_state_dict(
+        optim_full_sd = training.get_full_optimizer_state_dict(
             fsdp_optim_to_save,
             is_rank_zero,
         )
@@ -361,7 +361,7 @@ class TestFullyShardState(FSDPTest):
         for module in fsdp_model_to_load:
             fully_shard(module)
         fully_shard(fsdp_model_to_load)
-        utils.load_from_full_model_state_dict(
+        training.load_from_full_model_state_dict(
             fsdp_model_to_load,
             copy.deepcopy(base_model.state_dict()),
             torch.device("cuda"),
@@ -370,7 +370,7 @@ class TestFullyShardState(FSDPTest):
         fsdp_optim_to_load = torch.optim.Adam(
             fsdp_model_to_load.parameters(), weight_decay=0.01, lr=0.01
         )
-        utils.load_from_full_optimizer_state_dict(
+        training.load_from_full_optimizer_state_dict(
             fsdp_optim_to_load,
             # mimic mmap=True where every rank see full SD
             copy.deepcopy(self._broadcast_full_state_dict(optim_full_sd)),
@@ -440,7 +440,7 @@ class TestFullyShardState(FSDPTest):
             base_model = lora_llama2(**kwargs)
         set_trainable_params(base_model, get_adapter_params(base_model))
         if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(
+            training.set_activation_checkpointing(
                 base_model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
@@ -467,7 +467,7 @@ class TestFullyShardState(FSDPTest):
         fsdp_model_to_save(inp)
 
         expected_model_sd = {k: v.cpu() for k, v in base_model.state_dict().items()}
-        model_full_sd = utils.get_full_model_state_dict(
+        model_full_sd = training.get_full_model_state_dict(
             fsdp_model_to_save, is_rank_zero
         )
         if is_rank_zero:
@@ -481,7 +481,7 @@ class TestFullyShardState(FSDPTest):
             fsdp_model_to_load = lora_llama2(**kwargs)
         set_trainable_params(fsdp_model_to_load, get_adapter_params(fsdp_model_to_load))
         if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(
+            training.set_activation_checkpointing(
                 fsdp_model_to_load,
                 auto_wrap_policy={modules.TransformerSelfAttentionLayer},
             )
@@ -497,7 +497,7 @@ class TestFullyShardState(FSDPTest):
                 if isinstance(m, modules.TransformerSelfAttentionLayer):
                     fully_shard(m)
         fully_shard(fsdp_model_to_load)
-        utils.load_from_full_model_state_dict(
+        training.load_from_full_model_state_dict(
             fsdp_model_to_load, expected_model_sd, torch.device("cuda"), is_rank_zero
         )
         fsdp_model_to_load(inp)

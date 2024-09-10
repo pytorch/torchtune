@@ -25,7 +25,7 @@ from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
-from torchtune.data import padded_collate
+from torchtune.data import padded_collate_sft
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     DoRALinear,
@@ -120,7 +120,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
-        _, rank = utils.get_world_size_and_rank()
+        _, rank = training.get_world_size_and_rank()
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
@@ -211,7 +211,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             self._metric_logger.log_config(cfg)
 
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
-        self._model_compile = cfg.compile
+        self._compile = cfg.get("compile", False)
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
@@ -237,22 +237,14 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
-        backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+
+        if self._compile:
+            training.compile_loss(self.loss_fn, verbose=self._is_rank_zero)
+
         if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
             # set num_output_chunks for model
             self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
-            if self._model_compile:
-                log.info("Compiling loss with torch.compile...")
-                # For CEWithChunkedOutputLoss, if we compile the entire class
-                # we lose the benefits from the chunked loss.
-                # Therefore, we only compile the cross entropy function + upcasting
-                self._loss_fn.compute_cross_entropy = torch.compile(
-                    self._loss_fn.compute_cross_entropy, backend=backend
-                )
-        else:
-            if self._model_compile:
-                log.info("Compiling loss with torch.compile...")
-                self._loss_fn = torch.compile(self._loss_fn, backend=backend)
+
         log.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
@@ -328,15 +320,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
 
-        if self._model_compile:
-            log.info("Compiling model layers with torch.compile...")
-            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-            for m in reversed(list(model.modules())):
-                if isinstance(m, modules.TransformerSelfAttentionLayer):
-                    m.compile(backend=backend)
+        if self._compile:
+            training.compile_model(self._model, verbose=self._is_rank_zero)
 
         if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(
+            training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
@@ -363,7 +351,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         fully_shard(model, **fsdp_kwargs)
 
         if lora_weights_state_dict:
-            lora_missing, lora_unexpected = utils.load_from_full_model_state_dict(
+            lora_missing, lora_unexpected = training.load_from_full_model_state_dict(
                 model, lora_weights_state_dict, self._device, self._is_rank_zero
             )
         else:
@@ -384,7 +372,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 if isinstance(m, modules.RotaryPositionalEmbeddings):
                     m.reset_parameters()
 
-        base_missing, base_unexpected = utils.load_from_full_model_state_dict(
+        base_missing, base_unexpected = training.load_from_full_model_state_dict(
             model, base_model_state_dict, self._device, self._is_rank_zero
         )
         is_dora = False
@@ -404,14 +392,14 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             lora_unexpected=lora_unexpected,
         )
         # Ensure no params and buffers are on meta device
-        utils.validate_no_params_on_meta_device(model)
+        training.validate_no_params_on_meta_device(model)
 
         if self._is_rank_zero:
             log.info(
                 f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
             )
-            memory_stats = utils.get_memory_stats(device=self._device)
-            utils.log_memory_stats(memory_stats)
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(memory_stats)
 
         # synchronize before training begins
         torch.distributed.barrier()
@@ -423,7 +411,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     ) -> Optimizer:
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
-            utils.load_from_full_optimizer_state_dict(
+            training.load_from_full_optimizer_state_dict(
                 optimizer,
                 opt_state_dict,
                 self._device,
@@ -460,7 +448,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = utils.get_world_size_and_rank()
+        world_size, rank = training.get_world_size_and_rank()
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -483,7 +471,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             sampler=sampler,
             collate_fn=(
                 partial(
-                    padded_collate,
+                    padded_collate_sft,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
                 )
@@ -518,15 +506,17 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         intermediate_checkpoint = epoch + 1 < self.total_epochs
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
-        cpu_state_dict = utils.get_full_model_state_dict(
+        cpu_state_dict = training.get_full_model_state_dict(
             self._model,
             self._is_rank_zero,
+            device=self._device,
         )
 
         if intermediate_checkpoint:
-            opt_state_dict = utils.get_full_optimizer_state_dict(
+            opt_state_dict = training.get_full_optimizer_state_dict(
                 self._optimizer,
                 self._is_rank_zero,
+                device=self._device,
             )
         else:
             opt_state_dict = None
@@ -586,9 +576,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         The core training loop.
         """
         # clean up before training begins
-        utils.cleanup_before_training()
+        training.cleanup_before_training()
 
-        _, rank = utils.get_world_size_and_rank()
+        _, rank = training.get_world_size_and_rank()
 
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
@@ -677,7 +667,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._log_peak_memory_stats:
-                            log_dict.update(utils.get_memory_stats(device=self._device))
+                            log_dict.update(
+                                training.get_memory_stats(device=self._device)
+                            )
                         self._metric_logger.log_dict(
                             log_dict,
                             step=self.global_step,
@@ -706,7 +698,7 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in config (see available configs through ``tune ls``)
         - Overwritten by arguments from the command-line
     """
-    if not utils.is_distributed():
+    if not training.is_distributed():
         raise RuntimeError(
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"

@@ -5,7 +5,15 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
-from torchtune.data import Message, truncate, validate_messages
+from torchtune.data import (
+    Message,
+    PromptTemplate,
+    split_text_by_image_tag,
+    truncate,
+    validate_messages,
+)
+from torchtune.data._utils import _get_prompt_template
+from torchtune.models.llama2 import Llama2ChatTemplate
 
 
 def test_truncate():
@@ -88,3 +96,61 @@ def test_validate_messages():
         match="Assistant message before expected user message at index 0 in messages",
     ):
         validate_messages(messages)
+
+
+def test_split_text_by_image_tag():
+    # Test single image tag in the middle
+    text = "hello <image>world"
+    assert split_text_by_image_tag(text, "<image>") == [
+        {"type": "text", "content": "hello "},
+        {"type": "image"},
+        {"type": "text", "content": "world"},
+    ]
+
+    # Test multiple image tags and image tag in beginning
+    text = "[image]hello [image]world"
+    assert split_text_by_image_tag(text, "[image]") == [
+        {"type": "image"},
+        {"type": "text", "content": "hello "},
+        {"type": "image"},
+        {"type": "text", "content": "world"},
+    ]
+
+    # Test an image tag that is not present in the text
+    text = "hello world"
+    assert split_text_by_image_tag(text, "asdfghjkl;") == [
+        {"type": "text", "content": "hello world"}
+    ]
+
+    # Test consecutive image tags
+    text = "<image><image>hello <image>world"
+    assert split_text_by_image_tag(text, "<image>") == [
+        {"type": "image"},
+        {"type": "image"},
+        {"type": "text", "content": "hello "},
+        {"type": "image"},
+        {"type": "text", "content": "world"},
+    ]
+
+    # Test image tag at the end
+    text = "hello <image>"
+    assert split_text_by_image_tag(text, "<image>") == [
+        {"type": "text", "content": "hello "},
+        {"type": "image"},
+    ]
+
+
+def test_get_prompt_template():
+    template = _get_prompt_template("torchtune.models.llama2.Llama2ChatTemplate")
+    assert isinstance(template, Llama2ChatTemplate)
+
+    template = _get_prompt_template({"user": ("1", "2"), "assistant": ("3", "4")})
+    assert isinstance(template, PromptTemplate)
+    assert template.template["user"] == ("1", "2")
+    assert template.template["assistant"] == ("3", "4")
+
+    with pytest.raises(
+        ValueError,
+        match="Prompt template must be a dotpath string or dictionary with custom template",
+    ):
+        _ = _get_prompt_template(["user", "assistant"])

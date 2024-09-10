@@ -3,7 +3,24 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-
+from torchtune.training._compile import compile_loss, compile_model
+from torchtune.training._distributed import (
+    contains_fsdp,
+    FSDPPolicyType,
+    get_full_finetune_fsdp_wrap_policy,
+    get_full_model_state_dict,
+    get_full_optimizer_state_dict,
+    get_world_size_and_rank,
+    init_distributed,
+    is_distributed,
+    load_from_full_model_state_dict,
+    load_from_full_optimizer_state_dict,
+    lora_fsdp_wrap_policy,
+    prepare_model_for_fsdp_with_meta_device,
+    set_torch_num_threads,
+    shard_model,
+    validate_no_params_on_meta_device,
+)
 from torchtune.training._profiler import (
     DEFAULT_PROFILE_DIR,
     DEFAULT_PROFILER_ACTIVITIES,
@@ -31,6 +48,15 @@ from torchtune.training.checkpointing import (
     STEPS_KEY,
     TOTAL_EPOCHS_KEY,
     update_state_dict_for_classifier,
+)
+from torchtune.training.memory import (
+    cleanup_before_training,
+    create_optim_in_bwd_wrapper,
+    get_memory_stats,
+    log_memory_stats,
+    OptimizerInBackwardWrapper,
+    register_optim_in_bwd_hooks,
+    set_activation_checkpointing,
 )
 from torchtune.training.pooling import get_unmasked_sequence_lengths
 from torchtune.training.precision import (
@@ -63,6 +89,28 @@ __all__ = [
     "STEPS_KEY",
     "TOTAL_EPOCHS_KEY",
     "get_quantizer_mode",
+    "cleanup_before_training",
+    "create_optim_in_bwd_wrapper",
+    "get_memory_stats",
+    "log_memory_stats",
+    "OptimizerInBackwardWrapper",
+    "register_optim_in_bwd_hooks",
+    "set_activation_checkpointing",
+    "init_distributed",
+    "is_distributed",
+    "get_world_size_and_rank",
+    "set_torch_num_threads",
+    "shard_model",
+    "prepare_model_for_fsdp_with_meta_device",
+    "validate_no_params_on_meta_device",
+    "contains_fsdp",
+    "FSDPPolicyType",
+    "get_full_finetune_fsdp_wrap_policy",
+    "lora_fsdp_wrap_policy",
+    "get_full_model_state_dict",
+    "get_full_optimizer_state_dict",
+    "load_from_full_model_state_dict",
+    "load_from_full_optimizer_state_dict",
     "set_seed",
     "get_unmasked_sequence_lengths",
     "DEFAULT_PROFILE_DIR",
@@ -72,4 +120,6 @@ __all__ = [
     "DummyProfiler",
     "PROFILER_KEY",
     "setup_torch_profiler",
+    "compile_loss",
+    "compile_model",
 ]
