@@ -122,7 +122,7 @@ def the_cauldron_dataset(
     source: str = "HuggingFaceM4/the_cauldron",
     column_map: Optional[Dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
-    train_on_input: bool = True,
+    train_on_input: bool = False,
     packed: bool = False,
     split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],
