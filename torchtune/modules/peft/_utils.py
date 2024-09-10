@@ -246,7 +246,7 @@ def get_merged_lora_ckpt(
         lora_magnitude = state_dict.get(f"{module}.magnitude", None)
 
         # If magnitude is present, calculate merged DoRA weight
-        if lora_magnitude:
+        if lora_magnitude is not None:
             base_weight = state_dict[f"{module}.weight"].to(lora_a_weight.dtype)
 
             lora_weight = (alpha / rank) * lora_b_weight @ lora_a_weight
