@@ -38,7 +38,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
     Features:
         - FSDP. Supported using PyTorch's FSDP APIs. CPU offload of parameters, gradients, and optimizer states
-            is supported via the ``fsdp_cpu_offload``. Resharding of parameters after the forward pass is
+            is supported via ``fsdp_cpu_offload``. Resharding of parameters after the forward pass is
             done by default (corresponding to FULL_SHARD sharding strategy), but can be disabled by setting the config
             ``fsdp_reshard_after_forward`` to False (this corresponds to SHARD_GRAD_OP sharding strategy).
             DDP is currently not supported. Training on CPU is not supported.
@@ -123,9 +123,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
-        self._fsdp_sharding_strategy = torch.distributed.fsdp.ShardingStrategy[
-            cfg.get("fsdp_sharding_strategy", "FULL_SHARD")
-        ]
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
