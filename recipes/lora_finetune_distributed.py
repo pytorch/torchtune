@@ -454,8 +454,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     m.lora_a.to_empty(device=lora_device)
                     m.lora_b.to_empty(device=lora_device)
                     m.initialize_parameters()
+
                 # RoPE is not covered in state dict
-                if hasattr(m, "rope_init"):
+                if hasattr(m, "rope_init") and not m.is_cache_built:
                     m.rope_init()
 
         base_missing, base_unexpected = training.load_from_full_model_state_dict(
