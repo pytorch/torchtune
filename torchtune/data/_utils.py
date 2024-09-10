@@ -4,7 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List, Optional, TypeVar
+from pathlib import Path
+from typing import Any, Dict, List, Optional, TypeVar, Union
 from urllib import request
 
 from torchtune.config._utils import _get_component_from_path
@@ -43,16 +44,27 @@ def truncate(
     return tokens_truncated
 
 
-def load_image(image_path: str) -> "PIL.Image.Image":
+def load_image(image_loc: Union[Path, str]) -> "PIL.Image.Image":
     """
-    Load an image from a file path or a binary stream.
+    Convenience method to load an image in PIL format from a local file path or remote source.
 
     Args:
-        image_path (str): The image to load from either remote source of local file.
+        image_loc (Union[Path, str]): Local file path or remote source pointing to the image
+            which will be loaded in PIL format.
 
     Raises:
         ValueError: If the image cannot be loaded from remote source.
         ValueError: If the image cannot be opened as a PIL.Image.
+
+    Example:
+        # Load from remote source
+        >>> image = load_image("https://www.wikipedia.org/en/bird.jpg")
+        # Load from local file path
+        >>> image = load_image(Path("/home/user/bird.jpg"))
+
+    Note:
+        If loading from a remote source, ``load_image`` expects the URL to start with "http"
+        or "https".
 
     Returns:
         PIL.Image.Image: The loaded image.
@@ -61,18 +73,18 @@ def load_image(image_path: str) -> "PIL.Image.Image":
     # TODO: Fix this
     from PIL import Image
 
-    # If a remote source, try to load to local
-    if image_path.startswith("http"):
+    # If pointing to remote source, try to load to local
+    if isinstance(image_loc, str) and image_loc.startswith("http"):
         try:
-            image_path = request.urlopen(image_path)
+            image_loc = request.urlopen(image_loc)
         except Exception as e:
-            raise ValueError(f"Failed to load image from {image_path}") from e
+            raise ValueError(f"Failed to load image from {image_loc}") from e
 
     # Open the local image as a PIL image
     try:
-        image = Image.open(image_path)
+        image = Image.open(image_loc)
     except Exception as e:
-        raise ValueError(f"Failed to open image as PIL Image from {image_path}") from e
+        raise ValueError(f"Failed to open image as PIL Image from {image_loc}") from e
 
     return image
 

@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Union
 
 from torchtune.data import format_content_with_images, load_image, Message
@@ -55,8 +56,7 @@ class LlavaInstructToMessages(Transform):
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
-        images_dir (str): path to the directory containing the images. User is expected to download the COCO dataset.
-            Default is "coco/".
+        images_dir (Optional[Path]): path to the directory containing the images. User is expected to download the COCO dataset.
 
     Raises:
         ValueError: If ``column_map`` is provided and ``conversations`` not in ``column_map``.
@@ -67,7 +67,7 @@ class LlavaInstructToMessages(Transform):
         train_on_input: bool = False,
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
-        images_dir: str = "coco/",
+        images_dir: Optional[Path] = None,
     ):
         self.train_on_input = train_on_input
         self.new_system_prompt = new_system_prompt
@@ -102,9 +102,10 @@ class LlavaInstructToMessages(Transform):
             if role == "system" and self.new_system_prompt is not None:
                 continue
             if role == "user":
-                pil_image = load_image(
-                    self.images_dir + sample[self._column_map["image"]]
-                )
+                image_path = sample[self._column_map["image"]]
+                if self.images_dir is not None:
+                    image_path = self.images_dir / image_path
+                pil_image = load_image(image_path)
                 content = format_content_with_images(
                     content,
                     image_tag="<image>",
@@ -226,7 +227,7 @@ def llava_instruct_dataset(
         train_on_input=train_on_input,
         column_map=column_map,
         new_system_prompt=new_system_prompt,
-        images_dir=images_dir,
+        images_dir=Path(images_dir),
     )
 
     ds = SFTDataset(
