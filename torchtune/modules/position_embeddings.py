@@ -41,7 +41,7 @@ class RotaryPositionalEmbeddings(nn.Module):
         self.dim = dim
         self.base = base
         self.max_seq_len = max_seq_len
-        self.rope_init()
+        self.is_cache_built = False
 
     # TODO: delete this once all our recipes are moved off of FSDP1 since we
     # no longer need to explicitly name our param init method reset_parameters
@@ -55,6 +55,7 @@ class RotaryPositionalEmbeddings(nn.Module):
         )
         self.register_buffer("theta", theta, persistent=False)
         self.build_rope_cache(self.max_seq_len)
+        self.is_cache_built = True
 
     def build_rope_cache(self, max_seq_len: int = 4096) -> None:
         # Create position indexes `[0, 1, ..., max_seq_len - 1]`
@@ -96,6 +97,11 @@ class RotaryPositionalEmbeddings(nn.Module):
         TODO: The implementation below can be made more efficient
         for inference.
         """
+        # TODO: remove once our distributed recipes are on FSDP2
+        if not self.is_cache_built:
+            with torch.device(x.device):
+                self.rope_init()
+
         # input tensor has shape [b, s, n_h, h_d]
         seq_len = x.size(1)
 
