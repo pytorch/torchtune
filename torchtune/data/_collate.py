@@ -292,7 +292,7 @@ def padded_collate_tiled_images_and_mask(
         ...         "encoder_mask": [torch.ones(2, 5 * 4)],
         ...     },
         ... ]
-        >>> model_inputs = padded_collate_vision_text(batch=batch)
+        >>> model_inputs = padded_collate_tiled_images_and_mask(batch=batch)
         >>> print(model_inputs["tokens"])
         tensor([[1, 2, 1, 3],
                 [1, 4, 0, 0]])
