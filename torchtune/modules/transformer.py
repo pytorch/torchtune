@@ -302,7 +302,7 @@ class TransformerDecoder(nn.Module):
         output_hidden_states (Optional[List[int]]): List of layers (indices) to include in the output
 
     Raises:
-        AssertionError: layers is neither a list or ModuleList and layers is not a nn.Module
+        AssertionError: layers is neither a list or ModuleList and layers is not an nn.Module
         AssertionError: layers is neither a list or ModuleList and num_layers is not defined
 
     Note:
