@@ -131,13 +131,13 @@ class TestUtils:
         with mock.patch(
             "torchtune.config._utils.get_logger", return_value=logger
         ), mock.patch(
-            "torchtune.config._utils.dist.is_available", return_value=True
+            "torchtune.utils.logging.dist.is_available", return_value=True
         ), mock.patch(
-            "torchtune.config._utils.dist.is_initialized", return_value=True
+            "torchtune.utils.logging.dist.is_initialized", return_value=True
         ):
             # Make sure rank 0 logs as expected
             with mock.patch(
-                "torchtune.config._utils.dist.get_rank",
+                "torchtune.utils.logging.dist.get_rank",
                 return_value=0,
             ):
                 log_config("test", cfg)
@@ -153,7 +153,7 @@ class TestUtils:
 
             # Make sure all other ranks do not log anything
             with mock.patch(
-                "torchtune.config._utils.dist.get_rank",
+                "torchtune.utils.logging.dist.get_rank",
                 return_value=1,
             ):
                 log_config("test", cfg)

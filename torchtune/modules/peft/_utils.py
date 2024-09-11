@@ -243,21 +243,28 @@ def get_merged_lora_ckpt(
     for module in lora_modules:
         lora_a_weight = state_dict[f"{module}.lora_a.weight"]
         lora_b_weight = state_dict[f"{module}.lora_b.weight"]
-        base_weight = state_dict[f"{module}.weight"].to(lora_a_weight.dtype)
         lora_magnitude = state_dict.get(f"{module}.magnitude", None)
 
-        lora_weight = (alpha / rank) * lora_b_weight @ lora_a_weight
-        merged_weight = base_weight + lora_weight
+        # If magnitude is present, calculate merged DoRA weight
         if lora_magnitude is not None:
+            base_weight = state_dict[f"{module}.weight"].to(lora_a_weight.dtype)
+
+            lora_weight = (alpha / rank) * lora_b_weight @ lora_a_weight
+            merged_weight = base_weight + lora_weight
             weight_norm = torch.linalg.norm(base_weight + lora_weight, dim=1)
             mag_norm_scale = (lora_magnitude / weight_norm).view(-1, 1)
             merged_weight *= mag_norm_scale
-        state_dict[f"{module}.weight"] = merged_weight
+            state_dict[f"{module}.weight"] = merged_weight
+            del state_dict[f"{module}.magnitude"]
+
+        # Otherwise it is just vanilla LoRA
+        else:
+            state_dict[f"{module}.weight"] += (
+                (alpha / rank) * lora_b_weight @ lora_a_weight
+            )
 
         del state_dict[f"{module}.lora_a.weight"]
         del state_dict[f"{module}.lora_b.weight"]
-        if lora_magnitude is not None:
-            del state_dict[f"{module}.magnitude"]
 
     return state_dict
 
