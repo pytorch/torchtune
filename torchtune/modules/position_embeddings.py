@@ -42,6 +42,7 @@ class RotaryPositionalEmbeddings(nn.Module):
         self.base = base
         self.max_seq_len = max_seq_len
         self.is_cache_built = False
+        self.rope_init()
 
     # TODO: delete this once all our recipes are moved off of FSDP1 since we
     # no longer need to explicitly name our param init method reset_parameters
