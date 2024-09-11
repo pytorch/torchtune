@@ -417,16 +417,14 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">F</span>
 
 <span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span>
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span>
+<span class="kn">from</span> <span class="nn">torchtune.data._common</span> <span class="kn">import</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">PACK_TYPE</span>
 <span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
-
-<span class="n">PACK_TYPE</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]]</span>
 
 
 <div class="viewcode-block" id="PackedDataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.PackedDataset.html#torchtune.datasets.PackedDataset">[docs]</a><span class="k">class</span> <span class="nc">PackedDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
@@ -583,7 +581,8 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_across_pack</span><span class="p">:</span>
             <span class="n">boundary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span>
             <span class="c1"># The last elem in ``seq_lens`` ensures that ``sum(seq_lens) == self.max_seq_len``</span>
-            <span class="n">seq_len_padding</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">-</span> <span class="nb">sum</span><span class="p">(</span><span class="n">current_pack</span><span class="p">[</span><span class="s2">&quot;seq_lens&quot;</span><span class="p">][:</span><span class="o">-</span><span class="mi">1</span><span class="p">])]</span>
+            <span class="n">leftover_seq_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">-</span> <span class="nb">sum</span><span class="p">(</span><span class="n">current_pack</span><span class="p">[</span><span class="s2">&quot;seq_lens&quot;</span><span class="p">][:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">seq_len_padding</span> <span class="o">=</span> <span class="p">[</span><span class="n">leftover_seq_len</span><span class="p">]</span> <span class="k">if</span> <span class="n">leftover_seq_len</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">[]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">boundary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">previous_sample_boundary</span>
             <span class="c1"># If we aren&#39;t splitting across packs, we leave out the last sample b/c</span>
@@ -622,22 +621,21 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">packs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pack</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_convert_to_tensors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pack</span><span class="p">:</span> <span class="n">PACK_TYPE</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PACK_TYPE</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Converts a pack into tensors. Pack comes in as a dict of lists and is converted to tensors.</span>
-<span class="sd">        The only key that does not get converted is ``seq_lens``.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Converts a pack into tensors. Pack comes in as a dict of lists and is converted to tensors.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">pack</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">]),</span>
-            <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">pack</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">]),</span>
-            <span class="s2">&quot;input_pos&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">pack</span><span class="p">[</span><span class="s2">&quot;input_pos&quot;</span><span class="p">]),</span>
-            <span class="s2">&quot;seq_lens&quot;</span><span class="p">:</span> <span class="n">pack</span><span class="p">[</span><span class="s2">&quot;seq_lens&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">pack</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">),</span>
+            <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">pack</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">),</span>
+            <span class="s2">&quot;input_pos&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">pack</span><span class="p">[</span><span class="s2">&quot;input_pos&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">),</span>
+            <span class="s2">&quot;seq_lens&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">pack</span><span class="p">[</span><span class="s2">&quot;seq_lens&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">),</span>
         <span class="p">}</span>
 
     <span class="k">def</span> <span class="nf">_pad_pack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pack</span><span class="p">:</span> <span class="n">PACK_TYPE</span><span class="p">,</span> <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PACK_TYPE</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Pads a pack to ``self.max_seq_len``.&quot;&quot;&quot;</span>
         <span class="c1"># Pad tokens</span>
+        <span class="n">num_padding_tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">pack</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">])</span>
         <span class="n">padded_tokens</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
             <span class="n">pack</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">],</span>
-            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">pack</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">])),</span>
+            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_padding_tokens</span><span class="p">),</span>
             <span class="n">value</span><span class="o">=</span><span class="n">padding_idx</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -646,6 +644,13 @@
             <span class="n">pack</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">],</span>
             <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">pack</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">])),</span>
             <span class="n">value</span><span class="o">=</span><span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Add padding tokens as a last seq len to ensure sum is max_seq_len</span>
+        <span class="n">padded_seq_lens</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">pack</span><span class="p">[</span><span class="s2">&quot;seq_lens&quot;</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">num_padding_tokens</span><span class="p">])])</span>
+            <span class="k">if</span> <span class="n">num_padding_tokens</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="k">else</span> <span class="n">pack</span><span class="p">[</span><span class="s2">&quot;seq_lens&quot;</span><span class="p">]</span>
         <span class="p">)</span>
 
         <span class="c1"># Pad input_pos continuing the sequence from last value</span>
@@ -663,47 +668,14 @@
             <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">padded_tokens</span><span class="p">,</span>
             <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">padded_labels</span><span class="p">,</span>
             <span class="s2">&quot;input_pos&quot;</span><span class="p">:</span> <span class="n">padded_input_pos</span><span class="p">,</span>
-            <span class="s2">&quot;seq_lens&quot;</span><span class="p">:</span> <span class="n">pack</span><span class="p">[</span><span class="s2">&quot;seq_lens&quot;</span><span class="p">],</span>  <span class="c1"># seq_len is untouched</span>
+            <span class="s2">&quot;seq_lens&quot;</span><span class="p">:</span> <span class="n">padded_seq_lens</span><span class="p">,</span>
         <span class="p">}</span>
 
     <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">packs</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Constructs the attention mask on-the-fly and returns whole sample.&quot;&quot;&quot;</span>
-        <span class="n">current_pack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">packs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
-
-        <span class="n">num_samples_in_pack</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_pack</span><span class="p">[</span><span class="s2">&quot;seq_lens&quot;</span><span class="p">])</span>
-        <span class="n">total_seq_len</span> <span class="o">=</span> <span class="mi">0</span>
-
-        <span class="n">block_attn_masks</span> <span class="o">=</span> <span class="p">[]</span>
-
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">seq_len</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">current_pack</span><span class="p">[</span><span class="s2">&quot;seq_lens&quot;</span><span class="p">]):</span>
-            <span class="n">total_seq_len</span> <span class="o">+=</span> <span class="n">seq_len</span>
-
-            <span class="c1"># Append lower triangular matrix for causal mask</span>
-            <span class="n">block_attn_masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                <span class="n">torch</span><span class="o">.</span><span class="n">tril</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">))</span>
-            <span class="p">)</span>
-
-            <span class="c1"># If we&#39;re at the last sample and the total seq len is less than the max seq len,</span>
-            <span class="c1"># we need to pad with identity matrix for the remainder</span>
-            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">num_samples_in_pack</span> <span class="o">-</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">total_seq_len</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">:</span>
-                <span class="n">block_attn_masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">-</span> <span class="n">total_seq_len</span><span class="p">,</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">-</span> <span class="n">total_seq_len</span><span class="p">,</span>
-                        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
-                    <span class="p">)</span>
-                <span class="p">)</span>
-
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">current_pack</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">],</span>
-            <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">current_pack</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">],</span>
-            <span class="s2">&quot;input_pos&quot;</span><span class="p">:</span> <span class="n">current_pack</span><span class="p">[</span><span class="s2">&quot;input_pos&quot;</span><span class="p">],</span>
-            <span class="c1"># Assemble the mask into a block causal matrix</span>
-            <span class="s2">&quot;mask&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">block_diag</span><span class="p">(</span><span class="o">*</span><span class="n">block_attn_masks</span><span class="p">),</span>
-        <span class="p">}</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">packs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span></div>
 </pre></div>
 
              </article>

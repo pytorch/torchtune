@@ -423,10 +423,9 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span> <span class="nn">omegaconf</span> <span class="kn">import</span> <span class="n">DictConfig</span><span class="p">,</span> <span class="n">OmegaConf</span>
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">distributed</span> <span class="k">as</span> <span class="n">dist</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.config._errors</span> <span class="kn">import</span> <span class="n">InstantiationError</span>
-<span class="kn">from</span> <span class="nn">torchtune.utils.logging</span> <span class="kn">import</span> <span class="n">get_logger</span>
+<span class="kn">from</span> <span class="nn">torchtune.utils.logging</span> <span class="kn">import</span> <span class="n">get_logger</span><span class="p">,</span> <span class="n">log_rank_zero</span>
 
 
 <div class="viewcode-block" id="log_config"><a class="viewcode-back" href="../../../generated/torchtune.config.log_config.html#torchtune.config.log_config">[docs]</a><span class="k">def</span> <span class="nf">log_config</span><span class="p">(</span><span class="n">recipe_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">cfg</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -437,14 +436,11 @@
 <span class="sd">        recipe_name (str): name of the recipe to display</span>
 <span class="sd">        cfg (DictConfig): parsed config object</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Log the config only on rank 0</span>
-    <span class="n">rank</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_rank</span><span class="p">()</span> <span class="k">if</span> <span class="n">dist</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="ow">and</span> <span class="n">dist</span><span class="o">.</span><span class="n">is_initialized</span><span class="p">()</span> <span class="k">else</span> <span class="mi">0</span>
-    <span class="k">if</span> <span class="n">rank</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">return</span>
-
     <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;DEBUG&quot;</span><span class="p">)</span>
     <span class="n">cfg_str</span> <span class="o">=</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">to_yaml</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">resolve</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Running </span><span class="si">{</span><span class="n">recipe_name</span><span class="si">}</span><span class="s2"> with resolved config:</span><span class="se">\n\n</span><span class="si">{</span><span class="n">cfg_str</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+    <span class="n">log_rank_zero</span><span class="p">(</span>
+        <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Running </span><span class="si">{</span><span class="n">recipe_name</span><span class="si">}</span><span class="s2"> with resolved config:</span><span class="se">\n\n</span><span class="si">{</span><span class="n">cfg_str</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span></div>
 
 
 <span class="k">def</span> <span class="nf">_has_component</span><span class="p">(</span><span class="n">node</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">DictConfig</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>

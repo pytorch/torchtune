@@ -449,12 +449,15 @@
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – input tensor with shape
 [batch_size x seq_length x embed_dim]</p></li>
-<li><p><strong>mask</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – Optional boolean tensor which contains the attention mask
-with shape [batch_size x seq_length x seq_length]. This is applied after
-the query-key multiplication and before the softmax. A value of True in row i
-and column j means token i attends to token j. A value of False means token i
-does not attend to token j. If no mask is specified, a causal mask
-is used by default. Default is None.</p></li>
+<li><p><strong>mask</strong> (<em>Optional</em><em>[</em><em>_MaskType</em><em>]</em>) – Used to mask the scores after the query-key multiplication
+and before the softmax. Either a boolean tensor with shape [b x s x s] or a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">BlockMask</span></code>. If a boolean tensor, a value
+of True in row i and column j means token i attends to token j. A value of False means
+token i does not attend to token j. If no mask is specified, a causal mask
+is used by default. If a <code class="xref py py-class docutils literal notranslate"><span class="pre">BlockMask</span></code> is passed
+for document masking in a packed sequence via <a class="reference external" href="https://pytorch.org/blog/flexattention/#mask-mods">create_block_mask</a>, we use
+<code class="xref py py-func docutils literal notranslate"><span class="pre">flex_attention()</span></code> when computing attention.
+Default is None.</p></li>
 <li><p><strong>input_pos</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – Optional tensor which contains the position ids
 of each token. During training, this is used to indicate the positions
 of each token relative to its sample when packed, shape [b x s].

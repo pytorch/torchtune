@@ -422,6 +422,8 @@
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 <span class="kn">from</span> <span class="nn">torch.nn.utils.rnn</span> <span class="kn">import</span> <span class="n">pad_sequence</span>
 <span class="kn">from</span> <span class="nn">torchtune.data._common</span> <span class="kn">import</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span>
+<span class="kn">from</span> <span class="nn">torchtune.datasets._packed</span> <span class="kn">import</span> <span class="n">PACK_TYPE</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules.attention_utils</span> <span class="kn">import</span> <span class="n">packed_block_causal_mask</span>
 
 
 <div class="viewcode-block" id="left_pad_sequence"><a class="viewcode-back" href="../../../generated/torchtune.data.left_pad_sequence.html#torchtune.data.left_pad_sequence">[docs]</a><span class="k">def</span> <span class="nf">left_pad_sequence</span><span class="p">(</span>
@@ -625,6 +627,67 @@
             <span class="n">value</span><span class="o">=</span><span class="n">padding_idx</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">input_ids</span><span class="o">.</span><span class="n">long</span><span class="p">(),</span> <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="o">.</span><span class="n">long</span><span class="p">()}</span></div>
+
+
+<span class="k">def</span> <span class="nf">padded_collate_packed</span><span class="p">(</span>
+    <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">PACK_TYPE</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Collate packed sequences into a batch. Only convert the seq lens into</span>
+<span class="sd">    a block mask for use with attention. Tokens, labels, and input_pos are</span>
+<span class="sd">    already padded to the same length within :class:`~torchtune.datasets.PackedDataset`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        batch (List[PACK_TYPE]): A list of pack dictionaries containing the following keys:</span>
+<span class="sd">            - tokens: input token ids</span>
+<span class="sd">            - labels: label token ids</span>
+<span class="sd">            - input_pos: relative position ids for each sequence in pack</span>
+<span class="sd">            - seq_lens: lengths of each sample within the pack</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, torch.Tensor]: Collated input, label, input_pos, mask tensors.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; token_pairs = [</span>
+<span class="sd">        &gt;&gt;&gt;    {&quot;tokens&quot;: [1, 2, 3, 4, 5, 6], &quot;labels&quot;: [7, 8, 9, 10, 11, 12],</span>
+<span class="sd">        &gt;&gt;&gt;     &quot;input_pos&quot;: [0, 1, 2, 0, 1, 0], &quot;seq_lens&quot;: [3, 2, 1]},</span>
+<span class="sd">        &gt;&gt;&gt;    {&quot;tokens&quot;: [13, 14, 15, 16, 17, 18], &quot;labels&quot;: [19, 20, 21, 22, 23, 24],</span>
+<span class="sd">        &gt;&gt;&gt;     &quot;input_pos&quot;: [0, 1, 0, 1, 0, 1], &quot;seq_lens&quot;: [2, 2, 2]},</span>
+<span class="sd">        &gt;&gt;&gt; ]</span>
+<span class="sd">        &gt;&gt;&gt; collated = padded_collate_packed(</span>
+<span class="sd">        &gt;&gt;&gt;    batch=token_pairs,</span>
+<span class="sd">        &gt;&gt;&gt;    device=device,</span>
+<span class="sd">        &gt;&gt;&gt; )</span>
+<span class="sd">        &gt;&gt;&gt; collated[&quot;mask&quot;]</span>
+<span class="sd">        &gt;&gt;&gt; tensor([</span>
+<span class="sd">        &gt;&gt;&gt; [[1, 0, 0, 0, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt;  [1, 1, 0, 0, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt;  [1, 1, 1, 0, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt;  [0, 0, 0, 1, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt;  [0, 0, 0, 1, 1, 0],</span>
+<span class="sd">        &gt;&gt;&gt;  [0, 0, 0, 0, 0, 1]],</span>
+<span class="sd">        &gt;&gt;&gt; [[1, 0, 0, 0, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt;  [1, 1, 0, 0, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt;  [0, 0, 1, 0, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt;  [0, 0, 1, 1, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt;  [0, 0, 0, 0, 1, 0],</span>
+<span class="sd">        &gt;&gt;&gt;  [0, 0, 0, 0, 1, 1]])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">tokens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">])</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">])</span>
+    <span class="n">input_pos</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;input_pos&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">])</span>
+    <span class="n">seq_lens</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;seq_lens&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
+
+    <span class="n">block_mask</span> <span class="o">=</span> <span class="n">packed_block_causal_mask</span><span class="p">(</span>
+        <span class="n">seq_lens</span><span class="o">=</span><span class="n">seq_lens</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">tokens</span><span class="p">,</span>
+        <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="p">,</span>
+        <span class="s2">&quot;input_pos&quot;</span><span class="p">:</span> <span class="n">input_pos</span><span class="p">,</span>
+        <span class="s2">&quot;mask&quot;</span><span class="p">:</span> <span class="n">block_mask</span><span class="p">,</span>
+    <span class="p">}</span>
 
 
 <div class="viewcode-block" id="padded_collate_dpo"><a class="viewcode-back" href="../../../generated/torchtune.data.padded_collate_dpo.html#torchtune.data.padded_collate_dpo">[docs]</a><span class="k">def</span> <span class="nf">padded_collate_dpo</span><span class="p">(</span>

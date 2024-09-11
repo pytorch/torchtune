@@ -424,6 +424,8 @@
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">MultiHeadAttention</span>
 
+<span class="kn">from</span> <span class="nn">torchtune.modules.attention_utils</span> <span class="kn">import</span> <span class="n">_MaskType</span>
+
 
 <div class="viewcode-block" id="TransformerSelfAttentionLayer"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer">[docs]</a><span class="k">class</span> <span class="nc">TransformerSelfAttentionLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Transformer layer derived from the Llama2 model. Normalization is applied before the attention **and** FF layer.</span>
@@ -477,7 +479,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_MaskType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
@@ -485,12 +487,16 @@
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): input tensor with shape</span>
 <span class="sd">                [batch_size x seq_length x embed_dim]</span>
-<span class="sd">            mask (Optional[torch.Tensor]): Optional boolean tensor which contains the attention mask</span>
-<span class="sd">                with shape [batch_size x seq_length x seq_length]. This is applied after</span>
-<span class="sd">                the query-key multiplication and before the softmax. A value of True in row i</span>
-<span class="sd">                and column j means token i attends to token j. A value of False means token i</span>
-<span class="sd">                does not attend to token j. If no mask is specified, a causal mask</span>
-<span class="sd">                is used by default. Default is None.</span>
+<span class="sd">            mask (Optional[_MaskType]): Used to mask the scores after the query-key multiplication</span>
+<span class="sd">                and before the softmax. Either a boolean tensor with shape [b x s x s] or a</span>
+<span class="sd">                :class:`~torch.nn.attention.flex_attention.BlockMask`. If a boolean tensor, a value</span>
+<span class="sd">                of True in row i and column j means token i attends to token j. A value of False means</span>
+<span class="sd">                token i does not attend to token j. If no mask is specified, a causal mask</span>
+<span class="sd">                is used by default. If a :class:`~torch.nn.attention.flex_attention.BlockMask` is passed</span>
+<span class="sd">                for document masking in a packed sequence via `create_block_mask</span>
+<span class="sd">                &lt;https://pytorch.org/blog/flexattention/#mask-mods&gt;`_, we use</span>
+<span class="sd">                :func:`~torch.nn.attention.flex_attention.flex_attention` when computing attention.</span>
+<span class="sd">                Default is None.</span>
 <span class="sd">            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids</span>
 <span class="sd">                of each token. During training, this is used to indicate the positions</span>
 <span class="sd">                of each token relative to its sample when packed, shape [b x s].</span>
@@ -819,7 +825,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tokens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_MaskType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">encoder_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">encoder_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -827,11 +833,16 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
 <span class="sd">            tokens (torch.Tensor): input tensor with shape [b x s]</span>
-<span class="sd">            mask (Optional[torch.Tensor]): Optional boolean tensor which contains the attention mask</span>
-<span class="sd">                with shape [b x s x s]. This is applied after the query-key multiplication and</span>
-<span class="sd">                before the softmax. A value of True in row i and column j means token i attends</span>
-<span class="sd">                to token j. A value of False means token i does not attend to token j. If no</span>
-<span class="sd">                mask is specified, a causal mask is used by default. Default is None.</span>
+<span class="sd">            mask (Optional[_MaskType]): Used to mask the scores after the query-key multiplication</span>
+<span class="sd">                and before the softmax. Either a boolean tensor with shape [b x s x s] or a</span>
+<span class="sd">                :class:`~torch.nn.attention.flex_attention.BlockMask`. If a boolean tensor, a value</span>
+<span class="sd">                of True in row i and column j means token i attends to token j. A value of False means</span>
+<span class="sd">                token i does not attend to token j. If no mask is specified, a causal mask</span>
+<span class="sd">                is used by default. If a :class:`~torch.nn.attention.flex_attention.BlockMask` is passed</span>
+<span class="sd">                for document masking in a packed sequence via `create_block_mask</span>
+<span class="sd">                &lt;https://pytorch.org/blog/flexattention/#mask-mods&gt;`_, we use</span>
+<span class="sd">                :func:`~torch.nn.attention.flex_attention.flex_attention` when computing attention.</span>
+<span class="sd">                Default is None.</span>
 <span class="sd">            encoder_input (Optional[torch.Tensor]): Optional input embeds from the encoder. Shape [b x s_e x d_e]</span>
 <span class="sd">            encoder_mask (Optional[torch.Tensor]):  Boolean tensor defining a relational matrix between</span>
 <span class="sd">                tokens and encoder embeddings. A True value at position i,j means token i can attend</span>
@@ -1050,7 +1061,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tokens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_MaskType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">encoder_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">encoder_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1058,11 +1069,16 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
 <span class="sd">            tokens (torch.Tensor): input tensor with shape [b x s]</span>
-<span class="sd">            mask (Optional[torch.Tensor]): Optional boolean tensor which contains the attention mask</span>
-<span class="sd">                with shape [b x s x s]. This is applied after the query-key multiplication and</span>
-<span class="sd">                before the softmax. A value of True in row i and column j means token i attends</span>
-<span class="sd">                to token j. A value of False means token i does not attend to token j. If no</span>
-<span class="sd">                mask is specified, a causal mask is used by default. Default is None.</span>
+<span class="sd">            mask (Optional[_MaskType]): Used to mask the scores after the query-key multiplication</span>
+<span class="sd">                and before the softmax. Either a boolean tensor with shape [b x s x s] or a</span>
+<span class="sd">                :class:`~torch.nn.attention.flex_attention.BlockMask`. If a boolean tensor, a value</span>
+<span class="sd">                of True in row i and column j means token i attends to token j. A value of False means</span>
+<span class="sd">                token i does not attend to token j. If no mask is specified, a causal mask</span>
+<span class="sd">                is used by default. If a :class:`~torch.nn.attention.flex_attention.BlockMask` is passed</span>
+<span class="sd">                for document masking in a packed sequence via `create_block_mask</span>
+<span class="sd">                &lt;https://pytorch.org/blog/flexattention/#mask-mods&gt;`_, we use</span>
+<span class="sd">                :func:`~torch.nn.attention.flex_attention.flex_attention` when computing attention.</span>
+<span class="sd">                Default is None.</span>
 <span class="sd">            encoder_input (Optional[torch.Tensor]): Optional input embeds from the encoder. Shape [b x s_e x d_e]</span>
 <span class="sd">            encoder_mask (Optional[torch.Tensor]):  Boolean tensor defining a relational matrix between</span>
 <span class="sd">                tokens and encoder embeddings. A True value at position i,j means token i can attend</span>
