@@ -1,9 +1,10 @@
 # Config for single device knowledge distillation in kd_single_device.py
 # using a teacher and student model
 #
-# This config assumes that you've run the following command before launching
+# This config assumes that you've run the following commands before launching
 # this run:
 #   tune download meta-llama/Meta-Llama-3.1-8B-Instruct --output-dir /tmp/Meta-Llama-3.1-8B-Instruct
+#   tune run lora_finetune_single_device --config llama3_1/8B_lora_single_device
 #
 # To launch on a single device, run the following command from root:
 #   tune run kd_single_device --config llama3_1/kd_single_device
