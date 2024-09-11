@@ -7,7 +7,6 @@
 from typing import Any, Dict, Mapping, Optional, Union
 
 from torchtune.data import Message
-from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.transforms import Transform
 
@@ -200,7 +199,7 @@ def the_cauldron_dataset(
         Union[SFTDataset, PackedDataset]: dataset configured with source data and transform
 
     Raises:
-        ValueError: If ``packed`` is True and ``max_seq_len`` is not set on the model_transform.
+        ValueError: If ``packed`` is True, they are not supported for multimodal datasets yet.
 
     Example:
         >>> cauldron_ds = the_cauldron_dataset(model_transform=model_transform, subset="ai2d")
@@ -224,9 +223,5 @@ def the_cauldron_dataset(
         **load_dataset_kwargs,
     )
     if packed:
-        if model_transform.max_seq_len is None:
-            raise ValueError(
-                "PackedDataset requires a max_seq_len to be set on the model_transform."
-            )
-        return PackedDataset(ds, max_seq_len=model_transform.max_seq_len)
+        raise ValueError("Multimodal datasets don't support packing yet.")
     return ds
