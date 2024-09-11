@@ -95,6 +95,7 @@ def lora_llama3_8b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
+    lora_dropout: float = 0.0,
     quantize_base: bool = False,
     use_dora: bool = False,
 ) -> TransformerDecoder:
