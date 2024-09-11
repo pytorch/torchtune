@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
-from typing import List, Union
+from typing import List
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 
 from torch import nn
@@ -107,7 +107,12 @@ def qwen2(
         layers.append(layer)
     layers = nn.ModuleList(layers)
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
-    output_proj = lambda x: F.linear(x, tok_embeddings.weight) if tie_word_embeddings else nn.Linear(embed_dim, vocab_size, bias=False)
+
+    if tie_word_embeddings:
+        output_proj = lambda x: F.linear(x, tok_embeddings.weight)
+    else:
+        output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
+        
     return TransformerDecoder(
         tok_embeddings=tok_embeddings,
         layers=layers,

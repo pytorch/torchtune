@@ -192,5 +192,5 @@ class TestLoRAQwen2:
         missing, unexpected = lora_qwen2.load_state_dict(
             ref_qwen2_state_dict, strict=False
         )
-        assert not unexpected
-        assert all(["lora" in key for key in missing])
+        assert not unexpected, f"Unexpected keys: {unexpected}"
+        assert all(["lora" in key for key in missing]), f"Missing keys: {missing}"
