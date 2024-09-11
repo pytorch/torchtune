@@ -504,14 +504,11 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.norm(h)
 
-        print("h shape", h.shape)
         if self.num_output_chunks > 0:
             output = self.chunked_output(h)
-            print("is chunked", output)
         else:
             # shape: [b, seq_len, out_dim]
             output = self.output(h).float()
-            print("is not chunked", output)
 
         # Output list if hidden states are requested, otherwise just the output
         # TODO: always output a list to have a consistent output type
