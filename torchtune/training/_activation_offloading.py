@@ -137,11 +137,11 @@ class OffloadActivations(saved_tensors_hooks):
                 if use_streams:
                     # First, sync back and dereference previously offloaded tensors
                     # as the offloading should be done sufficiently long ago.
-                    for k in [x for x in self.fwd_stash.keys()]:
-                        if k <= tensor_id - self.max_fwd_stash_size:
-                            _, ev = self.fwd_stash[k]
+                    for id in [k for k in self.fwd_stash.keys()]:
+                        if id <= tensor_id - self.max_fwd_stash_size:
+                            _, ev = self.fwd_stash[id]
                             self.s0.wait_event(ev)
-                            del self.fwd_stash[k]
+                            del self.fwd_stash[id]
                         else:
                             break
 
@@ -266,10 +266,10 @@ class OffloadActivations(saved_tensors_hooks):
                         self.bwd_ev_stash[unpack_tensor_id] = event
 
                     # if there are still things in the fwd_stash, get rid of them as we're in bwd now
-                    for k in [x for x in self.fwd_stash.keys()]:
-                        _, ev = self.fwd_stash[k]
+                    for id in [k for k in self.fwd_stash.keys()]:
+                        _, ev = self.fwd_stash[id]
                         self.s0.wait_event(ev)
-                        del self.fwd_stash[k]
+                        del self.fwd_stash[id]
 
                     # wait on prev node's events and del those
                     for id in prev_node_ids:

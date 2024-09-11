@@ -31,8 +31,12 @@ from torchtune.modules.peft import (
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.training import DummyProfiler, PROFILER_KEY
-from torchtune.training._activation_offloading import NoOpManager, OffloadActivations
+from torchtune.training import (
+    DummyProfiler,
+    NoOpManager,
+    OffloadActivations,
+    PROFILER_KEY,
+)
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
