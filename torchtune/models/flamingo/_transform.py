@@ -191,25 +191,28 @@ class FlamingoTransform(ModelTokenizer, Transform):
         self, sample: Mapping[str, Any], inference: bool = False
     ) -> Mapping[str, Any]:
         """
-        Apply image decoding and transformations to the "images" field in the sample
-        and tokenization to the "messages" field in the sample. Also returns the
-        encoder mask.
+        Apply image decoding, transformations and tokenization to messages in the sample.
 
         Args:
-            sample (Mapping[str, Any]): A sample with a "tokens", "mask",
-                "encoder_input" and "encoder_mask" field to feed directly into the model.
-            inference (bool): Whether the template is being used for inference or not.
+            sample (Mapping[str, Any]): A sample with a "messages" field.
+            inference (bool): Whether to run in inference mode. Default is True.
 
         Returns:
-            Mapping[str, Any]: The sample with an updated "image" filed and added
-                "aspect_ratio" field.
+            Mapping[str, Any]: The transformed sample with the following fields:
+                - tokens: List[int] of tokenized messages
+                - mask: List[bool] of masks for the tokenized messages
+                - encoder_input: Dict[str, Any] of transformed images
+                - encoder_mask: List[bool] of masks for the transformed images
         """
         encoder_input = {"images": [], "aspect_ratio": []}
-        pil_images = sample.pop("images")
-        for image in pil_images:
-            out = self.transform_image({"image": image}, inference=inference)
-            encoder_input["images"].append(out["image"])
-            encoder_input["aspect_ratio"].append(out["aspect_ratio"])
+        messages = sample["messages"]
+
+        for message in messages:
+            for image in message.get_media():
+                out = self.transform_image({"image": image}, inference=inference)
+                encoder_input["images"].append(out["image"])
+                encoder_input["aspect_ratio"].append(out["aspect_ratio"])
+
         sample["encoder_input"] = encoder_input
         sample = self.tokenizer(sample, inference=inference)
         sample = self.xattn_mask(sample, inference=inference)
