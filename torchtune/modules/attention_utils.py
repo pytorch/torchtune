@@ -13,10 +13,14 @@ from torch import nn
 from torchtune.utils._version import torch_version_ge
 from torchtune.utils.logging import get_logger, log_once
 
+_log: logging.Logger = get_logger()
+
 # We can only use flex attention / BlockMask if torch version >= 2.5.0 and GPU is Turing / SM75 and above
-_SUPPORTS_FLEX_ATTENTION = torch_version_ge(
-    "2.5.0"
-) and torch.cuda.get_device_capability() >= (7, 5)
+_SUPPORTS_FLEX_ATTENTION = (
+    torch_version_ge("2.5.0")
+    and torch.cuda.is_available()
+    and torch.cuda.get_device_capability() >= (7, 5)
+)
 
 if _SUPPORTS_FLEX_ATTENTION:
     from torch.nn.attention.flex_attention import (
@@ -43,8 +47,6 @@ if _SUPPORTS_FLEX_ATTENTION:
     _MaskType = Union[torch.Tensor, BlockMask]
 else:
     _MaskType = torch.Tensor
-
-_log: logging.Logger = get_logger()
 
 
 def _get_document_ids_from_seq_lens(
@@ -145,6 +147,13 @@ def packed_block_causal_mask(
         # logic for both causal mask and document mask. See PyTorch's official
         # blog post for more details: https://pytorch.org/blog/flexattention/#mask-mods
         def mask_mod(b, h, q_idx, kv_idx):
+            """
+            Defines the logic of a block causal mask by combining both a standard causal mask
+            and a block diagonal document mask.
+
+            See :func:`~torchtune.modules.attention_utils.create_block_causal_mask`
+            for an illustration.
+            """
             causal_mask = q_idx >= kv_idx
             document_mask = document_ids[b, q_idx] == document_ids[b, kv_idx]
             return causal_mask & document_mask

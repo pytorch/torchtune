@@ -219,9 +219,10 @@ class PackedDataset(Dataset):
     def _pad_pack(self, pack: PACK_TYPE, padding_idx: int) -> PACK_TYPE:
         """Pads a pack to ``self.max_seq_len``."""
         # Pad tokens
+        num_padding_tokens = self.max_seq_len - len(pack["tokens"])
         padded_tokens = F.pad(
             pack["tokens"],
-            (0, self.max_seq_len - len(pack["tokens"])),
+            (0, num_padding_tokens),
             value=padding_idx,
         )
 
@@ -233,7 +234,6 @@ class PackedDataset(Dataset):
         )
 
         # Add padding tokens as a last seq len to ensure sum is max_seq_len
-        num_padding_tokens = self.max_seq_len - len(pack["tokens"])
         padded_seq_lens = (
             torch.cat([pack["seq_lens"], torch.tensor([num_padding_tokens])])
             if num_padding_tokens > 0

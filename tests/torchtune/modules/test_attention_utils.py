@@ -89,7 +89,7 @@ class TestBlockCausalMask:
     @gpu_test(gpu_count=1)
     def test_packed_block_causal_mask_flex(self):
         # create_block_mask requires that seq_len be divisible by 128, the default block size.
-        # see https://github.com/pytorch/pytorch/blob/main/torch/nn/attention/flex_attention.py#L636
+        # see https://github.com/pytorch/pytorch/blob/3bf6be457d40034aa4b603b7ea1b8977051221ed/torch/nn/attention/flex_attention.py#L792  # noqa
         actual = packed_block_causal_mask(
             [torch.tensor([64, 64]), torch.tensor([64, 64])]
         )

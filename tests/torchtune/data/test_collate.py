@@ -118,15 +118,15 @@ class TestPaddedCollateSFT:
         # see https://github.com/pytorch/pytorch/blob/main/torch/nn/attention/flex_attention.py#L636
         batch = [
             {
-                "tokens": torch.ones(128, dtype=torch.long),
-                "labels": torch.ones(128, dtype=torch.long),
-                "input_pos": torch.zeros(128, dtype=torch.long),
+                "tokens": torch.arange(128, dtype=torch.long),
+                "labels": torch.arange(128, dtype=torch.long),
+                "input_pos": torch.arange(128, dtype=torch.long),
                 "seq_lens": torch.ones(64, dtype=torch.long) * 2,
             },
             {
-                "tokens": torch.ones(128, dtype=torch.long),
-                "labels": torch.ones(128, dtype=torch.long),
-                "input_pos": torch.zeros(128, dtype=torch.long),
+                "tokens": torch.arange(128, 256, dtype=torch.long),
+                "labels": torch.arange(128, 256, dtype=torch.long),
+                "input_pos": torch.arange(128, 256, dtype=torch.long),
                 "seq_lens": torch.ones(32, dtype=torch.long) * 4,
             },
         ]
@@ -136,19 +136,28 @@ class TestPaddedCollateSFT:
         torch.testing.assert_close(
             collated["tokens"],
             torch.stack(
-                [torch.ones(128, dtype=torch.long), torch.ones(128, dtype=torch.long)]
+                [
+                    torch.arange(128, dtype=torch.long),
+                    torch.arange(128, 256, dtype=torch.long),
+                ]
             ),
         )
         torch.testing.assert_close(
             collated["labels"],
             torch.stack(
-                [torch.ones(128, dtype=torch.long), torch.ones(128, dtype=torch.long)]
+                [
+                    torch.arange(128, dtype=torch.long),
+                    torch.arange(128, 256, dtype=torch.long),
+                ]
             ),
         )
         torch.testing.assert_close(
             collated["input_pos"],
             torch.stack(
-                [torch.zeros(128, dtype=torch.long), torch.zeros(128, dtype=torch.long)]
+                [
+                    torch.arange(128, dtype=torch.long),
+                    torch.arange(128, 256, dtype=torch.long),
+                ]
             ),
         )
         torch.testing.assert_close(
