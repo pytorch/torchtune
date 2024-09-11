@@ -176,7 +176,7 @@ class OptimizerInBackwardWrapper:
                 "LR scheduler has not been set. Call set_lr_scheduler first."
             )
 
-    def get_last_lr(self):
+    def get_last_lr(self) -> float:
         """
         Gets the last learning rate from the scheduler if it exists.
 

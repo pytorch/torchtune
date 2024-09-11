@@ -442,6 +442,19 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         num_training_steps: int,
         last_epoch: int,
     ) -> Optional[Optimizer]:
+        """
+        Set up the learning rate scheduler based on the provided configuration.
+        It handles both standard optimization and optimizer-in-backward cases, and supports
+        schedulers from both torchtune.modules and torch.optim.
+
+        Args:
+            cfg_lr_scheduler (DictConfig): The learning rate scheduler configuration.
+            num_training_steps (int): The total number of training steps.
+            last_epoch (int): The index of the last epoch.
+
+        Returns:
+            lr_scheduler (Optional[Optimizer]): The learning rate scheduler.
+        """
         if self._optimizer_in_bwd:
             # Use the first optimizer from the wrapper to represent the learning rate
             optimizer = next(iter(self._optim_ckpt_wrapper.optim_map.values()))
@@ -452,7 +465,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Check if the lr_scheduler component is from torchtune.modules or torch.optim
         component = cfg_lr_scheduler.get("_component_", None)
 
-        # Conditionally instantiate the scheduler based on the component
+        # Conditionally instantiate the scheduler based on the component to support torch.optim
         if "torchtune.modules" in component:
             # Instantiate the learning rate scheduler
             lr_scheduler = config.instantiate(
