@@ -85,7 +85,7 @@ def padded_collate(
         torch.Tensor: The padded tensor of input ids with shape [batch_size, max_seq_len].
 
     Raises:
-        ValueError: if ``pad_direction`` is not one of "left" or "right.
+        ValueError: if ``pad_direction`` is not one of "left" or "right".
         ValueError: if ``keys_to_pad`` is empty, or is not a list, or is not a subset of keys in the batch.
         ValueError: if ``padding_idx`` is provided as a dictionary, but the keys are not identical to
             ``keys_to_pad``.
@@ -218,13 +218,14 @@ def padded_collate_sft(
 
 # TODO: Generalize this to support any type of encoder input, right now this assumes
 # a specific encoder_input signature
-def padded_collate_tiled_images_with_cross_attention(
+def padded_collate_tiled_images_and_mask(
     batch: List[Dict[str, Any]],
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
+    pad_direction: str = "right",
 ) -> Dict[str, torch.Tensor]:
     """Pad a batch of text sequences, tiled image tensors, aspect ratios,
-    and cross attention masks.
+    and cross attention masks. This can be used for both training and inference.
 
     ``batch`` is expected to be a list of sample dicts containing the following:
         - "tokens": List[int] of length text_seq_len, varies across samples
@@ -249,6 +250,10 @@ def padded_collate_tiled_images_with_cross_attention(
             labels, images, encoder_mask, and aspect_ratio.
         padding_idx (int): Padding index for input token ids. Defaults to 0.
         ignore_idx (int): Padding index for labels. Defaults to -100.
+        pad_direction (str): whether to pad entries from the left, or right. If ``pad_direction="right"``, we use
+            :func:`torch.nn.utils.rnn.pad_sequence`, otherwise if ``pad_direction="left"``,
+            we use :func:`torchtune.data.left_pad_sequence`. For training, we typically want to pad from the right.
+            For inference, we typically want to pad from the left. Defaults to "right".
 
     Returns:
         Dict[str, Tensor]: Collated tokens, labels, images, encoder_mask, aspect_ratio tensors.
@@ -257,6 +262,9 @@ def padded_collate_tiled_images_with_cross_attention(
             - images: Tensor of shape (bsz, max_num_images, max_num_tiles, c, h, w)
             - encoder_mask: Tensor of shape (bsz, max_seq_len, tokens_per_tile * max_num_tiles * max_num_images)
             - aspect_ratio: Tensor of shape (bsz, max_num_images, 2)
+
+    Raises:
+        ValueError: if ``pad_direction`` is not one of "left" or "right".
 
     Example:
         >>> image_id = 1
@@ -306,11 +314,27 @@ def padded_collate_tiled_images_with_cross_attention(
         >>> print(model_inputs["encoder_input"]["images"][1, 1, ...])  # Extra padding image was added to second sample
         tensor([[[[0.]]], [[[0.]]], [[[0.]]], [[[0.]]]])
     """
-    # Text tokens can be handled independently by existing collater
-    text_only = [
-        {"tokens": sample["tokens"], "labels": sample["labels"]} for sample in batch
-    ]
-    collated_text = padded_collate_sft(text_only, padding_idx, ignore_idx)
+    if pad_direction not in ["left", "right"]:
+        raise ValueError(
+            f"pad_direction should be one of 'left' or 'right' but found {pad_direction}"
+        )
+
+    # Text tokens can be handled independently by existing collaters
+    if pad_direction == "right":
+        text_only = [
+            {"tokens": sample["tokens"], "labels": sample["labels"]} for sample in batch
+        ]
+        collated_text = padded_collate_sft(text_only, padding_idx, ignore_idx)
+    # For inference, we don't need to handle labels
+    elif pad_direction == "left":
+        collated_text = {
+            "tokens": left_pad_sequence(
+                [torch.tensor(x["tokens"]) for x in batch],
+                batch_first=True,
+                padding_value=padding_idx,
+            )
+        }
+
     max_seq_len = collated_text["tokens"].shape[-1]
     bsz = len(batch)
 
@@ -370,7 +394,7 @@ def padded_collate_tiled_images_with_cross_attention(
 
     return {
         "tokens": collated_text["tokens"],
-        "labels": collated_text["labels"],
+        "labels": collated_text["labels"] if "labels" in collated_text else None,
         "encoder_input": {
             "images": collated_images,
             "aspect_ratio": collated_aspect_ratios,

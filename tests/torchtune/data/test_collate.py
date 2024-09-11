@@ -17,7 +17,7 @@ from torchtune.data import (
     padded_collate_dpo,
     padded_collate_packed,
     padded_collate_sft,
-    padded_collate_tiled_images_with_cross_attention,
+    padded_collate_tiled_images_and_mask,
 )
 from torchtune.modules.attention_utils import _SUPPORTS_FLEX_ATTENTION
 
@@ -53,8 +53,11 @@ class TestPaddedCollateSFT:
             padded_label, torch.tensor([10, ignore_idx, ignore_idx])
         )
 
-    def test_padded_collate_tiled_images_with_cross_attention(self):
-        batch = [
+
+class TestPaddedCollateTiledImagesAndMask:
+    @pytest.fixture
+    def batch(self):
+        return [
             {
                 "tokens": [1, 2, 1, 3],
                 "labels": [4, 5, 6, 7],
@@ -74,8 +77,10 @@ class TestPaddedCollateSFT:
                 "encoder_mask": [torch.ones(2, 5 * 4)],
             },
         ]
-        actual = padded_collate_tiled_images_with_cross_attention(
-            batch=batch, padding_idx=0, ignore_idx=-100
+
+    def test_right_pad(self, batch):
+        actual = padded_collate_tiled_images_and_mask(
+            batch=batch, padding_idx=0, ignore_idx=-100, pad_direction="right"
         )
 
         mask_1 = torch.concat([torch.ones(4, 5 * 2), torch.zeros(4, 10)], dim=1)
@@ -112,6 +117,50 @@ class TestPaddedCollateSFT:
                     torch.testing.assert_close(actual[k][k1], expected[k][k1])
             torch.testing.assert_close(actual[k], expected[k])
 
+    def test_left_pad(self, batch):
+        actual = padded_collate_tiled_images_and_mask(
+            batch=batch, padding_idx=0, ignore_idx=-100, pad_direction="left"
+        )
+
+        mask_1 = torch.concat([torch.ones(4, 5 * 2), torch.zeros(4, 10)], dim=1)
+        mask_2 = torch.concat([torch.ones(4, 5 * 3), torch.zeros(4, 5)], dim=1)
+        mask_3 = torch.concat([torch.ones(2, 5 * 4), torch.zeros(2, 20)], dim=0)
+        sample_1 = torch.stack([mask_1, mask_2])
+        sample_2 = torch.stack([mask_3, torch.zeros(4, 20)])
+        expected_mask = torch.stack([sample_1, sample_2]).view(2, 4, -1)
+
+        expected = {
+            "tokens": torch.tensor([[1, 2, 1, 3], [0, 0, 1, 4]]),
+            "labels": None,
+            "encoder_input": {
+                "images": torch.tensor(
+                    [
+                        [
+                            [[[[1.0]]], [[[1.0]]], [[[0.0]]], [[[0.0]]]],
+                            [[[[1.0]]], [[[1.0]]], [[[1.0]]], [[[0.0]]]],
+                        ],
+                        [
+                            [[[[1.0]]], [[[1.0]]], [[[1.0]]], [[[1.0]]]],
+                            [[[[0.0]]], [[[0.0]]], [[[0.0]]], [[[0.0]]]],
+                        ],
+                    ]
+                ),
+                "aspect_ratio": torch.tensor([[[1, 2], [1, 3]], [[2, 2], [1, 1]]]),
+            },
+            "encoder_mask": expected_mask,
+        }
+
+        for k in expected:
+            if isinstance(expected[k], dict):
+                for k1 in expected[k]:
+                    torch.testing.assert_close(actual[k][k1], expected[k][k1])
+            if k == "labels":
+                assert actual[k] is None
+            else:
+                torch.testing.assert_close(actual[k], expected[k])
+
+
+class TestPaddedCollatePacked:
     @mock.patch("torchtune.modules.attention_utils._SUPPORTS_FLEX_ATTENTION", False)
     def test_padded_collate_packed_sdpa(self):
         token_pairs = [
