@@ -77,9 +77,6 @@ class TestFullFinetuneSingleDeviceRecipe:
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
 
-        # To workaround https://github.com/pytorch/torchtune/issues/676
-        if compile:
-            os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
         cmd = f"""
         tune run full_finetune_single_device \
             --config {config} \
@@ -102,8 +99,13 @@ class TestFullFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
+        # Make sure to clear compile state in between tests
+        if compile:
+            torch._dynamo.reset()
+
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values(model_type)
+
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )

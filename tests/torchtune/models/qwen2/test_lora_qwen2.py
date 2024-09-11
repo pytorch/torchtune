@@ -11,7 +11,7 @@ from tests.test_utils import assert_expected, fixed_init_model
 from torch import nn
 from torchtune.models.qwen2 import lora_qwen2, qwen2
 from torchtune.models.qwen2._component_builders import lora_qwen2_self_attention
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 RANK = 4
 ALPHA = 1.0
@@ -62,7 +62,7 @@ class TestLoRAQwen2SelfAttention:
     )
     def test_forward(self, inputs, lora_modules, expected):
         lora_qwen2_sa = self.get_lora_qwen2_self_attention(lora_modules)
-        actual = lora_qwen2_sa(inputs)
+        actual = lora_qwen2_sa(inputs, inputs)
         assert_expected(actual.shape, (BSZ, SEQ_LEN, EMBED_DIM))
         assert_expected(actual.mean(), expected, atol=1e-4, rtol=1e-6)
 

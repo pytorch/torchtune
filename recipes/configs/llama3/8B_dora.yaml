@@ -1,4 +1,4 @@
-# Config for multi-device DoRA finetuning in lora_finetune_fsdp2.py
+# Config for multi-device DoRA finetuning in lora_finetune_distributed.py
 # using a Llama3 8B Instruct model
 #
 # This config assumes that you've run the following command before launching
@@ -6,12 +6,12 @@
 #   tune download meta-llama/Meta-Llama-3-8B-Instruct --output-dir /tmp/Meta-Llama-3-8B-Instruct --hf-token <HF_TOKEN>
 #
 # To launch on 2 devices, run the following command from root:
-#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_fsdp2 --config llama3/8B_dora
+#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config llama3/8B_dora
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_fsdp2 --config llama3/8B_dora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config llama3/8B_dora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 
 
 # Model Arguments
@@ -30,7 +30,7 @@ tokenizer:
   path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
 
 checkpointer:
-  _component_: torchtune.utils.FullModelMetaCheckpointer
+  _component_: torchtune.training.FullModelMetaCheckpointer
   checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/original/
   checkpoint_files: [
     consolidated.00.pth
@@ -67,7 +67,7 @@ gradient_accumulation_steps: 1
 # Logging
 output_dir: /tmp/dora_finetune_output
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
 log_peak_memory_stats: False

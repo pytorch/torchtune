@@ -18,6 +18,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
+from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
 from torchtune.modules import rlhf
 from torchtune.modules.rlhf import PPOStats, Trajectory
@@ -122,7 +123,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
-        self.seed = utils.set_seed(seed=cfg.seed)
+        self.seed = training.set_seed(seed=cfg.seed)
         # manually setting up a generator for the recipe
         self._rng = torch.Generator(self._device).manual_seed(self.seed)
         self._total_steps = 0
@@ -419,10 +420,10 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             value_model = config.instantiate(cfg_reward_value_model)
 
         if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(
+            training.set_activation_checkpointing(
                 policy_model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
-            utils.set_activation_checkpointing(
+            training.set_activation_checkpointing(
                 value_model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
@@ -496,8 +497,8 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             value_model.compile(backend=backend)
 
         if self._device.type == "cuda":
-            memory_stats = utils.get_memory_stats(device=self._device)
-            utils.log_memory_stats(memory_stats)
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(memory_stats)
 
         return policy_model, value_model, reward_model, ref_policy_model
 
@@ -517,17 +518,17 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 )
             }
             # Register optimizer step hooks on the models to run optimizer in backward.
-            utils.register_optim_in_bwd_hooks(
+            training.register_optim_in_bwd_hooks(
                 model=self._policy_model, optim_dict=optim_dict
             )
-            utils.register_optim_in_bwd_hooks(
+            training.register_optim_in_bwd_hooks(
                 model=self._value_model, optim_dict=optim_dict
             )
             # Create a wrapper for checkpoint save/load of optimizer states when running in backward.
-            self._optim_ckpt_wrapper = utils.create_optim_in_bwd_wrapper(
+            self._optim_ckpt_wrapper = training.create_optim_in_bwd_wrapper(
                 model=self._policy_model, optim_dict=optim_dict
             )
-            self._optim_ckpt_wrapper = utils.create_optim_in_bwd_wrapper(
+            self._optim_ckpt_wrapper = training.create_optim_in_bwd_wrapper(
                 model=self._value_model, optim_dict=optim_dict
             )
             # Load optimizer states. If optimizer states are being restored in an optimizer in backward
@@ -581,7 +582,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             sampler=sampler,
             batch_size=batch_size,
             collate_fn=partial(
-                rlhf.left_padded_collate,
+                padded_collate,
+                pad_direction="left",
+                keys_to_pad=["tokens", "labels"],
                 padding_idx=self._tokenizer.pad_id,
             ),
             drop_last=True,
@@ -646,7 +649,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     message="""Configured value for seed, total_steps, or total_epochs
                     does not match the value stored in checkpoint."""
                 )
-            self.seed = utils.set_seed(seed=ckpt_dict[training.SEED_KEY])
+            self.seed = training.set_seed(seed=ckpt_dict[training.SEED_KEY])
             self._rng.set_state(ckpt_dict[training.RNG_KEY])
             self._steps_run = ckpt_dict[training.STEPS_KEY]
             self._total_steps = ckpt_dict[training.MAX_STEPS_KEY]
@@ -829,7 +832,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._sampler.set_epoch(curr_epoch)
 
             for _, batch in enumerate(self._dataloader):
-                batch = batch.to(self._device)
+                batch = batch["tokens"].to(self._device)
                 _, context_length = batch.shape
 
                 # step 1. generate the trajectory using:
@@ -1033,7 +1036,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             "response_lengths": trajectory.seq_lens.float().mean(),
         }
         if self._device.type == "cuda" and self._log_peak_memory_stats:
-            log_dict.update(utils.get_memory_stats(device=self._device))
+            log_dict.update(training.get_memory_stats(device=self._device))
 
         self._metric_logger.log_dict(log_dict, step=self.global_step)
 

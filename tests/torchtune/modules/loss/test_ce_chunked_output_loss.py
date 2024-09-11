@@ -8,7 +8,7 @@ import pytest
 import torch
 from tests.test_utils import assert_expected
 from torchtune.modules.loss import CEWithChunkedOutputLoss
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 
 @pytest.fixture(autouse=True)

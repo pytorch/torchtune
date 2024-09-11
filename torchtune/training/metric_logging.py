@@ -10,15 +10,16 @@ from pathlib import Path
 
 from typing import Any, Dict, List, Mapping, Optional, Union
 
+import torch
+
 from numpy import ndarray
 from omegaconf import DictConfig, OmegaConf
-from torch import Tensor
+from torchtune.training._distributed import get_world_size_and_rank
 
 from torchtune.utils import get_logger
-from torchtune.utils._distributed import get_world_size_and_rank
 from typing_extensions import Protocol
 
-Scalar = Union[Tensor, ndarray, int, float]
+Scalar = Union[torch.Tensor, ndarray, int, float]
 
 log = get_logger("DEBUG")
 
@@ -261,7 +262,7 @@ class TensorBoardLogger(MetricLoggerInterface):
     """Logger for use w/ PyTorch's implementation of TensorBoard (https://pytorch.org/docs/stable/tensorboard.html).
 
     Args:
-        log_dir (str): TensorBoard log directory
+        log_dir (str): torch.TensorBoard log directory
         organize_logs (bool): If `True`, this class will create a subdirectory within `log_dir` for the current
             run. Having sub-directories allows you to compare logs across runs. When TensorBoard is
             passed a logdir at startup, it recursively walks the directory tree rooted at logdir looking for
