@@ -88,6 +88,8 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             metric_logger.filename={log_file} \
         """.split()
 
+        torch._dynamo.reset()
+
         model_config = llama2_test_config()
         model_config = [k.replace("model.", "policy_model.") for k in model_config]
         model_config += ["policy_model.intermediate_dim=null"]

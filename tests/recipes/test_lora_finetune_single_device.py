@@ -140,16 +140,14 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             compile={compile} \
         """.split()
 
+        torch._dynamo.reset()
+
         model_config = MODEL_TEST_CONFIGS["llama2_qlora"]
 
         cmd = cmd + self._get_test_config_overrides(dtype_str=dtype) + model_config
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        # Make sure to clear compile state in between tests
-        if compile:
-            torch._dynamo.reset()
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_qlora_expected_loss_values(dtype=dtype)

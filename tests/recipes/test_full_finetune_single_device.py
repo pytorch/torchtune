@@ -91,15 +91,15 @@ class TestFullFinetuneSingleDeviceRecipe:
             compile={compile} \
         """.split()
 
+        # in case compile is used, make sure we reset before the test
+        torch._dynamo.reset()
+
         model_config = MODEL_TEST_CONFIGS[model_type]
         cmd = cmd + self._get_test_config_overrides() + model_config
 
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        # in case compile is used, make sure we reset before the test
-        torch._dynamo.reset()
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values(model_type)
