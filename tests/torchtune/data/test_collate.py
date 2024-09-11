@@ -78,7 +78,7 @@ class TestPaddedCollateTiledImagesAndMask:
             },
         ]
 
-    def test_right_pad(self, batch):
+    def test_right_pad_sequence(self, batch):
         actual = padded_collate_tiled_images_and_mask(
             batch=batch, padding_idx=0, ignore_idx=-100, pad_direction="right"
         )
@@ -115,9 +115,10 @@ class TestPaddedCollateTiledImagesAndMask:
             if isinstance(expected[k], dict):
                 for k1 in expected[k]:
                     torch.testing.assert_close(actual[k][k1], expected[k][k1])
-            torch.testing.assert_close(actual[k], expected[k])
+            else:
+                torch.testing.assert_close(actual[k], expected[k])
 
-    def test_left_pad(self, batch):
+    def test_left_pad_sequence(self, batch):
         actual = padded_collate_tiled_images_and_mask(
             batch=batch, padding_idx=0, ignore_idx=-100, pad_direction="left"
         )
@@ -131,7 +132,6 @@ class TestPaddedCollateTiledImagesAndMask:
 
         expected = {
             "tokens": torch.tensor([[1, 2, 1, 3], [0, 0, 1, 4]]),
-            "labels": None,
             "encoder_input": {
                 "images": torch.tensor(
                     [
@@ -154,8 +154,6 @@ class TestPaddedCollateTiledImagesAndMask:
             if isinstance(expected[k], dict):
                 for k1 in expected[k]:
                     torch.testing.assert_close(actual[k][k1], expected[k][k1])
-            if k == "labels":
-                assert actual[k] is None
             else:
                 torch.testing.assert_close(actual[k], expected[k])
 
