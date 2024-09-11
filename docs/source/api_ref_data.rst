@@ -88,3 +88,5 @@ Miscellaneous helper functions used in modifying data.
 
     validate_messages
     truncate
+    load_image
+    format_content_with_images
