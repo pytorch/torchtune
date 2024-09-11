@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
-from typing import List, Literal, Optional
+from typing import List, Optional
 
 from torch import nn
 
@@ -15,7 +15,6 @@ from torchtune.modules import (
     MultiHeadAttention,
     FeedForward,
     FrozenNF4Linear,
-    KVCache,
     RMSNorm,
     RotaryPositionalEmbeddings,
     TransformerDecoder,

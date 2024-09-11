@@ -9,6 +9,7 @@ from torchtune.data._collate import (
     left_pad_sequence,
     padded_collate,
     padded_collate_dpo,
+    padded_collate_packed,
     padded_collate_sft,
 )
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
@@ -58,5 +59,6 @@ __all__ = [
     "padded_collate_dpo",
     "left_pad_sequence",
     "padded_collate",
+    "padded_collate_packed",
     "load_image",
 ]

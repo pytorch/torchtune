@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from .attention import MultiHeadAttention  # noqa
+from .attention_utils import create_block_causal_mask, packed_block_causal_mask
 from .common_utils import reparametrize_as_dtype_state_dict_post_hook
 from .feed_forward import FeedForward  # noqa
 from .kv_cache import KVCache  # noqa
@@ -38,4 +39,6 @@ __all__ = [
     "TransformerSelfAttentionLayer",
     "TransformerCrossAttentionLayer",
     "reparametrize_as_dtype_state_dict_post_hook",
+    "create_block_causal_mask",
+    "packed_block_causal_mask",
 ]
