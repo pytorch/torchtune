@@ -480,7 +480,7 @@
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
     <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
-    <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
+    <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">use_dora</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
@@ -505,8 +505,7 @@
 <span class="sd">        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as</span>
 <span class="sd">            introduced in &quot;DoRA: Weight-Decomposed Low-Rank Adaptation&quot; (https://arxiv.org/abs/2402.09353).</span>
 <span class="sd">        quantize_base (bool): Whether to quantize base model weights</span>
-<span class="sd">        lora_dropout (float): dropout probability for LoRA linear layers. Default: 0.05</span>
-
+<span class="sd">        </span>
 <span class="sd">    Returns:</span>
 <span class="sd">        TransformerDecoder: Instantiation of Llama2 7B model with LoRA applied</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -566,7 +565,7 @@
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
     <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
-    <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
+    <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">use_dora</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
@@ -651,7 +650,7 @@
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
     <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
-    <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
+    <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">use_dora</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
@@ -672,6 +671,7 @@
 <span class="sd">            Default: False</span>
 <span class="sd">        lora_rank (int): rank of each low-rank approximation</span>
 <span class="sd">        lora_alpha (float): scaling factor for the low-rank approximation</span>
+<span class="sd">        lora_dropout (float): LoRA dropout probability. Default: 0.0</span>
 <span class="sd">        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as</span>
 <span class="sd">            introduced in &quot;DoRA: Weight-Decomposed Low-Rank Adaptation&quot; (https://arxiv.org/abs/2402.09353).</span>
 <span class="sd">        quantize_base (bool): Whether to quantize base model weights</span>
@@ -736,7 +736,7 @@
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
     <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
-    <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
+    <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">use_dora</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
@@ -757,6 +757,7 @@
 <span class="sd">            Default: False</span>
 <span class="sd">        lora_rank (int): rank of each low-rank approximation</span>
 <span class="sd">        lora_alpha (float): scaling factor for the low-rank approximation</span>
+<span class="sd">        lora_dropout (float): LoRA dropout probability. Default: 0.0</span>
 <span class="sd">        quantize_base (bool): Whether to quantize base model weights</span>
 
 <span class="sd">    Returns:</span>
