@@ -56,6 +56,7 @@ class Llama3ScaledRoPE(nn.Module):
         self.low_freq_factor = low_freq_factor
         self.high_freq_factor = high_freq_factor
         self.old_context_len = old_context_len
+        self.is_cache_built = False
         self.rope_init()
 
     def rope_init(self):
@@ -82,6 +83,7 @@ class Llama3ScaledRoPE(nn.Module):
         )
         self.register_buffer("theta", theta, persistent=False)
         self.build_rope_cache(self.max_seq_len)
+        self.is_cache_built = True
 
     def build_rope_cache(self, max_seq_len: int = 4096) -> None:
         # Create position indexes `[0, 1, ..., max_seq_len - 1]`
@@ -145,7 +147,15 @@ class Llama3ScaledRoPE(nn.Module):
             - s: sequence length
             - n_h: num heads
             - h_d: head dim
+
+        Raises:
+            RuntimeError: if RoPE cache is not initialized prior to forward call
         """
+
+        if not self.is_cache_built:
+            raise RuntimeError(
+                "RoPE cache is not built. Please call rope_init() first."
+            )
 
         # input tensor has shape [b, s, n_h, h_d]
         seq_len = x.size(1)
