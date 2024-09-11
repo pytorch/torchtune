@@ -8,7 +8,7 @@ from torch import nn
 from typing import List
 from functools import partial
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
-
+import torch.nn.functional as F
 from torchtune.modules import (
     MultiHeadAttention,
     FeedForward,
