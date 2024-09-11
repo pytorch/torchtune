@@ -29,8 +29,8 @@ class OffloadActivations(saved_tensors_hooks):
             but is a limited resource. Default: True.
 
         use_streams (bool): Whether or not to use streams for performance optimization where
-            the communications get overlapped with the computation. Requires torch-2.5.
-            Default: False.
+            the communications get overlapped with the computation. Requires a torch build
+            after torch-2.5.0.dev20240907. Default: False.
 
         max_fwd_stash_size (int): The maximum size of the forward stash, or the maximum number of
             consecutive activations to keep alive during the forward pass. This number must be at
@@ -81,6 +81,10 @@ class OffloadActivations(saved_tensors_hooks):
 
         # for streaming
         if use_streams:
+            if torch.__version__ < "2.5.0.dev20240907":
+                raise RuntimeError(
+                    "OffloadActivations with use_streams=True requires PyTorch 2.5.0.dev20240907 or later."
+                )
             self.use_streams = use_streams
             self.s1 = torch.cuda.Stream()  # comms stream
             self.fwd_stash = {}  # tensor_id => (activation, ev1)

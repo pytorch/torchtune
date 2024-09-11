@@ -99,16 +99,18 @@ for more details about how this is implemented through saved_tensors_hooks.
 
 This setting is especially helpful for larger batch sizes, or longer context lengths when you're memory constrained.
 However, these savings in memory can come at the cost of training speed (i.e. tokens per-second), as it takes runtime
-and resources to move Tensors from GPU to CPU and back. The implementation in torchtune uses multiple CUDA streams
-in order to overlap the extra communication with the computation to hide the extra runtime. As the communication
-workload is variable depending on the number and size of tensors being offloaded, it is common to not offload every
-single activation. In fact, once can use offloading in conjunction with activations checkpointing, where all
-activations will either be recomputed later in the backward or brought back from the CPU.
+and resources to move Tensors from GPU to CPU and back. The implementation in torchtune has the ``offload_with_streams``
+option to use multiple CUDA streams in order to overlap the extra communication with the computation to hide the extra
+runtime. As the communication workload is variable depending on the number and size of tensors being offloaded, it is
+common to not offload every single activation. In fact, once can use offloading in conjunction with activations
+checkpointing, where all activations will either be recomputed later in the backward or brought back from the CPU.
 
 *Sounds great! How do I use it?*
 
 To enable activation offloading, use the ``enable_activation_offloading`` config entry or flag
-in our lora finetuning single device recipe, e.g. ``enable_activation_offloading=True``.
+in our lora finetuning single device recipe, e.g. ``enable_activation_offloading=True``. To allow
+usage of streams, make sure you are on a torch version later than PyTorch 2.5.0.dev20240907 and
+specify ``offload_with_streams=True``.
 
 .. _glossary_grad_accm:
 

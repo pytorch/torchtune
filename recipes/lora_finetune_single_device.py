@@ -61,8 +61,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             checkpointing drops the activation in the forward to recompute it later in the backward,
             activations offloading will drop the activation in the forward to the CPU and bring it
             back during the backward pass. As always, there is a tradeoff--these savings in memory can
-            come at the cost of training performance and CPU resources. Activation offloading
-            can be used in conjunction with activation checkpointing.
+            come at the cost of training performance and CPU resources. To recover some runtime cost,
+            specify ``offload_with_streams: True`` to enable offloading on a different stream to permit
+            overlapping with the computation. This option is currently only available on PyTorch nightly
+            version 2.5.0.dev20240907 or later. Activation offloading can be used in conjunction with
+            activation checkpointing.
 
         - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
             flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
@@ -448,11 +451,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             # step, as the cost for offloading the activation and then soon after bringing
             # it back is expensive. Moreover, due to heuristics in our streaming API,
             # we actually use more memory if we offload it as it interferes with chunkedCE.
-            noop_ctx = NoOpManager()
-            model.output.register_forward_pre_hook(lambda *args: noop_ctx.__enter__())
-            model.output.register_forward_hook(
-                lambda *args: noop_ctx.__exit__(), always_call=True
-            )
+            if hasattr(model, "output") and isinstance(model.output, nn.Module):
+                noop_ctx = NoOpManager()
+                model.output.register_forward_pre_hook(
+                    lambda *args: noop_ctx.__enter__()
+                )
+                model.output.register_forward_hook(
+                    lambda *args: noop_ctx.__exit__(), always_call=True
+                )
 
         log.info(f"Model is initialized with precision {self._dtype}.")
 
