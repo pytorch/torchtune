@@ -11,6 +11,11 @@ import torch.nn.functional as F
 
 
 class ForwardKLLoss(torch.nn.Module):
+    """
+    The Kullback-Leibler divergence loss for valid indexes.
+    Implementation of https://github.com/jongwooko/distillm/blob/master/distillm/losses.py.
+    """
+
     def __init__(self, ignore_index: int = -100):
         super().__init__()
         self.ignore_index = ignore_index
@@ -21,9 +26,22 @@ class ForwardKLLoss(torch.nn.Module):
         teacher_logits: torch.Tensor,
         labels: torch.Tensor,
     ) -> torch.Tensor:
-        teacher_prob = F.softmax(teacher_logits, dim=-1)
+        """
+        Args:
+            student_logits (torch.Tensor): logits from student model of shape
+                (batch_size*num_tokens, vocab_size).
+            teacher_logits (torch.Tensor): logits from teacher model of shape
+                (batch_size*num_tokens, vocab_size).
+            labels (torch.Tensor): Ground truth labels of shape
+                (batch_size, vocab_size).
+
+        Returns:
+            torch.Tensor: KL divergence loss of shape (1,).
+        """
+
+        teacher_prob = F.softmax(teacher_logits, dim=-1, dtype=torch.float32)
         inf_mask = torch.isinf(student_logits)
-        student_logprob = F.log_softmax(student_logits, dim=-1)
+        student_logprob = F.log_softmax(student_logits, dim=-1, dtype=torch.float32)
         prod_probs = torch.masked_fill(teacher_prob * student_logprob, inf_mask, 0)
         x = torch.sum(prod_probs, dim=-1).view(-1)
         mask = (labels != self.ignore_index).int()
@@ -31,6 +49,16 @@ class ForwardKLLoss(torch.nn.Module):
 
 
 class ForwardKLWithChunkedOutputLoss(torch.nn.Module):
+    """
+    Forward KL with chunked outputs that saves memory by only upcasting one chunk at a time.
+
+    Since the model is trained with bf16, before computing KL divergence, we have to upcast
+    it to fp32 for better accuracy and stability. When upcasting happens, the memory usage doubles.
+    Models like llama3 have large vocabulary size and, therefore, have a large output
+    result (bsz, num_tokens, vocab_size). If we chunk on the token level, you can still compute
+    the cross entropy normally, but upcasting only one chunk at a time saves considerable memory.
+    """
+
     def __init__(self, num_output_chunks: int = 8, ignore_index: int = -100):
         super().__init__()
         self.num_output_chunks = num_output_chunks
@@ -43,6 +71,29 @@ class ForwardKLWithChunkedOutputLoss(torch.nn.Module):
         teacher_logits: List[torch.Tensor],
         labels: torch.Tensor,
     ) -> torch.Tensor:
+        """
+        Args:
+            student_logits (List[torch.Tensor]): List of chunked logits from student model of length
+                ``self.num_output_chunks``, where each chunk has shape
+                (batch_size, num_tokens / num_output_chunks, vocab_size).
+            teacher_logits (List[torch.Tensor]): List of chunked logits from teacher model of length
+                ``self.num_output_chunks``, where each chunk has shape
+                (batch_size, num_tokens / num_output_chunks, vocab_size).
+            labels (torch.Tensor): Ground truth labels of shape (batch_size, num_tokens).
+
+        Returns:
+            torch.Tensor: KL divergence loss of shape (1,).
+
+        Example:
+            >>> loss_fn = ForwardKLWithChunkedOutputLoss()
+            >>>
+            >>> h = torch.tensor([bsz, num_tokens, dim])
+            >>> output_chunks = [model.output(chunk) for chunk in h.chunk(num_chunks, dim=1)]
+            >>> teacher_chunks = [teacher_model.output(chunk) for chunk in h.chunk(num_chunks, dim=1)]
+            >>> labels = torch.tensor([bsz, num_tokens])
+            >>> loss = loss_fn(output_chunks, teacher_chunks, labels)
+        """
+
         # reshape logits [(bsz, num_tokens/num_chunks, vocab)] -> [(bsz*num_tokens/num_chunks, vocab)]
         teacher_logits = [
             teacher_logits_chunk.reshape(-1, teacher_logits_chunk.size(-1))
@@ -62,12 +113,5 @@ class ForwardKLWithChunkedOutputLoss(torch.nn.Module):
             student_logits, teacher_logits, labels
         ):
             total_fkl_loss += self.fkl_loss(student_chunk, teacher_chunk, label_chunk)
-            # teacher_prob = torch.nn.functional.softmax(teacher_chunk, dim=-1)
-            # inf_mask = torch.isinf(student_chunk)
-            # student_logprob = torch.nn.functional.log_softmax(student_chunk, dim=-1)
-            # prod_probs = torch.masked_fill(teacher_prob * student_logprob, inf_mask, 0)
-            # x = torch.sum(prod_probs, dim=-1).view(-1)
-            # mask = (label_chunk != -100).int()
-            # total_fkl_loss += -torch.sum(x * mask.view(-1), dim=0) / torch.sum(mask.view(-1), dim=0)
 
         return total_fkl_loss / self.num_output_chunks

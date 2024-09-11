@@ -52,7 +52,7 @@ checkpointer:
   output_dir: /tmp/kd_model/
   model_type: LLAMA3
 
-# TODO: add teacher checkpointer
+# Teacher checkpoint
 teacher_checkpointer:
   _component_: torchtune.training.FullModelMetaCheckpointer
   checkpoint_dir: /tmp/Meta-Llama-3.1-8B-Instruct/lora_finetuned_single_device_epoch_1/
@@ -71,7 +71,7 @@ dataset:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
 seed: null
 shuffle: True
-batch_size: 4
+batch_size: 8
 
 # Optimizer and Scheduler
 optimizer:
