@@ -134,7 +134,7 @@ def lora_qwen2_7b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
-    lora_dropout: float = 0.05,
+    lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
@@ -155,6 +155,7 @@ def lora_qwen2_7b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
@@ -187,7 +188,7 @@ def lora_qwen2_0_5b(
     apply_lora_to_mlp: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
-    lora_dropout: float = 0.05,
+    lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TiedEmbeddingTransformerDecoder:
@@ -206,6 +207,7 @@ def lora_qwen2_0_5b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
@@ -243,7 +245,7 @@ def lora_qwen2_1_5b(
     apply_lora_to_mlp: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
-    lora_dropout: float = 0.05,
+    lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TiedEmbeddingTransformerDecoder:
@@ -262,6 +264,7 @@ def lora_qwen2_1_5b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
