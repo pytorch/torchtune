@@ -9,6 +9,7 @@ from typing import Optional
 
 import torch
 from torch import nn
+from torchtune.modules.attention_utils import _MaskType, _sdpa_or_flex_attention
 from torchtune.modules.kv_cache import KVCache
 
 logger = logging.getLogger(__name__)
@@ -136,6 +137,9 @@ class MultiHeadAttention(nn.Module):
         self.k_norm = k_norm
         self.pos_embeddings = pos_embeddings
 
+        # Use flex attention if supported and we are sample packing
+        self._attention_call = _sdpa_or_flex_attention()
+
     def setup_cache(self, batch_size: int, dtype: torch.dtype) -> None:
         """Setup key value caches for attention calculation. If called
         after kv_cache is already setup, this will be skipped.
@@ -171,20 +175,24 @@ class MultiHeadAttention(nn.Module):
         x: torch.Tensor,
         y: Optional[torch.Tensor] = None,
         *,
-        mask: Optional[torch.Tensor] = None,
+        mask: Optional[_MaskType] = None,
         input_pos: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """
         Args:
             x (torch.Tensor): input tensor with shape [b x s_x x d] for the query
-            y (Optional[torch.Tensor]): second input tensor for key and value with shape [b x s_y x d].
-                Optional only with kv_cache enabled.
-            mask (Optional[torch.Tensor]): Optional boolean tensor which contains the attention mask
-                with shape [batch_size x seq_length x seq_length]. This is applied after
-                the query-key multiplication and before the softmax. A value of True in row i
-                and column j means token i attends to token j. A value of False means token i
-                does not attend to token j. If no mask is specified, a causal mask
-                is used by default. Default is None.
+            y (Optional[torch.Tensor]): second input tensor with shape [b x s_y x d], is the input
+                for k and v. For self attention, x=y. Optional only with kv_cache enabled.
+            mask (Optional[_MaskType]): Used to mask the scores after the query-key multiplication
+                and before the softmax. Either a boolean tensor with shape [b x s x s] or a
+                :class:`~torch.nn.attention.flex_attention.BlockMask`. If a boolean tensor, a value
+                of True in row i and column j means token i attends to token j. A value of False means
+                token i does not attend to token j. If no mask is specified, a causal mask
+                is used by default. If a :class:`~torch.nn.attention.flex_attention.BlockMask` is passed
+                for document masking in a packed sequence via `create_block_mask
+                <https://pytorch.org/blog/flexattention/#mask-mods>`_, we use
+                :func:`~torch.nn.attention.flex_attention.flex_attention` when computing attention.
+                Default is None.
             input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
@@ -244,6 +252,8 @@ class MultiHeadAttention(nn.Module):
             k = self.kv_cache.k_cache
             v = self.kv_cache.v_cache
         else:
+            # Update k and v shape, positional embeddings, and normalization
+
             # k has shape [b, s_y, num_kv_heads * head_dim]
             # v has shape [b, s_y, num_kv_heads * head_dim]
             k = self.k_proj(y)
@@ -282,16 +292,11 @@ class MultiHeadAttention(nn.Module):
             if self.kv_cache is not None:
                 k, v = self.kv_cache.update(input_pos, k, v)
 
-        # shape: [b, 1, s, s]
-        if mask is not None:
-            mask = mask[:, None, :, :]
-
-        # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
-        output = nn.functional.scaled_dot_product_attention(
+        output = self._attention_call(
             q,
             k,
             v,
-            attn_mask=mask,
+            mask=mask,
             dropout_p=self.attn_dropout,
             is_causal=self.kv_cache is None and mask is None and self.is_causal,
         )

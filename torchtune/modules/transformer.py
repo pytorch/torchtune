@@ -9,8 +9,9 @@ from typing import Dict, List, Optional, Union
 import torch
 import torch.nn.functional as F
 from torch import nn
-
 from torchtune.modules import MultiHeadAttention
+
+from torchtune.modules.attention_utils import _MaskType
 
 
 class TransformerSelfAttentionLayer(nn.Module):
@@ -65,7 +66,7 @@ class TransformerSelfAttentionLayer(nn.Module):
         self,
         x: torch.Tensor,
         *,
-        mask: Optional[torch.Tensor] = None,
+        mask: Optional[_MaskType] = None,
         input_pos: Optional[torch.Tensor] = None,
         **kwargs: Dict,
     ) -> torch.Tensor:
@@ -73,12 +74,16 @@ class TransformerSelfAttentionLayer(nn.Module):
         Args:
             x (torch.Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
-            mask (Optional[torch.Tensor]): Optional boolean tensor which contains the attention mask
-                with shape [batch_size x seq_length x seq_length]. This is applied after
-                the query-key multiplication and before the softmax. A value of True in row i
-                and column j means token i attends to token j. A value of False means token i
-                does not attend to token j. If no mask is specified, a causal mask
-                is used by default. Default is None.
+            mask (Optional[_MaskType]): Used to mask the scores after the query-key multiplication
+                and before the softmax. Either a boolean tensor with shape [b x s x s] or a
+                :class:`~torch.nn.attention.flex_attention.BlockMask`. If a boolean tensor, a value
+                of True in row i and column j means token i attends to token j. A value of False means
+                token i does not attend to token j. If no mask is specified, a causal mask
+                is used by default. If a :class:`~torch.nn.attention.flex_attention.BlockMask` is passed
+                for document masking in a packed sequence via `create_block_mask
+                <https://pytorch.org/blog/flexattention/#mask-mods>`_, we use
+                :func:`~torch.nn.attention.flex_attention.flex_attention` when computing attention.
+                Default is None.
             input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
@@ -381,11 +386,33 @@ class TransformerDecoder(nn.Module):
 
         self.pos = 0
 
+    @torch.compiler.disable
+    def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:
+        """
+        Apply output projection in chunks. This should be applied in conjunction with
+        :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss` as upcasting to fp32 is done there.
+
+        To use this method, you should first call
+        :func:`~torchtune.modules.TransformerDecoder.set_num_output_chunks`.
+
+        Args:
+            last_hidden_state (torch.Tensor): last hidden state of the decoder, having shape
+                [b, seq_len, embed_dim].
+
+        Returns:
+            List[torch.Tensor]: List of num_chunks output tensors, each with shape
+                [b, seq_len/num_chunks, out_dim], where out_dim is usually the vocab size.
+        """
+        return [
+            self.output(chunk)
+            for chunk in last_hidden_state.chunk(self.num_output_chunks, dim=1)
+        ]
+
     def forward(
         self,
         tokens: torch.Tensor,
         *,
-        mask: Optional[torch.Tensor] = None,
+        mask: Optional[_MaskType] = None,
         encoder_input: Optional[torch.Tensor] = None,
         encoder_mask: Optional[torch.Tensor] = None,
         input_pos: Optional[torch.Tensor] = None,
@@ -393,11 +420,16 @@ class TransformerDecoder(nn.Module):
         """
         Args:
             tokens (torch.Tensor): input tensor with shape [b x s]
-            mask (Optional[torch.Tensor]): Optional boolean tensor which contains the attention mask
-                with shape [b x s x s]. This is applied after the query-key multiplication and
-                before the softmax. A value of True in row i and column j means token i attends
-                to token j. A value of False means token i does not attend to token j. If no
-                mask is specified, a causal mask is used by default. Default is None.
+            mask (Optional[_MaskType]): Used to mask the scores after the query-key multiplication
+                and before the softmax. Either a boolean tensor with shape [b x s x s] or a
+                :class:`~torch.nn.attention.flex_attention.BlockMask`. If a boolean tensor, a value
+                of True in row i and column j means token i attends to token j. A value of False means
+                token i does not attend to token j. If no mask is specified, a causal mask
+                is used by default. If a :class:`~torch.nn.attention.flex_attention.BlockMask` is passed
+                for document masking in a packed sequence via `create_block_mask
+                <https://pytorch.org/blog/flexattention/#mask-mods>`_, we use
+                :func:`~torch.nn.attention.flex_attention.flex_attention` when computing attention.
+                Default is None.
             encoder_input (Optional[torch.Tensor]): Optional input embeds from the encoder. Shape [b x s_e x d_e]
             encoder_mask (Optional[torch.Tensor]):  Boolean tensor defining a relational matrix between
                 tokens and encoder embeddings. A True value at position i,j means token i can attend
@@ -473,12 +505,7 @@ class TransformerDecoder(nn.Module):
         h = self.norm(h)
 
         if self.num_output_chunks > 0:
-            # shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size
-            # Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,
-            # before calling forward. Upcasting it done inside of the loss function.
-            output = [
-                self.output(chunk) for chunk in h.chunk(self.num_output_chunks, dim=1)
-            ]
+            output = self.chunked_output(h)
         else:
             # shape: [b, seq_len, out_dim]
             output = self.output(h).float()
@@ -595,11 +622,33 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
 
         self.pos = 0
 
+    @torch.compiler.disable
+    def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:
+        """
+        Apply output projection in chunks. This should be applied in conjunction with
+        :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss` as upcasting to fp32 is done there.
+
+        To use this method, you should first call
+        :func:`~torchtune.modules.TiedEmbeddingTransformerDecoder.set_num_output_chunks`.
+
+        Args:
+            last_hidden_state (torch.Tensor): last hidden state of the decoder, having shape
+                [b, seq_len, embed_dim].
+
+        Returns:
+            List[torch.Tensor]: List of num_chunks output tensors, each with shape
+                [b, seq_len/num_chunks, out_dim], where out_dim is usually the vocab size.
+        """
+        return [
+            F.linear(chunk, self.tok_embeddings.weight)
+            for chunk in last_hidden_state.chunk(self.num_output_chunks, dim=1)
+        ]
+
     def forward(
         self,
         tokens: torch.Tensor,
         *,
-        mask: Optional[torch.Tensor] = None,
+        mask: Optional[_MaskType] = None,
         encoder_input: Optional[torch.Tensor] = None,
         encoder_mask: Optional[torch.Tensor] = None,
         input_pos: Optional[torch.Tensor] = None,
@@ -607,11 +656,16 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         """
         Args:
             tokens (torch.Tensor): input tensor with shape [b x s]
-            mask (Optional[torch.Tensor]): Optional boolean tensor which contains the attention mask
-                with shape [b x s x s]. This is applied after the query-key multiplication and
-                before the softmax. A value of True in row i and column j means token i attends
-                to token j. A value of False means token i does not attend to token j. If no
-                mask is specified, a causal mask is used by default. Default is None.
+            mask (Optional[_MaskType]): Used to mask the scores after the query-key multiplication
+                and before the softmax. Either a boolean tensor with shape [b x s x s] or a
+                :class:`~torch.nn.attention.flex_attention.BlockMask`. If a boolean tensor, a value
+                of True in row i and column j means token i attends to token j. A value of False means
+                token i does not attend to token j. If no mask is specified, a causal mask
+                is used by default. If a :class:`~torch.nn.attention.flex_attention.BlockMask` is passed
+                for document masking in a packed sequence via `create_block_mask
+                <https://pytorch.org/blog/flexattention/#mask-mods>`_, we use
+                :func:`~torch.nn.attention.flex_attention.flex_attention` when computing attention.
+                Default is None.
             encoder_input (Optional[torch.Tensor]): Optional input embeds from the encoder. Shape [b x s_e x d_e]
             encoder_mask (Optional[torch.Tensor]):  Boolean tensor defining a relational matrix between
                 tokens and encoder embeddings. A True value at position i,j means token i can attend
@@ -687,13 +741,7 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         h = self.norm(h)
 
         if self.num_output_chunks > 0:
-            # shape: [b, seq_len/num_chunks, out_dim] - out_dim is usually the vocab size
-            # Used with CEWithChunkedOutputLoss. Need to set num_output_chunks in the recipe,
-            # before calling forward. Upcasting it done inside of the loss function.
-            output = [
-                F.linear(chunk, self.tok_embeddings.weight)
-                for chunk in h.chunk(self.num_output_chunks, dim=1)
-            ]
+            output = self.chunked_output(h)
         else:
             # shape: [b, seq_len, out_dim]
             output = F.linear(h, self.tok_embeddings.weight).float()

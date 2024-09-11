@@ -43,7 +43,7 @@ class TheCauldronToMessages(Transform):
                 "role": "system" | "user" | "assistant",
                 "content":
                     [
-                        {"type": "image"},
+                        {"type": "image", "content": <PIL.Image.Image>},
                         {"type": "text", "content": "This is a sample image."},
                     ],
             },
@@ -91,7 +91,10 @@ class TheCauldronToMessages(Transform):
                 Message(
                     role="user",
                     content=[
-                        {"type": "image"},
+                        {
+                            "type": "image",
+                            "content": sample[self._column_map["images"]],
+                        },
                         {"type": "text", "content": message["user"]},
                     ],
                     masked=not self.train_on_input,
@@ -111,7 +114,7 @@ class TheCauldronToMessages(Transform):
                 )
             ] + messages
 
-        return {"messages": messages, "images": sample[self._column_map["images"]]}
+        return {"messages": messages}
 
 
 # TODO: point to Flamingo model transform as an example

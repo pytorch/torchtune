@@ -9,6 +9,8 @@ import torch
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.datasets._packed import PACK_TYPE
+from torchtune.modules.attention_utils import packed_block_causal_mask
 
 
 def left_pad_sequence(
@@ -49,7 +51,7 @@ def left_pad_sequence(
         map(lambda x: torch.flip(x, dims=[0]), sequences),
         batch_first=batch_first,
         padding_value=padding_value,
-    ).flip(dims=[1])
+    ).flip(dims=[int(batch_first)])
 
 
 def padded_collate(
@@ -212,6 +214,67 @@ def padded_collate_sft(
             value=padding_idx,
         )
     return {"tokens": input_ids.long(), "labels": labels.long()}
+
+
+def padded_collate_packed(
+    batch: List[PACK_TYPE],
+) -> Dict[str, torch.Tensor]:
+    """Collate packed sequences into a batch. Only convert the seq lens into
+    a block mask for use with attention. Tokens, labels, and input_pos are
+    already padded to the same length within :class:`~torchtune.datasets.PackedDataset`.
+
+    Args:
+        batch (List[PACK_TYPE]): A list of pack dictionaries containing the following keys:
+            - tokens: input token ids
+            - labels: label token ids
+            - input_pos: relative position ids for each sequence in pack
+            - seq_lens: lengths of each sample within the pack
+
+    Returns:
+        Dict[str, torch.Tensor]: Collated input, label, input_pos, mask tensors.
+
+    Example:
+        >>> token_pairs = [
+        >>>    {"tokens": [1, 2, 3, 4, 5, 6], "labels": [7, 8, 9, 10, 11, 12],
+        >>>     "input_pos": [0, 1, 2, 0, 1, 0], "seq_lens": [3, 2, 1]},
+        >>>    {"tokens": [13, 14, 15, 16, 17, 18], "labels": [19, 20, 21, 22, 23, 24],
+        >>>     "input_pos": [0, 1, 0, 1, 0, 1], "seq_lens": [2, 2, 2]},
+        >>> ]
+        >>> collated = padded_collate_packed(
+        >>>    batch=token_pairs,
+        >>>    device=device,
+        >>> )
+        >>> collated["mask"]
+        >>> tensor([
+        >>> [[1, 0, 0, 0, 0, 0],
+        >>>  [1, 1, 0, 0, 0, 0],
+        >>>  [1, 1, 1, 0, 0, 0],
+        >>>  [0, 0, 0, 1, 0, 0],
+        >>>  [0, 0, 0, 1, 1, 0],
+        >>>  [0, 0, 0, 0, 0, 1]],
+        >>> [[1, 0, 0, 0, 0, 0],
+        >>>  [1, 1, 0, 0, 0, 0],
+        >>>  [0, 0, 1, 0, 0, 0],
+        >>>  [0, 0, 1, 1, 0, 0],
+        >>>  [0, 0, 0, 0, 1, 0],
+        >>>  [0, 0, 0, 0, 1, 1]])
+    """
+
+    tokens = torch.stack([x["tokens"] for x in batch])
+    labels = torch.stack([x["labels"] for x in batch])
+    input_pos = torch.stack([x["input_pos"] for x in batch])
+    seq_lens = [x["seq_lens"] for x in batch]
+
+    block_mask = packed_block_causal_mask(
+        seq_lens=seq_lens,
+    )
+
+    return {
+        "tokens": tokens,
+        "labels": labels,
+        "input_pos": input_pos,
+        "mask": block_mask,
+    }
 
 
 def padded_collate_dpo(
