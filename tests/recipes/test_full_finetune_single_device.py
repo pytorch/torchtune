@@ -31,6 +31,8 @@ from tests.test_utils import (
     TOKENIZER_PATHS,
 )
 
+torch._dynamo.reset()
+
 
 class TestFullFinetuneSingleDeviceRecipe:
     def _get_test_config_overrides(self):

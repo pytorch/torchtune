@@ -28,6 +28,8 @@ from tests.test_utils import (
 )
 from torchtune import config
 
+torch._dynamo.reset()
+
 
 class TestLoRAFinetuneDistributedRecipe:
     def _get_test_config_overrides(self):
@@ -144,6 +146,8 @@ class TestLoRAFinetuneDistributedRecipe:
             tokenizer.prompt_template=null \
         """.split()
 
+        torch._dynamo.reset()
+
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
 
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
@@ -167,6 +171,8 @@ class TestLoRAFinetuneDistributedRecipe:
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
         """.split()
+
+        torch._dynamo.reset()
 
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd_2)
@@ -209,6 +215,8 @@ class TestLoRAFinetuneDistributedRecipe:
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
         """.split()
+
+        torch._dynamo.reset()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
 

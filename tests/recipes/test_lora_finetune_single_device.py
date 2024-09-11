@@ -28,6 +28,8 @@ from tests.test_utils import (
 from torchtune import config
 from torchtune.utils import torch_version_ge
 
+torch._dynamo.reset()
+
 
 class TestLoRAFinetuneSingleDeviceRecipe:
     def _get_test_config_overrides(self, dtype_str: str = "fp32", epochs: int = 2):
@@ -189,6 +191,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             tokenizer.prompt_template=null \
         """.split()
 
+        torch._dynamo.reset()
+
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
 
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
@@ -213,6 +217,9 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
         """.split()
+
+        torch._dynamo.reset()
+
         cmd_2 = cmd_2 + self._get_test_config_overrides(epochs=3) + model_config
         monkeypatch.setattr(sys, "argv", cmd_2)
         with pytest.raises(SystemExit, match=""):
@@ -244,6 +251,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
         """.split()
+
+        torch._dynamo.reset()
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
 

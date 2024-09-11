@@ -27,6 +27,8 @@ from tests.test_utils import (
     TOKENIZER_PATHS,
 )
 
+torch._dynamo.reset()
+
 
 class TestFullFinetuneDistributedRecipe:
     def _get_test_config_overrides(self):
@@ -86,13 +88,15 @@ class TestFullFinetuneDistributedRecipe:
             tokenizer.prompt_template=null \
             metric_logger.filename={log_file} \
         """.split()
+
+        torch._dynamo.reset()
+
         if fsdp_sharding_strategy:
             cmd.append(f"fsdp_sharding_strategy={fsdp_sharding_strategy}")
         model_config = MODEL_TEST_CONFIGS[model_type]
         cmd = cmd + self._get_test_config_overrides() + model_config
 
         # in case compile is used, make sure we reset before the test
-        torch._dynamo.reset()
 
         monkeypatch.setattr(sys, "argv", cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")
