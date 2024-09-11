@@ -88,6 +88,7 @@ loss:
 
 kd_loss:
   _component_: torchtune.modules.loss.ForwardKLWithChunkedOutputLoss
+kd_ratio: 0.5
 
 # Training
 epochs: 1

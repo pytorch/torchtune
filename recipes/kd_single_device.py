@@ -136,6 +136,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
+        self._kd_ratio = cfg.get("kd_ratio", 0.5)
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -663,7 +664,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                     num_tokens += batch["tokens"].numel()
 
                     class_loss, kd_loss = self._loss_step(batch)
-                    loss = 0.5 * class_loss + 0.5 * kd_loss
+                    loss = (1 - self._kd_ratio) * class_loss + self._kd_ratio * kd_loss
                     loss = loss / self._gradient_accumulation_steps
                     running_loss += loss
                     running_class_loss += class_loss / self._gradient_accumulation_steps
