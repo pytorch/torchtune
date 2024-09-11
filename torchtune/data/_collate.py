@@ -392,15 +392,19 @@ def padded_collate_tiled_images_and_mask(
     # Concatenate masks for multiple images across image_seq_len dimension
     concat_masks = collated_masks.view(bsz, max_seq_len, -1)
 
-    return {
+    batch_dict = {
         "tokens": collated_text["tokens"],
-        "labels": collated_text["labels"] if "labels" in collated_text else None,
         "encoder_input": {
             "images": collated_images,
             "aspect_ratio": collated_aspect_ratios,
         },
         "encoder_mask": concat_masks,
     }
+
+    if "labels" in collated_text:
+        batch_dict["labels"] = collated_text["labels"]
+
+    return batch_dict
 
 
 def padded_collate_packed(
