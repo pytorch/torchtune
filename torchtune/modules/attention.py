@@ -183,14 +183,16 @@ class MultiHeadAttention(nn.Module):
             x (torch.Tensor): input tensor with shape [b x s_x x d] for the query
             y (Optional[torch.Tensor]): second input tensor with shape [b x s_y x d], is the input
                 for k and v. For self attention, x=y. Optional only with kv_cache enabled.
-            mask (Optional[_MaskType]): Optional boolean tensor which contains the attention mask
-                with shape [batch_size x seq_length x seq_length]. This is applied after
-                the query-key multiplication and before the softmax. A value of True in row i
-                and column j means token i attends to token j. A value of False means token i
-                does not attend to token j. If no mask is specified, a causal mask
-                is used by default. If a BlockMask is passed for document masking in a packed
-                sequence, we use :func:`~torch.nn.attention.flex_attention.flex_attention` when
-                computing attention. Default is None.
+            mask (Optional[_MaskType]): Used to mask the scores after the query-key multiplication
+                and before the softmax. Either a boolean tensor with shape [b x s x s] or a
+                :class:`~torch.nn.attention.flex_attention.BlockMask`. If a boolean tensor, a value
+                of True in row i and column j means token i attends to token j. A value of False means
+                token i does not attend to token j. If no mask is specified, a causal mask
+                is used by default. If a :class:`~torch.nn.attention.flex_attention.BlockMask` is passed
+                for document masking in a packed sequence via `create_block_mask
+                <https://pytorch.org/blog/flexattention/#mask-mods>`_, we use
+                :func:`~torch.nn.attention.flex_attention.flex_attention` when computing attention.
+                Default is None.
             input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
