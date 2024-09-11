@@ -241,7 +241,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         self._loss_fn = config.instantiate(cfg.loss)
 
         if self._compile:
-            training.compile_loss(self.loss_fn, verbose=self._is_rank_zero)
+            training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
         if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
             # set num_output_chunks for model
