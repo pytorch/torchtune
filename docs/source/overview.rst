@@ -32,9 +32,6 @@ torchtune provides the following features:
 - YAML configs for easily configuring training runs
 
 
-
-
-
 Excited? To get started, checkout some of our tutorials, including:
 
 - our :ref:`quickstart guide <finetune_llama_label>` to finetune your first LLM using torchtune.
@@ -58,7 +55,7 @@ Each recipe implements a training method (eg: full fine-tuning) with a set of me
 features (eg: FSDP + Activation Checkpointing + Gradient Accumulation + Reduced Precision training)
 applied to a given model family (eg: Llama2). See the ":ref:`What Are Recipes?<recipe_deepdive>`" deep-dive for more information.
 
-|
+.. image:: images/ecosystem.png
 
 .. _design_principles_label:
 
