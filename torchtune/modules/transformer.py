@@ -516,6 +516,10 @@ class TransformerDecoder(nn.Module):
         return output
 
 
+@deprecated(
+    msg="Please use torchtune.modules.TransformerDecoder instead. \
+If you need an example, see torchtune.models.qwen2._component_builders.py"
+)
 class TiedEmbeddingTransformerDecoder(nn.Module):
     """
     Transformer Decoder with tied embedding weight. A key difference between

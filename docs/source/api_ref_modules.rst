@@ -22,7 +22,6 @@ Modeling Components and Building Blocks
     TransformerSelfAttentionLayer
     TransformerCrossAttentionLayer
     TransformerDecoder
-    TiedEmbeddingTransformerDecoder
     VisionTransformer
 
 Base Tokenizers
