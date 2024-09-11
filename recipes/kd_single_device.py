@@ -154,9 +154,13 @@ class KDRecipeSingleDevice(FTRecipeInterface):
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
+        self._kd_loss_fn = config.instantiate(cfg.kd_loss)
         backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
         if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
             # set num_output_chunks for model
+            assert (
+                self._loss_fn.num_output_chunks == self._kd_loss_fn.num_output_chunks
+            ), "Number of output chunks for loss_fn and kd_loss_fn must be the same."
             self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
             self._teacher_model.set_num_output_chunks(self._loss_fn.num_output_chunks)
             if self._model_compile:
@@ -537,30 +541,33 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         with torch.no_grad():
             teacher_logits = self._teacher_model(tokens, mask=mask, input_pos=input_pos)
             # reshape logits to [bsz, s, v]
-            teacher_logits = [
-                logit_chunk.reshape(-1, logit_chunk.size(-1))
-                for logit_chunk in teacher_logits
-            ]
-        student_logits = [
-            logit_chunk.reshape(-1, logit_chunk.size(-1)) for logit_chunk in logits
-        ]
-        distill_labels = [
-            target_chunk.reshape(-1)
-            for target_chunk in labels.chunk(self._loss_fn.num_output_chunks, dim=1)
-        ]
-        total_distill_loss = 0.0
-        for teacher_chunk, student_chunk, label_chunk in zip(
-            teacher_logits, student_logits, distill_labels
-        ):
-            teacher_prob = torch.nn.functional.softmax(teacher_chunk, dim=-1)
-            inf_mask = torch.isinf(student_chunk)
-            student_logprob = torch.nn.functional.log_softmax(student_chunk, dim=-1)
-            prod_probs = torch.masked_fill(teacher_prob * student_logprob, inf_mask, 0)
-            x = torch.sum(prod_probs, dim=-1).view(-1)
-            mask = (label_chunk != -100).int()
-            total_distill_loss += -torch.sum(x * mask.view(-1), dim=0) / torch.sum(
-                mask.view(-1), dim=0
-            )
+        #     teacher_logits = [
+        #         logit_chunk.reshape(-1, logit_chunk.size(-1))
+        #         for logit_chunk in teacher_logits
+        #     ]
+        # student_logits = [
+        #     logit_chunk.reshape(-1, logit_chunk.size(-1)) for logit_chunk in logits
+        # ]
+        # distill_labels = [
+        #     target_chunk.reshape(-1)
+        #     for target_chunk in labels.chunk(self._loss_fn.num_output_chunks, dim=1)
+        # ]
+        # total_distill_loss = 0.0
+        # for teacher_chunk, student_chunk, label_chunk in zip(
+        #     teacher_logits, student_logits, distill_labels
+        # ):
+        #     teacher_prob = torch.nn.functional.softmax(teacher_chunk, dim=-1)
+        #     inf_mask = torch.isinf(student_chunk)
+        #     student_logprob = torch.nn.functional.log_softmax(student_chunk, dim=-1)
+        #     prod_probs = torch.masked_fill(teacher_prob * student_logprob, inf_mask, 0)
+        #     x = torch.sum(prod_probs, dim=-1).view(-1)
+        #     mask = (label_chunk != -100).int()
+        #     total_distill_loss += -torch.sum(x * mask.view(-1), dim=0) / torch.sum(
+        #         mask.view(-1), dim=0
+        #     )
+
+        # Compute kd loss
+        kd_loss = self._kd_loss_fn(logits, teacher_logits, labels)
 
         # Compute loss
         loss = self._loss_fn(logits, labels)
@@ -568,12 +575,12 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         # free logits otherwise it peaks backward memory
         del logits
         del teacher_logits
-        del student_logits
-        del teacher_prob
-        del student_logprob
-        del prod_probs
+        # del student_logits
+        # del teacher_prob
+        # del student_logprob
+        # del prod_probs
 
-        return loss, total_distill_loss
+        return loss, kd_loss
 
     def train(self) -> None:
         """

@@ -85,6 +85,9 @@ lr_scheduler:
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
+kd_loss:
+  _component_: torchtune.modules.loss.ForwardKLWithChunkedOutputLoss
+
 # Training
 epochs: 1
 max_steps_per_epoch: null
