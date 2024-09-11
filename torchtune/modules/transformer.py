@@ -8,6 +8,7 @@ from typing import Callable, Dict, List, Optional, Union
 
 import torch
 from torch import nn
+from torch.utils.logging import deprecate
 from torchtune.modules import MultiHeadAttention
 
 from torchtune.modules.attention_utils import _MaskType
@@ -518,6 +519,9 @@ class TransformerDecoder(nn.Module):
         return output
 
 
+@deprecate(
+    msg="TiedEmbeddingTransformerDecoder is deprecated, please use TransformerDecoder instead."
+)
 class TiedEmbeddingTransformerDecoder(nn.Module):
     """
     Transformer Decoder with tied embedding weight. A key difference between
