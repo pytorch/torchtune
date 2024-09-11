@@ -92,9 +92,6 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
 
-        # in case compile is used, make sure we reset before the test
-        torch._dynamo.reset()
-
         cmd = cmd + self._get_test_config_overrides(dtype_str="fp32") + model_config
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit, match=""):

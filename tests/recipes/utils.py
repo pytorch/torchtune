@@ -50,8 +50,6 @@ def get_assets_path():
 
 
 def dummy_alpaca_dataset_config():
-    # in case compile is used, make sure we reset before the test
-    torch._dynamo.reset()
 
     data_files = os.path.join(get_assets_path(), "alpaca_tiny.json")
     out = [
@@ -68,8 +66,6 @@ def dummy_text_completion_alpaca_dataset_config():
     Constructs a minimal text-completion-style dataset from ``alpaca_tiny.json``.
     This is used for testing PPO fine-tuning.
     """
-    # in case compile is used, make sure we reset before the test
-    torch._dynamo.reset()
 
     data_files = os.path.join(get_assets_path(), "alpaca_tiny.json")
     out = [
@@ -85,9 +81,6 @@ def dummy_text_completion_alpaca_dataset_config():
 
 def llama2_test_config() -> List[str]:
 
-    # in case compile is used, make sure we reset before the test
-    torch._dynamo.reset()
-
     return [
         "model._component_=torchtune.models.llama2.llama2",
         "model.vocab_size=32_000",
@@ -101,9 +94,6 @@ def llama2_test_config() -> List[str]:
 
 
 def llama2_classifier_test_config() -> List[str]:
-
-    # in case compile is used, make sure we reset before the test
-    torch._dynamo.reset()
 
     return [
         "model._component_=torchtune.models.llama2.llama2_classifier",
@@ -119,9 +109,6 @@ def llama2_classifier_test_config() -> List[str]:
 
 
 def llama3_test_config() -> List[str]:
-
-    # in case compile is used, make sure we reset before the test
-    torch._dynamo.reset()
 
     return [
         "model._component_=torchtune.models.llama3.llama3",
@@ -143,9 +130,6 @@ def lora_llama2_test_config(
     lora_alpha: float = 16,
     quantize_base: bool = False,
 ) -> List[str]:
-
-    # in case compile is used, make sure we reset before the test
-    torch._dynamo.reset()
 
     return [
         # Note: we explicitly use _component_ so that we can also call
@@ -176,9 +160,6 @@ def lora_llama3_test_config(
     lora_alpha: float = 16,
     quantize_base: bool = False,
 ) -> List[str]:
-
-    # in case compile is used, make sure we reset before the test
-    torch._dynamo.reset()
 
     return [
         # Note: we explicitly use _component_ so that we can also call

@@ -107,9 +107,6 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             + reward_and_value_model_config
         )
 
-        # in case compile is used, make sure we reset before the test
-        torch._dynamo.reset()
-
         monkeypatch.setattr(sys, "argv", cmd_1)
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -181,9 +178,6 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             metric_logger.filename={log_file} \
         """.split()
 
-        # in case compile is used, make sure we reset before the test
-        torch._dynamo.reset()
-
         model_config = llama2_test_config()
         model_config = [k.replace("model.", "policy_model.") for k in model_config]
         model_config += ["policy_model.intermediate_dim=null"]
@@ -202,9 +196,6 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             + model_config
             + reward_and_value_model_config
         )
-
-        # in case compile is used, make sure we reset before the test
-        torch._dynamo.reset()
 
         monkeypatch.setattr(sys, "argv", cmd_1)
         with pytest.raises(SystemExit, match=""):
@@ -247,9 +238,6 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             + model_config
             + reward_and_value_model_config
         )
-
-        # in case compile is used, make sure we reset before the test
-        torch._dynamo.reset()
 
         monkeypatch.setattr(sys, "argv", cmd_2)
         with pytest.raises(SystemExit, match=""):
@@ -312,9 +300,6 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             optimizer_in_bwd=True
         """.split()
 
-        # in case compile is used, make sure we reset before the test
-        torch._dynamo.reset()
-
         model_config = llama2_test_config()
         model_config = [k.replace("model.", "policy_model.") for k in model_config]
         model_config += ["policy_model.intermediate_dim=null"]
@@ -333,9 +318,6 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             + model_config
             + reward_and_value_model_config
         )
-
-        # in case compile is used, make sure we reset before the test
-        torch._dynamo.reset()
 
         monkeypatch.setattr(sys, "argv", cmd_1)
         with pytest.raises(SystemExit, match=""):
@@ -380,9 +362,6 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             + model_config
             + reward_and_value_model_config
         )
-
-        # in case compile is used, make sure we reset before the test
-        torch._dynamo.reset()
 
         monkeypatch.setattr(sys, "argv", cmd_2)
         with pytest.raises(SystemExit, match=""):
