@@ -25,6 +25,7 @@ class PromptTemplateInterface(Protocol):
     def __call__(
         self,
         messages: List[Message],
+        inference: bool = False,
     ) -> List[Message]:
         """
         Format each role's message(s) according to the prompt template
@@ -32,6 +33,7 @@ class PromptTemplateInterface(Protocol):
         Args:
             messages (List[Message]): a single conversation, structured as a list
                 of :class:`~torchtune.data.Message` objects
+            inference (bool): Whether the template is being used for inference or not.
 
         Returns:
             The formatted list of messages
@@ -87,13 +89,16 @@ class PromptTemplate(PromptTemplateInterface):
     ):
         self.template = template
 
-    def __call__(self, messages: List[Message]) -> List[Message]:
+    def __call__(
+        self, messages: List[Message], inference: bool = False
+    ) -> List[Message]:
         """
         Format each role's message(s) according to the prompt template by prepending
         and appending the defined tags.
 
         Args:
             messages (List[Message]): list of messages to apply the template to
+            inference (bool): Whether the template is being used for inference or not.
 
         Returns:
             List[Message]: The formatted list of messages
@@ -151,6 +156,7 @@ class ChatMLTemplate(PromptTemplateInterface):
     def __call__(
         self,
         messages: List[Message],
+        inference: bool = False,
     ) -> List[Message]:
         """
         Format user, assistant, and system messages with appropriate tags.
@@ -158,6 +164,7 @@ class ChatMLTemplate(PromptTemplateInterface):
         Args:
             messages (List[Message]): a single conversation, structured as a list
                 of `Message` objects
+            inference (bool): Whether the template is being used for inference or not.
 
         Returns:
             The formatted list of messages
