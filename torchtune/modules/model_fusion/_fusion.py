@@ -9,6 +9,8 @@ from typing import Dict, List, Optional, Union
 import torch
 from torch import nn
 from torchtune.modules import TransformerDecoder
+from torchtune.modules.model_fusion._fusion_utils import get_fusion_params
+from torchtune.modules.peft._utils import set_trainable_params
 
 
 class FusionLayer(nn.Module):
@@ -295,16 +297,39 @@ class DeepFusionModel(nn.Module):
     Args:
         decoder (TransformerDecoder): decoder module
         encoder (nn.Module): encoder module
+        decoder_trainable (bool): whether to train or freeze the decoder. Default is False.
+        encoder_trainable (bool): whether to train or freeze the encoder. Default is False.
+        fusion_trainable (bool): whether to train the fusion parameters. Default is True.
+
     """
 
     def __init__(
         self,
         decoder: TransformerDecoder,
         encoder: nn.Module,
+        *,
+        decoder_trainable: bool = False,
+        encoder_trainable: bool = False,
+        fusion_trainable: bool = True,
     ):
         super().__init__()
         self.decoder = decoder
         self.encoder = encoder
+
+        trainable_params = set()
+        if encoder_trainable:
+            trainable_params |= {
+                f"encoder.{n}" for n, p in self.encoder.named_parameters()
+            }
+        if decoder_trainable:
+            trainable_params |= {
+                f"decoder.{n}" for n, p in self.decoder.named_parameters()
+            }
+        if fusion_trainable:
+            trainable_params |= set(get_fusion_params(self))
+        else:
+            trainable_params -= set(get_fusion_params(self))
+        set_trainable_params(self, trainable_params)
 
     def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
         """Setup key value caches for attention calculation.

@@ -81,6 +81,7 @@ Components for building models that are a fusion of two+ pre-trained models.
     model_fusion.FusionLayer
     model_fusion.FusionEmbedding
     model_fusion.register_fusion_module
+    model_fusion.get_fusion_params
 
 
 Module Utilities
