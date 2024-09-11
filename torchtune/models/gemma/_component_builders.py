@@ -8,11 +8,10 @@ from torch import nn
 from typing import List
 from functools import partial
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
-
+import torch.nn.functional as F
 from torchtune.modules import (
     MultiHeadAttention,
     FeedForward,
-    TiedLinear,
     FrozenNF4Linear,
     RotaryPositionalEmbeddings,
     TransformerSelfAttentionLayer,
@@ -115,7 +114,7 @@ def gemma(
         num_heads=num_heads,
         head_dim=head_dim,
         norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
-        output=TiedLinear(tied_module=tok_embeddings)
+        output=lambda x: F.linear(x, tok_embeddings.weight)
     )
     return model
 
@@ -247,7 +246,7 @@ def lora_gemma(
         num_heads=num_heads,
         head_dim=head_dim,
         norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
-        output=TiedLinear(tied_module=tok_embeddings)
+        output=lambda x: F.linear(x, tok_embeddings.weight)
     )
 
     if quantize_base:

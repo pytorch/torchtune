@@ -12,11 +12,10 @@ from torch import nn
 
 from torchtune.modules.transformer import TransformerDecoder
 from torchtune.models.qwen2._positional_embeddings import Qwen2RotaryPositionalEmbeddings
-
+import torch.nn.functional as F
 from torchtune.modules import (
     MultiHeadAttention,
     FeedForward,
-    TiedLinear,
     RMSNorm,
     TransformerSelfAttentionLayer,
 )
@@ -108,7 +107,7 @@ def qwen2(
         layers.append(layer)
     layers = nn.ModuleList(layers)
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
-    output_proj = TiedLinear(tied_module=tok_embeddings) if tie_word_embeddings else nn.Linear(embed_dim, vocab_size, bias=False)
+    output_proj = lambda x: F.linear(x, tok_embeddings.weight) if tie_word_embeddings else nn.Linear(embed_dim, vocab_size, bias=False)
     return TransformerDecoder(
         tok_embeddings=tok_embeddings,
         layers=layers,
@@ -250,7 +249,7 @@ def lora_qwen2(
                 "apply_lora_to_output is incompatible with tie_word_embeddings,"
                 " as there would be no output to apply lora to!"
             )
-        output_proj = TiedLinear(tied_module=tok_embeddings)
+        output_proj = lambda x: F.linear(x, tok_embeddings.weight)
     else:
         # TODO: quantize_base is not applied to final output_proj currently.
         adapter_cls = DoRALinear if use_dora else LoRALinear
