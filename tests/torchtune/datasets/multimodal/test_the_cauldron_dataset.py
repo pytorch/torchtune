@@ -6,14 +6,13 @@
 
 from unittest.mock import patch
 
-import pytest
-import torch
+import PIL
 
+import pytest
 from tests.test_utils import DummyTokenizer
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
 from torchtune.datasets import the_cauldron_dataset
-from torchvision.transforms import functional as F
 
 
 class TestTheCauldronDataset:
@@ -21,17 +20,19 @@ class TestTheCauldronDataset:
     def tokenizer(self):
         return DummyTokenizer()
 
+    @pytest.fixture
+    def test_image_pil(self):
+        return PIL.Image.new(mode="RGB", size=(4, 4))
+
     @patch("torchtune.datasets._sft.load_dataset")
-    def test_label_no_masking(self, load_dataset, tokenizer):
+    def test_label_no_masking(self, load_dataset, tokenizer, test_image_pil):
         """
         Test whether the input and the labels are correctly created when the input is not masked.
         """
-
-        image_tensor = torch.randint(0, 256, (3, 4, 4), dtype=torch.uint8)
         # mock the call to HF datasets
         load_dataset.return_value = [
             {
-                "images": [F.to_pil_image(image_tensor)],
+                "images": test_image_pil,
                 "texts": [
                     {
                         "user": "Question: What do respiration and combustion give out"
@@ -47,11 +48,7 @@ class TestTheCauldronDataset:
         ds = the_cauldron_dataset(
             model_transform=tokenizer, subset="dummy", train_on_input=True
         )
-        input, labels, images = (
-            ds[0]["tokens"],
-            ds[0]["labels"],
-            ds[0]["images"][0],
-        )
+        input, labels, images = (ds[0]["tokens"], ds[0]["labels"], ds[0]["images"])
 
         assert input == [
             0,
@@ -83,19 +80,17 @@ class TestTheCauldronDataset:
             -1,
         ]
         assert labels == input
-        torch.testing.assert_close(F.pil_to_tensor(images), image_tensor)
+        assert images == [test_image_pil]
 
     @patch("torchtune.datasets._sft.load_dataset")
-    def test_label_masking(self, load_dataset, tokenizer):
+    def test_label_masking(self, load_dataset, tokenizer, test_image_pil):
         """
         Test whether the input and the labels are correctly created when the input is masked.
         """
-
-        image_tensor = torch.randint(0, 256, (3, 4, 4), dtype=torch.uint8)
         # mock the call to HF datasets
         load_dataset.return_value = [
             {
-                "images": [F.to_pil_image(image_tensor)],
+                "images": test_image_pil,
                 "texts": [
                     {
                         "user": "Question: What do respiration and combustion give out"
@@ -111,11 +106,7 @@ class TestTheCauldronDataset:
         ds = the_cauldron_dataset(
             model_transform=tokenizer, subset="dummy", train_on_input=False
         )
-        input, labels, images = (
-            ds[0]["tokens"],
-            ds[0]["labels"],
-            ds[0]["images"][0],
-        )
+        input, labels, images = (ds[0]["tokens"], ds[0]["labels"], ds[0]["images"])
 
         assert input == [
             0,
@@ -147,4 +138,4 @@ class TestTheCauldronDataset:
             -1,
         ]
         assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 24
-        torch.testing.assert_close(F.pil_to_tensor(images), image_tensor)
+        assert images == [test_image_pil]

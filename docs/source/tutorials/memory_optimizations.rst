@@ -321,8 +321,3 @@ to see how to configure.
 
 .. All our ``_distributed`` recipes use `FSDP <https://pytorch.org/docs/stable/fsdp.html>`.
 .. .. _glossary_fsdp2:
-
-.. (Experimental) Fully Sharded Data Parallel 2 (FSDP2)
-.. ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. This directory contains distributed training recipes for LoRA and QLoRA using `FSDP2 <https://github.com/pytorch/pytorch/issues/114299>`_.
-.. Currently FSDP2 is only available in PyTorch nightly releases.

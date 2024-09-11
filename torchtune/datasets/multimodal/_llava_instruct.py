@@ -4,9 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Union
 
-from torchtune.data import Message, split_text_by_image_tag
+from torchtune.data import format_content_with_images, load_image, Message
 from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.transforms import Transform
 
@@ -19,6 +20,7 @@ class LlavaInstructToMessages(Transform):
     Chat samples in the "conversations" column follow the ShareGPT format::
 
         {
+            "image": "image0001.png",
             "conversations": [
                 {
                     "from": "system" | "human" | "gpt",
@@ -37,7 +39,7 @@ class LlavaInstructToMessages(Transform):
                 "role": "system" | "user" | "assistant",
                 "content":
                     [
-                        {"type": "image"},
+                        {"type": "image", "content": <PIL.Image.Image>},
                         {"type": "text", "content": "This is a sample image."},
                     ],
             },
@@ -53,6 +55,7 @@ class LlavaInstructToMessages(Transform):
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
+        images_dir (Optional[Path]): path to the directory containing the images. User is expected to download the COCO dataset.
 
     Raises:
         ValueError: If ``column_map`` is provided and ``conversations`` not in ``column_map``.
@@ -63,6 +66,7 @@ class LlavaInstructToMessages(Transform):
         train_on_input: bool = False,
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
+        images_dir: Optional[Path] = None,
     ):
         self.train_on_input = train_on_input
         self.new_system_prompt = new_system_prompt
@@ -78,6 +82,7 @@ class LlavaInstructToMessages(Transform):
             self._column_map = column_map
         else:
             self._column_map = {"conversations": "conversations", "image": "image"}
+        self.images_dir = images_dir
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         role_map = {"system": "system", "human": "user", "gpt": "assistant"}
@@ -88,15 +93,27 @@ class LlavaInstructToMessages(Transform):
                     role="system", content=self.new_system_prompt, masked=True, eot=True
                 )
             )
+
+        # Add in image stuffs / load from file
         for message in sample[self._column_map["conversations"]]:
             role = role_map[message["from"]]
+            content = message["value"]
             if role == "system" and self.new_system_prompt is not None:
                 continue
-            content = split_text_by_image_tag(message["value"], "<image>")
+            if role == "user":
+                image_path = sample[self._column_map["image"]]
+                if self.images_dir is not None:
+                    image_path = self.images_dir / image_path
+                pil_image = load_image(image_path)
+                content = format_content_with_images(
+                    content,
+                    image_tag="<image>",
+                    images=[pil_image],
+                )
             masked = (role != "assistant") and (not self.train_on_input)
             messages.append(Message(role=role, content=content, masked=masked))
 
-        return {"messages": messages, "images": sample[self._column_map["image"]]}
+        return {"messages": messages}
 
 
 # TODO: point to Flamingo model transform as an example
@@ -104,6 +121,7 @@ def llava_instruct_dataset(
     model_transform: Transform,
     *,
     source: str = "liuhaotian/LLaVA-Instruct-150K",
+    images_dir: str = "coco/",
     column_map: Optional[Dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
     train_on_input: bool = True,
@@ -172,6 +190,8 @@ def llava_instruct_dataset(
             define source as the data file type (e.g. "json", "csv", "text") and pass
             in the filepath in ``data_files``. See `Hugging Face's
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
+        images_dir (str): path to the directory containing the images as you are expected to download the COCO dataset
+            before using. Default is "coco/".
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("conversations")
             to the new column names in the dataset. If None, assume these are identical.
             Default is None.
@@ -206,6 +226,7 @@ def llava_instruct_dataset(
         train_on_input=train_on_input,
         column_map=column_map,
         new_system_prompt=new_system_prompt,
+        images_dir=Path(images_dir),
     )
 
     ds = SFTDataset(
