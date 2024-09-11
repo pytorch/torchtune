@@ -85,6 +85,9 @@ class TestLoRAFinetuneDistributedRecipe:
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
 
+        # in case compile is used, make sure we reset before the test
+        torch._dynamo.reset()
+
         cmd = cmd + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")

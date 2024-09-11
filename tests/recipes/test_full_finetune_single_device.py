@@ -96,9 +96,8 @@ class TestFullFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        # Make sure to clear compile state in between tests
-        if compile:
-            torch._dynamo.reset()
+        # in case compile is used, make sure we reset before the test
+        torch._dynamo.reset()
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values(model_type)
@@ -144,6 +143,9 @@ class TestFullFinetuneSingleDeviceRecipe:
         model_config = MODEL_TEST_CONFIGS["llama2"]
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
 
+        # in case compile is used, make sure we reset before the test
+        torch._dynamo.reset()
+
         monkeypatch.setattr(sys, "argv", cmd_1)
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -166,6 +168,9 @@ class TestFullFinetuneSingleDeviceRecipe:
         """.split()
 
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
+
+        # in case compile is used, make sure we reset before the test
+        torch._dynamo.reset()
 
         monkeypatch.setattr(sys, "argv", cmd_2)
         with pytest.raises(SystemExit, match=""):

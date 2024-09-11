@@ -17,6 +17,8 @@ from tests.common import TUNE_PATH
 from tests.recipes.utils import llama2_test_config
 from tests.test_utils import CKPT_MODEL_PATHS
 
+torch._dynamo.reset()
+
 
 class TestEleutherEval:
     @pytest.mark.integration_test

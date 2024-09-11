@@ -91,6 +91,9 @@ class TestFullFinetuneDistributedRecipe:
         model_config = MODEL_TEST_CONFIGS[model_type]
         cmd = cmd + self._get_test_config_overrides() + model_config
 
+        # in case compile is used, make sure we reset before the test
+        torch._dynamo.reset()
+
         monkeypatch.setattr(sys, "argv", cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")
         loss_values = get_loss_values_from_metric_logger(log_file)

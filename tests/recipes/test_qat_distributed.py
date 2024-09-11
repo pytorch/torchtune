@@ -87,6 +87,10 @@ class TestQATDistributedRecipe:
             tokenizer.prompt_template=null \
             metric_logger.filename={log_file} \
         """.split()
+
+        # in case compile is used, make sure we reset before the test
+        torch._dynamo.reset()
+
         model_config = MODEL_TEST_CONFIGS[model_type]
         cmd = cmd + self._get_test_config_overrides() + model_config
 
