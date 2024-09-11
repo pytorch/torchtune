@@ -9,15 +9,13 @@ from typing import List, Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.logging import deprecate
 from torchtune.modules import KVCache
 
 from torchtune.modules.transformer import _get_clones, TransformerSelfAttentionLayer
+from torchtune.utils.logging import deprecated
 
 
-@deprecate(
-    msg="GemmaTransformerDecoder is deprecated, please use TransformerDecoder instead."
-)
+@deprecated(msg="Please use torchtune.modules.TransformerDecoder instead.")
 class GemmaTransformerDecoder(nn.Module):
     """
     GemmaTransformer Decoder derived from Gemma architecture. A key difference between
