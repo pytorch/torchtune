@@ -373,6 +373,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
+            for m in model.modules():
+                # RoPE is not covered in state dict
+                if hasattr(m, "rope_init") and not m.is_cache_built:
+                    m.rope_init()
 
         self._lora_rank = cfg_model.lora_rank
         self._lora_alpha = cfg_model.lora_alpha

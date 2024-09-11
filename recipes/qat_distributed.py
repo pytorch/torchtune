@@ -444,7 +444,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
                 # RoPE is not covered in state dict
-                if hasattr(m, "rope_init"):
+                if hasattr(m, "rope_init") and not m.is_cache_built:
                     m.rope_init()
 
         # This method will convert the full model state dict into a sharded state

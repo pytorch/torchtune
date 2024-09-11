@@ -351,6 +351,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
+            for m in model.modules():
+                # RoPE is not covered in state dict
+                if hasattr(m, "rope_init") and not m.is_cache_built:
+                    m.rope_init()
 
         if compile_model:
             training.compile_model(model)
