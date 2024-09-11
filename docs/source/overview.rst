@@ -55,7 +55,9 @@ Each recipe implements a training method (eg: full fine-tuning) with a set of me
 features (eg: FSDP + Activation Checkpointing + Gradient Accumulation + Reduced Precision training)
 applied to a given model family (eg: Llama2). See the ":ref:`What Are Recipes?<recipe_deepdive>`" deep-dive for more information.
 
-.. image:: images/ecosystem.png
+.. figure:: images/ecosystem.png
+   :width: 100%
+   :align: center
 
 .. _design_principles_label:
 
