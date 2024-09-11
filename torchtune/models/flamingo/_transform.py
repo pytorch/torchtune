@@ -102,6 +102,7 @@ class FlamingoTransform(ModelTokenizer, Transform):
         self.stop_tokens = self.tokenizer.stop_tokens
         self.max_seq_len = max_seq_len
         self.prompt_template = prompt_template
+        self.pad_id = self.tokenizer.pad_id
 
     @property
     def base_vocab_size(self) -> int:
@@ -206,7 +207,6 @@ class FlamingoTransform(ModelTokenizer, Transform):
         """
         encoder_input = {"images": [], "aspect_ratio": []}
         messages = sample["messages"]
-
         for message in messages:
             for image in message.get_media():
                 out = self.transform_image({"image": image}, inference=inference)

@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Dict, Mapping, Optional
 
 from torchtune.data import Message
 from torchtune.datasets._sft import SFTDataset
@@ -86,16 +86,14 @@ class TheCauldronToMessages(Transform):
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         messages = []
         for message in sample[self._column_map["texts"]]:
+            user_content = []
+            for img in sample[self._column_map["images"]]:
+                user_content.append({"type": "image", "content": img})
+            user_content.append({"type": "text", "content": message["user"]})
             messages.append(
                 Message(
                     role="user",
-                    content=[
-                        {
-                            "type": "image",
-                            "content": sample[self._column_map["images"]],
-                        },
-                        {"type": "text", "content": message["user"]},
-                    ],
+                    content=user_content,
                     masked=not self.train_on_input,
                 )
             )
@@ -128,7 +126,7 @@ def the_cauldron_dataset(
     packed: bool = False,
     split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],
-) -> Union[SFTDataset, PackedDataset]:
+) -> SFTDataset:
     """
     Support for family of image + text datasets similar to
     `The Cauldron <https://huggingface.co/datasets/HuggingFaceM4/the_cauldron>`_
@@ -199,7 +197,7 @@ def the_cauldron_dataset(
             for more details.
 
     Returns:
-        Union[SFTDataset, PackedDataset]: dataset configured with source data and transform
+        SFTDataset: dataset configured with source data and transform
 
     Raises:
         ValueError: If ``packed`` is True, they are not supported for multimodal datasets yet.

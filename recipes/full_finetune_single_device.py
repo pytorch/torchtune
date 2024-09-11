@@ -469,9 +469,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 ignore_idx=self._loss_fn.ignore_index,
             )
             if not packed
-            else partial(
-                padded_collate_packed,
-            ),
+            else padded_collate_packed,
         )
 
         log.info("Dataset and Sampler are initialized.")

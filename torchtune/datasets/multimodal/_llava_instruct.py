@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from pathlib import Path
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Dict, Mapping, Optional
 
 from torchtune.data import format_content_with_images, load_image, Message
 from torchtune.datasets._sft import SFTDataset
@@ -129,7 +129,7 @@ def llava_instruct_dataset(
     split: str = "train",
     data_files: str = "llava_instruct_150k.json",
     **load_dataset_kwargs: Dict[str, Any],
-) -> Union[SFTDataset, PackedDataset]:
+) -> SFTDataset:
     """
     Support for family of image + text datasets similar to
     `LLaVA-Instruct-150K <https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K>`_
@@ -210,7 +210,7 @@ def llava_instruct_dataset(
             for more details.
 
     Returns:
-        Union[SFTDataset, PackedDataset]: dataset configured with source data and transform
+        SFTDataset: dataset configured with source data and transform
 
     Raises:
         ValueError: If ``packed`` is True, they are not supported for multimodal datasets yet.

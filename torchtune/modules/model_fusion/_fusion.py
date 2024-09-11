@@ -331,6 +331,11 @@ class DeepFusionModel(nn.Module):
             trainable_params -= set(get_fusion_params(self))
         set_trainable_params(self, trainable_params)
 
+    def set_num_output_chunks(self, num_output_chunks: int) -> None:
+        """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
+        This should be called before the first forward pass, in the recipe."""
+        self.decoder.set_num_output_chunks(num_output_chunks)
+
     def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
         """Setup key value caches for attention calculation.
 
