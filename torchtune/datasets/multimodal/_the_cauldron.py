@@ -6,7 +6,7 @@
 
 from typing import Any, Dict, Mapping, Optional
 
-from torchtune.data import Message
+from torchtune.data._messages import Message
 from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.transforms import Transform
 
@@ -84,12 +84,17 @@ class TheCauldronToMessages(Transform):
             self._column_map = {"texts": "texts", "images": "images"}
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        # Dataset images to be prepended to the first user message
+        img_content = []
+        for img in sample[self._column_map["images"]]:
+            img_content.append({"type": "image", "content": img})
+
+        # Convert to messages
         messages = []
-        for message in sample[self._column_map["texts"]]:
-            user_content = []
-            for img in sample[self._column_map["images"]]:
-                user_content.append({"type": "image", "content": img})
-            user_content.append({"type": "text", "content": message["user"]})
+        for i, message in enumerate(sample[self._column_map["texts"]]):
+            user_content = [{"type": "text", "content": message["user"]}]
+            if i == 0:
+                user_content = img_content + user_content
             messages.append(
                 Message(
                     role="user",

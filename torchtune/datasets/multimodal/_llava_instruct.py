@@ -7,7 +7,8 @@
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
-from torchtune.data import format_content_with_images, load_image, Message
+from torchtune.data._messages import Message
+from torchtune.data._utils import format_content_with_images, load_image
 from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.transforms import Transform
 

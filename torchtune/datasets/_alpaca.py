@@ -8,7 +8,7 @@ from functools import partial
 
 from typing import Any, Dict, Mapping, Optional, Union
 
-from torchtune.data import Message
+from torchtune.data._messages import Message
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.tokenizers import ModelTokenizer
