@@ -27,7 +27,7 @@ Loading tokenizers from file
 ----------------------------
 
 Once you've downloaded the tokenizer file, you can load it into the corresponding tokenizer class by pointing
-to the file path of the tokenizer model in your config or in the constructor. You can also pass in a custom file path if you've already 
+to the file path of the tokenizer model in your config or in the constructor. You can also pass in a custom file path if you've already
 downloaded it to a different location.
 
 .. code-block:: python
@@ -88,6 +88,8 @@ Defining via dotpath string
       path: /tmp/Mistral-7B-v0.1/tokenizer.model
       prompt_template: torchtune.models.mistral.MistralChatTemplate
 
+.. _custom_dictionary_template:
+
 Defining via dictionary
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -104,7 +106,7 @@ You need to pass in a tuple for each role, where ``PREPEND_TAG`` is the string
 added before the text content and ``APPEND_TAG`` is the string added after.
 
 .. code-block:: python
-        
+
     template = {role: (PREPEND_TAG, APPEND_TAG)}
 
 Thus, the template would be defined as follows:
@@ -141,13 +143,13 @@ Now we can pass it into the tokenizer as a dictionary:
       _component_: torchtune.models.mistral.mistral_tokenizer
       path: /tmp/Mistral-7B-v0.1/tokenizer.model
       prompt_template:
-        system: 
+        system:
           - "System: "
           - "\\n"
-        user: 
+        user:
           - "User: "
           - "\\n"
-        assistant: 
+        assistant:
           - "Assistant: "
           - "\\n"
         ipython:
@@ -170,7 +172,7 @@ and prompt templates, see :ref:`prompt_templates_usage_label`.
 Special tokens are automatically added to your data by the model tokenizer and do not require any additional configuration
 by the user. You also have the ability to customize the special tokens for experimentation by passing in a file path to
 the new special tokens mapping in a JSON file. This will NOT modify the underlying ``tokenizer.model`` to support the new
-special token ids - it is the user's responsibility to ensure that the tokenizer file encodes it correctly. Note also that 
+special token ids - it is the user's responsibility to ensure that the tokenizer file encodes it correctly. Note also that
 some models require the presence of certain special tokens for proper usage.
 
 For example, here we change the ``"<|begin_of_text|>"`` and ``"<|end_of_text|>"`` token IDs in Llama3:
@@ -241,7 +243,7 @@ between raw text and token IDs.
             """
             pass
 
-If you load any :class:`~torchtune.modules.tokenizers.ModelTokenizer`, you can see that it calls its underlying :class:`~torchtune.modules.tokenizers.BaseTokenizer` 
+If you load any :class:`~torchtune.modules.tokenizers.ModelTokenizer`, you can see that it calls its underlying :class:`~torchtune.modules.tokenizers.BaseTokenizer`
 to do the actual encoding and decoding.
 
 .. code-block:: python
@@ -266,7 +268,7 @@ Model tokenizers
 ----------------
 
 :class:`~torchtune.modules.tokenizers.ModelTokenizer` are specific to a particular model. They are required to implement the ``tokenize_messages`` method,
-which converts a list of Messages into a list of token IDs. 
+which converts a list of Messages into a list of token IDs.
 
 .. code-block:: python
 
@@ -316,6 +318,3 @@ is because they add all the necessary special tokens or prompt templates require
     # [INST] hello world  [/INST]
     print(sp_tokenizer.decode(sp_tokenizer.encode(text)))
     # hello world
-
-
-

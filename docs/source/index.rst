@@ -141,6 +141,7 @@ torchtune tutorials.
    :hidden:
 
    basics/tokenizers
+   basics/prompt_templates
 
 .. toctree::
    :glob:
