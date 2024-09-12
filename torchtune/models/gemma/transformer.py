@@ -12,8 +12,13 @@ import torch.nn.functional as F
 from torchtune.modules import KVCache
 
 from torchtune.modules.transformer import _get_clones, TransformerSelfAttentionLayer
+from torchtune.utils.logging import deprecated
 
 
+@deprecated(
+    msg="Please use torchtune.modules.TransformerDecoder instead. \
+If you need an example, see torchtune.models.gemma._component_builders.py"
+)
 class GemmaTransformerDecoder(nn.Module):
     """
     GemmaTransformer Decoder derived from Gemma architecture. A key difference between
