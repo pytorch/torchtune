@@ -698,7 +698,8 @@
 <span class="sd">    Args:</span>
 <span class="sd">        tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move</span>
 <span class="sd">            tokens to an embedding space.</span>
-<span class="sd">        layers (Union[nn.Module, List[nn.Module]]): Transformer Decoder layer or a list of layers.</span>
+<span class="sd">        layers (Union[nn.Module, List[nn.Module], nn.ModuleList]): A single transformer Decoder layer, an</span>
+<span class="sd">            nn.ModuleList of layers or a list of layers. It is recommended to use an nn.ModuleList.</span>
 <span class="sd">        max_seq_len (int): maximum sequence length the model will be run with, as used</span>
 <span class="sd">            by :func:`~torchtune.modules.KVCache`</span>
 <span class="sd">        num_heads (int): number of query heads. For MHA this is also the</span>
@@ -728,7 +729,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">tok_embeddings</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">,</span>
-        <span class="n">layers</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]],</span>
+        <span class="n">layers</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">],</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">],</span>
         <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">head_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -738,15 +739,15 @@
         <span class="n">output_hidden_states</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">num_layers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
-                    <span class="s2">&quot;If num_layers is undefined, it is assumed that a list of layers is provided.&quot;</span>
-                <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">):</span>
+            <span class="k">pass</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
             <span class="n">layers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span><span class="n">layers</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;num_layers is defined, layers must be a module&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">num_layers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;num_layers is not defined, layers must be a list&quot;</span><span class="p">)</span>
             <span class="n">layers</span> <span class="o">=</span> <span class="n">_get_clones</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span> <span class="o">=</span> <span class="n">tok_embeddings</span>
