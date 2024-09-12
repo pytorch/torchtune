@@ -6,14 +6,19 @@
 import itertools
 import sys
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List
 
 import torch
 from omegaconf import DictConfig
 from torch import nn
 
 from torchtune import config, training, utils
-from torchtune.data import Message, load_image, padded_collate_tiled_images_and_mask, left_pad_sequence
+from torchtune.data import (
+    left_pad_sequence,
+    load_image,
+    Message,
+    padded_collate_tiled_images_and_mask,
+)
 
 from torchtune.generation import sample
 
@@ -33,15 +38,18 @@ class SingleTurnYAMLToMessages(Transform):
             if isinstance(content, str):
                 new_content = [{"type": "text", "content": content}]
             else:
-                assert "image" in content.keys(), "Multiple entries per role expect an image key"
+                assert (
+                    "image" in content.keys()
+                ), "Multiple entries per role expect an image key"
                 image_loc = content["image"]
                 image = load_image(image_loc)
                 new_content = [
                     {"type": "image", "content": image},
                     {"type": "text", "content": content["text"]},
-                ]   
+                ]
             messages.append(Message(role=role, content=new_content))
         return messages
+
 
 def batch_to_device(batch: dict, device: torch.device) -> None:
     """Function that takes a dictionary (or nested dictionary) of tensors and sets them
@@ -64,6 +72,7 @@ def batch_to_device(batch: dict, device: torch.device) -> None:
             raise AttributeError(
                 "To use batch_to_device, all elements in the batch must be a dict or Tensor"
             )
+
 
 class InferenceRecipe:
     """
@@ -123,12 +132,14 @@ class InferenceRecipe:
                 [model_inputs], pad_direction="left"
             )
         else:
-            batch = {"tokens": left_pad_sequence(
-                [torch.tensor(model_inputs["tokens"])],
-                batch_first=True,
-            )}
+            batch = {
+                "tokens": left_pad_sequence(
+                    [torch.tensor(model_inputs["tokens"])],
+                    batch_first=True,
+                )
+            }
         batch_to_device(batch, self._device)
-        
+
         # 4. Prefill step
         generated_tokens = []
         t0 = time.perf_counter()
@@ -140,7 +151,7 @@ class InferenceRecipe:
             cache_mask = {"encoder_mask": batch["encoder_mask"][:, -1:]}
         else:
             cache_mask = {}
-        
+
         # 5. Continue generating
         for _ in range(cfg.max_new_tokens):
             if token.item() in self.model_transform.stop_tokens:
@@ -158,9 +169,7 @@ class InferenceRecipe:
         model_size = sum(
             [
                 p.numel() * p.dtype.itemsize
-                for p in itertools.chain(
-                    self.model.parameters(), self.model.buffers()
-                )
+                for p in itertools.chain(self.model.parameters(), self.model.buffers())
             ]
         )
         tokens_generated = len(generated_tokens)
