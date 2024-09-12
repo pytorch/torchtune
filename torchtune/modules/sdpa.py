@@ -4,6 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from typing import Tuple
+
 from torch import nn, Tensor
 
 
@@ -17,14 +19,24 @@ class SDPA(nn.Module):
 
     def __init__(
         self,
+        num_kv_heads: int,
+        num_heads: int,
+        head_dim: int,
+        q_per_kv: int,
+        attn_dropout: float,
+        is_causal: bool,
         attention_fn,
         kv_cache,
-        q_per_kv,
     ) -> None:
         super().__init__()
-        self._attention_fn = attention_fn
-        self.kv_cache = kv_cache
+        self.num_kv_heads = num_kv_heads
+        self.num_heads = num_heads
+        self.head_dim = head_dim
         self.q_per_kv = q_per_kv
+        self.attn_dropout = attn_dropout
+        self.is_causal = is_causal
+        self._attention_fn = attention_fn
+        self._kv_cache = kv_cache
 
     def kv_cache_update(
         self,
@@ -32,7 +44,7 @@ class SDPA(nn.Module):
         k: Tensor,
         v: Tensor,
     ) -> Tuple[Tensor, Tensor]:
-        k, v = self.kv_cache.update(input_pos, k, v)
+        k, v = self._kv_cache.update(input_pos, k, v)
         return k, v
 
     def sdpa(
@@ -72,7 +84,7 @@ class SDPA(nn.Module):
             v,
             mask=mask,
             dropout_p=self.attn_dropout,
-            is_causal=self.kv_cache is None and mask is None and self.is_causal,
+            is_causal=self._kv_cache is None and mask is None and self.is_causal,
         )
         # Reshape the output to be the same shape as the input
-        return output.transpose(1, 2).contiguous().view(b, s_x, -1)
+        return output.transpose(1, 2).contiguous().view(bsz, seq_len, -1)

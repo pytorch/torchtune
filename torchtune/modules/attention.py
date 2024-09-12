@@ -143,9 +143,14 @@ class MultiHeadAttention(nn.Module):
         # Use flex attention if supported and we are sample packing
         self._attention_call = _sdpa_or_flex_attention()
         self._sdpa = SDPA(
+            num_kv_heads=self.num_kv_heads,
+            num_heads=self.num_heads,
+            head_dim=self.head_dim,
+            q_per_kv=self.q_per_kv,
+            attn_dropout=self.attn_dropout,
+            is_causal=self.is_causal,
             attention_fn=self._attention_call,
             kv_cache=self.kv_cache,
-            q_per_kv=self.q_per_kv,
         )
 
     def setup_cache(
