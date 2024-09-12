@@ -97,5 +97,3 @@ class TestQATDistributedRecipe:
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-3, atol=1e-3
         )
-
-        torch.distributed.destroy_process_group()

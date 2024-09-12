@@ -28,8 +28,6 @@ from tests.test_utils import (
 from torchtune import config
 from torchtune.utils import torch_version_ge
 
-torch.distributed.destroy_process_group()
-
 
 class TestLoRAFinetuneSingleDeviceRecipe:
     def _get_test_config_overrides(self, dtype_str: str = "fp32", epochs: int = 2):

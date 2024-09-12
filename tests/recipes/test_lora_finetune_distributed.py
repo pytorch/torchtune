@@ -94,8 +94,6 @@ class TestLoRAFinetuneDistributedRecipe:
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
-        torch.distributed.destroy_process_group()
-
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
     @pytest.mark.parametrize(
@@ -178,8 +176,6 @@ class TestLoRAFinetuneDistributedRecipe:
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
-        torch.distributed.destroy_process_group()
-
     @pytest.mark.integration_test
     @pytest.mark.parametrize(
         "recipe_config, model_type, ckpt_type",
@@ -245,5 +241,3 @@ class TestLoRAFinetuneDistributedRecipe:
         merged_ckpt_out = model(inputs)
 
         torch.testing.assert_close(baseline_out, merged_ckpt_out, rtol=1e-5, atol=1e-5)
-
-        torch.distributed.destroy_process_group()

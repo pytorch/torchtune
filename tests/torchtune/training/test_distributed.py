@@ -43,7 +43,6 @@ class TestDistributed:
         assert (
             not distributed
         ), "Should return False as there are no distributed environment variables"
-        torch.distributed.destroy_process_group()
 
     @staticmethod
     def _test_worker_fn(init_pg_explicit: bool) -> None:
@@ -83,13 +82,11 @@ class TestDistributed:
         self._test_launch_worker(get_pet_launch_config, 2, init_pg_explicit=False)
         # trivial test case to ensure test passes with no exceptions
         assert True
-        torch.distributed.destroy_process_group()
 
     def test_init_from_env_dup(self, get_pet_launch_config) -> None:
         self._test_launch_worker(get_pet_launch_config, 2, init_pg_explicit=True)
         # trivial test case to ensure test passes with no exceptions
         assert True
-        torch.distributed.destroy_process_group()
 
     def test_world_size_with_cpu(self, get_pet_launch_config) -> None:
         desired_world_size = 4
@@ -97,7 +94,6 @@ class TestDistributed:
         launcher.elastic_launch(lc, entrypoint=self._test_world_size_with_cpu_device)(
             desired_world_size
         )
-        torch.distributed.destroy_process_group()
 
     def test_validate_no_params_on_meta_device(self) -> None:
         with torch.device("meta"):
@@ -113,8 +109,6 @@ class TestDistributed:
 
         with pytest.raises(RuntimeError, match="Unexpected param or buffer"):
             training.validate_no_params_on_meta_device(model)
-
-        torch.distributed.destroy_process_group()
 
     def test_get_fsdp_wrap_policies(self) -> None:
         with single_box_init():
@@ -160,8 +154,6 @@ class TestDistributed:
             # Ensure transformer decoder blocks are wrapped
             for layer in wrapped_l2.layers:
                 assert isinstance(layer, FSDP)
-
-        torch.distributed.destroy_process_group()
 
 
 N_LAYERS = 3
@@ -242,8 +234,6 @@ class TestLoRAFSDP:
             assert num_lora_ab == 0
             assert num_transformer_layers == 0
 
-        torch.distributed.destroy_process_group()
-
     def test_lora_meta_device_init_fsdp(self):
         with torch.device("meta"):
             lora = lora_llama2(
@@ -267,8 +257,6 @@ class TestLoRAFSDP:
         # Neither should buffers
         for n, b in lora.named_buffers():
             assert not b.is_meta, f"buffer {n} is still on meta device!"
-
-        torch.distributed.destroy_process_group()
 
 
 class TestFullyShardState(FSDPTest):
@@ -417,8 +405,6 @@ class TestFullyShardState(FSDPTest):
         for key, value in sharded_model_sd.items():
             self.assertEqual(value, expected_sharded_model_sd[key])
 
-        torch.distributed.destroy_process_group()
-
     @pytest.mark.skipif(
         version.parse(torch.__version__).base_version < "2.4.0",
         reason="torch >= 2.4 required",
@@ -431,8 +417,6 @@ class TestFullyShardState(FSDPTest):
             },
             self._test_qlora_state_dict,
         )
-
-        torch.distributed.destroy_process_group()
 
     def _test_qlora_state_dict(self, enable_activation_checkpointing: bool):
         is_rank_zero = self.rank == 0
@@ -530,8 +514,6 @@ class TestFullyShardState(FSDPTest):
                 )
             else:
                 self.assertEqual(value, expected_sharded_model_sd[key])
-
-        torch.distributed.destroy_process_group()
 
     def _broadcast_full_state_dict(self, full_sd):
         result = []
