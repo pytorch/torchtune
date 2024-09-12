@@ -10,7 +10,6 @@ from typing import Any, Dict, List
 
 import torch
 from omegaconf import DictConfig
-from torch import nn
 
 from torchtune import config, training, utils
 from torchtune.data import (
@@ -23,8 +22,6 @@ from torchtune.data import (
 from torchtune.generation import sample
 
 from torchtune.modules.transforms import Transform
-
-logger = utils.get_logger("INFO")
 
 
 class SingleTurnYAMLToMessages(Transform):
@@ -77,47 +74,47 @@ def batch_to_device(batch: dict, device: torch.device) -> None:
 class InferenceRecipe:
     """
     Recipe for generating tokens from a dense Transformer-based LLM.
+    This works for text-only generation and image-text generation.
+
+    Warning:
+        This has only been extensively tested with the following configs:
+            - multimodal_generation
+
+    This *does not* currently support the following features:
+        - torch.compile
+        - quantization through torchao
+        - speculative decoding
+        - multi-GPU generation
     """
 
     def __init__(self, cfg: DictConfig) -> None:
         self._device = utils.get_device(device=cfg.device)
         self._dtype = training.get_dtype(dtype=cfg.dtype, device=self._device)
+        self._logger = utils.get_logger(cfg.log_level)
         training.set_seed(seed=cfg.seed)
 
     def setup(self, cfg: DictConfig) -> None:
         _checkpointer = config.instantiate(cfg.checkpointer)
         _ckpt_dict = _checkpointer.load_checkpoint()
-        self.model = self._setup_model(
-            model_cfg=cfg.model,
-            model_state_dict=_ckpt_dict[training.MODEL_KEY],
-        )
-        self.model_transform = config.instantiate(cfg.transform)
-        self.to_messages = SingleTurnYAMLToMessages()
 
-    def _setup_model(
-        self,
-        model_cfg: DictConfig,
-        model_state_dict: Dict[str, Any],
-    ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
-
-        model.load_state_dict(model_state_dict)
-        model.eval()
+        model.load_state_dict(_ckpt_dict[MODEL_KEY])
 
         # Validate model was loaded in with the expected dtype.
         training.validate_expected_param_dtype(
             model.named_parameters(), dtype=self._dtype
         )
-        logger.info(f"Model is initialized with precision {self._dtype}.")
+        self._logger.info(f"Model was initialized with precision {self._dtype}.")
 
         # Ensure the cache is setup on the right device
         with self._device:
             model.setup_caches(batch_size=1, dtype=self._dtype)
 
-        return model
+        self.model_transform = config.instantiate(cfg.transform)
+        self.to_messages = SingleTurnYAMLToMessages()
 
-    @torch.no_grad()
+    @torch.inference_mode()
     def generate(self, cfg: DictConfig):
         # 1. Convert input to messages
         messages = self.to_messages(cfg.prompt)
@@ -163,7 +160,7 @@ class InferenceRecipe:
 
         # 6. Decode tokens
         decoded = self.model_transform.decode(generated_tokens)
-        logger.info(decoded)
+        self._logger.info(decoded)
 
         # 7. Log metrics
         model_size = sum(
@@ -172,13 +169,16 @@ class InferenceRecipe:
                 for p in itertools.chain(self.model.parameters(), self.model.buffers())
             ]
         )
-        tokens_generated = len(generated_tokens)
-        tokens_sec = tokens_generated / t
-        logger.info(
+        tokens_sec = len(generated_tokens) / t
+        self._logger.info(
             f"Time for inference: {t:.02f} sec total, {tokens_sec:.02f} tokens/sec"
         )
-        logger.info(f"Bandwidth achieved: {model_size * tokens_sec / 1e9:.02f} GB/s")
-        logger.info(f"Memory used: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
+        self._logger.info(
+            f"Bandwidth achieved: {model_size * tokens_sec / 1e9:.02f} GB/s"
+        )
+        self._logger.info(
+            f"Memory used: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB"
+        )
 
 
 @config.parse

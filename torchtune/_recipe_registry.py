@@ -253,6 +253,17 @@ _ALL_RECIPES = [
         supports_distributed=False,
     ),
     Recipe(
+        name="dev/generate_v2",
+        file_path="dev/generate_v2.py",
+        configs=[
+            Config(
+                name="multimodal_generation",
+                file_path="dev/multimodal_generation.yaml",
+            ),
+        ],
+        supports_distributed=False,
+    ),
+    Recipe(
         name="eleuther_eval",
         file_path="eleuther_eval.py",
         configs=[

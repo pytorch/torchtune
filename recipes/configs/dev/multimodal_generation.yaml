@@ -1,7 +1,7 @@
 # Config for running the InferenceRecipe in generate.py to generate output from an LLM
 #
 # To launch, run the following command from root torchtune directory:
-#    tune run generate_v2 --config multimodal_generation
+#    tune run dev/generate_v2 --config multimodal_generation
 
 # Model arguments
 model:
@@ -15,15 +15,16 @@ transform:
 
 # Checkpointer
 checkpointer:
-  _component_: checkpointer.FullModelMetaCheckpointer
+  _component_: torchtune.training.FullModelMetaCheckpointer
   checkpoint_dir: /tmp/flamingo
   checkpoint_files: ["consolidated.pth"]
-  output_dir: ./why-do-i-need-that
+  output_dir: /tmp/flamingo
   model_type: FLAMINGO
 
 device: cuda
 dtype: bf16
 seed: 1234
+log_level: INFO
 
 # Generation arguments
 prompt:
