@@ -9,7 +9,6 @@ from typing import List
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 
 from torch import nn
-import torch.nn.functional as F
 from torchtune.modules.transformer import TransformerDecoder
 from torchtune.models.qwen2._positional_embeddings import Qwen2RotaryPositionalEmbeddings
 
