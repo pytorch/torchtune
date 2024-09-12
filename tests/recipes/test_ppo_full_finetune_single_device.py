@@ -26,6 +26,8 @@ from tests.test_utils import (
     get_loss_values_from_metric_logger,
 )
 
+torch.distributed.destroy_process_group()
+
 
 class TestPPOFullFinetuneSingleDeviceRecipe:
     def _get_test_config_overrides(self):

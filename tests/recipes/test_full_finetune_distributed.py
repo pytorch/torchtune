@@ -98,3 +98,5 @@ class TestFullFinetuneDistributedRecipe:
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
+
+        torch.distributed.destroy_process_group()
