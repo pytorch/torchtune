@@ -25,14 +25,11 @@ jobs:
       matrix:
         python-version: ['3.9', '3.10', '3.11']
         torch-version: ["stable", "nightly"]
-        isPR:
-          - ${{ github.event_name == 'pull_request' }}
 
         # Do not run against nightlies on PR
         exclude:
-          - { isPR: true }
-        include:
-          - { torch-version: "stable" }
+          - torch-version: nightly
+            if: ${{ github.event_name == 'pull_request' }}
     steps:
       - name: Check out repo
         uses: actions/checkout@v3
