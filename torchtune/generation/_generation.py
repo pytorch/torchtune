@@ -17,9 +17,18 @@ def multinomial_sample_one(probs: torch.Tensor) -> torch.Tensor:
 
 
 def sample(
-    logits: torch.Tensor, temperature: float = 1.0, top_k: int = None
+    logits: torch.Tensor, temperature: float = 1.0, top_k: Optional[int] = None
 ) -> torch.Tensor:
-    """Generic sample from a probability distribution."""
+    """Generic sample from a probability distribution.
+
+    Args:
+        logits (torch.Tensor): logits from which to sample
+        temperature (float): value to scale the predicted logits by, default 1.0.
+        top_k (Optional[int]): If specified, we prune the sampling to only token ids within the top_k probabilities
+
+    Returns:
+        torch.Tensor: sampled token id
+    """
     # scale the logits based on temperature
     logits = logits / max(temperature, 1e-5)
     if top_k is not None:
