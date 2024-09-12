@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 import torch
+from omegaconf import OmegaConf
 from tests.common import TUNE_PATH
 from tests.recipes.utils import (
     CKPT_COMPONENT_MAP,
@@ -24,9 +25,10 @@ from tests.test_utils import (
     get_loss_values_from_metric_logger,
     TOKENIZER_PATHS,
 )
+from torchtune import config
 
 
-class TestLoRAFinetuneSingleDeviceRecipe:
+class TestKDSingleDeviceRecipe:
     def _get_test_config_overrides(self, dtype_str: str = "fp32", epochs: int = 2):
         return [
             "batch_size=8",
@@ -221,3 +223,82 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
+
+    @pytest.mark.integration_test
+    def test_save_and_load_merged_weights(self, tmpdir, monkeypatch):
+        ckpt_type = "tune"
+        model_type = "llama3"
+        ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
+        ckpt = model_type + "_" + ckpt_type
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        tokenizer_path = Path(TOKENIZER_PATHS[model_type])
+        ckpt_dir = ckpt_path.parent
+        log_file = gen_log_file_name(tmpdir)
+
+        cmd = f"""
+        tune run kd_single_device \
+            --config llama3_1/kd_single_device \
+            output_dir={tmpdir} \
+            checkpointer._component_={ckpt_component} \
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[{ckpt_path}] \
+            checkpointer.output_dir={tmpdir} \
+            checkpointer.model_type={model_type.upper()} \
+            teacher_checkpointer._component_={ckpt_component} \
+            teacher_checkpointer.checkpoint_dir='{ckpt_dir}' \
+            teacher_checkpointer.checkpoint_files=[{ckpt_path}] \
+            teacher_checkpointer.output_dir={tmpdir} \
+            teacher_checkpointer.model_type={model_type.upper()} \
+            ~model.intermediate_dim \
+            tokenizer.path='{tokenizer_path}' \
+            tokenizer.prompt_template=null \
+            metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
+            metric_logger.filename={log_file} \
+            kd_loss._component_=torchtune.modules.loss.ForwardKLWithChunkedOutputLoss \
+            kd_ratio=0.5 \
+        """.split()
+
+        model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
+        teacher_config = [
+            "teacher_" + config for config in MODEL_TEST_CONFIGS[model_type]
+        ]
+
+        cmd = (
+            cmd
+            + self._get_test_config_overrides(dtype_str="fp32")
+            + model_config
+            + teacher_config
+        )
+        monkeypatch.setattr(sys, "argv", cmd)
+        with pytest.raises(SystemExit, match=""):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        # Next load both the merged weights in a Llama3 base model
+        # and the base model weights + trained adapter weights in the LoRA Llama 3 model
+        # The results of calling forward on dummy inputs should be the same.
+        inputs = torch.randint(low=0, high=32_000, size=(2, 100))
+
+        # Build LoRA model for loading base + adapter weights separately
+        lora_model = config.instantiate(OmegaConf.from_dotlist(model_config).model)
+
+        # Build base llama3 model for loading merged weights
+        base_llama3_config = MODEL_TEST_CONFIGS[model_type]
+        llama3_model = config.instantiate(
+            OmegaConf.from_dotlist(base_llama3_config).model
+        )
+
+        # Load base model and trained adapter weights into LoRA model and call fwd
+        with open(f"{tmpdir}/adapter_1.pt", "rb") as f:
+            lora_sd = torch.load(f, weights_only=True)
+        with open(ckpt_path, "rb") as f:
+            base_model_sd = torch.load(f, weights_only=True)
+        lora_model.load_state_dict(lora_sd, strict=False)
+        lora_model.load_state_dict(base_model_sd, strict=False)
+        baseline_out = lora_model(inputs)
+
+        # Load merged final ckpt directly into 3 and call fwd
+        with open(f"{tmpdir}/torchtune_model_1.pt", "rb") as f:
+            sd = torch.load(f, weights_only=True)
+        llama3_model.load_state_dict(sd)
+        merged_ckpt_out = llama3_model(inputs)
+        torch.testing.assert_close(baseline_out, merged_ckpt_out, rtol=1e-5, atol=1e-5)
