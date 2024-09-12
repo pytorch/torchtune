@@ -518,7 +518,8 @@ class TransformerDecoder(nn.Module):
 
 @deprecated(
     msg="Please use torchtune.modules.TransformerDecoder instead. \
-If you need an example, see torchtune.models.qwen2._component_builders.py"
+If you need an example, see torchtune.models.qwen2._component_builders.py \
+and how to implement torch.modules.TiedLinear for the output projection."
 )
 class TiedEmbeddingTransformerDecoder(nn.Module):
     """
