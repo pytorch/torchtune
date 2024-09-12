@@ -1,0 +1,37 @@
+# Config for running the InferenceRecipe in generate.py to generate output from an LLM
+#
+# To launch, run the following command from root torchtune directory:
+#    tune run generate_v2 --config multimodal_generation
+
+# Model arguments
+model:
+  _component_: torchtune.models.flamingo_11b
+
+# Transform arguments
+transform:
+  _component_: torchtune.models.flamingo_transform
+  tokenizer_path: /tmp/flamingo/tokenizer.model
+  max_seq_len: 8192
+
+# Checkpointer
+checkpointer:
+  _component_: checkpointer.FullModelMetaCheckpointer
+  checkpoint_dir: /tmp/flamingo
+  checkpoint_files: ["consolidated.pth"]
+  output_dir: ./why-do-i-need-that
+  model_type: FLAMINGO
+
+device: cuda
+dtype: bf16
+seed: 1234
+
+# Generation arguments
+prompt:
+  system: You are a helpful assistant who responds like the author Shakespeare.
+  user:
+    image: https://cdn.britannica.com/61/93061-050-99147DCE/Statue-of-Liberty-Island-New-York-Bay.jpg
+    text: What is in this image?
+
+max_new_tokens: 100
+temperature: 0.9 # 0.8 and 0.6 are popular values to try
+top_k: 500
