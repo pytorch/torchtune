@@ -41,11 +41,7 @@ class RotaryPositionalEmbeddings(nn.Module):
         self.dim = dim
         self.base = base
         self.max_seq_len = max_seq_len
-        self.rope_init()
-
-    # TODO: delete this once all our recipes are moved off of FSDP1 since we
-    # no longer need to explicitly name our param init method reset_parameters
-    def reset_parameters(self):
+        self.is_cache_built = False
         self.rope_init()
 
     def rope_init(self):
@@ -55,6 +51,7 @@ class RotaryPositionalEmbeddings(nn.Module):
         )
         self.register_buffer("theta", theta, persistent=False)
         self.build_rope_cache(self.max_seq_len)
+        self.is_cache_built = True
 
     def build_rope_cache(self, max_seq_len: int = 4096) -> None:
         # Create position indexes `[0, 1, ..., max_seq_len - 1]`
@@ -93,9 +90,18 @@ class RotaryPositionalEmbeddings(nn.Module):
             - n_h: num heads
             - h_d: head dim
 
+        Raises:
+            RuntimeError: if RoPE cache is not initialized prior to forward call
+
         TODO: The implementation below can be made more efficient
         for inference.
         """
+
+        if not self.is_cache_built:
+            raise RuntimeError(
+                "RoPE cache is not built. Please call rope_init() first."
+            )
+
         # input tensor has shape [b, s, n_h, h_d]
         seq_len = x.size(1)
 
