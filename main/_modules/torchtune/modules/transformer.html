@@ -417,14 +417,14 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 <span class="kn">import</span> <span class="nn">copy</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">MultiHeadAttention</span>
-
 <span class="kn">from</span> <span class="nn">torchtune.modules.attention_utils</span> <span class="kn">import</span> <span class="n">_MaskType</span>
+<span class="kn">from</span> <span class="nn">torchtune.utils.logging</span> <span class="kn">import</span> <span class="n">deprecated</span>
 
 
 <div class="viewcode-block" id="TransformerSelfAttentionLayer"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer">[docs]</a><span class="k">class</span> <span class="nc">TransformerSelfAttentionLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
@@ -708,7 +708,7 @@
 <span class="sd">            to setup the :func:`~torchtune.modules.KVCache`</span>
 <span class="sd">        norm (nn.Module): Callable that applies normalization to the output of the decoder,</span>
 <span class="sd">            before final MLP.</span>
-<span class="sd">        output (nn.Linear): Callable that applies a linear transformation to the output of</span>
+<span class="sd">        output (Union[nn.Linear, Callable]): Callable that applies a linear transformation to the output of</span>
 <span class="sd">            the decoder.</span>
 <span class="sd">        num_layers (Optional[int]): Number of Transformer Decoder layers, only define when</span>
 <span class="sd">            layers is not a list.</span>
@@ -733,7 +733,7 @@
         <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">head_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">norm</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
-        <span class="n">output</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">,</span>
+        <span class="n">output</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">,</span> <span class="n">Callable</span><span class="p">],</span>
         <span class="n">num_layers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">output_hidden_states</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -929,7 +929,12 @@
         <span class="k">return</span> <span class="n">output</span></div></div>
 
 
-<div class="viewcode-block" id="TiedEmbeddingTransformerDecoder"><a class="viewcode-back" href="../../../generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder">[docs]</a><span class="k">class</span> <span class="nc">TiedEmbeddingTransformerDecoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="nd">@deprecated</span><span class="p">(</span>
+    <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Please use torchtune.modules.TransformerDecoder instead. </span><span class="se">\</span>
+<span class="s2">If you need an example, see torchtune.models.qwen2._component_builders.py </span><span class="se">\</span>
+<span class="s2">and how to implement torch.modules.TiedLinear for the output projection.&quot;</span>
+<span class="p">)</span>
+<span class="k">class</span> <span class="nc">TiedEmbeddingTransformerDecoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Transformer Decoder with tied embedding weight. A key difference between</span>
 <span class="sd">    this class and :class:`~torchtune.modules.TransformerDecoder`</span>
@@ -997,12 +1002,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span> <span class="o">=</span> <span class="mi">0</span>
 
-<div class="viewcode-block" id="TiedEmbeddingTransformerDecoder.set_num_output_chunks"><a class="viewcode-back" href="../../../generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.set_num_output_chunks">[docs]</a>    <span class="k">def</span> <span class="nf">set_num_output_chunks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_output_chunks</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">set_num_output_chunks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_output_chunks</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.</span>
 <span class="sd">        This should be called before the first forward pass, in the recipe.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span> <span class="o">=</span> <span class="n">num_output_chunks</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span> <span class="o">=</span> <span class="n">num_output_chunks</span>
 
-<div class="viewcode-block" id="TiedEmbeddingTransformerDecoder.setup_caches"><a class="viewcode-back" href="../../../generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.setup_caches">[docs]</a>    <span class="k">def</span> <span class="nf">setup_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">setup_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Setup key value caches for attention calculation.</span>
 
 <span class="sd">        Args:</span>
@@ -1017,13 +1022,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tril</span><span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="mi">0</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="mi">0</span>
 
-<div class="viewcode-block" id="TiedEmbeddingTransformerDecoder.caches_are_enabled"><a class="viewcode-back" href="../../../generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.caches_are_enabled">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the key value caches are setup.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cache_enabled</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cache_enabled</span>
 
-<div class="viewcode-block" id="TiedEmbeddingTransformerDecoder.reset_caches"><a class="viewcode-back" href="../../../generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.reset_caches">[docs]</a>    <span class="k">def</span> <span class="nf">reset_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">reset_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the key value caches.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">():</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
@@ -1033,9 +1038,9 @@
         <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
             <span class="n">layer</span><span class="o">.</span><span class="n">reset_cache</span><span class="p">()</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="mi">0</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="mi">0</span>
 
-<div class="viewcode-block" id="TiedEmbeddingTransformerDecoder.chunked_output"><a class="viewcode-back" href="../../../generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.chunked_output">[docs]</a>    <span class="nd">@torch</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">disable</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">disable</span>
     <span class="k">def</span> <span class="nf">chunked_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">last_hidden_state</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Apply output projection in chunks. This should be applied in conjunction with</span>
@@ -1055,9 +1060,9 @@
         <span class="k">return</span> <span class="p">[</span>
             <span class="n">F</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">last_hidden_state</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="p">]</span></div>
+        <span class="p">]</span>
 
-<div class="viewcode-block" id="TiedEmbeddingTransformerDecoder.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.TiedEmbeddingTransformerDecoder.html#torchtune.modules.TiedEmbeddingTransformerDecoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tokens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -1162,7 +1167,7 @@
         <span class="c1"># Output list if hidden states are requested, otherwise just the output</span>
         <span class="c1"># TODO: always output a list to have a consistent output type</span>
         <span class="n">output</span> <span class="o">=</span> <span class="n">output</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">hidden</span> <span class="k">else</span> <span class="p">[</span><span class="o">*</span><span class="n">hidden</span><span class="p">,</span> <span class="n">output</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">output</span></div></div>
+        <span class="k">return</span> <span class="n">output</span>
 </pre></div>
 
              </article>
