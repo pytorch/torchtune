@@ -429,10 +429,19 @@
     <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">probs</span> <span class="o">/</span> <span class="n">q</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">sample</span><span class="p">(</span>
-    <span class="n">logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">top_k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span>
+<div class="viewcode-block" id="sample"><a class="viewcode-back" href="../../../generated/torchtune.generation.sample.html#torchtune.generation.sample">[docs]</a><span class="k">def</span> <span class="nf">sample</span><span class="p">(</span>
+    <span class="n">logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">top_k</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generic sample from a probability distribution.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generic sample from a probability distribution.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        logits (torch.Tensor): logits from which to sample</span>
+<span class="sd">        temperature (float): value to scale the predicted logits by, default 1.0.</span>
+<span class="sd">        top_k (Optional[int]): If specified, we prune the sampling to only token ids within the top_k probabilities</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: sampled token id</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># scale the logits based on temperature</span>
     <span class="n">logits</span> <span class="o">=</span> <span class="n">logits</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="n">temperature</span><span class="p">,</span> <span class="mf">1e-5</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">top_k</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -444,7 +453,7 @@
         <span class="n">logits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">logits</span> <span class="o">&lt;</span> <span class="n">pivot</span><span class="p">,</span> <span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="s2">&quot;Inf&quot;</span><span class="p">),</span> <span class="n">logits</span><span class="p">)</span>
     <span class="c1"># change logits into probabilities</span>
     <span class="n">probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">multinomial_sample_one</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">multinomial_sample_one</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span></div>
 
 
 <span class="k">def</span> <span class="nf">generate_next_token</span><span class="p">(</span>

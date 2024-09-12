@@ -11,3 +11,4 @@ torchtune.generation
     :nosignatures:
 
     generate
+    sample
