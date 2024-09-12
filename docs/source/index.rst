@@ -110,6 +110,15 @@ torchtune tutorials.
 .. toctree::
    :glob:
    :maxdepth: 1
+   :caption: Basics
+   :hidden:
+
+   basics/tokenizers
+   basics/prompt_templates
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
    :caption: Tutorials
    :hidden:
 
@@ -133,15 +142,6 @@ torchtune tutorials.
    deep_dives/configs
    deep_dives/recipe_deepdive
    deep_dives/wandb_logging
-
-.. toctree::
-   :glob:
-   :maxdepth: 1
-   :caption: Basics
-   :hidden:
-
-   basics/tokenizers
-   basics/prompt_templates
 
 .. toctree::
    :glob:
