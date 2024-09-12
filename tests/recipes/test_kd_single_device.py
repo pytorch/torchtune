@@ -49,7 +49,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         }
         return loss_values_map[model_type]
 
-    # @pytest.mark.integration_test
+    @pytest.mark.integration_test
     @pytest.mark.parametrize("compile", [True, False])
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type",
@@ -119,7 +119,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
-    # @pytest.mark.integration_test
+    @pytest.mark.integration_test
     def test_training_state_on_resume(self, tmpdir, monkeypatch):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
