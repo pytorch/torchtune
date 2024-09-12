@@ -15,6 +15,7 @@ from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune import training
 from torchtune.models.llama2 import llama2, lora_llama2
 from torchtune.models.llama2._component_builders import lora_llama2_self_attention
+from torchtune.modules import RotaryPositionalEmbeddings
 from torchtune.modules.low_precision import FrozenNF4Linear
 from torchtune.modules.peft import get_merged_lora_ckpt, LoRALinear
 from torchtune.training.seed import set_seed
