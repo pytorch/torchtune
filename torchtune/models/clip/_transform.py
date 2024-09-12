@@ -121,7 +121,7 @@ class CLIPImageTransform:
             possible_resolutions = possible_resolutions
 
         self.possible_resolutions = torch.tensor(possible_resolutions).reshape(-1, 2)
-        logger.info(
+        logger.debug(
             f"Found possible_resolutions: {self.possible_resolutions}. Will fit the images into the canvas with best fit."
         )
 
