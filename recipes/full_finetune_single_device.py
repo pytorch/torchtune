@@ -372,6 +372,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
+        from torchao.prototype.quantized_training import int8_mixed_precision_training
+        from torchao.quantization import quantize_
+
+        quantize_(model.layers, int8_mixed_precision_training())
+
         return model
 
     def _setup_optimizer(
