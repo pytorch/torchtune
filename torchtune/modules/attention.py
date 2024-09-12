@@ -273,7 +273,7 @@ class MultiHeadAttention(nn.Module):
 
             # Update key-value cache
             if self.kv_cache is not None:
-                SDPA.kv_cache_update(input_pos, k, v)
+                self._sdpa.kv_cache_update(input_pos, k, v)
 
-        output = SDPA.sdpa(q, k, v, b, s_x)
+        output = self._sdpa.sdpa(q, k, v, b, s_x)
         return self.output_proj(output)
