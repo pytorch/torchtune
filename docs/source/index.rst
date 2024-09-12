@@ -110,6 +110,15 @@ torchtune tutorials.
 .. toctree::
    :glob:
    :maxdepth: 1
+   :caption: Basics
+   :hidden:
+
+   basics/instruct_datasets
+   basics/chat_datasets
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
    :caption: Tutorials
    :hidden:
 
