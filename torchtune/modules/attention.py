@@ -11,6 +11,7 @@ import torch
 from torch import nn
 from torchtune.modules.attention_utils import _MaskType, _sdpa_or_flex_attention
 from torchtune.modules.kv_cache import KVCache
+from torchtune.modules.sdpa import SDPA
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +127,8 @@ class MultiHeadAttention(nn.Module):
         self.head_dim = head_dim
         self.max_seq_len = max_seq_len
         self.is_causal = is_causal
+        # Number of queries per k, v
+        self.q_per_kv = self.num_heads // self.num_kv_heads
 
         # Set layers
         self.kv_cache = kv_cache
@@ -139,6 +142,11 @@ class MultiHeadAttention(nn.Module):
 
         # Use flex attention if supported and we are sample packing
         self._attention_call = _sdpa_or_flex_attention()
+        self._sdpa = SDPA(
+            attention_fn=self._attention_call,
+            kv_cache=self.kv_cache,
+            q_per_kv=self.q_per_kv,
+        )
 
     def setup_cache(
         self, batch_size: int, dtype: torch.dtype, max_seq_len: int
@@ -227,17 +235,11 @@ class MultiHeadAttention(nn.Module):
 
         # q has shape [b, s_x, num_heads * head_dim]
         q = self.q_proj(x)
-
-        # number of queries per key/value
-        q_per_kv = self.num_heads // self.num_kv_heads
-        q = q.view(b, s_x, self.num_kv_heads * q_per_kv, self.head_dim)
+        q = q.view(b, s_x, self.num_kv_heads * self.q_per_kv, self.head_dim)
 
         # Apply positional embeddings
         if self.pos_embeddings is not None:
             q = self.pos_embeddings(q, input_pos=input_pos)
-
-        # [b, n_h, s_x, h_d]
-        q = q.transpose(1, 2)
 
         # Normalize q
         if self.q_norm is not None:
@@ -261,30 +263,9 @@ class MultiHeadAttention(nn.Module):
             # Apply positional embeddings
             # k: [b, s_y, n_kv, h_d]
             k = k.view(b, s_y, -1, self.head_dim)
+            v = v.view(b, s_y, -1, self.head_dim)
             if self.pos_embeddings is not None:
                 k = self.pos_embeddings(k, input_pos=input_pos)
-
-            # View + expand + reshape bring num_kv_heads to num_heads for k and v
-            # to match q.
-
-            # k: [b, s_y, n_kv, 1, h_d]
-            # v: [b, s_y, n_kv, 1, h_d]
-            k = k.view(b, s_y, self.num_kv_heads, 1, self.head_dim)
-            v = v.view(b, s_y, self.num_kv_heads, 1, self.head_dim)
-
-            # If needed, expand the key and value tensors to have the same shape
-            # as the query tensor by copying values across the relevant dim
-            if self.num_heads != self.num_kv_heads:
-                k = k.expand(b, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
-                v = v.expand(b, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
-
-            # [b, s, n_h, h_d]
-            k = k.reshape(b, s_y, -1, self.head_dim)
-            v = v.reshape(b, s_y, -1, self.head_dim)
-
-            # [b, n_h, s, h_d]
-            k = k.transpose(1, 2)
-            v = v.transpose(1, 2)
 
             # Normalize k
             if self.k_norm is not None:
@@ -292,17 +273,7 @@ class MultiHeadAttention(nn.Module):
 
             # Update key-value cache
             if self.kv_cache is not None:
-                k, v = self.kv_cache.update(k, v)
+                SDPA.kv_cache_update(input_pos, k, v)
 
-        output = self._attention_call(
-            q,
-            k,
-            v,
-            mask=mask,
-            dropout_p=self.attn_dropout,
-            is_causal=self.kv_cache is None and mask is None and self.is_causal,
-        )
-
-        # reshape the output to be the same shape as the input
-        output = output.transpose(1, 2).contiguous().view(b, s_x, -1)
+        output = SDPA.sdpa(q, k, v, b, s_x)
         return self.output_proj(output)
