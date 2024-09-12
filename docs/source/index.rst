@@ -137,6 +137,14 @@ torchtune tutorials.
 .. toctree::
    :glob:
    :maxdepth: 1
+   :caption: Basics
+   :hidden:
+
+   basics/tokenizers
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
    :caption: API Reference
    :hidden:
 
