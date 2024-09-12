@@ -29,7 +29,6 @@ def compile_model(
         verbose (bool): Whether to log compile info. Default: True
     Returns:
         None
-
     """
     backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
     if torch_version_ge("2.5.0"):
@@ -61,6 +60,7 @@ def compile_loss(loss: nn.Module, verbose: bool = True) -> None:
     Returns:
         loss (nn.Module): loss with either entire module compiled or (in the case of
             CEWithChunkedOutputLoss) only the upcast and cross-entropy calculation compiled.
+
     """
     backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
     if verbose:
