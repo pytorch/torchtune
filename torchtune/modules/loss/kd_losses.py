@@ -45,6 +45,8 @@ class ForwardKLLoss(torch.nn.Module):
         prod_probs = torch.masked_fill(teacher_prob * student_logprob, inf_mask, 0)
         x = torch.sum(prod_probs, dim=-1).view(-1)
         mask = (labels != self.ignore_index).int()
+        if torch.sum(mask.view(-1), dim=0) == 0:
+            return torch.tensor(0.0, device=x.device)
         return -torch.sum(x * mask.view(-1), dim=0) / torch.sum(mask.view(-1), dim=0)
 
 
