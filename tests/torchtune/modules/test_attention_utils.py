@@ -130,11 +130,10 @@ class TestSDPAOrFlexAttention:
         assert mock_flex.call_count == 1
 
     @mock.patch("torchtune.modules.attention_utils._SUPPORTS_FLEX_ATTENTION", False)
-    @mock.patch("torchtune.modules.attention_utils.compile_friendly_flex_attention")
     @mock.patch(
         "torchtune.modules.attention_utils.nn.functional.scaled_dot_product_attention"
     )
-    def test_sdpa_attention(self, mock_sdpa, mock_flex):
+    def test_sdpa_attention(self, mock_sdpa):
         # [b, n_h, s, h_d]
         q = torch.ones(2, 1, 3, 4)
         k = torch.ones(2, 1, 3, 4)
@@ -145,4 +144,3 @@ class TestSDPAOrFlexAttention:
         _attention_call = _sdpa_or_flex_attention()
         _ = _attention_call(q, k, v, attn_mask, dropout_p, is_causal)
         mock_sdpa.assert_called_once()
-        mock_flex.assert_not_called()
