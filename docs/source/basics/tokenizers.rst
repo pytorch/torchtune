@@ -13,8 +13,8 @@ They use byte-pair encoding algorithms to convert raw strings into integer IDs. 
 Downloading tokenizers from Hugging Face
 ----------------------------------------
 
-Use the ``tune download`` command to download tokenizers from Hugging Face. They are found on the model page and are downloaded with
-the model weights.
+Models hosted on Hugging Face are also distributed with the tokenizers they were trained with. These are automatically downloaded alongside
+model weights when using ``tune download``. For exmple, this command downloads the Mistral-7B model weights and tokenizer:
 
 .. code-block:: bash
 
@@ -32,6 +32,7 @@ downloaded it to a different location.
 
 .. code-block:: python
 
+    # In code
     from torchtune.models.mistral import mistral_tokenizer
 
     m_tokenizer = mistral_tokenizer("/tmp/Mistral-7B-v0.1/tokenizer.model")
@@ -40,6 +41,7 @@ downloaded it to a different location.
 
 .. code-block:: yaml
 
+    # In config
     tokenizer:
       _component_: torchtune.models.mistral.mistral_tokenizer
       path: /tmp/Mistral-7B-v0.1/tokenizer.model
@@ -47,14 +49,18 @@ downloaded it to a different location.
 Setting max sequence length
 ---------------------------
 
+Setting max sequence length can give you control over memory usage and adhere to model specifications.
+
 .. code-block:: python
 
+    # In code
     from torchtune.models.mistral import mistral_tokenizer
 
     m_tokenizer = mistral_tokenizer("/tmp/Mistral-7B-v0.1/tokenizer.model", max_seq_len=8192)
 
 .. code-block:: yaml
 
+    # In config
     tokenizer:
       _component_: torchtune.models.mistral.mistral_tokenizer
       path: /tmp/Mistral-7B-v0.1/tokenizer.model
@@ -64,103 +70,7 @@ Setting max sequence length
 Prompt templates
 ----------------
 
-For more details on what prompt templates are and when you should use them, see :ref:`prompt_templates_usage_label`. Prompt templates
-are passed into the tokenizer and will be automatically applied for the dataset you are fine-tuning on. You can pass it in two ways:
-- A string dotpath to a prompt template class, i.e., "torchtune.models.mistral.MistralChatTemplate" or "path.to.my.CustomPromptTemplate"
-- A dictionary that maps role to a tuple of strings indicating the text to add before and after the message content
-
-Defining via dotpath string
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code-block:: python
-
-    from torchtune.models.mistral import mistral_tokenizer
-
-    m_tokenizer = mistral_tokenizer(
-        path="/tmp/Mistral-7B-v0.1/tokenizer.model"
-        prompt_template="torchtune.models.mistral.MistralChatTemplate"
-    )
-
-.. code-block:: yaml
-
-    tokenizer:
-      _component_: torchtune.models.mistral.mistral_tokenizer
-      path: /tmp/Mistral-7B-v0.1/tokenizer.model
-      prompt_template: torchtune.models.mistral.MistralChatTemplate
-
-.. _custom_dictionary_template:
-
-Defining via dictionary
-^^^^^^^^^^^^^^^^^^^^^^^
-
-For example to achieve the following prompt template:
-
-.. code-block:: text
-
-    System: {content}\\n
-    User: {content}\\n
-    Assistant: {content}\\n
-    Tool: {content}\\n
-
-You need to pass in a tuple for each role, where ``PREPEND_TAG`` is the string
-added before the text content and ``APPEND_TAG`` is the string added after.
-
-.. code-block:: python
-
-    template = {role: (PREPEND_TAG, APPEND_TAG)}
-
-Thus, the template would be defined as follows:
-
-.. code-block:: python
-
-    template = {
-        "system": ("System: ", "\\n"),
-        "user": ("User: ", "\\n"),
-        "assistant": ("Assistant: ", "\\n"),
-        "ipython": ("Tool: ", "\\n"),
-    }
-
-Now we can pass it into the tokenizer as a dictionary:
-
-.. code-block:: python
-
-    from torchtune.models.mistral import mistral_tokenizer
-
-    template = {
-        "system": ("System: ", "\\n"),
-        "user": ("User: ", "\\n"),
-        "assistant": ("Assistant: ", "\\n"),
-        "ipython": ("Tool: ", "\\n"),
-    }
-    m_tokenizer = mistral_tokenizer(
-        path="/tmp/Mistral-7B-v0.1/tokenizer.model"
-        prompt_template=template,
-    )
-
-.. code-block:: yaml
-
-    tokenizer:
-      _component_: torchtune.models.mistral.mistral_tokenizer
-      path: /tmp/Mistral-7B-v0.1/tokenizer.model
-      prompt_template:
-        system:
-          - "System: "
-          - "\\n"
-        user:
-          - "User: "
-          - "\\n"
-        assistant:
-          - "Assistant: "
-          - "\\n"
-        ipython:
-          - "Tool: "
-          - "\\n"
-
-If you don't want to add a prepend/append tag to a role, you can just pass in an empty string "" where needed.
-
-For more advanced customization of prompt templates, see :ref:`prompt_templates_usage_label`.
-
-.. TODO (RdoubleA) add a section on how to define prompt templates for inference once generate scsript is finalized
+Prompt templates are enabled by passing it into any model tokenizer. See :ref:`prompt_templates_usage_label` for more details.
 
 Special tokens
 --------------
@@ -173,13 +83,13 @@ Special tokens are automatically added to your data by the model tokenizer and d
 by the user. You also have the ability to customize the special tokens for experimentation by passing in a file path to
 the new special tokens mapping in a JSON file. This will NOT modify the underlying ``tokenizer.model`` to support the new
 special token ids - it is the user's responsibility to ensure that the tokenizer file encodes it correctly. Note also that
-some models require the presence of certain special tokens for proper usage.
+some models require the presence of certain special tokens for proper usage, such as the ``"<|eot_id|>"`` in Llama3 Instruct.
 
-For example, here we change the ``"<|begin_of_text|>"`` and ``"<|end_of_text|>"`` token IDs in Llama3:
+For example, here we change the ``"<|begin_of_text|>"`` and ``"<|end_of_text|>"`` token IDs in Llama3 Instruct:
 
 .. code-block:: python
 
-    # special_tokens.json
+    # tokenizer/special_tokens.json
     {
         "added_tokens": [
             {
@@ -197,14 +107,23 @@ For example, here we change the ``"<|begin_of_text|>"`` and ``"<|end_of_text|>"`
 
 .. code-block:: python
 
+    # In code
     from torchtune.models.llama3 import llama3_tokenizer
 
     tokenizer = llama3_tokenizer(
         path="/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model",
-        special_tokens_path="special_tokens.json",
+        special_tokens_path="tokenizer/special_tokens.json",
     )
     print(tokenizer.special_tokens)
     # {'<|begin_of_text|>': 128257, '<|end_of_text|>': 128258, ...}
+
+.. code-block:: yaml
+
+    # In config
+    tokenizer:
+      _component_: torchtune.models.llama3.llama3_tokenizer
+      path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
+      special_tokens_path: tokenizer/special_tokens.json
 
 Base tokenizers
 ---------------

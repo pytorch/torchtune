@@ -4,11 +4,11 @@
 Prompt Templates
 ================
 
-Prompt templates are structured text templates that user prompts are formatted with
-for optimal model performance on a task. They can serve many purposes:
+Prompt templates are structured text templates which are used to format user prompts
+to optimize model performance on specific tasks. They can serve many purposes:
 
 1. Model-specific templates that are required whenever the model is prompted, such as the [INST]
-   tags in Llama2 and in Mistral. These models were pre-trained with these tags and using them
+   tags in the instruct-tuned Llama2 and Mistral models. These models were pre-trained with these tags and using them
    in inference can help ensure optimal performance.
 2. Task-specific templates to gear models for a particular task that it will expect after training.
    Example include grammar correction (:class:`~torchtune.data.GrammarErrorCorrectionTemplate`),
@@ -19,22 +19,157 @@ for optimal model performance on a task. They can serve many purposes:
 The added text is different from special tokens that are added by the model tokenizer. For an extended
 discussion on the different between prompt templates and special tokens, see :ref:`prompt_template_vs_special_tokens`.
 
-Custom prompt templates
------------------------
-In most cases, you can define your prompt template as a dictionary and pass it directly into the tokenizer.
-The expected format is:
+Using prompt templates
+----------------------
+Prompt templates are passed into the tokenizer and will be automatically applied for the dataset you are fine-tuning on. You can pass it in two ways:
+- A string dotpath to a prompt template class, i.e., "torchtune.models.mistral.MistralChatTemplate" or "path.to.my.CustomPromptTemplate"
+- A dictionary that maps role to a tuple of strings indicating the text to add before and after the message content
+
+Defining via dotpath string
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+    # In code
+    from torchtune.models.mistral import mistral_tokenizer
+
+    m_tokenizer = mistral_tokenizer(
+        path="/tmp/Mistral-7B-v0.1/tokenizer.model"
+        prompt_template="torchtune.models.mistral.MistralChatTemplate"
+    )
+
+.. code-block:: yaml
+
+    # In config
+    tokenizer:
+      _component_: torchtune.models.mistral.mistral_tokenizer
+      path: /tmp/Mistral-7B-v0.1/tokenizer.model
+      prompt_template: torchtune.models.mistral.MistralChatTemplate
+
+
+Defining via dictionary
+^^^^^^^^^^^^^^^^^^^^^^^
+
+For example to achieve the following prompt template:
+
+.. code-block:: text
+
+    System: {content}\\n
+    User: {content}\\n
+    Assistant: {content}\\n
+    Tool: {content}\\n
+
+You need to pass in a tuple for each role, where ``PREPEND_TAG`` is the string
+added before the text content and ``APPEND_TAG`` is the string added after.
 
 .. code-block:: python
 
     template = {role: (PREPEND_TAG, APPEND_TAG)}
 
-See :ref:`custom_dictionary_template` for an example of how to pass it in the tokenizer.
+Thus, the template would be defined as follows:
+
+.. code-block:: python
+
+    template = {
+        "system": ("System: ", "\\n"),
+        "user": ("User: ", "\\n"),
+        "assistant": ("Assistant: ", "\\n"),
+        "ipython": ("Tool: ", "\\n"),
+    }
+
+Now we can pass it into the tokenizer as a dictionary:
+
+.. code-block:: python
+
+    # In code
+    from torchtune.models.mistral import mistral_tokenizer
+
+    template = {
+        "system": ("System: ", "\\n"),
+        "user": ("User: ", "\\n"),
+        "assistant": ("Assistant: ", "\\n"),
+        "ipython": ("Tool: ", "\\n"),
+    }
+    m_tokenizer = mistral_tokenizer(
+        path="/tmp/Mistral-7B-v0.1/tokenizer.model"
+        prompt_template=template,
+    )
+
+.. code-block:: yaml
+
+    # In config
+    tokenizer:
+      _component_: torchtune.models.mistral.mistral_tokenizer
+      path: /tmp/Mistral-7B-v0.1/tokenizer.model
+      prompt_template:
+        system:
+          - "System: "
+          - "\\n"
+        user:
+          - "User: "
+          - "\\n"
+        assistant:
+          - "Assistant: "
+          - "\\n"
+        ipython:
+          - "Tool: "
+          - "\\n"
+
+If you don't want to add a prepend/append tag to a role, you can just pass in an empty string "" where needed.
+
+Using the :class:`~torchtune.data.PromptTemplate` class
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+A template dictionary can also be passed into :class:`~torchtune.data.PromptTemplate` so you can use it as a standalone custom
+prompt template class.
+
+.. code-block:: python
+
+    from torchtune.data import PromptTemplate
+    from functools import partial
+
+    # As a builder function
+    def my_custom_template() -> PromptTemplate:
+        return PromptTemplate(
+            template={
+                "user": ("User: ", "\\n"),
+                "assistant": ("Assistant: ", "\\n"),
+            },
+        )
+
+    # As a class
+    MyCustomTemplate = partial(
+        PromptTemplate,
+        template={
+            "user": ("User: ", "\\n"),
+            "assistant": ("Assistant: ", "\\n"),
+        },
+    )
+
+    template = MyCustomTemplate()
+    msgs = [
+        Message(role="user", content="Hello world!"),
+        Message(role="assistant", content="Is AI overhyped?"),
+    ]
+    templated_msgs = template(msgs)
+    for msg in templated_msgs:
+        print(msg.role, msg.text_content)
+    # user, User: Hello world!
+    #
+    # assistant, Assistant: Is AI overhyped?
+    #
+
+.. TODO (RdoubleA) add a section on how to define prompt templates for inference once generate script is finalized
+
+Custom prompt templates
+-----------------------
 
 For more advanced configuration that doesn't neatly fall into the ``PREPEND_TAG content APPEND_TAG``
 pattern, you can create a new class that inherits from :class:`~torchtune.data.PromptTemplateInterface`
 and implements the ``__call__`` method.
 
 .. code-block:: python
+
+    from torchtune.data import Message
 
     class PromptTemplateInterface(Protocol):
         def __call__(
@@ -79,6 +214,17 @@ and implements the ``__call__`` method.
                 )
             return formatted_dialogue
 
+    template = EurekaTemplate()
+    msgs = [
+        Message(role="user", content="Hello world!"),
+        Message(role="assistant", content="Is AI overhyped?"),
+    ]
+    templated_msgs = template(msgs)
+    for msg in templated_msgs:
+        print(msg.role, msg.text_content)
+    # user, Hello world!
+    # assistant, Eureka!
+
 For more examples, you can look at :class:`~torchtune.models.mistral.MistralChatTemplate` or
 :class:`~torchtune.models.llama2.Llama2ChatTemplate`.
 
@@ -86,6 +232,7 @@ To use this custom template in the tokenizer, you can pass it in via dotpath str
 
 .. code-block:: python
 
+    # In code
     from torchtune.models.mistral import mistral_tokenizer
 
     m_tokenizer = mistral_tokenizer(
@@ -95,6 +242,7 @@ To use this custom template in the tokenizer, you can pass it in via dotpath str
 
 .. code-block:: yaml
 
+    # In config
     tokenizer:
       _component_: torchtune.models.mistral.mistral_tokenizer
       path: /tmp/Mistral-7B-v0.1/tokenizer.model
