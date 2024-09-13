@@ -6,6 +6,11 @@
 
 from typing import Callable, Optional
 
+from torch import nn
+from torchao.prototype.quantized_training import (
+    int8_mixed_precision_training,
+    Int8MixedPrecisionTrainingConfig,
+)
 from torchao.quantization import int8_dynamic_activation_int4_weight, quantize_
 from torchao.quantization.prototype.qat import (
     disable_8da4w_fake_quant,
@@ -18,11 +23,14 @@ from torchao.quantization.prototype.qat._module_swap_api import (
     Int8DynActInt4WeightQATQuantizerModuleSwap,
 )
 
+from torchtune.modules import TransformerDecoder
+
 
 __all__ = [
     "get_quantizer_mode",
     "Int8DynActInt4WeightQuantizer",
     "Int8DynActInt4WeightQATQuantizer",
+    "Int8MixedPrecisionTrainingQuantizer",
 ]
 
 
@@ -72,6 +80,34 @@ _quantizer_mode_to_disable_fake_quant[
 _quantizer_mode_to_enable_fake_quant[
     "8da4w-qat-module-swap"
 ] = enable_8da4w_fake_quant_module_swap
+
+
+class Int8MixedPrecisionTrainingQuantizer:
+    """Apply INT8 mixed-precision training. During training, weights and activations
+    are dynamically quantized to INT8 to utilize INT8 tensor cores. This is also done
+    in the backward pass."""
+
+    def __init__(
+        self,
+        output: bool = True,
+        grad_input: bool = True,
+        grad_weight: bool = True,
+    ) -> None:
+        self._config = Int8MixedPrecisionTrainingConfig(
+            output=output,
+            grad_input=grad_input,
+            grad_weight=grad_weight,
+        )
+
+    def prepare(self, model: nn.Module) -> nn.Module:
+        # don't apply INT8 mixed-precision training to LM head
+        # since speed is slightly lower.
+        quantize_fn = int8_mixed_precision_training(self._config)
+        if isinstance(model, TransformerDecoder):
+            quantize_(model.layers, quantize_fn)
+        else:
+            quantize_(model, quantize_fn)
+        return model
 
 
 def get_quantizer_mode(quantizer: Optional[Callable]) -> Optional[str]:
