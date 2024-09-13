@@ -55,7 +55,6 @@ batch_size: 4
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
-  fused: True
   weight_decay: 0.01
   lr: 2e-3
 

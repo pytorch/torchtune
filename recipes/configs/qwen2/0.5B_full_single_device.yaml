@@ -48,7 +48,6 @@ batch_size: 2
 epochs: 1
 optimizer:
   _component_: torch.optim.AdamW
-  fused: True
   lr: 2e-5
 
 loss:
