@@ -56,7 +56,7 @@ class TestKDSingleDeviceRecipe:
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type",
         [
-            ("llama3_1/kd_single_device", "llama3", "tune"),
+            ("qwen2/kd_single_device", "llama3", "tune"),
         ],
     )
     def test_loss(self, compile, config, model_type, ckpt_type, tmpdir, monkeypatch):
@@ -81,9 +81,10 @@ class TestKDSingleDeviceRecipe:
             teacher_checkpointer.checkpoint_files=[{ckpt_path}] \
             teacher_checkpointer.output_dir={tmpdir} \
             teacher_checkpointer.model_type={model_type.upper()} \
-            ~model.intermediate_dim \
+            tokenizer._component_=torchtune.models.llama3.llama3_tokenizer \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
+            ~tokenizer.merges_file \
             metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={log_file} \
             compile={compile} \
@@ -145,7 +146,7 @@ class TestKDSingleDeviceRecipe:
         # Train for two epochs
         cmd_1 = f"""
         tune run kd_single_device \
-            --config llama3_1/kd_single_device \
+            --config qwen2/kd_single_device \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -157,9 +158,10 @@ class TestKDSingleDeviceRecipe:
             teacher_checkpointer.checkpoint_files=[{ckpt_path}] \
             teacher_checkpointer.output_dir={tmpdir} \
             teacher_checkpointer.model_type=LLAMA3 \
-            ~model.intermediate_dim \
+            tokenizer._component_=torchtune.models.llama3.llama3_tokenizer \
             tokenizer.path={tokenizer_path} \
             tokenizer.prompt_template=null \
+            ~tokenizer.merges_file \
             metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             kd_loss._component_=torchtune.modules.loss.ForwardKLWithChunkedOutputLoss \
             kd_ratio=0.5 \
@@ -180,7 +182,7 @@ class TestKDSingleDeviceRecipe:
         # Resume training
         cmd_2 = f"""
         tune run kd_single_device \
-            --config llama3_1/kd_single_device \
+            --config qwen2/kd_single_device \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
@@ -194,12 +196,13 @@ class TestKDSingleDeviceRecipe:
             teacher_checkpointer.checkpoint_files=[{ckpt_path}] \
             teacher_checkpointer.output_dir={tmpdir} \
             teacher_checkpointer.model_type=LLAMA3 \
-            ~model.intermediate_dim \
             resume_from_checkpoint=True \
             metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={log_file} \
+            tokenizer._component_=torchtune.models.llama3.llama3_tokenizer \
             tokenizer.path={tokenizer_path} \
             tokenizer.prompt_template=null \
+            ~tokenizer.merges_file \
             kd_loss._component_=torchtune.modules.loss.ForwardKLWithChunkedOutputLoss \
             kd_ratio=0.5 \
         """.split()
@@ -237,7 +240,7 @@ class TestKDSingleDeviceRecipe:
 
         cmd = f"""
         tune run kd_single_device \
-            --config llama3_1/kd_single_device \
+            --config qwen2/kd_single_device \
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -249,9 +252,10 @@ class TestKDSingleDeviceRecipe:
             teacher_checkpointer.checkpoint_files=[{ckpt_path}] \
             teacher_checkpointer.output_dir={tmpdir} \
             teacher_checkpointer.model_type={model_type.upper()} \
-            ~model.intermediate_dim \
+            tokenizer._component_=torchtune.models.llama3.llama3_tokenizer \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
+            ~tokenizer.merges_file \
             metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={log_file} \
             kd_loss._component_=torchtune.modules.loss.ForwardKLWithChunkedOutputLoss \

@@ -285,6 +285,10 @@ _ALL_RECIPES = [
                 name="llama3_1/kd_single_device",
                 file_path="llama3_1/kd_single_device.yaml",
             ),
+            Config(
+                name="qwen2/kd_single_device",
+                file_path="qwen2/kd_single_device.yaml",
+            ),
         ],
         supports_distributed=False,
     ),
