@@ -64,7 +64,7 @@ loss:
 # Fine-tuning arguments
 batch_size: 4
 epochs: 3
-max_steps_per_epoch: 0
+max_steps_per_epoch: null
 gradient_accumulation_steps: 4
 compile: False
 
