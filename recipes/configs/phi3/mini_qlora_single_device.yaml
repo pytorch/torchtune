@@ -53,7 +53,7 @@ shuffle: True
 
 # Fine-tuning arguments
 epochs: 1
-max_steps_per_epoch: null
+max_steps_per_epoch: 0
 batch_size: 2
 gradient_accumulation_steps: 16
 optimizer:
