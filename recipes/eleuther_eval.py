@@ -222,11 +222,15 @@ class EleutherEvalRecipe(EvalRecipeInterface):
     ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
+
         if self._quantization_mode is not None:
             model = self._quantizer.quantize(model)
             model = model.to(device=self._device, dtype=self._dtype)
-
-        model.load_state_dict(model_state_dict)
+            for k, v in model_state_dict.items():
+                model_state_dict[k] = v.to(self._device)
+            model.load_state_dict(model_state_dict, assign=True)
+        else:
+            model.load_state_dict(model_state_dict)
 
         # Put model in eval mode.
         # Note: This will not disable the dropout applied in SDPA,
