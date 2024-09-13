@@ -13,7 +13,12 @@ import torch.nn.functional as F
 class ForwardKLLoss(torch.nn.Module):
     """
     The Kullback-Leibler divergence loss for valid indexes.
-    Implementation of https://github.com/jongwooko/distillm/blob/master/distillm/losses.py.
+    Implementation of https://github.com/jongwooko/distillm/blob/17c0f98bc263b1861a02d5df578c84aea652ee65/distillm/losses.py
+
+    Args:
+        ignore_index (int):  Specifies a target value that is ignored and does not contribute to the input gradient.
+            The loss is divided over non-ignored targets.
+            Default: -100.
     """
 
     def __init__(self, ignore_index: int = -100):
@@ -59,6 +64,14 @@ class ForwardKLWithChunkedOutputLoss(torch.nn.Module):
     Models like llama3 have large vocabulary size and, therefore, have a large output
     result (bsz, num_tokens, vocab_size). If we chunk on the token level, you can still compute
     the cross entropy normally, but upcasting only one chunk at a time saves considerable memory.
+
+    Args:
+        num_output_chunks (int): Number of chunks to chunk the output into. Each chunk has shape
+            (batch_size, num_tokens / num_output_chunks, vocab_size).
+            Default: 8
+        ignore_index (int): Specifies a target value that is ignored and does not contribute to the input gradient.
+            The loss is divided over non-ignored targets.
+            Default: -100
     """
 
     def __init__(self, num_output_chunks: int = 8, ignore_index: int = -100):
