@@ -346,8 +346,9 @@ class TestFullFinetuneInt8MixedPrecisionTraining:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # skip the first iteration since it includes compile time
-        tps_baseline = get_tps_values_from_metric_logger(log_file_baseline)[1:]
-        tps_int8mp = get_tps_values_from_metric_logger(log_file_int8mp)[1:]
+        tps_baseline = np.mean(get_tps_values_from_metric_logger(log_file_baseline)[1:])
+        tps_int8mp = np.mean(get_tps_values_from_metric_logger(log_file_int8mp)[1:])
 
         # check that it is at least 20% faster
-        assert np.mean(tps_int8mp) > np.mean(tps_baseline) * 1.2
+        speedup = tps_int8mp / tps_baseline
+        assert speedup > 1.2, speedup
