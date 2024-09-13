@@ -28,6 +28,7 @@ from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
     get_loss_values_from_metric_logger,
+    get_tps_values_from_metric_logger,
     TOKENIZER_PATHS,
 )
 
@@ -263,3 +264,90 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
 
         accum_loss = np.mean(get_loss_values_from_metric_logger(grad_accum_log_file))
         torch.testing.assert_close(no_accum_loss, accum_loss, atol=1e-5, rtol=1e-5)
+
+
+class TestFullFinetuneInt8MixedPrecisionTraining:
+    def _get_test_config_overrides(self):
+        return [
+            "dataset=tests.recipes.utils.DummyDataset",
+            "dataset.train_on_input=False",
+            "seed=9",
+            "epochs=1",
+            "max_steps_per_epoch=5",
+            "optimizer=torch.optim.AdamW",
+            "optimizer_in_bwd=False",
+            "compile=True",
+        ]
+
+    @pytest.mark.integration_test
+    def test_speed(self, tmpdir, monkeypatch):
+        model_type = "llama3"
+        ckpt_type = "tune"
+        ckpt_component = CKPT_COMPONENT_MAP["tune"]
+        ckpt = model_type + "_" + ckpt_type
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        tokenizer_path = Path(TOKENIZER_PATHS[model_type])
+        ckpt_dir = ckpt_path.parent
+        log_file_baseline = gen_log_file_name(tmpdir, suffix="baseline")
+        log_file_int8mp = gen_log_file_name(tmpdir, suffix="int8mp")
+
+        model_config = MODEL_TEST_CONFIGS[model_type]
+
+        # set dataset.packed=True to have fixed input seq len
+        cmd1 = f"""
+        tune run full_finetune_single_device \
+            --config llama3/8B_full_single_device \
+            output_dir={tmpdir} \
+            checkpointer._component_={ckpt_component} \
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir} \
+            checkpointer.model_type={model_type.upper()} \
+            tokenizer.path='{tokenizer_path}' \
+            tokenizer.prompt_template=null \
+            tokenizer.max_seq_len=4096 \
+            dataset.packed=True \
+            metric_logger.filename={log_file_baseline} \
+            compile=True \
+        """.split()
+        cmd1 = cmd1 + self._get_test_config_overrides() + model_config
+
+        # Make sure to clear compile state in between tests
+        torch._dynamo.reset()
+        monkeypatch.setattr(sys, "argv", cmd1)
+        with pytest.raises(SystemExit, match=""):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        quantizer = (
+            "torchtune.training.quantization.Int8MixedPrecisionTrainingQuantizer"
+        )
+        cmd2 = f"""
+        tune run full_finetune_single_device \
+            --config llama3/8B_full_single_device \
+            output_dir={tmpdir} \
+            checkpointer._component_={ckpt_component} \
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir} \
+            checkpointer.model_type={model_type.upper()} \
+            tokenizer.path='{tokenizer_path}' \
+            tokenizer.prompt_template=null \
+            tokenizer.max_seq_len=4096 \
+            dataset.packed=True \
+            metric_logger.filename={log_file_int8mp} \
+            compile=True \
+            quantizer._component=quantizer._component_={quantizer} \
+        """.split()
+        cmd2 = cmd2 + self._get_test_config_overrides() + model_config
+
+        torch._dynamo.reset()
+        monkeypatch.setattr(sys, "argv", cmd2)
+        with pytest.raises(SystemExit, match=""):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        # skip the first iteration since it includes compile time
+        tps_baseline = get_tps_values_from_metric_logger(log_file_baseline)[1:]
+        tps_int8mp = get_tps_values_from_metric_logger(log_file_int8mp)[1:]
+
+        # check that it is at least 20% faster
+        assert np.mean(tps_int8mp) > np.mean(tps_baseline) * 1.2
