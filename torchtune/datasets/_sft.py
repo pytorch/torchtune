@@ -10,7 +10,7 @@ import numpy as np
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
-from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, validate_messages
 from torchtune.modules.transforms import Transform
 
 
@@ -118,7 +118,18 @@ class SFTDataset(Dataset):
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, Any]:
         transformed_sample = self._message_transform(sample)
+        if "messages" in transformed_sample:
+            validate_messages(transformed_sample["messages"])
+
         tokenized_dict = self._model_transform(transformed_sample)
+
+        if not ("tokens" in tokenized_dict and "mask" in tokenized_dict):
+            keys_str = ", ".join(tokenized_dict.keys())
+            error_message = (
+                "model_transform returned the following keys: "
+                f"{keys_str}. Must return 'tokens' and 'mask' as keys."
+            )
+            raise ValueError(error_message)
 
         # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
         tokenized_dict["labels"] = list(

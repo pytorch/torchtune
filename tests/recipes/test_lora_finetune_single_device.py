@@ -43,6 +43,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
             "gradient_accumulation_steps=1",
+            "clip_grad_norm=100",
         ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self, model_type):
@@ -74,10 +75,6 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
 
-        # To workaround https://github.com/pytorch/torchtune/issues/676
-        if compile:
-            os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
-
         cmd = f"""
         tune run lora_finetune_single_device \
             --config {config} \
@@ -100,6 +97,10 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
+        # Make sure to clear compile state in between tests
+        if compile:
+            torch._dynamo.reset()
+
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values(model_type)
         torch.testing.assert_close(
@@ -119,15 +120,11 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
 
-        # To workaround https://github.com/pytorch/torchtune/issues/676
-        if compile:
-            os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
-
         cmd = f"""
         tune run lora_finetune_single_device
             --config llama2/7B_qlora_single_device \
             output_dir={tmpdir} \
-            checkpointer=torchtune.utils.FullModelMetaCheckpointer
+            checkpointer=torchtune.training.FullModelMetaCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
@@ -144,6 +141,10 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        # Make sure to clear compile state in between tests
+        if compile:
+            torch._dynamo.reset()
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_qlora_expected_loss_values(dtype=dtype)
@@ -176,7 +177,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         tune run lora_finetune_single_device \
             --config llama2/7B_lora_single_device \
             output_dir={tmpdir} \
-            checkpointer=torchtune.utils.FullModelHFCheckpointer \
+            checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
@@ -197,7 +198,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         tune run lora_finetune_single_device \
             --config llama2/7B_lora_single_device \
             output_dir={tmpdir} \
-            checkpointer=torchtune.utils.FullModelHFCheckpointer \
+            checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.adapter_checkpoint={os.path.join(tmpdir, "adapter_0.pt")}
@@ -232,7 +233,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         tune run lora_finetune_single_device \
             --config llama2/7B_lora_single_device \
             output_dir={tmpdir} \
-            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \

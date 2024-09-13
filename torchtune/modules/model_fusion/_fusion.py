@@ -7,7 +7,7 @@
 from typing import Dict, List, Optional, Union
 
 import torch
-from torch import nn, Tensor
+from torch import nn
 from torchtune.modules import TransformerDecoder
 
 
@@ -62,7 +62,7 @@ class FusionLayer(nn.Module):
         # TODO: Switch to register_load_state_dict_pre_hook and
         # register_state_dict_pre_hook after PyTorch v2.5
 
-    def _state_dict_hook(self, state_dict, *args, **kwargs):
+    def _state_dict_hook(self, state_dict, prefix, *args, **kwargs):
         """Remove "layer" from the original layer in the state_dict
         name. This keeps the orginal state dict name for the layer
         from before fusing with the FusionLayer.
@@ -71,19 +71,21 @@ class FusionLayer(nn.Module):
         """
         keys = list(state_dict.keys())
         for key in keys:
-            if key.startswith("layer"):
-                new_key = key.replace("layer.", "")
+            local_key = key[len(prefix) :]
+            if local_key.startswith("layer"):
+                new_key = prefix + local_key.replace("layer.", "")
                 state_dict[new_key] = state_dict[key]
                 del state_dict[key]
 
-    def _load_state_dict_hook(self, state_dict, *args, **kwargs):
+    def _load_state_dict_hook(self, state_dict, prefix, *args, **kwargs):
         """Apply extra "layer" prefix to the state_dict key to
         account for the FusionLayer wrapping.
         """
         keys = list(state_dict.keys())
         for key in keys:
-            if not key.startswith("fusion_layer"):
-                new_key = "layer." + key
+            local_key = key[len(prefix) :]
+            if not local_key.startswith("fusion_layer"):
+                new_key = prefix + "layer." + local_key
                 state_dict[new_key] = state_dict[key]
                 del state_dict[key]
 
@@ -116,10 +118,10 @@ class FusionLayer(nn.Module):
         ]
         return fusion_params
 
-    def forward(self, x: Tensor, **kwargs: Dict) -> Tensor:
+    def forward(self, x: torch.Tensor, **kwargs: Dict) -> torch.Tensor:
         """
         Args:
-            x (Tensor): input tensor with shape
+            x (torch.Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
             **kwargs (Dict): all additional layer args
 
@@ -190,17 +192,17 @@ class FusionEmbedding(nn.Module):
 
         [!Note] This update changes the order of the OrderedDict
         """
-        key = "embedding.weight"
-        new_key = "weight"
+        key = prefix + "embedding.weight"
+        new_key = prefix + "weight"
         destination[new_key] = destination[key]
         del destination[key]
 
-    def _load_state_dict_hook(self, state_dict, *args, **kwargs):
+    def _load_state_dict_hook(self, state_dict, prefix, *args, **kwargs):
         """Apply extra "embedding" prefix to the state_dict key to
         account for the FusionEmbedding wrapping.
         """
-        key = "weight"
-        new_key = "embedding.weight"
+        key = prefix + "weight"
+        new_key = prefix + "embedding.weight"
         state_dict[new_key] = state_dict[key]
         del state_dict[key]
 
@@ -219,10 +221,10 @@ class FusionEmbedding(nn.Module):
         dtype = self.embedding.weight.dtype
         return torch.empty(bs, seq_len, self.dim, device=device, dtype=dtype)
 
-    def forward(self, input: Tensor) -> Tensor:
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            input (Tensor): input integer tensor with shape
+            input (torch.Tensor): input integer tensor with shape
                 [batch_size x seq_length]
 
         Returns:
@@ -323,26 +325,26 @@ class DeepFusionModel(nn.Module):
 
     def forward(
         self,
-        tokens: Tensor,
+        tokens: torch.Tensor,
         *,
-        mask: Optional[Tensor] = None,
+        mask: Optional[torch.Tensor] = None,
         encoder_input: Optional[Dict] = None,
-        encoder_mask: Optional[Tensor] = None,
-        input_pos: Optional[Tensor] = None,
-    ) -> Union[Tensor, List[Tensor]]:
+        encoder_mask: Optional[torch.Tensor] = None,
+        input_pos: Optional[torch.Tensor] = None,
+    ) -> Union[torch.Tensor, List[torch.Tensor]]:
         """
         Args:
-            tokens (Tensor): input tensor with shape [b x s]
-            mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask
+            tokens (torch.Tensor): input tensor with shape [b x s]
+            mask (Optional[torch.Tensor]): Optional boolean tensor which contains the attention mask
                 with shape [b x s x s]. This is applied after the query-key multiplication and
                 before the softmax. A value of True in row i and column j means token i attends
                 to token j. A value of False means token i does not attend to token j. If no
                 mask is specified, a causal mask is used by default. Default is None.
             encoder_input (Optional[Dict]): Optional input for the encoder.
-            encoder_mask (Optional[Tensor]):  Boolean tensor defining a relational matrix between
+            encoder_mask (Optional[torch.Tensor]):  Boolean tensor defining a relational matrix between
                 tokens and encoder embeddings. A True value at position i,j means token i can attend
                 to embedding j in the decoder. Mask has shape [b x s x s_e]. Default is None.
-            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.

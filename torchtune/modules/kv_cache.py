@@ -7,7 +7,7 @@
 from typing import Tuple
 
 import torch
-from torch import nn, Tensor
+from torch import nn
 
 
 class KVCache(nn.Module):
@@ -47,19 +47,20 @@ class KVCache(nn.Module):
         """Reset the cache to zero."""
         self.k_cache.zero_()
         self.v_cache.zero_()
+        self.size = 0
 
     def update(
-        self, cache_pos: Tensor, k_val: Tensor, v_val: Tensor
-    ) -> Tuple[Tensor, Tensor]:
+        self, cache_pos: torch.Tensor, k_val: torch.Tensor, v_val: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Update KV cache with the new k_val, v_val and return the updated cache.
 
         Args:
-            cache_pos (Tensor): Current cache position tensor with shape [S]
-            k_val (Tensor): Current key tensor with shape [B, H, S, D]
-            v_val (Tensor): Current value tensor with shape [B, H, S, D]
+            cache_pos (torch.Tensor): Current position tensor with shape [S]
+            k_val (torch.Tensor): Current key tensor with shape [B, H, S, D]
+            v_val (torch.Tensor): Current value tensor with shape [B, H, S, D]
 
         Returns:
-            Tuple[Tensor, Tensor]: (k_out, v_out) updated key and value cache, respectively.
+            Tuple[torch.Tensor, torch.Tensor]: (k_out, v_out) updated key and value cache, respectively.
 
         Raises:
             AssertionError: if ``cache_pos`` is longer than the key-value sequence length.

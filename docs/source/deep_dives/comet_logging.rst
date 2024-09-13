@@ -11,7 +11,7 @@ This deep-dive will guide you through how to set up logging to Comet in torchtun
     .. grid-item-card:: :octicon:`mortar-board;1em;` What this deep-dive will cover
 
       * How to get started with Comet
-      * How to use the :class:`~torchtune.utils.metric_logging.CometLogger`
+      * How to use the :class:`~torchtune.training.metric_logging.CometLogger`
       * How to log configs, metrics, and model checkpoints to Comet
 
 torchtune supports logging your training runs to `Comet <https://www.comet.com/site/?utm_source=torchtune&utm_medium=docs&utm_content=docs>`_.
@@ -47,7 +47,7 @@ The only change you need to make is to add the metric logger to your config. Com
 
     # enable logging to the built-in CometLogger
     metric_logger:
-      _component_: torchtune.utils.metric_logging.CometLogger
+      _component_: torchtune.training.metric_logging.CometLogger
       # the Comet project to log to
       project: comet-examples-torchtune
       experiment_name: my-experiment-name

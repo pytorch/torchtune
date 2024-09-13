@@ -6,9 +6,10 @@
 import math
 from typing import List
 
+import torch
 import torch.nn.functional as F
 
-from torch import nn, Tensor
+from torch import nn
 
 from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
 from torchtune.modules.low_precision import _register_nf4_dispatch_ops  # noqa: F401
@@ -64,7 +65,7 @@ class LoRALinear(nn.Module, AdapterModule):
         self.register_parameter(
             "bias", nn.Parameter(bias) if bias is not None else None
         )
-        self.dropout = nn.Dropout(p=dropout)
+        self.dropout = nn.Dropout(p=dropout) if dropout > 0.0 else nn.Identity()
         self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=False)
         self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=False)
         self.merged = False
@@ -73,7 +74,7 @@ class LoRALinear(nn.Module, AdapterModule):
         # params are initialized, as is done in initialize_parameters below).
         # For that reason, we patch reset_parameters directly on lora_a and lora_b submodules
         # when using meta device. This is done in
-        # torchtune.utils.prepare_model_for_fsdp_with_meta_device.
+        # torchtune.training.prepare_model_for_fsdp_with_meta_device.
         # See this issue for more details: https://github.com/pytorch/pytorch/issues/104187.
         # Without meta device, we only need the following:
         self.initialize_parameters()
@@ -111,13 +112,13 @@ class LoRALinear(nn.Module, AdapterModule):
         adapter_params = ["lora_a.weight", "lora_b.weight"]
         return adapter_params
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            x (Tensor): input tensor with shape ``(..., in_dim)``
+            x (torch.Tensor): input tensor with shape ``(..., in_dim)``
 
         Returns:
-            Tensor: output tensor with shape ``(..., out_dim)``
+            torch.Tensor: output tensor with shape ``(..., out_dim)``
 
         """
         if self._quantize_base:

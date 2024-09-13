@@ -12,12 +12,12 @@ import torch
 from tests.test_utils import assert_expected, fixed_init_model
 from torch import nn
 from torchao.dtypes.nf4tensor import NF4Tensor
-from torchtune import utils
+from torchtune import training
 from torchtune.models.llama2 import llama2, lora_llama2
 from torchtune.models.llama2._component_builders import lora_llama2_self_attention
 from torchtune.modules.low_precision import FrozenNF4Linear
 from torchtune.modules.peft import get_merged_lora_ckpt, LoRALinear
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 RANK = 4
 ALPHA = 1.0
@@ -67,7 +67,7 @@ class TestLoRALlamaSelfAttention:
     )
     def test_forward(self, inputs, lora_modules, expected):
         lora_llama_sa = self.get_lora_llama_self_attention(lora_modules)
-        actual = lora_llama_sa(inputs)
+        actual = lora_llama_sa(inputs, inputs)
         assert_expected(actual.shape, (BSZ, SEQ_LEN, EMBED_DIM))
         assert_expected(actual.mean(), expected, atol=1e-4, rtol=1e-6)
 
@@ -225,7 +225,7 @@ class TestLoRALlama2:
 
     @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
     def test_qlora_llama2_parity(self, dtype, inputs):
-        with utils.set_default_dtype(dtype):
+        with training.set_default_dtype(dtype):
             model_ref = self.get_lora_llama2(
                 lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
                 apply_lora_to_mlp=True,
@@ -255,7 +255,7 @@ class TestLoRALlama2:
 
     @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
     def test_qlora_llama2_state_dict(self, dtype):
-        with utils.set_default_dtype(dtype):
+        with training.set_default_dtype(dtype):
             model_ref = self.get_lora_llama2(
                 lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
                 apply_lora_to_mlp=True,
@@ -291,7 +291,7 @@ class TestLoRALlama2:
 
     @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
     def test_qlora_llama2_merged_state_dict(self, dtype):
-        with utils.set_default_dtype(dtype):
+        with training.set_default_dtype(dtype):
             qlora = self.get_lora_llama2(
                 lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
                 apply_lora_to_mlp=True,
@@ -312,7 +312,7 @@ class TestLoRALlama2:
             assert v.dtype == dtype
 
         # Ensure checkpoint can be loaded into non-LoRA model
-        with utils.set_default_dtype(dtype):
+        with training.set_default_dtype(dtype):
             llama2 = self.get_ref_llama2(vocab_size=50, embed_dim=512)
 
         llama2.load_state_dict(merged_ckpt)

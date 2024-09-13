@@ -8,13 +8,14 @@ import pytest
 
 import torch
 from tests.test_utils import fixed_init_model
-from torchtune.generation import (
+
+from torchtune.generation._generation import (
     generate,
     generate_next_token,
     get_causal_mask_from_padding_mask,
     get_position_ids_from_padding_masks,
+    sample,
 )
-from torchtune.generation._generation import sample
 from torchtune.models.llama2 import llama2
 
 

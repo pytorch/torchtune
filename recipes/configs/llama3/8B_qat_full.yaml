@@ -17,6 +17,7 @@
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
   path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
+  max_seq_len: null
 
 # Dataset
 dataset:
@@ -29,7 +30,7 @@ model:
   _component_: torchtune.models.llama3.llama3_8b
 
 checkpointer:
-  _component_: torchtune.utils.FullModelMetaCheckpointer
+  _component_: torchtune.training.FullModelMetaCheckpointer
   checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/original/
   checkpoint_files: [
     consolidated.00.pth
@@ -45,7 +46,7 @@ epochs: 3
 
 # QAT arguments
 quantizer:
-  _component_: torchtune.utils.quantization.Int8DynActInt4WeightQATQuantizer
+  _component_: torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer
   groupsize: 256
 
 optimizer:
@@ -54,7 +55,7 @@ optimizer:
   foreach: False
 
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
 
@@ -70,7 +71,7 @@ dtype: bf16
 
 # Logging
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 output_dir: /tmp/alpaca-llama3-finetune
 log_every_n_steps: 1

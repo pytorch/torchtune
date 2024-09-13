@@ -231,7 +231,7 @@ class VisionTransformer(nn.Module):
         self.token_pos_embedding = token_pos_embedding
 
         self.cls_projection = cls_projection
-        self.transformer_layers = _get_clones(layer, num_layers)
+        self.layers = _get_clones(layer, num_layers)
 
         # other modules
         self.conv = nn.Conv2d(
@@ -251,7 +251,9 @@ class VisionTransformer(nn.Module):
         return self.patches_per_tile + 1  # +1 for CLS token
 
     def forward(
-        self, images: torch.Tensor, aspect_ratio: Optional[torch.Tensor] = None
+        self,
+        images: torch.Tensor,
+        aspect_ratio: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         """
         Processes images and returns the tokens and hidden states.
@@ -268,8 +270,8 @@ class VisionTransformer(nn.Module):
         Notice that to batch it, you will have to pad n_imgs to max_n_imgs and max_num_tiles.
 
         Args:
-            images (torch.Tensor): Tensor with shape (bsz, n_imgs, n_tiles, n_channels, tile_size, tile_size).
-            aspect_ratio (Optional[torch.Tensor]): Tensor with shape (bsz, n_imgs, 2). If all
+            images (torch.Tensor): torch.Tensor with shape (bsz, n_imgs, n_tiles, n_channels, tile_size, tile_size).
+            aspect_ratio (Optional[torch.Tensor]): torch.Tensor with shape (bsz, n_imgs, 2). If all
                 images have a single tile, i.e. they were not tile-cropped, it should be None.
                 Used to calculate the positional embeddings for the tiles.
 
@@ -380,11 +382,10 @@ class VisionTransformer(nn.Module):
 
         # transformer with optional hidden layer outputs
         x = x.reshape(bsz_and_n_imgs, n_tiles * n_tokens, embed_dim)
-        for layer_idx, transformer_layer in enumerate(self.transformer_layers):
+        for layer_idx, transformer_layer in enumerate(self.layers):
             if layer_idx in self.out_indices:
-                hidden_states.append(
-                    x.reshape(bsz, n_imgs, n_tiles, n_tokens, embed_dim)
-                )
+                h = x.reshape(bsz, n_imgs, n_tiles, n_tokens, embed_dim)
+                hidden_states.append(h)
             x = transformer_layer(x)
 
         # norm
@@ -420,13 +421,13 @@ class CLSEmbedding(nn.Module):
         super().__init__()
 
         scale = embed_dim**-0.5
-        self.cls_embedding = nn.Parameter(scale * torch.randn(embed_dim))
+        self.weight = nn.Parameter(scale * torch.randn(embed_dim))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
         # add 1 CLS token to every tile
         bsz_and_n_imgs, n_tiles, n_tokens, embed_dim = x.shape
-        cls_emb = self.cls_embedding.broadcast_to(bsz_and_n_imgs, n_tiles, 1, embed_dim)
+        cls_emb = self.weight.broadcast_to(bsz_and_n_imgs, n_tiles, 1, embed_dim)
         return torch.cat([cls_emb, x], dim=2)
 
 
@@ -444,14 +445,14 @@ class CLSProjection(nn.Module):
 
         scale = embed_dim**-0.5
         self.cls_output_dim = cls_output_dim
-        self.projection = nn.Parameter(scale * torch.randn(embed_dim, cls_output_dim))
+        self.weight = nn.Parameter(scale * torch.randn(embed_dim, cls_output_dim))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         bsz, n_imgs, n_tiles, n_tokens, embed_dim = x.shape
         x = x.reshape(bsz * n_imgs * n_tiles, n_tokens, embed_dim)
 
         # out: (bsz * n_tiles, cls_output_dim)
-        x = x[:, 0, :] @ self.projection
+        x = x[:, 0, :] @ self.weight
 
         # num_tokens becomes 1 because we only return the CLS token projection
         x = x.reshape(bsz, n_imgs, n_tiles, 1, self.cls_output_dim)

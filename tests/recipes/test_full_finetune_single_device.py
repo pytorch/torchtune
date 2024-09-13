@@ -46,6 +46,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
+            "clip_grad_norm=100",
         ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self, model_type):
@@ -73,9 +74,6 @@ class TestFullFinetuneSingleDeviceRecipe:
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
 
-        # To workaround https://github.com/pytorch/torchtune/issues/676
-        if compile:
-            os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
         cmd = f"""
         tune run full_finetune_single_device \
             --config {config} \
@@ -98,8 +96,13 @@ class TestFullFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
+        # Make sure to clear compile state in between tests
+        if compile:
+            torch._dynamo.reset()
+
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values(model_type)
+
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
@@ -129,7 +132,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         tune run full_finetune_single_device \
             --config llama2/7B_full_low_memory \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
@@ -150,7 +153,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         tune run full_finetune_single_device \
             --config llama2/7B_full_low_memory \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
             checkpointer.checkpoint_files=[{os.path.join(tmpdir, "hf_model_0001_0.pt")}]\
             checkpointer.recipe_checkpoint={os.path.join(tmpdir, "recipe_state.pt")}
@@ -216,7 +219,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
         cmd_1 = f"""
         tune run full_finetune_single_device \
             --config llama2/7B_full_low_memory \
-            checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
@@ -242,7 +245,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
         cmd_2 = f"""
         tune run full_finetune_single_device \
             --config llama2/7B_full_low_memory \
-            checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \

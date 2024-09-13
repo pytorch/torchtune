@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import sys
 import time
 
@@ -19,11 +20,12 @@ from torch.distributed import destroy_process_group, init_process_group
 
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import config, modules, utils
+from torchtune import config, modules, training, utils
+from torchtune.data import padded_collate_packed, padded_collate_sft
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.utils import DummyProfiler, PROFILER_KEY
-from torchtune.utils.activations import apply_selective_activation_checkpointing
+from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training.activations import apply_selective_activation_checkpointing
 
 from tqdm import tqdm
 
@@ -104,7 +106,7 @@ class QATRecipeDistributed(FTRecipeInterface):
 
     def __init__(self, cfg: DictConfig) -> None:
         self._device = utils.get_device(device=cfg.device)
-        self._dtype = utils.get_dtype(cfg.dtype, device=self._device)
+        self._dtype = training.get_dtype(cfg.dtype, device=self._device)
 
         if self._dtype == torch.float16:
             raise ValueError(
@@ -127,7 +129,7 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
-        _, rank = utils.get_world_size_and_rank()
+        _, rank = training.get_world_size_and_rank()
         self._is_rank_zero = rank == 0
 
         # Training cfg
@@ -141,7 +143,7 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
-        self.seed = utils.set_seed(seed=cfg.seed)
+        self.seed = training.set_seed(seed=cfg.seed)
         self.epochs_run = 0
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
@@ -167,28 +169,28 @@ class QATRecipeDistributed(FTRecipeInterface):
         Updates the recipe state from checkpoint.
         """
         try:
-            self.epochs_run = ckpt_dict[utils.EPOCHS_KEY]
+            self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
 
             # on mismatch, warn the user and prevent the override
-            if self.seed != ckpt_dict[utils.SEED_KEY]:
+            if self.seed != ckpt_dict[training.SEED_KEY]:
                 warn(
                     message=(
                         "Config value for seed does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[utils.SEED_KEY]}"
+                        f"using the checkpoint value: {ckpt_dict[training.SEED_KEY]}"
                     )
                 )
-                self.seed = ckpt_dict[utils.SEED_KEY]
-            if self.max_steps_per_epoch != ckpt_dict[utils.MAX_STEPS_KEY]:
+                self.seed = ckpt_dict[training.SEED_KEY]
+            if self.max_steps_per_epoch != ckpt_dict[training.MAX_STEPS_KEY]:
                 warn(
                     message=(
                         "Config value for max_steps_per_epoch does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[utils.MAX_STEPS_KEY]}"
+                        f"using the checkpoint value: {ckpt_dict[training.MAX_STEPS_KEY]}"
                     )
                 )
-                self.max_steps_per_epoch = ckpt_dict[utils.MAX_STEPS_KEY]
+                self.max_steps_per_epoch = ckpt_dict[training.MAX_STEPS_KEY]
 
             # on mismatch, warn the user but allow the override
-            if self.total_epochs != ckpt_dict[utils.TOTAL_EPOCHS_KEY]:
+            if self.total_epochs != ckpt_dict[training.TOTAL_EPOCHS_KEY]:
                 warn(
                     message=(
                         "Config value for total_epochs does not match the checkpoint value, "
@@ -215,13 +217,14 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
+        self._model_compile = cfg.get("compile", False)
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
-            model_state_dict=checkpoint_dict[utils.MODEL_KEY],
+            model_state_dict=checkpoint_dict[training.MODEL_KEY],
             ac_mode=cfg.get("ac_mode", None),
             ac_option=cfg.get("ac_option", None),
             quantizer_cfg=cfg.get("quantizer", None),
@@ -230,12 +233,30 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=checkpoint_dict[utils.OPT_KEY]
+            opt_state_dict=checkpoint_dict[training.OPT_KEY]
             if self._resume_from_checkpoint
             else None,
         )
 
+        # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
+        backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+        if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
+            # set num_output_chunks for model
+            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+            if self._model_compile:
+                log.info("Compiling loss with torch.compile...")
+                # For CEWithChunkedOutputLoss, if we compile the entire class
+                # we lose the benefits from the chunked loss.
+                # Therefore, we only compile the cross entropy function + upcasting
+                self._loss_fn.compute_cross_entropy = torch.compile(
+                    self._loss_fn.compute_cross_entropy, backend=backend
+                )
+        else:
+            if self._model_compile:
+                log.info("Compiling loss with torch.compile...")
+                self._loss_fn = torch.compile(self._loss_fn, backend=backend)
+        log.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
@@ -265,6 +286,11 @@ class QATRecipeDistributed(FTRecipeInterface):
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
+
+        # Used to ignore labels for loss computation
+        self.ignore_labels_cache = torch.full(
+            (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
+        )
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
@@ -313,12 +339,12 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         # Check that component is included and set correctly
         if cfg_profiler.get("_component_", None) is None:
-            cfg_profiler["_component_"] = "torchtune.utils.setup_torch_profiler"
+            cfg_profiler["_component_"] = "torchtune.training.setup_torch_profiler"
         else:
             assert (
                 cfg_profiler.get("_component_")
-                == "torchtune.utils.setup_torch_profiler"
-            ), "Only torch profiler supported currently: component must be `torchtune.utils.setup_torch_profiler`"
+                == "torchtune.training.setup_torch_profiler"
+            ), "Only torch profiler supported currently: component must be `torchtune.training.setup_torch_profiler`"
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
@@ -359,7 +385,7 @@ class QATRecipeDistributed(FTRecipeInterface):
             )
             init_start = time.perf_counter()
 
-        with utils.set_default_dtype(self._dtype), torch.device("meta"):
+        with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
         # We currently have two versions of activation checkpointing in this recipe
@@ -377,7 +403,7 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         # original activation checkpointing (full) - flip the condition above
         if enable_activation_checkpointing and ac_mode is None:
-            utils.set_activation_checkpointing(
+            training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
@@ -386,7 +412,7 @@ class QATRecipeDistributed(FTRecipeInterface):
             raise ValueError("Quantizer must be specified for QAT recipe.")
         quantizer = config.instantiate(quantizer_cfg)
         quantizer.precision = self._dtype
-        quantizer_mode = utils.quantization.get_quantizer_mode(quantizer)
+        quantizer_mode = training.quantization.get_quantizer_mode(quantizer)
         if "qat" not in quantizer_mode:
             raise ValueError(
                 "Quantizer mode '%s' is not supported for finetuning" % quantizer_mode
@@ -417,14 +443,14 @@ class QATRecipeDistributed(FTRecipeInterface):
         if custom_sharded_layers:
             fsdp_shard_conditions += [lambda n, m: n in custom_sharded_layers]
 
-        utils.shard_model(
+        training.shard_model(
             model=model,
             shard_conditions=fsdp_shard_conditions,
             cpu_offload=fsdp_cpu_offload,
             reshard_after_forward=reshard_after_forward,
         )
 
-        with utils.set_default_dtype(self._dtype), self._device:
+        with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
                 # RoPE is not covered in state dict
                 if hasattr(m, "rope_init"):
@@ -432,19 +458,19 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         # This method will convert the full model state dict into a sharded state
         # dict and load into the model
-        utils.load_from_full_model_state_dict(
+        training.load_from_full_model_state_dict(
             model, model_state_dict, self._device, self._is_rank_zero, strict=True
         )
 
         # Ensure no params and buffers are on meta device
-        utils.validate_no_params_on_meta_device(model)
+        training.validate_no_params_on_meta_device(model)
 
         if self._is_rank_zero:
             log.info(
                 f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
             )
-            memory_stats = utils.get_memory_stats(device=self._device)
-            utils.log_memory_stats(memory_stats)
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(memory_stats)
 
         # synchronize before training begins
         torch.distributed.barrier()
@@ -456,7 +482,7 @@ class QATRecipeDistributed(FTRecipeInterface):
     ) -> Optimizer:
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
-            utils.load_from_full_optimizer_state_dict(
+            training.load_from_full_optimizer_state_dict(
                 optimizer,
                 opt_state_dict,
                 self._device,
@@ -477,7 +503,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = utils.get_world_size_and_rank()
+        world_size, rank = training.get_world_size_and_rank()
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -498,12 +524,14 @@ class QATRecipeDistributed(FTRecipeInterface):
             batch_size=batch_size,
             sampler=sampler,
             collate_fn=partial(
-                utils.padded_collate,
+                padded_collate_sft,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=self._loss_fn.ignore_index,
             )
             if not packed
-            else None,
+            else partial(
+                padded_collate_packed,
+            ),
         )
 
         if self._is_rank_zero:
@@ -518,7 +546,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         """
         Checkpoint the state of the recipe. The constructed checkpoint state dict
         contains the following information:
-        - Model weights with key utils.MODEL_KEY
+        - Model weights with key training.MODEL_KEY
         - Relevant recipe state if training is not complete
 
         Checkpointer will save the model weights and recipe state in
@@ -531,13 +559,13 @@ class QATRecipeDistributed(FTRecipeInterface):
         intermediate_checkpoint = epoch + 1 < self.total_epochs
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
-        cpu_state_dict = utils.get_full_model_state_dict(
+        cpu_state_dict = training.get_full_model_state_dict(
             self._model,
             self._is_rank_zero,
         )
 
         if intermediate_checkpoint:
-            opt_state_dict = utils.get_full_optimizer_state_dict(
+            opt_state_dict = training.get_full_optimizer_state_dict(
                 self._optimizer,
                 self._is_rank_zero,
             )
@@ -548,18 +576,18 @@ class QATRecipeDistributed(FTRecipeInterface):
         # to be sent to the checkpointer and ultimately written to file
         if self._is_rank_zero:
 
-            checkpoint_dict.update({utils.MODEL_KEY: cpu_state_dict})
+            checkpoint_dict.update({training.MODEL_KEY: cpu_state_dict})
 
             # if training is in-progress, checkpoint the optimizer state and recipe state
             # as well.
             if intermediate_checkpoint:
                 checkpoint_dict.update(
                     {
-                        utils.OPT_KEY: opt_state_dict,
-                        utils.SEED_KEY: self.seed,
-                        utils.EPOCHS_KEY: self.epochs_run,
-                        utils.TOTAL_EPOCHS_KEY: self.total_epochs,
-                        utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                        training.OPT_KEY: opt_state_dict,
+                        training.SEED_KEY: self.seed,
+                        training.EPOCHS_KEY: self.epochs_run,
+                        training.TOTAL_EPOCHS_KEY: self.total_epochs,
+                        training.MAX_STEPS_KEY: self.max_steps_per_epoch,
                     }
                 )
 
@@ -574,9 +602,9 @@ class QATRecipeDistributed(FTRecipeInterface):
         The core training loop.
         """
         # clean up before training begins
-        utils.cleanup_before_training()
+        training.cleanup_before_training()
 
-        _, rank = utils.get_world_size_and_rank()
+        _, rank = training.get_world_size_and_rank()
 
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
@@ -626,7 +654,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                             "Step 0: Disabling fake quant, will re-enable in step %s"
                             % self._fake_quant_after_n_steps
                         )
-                        disable_fq = utils.quantization._get_disable_fake_quant(
+                        disable_fq = training.quantization._get_disable_fake_quant(
                             self._quantizer_mode
                         )
                         self._model.apply(disable_fq)
@@ -635,7 +663,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                             "Step %s: Enabling fake quant"
                             % self._fake_quant_after_n_steps
                         )
-                        enable_fq = utils.quantization._get_enable_fake_quant(
+                        enable_fq = training.quantization._get_enable_fake_quant(
                             self._quantizer_mode
                         )
                         self._model.apply(enable_fq)
@@ -649,10 +677,17 @@ class QATRecipeDistributed(FTRecipeInterface):
                 )
 
                 logits = self._model(tokens, mask=mask, input_pos=input_pos)
-                # Shift so that tokens < n predict n
-                logits = logits[..., :-1, :].contiguous()
-                labels = labels[..., 1:].contiguous()
-                logits = logits.transpose(1, 2)
+
+                # Shift labels to compute loss
+                # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
+                # But this way we dont need to slice the logits. We just add an ignore index to labels.
+                labels = torch.hstack(
+                    (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
+                )
+                if not isinstance(logits, list):
+                    labels = labels.reshape(-1)
+                    logits = logits.reshape(-1, logits.size(-1))
+
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
                 # free logits otherwise it peaks backward memory
@@ -688,7 +723,9 @@ class QATRecipeDistributed(FTRecipeInterface):
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._log_peak_memory_stats:
-                            log_dict.update(utils.get_memory_stats(device=self._device))
+                            log_dict.update(
+                                training.get_memory_stats(device=self._device)
+                            )
                         self._metric_logger.log_dict(
                             log_dict,
                             step=self.global_step,
@@ -736,7 +773,7 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in config (see available configs through ``tune ls``)
         - Overwritten by arguments from the command-line
     """
-    if not utils.is_distributed():
+    if not training.is_distributed():
         raise RuntimeError(
             "Distributed QAT recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
@@ -745,7 +782,7 @@ def recipe_main(cfg: DictConfig) -> None:
     if cfg.get("fsdp_cpu_offload", False):
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU
-        utils.set_torch_num_threads()
+        training.set_torch_num_threads()
 
     config.log_config(recipe_name="QATRecipeDistributed", cfg=cfg)
 

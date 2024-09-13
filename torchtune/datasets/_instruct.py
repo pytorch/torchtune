@@ -16,10 +16,10 @@ from torchtune.data import (
     Message,
     validate_messages,
 )
-from torchtune.data._utils import deprecated
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.utils.logging import deprecated
 
 
 @deprecated(
@@ -136,6 +136,7 @@ def instruct_dataset(
     source: str,
     column_map: Optional[Dict[str, str]] = None,
     train_on_input: bool = False,
+    new_system_prompt: Optional[str] = None,
     packed: bool = False,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> Union[SFTDataset, PackedDataset]:
@@ -178,6 +179,8 @@ def instruct_dataset(
             and "output" column names.
         train_on_input (bool): Whether the model is trained on the user prompt or not.
             Default is False.
+        new_system_prompt (Optional[str]): if specified, prepend a system message. This can
+            serve as instructions to guide the model response. Default is None.
         packed (bool): Whether or not to pack the dataset to tokenizer's ``max_seq_len`` prior to training. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
             such as ``data_files`` or ``split``.
@@ -239,9 +242,10 @@ def instruct_dataset(
     Raises:
         ValueError: If ``packed=True`` and ``tokenizer.max_seq_len`` is not set.
     """
-
     message_transform = InputOutputToMessages(
-        train_on_input=train_on_input, column_map=column_map
+        train_on_input=train_on_input,
+        column_map=column_map,
+        new_system_prompt=new_system_prompt,
     )
 
     ds = SFTDataset(

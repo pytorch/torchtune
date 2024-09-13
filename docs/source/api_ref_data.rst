@@ -63,6 +63,21 @@ Converts data from common schema and conversation JSON formats into a list of to
     JSONToMessages
     ChosenRejectedToMessages
 
+Collaters
+---------
+
+Collaters used to collect samples into batches and handle any padding.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    padded_collate
+    padded_collate_tiled_images_and_mask
+    padded_collate_sft
+    padded_collate_dpo
+    left_pad_sequence
+
 Helper functions
 ----------------
 
@@ -74,3 +89,5 @@ Miscellaneous helper functions used in modifying data.
 
     validate_messages
     truncate
+    load_image
+    format_content_with_images

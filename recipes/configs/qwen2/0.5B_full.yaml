@@ -22,6 +22,7 @@ tokenizer:
   _component_: torchtune.models.qwen2.qwen2_tokenizer
   path: /tmp/Qwen2-0.5B-Instruct/vocab.json
   merges_file: /tmp/Qwen2-0.5B-Instruct/merges.txt
+  max_seq_len: null
 
 # Dataset
 dataset:
@@ -34,7 +35,7 @@ model:
   _component_: torchtune.models.qwen2.qwen2_0_5b
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Qwen2-0.5B-Instruct
   checkpoint_files: [
     model.safetensors
@@ -51,7 +52,7 @@ optimizer:
   _component_: torch.optim.AdamW
   lr: 2e-5
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 16
 
@@ -67,7 +68,7 @@ dtype: bf16
 
 # Logging
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 output_dir: /tmp/Qwen2-0.5B-Instruct-finetune
 log_every_n_steps: 1

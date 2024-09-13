@@ -42,6 +42,7 @@ class TestLoRAFinetuneDistributedRecipe:
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
             "gradient_accumulation_steps=1",
+            "compile=False",
         ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self, model_type):
@@ -56,13 +57,13 @@ class TestLoRAFinetuneDistributedRecipe:
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
     @pytest.mark.parametrize(
-        "fsdp_sharding_strategy",
+        "reshard_after_forward",
         [
-            (None),
-            ("NO_SHARD"),
+            True,
+            False,
         ],
     )
-    def test_loss(self, fsdp_sharding_strategy, tmpdir, monkeypatch):
+    def test_loss(self, reshard_after_forward, tmpdir, monkeypatch):
         ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
@@ -71,7 +72,7 @@ class TestLoRAFinetuneDistributedRecipe:
         tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed
             --config llama2/7B_lora \
             output_dir={tmpdir} \
-            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
@@ -79,9 +80,8 @@ class TestLoRAFinetuneDistributedRecipe:
             metric_logger.filename={log_file} \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
+            reshard_after_forward={reshard_after_forward} \
         """.split()
-        if fsdp_sharding_strategy:
-            cmd.append(f"fsdp_sharding_strategy={fsdp_sharding_strategy}")
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
 

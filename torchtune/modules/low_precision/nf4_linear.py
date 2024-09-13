@@ -9,7 +9,6 @@ from typing import Optional
 import torch
 
 import torch.nn as nn
-from torch import Tensor
 from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
 
 
@@ -47,13 +46,13 @@ class FrozenNF4Linear(nn.Linear):
             self.weight, torch.nn.Parameter(self.nf4_weight, requires_grad=False)
         )
 
-    def forward(self, input: Tensor) -> Tensor:
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
         """
         Runs linear operation with input tensor as given by `input`. Computation happens in higher
         precision, though only the nf4 weight is saved for backward for gradient computation to ensure
         additional memory is not used.
         Args:
-            input (Tensor): input tensor
+            input (torch.Tensor): input tensor
 
         Returns:
             Tensor: output tensor
