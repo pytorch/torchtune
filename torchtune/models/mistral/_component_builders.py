@@ -18,7 +18,7 @@ from torchtune.modules import (
     TransformerDecoder,
     TransformerSelfAttentionLayer,
 )
-from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
+from torchtune.modules.common_utils import _register_reparametrize_state_dict_hooks
 
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 
@@ -263,15 +263,9 @@ def lora_mistral(
     if quantize_base:
         # For QLoRA, we reparametrize 4-bit tensors to higher precision, and offload to CPU on the fly
         # so as to not increase peak memory
-        model._register_state_dict_hook(
-            partial(
-                reparametrize_as_dtype_state_dict_post_hook,
-                # TODO this is clowny, figure out a better way to get what precision the rest
-                # of the model is in
-                dtype=tok_embeddings.weight.dtype,
-                offload_to_cpu=True,
-            )
-        )
+        # TODO this is clowny, figure out a better way to get what precision the rest
+        # of the model is in
+        _register_reparametrize_state_dict_hooks(model, dtype=tok_embeddings.weight.dtype)
 
     return model
 
