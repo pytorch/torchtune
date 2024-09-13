@@ -35,7 +35,19 @@ The above will be converted to:
         Message(role="assistant", content="A1"),
     ]
 
-The list of messages is then passed into the model tokenizer's ``tokenize_messages`` to encode and add appropriate model-specific special tokens.
+The list of messages is tokenized by the model tokenizer with the appropriate model-specific special tokens added
+(such as beginning-of-sequence, end-of-sequence, and others).
+
+.. code-block:: python
+
+    from torchtune.models.phi3 import phi3_mini_tokenizer
+
+    p_tokenizer = phi3_mini_tokenizer("/tmp/Phi-3-mini-4k-instruct/tokenizer.model")
+    tokens, mask = p_tokenizer.tokenize_messages(messages)
+    print(tokens)
+    # [1, 32010, 29871, 13, 29984, 29896, 32007, 29871, 13, 32001, 29871, 13, 29909, 29896, 32007, 29871, 13]
+    print(p_tokenizer.decode(tokens))
+    # '\nQ1 \n \nA1 \n'
 
 As an example, you can see the schema of the `SlimOrca dataset <https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup>`_.
 
@@ -174,3 +186,7 @@ Chat templates
 --------------
 
 Chat templates are defined the same way as instruct templates in :func:`~torchtune.datasets.instruct_dataset`. See :ref:`instruct_template` for more info.
+
+Example datasets
+----------------
+- :class:`~torchtune.datasets.slimorca_dataset`

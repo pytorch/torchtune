@@ -27,8 +27,37 @@ and the assistant prompt is in another column.
     | "user prompt"   | "model response" |
 
 The user input column is converted to a :class:`~torchtune.data.Message` with ``role="user"`` and the assistant
-output column is converted to a a :class:`~torchtune.data.Message` with ``role="assistant"``. These are then pass into
-the model tokenizer's ``tokenize_messages`` to encode and add appropriate model-specific special tokens.
+output column is converted to a a :class:`~torchtune.data.Message` with ``role="assistant"``.
+
+.. code-block:: python
+
+    from torchtune.data import Message
+
+    sample = {
+        "input": "user prompt",
+        "output": "model response",
+    }
+    #
+    # After message transform
+    #
+    msgs = [
+        Message(role="user", content="user prompt"),
+        Message(role="assistant", content="model response")
+    ]
+
+These are then tokenized by the model tokenizer with the appropriate model-specific special tokens added
+(such as beginning-of-sequence, end-of-sequence, and others).
+
+.. code-block:: python
+
+    from torchtune.models.phi3 import phi3_mini_tokenizer
+
+    p_tokenizer = phi3_mini_tokenizer("/tmp/Phi-3-mini-4k-instruct/tokenizer.model")
+    tokens, mask = p_tokenizer.tokenize_messages(msgs)
+    print(tokens)
+    # [1, 32010, 29871, 13, 1792, 9508, 32007, 29871, 13, 32001, 29871, 13, 4299, 2933, 32007, 29871, 13]
+    print(p_tokenizer.decode(tokens))
+    # '\nuser prompt \n \nmodel response \n'
 
 As an example, you can see the schema of the `C4 200M dataset <https://huggingface.co/datasets/liweili/c4_200m>`_.
 
