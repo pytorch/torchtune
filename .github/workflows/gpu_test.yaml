@@ -47,9 +47,7 @@ jobs:
         run: |
           python -m pip install -e ".[dev]"
           python -m pip install lm-eval==0.4.*
-      - name: Run all other tests except the specific distributed test
-        run: pytest tests --with-integration --cov=. --cov-report=xml --durations=20 -vv --ignore=tests/torchtune/training/test_distributed.py
-      - name: Run specific distributed test independently
-        run: pytest tests/torchtune/training/test_distributed.py --with-integration --cov=. --cov-report=xml --durations=20 -vv
+      - name: Run recipe and unit tests with coverage
+        run: pytest tests --with-integration --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
