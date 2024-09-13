@@ -94,7 +94,7 @@ class PromptClassificationDataset(Dataset):
 
         # Truncate if needed, but don't coerce EOS id.
         if self.max_seq_len is not None:
-            tokens = truncate(tokens, self.max_seq_len - 1)
+            tokens = truncate(tokens, self.max_seq_len - 1, self._tokenizer.eos_id)
 
         # Map labels to classes
         labels = self._label_encoder[sample[self._label_column]]
