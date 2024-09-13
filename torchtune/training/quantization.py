@@ -83,19 +83,33 @@ _quantizer_mode_to_enable_fake_quant[
 
 
 class Int8MixedPrecisionTrainingQuantizer:
-    """Apply INT8 mixed-precision training. During training, weights and activations
-    are dynamically quantized to INT8 to utilize INT8 tensor cores. This is also done
-    in the backward pass.
+    """Apply INT8 mixed-precision training. This only affects weights of ``nn.Linear``
+    modules. During training, weights and activations are dynamically quantized to INT8
+    to utilize fast matrix multiplication with INT8 tensor cores. This is also done in
+    the backward pass.
+
+    The expected end2end speedup is 40% on a single A100 and 70% on a single 4090, with
+    minimal accuracy loss. If convergence is an issue, please refer to torchao
+    documentation below.
+
+    For more details, as well as details about arguments of this quantizer, please refer to
+    https://github.com/pytorch/ao/tree/main/torchao/prototype/quantized_training#int8-mixed-precision
+
+    Args:
+        output (bool): whether to apply INT8 mixed-precision for calculating output.
+        grad_input (bool): whether to apply INT8 mixed-precision for calculating grad_input.
+        grad_weight (bool): whether to apply INT8 mixed-precision for calculating grad_weight.
 
     NOTE: Due to the limitations of the current implementation, the following
-    requirements must be satisfied to enjoy speedup:
+    requirements must be satisfied to enjoy the expected speedup:
 
     1. Must use ``torch.compile()`` (set ``compile=True``).
     2. Inputs to the model must not be too dynamic. For example, when input tokens
     length changes for every batch, you won't see the expected speedup.
 
     To satisfy (2), you can use :class:`~torchtune.datasets.PackedDataset` (set
-    ``dataset.packed=True``), which ensures input tokens always have fixed length.
+    ``dataset.packed=True`` and ``tokenizer.max_seq_len`` to a desired value.), which
+    ensures input tokens always have fixed length.
     """
 
     def __init__(
