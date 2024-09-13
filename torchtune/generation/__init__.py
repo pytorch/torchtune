@@ -4,6 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from ._generation import generate, generate_next_token
+from ._generation import generate, generate_next_token, sample
 
-__all__ = ["generate", "generate_next_token"]
+__all__ = ["generate", "generate_next_token", "sample"]

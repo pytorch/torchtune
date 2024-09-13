@@ -32,7 +32,8 @@ model:
   lora_attn_modules: ['q_proj', 'k_proj', 'v_proj']
   apply_lora_to_mlp: True
   lora_rank: 64
-  lora_alpha: 16
+  lora_alpha: 128
+  lora_dropout: 0.0
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
@@ -55,7 +56,7 @@ optimizer:
 
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
-  num_warmup_steps: 100
+  num_warmup_steps: 10
 
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
