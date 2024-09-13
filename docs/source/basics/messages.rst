@@ -10,6 +10,7 @@ content, and other information relevant for special tokens in model tokenizers. 
 for Messages, see the API ref for :class:`~torchtune.data.Message`. Here, we briefly discuss how to create messages, format messages, and
 tokenize messages.
 
+.. _creating_messages:
 
 Creating Messages
 -----------------
