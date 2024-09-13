@@ -50,6 +50,7 @@ save_adapter_weights_only: False
 
 optimizer:
   _component_: torch.optim.AdamW
+  fused: True
   lr: 2e-5
 
 lr_scheduler:

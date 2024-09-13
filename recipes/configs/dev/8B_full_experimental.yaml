@@ -52,7 +52,7 @@ epochs: 3
 optimizer:
   _component_: torch.optim.AdamW
   lr: 2e-5
-  foreach: False
+  fused: False
 
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
