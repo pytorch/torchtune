@@ -16,14 +16,42 @@ to optimize model performance on specific tasks. They can serve many purposes:
    and more.
 3. Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
 
+For example, if I wanted to fine-tune a model to perform a grammar correction task, I could use the :class:`~torchtune.data.GrammarErrorCorrectionTemplate`
+to add the text "Correct this to standard English: {prompt} --- Corrected: {response}" to all my data samples.
+
+.. code-block:: python
+
+    from torchtune.data import GrammarErrorCorrectionTemplate, Message
+
+    sample = {
+        "incorrect": "This are a cat",
+        "correct": "This is a cat.",
+    }
+    msgs = [
+        Message(role="user", content=sample["incorrect"]),
+        Message(role="assistant", content=sample["correct"]),
+    ]
+
+    gec_template = GrammarErrorCorrectionTemplate()
+    templated_msgs = gec_template(msgs)
+    for msg in templated_msgs:
+        print(msg.text_content)
+    # Correct this to standard English: This are a cat
+    # ---
+    # Corrected:
+    # This is a cat.
+
+
 The added text is different from special tokens that are added by the model tokenizer. For an extended
 discussion on the different between prompt templates and special tokens, see :ref:`prompt_template_vs_special_tokens`.
 
 Using prompt templates
 ----------------------
 Prompt templates are passed into the tokenizer and will be automatically applied for the dataset you are fine-tuning on. You can pass it in two ways:
+
 - A string dotpath to a prompt template class, i.e., "torchtune.models.mistral.MistralChatTemplate" or "path.to.my.CustomPromptTemplate"
 - A dictionary that maps role to a tuple of strings indicating the text to add before and after the message content
+
 
 Defining via dotpath string
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -125,9 +153,7 @@ prompt template class.
 .. code-block:: python
 
     from torchtune.data import PromptTemplate
-    from functools import partial
 
-    # As a builder function
     def my_custom_template() -> PromptTemplate:
         return PromptTemplate(
             template={
@@ -136,16 +162,7 @@ prompt template class.
             },
         )
 
-    # As a class
-    MyCustomTemplate = partial(
-        PromptTemplate,
-        template={
-            "user": ("User: ", "\\n"),
-            "assistant": ("Assistant: ", "\\n"),
-        },
-    )
-
-    template = MyCustomTemplate()
+    template = my_custom_template()
     msgs = [
         Message(role="user", content="Hello world!"),
         Message(role="assistant", content="Is AI overhyped?"),
