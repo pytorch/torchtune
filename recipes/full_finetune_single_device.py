@@ -363,6 +363,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             )
 
         if quantizer_cfg is not None:
+            log.info(f"Preparing model with {quantizer_cfg._component_}")
             quantizer = config.instantiate(quantizer_cfg)
             model = quantizer.prepare(model)
 
