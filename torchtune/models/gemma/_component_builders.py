@@ -6,7 +6,6 @@
 
 from torch import nn
 from typing import List
-from functools import partial
 from torchtune.modules.common_utils import _register_reparametrize_state_dict_hooks
 
 from torchtune.modules import (
