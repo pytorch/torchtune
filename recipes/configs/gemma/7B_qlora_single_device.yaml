@@ -112,4 +112,4 @@ profiler:
   num_cycles: 1
 
 # For colab use True
-low_cpu_ram: True
+low_cpu_ram: False
