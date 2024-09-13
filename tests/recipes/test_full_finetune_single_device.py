@@ -269,15 +269,13 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
 class TestFullFinetuneInt8MixedPrecisionTraining:
     def _get_test_config_overrides(self):
         return [
-            "dataset=tests.recipes.utils.DummyDataset",
-            "dataset.train_on_input=False",
             "seed=9",
             "epochs=1",
             "max_steps_per_epoch=5",
             "optimizer=torch.optim.AdamW",
             "optimizer_in_bwd=False",
             "compile=True",
-        ]
+        ] + dummy_alpaca_dataset_config()
 
     @pytest.mark.integration_test
     def test_speed(self, tmpdir, monkeypatch):
@@ -305,7 +303,7 @@ class TestFullFinetuneInt8MixedPrecisionTraining:
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
-            tokenizer.max_seq_len=4096 \
+            tokenizer.max_seq_len=256 \
             dataset.packed=True \
             metric_logger.filename={log_file_baseline} \
             compile=True \
