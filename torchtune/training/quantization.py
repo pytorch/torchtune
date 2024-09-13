@@ -6,6 +6,7 @@
 
 from typing import Callable, Optional
 
+import torch
 from torch import nn
 from torchao.prototype.quantized_training import (
     int8_mixed_precision_training,
@@ -24,6 +25,15 @@ from torchao.quantization.prototype.qat._module_swap_api import (
 )
 
 from torchtune.modules import TransformerDecoder
+from torchtune.utils._version import torch_version_ge
+
+
+# TODO: add guard to torchao version
+_SUPPORTS_INT8_MIXED_PRECISION_TRAINING = (
+    torch_version_ge("2.4.0")
+    and torch.cuda.is_available()
+    and torch.cuda.get_device_capability() >= (8, 0)
+)
 
 
 __all__ = [
@@ -100,6 +110,9 @@ class Int8MixedPrecisionTrainingQuantizer:
         grad_input (bool): whether to apply INT8 mixed-precision for calculating grad_input.
         grad_weight (bool): whether to apply INT8 mixed-precision for calculating grad_weight.
 
+    Raises:
+        RuntimeError: If runtime requirements for INT8 mixed-precision training are not met.
+
     NOTE: Due to the limitations of the current implementation, the following
     requirements must be satisfied to enjoy the expected speedup:
 
@@ -118,6 +131,12 @@ class Int8MixedPrecisionTrainingQuantizer:
         grad_input: bool = True,
         grad_weight: bool = True,
     ) -> None:
+        if not _SUPPORTS_INT8_MIXED_PRECISION_TRAINING:
+            raise RuntimeError(
+                "INT8 mixed-precision training requires torch>=2.4 and a CUDA capable"
+                " device with compute capability >= 8.0"
+            )
+
         self._config = Int8MixedPrecisionTrainingConfig(
             output=output,
             grad_input=grad_input,
