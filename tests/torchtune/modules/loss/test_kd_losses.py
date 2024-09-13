@@ -54,3 +54,63 @@ class TestForwardKLWithChunkedOutputLoss:
 
         # Assert
         assert_expected(chunked_loss, standard_loss, rtol=1e-2, atol=1e-2)
+
+    def test_forward_kl_loss_expected(self):
+        student_logits = torch.tensor(
+            [
+                [
+                    [1.1250, -0.4102, -0.0879, -2.5000],
+                    [0.2676, 0.3535, 0.8711, -1.4688],
+                    [-0.1084, 1.6641, 0.0084, 0.1196],
+                    [0.5000, -0.6406, -0.2236, -1.5938],
+                ],
+                [
+                    [-1.5312, -1.9219, 0.0000, -0.5039],
+                    [-1.5391, 1.5312, 0.5820, 0.2695],
+                    [-0.3887, 1.2188, 0.0000, 0.6055],
+                    [0.5000, 1.3828, 0.1309, -1.0312],
+                ],
+            ],
+            dtype=torch.bfloat16,
+        )
+        teacher_logits = torch.tensor(
+            [
+                [
+                    [-0.0381, -1.2578, -1.2031, 0.0947],
+                    [-0.7852, 0.4492, 1.5547, 0.0972],
+                    [0.8203, 0.0012, 0.7656, 0.3477],
+                    [-1.5781, 0.4297, 0.5977, 0.3926],
+                ],
+                [
+                    [1.5156, 0.1641, 2.0781, -0.7734],
+                    [-0.5898, 0.4453, -0.7969, 0.6328],
+                    [0.6289, -0.8359, 0.9258, 0.2109],
+                    [0.0006, 0.5195, 3.2344, -1.5781],
+                ],
+            ],
+            dtype=torch.bfloat16,
+        )
+        labels = torch.tensor([[0, 3, 3, 1], [1, 1, 1, 1]])
+        expected_loss = torch.tensor(1.7209, dtype=torch.float32)
+
+        # chunked FKL loss
+        chunked_fkl_loss = ForwardKLWithChunkedOutputLoss(
+            num_output_chunks=2, ignore_index=-100
+        )
+        student_logits_chunks = student_logits.chunk(
+            chunked_fkl_loss.num_output_chunks, dim=1
+        )
+        teacher_logits_chunks = teacher_logits.chunk(
+            chunked_fkl_loss.num_output_chunks, dim=1
+        )
+        chunked_loss = chunked_fkl_loss(
+            student_logits_chunks, teacher_logits_chunks, labels
+        )
+
+        # vanilla FKL loss
+        fkl_loss = ForwardKLLoss(ignore_index=-100)
+        standard_loss = fkl_loss(student_logits, teacher_logits, labels)
+
+        # assert
+        assert_expected(chunked_loss, expected_loss, rtol=1e-2, atol=1e-2)
+        assert_expected(standard_loss, expected_loss, rtol=1e-2, atol=1e-2)
