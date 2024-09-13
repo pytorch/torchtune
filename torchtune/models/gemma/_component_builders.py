@@ -16,9 +16,10 @@ from torchtune.modules import (
     RotaryPositionalEmbeddings,
     TransformerSelfAttentionLayer,
 )
-from torchtune.models.gemma.rms_norm import GemmaRMSNorm
-from torchtune.models.gemma.transformer import GemmaTransformerDecoder
 
+from torchtune.models.gemma.rms_norm import GemmaRMSNorm
+from torchtune.modules import TransformerDecoder, TiedLinear
+from torchtune.models.gemma.gemma_norm_embedding import GemmaNormEmbeddings
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 
 """
@@ -47,7 +48,7 @@ def gemma(
     norm_eps: float = 1e-6,
     rope_base: int = 10_000,
     norm_embeddings: bool = True,
-) -> GemmaTransformerDecoder:
+) -> TransformerDecoder:
     """
     Build the decoder associated with the gemma model. This includes:
     - Token embeddings
@@ -76,7 +77,7 @@ def gemma(
             and mlp layers. Default: True
 
     Returns:
-        GemmaTransformerDecoder: Instantiation of gemma model.
+        TransformerDecoder: Instantiation of gemma model.
     """
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
     self_att = MultiHeadAttention(
@@ -100,16 +101,17 @@ def gemma(
         sa_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
         mlp_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
     )
-    tok_embeddings = nn.Embedding(vocab_size, embed_dim)
-    model = GemmaTransformerDecoder(
+    tok_embeddings = GemmaNormEmbeddings(vocab_size, embed_dim)
+    output_proj = TiedLinear(tok_embeddings)
+    model = TransformerDecoder(
         tok_embeddings=tok_embeddings,
-        layer=layer,
+        layers=layer,
         num_layers=num_layers,
         max_seq_len=max_seq_len,
         num_heads=num_heads,
+        output=output_proj,
         head_dim=head_dim,
-        norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
-        norm_embeddings=norm_embeddings,
+        norm=GemmaRMSNorm(embed_dim, eps=norm_eps)
     )
     return model
 
@@ -152,7 +154,7 @@ def lora_gemma(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
-) -> GemmaTransformerDecoder:
+) -> TransformerDecoder:
     """
     Return a version of Gemma with LoRA applied based on the passed in configuration.
     Note: output projection lora is not supported because it is tied to token embeddings
@@ -188,7 +190,7 @@ def lora_gemma(
             supported for quantization currently.
 
     Returns:
-        GemmaTransformerDecoder: Instantiation of Gemma model with LoRA applied to
+        TransformerDecoder: Instantiation of Gemma model with LoRA applied to
         a subset of the attention projections in each layer.
     """
     self_attn = lora_gemma_self_attention(
@@ -226,17 +228,17 @@ def lora_gemma(
         sa_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
         mlp_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
     )
-    tok_embeddings = nn.Embedding(vocab_size, embed_dim)
-
-    model = GemmaTransformerDecoder(
+    tok_embeddings = GemmaNormEmbeddings(vocab_size, embed_dim)
+    output_proj = TiedLinear(tok_embeddings)
+    model = TransformerDecoder(
         tok_embeddings=tok_embeddings,
-        layer=layer,
+        layers=layer,
         num_layers=num_layers,
         max_seq_len=max_seq_len,
         num_heads=num_heads,
+        output=output_proj,
         head_dim=head_dim,
-        norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
-        norm_embeddings=norm_embeddings,
+        norm=GemmaRMSNorm(embed_dim, eps=norm_eps)
     )
 
     if quantize_base:
@@ -289,7 +291,6 @@ def lora_gemma_self_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
-            use_dora=use_dora,
         )
         if "q_proj" in lora_modules
         else (
@@ -306,7 +307,6 @@ def lora_gemma_self_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
-            use_dora=use_dora,
         )
         if "k_proj" in lora_modules
         else (
@@ -323,7 +323,6 @@ def lora_gemma_self_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
-            use_dora=use_dora,
         )
         if "v_proj" in lora_modules
         else (
@@ -340,7 +339,6 @@ def lora_gemma_self_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
-            use_dora=use_dora,
         )
         if "output_proj" in lora_modules
         else (
@@ -385,7 +383,6 @@ def lora_gemma_mlp(
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
-        use_dora=use_dora,
     )
     down_proj = adapter_cls(
         in_dim=hidden_dim,
@@ -394,7 +391,6 @@ def lora_gemma_mlp(
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
-        use_dora=use_dora,
     )
     up_proj = adapter_cls(
         in_dim=dim,
@@ -403,7 +399,6 @@ def lora_gemma_mlp(
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
-        use_dora=use_dora,
     )
     activation = nn.GELU(approximate="tanh")
 

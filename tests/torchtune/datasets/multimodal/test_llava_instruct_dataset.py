@@ -7,6 +7,8 @@
 from collections import Counter
 from unittest.mock import patch
 
+import PIL
+
 import pytest
 from datasets import Dataset
 
@@ -21,11 +23,22 @@ class TestLLaVAInstructDataset:
     def tokenizer(self):
         return DummyTokenizer()
 
+    @pytest.fixture
+    def test_image_pil(self):
+        return PIL.Image.new(mode="RGB", size=(4, 4))
+
     @patch("torchtune.datasets._sft.load_dataset")
-    def test_label_no_masking(self, load_dataset, tokenizer):
+    @patch("torchtune.datasets.multimodal._llava_instruct.load_image")
+    def test_label_no_masking(
+        self, load_image, load_dataset, tokenizer, test_image_pil
+    ):
         """
         Test whether the input and the labels are correctly created when the input is not masked.
+
+        WARNING: careful with these mocks, they are applied in bottom up order
         """
+        # mock the call to load_image
+        load_image.return_value = test_image_pil
 
         # mock the call to HF datasets
         load_dataset.return_value = Dataset.from_list(
@@ -55,6 +68,7 @@ class TestLLaVAInstructDataset:
             model_transform=tokenizer,
             train_on_input=True,
         )
+
         input, labels, images = ds[0]["tokens"], ds[0]["labels"], ds[0]["images"]
 
         expected_count = {
@@ -76,13 +90,18 @@ class TestLLaVAInstructDataset:
 
         assert Counter(input) == expected_count
         assert Counter(labels) == expected_count
-        assert images == "test_image.jpg"
+        assert images == [test_image_pil]
 
     @patch("torchtune.datasets._sft.load_dataset")
-    def test_label_masking(self, load_dataset, tokenizer):
+    @patch("torchtune.datasets.multimodal._llava_instruct.load_image")
+    def test_label_masking(self, load_image, load_dataset, tokenizer, test_image_pil):
         """
         Test whether the input and the labels are correctly created when the input is masked.
+
+        WARNING: careful with these mocks, they are applied in bottom up order
         """
+        # mock the call to load_image
+        load_image.return_value = test_image_pil
 
         # mock the call to HF datasets
         load_dataset.return_value = Dataset.from_list(
@@ -133,4 +152,4 @@ class TestLLaVAInstructDataset:
 
         assert Counter(input) == expected_count
         assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 11
-        assert images == "test_image.jpg"
+        assert images == [test_image_pil]

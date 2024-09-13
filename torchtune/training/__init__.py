@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from torchtune.training._activation_offloading import NoOpManager, OffloadActivations
+from torchtune.training._compile import compile_loss, compile_model
 from torchtune.training._distributed import (
     contains_fsdp,
     FSDPPolicyType,
@@ -123,4 +124,6 @@ __all__ = [
     "setup_torch_profiler",
     "OffloadActivations",
     "NoOpManager",
+    "compile_loss",
+    "compile_model",
 ]
