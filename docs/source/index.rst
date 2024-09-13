@@ -110,6 +110,15 @@ torchtune tutorials.
 .. toctree::
    :glob:
    :maxdepth: 1
+   :caption: Basics
+   :hidden:
+
+   basics/messages
+   basics/message_transforms
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
    :caption: Tutorials
    :hidden:
 
