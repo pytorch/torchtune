@@ -125,8 +125,9 @@ class Int8MixedPrecisionTrainingQuantizer:
         )
 
     def prepare(self, model: nn.Module) -> nn.Module:
-        # don't apply INT8 mixed-precision training to LM head
-        # since speed is slightly lower.
+        # Don't apply INT8 mixed-precision training to LM head since end2end speedup
+        # will be slightly worse. There are also possible issues with tied word
+        # embeddings.
         quantize_fn = int8_mixed_precision_training(self._config)
         if isinstance(model, TransformerDecoder):
             quantize_(model.layers, quantize_fn)
