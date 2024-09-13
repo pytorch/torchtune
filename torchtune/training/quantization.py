@@ -85,7 +85,18 @@ _quantizer_mode_to_enable_fake_quant[
 class Int8MixedPrecisionTrainingQuantizer:
     """Apply INT8 mixed-precision training. During training, weights and activations
     are dynamically quantized to INT8 to utilize INT8 tensor cores. This is also done
-    in the backward pass."""
+    in the backward pass.
+
+    NOTE: due to the limitations of the current implementation, the following
+    requirements must be satisfied to enjoy speedup:
+
+    1. Must use ``torch.compile()`` (set ``compile=True``).
+    2. Inputs to the model must not be too dynamic e.g. input sequence length changes
+    for every batch.
+
+    To satisfy (2), you can use :class:`~torchtune.datasets.PackedDataset` (set
+    ``dataset.packed=True``), which ensures input tokens always have fixed length.
+    """
 
     def __init__(
         self,
