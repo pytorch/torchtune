@@ -16,6 +16,8 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
+from torchao import quantize_
+from torchao.prototype.quantized_training import int8_mixed_precision_training
 
 from torchtune import config, modules, training, utils
 from torchtune.data import padded_collate_packed, padded_collate_sft
@@ -212,6 +214,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             compile_model=self._compile,
             model_state_dict=ckpt_dict[training.MODEL_KEY],
+            int8_mixed_precision_training=cfg.get("int8_mixed_precision_training", False),
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
         log.info("Tokenizer is initialized from file.")
@@ -345,6 +348,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         enable_activation_checkpointing: bool,
         compile_model: bool,
         model_state_dict: Dict[str, Any],
+        int8_mixed_precision_training: bool = False,
     ) -> nn.Module:
         """
         Set up the model including enabling activation checkpointing.
@@ -360,6 +364,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
+        if int8_mixed_precision_training:
+            # don't apply to LM head
+            quantize_(model.layers, int8_mixed_precision_training())
+
         model.load_state_dict(model_state_dict)
 
         # Validate model was loaded in with the expected dtype.
@@ -371,11 +379,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         if self._device.type == "cuda":
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
-
-        from torchao.prototype.quantized_training import int8_mixed_precision_training
-        from torchao.quantization import quantize_
-
-        quantize_(model.layers, int8_mixed_precision_training())
 
         return model
 
