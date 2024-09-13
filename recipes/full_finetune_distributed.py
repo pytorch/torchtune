@@ -362,6 +362,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
+        if self._compile:
+            training.compile_model(model, verbose=self._is_rank_zero)
+
         # We currently have two versions of activation checkpointing in this recipe
         # for testing and BC purposes. ``enable_activation_checkpointing`` controls
         # the older version of AC and this behavior is unchanged
