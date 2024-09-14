@@ -115,6 +115,8 @@ torchtune tutorials.
 
    basics/instruct_datasets
    basics/chat_datasets
+   basics/tokenizers
+   basics/prompt_templates
 
 .. toctree::
    :glob:
