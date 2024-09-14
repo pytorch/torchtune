@@ -391,6 +391,20 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
+        use_int8_mixed_precision_training = False
+        if use_int8_mixed_precision_training:
+            from torchao import quantize_
+            from torchao.prototype.quantized_training import (
+                int8_mixed_precision_training,
+            )
+
+            from torchtune.modules.peft import DoRALinear, LoRALinear
+
+            def filter_fn(module, name):
+                return isinstance(module, LoRALinear, DoRALinear)
+
+            quantize_(model, int8_mixed_precision_training(), filter_fn=filter_fn)
+
         base_missing, base_unexpected = model.load_state_dict(
             base_model_state_dict, strict=False
         )
