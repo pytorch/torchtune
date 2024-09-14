@@ -299,18 +299,14 @@ class TestFullFinetuneInt8MixedPrecisionTraining:
         dummy_model = llama3(
             vocab_size=128_256,
             num_layers=2,
-            num_heads=8,
-            num_kv_heads=8,
-            embed_dim=1024,
+            num_heads=2,
+            num_kv_heads=2,
+            embed_dim=256,
             max_seq_len=1024,
         )
         ckpt_dir = tmpdir / "ckpt_dir"
         ckpt_dir.mkdir()
         torch.save(dummy_model.state_dict(), ckpt_dir / "model.pt")
-
-        quantizer = (
-            "torchtune.training.quantization.Int8MixedPrecisionTrainingQuantizer"
-        )
 
         # set dataset.packed=True to have fixed input seq len
         cmd = f"""
@@ -328,7 +324,7 @@ class TestFullFinetuneInt8MixedPrecisionTraining:
             dataset.packed=True \
             metric_logger.filename={log_file} \
             compile=True \
-            quantizer._component_={quantizer}" \
+            quantizer._component_=torchtune.training.quantization.Int8MixedPrecisionTrainingQuantizer \
         """.split()
         cmd = cmd + self._get_test_config_overrides() + model_config
 
