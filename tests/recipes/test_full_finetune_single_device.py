@@ -334,7 +334,7 @@ class TestFullFinetuneInt8MixedPrecisionTraining:
             dataset.packed=True \
             metric_logger.filename={log_file_int8mp} \
             compile=True \
-            quantizer._component=quantizer._component_={quantizer} \
+            quantizer._component_={quantizer} \
         """.split()
         cmd2 = cmd2 + self._get_test_config_overrides() + model_config
 
