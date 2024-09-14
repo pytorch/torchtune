@@ -4,15 +4,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, List
 
 import torch
 from torchtune.modules.transformer import TransformerDecoder
 
 
-def multinomial_sample_one(
-    probs: torch.Tensor, q: Optional[torch.Tensor] = None
-) -> torch.Tensor:
+def multinomial_sample_one(probs: torch.Tensor, q: Optional[torch.Tensor] = None) -> torch.Tensor:
     """Samples from a multinomial distribution."""
 
     q = torch.empty_like(probs).exponential_(1) if q is None else q
@@ -88,6 +86,18 @@ def generate_next_token(
     )
 
 
+def update_stop_tokens_tracker(
+    tokens: torch.Tensor, stop_tokens: torch.Tensor, stop_token_reached: torch.Tensor
+) -> torch.Tensor:
+    """Updates which sequences have reached a stop token."""
+    # tokens: [bsz, 1]
+    # stop_tokens: [num_stop_tokens]
+    # stop_token_reached: [bsz]
+    stop_token_reached_curr = torch.isin(tokens, stop_tokens).flatten()
+    stop_token_reached |= stop_token_reached_curr
+    return stop_token_reached
+
+
 def get_causal_mask_from_padding_mask(
     padding_mask: torch.Tensor, target_seq_len: Optional[int] = None
 ) -> torch.Tensor:
@@ -95,7 +105,8 @@ def get_causal_mask_from_padding_mask(
     Converts an attention mask of shape ``[bsz, seq_len]`` to a ``[bsz, seq_len, seq_len]`` causal attention mask suitable for
     consumption by :func:`~torch.nn.functional.scaled_dot_product_attention~`. If ``target_seq_len``
     is provided, this will return a mask of shape ``[bsz, seq_len, target_seq_len]``. This is useful
-    when generating masks for static KV caches, e.g. ``target_seq_len=cache_max_seq_len``.
+    when generating masks for static KV caches where the maximum length the caches have been setup with
+    are longer than the current sequence.
 
     Args:
         padding_mask (torch.Tensor): Boolean tensor where True indicates the corresponding token in the sequence
@@ -125,9 +136,7 @@ def get_causal_mask_from_padding_mask(
     target_seq_len = seq_len if target_seq_len is None else target_seq_len
 
     if target_seq_len < seq_len:
-        raise AssertionError(
-            "target_seq_len cannot be shorter than the sequence length of the padding mask."
-        )
+        raise AssertionError("target_seq_len cannot be shorter than the sequence length of the padding mask.")
 
     mask = torch.tril(
         torch.ones(seq_len, target_seq_len, device=padding_mask.device, dtype=bool),
@@ -138,7 +147,7 @@ def get_causal_mask_from_padding_mask(
     return mask
 
 
-def get_position_ids_from_padding_masks(
+def get_position_ids_from_padding_mask(
     padding_mask: torch.Tensor,
 ):
     """
@@ -170,6 +179,7 @@ def generate(
     pad_id: int = 0,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
+    stop_tokens: Optional[List[int]] = None,
     rng: Optional[torch.Generator] = None,
     custom_generate_next_token: Optional[Callable] = None,
 ):
@@ -185,6 +195,8 @@ def generate(
         temperature (float): value to scale the predicted logits by, default 1.0.
         top_k (Optional[int]): If specified, we prune the sampling to only token ids within the top_k probabilities,
             default None.
+        stop_tokens (Optional[List[int]]): If specified, generation is stopped when any of these tokens are generated,
+            default None.
         rng (Optional[torch.Generator]): random number generator, default None.
         custom_generate_next_token (Optional[Callable]): If specified, we'll use the
             ``custom_generate_next_token function``. This is generally only useful if
@@ -195,16 +207,18 @@ def generate(
     Examples:
         >>> model = torchtune.models.llama3.llama3_8b()
         >>> tokenizer = torchtune.models.llama3.llama3_tokenizer()
-        >>> prompt = [0, 0, 0] + tokenizer("Hi my name is") # substitute 0 with pad_id
+        >>> prompt = tokenizer.encode("Hi my name is")
         >>> rng.manual_seed(42)
         >>> output, logits = generate(model, torch.tensor(prompt), max_generated_tokens=100, pad_id=0)
         >>> print(tokenizer.decode(output[0].tolist()))
-        ?? ?? ?? Hi my name is Jeremy and I'm a friendly language model assistant!
+        Hi my name is Jeremy and I'm a friendly language model assistant!
 
     Returns:
         torch.Tensor: Generated tokens.
     """
     prompt = prompt.view(1, -1) if prompt.ndim == 1 else prompt
+
+    stop_tokens = torch.tensor(stop_tokens, device=prompt.device) if stop_tokens else None
 
     if custom_generate_next_token is None:
         custom_generate_next_token = generate_next_token
@@ -214,23 +228,15 @@ def generate(
 
     generated_tokens = prompt.clone()
     incremental_decoding = model.caches_are_enabled()
-    max_seq_len = (
-        total_response_length if not incremental_decoding else model.cache_max_seq_len
-    )
+    max_seq_len = total_response_length if not incremental_decoding else model.max_seq_len
     padding_masks = generated_tokens != pad_id
     cache_pos = None
 
     if not padding_masks.all():
-        padding_masks = torch.nn.functional.pad(
-            padding_masks, (0, max_generated_tokens), value=True
-        )
-        masks = get_causal_mask_from_padding_mask(
-            padding_masks, target_seq_len=max_seq_len
-        )
-        input_pos = get_position_ids_from_padding_masks(padding_masks)
-        cache_pos = torch.arange(
-            0, total_response_length, device=generated_tokens.device
-        )
+        padding_masks = torch.nn.functional.pad(padding_masks, (0, max_generated_tokens), value=True)
+        masks = get_causal_mask_from_padding_mask(padding_masks, target_seq_len=max_seq_len)
+        input_pos = get_position_ids_from_padding_mask(padding_masks)
+        cache_pos = torch.arange(0, total_response_length, device=generated_tokens.device)
     else:
         masks = torch.tril(
             torch.ones(
@@ -240,9 +246,7 @@ def generate(
                 device=prompt.device,
             )
         ).unsqueeze(0)
-        input_pos = torch.arange(
-            0, total_response_length, device=generated_tokens.device
-        ).unsqueeze(0)
+        input_pos = torch.arange(0, total_response_length, device=generated_tokens.device).unsqueeze(0)
 
     del padding_masks
 
@@ -251,10 +255,8 @@ def generate(
     else:
         curr_masks = masks[:, :prompt_length, :prompt_length]
 
-    q = torch.empty(
-        (bsz, model.tok_embeddings.num_embeddings), device=prompt.device
-    ).exponential_(1, generator=rng)
-    tokens, _ = generate_next_token(
+    q = torch.empty((bsz, model.tok_embeddings.num_embeddings), device=prompt.device).exponential_(1, generator=rng)
+    tokens, generated_logits = generate_next_token(
         model,
         input_pos=input_pos[:, :prompt_length].squeeze(),
         mask=curr_masks,
@@ -269,21 +271,40 @@ def generate(
 
     curr_pos = prompt_length
     curr_cache_pos = None
+
+    # keeps track at a high level if we've already hit a stop token in a sequence so we can early stop
+    stop_token_reached = torch.zeros(bsz, dtype=torch.bool, device=prompt.device)
+    # everything in stop_token_mask starts as 1s, and we'll set them to 0 for sequences
+    # that already hit a stop token
+    stop_token_mask = torch.ones((bsz, prompt_length + 1), dtype=torch.int32, device=prompt.device)
+
+    # stop early if we reach a stop token in every seq
+    if stop_tokens is not None:
+        stop_token_reached = update_stop_tokens_tracker(tokens, stop_tokens, stop_token_reached)
+        if stop_token_reached.all().item():
+            return generated_tokens, generated_logits
+
     for _ in range(max_generated_tokens - 1):
+        # update stop_token_mask if we reached a stop token in a previous step
+        # by appending the logical not of stop_token_reached to the end of the mask
+        # reshaped to be bsz first
+        if stop_tokens is not None:
+            stop_token_mask = torch.cat([stop_token_mask, ~stop_token_reached.reshape(bsz, 1)], dim=-1)
+
+        # if incremental decoding is enabled, we can use the current position
+        # otherwise, we take the whole sequence up to the current position
         if incremental_decoding:
             curr_input_pos = input_pos[:, curr_pos]
-            curr_cache_pos = (
-                cache_pos[curr_pos].unsqueeze(0) if cache_pos is not None else None
-            )
+            curr_cache_pos = cache_pos[curr_pos].unsqueeze(0) if cache_pos is not None else None
             curr_masks = masks[:, curr_pos, None, :]
         else:
             tokens = generated_tokens.clone()
             curr_input_pos = input_pos[:, : curr_pos + 1]
             curr_masks = masks[:, : curr_pos + 1, : curr_pos + 1]
 
-        q = torch.empty(
-            (bsz, model.tok_embeddings.num_embeddings), device=prompt.device
-        ).exponential_(1, generator=rng)
+        q = torch.empty((bsz, model.tok_embeddings.num_embeddings), device=prompt.device).exponential_(
+            1, generator=rng
+        )
         tokens, logits = custom_generate_next_token(
             model,
             input_pos=curr_input_pos,
@@ -296,5 +317,19 @@ def generate(
         )
         generated_tokens = torch.cat([generated_tokens, tokens], dim=-1)
         curr_pos += 1
+        if incremental_decoding:
+            generated_logits = torch.cat([generated_logits, logits], dim=1)
+        else:
+            generated_logits = logits
 
-    return generated_tokens, logits
+        if stop_tokens is not None:
+            stop_token_reached = update_stop_tokens_tracker(tokens, stop_tokens, stop_token_reached)
+            if stop_token_reached.all().item():
+                break
+
+    # mask out generated tokens in seqs that already hit a stop token
+    if stop_tokens is not None:
+        generated_tokens *= stop_token_mask
+        generated_logits *= stop_token_mask
+
+    return generated_tokens, generated_logits

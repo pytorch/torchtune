@@ -101,16 +101,10 @@ class MultiHeadAttention(nn.Module):
     ) -> None:
         super().__init__()
         if num_heads % num_kv_heads != 0:
-            raise ValueError(
-                f"num_heads ({num_heads}) must be divisible by "
-                f"num_kv_heads ({num_kv_heads})"
-            )
+            raise ValueError(f"num_heads ({num_heads}) must be divisible by " f"num_kv_heads ({num_kv_heads})")
 
         if embed_dim % num_heads != 0:
-            raise ValueError(
-                f"embed_dim ({embed_dim}) must be divisible by "
-                f"num_heads ({num_heads})"
-            )
+            raise ValueError(f"embed_dim ({embed_dim}) must be divisible by " f"num_heads ({num_heads})")
 
         if attn_dropout < 0 or attn_dropout > 1:
             raise ValueError(f"attn_dropout ({embed_dim}) must be between 0.0 and 1.0")
@@ -150,9 +144,7 @@ class MultiHeadAttention(nn.Module):
         """
         # Don't overwrite user defined kv_cache from init
         if self.kv_cache is not None:
-            logger.warning(
-                "Key value caches are already setup. You cannot call ``setup_caches()`` twice. Skipping."
-            )
+            logger.warning("Key value caches are already setup. You cannot call ``setup_caches()`` twice. Skipping.")
         else:
             self.kv_cache = KVCache(
                 batch_size=batch_size,
@@ -165,9 +157,7 @@ class MultiHeadAttention(nn.Module):
     def reset_cache(self):
         """Reset the key value caches."""
         if self.kv_cache is None:
-            raise RuntimeError(
-                "Key value caches are not setup. Call ``setup_caches()`` first."
-            )
+            raise RuntimeError("Key value caches are not setup. Call ``setup_caches()`` first.")
         self.kv_cache.reset()
 
     def forward(
@@ -203,9 +193,6 @@ class MultiHeadAttention(nn.Module):
                 of each token, used during inference. This is useful when ``input_ids`` are
                 right-shifted to account for padding tokens. Default is None, in which case
                 ``input_pos`` is used (if specified).
-
-        Raises:
-            ValueError: If no `y` input and `kv_cache` is not enabled.
 
         Raises:
             ValueError: If no `y` input and `kv_cache` is not enabled.
@@ -255,9 +242,7 @@ class MultiHeadAttention(nn.Module):
 
         if y is None:
             if self.kv_cache is None:
-                raise ValueError(
-                    "Must provide y input or use kv_cache to enable streaming decoding"
-                )
+                raise ValueError("Must provide y input or use kv_cache to enable streaming decoding")
             k = self.kv_cache.k_cache
             v = self.kv_cache.v_cache
         else:
