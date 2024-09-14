@@ -170,7 +170,7 @@ class InferenceRecipe:
             pad_id=self._tokenizer.pad_id,
             temperature=cfg.temperature,
             top_k=cfg.top_k,
-            # stop_tokens=self._tokenizer.stop_tokens,
+            stop_tokens=self._tokenizer.stop_tokens,
             custom_generate_next_token=custom_generate_next_token,
         )
         generated_tokens = generated_tokens.tolist()
