@@ -473,3 +473,4 @@ class TestMistralTokenizer:
         expected_mask = [True] * 88 + [False] * 125
         assert expected_tokens == tokens
         assert expected_mask == mask
+

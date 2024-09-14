@@ -169,7 +169,9 @@ def tokenize_messages_no_special_tokens(
 
     # Finally, truncate if necessary
     if max_seq_len:
+        # Only truncate the token with the EOS if one was added
         tokenized_messages = truncate(tokenized_messages, max_seq_len, eos_id)
+        # Mark True if add_eos else None
         mask = truncate(mask, max_seq_len, message.masked)
 
     return tokenized_messages, mask
