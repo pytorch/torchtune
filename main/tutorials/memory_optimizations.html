@@ -498,9 +498,9 @@ Instead of keeping tensors needed for backward alive until they are used in
 gradient computation during backward, forward computation in checkpointed
 regions omits saving tensors for backward and recomputes them during the backward pass.</p>
 </div></blockquote>
-<p>This setting is especially helpful for larger batch sizes, or longer context lengths when you’re memory constrained.
-However, these savings in memory come at the cost of training speed (i.e. tokens per-second),
-and in most cases training can slow-down quite a bit as a result of this activation recomputation.</p>
+<p>This setting is helpful for when you’re memory-constrained, especially due to larger batch sizes or longer context lengths.
+However, these savings in memory come at the cost of training speed (i.e. tokens-per-second),
+and in most cases training can slow down quite a bit as a result of this activation recomputation.</p>
 <p><em>Sounds great! How do I use it?</em></p>
 <p>To enable activation checkpointing, use the <code class="docutils literal notranslate"><span class="pre">enable_activation_checkpointing</span></code> config entry or flag
 in any of our recipes, e.g. <code class="docutils literal notranslate"><span class="pre">enable_activation_checkpointing=True</span></code>.</p>
@@ -575,8 +575,8 @@ How is this possible, you might ask? By <em>completely removing the buffer of gr
 <a class="reference external" href="https://pytorch.org/tutorials/intermediate/optimizer_step_in_backward_tutorial.html">How to save memory by fusing the optimizer step into the backward pass</a>.</p>
 <p><em>Sounds great! How do I use it?</em></p>
 <p>In torchtune, you can enable this feature using the <code class="docutils literal notranslate"><span class="pre">optimizer_in_bwd</span></code> flag, which is currently only supported in our
-single-device full finetune recipe. This feature works best when gradient memory is particularly large
-i.e. when using a stateful optimizer with a model with a lot of parameters, and when you don’t need to use
+single-device full finetune recipe. This feature works best when gradient memory is particularly large;
+e.g. when using a stateful optimizer with a model with a lot of parameters, and when you don’t need to use
 <a class="reference internal" href="#glossary-grad-accm"><span class="std std-ref">gradient accumulation</span></a>.</p>
 </section>
 <section id="parameter-efficient-fine-tuning-peft">
@@ -622,9 +622,9 @@ to the number of classes, for example</p></li>
 final output projection do not support <code class="docutils literal notranslate"><span class="pre">apply_lora_to_output</span></code>.</p>
 </div>
 <p>These are all specified under the <code class="docutils literal notranslate"><span class="pre">model</span></code> flag or config entry, i.e:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>8B_lora_single_device<span class="w">  </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_lora_single_device<span class="w">  </span><span class="se">\</span>
 model.apply_lora_to_mlp<span class="o">=</span>True<span class="w"> </span><span class="se">\</span>
-model.lora_attn_modules<span class="o">=[</span><span class="s2">&quot;q_proj&quot;</span>,<span class="w"> </span><span class="s2">&quot;k_proj&quot;</span>,<span class="w"> </span><span class="s2">&quot;v_proj&quot;</span><span class="o">]</span>
+model.lora_attn_modules<span class="o">=[</span><span class="s2">&quot;q_proj&quot;</span>,<span class="s2">&quot;k_proj&quot;</span>,<span class="s2">&quot;v_proj&quot;</span><span class="o">]</span>
 </pre></div>
 </div>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">model</span><span class="p">:</span>
@@ -653,11 +653,11 @@ see the <a class="reference internal" href="lora_finetune.html#lora-tutorial-mem
 <section id="quantized-low-rank-adaptation-qlora">
 <span id="glossary-qlora"></span><h3>Quantized Low Rank Adaptation (QLoRA)<a class="headerlink" href="#quantized-low-rank-adaptation-qlora" title="Permalink to this heading">¶</a></h3>
 <p><em>What’s going on here?</em></p>
-<p>You can read our tutorial on <a class="reference internal" href="qlora_finetune.html#qlora-finetune-label"><span class="std std-ref">finetuning Llama2 with QLoRA</span></a> for a deeper understanding of how it works.
-<a class="reference external" href="https://arxiv.org/abs/2305.14314">QLoRA</a> is an enhancement on top of <a class="reference external" href="https://arxiv.org/abs/2106.09685">LoRA</a>
+<p><a class="reference external" href="https://arxiv.org/abs/2305.14314">QLoRA</a> is an enhancement on top of <a class="reference external" href="https://arxiv.org/abs/2106.09685">LoRA</a>
 that maintains the frozen model parameters from LoRA in 4-bit quantized precision, thereby reducing memory usage.
 This is enabled through a novel  4-bit NormalFloat (NF4) data type proposed by the authors, which allows for 4-8x less
-parameter memory usage whilst retaining model accuracy.</p>
+parameter memory usage whilst retaining model accuracy. You can read our tutorial on <a class="reference internal" href="qlora_finetune.html#qlora-finetune-label"><span class="std std-ref">finetuning Llama2 with QLoRA</span></a>
+for a deeper understanding of how it works.</p>
 <p>When considering using QLoRA to reduce memory usage, it’s worth noting that QLoRA prevents accuracy degradation during quantization
 by up-casting quantized parameters to the original higher precision datatype during model forward passes - this up-casting may
 incur penalties to training speed. The <a class="reference internal" href="qlora_finetune.html#qlora-compile-label"><span class="std std-ref">relevant section</span></a> in our QLoRA tutorial demonstrates the usage of <code class="docutils literal notranslate"><span class="pre">torch.compile</span></code>
@@ -665,7 +665,7 @@ to address this by speeding up training.</p>
 <p><em>Sounds great! How do I use it?</em></p>
 <p>You can finetune using QLoRA with any of our LoRA recipes, i.e. recipes with the <code class="docutils literal notranslate"><span class="pre">lora_</span></code> prefix, e.g. <a class="reference internal" href="../recipes/lora_finetune_single_device.html#lora-finetune-recipe-label"><span class="std std-ref">lora_finetune_single_device</span></a>. These recipes utilize
 QLoRA-enabled model builders, which we support for all our models, and also use the <code class="docutils literal notranslate"><span class="pre">qlora_</span></code> prefix, e.g.
-the <a class="reference internal" href="../generated/torchtune.models.llama3.llama3.html#torchtune.models.llama3.llama3" title="torchtune.models.llama3.llama3"><code class="xref py py-func docutils literal notranslate"><span class="pre">torchtune.models.llama3.llama3()</span></code></a> model has a corresponding <code class="xref py py-func docutils literal notranslate"><span class="pre">torchtune.models.llama3.qlora_llama3()</span></code>.
+the <a class="reference internal" href="../generated/torchtune.models.llama3.llama3_8b.html#torchtune.models.llama3.llama3_8b" title="torchtune.models.llama3.llama3_8b"><code class="xref py py-func docutils literal notranslate"><span class="pre">torchtune.models.llama3.llama3_8b()</span></code></a> model has a corresponding <a class="reference internal" href="../generated/torchtune.models.llama3.qlora_llama3_8b.html#torchtune.models.llama3.qlora_llama3_8b" title="torchtune.models.llama3.qlora_llama3_8b"><code class="xref py py-func docutils literal notranslate"><span class="pre">torchtune.models.llama3.qlora_llama3_8b()</span></code></a>.
 We aim to provide a comprehensive set of configurations to allow you to get started with training with QLoRA quickly,
 just specify any config with <code class="docutils literal notranslate"><span class="pre">_qlora</span></code> in its name, e.g:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_qlora_single_device
