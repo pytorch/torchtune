@@ -29,7 +29,7 @@ _TORCHAO_VERSION, _ = _get_torchao_version()
 
 _SUPPORTS_INT8_MIXED_PRECISION_TRAINING = (
     torch_version_ge("2.4.0")
-    and _TORCHAO_VERSION.split(".") >= ("0", "5", "0")
+    and tuple(_TORCHAO_VERSION.split(".")) >= ("0", "5", "0")
     and torch.cuda.is_available()
     and torch.cuda.get_device_capability() >= (8, 0)
 )
