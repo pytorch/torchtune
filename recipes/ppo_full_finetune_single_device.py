@@ -17,10 +17,9 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import config, modules, training, utils
+from torchtune import config, generation, modules, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
-from torchtune import generation
 from torchtune.modules import rlhf
 from torchtune.modules.rlhf import PPOStats, Trajectory
 from torchtune.recipe_interfaces import FTRecipeInterface
@@ -198,7 +197,11 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
             optimizer_in_bwd=cfg.optimizer_in_bwd,
-            opt_state_dict=(policy_model_checkpoint_dict[training.OPT_KEY] if self._resume_from_checkpoint else None),
+            opt_state_dict=(
+                policy_model_checkpoint_dict[training.OPT_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
@@ -219,7 +222,11 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._update_recipe_state(policy_model_checkpoint_dict)
 
         # one "step" is a single gradient update update over a minibatch of trajectories
-        self.global_step = self._steps_run * self._ppo_epochs * (self.batch_size // self._ppo_batch_size)
+        self.global_step = (
+            self._steps_run
+            * self._ppo_epochs
+            * (self.batch_size // self._ppo_batch_size)
+        )
 
     def _setup_training_hyperparameters(self, cfg) -> None:
         """
@@ -280,7 +287,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._ppo_epochs = cfg.ppo_epochs
         self._ppo_batch_size = cfg.ppo_batch_size
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
-        self._ppo_backward_batch_size = cfg.ppo_batch_size // self._gradient_accumulation_steps
+        self._ppo_backward_batch_size = (
+            cfg.ppo_batch_size // self._gradient_accumulation_steps
+        )
 
         if self.batch_size % self._forward_batch_size != 0:
             raise ValueError(
@@ -305,24 +314,32 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             )
 
         self._total_steps = cfg.num_steps // self.batch_size
-        batches_per_epoch = max(1, len(self._dataloader))  # when we only have a single batch in the dataset
+        batches_per_epoch = max(
+            1, len(self._dataloader)
+        )  # when we only have a single batch in the dataset
 
         self._total_epochs = math.ceil(self._total_steps / batches_per_epoch)
         if self._total_steps == 0:
-            raise ValueError(f"num_steps {cfg.num_steps} must be greater than the batch size {self.batch_size}.")
+            raise ValueError(
+                f"num_steps {cfg.num_steps} must be greater than the batch size {self.batch_size}."
+            )
         if self._total_steps < len(self._dataloader):
             warn(
                 f"There are fewer total steps ({self._total_steps}, (num_steps//batch_size) "
                 f"than there are batches ({len(self._dataloader)}) in the dataset. "
                 f"Training will stop after ({self._total_steps}) steps without saving intermediate checkpoints"
             )
-        if (self._total_steps > batches_per_epoch) and (self._total_steps % batches_per_epoch != 0):
+        if (self._total_steps > batches_per_epoch) and (
+            self._total_steps % batches_per_epoch != 0
+        ):
             warn(
                 f"num_steps ({cfg.num_steps}) is not exactly divisible by "
                 f"the number of batches in the dataset ({batches_per_epoch}). "
                 f"Intermediate checkpoints will only be saved every {batches_per_epoch} steps."
             )
-        log.info(f"Total steps to run: {self._total_steps}, Total epochs to run: {self._total_epochs}")
+        log.info(
+            f"Total steps to run: {self._total_steps}, Total epochs to run: {self._total_epochs}"
+        )
 
     def _setup_checkpointers(
         self,
@@ -416,18 +433,30 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # a classifier model, this function should just ensure
         # output.weight appears in the state_dict and the model's parameters,
         # and removes output.bias from the state dict if found
-        training.update_state_dict_for_classifier(reward_model_state_dict, reward_model.named_parameters())
+        training.update_state_dict_for_classifier(
+            reward_model_state_dict, reward_model.named_parameters()
+        )
         reward_model.load_state_dict(reward_model_state_dict)
 
         # same as above
-        training.update_state_dict_for_classifier(value_model_state_dict, value_model.named_parameters())
+        training.update_state_dict_for_classifier(
+            value_model_state_dict, value_model.named_parameters()
+        )
         value_model.load_state_dict(value_model_state_dict)
 
         # Validate models were loaded in with the expected dtype.
-        training.validate_expected_param_dtype(value_model.named_parameters(), dtype=self._dtype)
-        training.validate_expected_param_dtype(reward_model.named_parameters(), dtype=self._dtype)
-        training.validate_expected_param_dtype(value_model.named_parameters(), dtype=self._dtype)
-        training.validate_expected_param_dtype(ref_policy_model.named_parameters(), dtype=self._dtype)
+        training.validate_expected_param_dtype(
+            value_model.named_parameters(), dtype=self._dtype
+        )
+        training.validate_expected_param_dtype(
+            reward_model.named_parameters(), dtype=self._dtype
+        )
+        training.validate_expected_param_dtype(
+            value_model.named_parameters(), dtype=self._dtype
+        )
+        training.validate_expected_param_dtype(
+            ref_policy_model.named_parameters(), dtype=self._dtype
+        )
 
         log.info(f"Models are initialized with precision {self._dtype}.")
 
@@ -435,11 +464,15 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # between ref policy and current policy
         for module in policy_model.modules():
             if isinstance(module, torch.nn.Dropout):
-                warn(f"Dropout found in {module}. This is likely to cause issues during training. Disabling.")
+                warn(
+                    f"Dropout found in {module}. This is likely to cause issues during training. Disabling."
+                )
                 module.p = 0
         for module in value_model.modules():
             if isinstance(module, torch.nn.Dropout):
-                warn(f"Dropout found in {module}. This is likely to cause issues during training. Disabling.")
+                warn(
+                    f"Dropout found in {module}. This is likely to cause issues during training. Disabling."
+                )
                 module.p = 0
 
         # disabling grad and dropout in reward and reference policy models
@@ -479,11 +512,17 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             # Maintain a dict of optims for every parameter.
             optim_dict = {
                 p: config.instantiate(cfg_optimizer, [p])
-                for p in chain(self._policy_model.parameters(), self._value_model.parameters())
+                for p in chain(
+                    self._policy_model.parameters(), self._value_model.parameters()
+                )
             }
             # Register optimizer step hooks on the models to run optimizer in backward.
-            training.register_optim_in_bwd_hooks(model=self._policy_model, optim_dict=optim_dict)
-            training.register_optim_in_bwd_hooks(model=self._value_model, optim_dict=optim_dict)
+            training.register_optim_in_bwd_hooks(
+                model=self._policy_model, optim_dict=optim_dict
+            )
+            training.register_optim_in_bwd_hooks(
+                model=self._value_model, optim_dict=optim_dict
+            )
             # Create a wrapper for checkpoint save/load of optimizer states when running in backward.
             self._optim_ckpt_wrapper = training.create_optim_in_bwd_wrapper(
                 model=self._policy_model, optim_dict=optim_dict
@@ -523,7 +562,8 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
-                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer) for single_cfg_dataset in cfg_dataset
+                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer)
+                for single_cfg_dataset in cfg_dataset
             ]
             ds = ConcatDataset(datasets=datasets)
         else:
@@ -551,7 +591,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         return sampler, dataloader
 
-    def save_checkpoint(self, epoch: int, is_intermediate_checkpoint: bool = False) -> None:
+    def save_checkpoint(
+        self, epoch: int, is_intermediate_checkpoint: bool = False
+    ) -> None:
         """
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
@@ -574,7 +616,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             if not self._optimizer_in_bwd:
                 policy_ckpt_dict[training.OPT_KEY] = self._optimizer.state_dict()
             else:
-                policy_ckpt_dict[training.OPT_KEY] = self._optim_ckpt_wrapper.state_dict()
+                policy_ckpt_dict[
+                    training.OPT_KEY
+                ] = self._optim_ckpt_wrapper.state_dict()
 
         self._policy_checkpointer.save_checkpoint(
             policy_ckpt_dict,
@@ -655,8 +699,12 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         query_response_padding_masks = query_responses != self._tokenizer.pad_id
 
         # step 1.1 create attention masks and position IDs for any padding tokens in inputs, used for future forward passes
-        masks = generation.get_causal_mask_from_padding_mask(query_response_padding_masks)
-        position_ids = generation.get_position_ids_from_padding_masks(query_response_padding_masks)
+        masks = generation.get_causal_mask_from_padding_mask(
+            query_response_padding_masks
+        )
+        position_ids = generation.get_position_ids_from_padding_masks(
+            query_response_padding_masks
+        )
 
         del query_response_padding_masks
 
@@ -667,7 +715,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         del logits
 
         # step 2.1 estimate logprobs of the responses using the reference policy
-        ref_logits = self._ref_policy_model(query_responses, input_pos=position_ids, mask=masks)
+        ref_logits = self._ref_policy_model(
+            query_responses, input_pos=position_ids, mask=masks
+        )
         ref_logits = rlhf.truncate_sequence_for_logprobs(ref_logits, context_length)
         ref_logprobs = rlhf.logits_to_logprobs(ref_logits, responses, self._temperature)
 
@@ -755,7 +805,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         trajectories: List[Trajectory] = []
         with torch.no_grad():
             for batch_start in range(0, self.batch_size, self._forward_batch_size):
-                batch_input_ids = input_ids[batch_start : batch_start + self._forward_batch_size]
+                batch_input_ids = input_ids[
+                    batch_start : batch_start + self._forward_batch_size
+                ]
                 trajectories.append(self.generate_trajectory(batch_input_ids))
         return Trajectory(*map(torch.cat, zip(*trajectories)))
 
@@ -817,8 +869,12 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         mini_batch_idxs = batch_idxs[i : i + self._ppo_batch_size]
 
                         batch_ppo_stats: List[PPOStats] = []
-                        for j in range(0, self._ppo_batch_size, self._ppo_backward_batch_size):
-                            backward_batch_idxs = mini_batch_idxs[j : j + self._ppo_backward_batch_size]
+                        for j in range(
+                            0, self._ppo_batch_size, self._ppo_backward_batch_size
+                        ):
+                            backward_batch_idxs = mini_batch_idxs[
+                                j : j + self._ppo_backward_batch_size
+                            ]
 
                             batch_trajectory = Trajectory(
                                 *map(
@@ -857,7 +913,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         kl,
                         kl_rewards,
                     )
-                self.cleanup_after_step(trajectory, ppo_stats, advantages, returns, kl, kl_rewards)
+                self.cleanup_after_step(
+                    trajectory, ppo_stats, advantages, returns, kl, kl_rewards
+                )
                 pbar.update(1)
                 if self._steps_run == self._total_steps:
                     training_completed = True
@@ -866,7 +924,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             # save checkpoint at current epoch
             self._epochs_run += 1
 
-            self.save_checkpoint(curr_epoch, is_intermediate_checkpoint=not training_completed)
+            self.save_checkpoint(
+                curr_epoch, is_intermediate_checkpoint=not training_completed
+            )
             if training_completed:
                 return
 
@@ -917,7 +977,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             mask=trajectory.masks,
         )
 
-        phi_values = rlhf.truncate_sequence_for_logprobs(phi_values, context_length).squeeze(-1)
+        phi_values = rlhf.truncate_sequence_for_logprobs(
+            phi_values, context_length
+        ).squeeze(-1)
         phi_values[trajectory.value_padding_masks] = 0.0
 
         # calculate ppo loss
@@ -936,7 +998,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         loss.backward()
 
         with torch.no_grad():
-            approx_policy_kls = (0.5 * (pi_logprobs - trajectory.logprobs).pow(2)).mean()
+            approx_policy_kls = (
+                0.5 * (pi_logprobs - trajectory.logprobs).pow(2)
+            ).mean()
 
         return PPOStats(
             loss,

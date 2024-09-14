@@ -4,13 +4,15 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Callable, Optional, Tuple, List
+from typing import Callable, List, Optional, Tuple
 
 import torch
 from torchtune.modules.transformer import TransformerDecoder
 
 
-def multinomial_sample_one(probs: torch.Tensor, q: Optional[torch.Tensor] = None) -> torch.Tensor:
+def multinomial_sample_one(
+    probs: torch.Tensor, q: Optional[torch.Tensor] = None
+) -> torch.Tensor:
     """Samples from a multinomial distribution."""
 
     q = torch.empty_like(probs).exponential_(1) if q is None else q
@@ -136,7 +138,9 @@ def get_causal_mask_from_padding_mask(
     target_seq_len = seq_len if target_seq_len is None else target_seq_len
 
     if target_seq_len < seq_len:
-        raise AssertionError("target_seq_len cannot be shorter than the sequence length of the padding mask.")
+        raise AssertionError(
+            "target_seq_len cannot be shorter than the sequence length of the padding mask."
+        )
 
     mask = torch.tril(
         torch.ones(seq_len, target_seq_len, device=padding_mask.device, dtype=bool),
@@ -218,7 +222,9 @@ def generate(
     """
     prompt = prompt.view(1, -1) if prompt.ndim == 1 else prompt
 
-    stop_tokens = torch.tensor(stop_tokens, device=prompt.device) if stop_tokens else None
+    stop_tokens = (
+        torch.tensor(stop_tokens, device=prompt.device) if stop_tokens else None
+    )
 
     if custom_generate_next_token is None:
         custom_generate_next_token = generate_next_token
@@ -228,15 +234,23 @@ def generate(
 
     generated_tokens = prompt.clone()
     incremental_decoding = model.caches_are_enabled()
-    max_seq_len = total_response_length if not incremental_decoding else model.max_seq_len
+    max_seq_len = (
+        total_response_length if not incremental_decoding else model.max_seq_len
+    )
     padding_masks = generated_tokens != pad_id
     cache_pos = None
 
     if not padding_masks.all():
-        padding_masks = torch.nn.functional.pad(padding_masks, (0, max_generated_tokens), value=True)
-        masks = get_causal_mask_from_padding_mask(padding_masks, target_seq_len=max_seq_len)
+        padding_masks = torch.nn.functional.pad(
+            padding_masks, (0, max_generated_tokens), value=True
+        )
+        masks = get_causal_mask_from_padding_mask(
+            padding_masks, target_seq_len=max_seq_len
+        )
         input_pos = get_position_ids_from_padding_mask(padding_masks)
-        cache_pos = torch.arange(0, total_response_length, device=generated_tokens.device)
+        cache_pos = torch.arange(
+            0, total_response_length, device=generated_tokens.device
+        )
     else:
         masks = torch.tril(
             torch.ones(
@@ -246,7 +260,9 @@ def generate(
                 device=prompt.device,
             )
         ).unsqueeze(0)
-        input_pos = torch.arange(0, total_response_length, device=generated_tokens.device).unsqueeze(0)
+        input_pos = torch.arange(
+            0, total_response_length, device=generated_tokens.device
+        ).unsqueeze(0)
 
     del padding_masks
 
@@ -255,7 +271,9 @@ def generate(
     else:
         curr_masks = masks[:, :prompt_length, :prompt_length]
 
-    q = torch.empty((bsz, model.tok_embeddings.num_embeddings), device=prompt.device).exponential_(1, generator=rng)
+    q = torch.empty(
+        (bsz, model.tok_embeddings.num_embeddings), device=prompt.device
+    ).exponential_(1, generator=rng)
     tokens, generated_logits = generate_next_token(
         model,
         input_pos=input_pos[:, :prompt_length].squeeze(),
@@ -274,37 +292,47 @@ def generate(
 
     # keeps track at a high level if we've already hit a stop token in a sequence so we can early stop
     stop_token_reached = torch.zeros(bsz, dtype=torch.bool, device=prompt.device)
+
     # everything in stop_token_mask starts as 1s, and we'll set them to 0 for sequences
     # that already hit a stop token
-    stop_token_mask = torch.ones((bsz, prompt_length + 1), dtype=torch.int32, device=prompt.device)
+    stop_token_mask = torch.ones(
+        (bsz, prompt_length + 1), dtype=torch.int32, device=prompt.device
+    )
 
     # stop early if we reach a stop token in every seq
     if stop_tokens is not None:
-        stop_token_reached = update_stop_tokens_tracker(tokens, stop_tokens, stop_token_reached)
+        stop_token_reached = update_stop_tokens_tracker(
+            tokens, stop_tokens, stop_token_reached
+        )
         if stop_token_reached.all().item():
             return generated_tokens, generated_logits
 
     for _ in range(max_generated_tokens - 1):
+
         # update stop_token_mask if we reached a stop token in a previous step
         # by appending the logical not of stop_token_reached to the end of the mask
         # reshaped to be bsz first
         if stop_tokens is not None:
-            stop_token_mask = torch.cat([stop_token_mask, ~stop_token_reached.reshape(bsz, 1)], dim=-1)
+            stop_token_mask = torch.cat(
+                [stop_token_mask, ~stop_token_reached.reshape(bsz, 1)], dim=-1
+            )
 
         # if incremental decoding is enabled, we can use the current position
         # otherwise, we take the whole sequence up to the current position
         if incremental_decoding:
             curr_input_pos = input_pos[:, curr_pos]
-            curr_cache_pos = cache_pos[curr_pos].unsqueeze(0) if cache_pos is not None else None
+            curr_cache_pos = (
+                cache_pos[curr_pos].unsqueeze(0) if cache_pos is not None else None
+            )
             curr_masks = masks[:, curr_pos, None, :]
         else:
             tokens = generated_tokens.clone()
             curr_input_pos = input_pos[:, : curr_pos + 1]
             curr_masks = masks[:, : curr_pos + 1, : curr_pos + 1]
 
-        q = torch.empty((bsz, model.tok_embeddings.num_embeddings), device=prompt.device).exponential_(
-            1, generator=rng
-        )
+        q = torch.empty(
+            (bsz, model.tok_embeddings.num_embeddings), device=prompt.device
+        ).exponential_(1, generator=rng)
         tokens, logits = custom_generate_next_token(
             model,
             input_pos=curr_input_pos,
@@ -323,13 +351,16 @@ def generate(
             generated_logits = logits
 
         if stop_tokens is not None:
-            stop_token_reached = update_stop_tokens_tracker(tokens, stop_tokens, stop_token_reached)
-            if stop_token_reached.all().item():
+            stop_token_reached = update_stop_tokens_tracker(
+                tokens, stop_tokens, stop_token_reached
+            )
+            if stop_token_reached.all():
                 break
 
     # mask out generated tokens in seqs that already hit a stop token
     if stop_tokens is not None:
         generated_tokens *= stop_token_mask
-        generated_logits *= stop_token_mask
+        generated_logits *= stop_token_mask[:, :-1, None]
 
+    # squash
     return generated_tokens, generated_logits

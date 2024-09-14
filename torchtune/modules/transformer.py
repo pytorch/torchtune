@@ -44,7 +44,9 @@ class TransformerSelfAttentionLayer(nn.Module):
         self.sa_scale = sa_scale or nn.Identity()
         self.mlp_scale = mlp_scale or nn.Identity()
 
-    def setup_cache(self, batch_size: int, dtype: torch.dtype, max_seq_len: Optional[int] = None) -> None:
+    def setup_cache(
+        self, batch_size: int, dtype: torch.dtype, max_seq_len: Optional[int] = None
+    ) -> None:
         """Setup key value caches for attention calculation.
 
         Args:
@@ -258,7 +260,9 @@ class TransformerCrossAttentionLayer(nn.Module):
         # [b, s, d]
         # Norm applied before self-attention
         # TODO: Add support for sample packing and bring back input_pos
-        attn_out = self.attn(self.ca_norm(x), encoder_input, mask=encoder_mask, cache_pos=cache_pos)
+        attn_out = self.attn(
+            self.ca_norm(x), encoder_input, mask=encoder_mask, cache_pos=cache_pos
+        )
         if skip_mask is not None:
             attn_out.masked_fill_(skip_mask, 0)
 
@@ -385,7 +389,9 @@ class TransformerDecoder(nn.Module):
     def reset_caches(self):
         """Reset the key value caches."""
         if not self.caches_are_enabled():
-            raise RuntimeError("Key value caches are not setup. Call ``setup_caches()`` first.")
+            raise RuntimeError(
+                "Key value caches are not setup. Call ``setup_caches()`` first."
+            )
 
         for layer in self.layers:
             layer.reset_cache()
@@ -409,7 +415,10 @@ class TransformerDecoder(nn.Module):
             List[torch.Tensor]: List of num_chunks output tensors, each with shape
                 [b, seq_len/num_chunks, out_dim], where out_dim is usually the vocab size.
         """
-        return [self.output(chunk) for chunk in last_hidden_state.chunk(self.num_output_chunks, dim=1)]
+        return [
+            self.output(chunk)
+            for chunk in last_hidden_state.chunk(self.num_output_chunks, dim=1)
+        ]
 
     def forward(
         self,
@@ -493,7 +502,8 @@ class TransformerDecoder(nn.Module):
 
         if seq_len > self.max_seq_len:
             raise ValueError(
-                f"seq_len ({seq_len}) of input tensor should be smaller " f"than max_seq_len ({self.max_seq_len})"
+                f"seq_len ({seq_len}) of input tensor should be smaller "
+                f"than max_seq_len ({self.max_seq_len})"
             )
 
         # shape: [b, s, d]
@@ -501,7 +511,9 @@ class TransformerDecoder(nn.Module):
 
         if self.caches_are_enabled:
             if mask is None:
-                raise ValueError("KV-caches are setup for inference, but a mask was not provided!")
+                raise ValueError(
+                    "KV-caches are setup for inference, but a mask was not provided!"
+                )
             # Track the input position
             if input_pos is None:
                 input_pos = torch.arange(self.pos, self.pos + seq_len, device=h.device)
@@ -589,7 +601,9 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         super().__init__()
         if num_layers is None:
             if isinstance(layers, nn.Module):
-                raise AssertionError("If num_layers is undefined, it is assumed that a list of layers is provided.")
+                raise AssertionError(
+                    "If num_layers is undefined, it is assumed that a list of layers is provided."
+                )
             layers = nn.ModuleList(layers)
         else:
             if not isinstance(layers, nn.Module):
@@ -631,7 +645,9 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
     def reset_caches(self):
         """Reset the key value caches."""
         if not self.caches_are_enabled():
-            raise RuntimeError("Key value caches are not setup. Call ``setup_caches()`` first.")
+            raise RuntimeError(
+                "Key value caches are not setup. Call ``setup_caches()`` first."
+            )
 
         for layer in self.layers:
             layer.reset_cache()
@@ -720,7 +736,8 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
 
         if seq_len > self.max_seq_len:
             raise ValueError(
-                f"seq_len ({seq_len}) of input tensor should be smaller " f"than max_seq_len ({self.max_seq_len})"
+                f"seq_len ({seq_len}) of input tensor should be smaller "
+                f"than max_seq_len ({self.max_seq_len})"
             )
 
         # shape: [b, s, d]
@@ -728,7 +745,9 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
 
         if self.causal_mask is not None:
             if mask is not None:
-                raise ValueError("An attention mask was set. Cannot use a non-causal mask for inference")
+                raise ValueError(
+                    "An attention mask was set. Cannot use a non-causal mask for inference"
+                )
             # Track the input position
             if input_pos is None:
                 input_pos = torch.arange(self.pos, self.pos + seq_len, device=h.device)
