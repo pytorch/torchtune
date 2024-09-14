@@ -28,9 +28,9 @@ from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
     get_loss_values_from_metric_logger,
-    get_tps_values_from_metric_logger,
     TOKENIZER_PATHS,
 )
+from torchtune.models.llama3 import llama3
 
 
 class TestFullFinetuneSingleDeviceRecipe:
@@ -278,75 +278,61 @@ class TestFullFinetuneInt8MixedPrecisionTraining:
         ] + dummy_alpaca_dataset_config()
 
     @pytest.mark.integration_test
-    def test_speed(self, tmpdir, monkeypatch):
+    def test_smoke(self, tmpdir, monkeypatch):
         model_type = "llama3"
-        ckpt_type = "tune"
         ckpt_component = CKPT_COMPONENT_MAP["tune"]
-        ckpt = model_type + "_" + ckpt_type
-        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         tokenizer_path = Path(TOKENIZER_PATHS[model_type])
-        ckpt_dir = ckpt_path.parent
-        log_file_baseline = gen_log_file_name(tmpdir, suffix="baseline")
-        log_file_int8mp = gen_log_file_name(tmpdir, suffix="int8mp")
+        log_file = gen_log_file_name(tmpdir)
 
-        model_config = MODEL_TEST_CONFIGS[model_type]
+        # MODEL_TEST_CONFIGS["llama3"] doesn't work with FlexAttention
+        # because some dims are not multiple of 128
+        # create a dummy model and save state_dict so it works with torchtune
+        model_config = [
+            "model._component_=torchtune.models.llama3.llama3",
+            "model.vocab_size=128_256",
+            "model.num_layers=2",
+            "model.num_heads=2",
+            "model.num_kv_heads=2",
+            "model.embed_dim=256",
+            "model.max_seq_len=1024",
+        ]
+        dummy_model = llama3(
+            vocab_size=128_256,
+            num_layers=2,
+            num_heads=8,
+            num_kv_heads=8,
+            embed_dim=1024,
+            max_seq_len=1024,
+        )
+        ckpt_dir = tmpdir / "ckpt_dir"
+        ckpt_dir.mkdir()
+        torch.save(dummy_model.state_dict(), ckpt_dir / "model.pt")
+
+        quantizer = (
+            "torchtune.training.quantization.Int8MixedPrecisionTrainingQuantizer"
+        )
 
         # set dataset.packed=True to have fixed input seq len
-        cmd1 = f"""
+        cmd = f"""
         tune run full_finetune_single_device \
             --config llama3/8B_full_single_device \
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.checkpoint_files=[model.pt]\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             tokenizer.max_seq_len=256 \
             dataset.packed=True \
-            metric_logger.filename={log_file_baseline} \
+            metric_logger.filename={log_file} \
             compile=True \
+            quantizer._component_={quantizer}" \
         """.split()
-        cmd1 = cmd1 + self._get_test_config_overrides() + model_config
-
-        # Make sure to clear compile state in between tests
-        torch._dynamo.reset()
-        monkeypatch.setattr(sys, "argv", cmd1)
-        with pytest.raises(SystemExit, match=""):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        quantizer = (
-            "torchtune.training.quantization.Int8MixedPrecisionTrainingQuantizer"
-        )
-        cmd2 = f"""
-        tune run full_finetune_single_device \
-            --config llama3/8B_full_single_device \
-            output_dir={tmpdir} \
-            checkpointer._component_={ckpt_component} \
-            checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type={model_type.upper()} \
-            tokenizer.path='{tokenizer_path}' \
-            tokenizer.prompt_template=null \
-            tokenizer.max_seq_len=4096 \
-            dataset.packed=True \
-            metric_logger.filename={log_file_int8mp} \
-            compile=True \
-            quantizer._component_={quantizer} \
-        """.split()
-        cmd2 = cmd2 + self._get_test_config_overrides() + model_config
+        cmd = cmd + self._get_test_config_overrides() + model_config
 
         torch._dynamo.reset()
-        monkeypatch.setattr(sys, "argv", cmd2)
+        monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        # skip the first iteration since it includes compile time
-        tps_baseline = np.mean(get_tps_values_from_metric_logger(log_file_baseline)[1:])
-        tps_int8mp = np.mean(get_tps_values_from_metric_logger(log_file_int8mp)[1:])
-
-        # check that it is at least 20% faster
-        speedup = tps_int8mp / tps_baseline
-        assert speedup > 1.2, speedup

@@ -343,20 +343,6 @@ def get_loss_values_from_metric_logger(log_file_path: str) -> list[float]:
     return losses
 
 
-def get_tps_values_from_metric_logger(log_file_path: str) -> list[float]:
-    """
-    Given an output directory containing metric logger .txt file,
-    parse the .txt and return a list of tokens per second (tps) values
-    from each logged iteration.
-    """
-    with open(log_file_path, "r") as f:
-        logs = f.read()
-    tps_values = [
-        float(x) for x in re.findall(r"tokens_per_second_per_gpu:(\d+\.\d+)", logs)
-    ]
-    return tps_values
-
-
 def gen_log_file_name(tmpdir, suffix: Optional[str] = None) -> str:
     """
     Take the tmpdir and just append a non-path version of it as the
