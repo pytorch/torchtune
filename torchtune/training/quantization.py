@@ -8,10 +8,6 @@ from typing import Callable, Optional
 
 import torch
 from torch import nn
-from torchao.prototype.quantized_training import (
-    int8_mixed_precision_training,
-    Int8MixedPrecisionTrainingConfig,
-)
 from torchao.quantization import int8_dynamic_activation_int4_weight, quantize_
 from torchao.quantization.prototype.qat import (
     disable_8da4w_fake_quant,
@@ -25,15 +21,24 @@ from torchao.quantization.prototype.qat._module_swap_api import (
 )
 
 from torchtune.modules import TransformerDecoder
+from torchtune.modules.low_precision._utils import _get_torchao_version
 from torchtune.utils._version import torch_version_ge
 
 
-# TODO: add guard to torchao version
+_TORCHAO_VERSION, _ = _get_torchao_version()
+
 _SUPPORTS_INT8_MIXED_PRECISION_TRAINING = (
     torch_version_ge("2.4.0")
+    and _TORCHAO_VERSION.split(".") >= ("0", "5", "0")
     and torch.cuda.is_available()
     and torch.cuda.get_device_capability() >= (8, 0)
 )
+
+if _SUPPORTS_INT8_MIXED_PRECISION_TRAINING:
+    from torchao.prototype.quantized_training import (
+        int8_mixed_precision_training,
+        Int8MixedPrecisionTrainingConfig,
+    )
 
 
 __all__ = [
@@ -133,8 +138,8 @@ class Int8MixedPrecisionTrainingQuantizer:
     ) -> None:
         if not _SUPPORTS_INT8_MIXED_PRECISION_TRAINING:
             raise RuntimeError(
-                "INT8 mixed-precision training requires torch>=2.4 and a CUDA capable"
-                " device with compute capability >= 8.0"
+                "INT8 mixed-precision training requires torch>=2.4, torchao>=0.5, and"
+                " a CUDA capable device with compute capability >= 8.0"
             )
 
         self._config = Int8MixedPrecisionTrainingConfig(
