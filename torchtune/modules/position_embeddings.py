@@ -7,8 +7,7 @@
 from typing import Optional
 
 import torch
-
-from torch import nn, Tensor
+from torch import nn
 
 
 class RotaryPositionalEmbeddings(nn.Module):
@@ -42,14 +41,14 @@ class RotaryPositionalEmbeddings(nn.Module):
         self.dim = dim
         self.base = base
         self.max_seq_len = max_seq_len
-        self._rope_init()
+        self.rope_init()
 
-    # We need to explicitly define reset_parameters for FSDP initialization, see
-    # https://github.com/pytorch/pytorch/blob/797d4fbdf423dd9320ebe383fb57ffb1135c4a99/torch/distributed/fsdp/_init_utils.py#L885
+    # TODO: delete this once all our recipes are moved off of FSDP1 since we
+    # no longer need to explicitly name our param init method reset_parameters
     def reset_parameters(self):
-        self._rope_init()
+        self.rope_init()
 
-    def _rope_init(self):
+    def rope_init(self):
         theta = 1.0 / (
             self.base
             ** (torch.arange(0, self.dim, 2)[: (self.dim // 2)].float() / self.dim)
@@ -72,19 +71,21 @@ class RotaryPositionalEmbeddings(nn.Module):
         cache = torch.stack([torch.cos(idx_theta), torch.sin(idx_theta)], dim=-1)
         self.register_buffer("cache", cache, persistent=False)
 
-    def forward(self, x: Tensor, *, input_pos: Optional[Tensor] = None) -> Tensor:
+    def forward(
+        self, x: torch.Tensor, *, input_pos: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """
         Args:
-            x (Tensor): input tensor with shape
+            x (torch.Tensor): input tensor with shape
                 [b, s, n_h, h_d]
-            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b, s].
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
 
         Returns:
-            Tensor: output tensor with RoPE applied
+            torch.Tensor: output tensor with RoPE applied
 
         Notation used for tensor shapes:
             - b: batch size

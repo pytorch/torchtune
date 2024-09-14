@@ -56,7 +56,7 @@ Hugging Face datasets
 ---------------------
 
 We provide first class support for datasets on the Hugging Face hub. Under the hood,
-all of our built-in datasets and dataset builders are using Hugging Face's ``load_dataset()``
+all of our built-in datasets and dataset builders are using Hugging Face's `load_dataset() <https://huggingface.co/docs/datasets/v2.20.0/en/package_reference/loading_methods#datasets.load_dataset>`_
 to load in your data, whether local or on the hub.
 
 You can pass in a Hugging Face dataset path to the ``source`` parameter in any of our builders
@@ -97,7 +97,7 @@ on Hugging Face's `documentation. <https://huggingface.co/docs/datasets/en/loadi
 Setting max sequence length
 ---------------------------
 
-The default collator :func:`~torchtune.utils.collate.padded_collate` used in all
+The default collator, :func:`~torchtune.data.padded_collate`, used in all
 our training recipes will pad samples to the max sequence length within the batch,
 not globally. If you wish to set an upper limit on the max sequence length globally,
 you can specify it in the dataset builder with ``max_seq_len``. Any sample in the dataset
@@ -250,7 +250,7 @@ Here is an example of a sample that is formatted with :class:`~torchtune.data.Al
     # ### Response:
     #
 
-We provide `other instruct templates <data>`
+We provide :ref:`other instruct templates <data>`
 for common tasks such summarization and grammar correction. If you need to create your own
 instruct template for a custom task, you can inherit from :class:`~torchtune.data.InstructTemplate`
 and create your own class.

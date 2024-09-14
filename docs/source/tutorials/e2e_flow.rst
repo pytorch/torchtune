@@ -151,6 +151,8 @@ Run Evaluation using EleutherAI's Eval Harness
 
 We've fine-tuned a model. But how well does this model really do? Let's run some Evaluations!
 
+.. TODO (SalmanMohammadi) ref eval recipe docs
+
 torchtune integrates with
 `EleutherAI's evaluation harness <https://github.com/EleutherAI/lm-evaluation-harness>`_.
 An example of this is available through the
@@ -169,7 +171,7 @@ will be easier than overriding all of these elements through the CLI.
 
     tune cp eleuther_evaluation ./custom_eval_config.yaml \
 
-For this tutorial we'll use the ``truthfulqa_mc2`` task from the harness.
+For this tutorial we'll use the `truthfulqa_mc2 <https://github.com/sylinrl/TruthfulQA>`_ task from the harness.
 This task measures a model's propensity to be truthful when answering questions and
 measures the model's zero-shot accuracy on a question followed by one or more true
 responses and one or more false responses. Let's first run a baseline without fine-tuning.
@@ -193,7 +195,7 @@ First, we modify ``custom_eval_config.yaml`` to include the fine-tuned checkpoin
 .. code-block:: yaml
 
     checkpointer:
-        _component_: torchtune.utils.FullModelHFCheckpointer
+        _component_: torchtune.training.FullModelHFCheckpointer
 
         # directory with the checkpoint files
         # this should match the output_dir specified during
@@ -260,7 +262,7 @@ Let's modify ``custom_generation_config.yaml`` to include the following changes.
 .. code-block:: yaml
 
     checkpointer:
-        _component_: torchtune.utils.FullModelHFCheckpointer
+        _component_: torchtune.training.FullModelHFCheckpointer
 
         # directory with the checkpoint files
         # this should match the output_dir specified during
@@ -325,8 +327,8 @@ To quantize the fine-tuned model after installing torchao we can run the followi
   # we also support `int8_weight_only()` and `int8_dynamic_activation_int8_weight()`, see
   # https://github.com/pytorch/ao/tree/main/torchao/quantization#other-available-quantization-techniques
   # for a full list of techniques that we support
-  from torchao.quantization.quant_api import quantize\_, int4_weight_only
-  quantize\_(model, int4_weight_only())
+  from torchao.quantization.quant_api import quantize_, int4_weight_only
+  quantize_(model, int4_weight_only())
 
 After quantization, we rely on torch.compile for speedups. For more details, please see `this example usage <https://github.com/pytorch/ao/blob/main/torchao/quantization/README.md#quantization-flow-example>`_.
 
@@ -422,7 +424,7 @@ Uploading your model to the Hugging Face Hub
 --------------------------------------------
 
 Your new model is working great and you want to share it with the world. The easiest way to do this
-is utilizing the ``huggingface-cli`` command, which works seamlessly with torchtune. Simply point the CLI
+is utilizing the `huggingface-cli <https://huggingface.co/docs/huggingface_hub/en/guides/cli>`_ command, which works seamlessly with torchtune. Simply point the CLI
 to your finetuned model directory like so:
 
 .. code-block:: bash

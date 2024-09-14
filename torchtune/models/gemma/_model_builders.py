@@ -3,13 +3,15 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List
+from typing import List, Optional
 
 from torchtune.models.gemma._component_builders import gemma, lora_gemma
-from torchtune.models.gemma.transformer import GemmaTransformerDecoder
+from torchtune.modules import TransformerDecoder
 
 from torchtune.models.gemma._tokenizer import GemmaTokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
+from torchtune.data._prompt_templates import _TemplateType
+from torchtune.data._utils import _get_prompt_template
 
 from functools import partial
 
@@ -19,13 +21,13 @@ the ``gemma_2b`` model builder uses the ``gemma`` component builder.
 """
 
 
-def gemma_2b() -> GemmaTransformerDecoder:
+def gemma_2b() -> TransformerDecoder:
     """
     Builder for creating a Gemma 2B model initialized w/ the default 2b parameter values
     from: https://blog.google/technology/developers/gemma-open-models/
 
     Returns:
-        GemmaTransformerDecoder: Instantiation of Gemma 2B model
+        TransformerDecoder: Instantiation of Gemma 2B model
     """
     return gemma(
         vocab_size=256_000,
@@ -41,17 +43,24 @@ def gemma_2b() -> GemmaTransformerDecoder:
     )
 
 
-def gemma_tokenizer(path: str) -> GemmaTokenizer:
+def gemma_tokenizer(path: str, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = None) -> GemmaTokenizer:
     """
     Tokenizer for Gemma.
 
     Args:
         path (str): path to the tokenizer
+        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
+            after which the input will be truncated. Default is None.
+        prompt_template (Optional[_TemplateType]): optional specified prompt template.
+            If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
+            class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
+            prepend/append tags.
+        
 
     Returns:
         GemmaTokenizer: Instantiation of the Gemma tokenizer
     """
-    return GemmaTokenizer(path)
+    return GemmaTokenizer(path=path, max_seq_len=max_seq_len, prompt_template=_get_prompt_template(prompt_template) if prompt_template is not None else None)
 
 
 def lora_gemma_2b(
@@ -59,8 +68,10 @@ def lora_gemma_2b(
     apply_lora_to_mlp: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
+    lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
-) -> GemmaTransformerDecoder:
+) -> TransformerDecoder:
     """
     Builder for creating a Gemma 2B model with LoRA enabled.
 
@@ -76,10 +87,13 @@ def lora_gemma_2b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        GemmaTransformerDecoder: Instantiation of Gemma 2B model with LoRA applied
+        TransformerDecoder: Instantiation of Gemma 2B model with LoRA applied
     """
     return lora_gemma(
         lora_attn_modules=lora_attn_modules,
@@ -96,7 +110,8 @@ def lora_gemma_2b(
         norm_eps=1e-6,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
-        lora_dropout=0.05,
+        lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 
@@ -110,13 +125,13 @@ Please see `lora_gemma_2b` for full API arguments.
 
 
 
-def gemma_7b() -> GemmaTransformerDecoder:
+def gemma_7b() -> TransformerDecoder:
     """
     Builder for creating a Gemma 7B model initialized w/ the default 7b parameter values
     from: https://blog.google/technology/developers/gemma-open-models/
 
     Returns:
-        GemmaTransformerDecoder: Instantiation of Gemma 7B model
+        TransformerDecoder: Instantiation of Gemma 7B model
     """
     return gemma(
         vocab_size=256_000,
@@ -137,8 +152,10 @@ def lora_gemma_7b(
     apply_lora_to_mlp: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
+    lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
-) -> GemmaTransformerDecoder:
+) -> TransformerDecoder:
     """
     Builder for creating a Gemma 7B model with LoRA enabled.
 
@@ -154,10 +171,13 @@ def lora_gemma_7b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        GemmaTransformerDecoder: Instantiation of Gemma 7B model with LoRA applied
+        TransformerDecoder: Instantiation of Gemma 7B model with LoRA applied
     """
     return lora_gemma(
         lora_attn_modules=lora_attn_modules,
@@ -174,7 +194,8 @@ def lora_gemma_7b(
         norm_eps=1e-6,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
-        lora_dropout=0.05,
+        lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 

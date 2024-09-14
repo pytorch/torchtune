@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List
+from typing import List, Optional
 
 from torchtune.models.mistral._component_builders import (
     mistral,
@@ -11,6 +11,8 @@ from torchtune.models.mistral._component_builders import (
     mistral_classifier,
     lora_mistral_classifier,
 )
+from torchtune.data._prompt_templates import _TemplateType
+from torchtune.data._utils import _get_prompt_template
 
 from torchtune.modules import TransformerDecoder
 from torchtune.models.mistral._tokenizer import MistralTokenizer
@@ -46,17 +48,23 @@ def mistral_7b() -> TransformerDecoder:
     )
 
 
-def mistral_tokenizer(path: str) -> MistralTokenizer:
+def mistral_tokenizer(path: str, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = "torchtune.models.mistral.MistralChatTemplate") -> MistralTokenizer:
     """
     Tokenizer for Mistral models.
 
     Args:
         path (str): path to the tokenizer
+        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
+            after which the input will be truncated. Default is None.
+        prompt_template (Optional[_TemplateType]): optional specified prompt template.
+            If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
+            class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
+            prepend/append tags. Default is :class:`~torchtune.models.mistral.MistralChatTemplate`.
 
     Returns:
         MistralTokenizer: Instantiation of the Mistral tokenizer
     """
-    return MistralTokenizer(path)
+    return MistralTokenizer(path=path, max_seq_len=max_seq_len, prompt_template=_get_prompt_template(prompt_template) if prompt_template is not None else None)
 
 
 def lora_mistral_7b(
@@ -65,6 +73,8 @@ def lora_mistral_7b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
+    lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
@@ -80,6 +90,9 @@ def lora_mistral_7b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
@@ -101,7 +114,8 @@ def lora_mistral_7b(
         rope_base=10_000,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
-        lora_dropout=0.05,
+        lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 
@@ -145,6 +159,8 @@ def lora_mistral_reward_7b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
+    lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
@@ -160,6 +176,9 @@ def lora_mistral_reward_7b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
@@ -182,7 +201,8 @@ def lora_mistral_reward_7b(
         rope_base=10_000,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
-        lora_dropout=0.05,
+        lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 

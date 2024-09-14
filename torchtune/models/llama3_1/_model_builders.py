@@ -3,16 +3,13 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List, Optional
+from typing import List
 from functools import partial
 
 from torchtune.models.llama3_1._component_builders import llama3_1, lora_llama3_1
 
 from torchtune.modules import TransformerDecoder
-from torchtune.models.llama3._tokenizer import Llama3Tokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
-from torchtune.modules.tokenizers import parse_hf_tokenizer_json
-
 
 """
 Model builders build specific instantiations using component builders. For example
@@ -95,11 +92,20 @@ def llama3_tokenizer(path: str, special_tokens_path: Optional[str] = None) -> Ll
             structured similarly. Default is None to use the canonical Llama3.1 special tokens.
     
     Returns:
-        Llama3Tokenizer: Instantiation of the Llama3/Llama3.1 tokenizer
+        TransformerDecoder: Instantiation of Llama3.1 405B model
     """
-    special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    return Llama3Tokenizer(path=path, special_tokens=special_tokens)
-
+    return llama3_1(
+        vocab_size=128_256,
+        num_layers=126,
+        num_heads=128,
+        num_kv_heads=8,
+        embed_dim=16384,
+        max_seq_len=8192,
+        intermediate_dim=53248,
+        attn_dropout=0.0,
+        norm_eps=1e-5,
+        rope_base=500000.0,
+    )
 
 def lora_llama3_1_8b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
@@ -107,6 +113,8 @@ def lora_llama3_1_8b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
+    lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
@@ -126,6 +134,9 @@ def lora_llama3_1_8b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
@@ -147,7 +158,8 @@ def lora_llama3_1_8b(
         rope_base=500000.0,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
-        lora_dropout=0.05,
+        lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 
@@ -158,6 +170,8 @@ def lora_llama3_1_70b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
+    lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
@@ -177,6 +191,9 @@ def lora_llama3_1_70b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
@@ -198,7 +215,8 @@ def lora_llama3_1_70b(
         rope_base=500000.0,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
-        lora_dropout=0.05,
+        lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 

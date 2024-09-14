@@ -4,15 +4,20 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import logging
 from typing import Optional
 
-from torch import nn, Tensor
+import torch
+from torch import nn
+from torchtune.modules.attention_utils import _MaskType, _sdpa_or_flex_attention
 from torchtune.modules.kv_cache import KVCache
 
+logger = logging.getLogger(__name__)
 
-class CausalSelfAttention(nn.Module):
-    """Multi-headed grouped query self-attention (GQA) layer introduced
-    in https://arxiv.org/abs/2305.13245v1.
+
+class MultiHeadAttention(nn.Module):
+    """Multi-headed attention layer with support for grouped query
+    attention (GQA) introduced in https://arxiv.org/abs/2305.13245v1.
 
     GQA is a version of multiheaded attention (MHA) which uses fewer
     key/value heads than query heads by grouping n query heads for each
@@ -55,11 +60,15 @@ class CausalSelfAttention(nn.Module):
         k_proj (nn.Module): projection layer for key.
         v_proj (nn.Module): projection layer for value.
         output_proj (nn.Module): projection layer for output.
-        pos_embeddings (nn.Module): positional embeddings layer, e.g. RotaryPositionalEmbeddings.
-        kv_cache (Optional[KVCache]): KVCache object used to cache key and value.
-            If not specified, then no caching is used.
+        pos_embeddings (Optional[nn.Module]): positional embeddings layer, e.g. RotaryPositionalEmbeddings.
+        q_norm (Optional[nn.Module]): normalization layer for query, e.g. RMSNorm. For decoding, this is applied
+            before updating from kv_cache. This means it will only support token wide normalization and not
+            batch or sequence wide normalization.
+        k_norm (Optional[nn.Module]): normalization layer for key, must be set if q_norm is.
+        kv_cache (Optional[KVCache]): KVCache object used to cache key and value
         max_seq_len (int): maximum sequence length supported by the model.
             This is needed to compute the RoPE Cache. Default: 4096.
+        is_causal (bool): sets the default mask to causal when no mask is provided
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0.
@@ -68,10 +77,12 @@ class CausalSelfAttention(nn.Module):
         ValueError: If `num_heads` % `num_kv_heads` != 0
         ValueError: If `embed_dim` % `num_heads` != 0
         ValueError: If `attn_dropout` < 0 or > 1
+        ValueError: if q_norm is defined without k_norm or vice versa
     """
 
     def __init__(
         self,
+        *,
         embed_dim: int,
         num_heads: int,
         num_kv_heads: int,
@@ -80,9 +91,12 @@ class CausalSelfAttention(nn.Module):
         k_proj: nn.Module,
         v_proj: nn.Module,
         output_proj: nn.Module,
-        pos_embeddings: nn.Module,
+        pos_embeddings: Optional[nn.Module] = None,
+        q_norm: Optional[nn.Module] = None,
+        k_norm: Optional[nn.Module] = None,
         kv_cache: Optional[KVCache] = None,
         max_seq_len: int = 4096,
+        is_causal: bool = True,
         attn_dropout: float = 0.0,
     ) -> None:
         super().__init__()
@@ -101,6 +115,9 @@ class CausalSelfAttention(nn.Module):
         if attn_dropout < 0 or attn_dropout > 1:
             raise ValueError(f"attn_dropout ({embed_dim}) must be between 0.0 and 1.0")
 
+        if bool(q_norm) ^ bool(k_norm):
+            raise ValueError("q and k norm must be set together")
+
         # Set attributes
         self.num_heads = num_heads
         self.num_kv_heads = num_kv_heads
@@ -108,6 +125,7 @@ class CausalSelfAttention(nn.Module):
         self.attn_dropout = attn_dropout
         self.head_dim = head_dim
         self.max_seq_len = max_seq_len
+        self.is_causal = is_causal
 
         # Set layers
         self.kv_cache = kv_cache
@@ -115,40 +133,82 @@ class CausalSelfAttention(nn.Module):
         self.k_proj = k_proj
         self.v_proj = v_proj
         self.output_proj = output_proj
+        self.q_norm = q_norm
+        self.k_norm = k_norm
         self.pos_embeddings = pos_embeddings
+
+        # Use flex attention if supported and we are sample packing
+        self._attention_call = _sdpa_or_flex_attention()
+
+    def setup_cache(self, batch_size: int, dtype: torch.dtype) -> None:
+        """Setup key value caches for attention calculation. If called
+        after kv_cache is already setup, this will be skipped.
+
+        Args:
+            batch_size (int): batch size for the caches.
+            dtype (torch.dtype): dtype for the caches.
+        """
+        # Don't overwrite user defined kv_cache from init
+        if self.kv_cache is not None:
+            logger.warning(
+                "Key value caches are already setup. You cannot call ``setup_caches()`` twice. Skipping."
+            )
+        else:
+            self.kv_cache = KVCache(
+                batch_size=batch_size,
+                max_seq_len=self.max_seq_len,
+                num_heads=self.num_heads,
+                head_dim=self.head_dim,
+                dtype=dtype,
+            )
+
+    def reset_cache(self):
+        """Reset the key value caches."""
+        if self.kv_cache is None:
+            raise RuntimeError(
+                "Key value caches are not setup. Call ``setup_caches()`` first."
+            )
+        self.kv_cache.reset()
 
     def forward(
         self,
-        x: Tensor,
+        x: torch.Tensor,
+        y: Optional[torch.Tensor] = None,
         *,
-        mask: Optional[Tensor] = None,
-        input_pos: Optional[Tensor] = None,
-    ) -> Tensor:
+        mask: Optional[_MaskType] = None,
+        input_pos: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         """
         Args:
-            x (Tensor): input tensor with shape
-                [batch_size x seq_length x embed_dim]
-            mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask
-                with shape [batch_size x seq_length x seq_length]. This is applied after
-                the query-key multiplication and before the softmax. A value of True in row i
-                and column j means token i attends to token j. A value of False means token i
-                does not attend to token j. If no mask is specified, a causal mask
-                is used by default. Default is None.
-            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+            x (torch.Tensor): input tensor with shape [b x s_x x d] for the query
+            y (Optional[torch.Tensor]): second input tensor with shape [b x s_y x d], is the input
+                for k and v. For self attention, x=y. Optional only with kv_cache enabled.
+            mask (Optional[_MaskType]): Used to mask the scores after the query-key multiplication
+                and before the softmax. Either a boolean tensor with shape [b x s x s] or a
+                :class:`~torch.nn.attention.flex_attention.BlockMask`. If a boolean tensor, a value
+                of True in row i and column j means token i attends to token j. A value of False means
+                token i does not attend to token j. If no mask is specified, a causal mask
+                is used by default. If a :class:`~torch.nn.attention.flex_attention.BlockMask` is passed
+                for document masking in a packed sequence via `create_block_mask
+                <https://pytorch.org/blog/flexattention/#mask-mods>`_, we use
+                :func:`~torch.nn.attention.flex_attention.flex_attention` when computing attention.
+                Default is None.
+            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
 
-        Returns:
-            Tensor: output tensor with attention applied
-
         Raises:
-            ValueError: if seq_len of x is bigger than max_seq_len
+            ValueError: If no `y` input and `kv_cache` is not enabled.
+
+        Returns:
+            torch.Tensor: output tensor with attention applied
 
         Notation used for tensor shapes:
             - b: batch size
-            - s: sequence length
+            - s_x: sequence length for x
+            - s_y: sequence length for y
             - n_h: num heads
             - n_kv: num kv heads
             - d: embed dim
@@ -156,74 +216,91 @@ class CausalSelfAttention(nn.Module):
 
         TODO:
             - Return the attention weights
-            - Make application of positional embeddings optional
         """
-        # input has shape [b, s, d]
-        bsz, seq_len, _ = x.shape
+        # x has shape [b, s_x, d]
+        # y has shape [b, s_y, d]
+        b, s_x, _ = x.shape
+        s_y = y.shape[1] if y is not None else 0
 
-        if seq_len > self.max_seq_len:
-            raise ValueError(
-                f"seq_len ({seq_len}) of input tensor should be smaller "
-                f"than max_seq_len ({self.max_seq_len})"
-            )
+        if self.kv_cache and input_pos is None:
+            cache_size = self.kv_cache.size
+            input_pos = torch.arange(cache_size, cache_size + s_y, device=x.device)
 
-        # q has shape [b, s, num_heads * head_dim]
-        # k has shape [b, s, num_kv_heads * head_dim]
-        # v has shape [b, s, num_kv_heads * head_dim]
+        # q has shape [b, s_x, num_heads * head_dim]
         q = self.q_proj(x)
-        k = self.k_proj(x)
-        v = self.v_proj(x)
 
         # number of queries per key/value
         q_per_kv = self.num_heads // self.num_kv_heads
-
-        # q: [b, s, n_kv, q_per_kv, h_d]
-        # k: [b, s, n_kv, 1, h_d]
-        # v: [b, s, n_kv, 1, h_d]
-        q = q.view(bsz, seq_len, self.num_kv_heads, q_per_kv, self.head_dim)
-        k = k.view(bsz, seq_len, self.num_kv_heads, 1, self.head_dim)
-        v = v.view(bsz, seq_len, self.num_kv_heads, 1, self.head_dim)
-
-        # if needed, expand the key and value tensors to have the same shape
-        # as the query tensor by copying values across the relevant dim
-        if self.num_heads != self.num_kv_heads:
-            k = k.expand(bsz, seq_len, self.num_kv_heads, q_per_kv, self.head_dim)
-            v = v.expand(bsz, seq_len, self.num_kv_heads, q_per_kv, self.head_dim)
-
-        # llama2 applies the RoPE embeddings on tensors with shape
-        # [b, s, n_h, h_d]
-        # Reshape the tensors before we apply RoPE
-        q = q.reshape(bsz, seq_len, -1, self.head_dim)
-        k = k.reshape(bsz, seq_len, -1, self.head_dim)
-        v = v.reshape(bsz, seq_len, -1, self.head_dim)
+        q = q.view(b, s_x, self.num_kv_heads * q_per_kv, self.head_dim)
 
         # Apply positional embeddings
-        q = self.pos_embeddings(q, input_pos=input_pos)
-        k = self.pos_embeddings(k, input_pos=input_pos)
+        if self.pos_embeddings is not None:
+            q = self.pos_embeddings(q, input_pos=input_pos)
 
-        # [b, n_h, s, h_d]
+        # [b, n_h, s_x, h_d]
         q = q.transpose(1, 2)
-        k = k.transpose(1, 2)
-        v = v.transpose(1, 2)
 
-        # Update key-value cache
-        if self.kv_cache is not None:
-            k, v = self.kv_cache.update(input_pos, k, v)
+        # Normalize q
+        if self.q_norm is not None:
+            q = self.q_norm(q)
 
-        # shape: [b, 1, s, s]
-        if mask is not None:
-            mask = mask[:, None, :, :]
+        if y is None:
+            if self.kv_cache is None:
+                raise ValueError(
+                    "Must provide y input or use kv_cache to enable streaming decoding"
+                )
+            k = self.kv_cache.k_cache
+            v = self.kv_cache.v_cache
+        else:
+            # Update k and v shape, positional embeddings, and normalization
 
-        # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
-        output = nn.functional.scaled_dot_product_attention(
+            # k has shape [b, s_y, num_kv_heads * head_dim]
+            # v has shape [b, s_y, num_kv_heads * head_dim]
+            k = self.k_proj(y)
+            v = self.v_proj(y)
+
+            # k: [b, s_y, n_kv, 1, h_d]
+            # v: [b, s_y, n_kv, 1, h_d]
+            k = k.view(b, s_y, self.num_kv_heads, 1, self.head_dim)
+            v = v.view(b, s_y, self.num_kv_heads, 1, self.head_dim)
+
+            # if needed, expand the key and value tensors to have the same shape
+            # as the query tensor by copying values across the relevant dim
+            if self.num_heads != self.num_kv_heads:
+                k = k.expand(b, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
+                v = v.expand(b, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
+
+            # llama applies the RoPE embeddings on tensors with shape
+            # [b, s, n_h, h_d]
+            # Reshape the tensors before we apply RoPE
+            k = k.reshape(b, s_y, -1, self.head_dim)
+            v = v.reshape(b, s_y, -1, self.head_dim)
+
+            # Apply positional embeddings
+            if self.pos_embeddings is not None:
+                k = self.pos_embeddings(k, input_pos=input_pos)
+
+            # [b, n_h, s, h_d]
+            k = k.transpose(1, 2)
+            v = v.transpose(1, 2)
+
+            # Normalize k
+            if self.k_norm is not None:
+                k = self.k_norm(k)
+
+            # Update key-value cache
+            if self.kv_cache is not None:
+                k, v = self.kv_cache.update(input_pos, k, v)
+
+        output = self._attention_call(
             q,
             k,
             v,
-            attn_mask=mask,
+            mask=mask,
             dropout_p=self.attn_dropout,
-            is_causal=self.kv_cache is None and mask is None,
+            is_causal=self.kv_cache is None and mask is None and self.is_causal,
         )
 
         # reshape the output to be the same shape as the input
-        output = output.transpose(1, 2).contiguous().view(bsz, seq_len, -1)
+        output = output.transpose(1, 2).contiguous().view(b, s_x, -1)
         return self.output_proj(output)

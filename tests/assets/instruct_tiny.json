@@ -1,0 +1,10 @@
+[
+    {
+        "instruction": "What time is it in London?",
+        "response": "It is 10:00 AM in London"
+    },
+    {
+        "instruction": "Is is Istanbul or Constantinople?",
+        "response": "Istanbul was Constantinople. Now it's Istanbul, not Constantinople."
+    }
+]

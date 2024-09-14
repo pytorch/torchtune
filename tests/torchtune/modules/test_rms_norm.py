@@ -12,7 +12,7 @@ from tests.test_utils import assert_expected
 from torch.nn.functional import normalize
 
 from torchtune.modules.rms_norm import RMSNorm
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 
 @pytest.fixture(autouse=True)

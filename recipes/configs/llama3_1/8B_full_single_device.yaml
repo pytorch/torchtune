@@ -24,6 +24,7 @@
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
   path: /tmp/Meta-Llama-3.1-8B-Instruct/original/tokenizer.model
+  max_seq_len: null
 
 # Dataset
 dataset:
@@ -36,7 +37,7 @@ model:
   _component_: torchtune.models.llama3_1.llama3_1_8b
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
   checkpoint_files: [
     model-00001-of-00004.safetensors,
@@ -56,7 +57,7 @@ optimizer:
   _component_: bitsandbytes.optim.PagedAdamW8bit
   lr: 2e-5
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
 optimizer_in_bwd: True
@@ -73,8 +74,33 @@ dtype: bf16
 
 # Logging
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
-output_dir: /tmp/alpaca-llama3.1-finetune
+output_dir: /tmp/full-llama3.1-finetune
 log_every_n_steps: 1
 log_peak_memory_stats: False
+
+# Profiler (disabled)
+profiler:
+  _component_: torchtune.training.setup_torch_profiler
+  enabled: False
+
+  #Output directory of trace artifacts
+  output_dir: ${output_dir}/profiling_outputs
+
+  #`torch.profiler.ProfilerActivity` types to trace
+  cpu: True
+  cuda: True
+
+  #trace options passed to `torch.profiler.profile`
+  profile_memory: True
+  with_stack: False
+  record_shapes: True
+  with_flops: False
+
+  # `torch.profiler.schedule` options:
+  # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+  wait_steps: 1
+  warmup_steps: 2
+  active_steps: 1
+  num_cycles: 1

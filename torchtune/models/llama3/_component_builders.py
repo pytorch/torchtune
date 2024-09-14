@@ -5,26 +5,25 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
-from typing import List, Literal, Optional
+from typing import List, Optional
 
 from torch import nn
 
 from torchtune.models.llama3._model_utils import scale_hidden_dim_for_mlp
 
 from torchtune.modules import (
-    CausalSelfAttention,
+    MultiHeadAttention,
     FeedForward,
     FrozenNF4Linear,
-    KVCache,
     RMSNorm,
     RotaryPositionalEmbeddings,
     TransformerDecoder,
-    TransformerDecoderLayer,
+    TransformerSelfAttentionLayer,
 )
 
-from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
+from torchtune.modules.common_utils import _register_reparametrize_state_dict_hooks
 
-from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
+from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 
 """
 Component builders for the Llama3 model and popular variants such as LoRA.
@@ -32,7 +31,7 @@ Component builders for the Llama3 model and popular variants such as LoRA.
 torchtune provides composable building blocks. Builder functions help
 stitch these building blocks into higher-level components. This design has
 two benefits:
-- The building blocks themselves are very flexible. For example, ``CausalSelfAttention``
+- The building blocks themselves are very flexible. For example, ``MultiHeadAttention``
 can take either nn.Linear or nn.LoRALinear for ``q_proj``.
 - Builder functions expose a set of configurable params which keep the constructors of
 the building blocks simple.
@@ -56,7 +55,7 @@ def llama3(
     """
     Build the decoder associated with the Llama3 model. This includes:
     - Token embeddings
-    - num_layers number of TransformerDecoderLayer blocks
+    - num_layers number of TransformerSelfAttentionLayer blocks
     - RMS Norm layer applied to the output of the transformer
     - Final projection into token space
 
@@ -83,7 +82,7 @@ def llama3(
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = CausalSelfAttention(
+    self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -98,7 +97,7 @@ def llama3(
     )
     hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
     mlp = llama3_mlp(dim=embed_dim, hidden_dim=hidden_dim)
-    layer = TransformerDecoderLayer(
+    layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
         sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
@@ -108,7 +107,7 @@ def llama3(
     output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
     return TransformerDecoder(
         tok_embeddings=tok_embeddings,
-        layer=layer,
+        layers=layer,
         num_layers=num_layers,
         max_seq_len=max_seq_len,
         num_heads=num_heads,
@@ -151,6 +150,7 @@ def lora_llama3(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
+    use_dora: bool = False,
     # Quantization args
     quantize_base: bool = False,
 ) -> TransformerDecoder:
@@ -184,6 +184,8 @@ def lora_llama3(
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
@@ -206,6 +208,7 @@ def lora_llama3(
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
         quantize_base=quantize_base,
+        use_dora=use_dora,
     )
 
     hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
@@ -217,11 +220,12 @@ def lora_llama3(
             lora_alpha=lora_alpha,
             quantize_base=quantize_base,
             lora_dropout=lora_dropout,
+            use_dora=use_dora,
         )
     else:
         mlp = llama3_mlp(dim=embed_dim, hidden_dim=hidden_dim, quantize_base=quantize_base)
 
-    layer = TransformerDecoderLayer(
+    layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
         sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
@@ -231,14 +235,15 @@ def lora_llama3(
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
     # TODO: quantize_base is not applied to final output_proj currently.
+    adapter_cls = DoRALinear if use_dora else LoRALinear
     output_proj = (
-        LoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout)
+        adapter_cls(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout)
         if apply_lora_to_output
         else nn.Linear(embed_dim, vocab_size, bias=False)
     )
     model = TransformerDecoder(
         tok_embeddings=tok_embeddings,
-        layer=layer,
+        layers=layer,
         num_layers=num_layers,
         max_seq_len=max_seq_len,
         num_heads=num_heads,
@@ -250,9 +255,7 @@ def lora_llama3(
     if quantize_base:
         # For QLoRA, we reparametrize 4-bit tensors to bf16, and offload to CPU on the fly
         # so as to not increase peak memory
-        model._register_state_dict_hook(
-            partial(reparametrize_as_dtype_state_dict_post_hook, offload_to_cpu=True)
-        )
+        _register_reparametrize_state_dict_hooks(model)
 
     return model
 
@@ -260,7 +263,7 @@ def lora_llama3(
 def lora_llama3_self_attention(
     lora_modules: List[LORA_ATTN_MODULES],
     *,
-    # CausalSelfAttention args
+    # MultiHeadAttention args
     embed_dim: int,
     num_heads: int,
     num_kv_heads: int,
@@ -272,9 +275,10 @@ def lora_llama3_self_attention(
     lora_alpha: float,
     lora_dropout: float = 0.0,
     quantize_base: bool = False,
-) -> CausalSelfAttention:
+    use_dora: bool = False,
+) -> MultiHeadAttention:
     """
-    Return an instance of :func:`~torchtune.modules.CausalSelfAttention` with LoRA
+    Return an instance of :func:`~torchtune.modules.MultiHeadAttention` with LoRA
     applied to a subset of its linear layers
 
     Args:
@@ -296,9 +300,11 @@ def lora_llama3_self_attention(
         lora_dropout (float): LoRA dropout probability. Default: 0.0
         quantize_base (bool): Whether to quantize base model parameters for linear layers
             LoRA is being applied to. Default is ``False``.
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
 
     Returns:
-        CausalSelfAttention: instantiation of self-attention module with LoRA
+        MultiHeadAttention: instantiation of self-attention module with LoRA
         applied to a subset of Q, K, V, output projections.
 
     Raises:
@@ -311,8 +317,9 @@ def lora_llama3_self_attention(
 
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
+    adapter_cls = DoRALinear if use_dora else LoRALinear
     q_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             num_heads * head_dim,
             rank=lora_rank,
@@ -328,7 +335,7 @@ def lora_llama3_self_attention(
         )
     )
     k_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             num_kv_heads * head_dim,
             rank=lora_rank,
@@ -344,7 +351,7 @@ def lora_llama3_self_attention(
         )
     )
     v_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             num_kv_heads * head_dim,
             rank=lora_rank,
@@ -360,7 +367,7 @@ def lora_llama3_self_attention(
         )
     )
     output_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             embed_dim,
             rank=lora_rank,
@@ -376,7 +383,7 @@ def lora_llama3_self_attention(
         )
     )
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = CausalSelfAttention(
+    self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -400,8 +407,10 @@ def lora_llama3_mlp(
     lora_alpha: float,
     lora_dropout: float = 0.0,
     quantize_base: bool = False,
+    use_dora: bool = False,
 ) -> FeedForward:
-    gate_proj = LoRALinear(
+    adapter_cls = DoRALinear if use_dora else LoRALinear
+    gate_proj = adapter_cls(
         in_dim=dim,
         out_dim=hidden_dim,
         rank=lora_rank,
@@ -409,7 +418,7 @@ def lora_llama3_mlp(
         dropout=lora_dropout,
         quantize_base=quantize_base,
     )
-    down_proj = LoRALinear(
+    down_proj = adapter_cls(
         in_dim=hidden_dim,
         out_dim=dim,
         rank=lora_rank,
@@ -417,7 +426,7 @@ def lora_llama3_mlp(
         dropout=lora_dropout,
         quantize_base=quantize_base,
     )
-    up_proj = LoRALinear(
+    up_proj = adapter_cls(
         in_dim=dim,
         out_dim=hidden_dim,
         rank=lora_rank,

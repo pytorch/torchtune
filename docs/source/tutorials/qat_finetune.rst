@@ -23,10 +23,12 @@ resulting model, and evaluate your quantized model using torchtune.
       * Make sure to :ref:`install torchtune<install_label>`
       * Make sure you have downloaded the :ref:`Llama3-8B model weights<download_llama_label>`
 
+.. _what_is_qat_label:
+
 What is QAT?
 ------------
 
-Quantization-Aware Training (QAT) refers to simulating quantization numerics during
+`Quantization-Aware Training <https://pytorch.org/blog/introduction-to-quantization-on-pytorch/#quantization-aware-training>`_ (QAT) refers to simulating quantization numerics during
 training or fine-tuning, with the end goal of ultimately producing a higher quality
 quantized model compared to simple post-training quantization (PTQ). During QAT,
 the weights and/or activations are “fake quantized”, meaning they are transformed
@@ -49,14 +51,15 @@ process is “aware” that the model will ultimately be quantized after trainin
 
 QAT typically involves applying a transformation to your model before and after training.
 For example, in the `torchao QAT implementation <https://github.com/pytorch/ao/blob/v0.2.0/torchao/quantization/prototype/qat.py>`_,
-these are represented as the prepare and convert steps: (1) prepare inserts fake quantize
-operations into linear layers, and (2) convert transforms the fake quantize operations
+these are represented as the ``prepare()`` and ``convert()`` steps: (1) ``prepare()`` inserts fake quantize
+operations into linear layers, and (2) ``convert()`` transforms the fake quantize operations
 to actual quantize and dequantize operations after training, thereby producing a quantized
 model (dequantize operations are typically fused with linear after lowering).
 Between these two steps, training can proceed exactly as before.
 
 .. image:: /_static/img/qat_diagram.png
 
+.. _apply_qat_label:
 
 Applying QAT to Llama3 models
 -----------------------------
@@ -65,7 +68,7 @@ We can easily apply the above QAT transformations to Llama3 in torchtune for fin
 
 .. code-block:: python
 
-  from torchtune.utils.quantization import Int8DynActInt4WeightQATQuantizer
+  from torchtune.training.quantization import Int8DynActInt4WeightQATQuantizer
   from torchtune.models.llama3 import llama3_8b
 
   model = llama3_8b()
@@ -87,7 +90,7 @@ is ready for fine-tuning.
 .. code-block:: bash
 
   >>> print(model.layers[0].attn)
-  CausalSelfAttention(
+  MultiHeadAttention(
     (q_proj): Linear(in_features=4096, out_features=4096, bias=False)
     (k_proj): Linear(in_features=4096, out_features=1024, bias=False)
     (v_proj): Linear(in_features=4096, out_features=1024, bias=False)
@@ -96,7 +99,7 @@ is ready for fine-tuning.
   )
 
   >>> print(prepared_model.layers[0].attn)
-  CausalSelfAttention(
+  MultiHeadAttention(
     (q_proj): Int8DynActInt4WeightQATLinear(in_features=4096, out_features=4096, bias=False)
     (k_proj): Int8DynActInt4WeightQATLinear(in_features=4096, out_features=1024, bias=False)
     (v_proj): Int8DynActInt4WeightQATLinear(in_features=4096, out_features=1024, bias=False)
@@ -106,7 +109,7 @@ is ready for fine-tuning.
 
 After fine-tuning, we can convert the model to get an actual quantized model.
 If we print the converted model, we’ll see that the QAT linears have been
-swapped with :code:`Int8DynActInt4WeightLinear`, which are the quantized versions
+swapped with `Int8DynActInt4WeightLinear <https://github.com/pytorch/ao/blob/428084356ace4ea94c22a3a9b3d74cff8ee41db3/torchao/quantization/prototype/qat.py#L38>`_, which are the quantized versions
 of the linear layers. This quantized model can then be saved to checkpoint and
 used for inference or generation.
 
@@ -121,7 +124,7 @@ used for inference or generation.
 .. code-block:: bash
 
   >>> print(converted_model.layers[0].attn)
-  CausalSelfAttention(
+  MultiHeadAttention(
     (q_proj): Int8DynActInt4WeightLinear()
     (k_proj): Int8DynActInt4WeightLinear()
     (v_proj): Int8DynActInt4WeightLinear()
@@ -133,7 +136,7 @@ used for inference or generation.
 QAT finetuning recipe in torchtune
 ----------------------------------
 
-Putting it all together, we can now fine-tune a model using torchtune’s `QAT recipe <https://github.com/pytorch/torchtune/blob/main/recipes/qat_distributed.py>`_.
+Putting it all together, we can now fine-tune a model using torchtune’s `QAT recipe <qat_distributed_recipe_label>`.
 Make sure that you have first downloaded the Llama3 weights and tokenizer by
 following :ref:`these instructions<download_llama_label>`. In this tutorial,
 we use the following settings to demonstrate QAT’s effectiveness in recovering
@@ -167,7 +170,8 @@ modifications accordingly:
 
 .. note::
 
-  QAT in torchtune is currently not compatible with :code:`memory_efficient_fsdp_wrap`. This is a known issue and will be fixed in a future torchtune version.
+  QAT in torchtune is currently not compatible with `memory_efficient_fsdp_wrap <https://pytorch.org/torchtune/stable/generated/torchtune.utils.get_full_finetune_fsdp_wrap_policy.html#torchtune.utils.get_full_finetune_fsdp_wrap_policy>`_.
+  This is a known issue and will be fixed in a future torchtune version.
 
 Empirically, we observed that disabling fake quantization for the first N steps
 led to better results, presumably because doing so allows the weights to stabilize
@@ -219,7 +223,7 @@ copy and make the following modifications to the quantization config:
     _component_: torchtune.models.llama3.llama3_8b
 
   checkpointer:
-    _component_: torchtune.utils.FullModelMetaCheckpointer
+    _component_: torchtune.training.FullModelMetaCheckpointer
     checkpoint_dir: <your QAT checkpoint dir>
     checkpoint_files: [meta_model_0.pt]
     recipe_checkpoint: null
@@ -229,7 +233,7 @@ copy and make the following modifications to the quantization config:
   ...
 
   quantizer:
-    _component_: torchtune.utils.quantization.Int8DynActInt4WeightQATQuantizer
+    _component_: torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer
     groupsize: 256
 
 The following command performs the convert step in the QAT flow, which actually
@@ -243,6 +247,8 @@ quantizes the float model to a model with quantized weights:
 
   Make sure to use the same QAT quantizer you used to fine-tune your model,
   otherwise the numerics will be off and the quantized model will perform poorly.
+
+.. _qat_eval_label:
 
 Evaluating the quantized model
 ------------------------------
@@ -263,7 +269,7 @@ integrated in torchtune. First, copy the evaluation config and make the followin
     _component_: torchtune.models.llama3.llama3_8b
 
   checkpointer:
-    _component_: torchtune.utils.FullModelTorchTuneCheckpointer
+    _component_: torchtune.training.FullModelTorchTuneCheckpointer
     checkpoint_dir: <your quantized model checkpoint dir>
     checkpoint_files: [meta_model_0-8da4w.pt]
     recipe_checkpoint: null
@@ -279,7 +285,7 @@ integrated in torchtune. First, copy the evaluation config and make the followin
   batch_size: 8
 
   quantizer:
-    _component_: torchtune.utils.quantization.Int8DynActInt4WeightQuantizer
+    _component_: torchtune.training.quantization.Int8DynActInt4WeightQuantizer
     groupsize: 256
 
 .. note::

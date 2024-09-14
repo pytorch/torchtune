@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --hf-token <HF_TOKEN> --ignore-patterns ""
+#   tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --ignore-patterns None --hf-token <HF_TOKEN>
 #
 # The default config uses an optimizer from bitsandbytes. If you do not have it installed,
 # you can install it with
@@ -27,10 +27,11 @@ model:
 tokenizer:
   _component_: torchtune.models.phi3.phi3_mini_tokenizer
   path: /tmp/Phi-3-mini-4k-instruct/tokenizer.model
+  max_seq_len: null
 
 # Checkpointer
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Phi-3-mini-4k-instruct
   checkpoint_files: [
     model-00001-of-00002.safetensors,
@@ -57,7 +58,7 @@ optimizer:
   lr: 5e-6
 optimizer_in_bwd: True
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 compile: False
 
 # Training env
@@ -68,8 +69,9 @@ enable_activation_checkpointing: True
 dtype: bf16
 
 # Logging
+output_dir: /tmp/phi3_finetune_output
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: /tmp/Phi-3-mini-4k-instruct/logs
 log_every_n_steps: 1
 log_peak_memory_stats: False

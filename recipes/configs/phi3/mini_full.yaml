@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --hf-token <HF_TOKEN> --ignore-patterns ""
+#   tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --ignore-patterns None --hf-token <HF_TOKEN>
 #
 # Run this config on 4 GPUs using the following:
 #  tune run --nproc_per_node 4 full_finetune_distributed --config phi3/mini_full
@@ -25,10 +25,11 @@ model:
 tokenizer:
   _component_: torchtune.models.phi3.phi3_mini_tokenizer
   path: /tmp/Phi-3-mini-4k-instruct/tokenizer.model
+  max_seq_len: null
 
 # Checkpointer
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Phi-3-mini-4k-instruct
   checkpoint_files: [
     model-00001-of-00002.safetensors,
@@ -54,19 +55,19 @@ optimizer:
   _component_: torch.optim.AdamW
   lr: 5e-6
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
 # Training env
 device: cuda
 
 # Memory management
 enable_activation_checkpointing: True
-memory_efficient_fsdp_wrap: False
 dtype: bf16
 
 # Logging
+output_dir: /tmp/phi3_finetune_output
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: /tmp/Phi-3-mini-4k-instruct/logs
 log_every_n_steps: 1
 log_peak_memory_stats: False

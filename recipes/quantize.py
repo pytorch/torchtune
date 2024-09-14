@@ -14,7 +14,7 @@ from omegaconf import DictConfig
 
 from torch import nn
 
-from torchtune import config, utils
+from torchtune import config, training, utils
 
 logger = utils.get_logger("DEBUG")
 
@@ -26,7 +26,7 @@ class QuantizationRecipe:
 
     Supported quantization modes are:
     8da4w (PyTorch 2.3+):
-        torchtune.utils.quantization.Int8DynActInt4WeightQuantizer
+        torchtune.training.quantization.Int8DynActInt4WeightQuantizer
         int8 per token dynamic activation with int4 weight only per axis group quantization
         Args:
             `groupsize` (int): a parameter of int4 weight only quantization,
@@ -35,7 +35,7 @@ class QuantizationRecipe:
             but also higher memory overhead
 
     8da4w-qat (PyTorch 2.4+):
-        torchtune.utils.quantization.Int8DynActInt4WeightQATQuantizer
+        torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer
         int8 per token dynamic activation with int4 weight only per axis group quantization
         Same as "8da4w", but for quantizing QAT checkpoints
         Args:
@@ -47,10 +47,10 @@ class QuantizationRecipe:
 
     def __init__(self, cfg: DictConfig) -> None:
         self._device = utils.get_device(device=cfg.device)
-        self._dtype = utils.get_dtype(dtype=cfg.dtype, device=self._device)
+        self._dtype = training.get_dtype(dtype=cfg.dtype, device=self._device)
         self._quantizer = config.instantiate(cfg.quantizer)
-        self._quantization_mode = utils.get_quantizer_mode(self._quantizer)
-        utils.set_seed(seed=cfg.seed)
+        self._quantization_mode = training.get_quantizer_mode(self._quantizer)
+        training.set_seed(seed=cfg.seed)
 
     def load_checkpoint(self, checkpointer_cfg: DictConfig) -> Dict[str, Any]:
         self._checkpointer = config.instantiate(checkpointer_cfg)
@@ -61,7 +61,7 @@ class QuantizationRecipe:
         ckpt_dict = self.load_checkpoint(cfg.checkpointer)
         self._model = self._setup_model(
             model_cfg=cfg.model,
-            model_state_dict=ckpt_dict[utils.MODEL_KEY],
+            model_state_dict=ckpt_dict[training.MODEL_KEY],
         )
 
     def _setup_model(
@@ -69,7 +69,7 @@ class QuantizationRecipe:
         model_cfg: DictConfig,
         model_state_dict: Dict[str, Any],
     ) -> nn.Module:
-        with utils.set_default_dtype(self._dtype), self._device:
+        with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
 
         if "qat" in self._quantization_mode:
@@ -77,7 +77,9 @@ class QuantizationRecipe:
         model.load_state_dict(model_state_dict)
 
         # Validate model was loaded in with the expected dtype.
-        utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)
+        training.validate_expected_param_dtype(
+            model.named_parameters(), dtype=self._dtype
+        )
         logger.info(f"Model is initialized with precision {self._dtype}.")
         return model
 
