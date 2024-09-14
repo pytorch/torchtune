@@ -702,7 +702,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         masks = generation.get_causal_mask_from_padding_mask(
             query_response_padding_masks
         )
-        position_ids = generation.get_position_ids_from_padding_masks(
+        position_ids = generation.get_position_ids_from_padding_mask(
             query_response_padding_masks
         )
 

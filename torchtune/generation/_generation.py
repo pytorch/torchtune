@@ -159,14 +159,14 @@ def get_position_ids_from_padding_mask(
     from the first valid token.
 
     Args:
-        padding_mask (torch.Tensor): Boolean tensor where True indicates the corresponding token in the sequence
+        padding_mask (torch.Tensor): Boolean tensor where False indicates the corresponding token in the sequence
             is a padding token and should be masked out in attention. Shape [bsz, seq_len]
 
     Returns:
         torch.Tensor: position ids which are appropriately shifted according to any padding values.
 
     Example:
-        >>> padding_mask = torch.tensor([True, True, True, False, False, False, False, False])
+        >>> padding_mask = torch.tensor([False, False, False, True, True, True, True, True])
         >>> input_pos = get_position_ids_from_padding_mask(padding_mask)
         >>> input_pos
         >>> torch.Tensor([0, 0, 0, 0, 1, 2, 3, 4])
