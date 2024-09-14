@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 import copy
 from typing import Callable, Dict, List, Optional, Union
+from warnings import warn
 
 import torch
 import torch.nn.functional as F
@@ -468,7 +469,6 @@ class TransformerDecoder(nn.Module):
                 final output tensor appended to the list.
 
         Raises:
-            ValueError: if caches are setup, but a mask is not provided
             ValueError: if seq_len of x is bigger than max_seq_len
 
         Note:
@@ -509,13 +509,19 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
-        if self.caches_are_enabled:
+        if self.caches_are_enabled():
             if mask is None:
-                raise ValueError(
-                    "KV-caches are setup for inference, but a mask was not provided!"
+                warn(
+                    "KV-caches are setup for inference, but a mask was not provided! "
+                    "This may lead to unexpected outputs. Defaulting to a causal mask "
+                    "which attends to all tokens."
                 )
             # Track the input position
             if input_pos is None:
+                warn(
+                    "KV-caches are setup for inference, but a input positions were not provided! "
+                    "This may lead to unexpected outputs."
+                )
                 input_pos = torch.arange(self.pos, self.pos + seq_len, device=h.device)
             self.pos = input_pos.max() + 1
 

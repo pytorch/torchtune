@@ -77,6 +77,12 @@ class KVCache(nn.Module):
                 "the sequence length of the k-v cache. Found cache_pos.shape[0]"
                 f"={cache_pos.shape[0]} and k_val.shape[2]={k_val.shape[2]}."
             )
+        if k_val.shape[0] != self.k_cache.shape[0]:
+            raise AssertionError(
+                "The batch size of the new key/value tensors must be the same as "
+                "the batch size of the k-v cache. Found k_val.shape[0]"
+                f"={k_val.shape[0]} and self.k_cache.shape[0]={self.k_cache.shape[0]}."
+            )
         self.size = cache_pos.max() + 1
 
         k_out = self.k_cache
