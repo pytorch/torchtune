@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 from torchtune.data import InputOutputToMessages
 from torchtune.datasets._packed import PackedDataset

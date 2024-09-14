@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 from torchtune.data import ShareGPTToMessages
 from torchtune.datasets._packed import PackedDataset
