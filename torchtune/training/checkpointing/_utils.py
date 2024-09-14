@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import json
+import string
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Iterable, Tuple
@@ -68,6 +69,47 @@ class ModelType(Enum):
     PHI3_MINI: str = "phi3_mini"
     REWARD: str = "reward"
     QWEN2: str = "qwen2"
+
+
+class FormattedCheckpointFiles:
+    def __init__(
+        self,
+        strf_name: str,
+        max_filename: str,
+    ):
+        self.strf_name = strf_name
+        self.max_filename = max_filename
+        self._validate_strf_name()
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "FormattedCheckpointFiles":
+        if "strf_name" not in d or "max_filename" not in d:
+            raise ValueError(
+                "Must pass 'strf_name' and 'max_filename' keys to generate checkpoint filenames"
+            )
+        return cls(
+            strf_name=d["strf_name"],
+            max_filename=d["max_filename"],
+        )
+
+    def _validate_strf_name(self):
+        n_format_placeholders = [
+            x[1] for x in string.Formatter().parse(self.strf_name) if x[1] is not None
+        ]
+        if len(n_format_placeholders) != 2:
+            raise ValueError(
+                "Formatted checkpoint filename string must have exactly two placeholders, e.g. 'file_{i}_of_{n_files}.pth'"
+            )
+
+    def build_checkpoint_filenames(self):
+        num_files = int(self.max_filename)
+        return [
+            self.strf_name.format(
+                str(i + 1).zfill(len(self.max_filename) - len(str(i)) + 1),
+                self.max_filename,
+            )
+            for i in range(num_files)
+        ]
 
 
 def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
