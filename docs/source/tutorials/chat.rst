@@ -72,6 +72,7 @@ Llama3 template to understand how.
     Llama3 Instruct with its prompt template. The rest of this tutorial assumes you are using
     Llama3 Instruct.
 
+.. _prompt_template_vs_special_tokens:
 
 Tokenizing prompt templates & special tokens
 --------------------------------------------
