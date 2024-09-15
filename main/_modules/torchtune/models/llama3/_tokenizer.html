@@ -516,8 +516,8 @@
         <span class="c1"># Media tokens</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">image_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">special_tokens</span><span class="p">[</span><span class="s2">&quot;&lt;|image|&gt;&quot;</span><span class="p">]</span>
 
-        <span class="c1"># During generation, stop when either eos_id or eot_id is encountered</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">stop_tokens</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eot_id</span><span class="p">]</span>
+        <span class="c1"># During generation, stop when either eos_id, eot_id, or eom_id is encountered</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stop_tokens</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eot_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eom_id</span><span class="p">]</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">tt_model</span> <span class="o">=</span> <span class="n">TikTokenBaseTokenizer</span><span class="p">(</span>
             <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span>
