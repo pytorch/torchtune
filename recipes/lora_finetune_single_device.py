@@ -529,7 +529,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 }
             )
 
-        adapter_key_filter = lambda x: x in self.adapter_params
         if not self._save_adapter_weights_only:
             # Construct the full state dict with LoRA weights merged into base LLM weights
 
@@ -539,6 +538,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             # Construct the adapter weights
             # Do this using the state_dict to avoid running upcast and H2D in state_dict post hook twice
             # Must be before get_merged_lora_ckpt because get_merged_lora_ckpt will remove lora keys
+            adapter_key_filter = lambda x: x in self.adapter_params
             adapter_state_dict = {
                 k: v for k, v in state_dict.items() if adapter_key_filter(k)
             }
@@ -553,9 +553,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         else:
             # No need to merge state dict if we're only saving adapter weights
             adapter_state_dict = {
-                k: v
-                for k, v in self._model.state_dict().items()
-                if adapter_key_filter(k)
+                k: v.cpu() for k, v in get_adapter_params(self._model).items()
             }
 
         ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})

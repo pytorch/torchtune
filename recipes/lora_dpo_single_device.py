@@ -434,9 +434,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         else:
             # No need to merge state dict if we're only saving adapter weights
             adapter_state_dict = {
-                k: v
-                for k, v in self._model.state_dict().items()
-                if adapter_key_filter(k)
+                k: v.cpu() for k, v in get_adapter_params(self._model).items()
             }
 
         ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
