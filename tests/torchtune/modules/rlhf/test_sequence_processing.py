@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
-from torchtune.modules import rlhf
+from torchtune import rlhf
 
 
 class TestTruncateSequenceAtFirstStopToken:
