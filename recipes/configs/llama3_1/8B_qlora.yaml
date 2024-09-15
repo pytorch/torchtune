@@ -15,7 +15,7 @@
 
 # Model Arguments
 model:
-  _component_: torchtune.models.llama3_1.qlora_llama3_1_405b
+  _component_: torchtune.models.llama3_1.qlora_llama3_1_8b
   lora_attn_modules: ['q_proj', 'v_proj', 'k_proj', 'output_proj']
   apply_lora_to_mlp: True
   apply_lora_to_output: False
@@ -28,54 +28,52 @@ tokenizer:
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Meta-Llama-3.1-405B-Instruct/
-  checkpoint_files:
-    strf_name: model-{}-of-{}.safetensors
-    max_filename: 00191
+  checkpoint_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
+  checkpoint_files: [
+    model-00001-of-00004.safetensors,
+    model-00002-of-00004.safetensors,
+    model-00003-of-00004.safetensors,
+    model-00004-of-00004.safetensors
+  ]
   recipe_checkpoint: null
-  output_dir: /tmp/Meta-Llama-3.1-405B-Instruct/
+  output_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
   model_type: LLAMA3
 resume_from_checkpoint: False
-merge_checkpoint: False
+save_adapter_weights_only: False
 
 # Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.alpaca_dataset
-  train_on_input: True
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
 seed: null
 shuffle: True
-batch_size: 1
+batch_size: 2
 
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
   weight_decay: 0.01
   lr: 3e-4
-  fused: True
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
 
 loss:
-  _component_: torch.nn.CrossEntropyLoss
-
-fsdp:
-  cpu_offload: False
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
 # Training
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 16
+gradient_accumulation_steps: 32
 
 # Logging
-output_dir: /tmp/qlora_finetune_output
+output_dir: /tmp/lora_finetune_output
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
-log_peak_memory_stats: True
+log_peak_memory_stats: False
 
 # Environment
 device: cuda
 dtype: bf16
-enable_activation_checkpointing: True
+enable_activation_checkpointing: False

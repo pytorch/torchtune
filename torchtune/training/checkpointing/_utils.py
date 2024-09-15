@@ -105,7 +105,7 @@ class FormattedCheckpointFiles:
         num_files = int(self.max_filename)
         return [
             self.strf_name.format(
-                str(i + 1).zfill(len(self.max_filename) - len(str(i)) + 1),
+                str(i + 1).zfill(len(self.max_filename)),
                 self.max_filename,
             )
             for i in range(num_files)

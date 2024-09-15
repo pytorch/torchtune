@@ -352,7 +352,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 checkpoint_files
             )
             checkpoint_files = formatted_checkpoint_files.build_checkpoint_filenames()
-
         self._checkpoint_paths = self._validate_hf_checkpoint_files(checkpoint_files)
         self._adapter_checkpoint = (
             get_path(self._checkpoint_dir, adapter_checkpoint)
