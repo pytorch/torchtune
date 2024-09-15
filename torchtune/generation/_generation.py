@@ -111,7 +111,7 @@ def get_causal_mask_from_padding_mask(
     are longer than the current sequence.
 
     Args:
-        padding_mask (torch.Tensor): Boolean tensor where True indicates the corresponding token in the sequence
+        padding_mask (torch.Tensor): Boolean tensor where False indicates the corresponding token in the sequence
             is a padding token and should be masked out in attention, with shape [bsz x seq_length]
         target_seq_len (Optional[int]): target sequence length to create attention mask with. Default None.
 
@@ -123,15 +123,13 @@ def get_causal_mask_from_padding_mask(
         AssertionError: if ``target_seq_len > ``seq_len``, the sequence length of the padding mask.
 
     Example:
-        >>> padding_mask = torch.tensor([[True, False, False, False]])
+        >>> padding_mask = torch.tensor([[False, True, True, True]])
         >>> causal_mask = get_causal_mask_from_padding_mask(padding_mask, target_seq_len=5)
         >>> causal_mask
-        >>> torch.Tensor([
-        >>>     [True,  False, False, False, False],
-        >>>     [False, True,  False, False, False],
-        >>>     [False, True,  True,  False, False],
-        >>>     [False, True,  True,  True,  False],
-        >>>     [False, True,  True,  True,  True]
+        >>> tensor([[[ True, False, False, False, False],
+        >>>          [False,  True, False, False, False],
+        >>>          [False,  True,  True, False, False],
+        >>>          [False,  True,  True,  True, False]]])
         >>> ])
     """
     bsz, seq_len = padding_mask.shape
