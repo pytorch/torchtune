@@ -169,13 +169,13 @@ class IPOLoss(nn.Module):
 
         IPO learns from preferences dataset simply by regressing the gap between log-likelihood ratios
 
-        :math:`\log \bigl(\frac{(\pi(\text{chosen})}{\pi(\text{rejected})})` and :math:`\log(\frac{\pi_{\text{ref}}(\text{chosen})}{\pi_{\text{ref}}(\text{rejected})} \bigr)`
+        :math:`\log \bigg(\frac{(\pi(\text{chosen})}{\pi(\text{rejected})}\bigg)` and :math:`\log \bigg(\frac{\pi_{\text{ref}}(\text{chosen})}{\pi_{\text{ref}}(\text{rejected})} \bigg)`
 
         to :math:`\frac{1}{2*\tau}`, where :math:`\tau` is the temperature parameter. The weaker the regularisation becomes, the
         higher would be the log-likelihood ratio of chosen to rejected logprobs. In other words IPO, unlike DPO,
         always regularizes its solution towards :math:`\pi_{\text{ref}}` by controlling the gap between the log-likelihood ratios
 
-        :math:`\log \bigl(\frac{\pi(\text{chosen})}{\pi(\text{rejected})})` and :math:`\log(\frac{\pi_{\text{ref}}(\text{chosen})}{\pi_{\text{ref}}(\text{rejected})} \bigr)`
+        :math:`\log \bigg(\frac{\pi(\text{chosen})}{\pi(\text{rejected})}\bigg)` and :math:`\log \bigg(\frac{\pi_{\text{ref}}(\text{chosen})}{\pi_{\text{ref}}(\text{rejected})} \bigg)`
 
         thus avoiding the over-fitting to the preference dataset.
 
