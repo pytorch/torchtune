@@ -42,6 +42,7 @@ model:
   apply_lora_to_output: True
   lora_rank: 64
   lora_alpha: 16
+  lora_dropout: 0.0
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
@@ -58,6 +59,7 @@ save_adapter_weights_only: False
 
 optimizer:
   _component_: torch.optim.AdamW
+  fused: True
   lr: 2e-5
 
 lr_scheduler:

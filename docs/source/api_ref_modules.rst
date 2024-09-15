@@ -19,10 +19,10 @@ Modeling Components and Building Blocks
     RMSNorm
     Fp32LayerNorm
     TanhGate
+    TiedLinear
     TransformerSelfAttentionLayer
     TransformerCrossAttentionLayer
     TransformerDecoder
-    TiedEmbeddingTransformerDecoder
     VisionTransformer
 
 Base Tokenizers

@@ -4,14 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import copy
-from typing import Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
 import torch
 import torch.nn.functional as F
 from torch import nn
 from torchtune.modules import MultiHeadAttention
-
 from torchtune.modules.attention_utils import _MaskType
+from torchtune.utils.logging import deprecated
 
 
 class TransformerSelfAttentionLayer(nn.Module):
@@ -285,7 +285,8 @@ class TransformerDecoder(nn.Module):
     Args:
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move
             tokens to an embedding space.
-        layers (Union[nn.Module, List[nn.Module]]): Transformer Decoder layer or a list of layers.
+        layers (Union[nn.Module, List[nn.Module], nn.ModuleList]): A single transformer Decoder layer, an
+            nn.ModuleList of layers or a list of layers. It is recommended to use an nn.ModuleList.
         max_seq_len (int): maximum sequence length the model will be run with, as used
             by :func:`~torchtune.modules.KVCache`
         num_heads (int): number of query heads. For MHA this is also the
@@ -295,7 +296,7 @@ class TransformerDecoder(nn.Module):
             to setup the :func:`~torchtune.modules.KVCache`
         norm (nn.Module): Callable that applies normalization to the output of the decoder,
             before final MLP.
-        output (nn.Linear): Callable that applies a linear transformation to the output of
+        output (Union[nn.Linear, Callable]): Callable that applies a linear transformation to the output of
             the decoder.
         num_layers (Optional[int]): Number of Transformer Decoder layers, only define when
             layers is not a list.
@@ -315,25 +316,25 @@ class TransformerDecoder(nn.Module):
         self,
         *,
         tok_embeddings: nn.Embedding,
-        layers: Union[nn.Module, List[nn.Module]],
+        layers: Union[nn.Module, List[nn.Module], nn.ModuleList],
         max_seq_len: int,
         num_heads: int,
         head_dim: int,
         norm: nn.Module,
-        output: nn.Linear,
+        output: Union[nn.Linear, Callable],
         num_layers: Optional[int] = None,
         output_hidden_states: Optional[List[int]] = None,
     ) -> None:
         super().__init__()
-        if num_layers is None:
-            if isinstance(layers, nn.Module):
-                raise AssertionError(
-                    "If num_layers is undefined, it is assumed that a list of layers is provided."
-                )
+        if isinstance(layers, nn.ModuleList):
+            pass
+        elif isinstance(layers, list):
             layers = nn.ModuleList(layers)
         else:
             if not isinstance(layers, nn.Module):
                 raise AssertionError("num_layers is defined, layers must be a module")
+            if num_layers is None:
+                raise AssertionError("num_layers is not defined, layers must be a list")
             layers = _get_clones(layers, num_layers)
 
         self.tok_embeddings = tok_embeddings
@@ -516,6 +517,11 @@ class TransformerDecoder(nn.Module):
         return output
 
 
+@deprecated(
+    msg="Please use torchtune.modules.TransformerDecoder instead. \
+If you need an example, see torchtune.models.qwen2._component_builders.py \
+and how to implement torch.modules.TiedLinear for the output projection."
+)
 class TiedEmbeddingTransformerDecoder(nn.Module):
     """
     Transformer Decoder with tied embedding weight. A key difference between
