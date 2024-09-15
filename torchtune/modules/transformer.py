@@ -15,7 +15,8 @@ from torchtune.utils.logging import deprecated
 
 
 class TransformerSelfAttentionLayer(nn.Module):
-    """Transformer layer derived from the Llama2 model. Normalization is applied before the attention **and** FF layer.
+    """
+    Transformer layer derived from the Llama2 model. Normalization is applied before the attention **and** FF layer.
 
     Args:
         attn (MultiHeadAttention): Attention module.
@@ -94,9 +95,6 @@ class TransformerSelfAttentionLayer(nn.Module):
         Returns:
             torch.Tensor: output tensor with same shape as input
                 [batch_size x seq_length x embed_dim]
-
-        TODO:
-            - Make position of norm configurable
         """
         # Input tensor and attention output have the same shape
         # [b, s, d]
@@ -116,8 +114,9 @@ class TransformerSelfAttentionLayer(nn.Module):
 
 
 class TransformerCrossAttentionLayer(nn.Module):
-    """Cross attention Transformer layer following the same conventions as the TransformerSelfAttentionLayer.
-       Normalization is applied before the attention **and** FF layer.
+    """
+    Cross attention Transformer layer following the same conventions as the TransformerSelfAttentionLayer.
+    Normalization is applied before the attention **and** FF layer.
 
     Args:
         attn (MultiHeadAttention): Attention module.
