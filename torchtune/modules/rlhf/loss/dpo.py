@@ -173,7 +173,7 @@ class IPOLoss(nn.Module):
 
         to :math:`\frac{1}{2*\tau}`, where :math:`\tau` is the temperature parameter. The weaker the regularisation becomes, the
         higher would be the log-likelihood ratio of chosen to rejected logprobs. In other words IPO, unlike DPO,
-        always regularizes its solution towards pi_ref by controlling the gap between the log-likelihood ratios
+        always regularizes its solution towards :math:`\pi_{\text{ref}}` by controlling the gap between the log-likelihood ratios
 
         :math:`\log \bigl(\frac{\pi(\text{chosen})}{\pi(\text{rejected})})` and :math:`\log(\frac{\pi_{\text{ref}}(\text{chosen})}{\pi_{\text{ref}}(\text{rejected})} \bigr)`
 
