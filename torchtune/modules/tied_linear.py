@@ -12,7 +12,8 @@ import torch.nn.functional as F
 class TiedLinear:
     """
     A tied linear layer, without bias, that shares the same weight as another linear layer.
-    This is useful for models that use tied weights, such as qwen and gemma.
+    This is useful for models that use tied weights, such as :func:`~torchtune.models.qwen2_0_5b`,
+    :func:`~torchtune.models.qwen2_1_5b` and :func:`~torchtune.models.gemma`.
     It requires as input an nn.Module, instead of the weight of the module, so it
     can work with FSDP. Otherwise, the memory reference will be lost after FSDP is applied.
 
@@ -31,4 +32,12 @@ class TiedLinear:
             )
 
     def __call__(self, x: torch.tensor) -> torch.tensor:
+        """
+        Args:
+            x (torch.tensor): Input tensor. Should have shape ``(..., in_dim)``, where ``in_dim``
+                is the input dimension of the tied module.
+        Returns:
+            torch.tensor: The output tensor, having shape ``(..., out_dim)``, where ``out_dim`` is \
+                the output dimension of the tied module.
+        """
         return F.linear(x, self.tied_module.weight)

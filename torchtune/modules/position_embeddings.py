@@ -24,7 +24,7 @@ class RotaryPositionalEmbeddings(nn.Module):
 
     Args:
         dim (int): Embedding dimension. This is usually set to the dim of each
-            head in the attention module computed as ````embed_dim`` // ``num_heads````
+            head in the attention module computed as ``embed_dim // num_heads``
         max_seq_len (int): Maximum expected sequence length for the
             model, if exceeded the cached freqs will be recomputed
         base (int): The base for the geometric progression used to compute
@@ -85,16 +85,13 @@ class RotaryPositionalEmbeddings(nn.Module):
                 If none, assume the index of the token is its position id. Default is None.
 
         Returns:
-            torch.Tensor: output tensor with RoPE applied
+            torch.Tensor: output tensor with shape [b, s, n_h, h_d]
 
         Notation used for tensor shapes:
             - b: batch size
             - s: sequence length
             - n_h: num heads
             - h_d: head dim
-
-        TODO: The implementation below can be made more efficient
-        for inference.
         """
         # input tensor has shape [b, s, n_h, h_d]
         seq_len = x.size(1)

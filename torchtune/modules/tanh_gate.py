@@ -22,6 +22,6 @@ class TanhGate(nn.Module):
             x (torch.Tensor): input tensor to gate
 
         Returns:
-            torch.Tensor: The output tensor after gating.
+            torch.Tensor: The output tensor after gating. Has the same shape as x
         """
         return x * self.scale.tanh()

@@ -28,7 +28,7 @@ class MultiHeadAttention(nn.Module):
     Following is an example of MHA, GQA and MQA with num_heads = 4
 
     (credit for the documentation:
-    https://github.com/Lightning-AI/lit-gpt/blob/main/lit_gpt/config.py).
+    https://github.com/Lightning-AI/litgpt/blob/eda1aaaf391fd689664f95487ab03dc137e213fd/litgpt/config.py).
 
 
     ::
@@ -53,9 +53,9 @@ class MultiHeadAttention(nn.Module):
         num_heads (int): number of query heads. For MHA this is also the
             number of heads for key and value
         num_kv_heads (int): number of key and value heads. User should ensure
-            `num_heads` % `num_kv_heads` == 0. For standard MHA set `num_kv_heads` == `num_heads`,
-            for GQA `num_kv_heads` < `num_heads`, and for MQA set `num_kv_heads` == 1.
-        head_dim (int): dimension of each head, calculated by ``embed_dim`` // ``num_heads``.
+            ``num_heads % num_kv_heads == 0``. For standard MHA set ``num_kv_heads == num_heads``,
+            for GQA ``num_kv_heads < num_heads``, and for MQA set ``num_kv_heads == 1``.
+        head_dim (int): dimension of each head, calculated by ``embed_dim // num_heads``.
         q_proj (nn.Module): projection layer for query.
         k_proj (nn.Module): projection layer for key.
         v_proj (nn.Module): projection layer for value.
@@ -74,9 +74,9 @@ class MultiHeadAttention(nn.Module):
             self.training is False. Default value is 0.0.
 
     Raises:
-        ValueError: If `num_heads` % `num_kv_heads` != 0
-        ValueError: If `embed_dim` % `num_heads` != 0
-        ValueError: If `attn_dropout` < 0 or > 1
+        ValueError: If ``num_heads % num_kv_heads != 0``
+        ValueError: If ``embed_dim % num_heads != 0``
+        ValueError: If ``attn_dropout < 0`` or ``attn_dropout > 1``
         ValueError: if q_norm is defined without k_norm or vice versa
     """
 
@@ -200,7 +200,7 @@ class MultiHeadAttention(nn.Module):
                 If none, assume the index of the token is its position id. Default is None.
 
         Raises:
-            ValueError: If no `y` input and `kv_cache` is not enabled.
+            ValueError: If no ``y`` input and ``kv_cache`` is not enabled.
 
         Returns:
             torch.Tensor: output tensor with attention applied
@@ -213,9 +213,6 @@ class MultiHeadAttention(nn.Module):
             - n_kv: num kv heads
             - d: embed dim
             - h_d: head dim
-
-        TODO:
-            - Return the attention weights
         """
         # x has shape [b, s_x, d]
         # y has shape [b, s_y, d]

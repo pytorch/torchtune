@@ -27,7 +27,7 @@ def get_reward_penalty_mask(
 
     Args:
         padding_masks (torch.Tensor): torch.Tensor where True indicates a padding token in the generated
-            sequence, and False otherwise. Shape: (b, reponse_len)
+            sequence, and False otherwise. Shape: (b, response_len)
         seq_lens (torch.Tensor): The length of each generated sequence. Shape: (b,)
         penalise_no_eos (bool, optional): Whether to penalise sequences with no EOS token. Defaults to True.
         min_response_length (int, optional): The minimum length of the response. If set, any responses is shorter
@@ -58,8 +58,8 @@ def get_rewards_ppo(
 
     Args:
         scores (torch.Tensor): Reward model scores, shape (b,).
-        logprobs (torch.Tensor): Policy logprobs, shape (b, reponse_len).
-        ref_logprobs (torch.Tensor): Reference base model, shape (b, reponse_len).
+        logprobs (torch.Tensor): Policy logprobs, shape (b, response_len).
+        ref_logprobs (torch.Tensor): Reference base model, shape (b, response_len).
         kl_coeff (float): KL reward contribution coefficient.
         valid_score_idxs (Optional[torch.Tensor]): A tensor of indexes for valid (non-padded) token predictions.
             This is useful when calculating rewards for padded sequences, as scores and value estimates are defined
@@ -188,19 +188,19 @@ def estimate_advantages(
     https://arxiv.org/pdf/1506.02438.pdf
 
     Args:
-        values (torch.Tensor): The predicted values for each state. Shape: (b, reponse_len)
-        rewards (torch.Tensor): The rewards received at each time step. Shape: (b, reponse_len)
+        values (torch.Tensor): The predicted values for each state. Shape: (b, response_len)
+        rewards (torch.Tensor): The rewards received at each time step. Shape: (b, response_len)
         gamma (float): The discount factor.
         lmbda (float): The GAE-Lambda parameter.
         masks (Optional[torch.Tensor]): A bool mask tensor, where True indicates the corresponding value in ``values``
             should participate in the mean calculation. Default None.
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: A tuple containing the estimated advantages and returns.
-            - advantages (torch.Tensor): The estimated advantages. Shape: (b, reponse_len)
-            - returns (torch.Tensor): The estimated returns. Shape: (b, reponse_len)
+            - advantages (torch.Tensor): The estimated advantages. Shape: (b, response_len)
+            - returns (torch.Tensor): The estimated returns. Shape: (b, response_len)
     Notation:
         - b: batch size
-        - reponse_len: model response length
+        - response_len: model response length
     """
 
     last_gae_lam = 0

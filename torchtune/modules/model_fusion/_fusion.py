@@ -149,7 +149,7 @@ class FusionEmbedding(nn.Module):
     second embedding for the additional tokens. During forward this module routes
     the tokens to the appropriate embedding table.
 
-    Use this as a drop-in replacement for `nn.Embedding` in your model.
+    Use this as a drop-in replacement for ``nn.Embedding`` in your model.
 
     Example:
         >>> embedding = FusionEmbedding(vocab_size=100, fusion_vocab_size=10, embed_dim=128)
@@ -262,7 +262,7 @@ class DeepFusionModel(nn.Module):
     This module has the same methods and forward signature as :class:`~torchtune.modules.TransformerDecoder` and can be used
     interchangeably where :class:`~torchtune.modules.TransformerDecoder` is. It combines the encoder with the decoder as a
     single module for checkpointing and finetuning. It is expected that the encoder and decoder
-    are already defined with any extra learnable ``fusion_params``; learnable parameters to help
+    are already defined with any extra learnable ``fusion_params``: learnable parameters to help
     adapt the pre-trained encoder to the pre-trained decoder.
 
     Example:
@@ -356,8 +356,8 @@ class DeepFusionModel(nn.Module):
         KV values for each position.
 
         Returns:
-            Tensor: output tensor with shape [b x s x v] or a list of layer
-                output tensors defined by ``output_hidden_states`` with the
+            Tensor: output tensor with shape [b x s x v] or a list of layer \
+                output tensors defined by ``output_hidden_states`` with the \
                 final output tensor appended to the list.
 
         Notation used for tensor shapes:
