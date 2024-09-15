@@ -89,7 +89,9 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         # fp16 precision is explicitly disabled as it is not supported in this
         # recipe (for example, no gradient scaling).
         if self._dtype == torch.float16:
-            raise ValueError("fp16 precision is not supported in this recipe. Please use fp32 or bf16.")
+            raise ValueError(
+                "fp16 precision is not supported in this recipe. Please use fp32 or bf16."
+            )
         # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
         if (
             self._dtype == torch.bfloat16
@@ -127,7 +129,9 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
         if self._resume_from_checkpoint:
             if training.ADAPTER_KEY not in checkpoint_dict:
-                raise ValueError("Adapter weights not found. Please ensure a valid adapter checkpoint is provided.")
+                raise ValueError(
+                    "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
+                )
             # _update_recipe_state will throw an exception if the recipe state is not correctly loaded
             # no need to check here
             self._update_recipe_state(checkpoint_dict)
@@ -191,7 +195,11 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             compile_model=cfg.compile,
             base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
-            lora_weights_state_dict=(checkpoint_dict[training.ADAPTER_KEY] if self._resume_from_checkpoint else None),
+            lora_weights_state_dict=(
+                checkpoint_dict[training.ADAPTER_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
@@ -199,7 +207,11 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=(checkpoint_dict[training.OPT_KEY] if self._resume_from_checkpoint else None),
+            opt_state_dict=(
+                checkpoint_dict[training.OPT_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
@@ -220,8 +232,13 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         # by the dataloader and the max_steps_per_epoch param set by the user and is used
         # for logging and tracking training state. This should be computed after the dataloader
         # has been setup
-        self._steps_per_epoch = len(self._dataloader) // self._gradient_accumulation_steps
-        if self.max_steps_per_epoch is not None and self.max_steps_per_epoch < self._steps_per_epoch:
+        self._steps_per_epoch = (
+            len(self._dataloader) // self._gradient_accumulation_steps
+        )
+        if (
+            self.max_steps_per_epoch is not None
+            and self.max_steps_per_epoch < self._steps_per_epoch
+        ):
             self._steps_per_epoch = self.max_steps_per_epoch
             self.global_step = self.epochs_run * self._steps_per_epoch
 
@@ -252,20 +269,30 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         set_trainable_params(model, self.adapter_params)
 
         if enable_activation_checkpointing:
-            training.set_activation_checkpointing(model, auto_wrap_policy={modules.TransformerSelfAttentionLayer})
+            training.set_activation_checkpointing(
+                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
+            )
 
         validate_state_dict_for_lora(
             lora_attn_modules=cfg_model.lora_attn_modules,
             apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
             apply_lora_to_output=getattr(cfg_model, "apply_lora_to_output", False),
             full_model_state_dict_keys=model.state_dict().keys(),
-            lora_state_dict_keys=(lora_weights_state_dict.keys() if lora_weights_state_dict is not None else None),
+            lora_state_dict_keys=(
+                lora_weights_state_dict.keys()
+                if lora_weights_state_dict is not None
+                else None
+            ),
             base_model_state_dict_keys=base_model_state_dict.keys(),
         )
 
-        base_missing, base_unexpected = model.load_state_dict(base_model_state_dict, strict=False)
+        base_missing, base_unexpected = model.load_state_dict(
+            base_model_state_dict, strict=False
+        )
         if lora_weights_state_dict:
-            lora_missing, lora_unexpected = model.load_state_dict(lora_weights_state_dict, strict=False)
+            lora_missing, lora_unexpected = model.load_state_dict(
+                lora_weights_state_dict, strict=False
+            )
         else:
             lora_missing, lora_unexpected = None, None
         validate_missing_and_unexpected_for_lora(
@@ -329,7 +356,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         """
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
-                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer) for single_cfg_dataset in cfg_dataset
+                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer)
+                for single_cfg_dataset in cfg_dataset
             ]
             ds = ConcatDataset(datasets=datasets)
         else:
@@ -392,7 +420,9 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             # Construct the adapter weights
             # Do this using the state_dict to avoid running upcast and H2D in state_dict post hook twice
             # Must be before get_merged_lora_ckpt because get_merged_lora_ckpt will remove lora keys
-            adapter_state_dict = {k: v for k, v in state_dict.items() if adapter_key_filter(k)}
+            adapter_state_dict = {
+                k: v for k, v in state_dict.items() if adapter_key_filter(k)
+            }
 
             merged_state_dict = get_merged_lora_ckpt(
                 state_dict,
@@ -403,7 +433,11 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
         else:
             # No need to merge state dict if we're only saving adapter weights
-            adapter_state_dict = {k: v for k, v in self._model.state_dict().items() if adapter_key_filter(k)}
+            adapter_state_dict = {
+                k: v
+                for k, v in self._model.state_dict().items()
+                if adapter_key_filter(k)
+            }
 
         ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
 
@@ -474,7 +508,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps) == self.max_steps_per_epoch
+                    and (idx // self._gradient_accumulation_steps)
+                    == self.max_steps_per_epoch
                 ):
                     break
 
@@ -531,7 +566,9 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
                     loss_to_log = running_loss.item()
                     pbar.update(1)
-                    pbar.set_description(f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}")
+                    pbar.set_description(
+                        f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
+                    )
 
                     # Log per-step metrics
                     if self.global_step % self._log_every_n_steps == 0:
@@ -543,14 +580,22 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                             "rewards/chosen": chosen_rewards.mean().cpu(),
                             "rewards/rejected": rejected_rewards.mean().cpu(),
                             "rewards/accuracies": reward_accuracies.mean().cpu(),
-                            "rewards/margins": (chosen_rewards - rejected_rewards).mean().cpu(),
-                            "log_probs/rejected": policy_rejected_log_probs.detach().mean().cpu(),
-                            "log_probs/chosen": policy_chosen_log_probs.detach().mean().cpu(),
+                            "rewards/margins": (chosen_rewards - rejected_rewards)
+                            .mean()
+                            .cpu(),
+                            "log_probs/rejected": policy_rejected_log_probs.detach()
+                            .mean()
+                            .cpu(),
+                            "log_probs/chosen": policy_chosen_log_probs.detach()
+                            .mean()
+                            .cpu(),
                             "logits/rejected": policy_rejected_logits_mean.cpu(),
                             "logits/chosen": policy_chosen_logits_mean.cpu(),
                         }
                         if self._log_peak_memory_stats:
-                            log_dict.update(training.get_memory_stats(device=self._device))
+                            log_dict.update(
+                                training.get_memory_stats(device=self._device)
+                            )
                         self._metric_logger.log_dict(
                             log_dict,
                             step=self.global_step,
