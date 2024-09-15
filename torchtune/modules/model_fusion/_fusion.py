@@ -149,7 +149,7 @@ class FusionEmbedding(nn.Module):
     second embedding for the additional tokens. During forward this module routes
     the tokens to the appropriate embedding table.
 
-    Use this as a drop-in replacement for ``nn.Embedding`` in your model.
+    Use this as a drop-in replacement for :class:`torch.nn.Embedding` in your model.
 
     Example:
         >>> embedding = FusionEmbedding(vocab_size=100, fusion_vocab_size=10, embed_dim=128)

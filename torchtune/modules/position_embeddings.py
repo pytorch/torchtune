@@ -77,7 +77,7 @@ class RotaryPositionalEmbeddings(nn.Module):
         """
         Args:
             x (torch.Tensor): input tensor with shape
-                [b, s, n_h, h_d]
+                ``[b, s, n_h, h_d]``
             input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b, s].
@@ -85,7 +85,7 @@ class RotaryPositionalEmbeddings(nn.Module):
                 If none, assume the index of the token is its position id. Default is None.
 
         Returns:
-            torch.Tensor: output tensor with shape [b, s, n_h, h_d]
+            torch.Tensor: output tensor with shape ``[b, s, n_h, h_d]``
 
         Notation used for tensor shapes:
             - b: batch size
