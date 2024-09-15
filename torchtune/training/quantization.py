@@ -153,8 +153,11 @@ class Int8MixedPrecisionTrainingQuantizer:
         quantize_fn = int8_mixed_precision_training(self._config)
 
         # custom filter_fn to work with torchtune's peft
-        def filter_fn(module, name):
-            return isinstance(module, (nn.Linear, LoRALinear, DoRALinear))
+        def filter_fn(module: nn.Module, name: str) -> bool:
+            if isinstance(module, nn.Linear):
+                return not (name.endswith(".lora_a") or name.endswith(".lora_b"))
+
+            return isinstance(module, (LoRALinear, DoRALinear))
 
         # Don't apply INT8 mixed-precision training to LM head since end2end speedup
         # will be slightly worse. There are also possible issues with tied word
