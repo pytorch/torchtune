@@ -157,7 +157,10 @@ class Int8MixedPrecisionTrainingQuantizer:
             if isinstance(module, nn.Linear):
                 return not (name.endswith(".lora_a") or name.endswith(".lora_b"))
 
-            return isinstance(module, (LoRALinear, DoRALinear))
+            if isinstance(module, (LoRALinear, DoRALinear)):
+                return not module._quantize_base  # doesn't work with NF4 yet
+
+            return False
 
         # Don't apply INT8 mixed-precision training to LM head since end2end speedup
         # will be slightly worse. There are also possible issues with tied word
