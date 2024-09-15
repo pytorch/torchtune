@@ -362,5 +362,4 @@ def generate(
         generated_tokens *= stop_token_mask
         generated_logits *= stop_token_mask[:, :-1, None]
 
-    # squash
     return generated_tokens, generated_logits
