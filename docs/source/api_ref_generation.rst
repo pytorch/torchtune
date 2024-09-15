@@ -12,3 +12,5 @@ torchtune.generation
 
     generate
     sample
+    get_causal_mask_from_padding_mask
+    get_position_ids_from_padding_mask
