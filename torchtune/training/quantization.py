@@ -22,6 +22,7 @@ from torchao.quantization.prototype.qat._module_swap_api import (
 
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.low_precision._utils import _get_torchao_version
+from torchtune.modules.peft import DoRALinear, LoRALinear
 from torchtune.utils._version import torch_version_ge
 
 
@@ -149,14 +150,19 @@ class Int8MixedPrecisionTrainingQuantizer:
         )
 
     def prepare(self, model: nn.Module) -> nn.Module:
+        quantize_fn = int8_mixed_precision_training(self._config)
+
+        # custom filter_fn to work with torchtune's peft
+        def filter_fn(module, name):
+            return isinstance(module, (nn.Linear, LoRALinear, DoRALinear))
+
         # Don't apply INT8 mixed-precision training to LM head since end2end speedup
         # will be slightly worse. There are also possible issues with tied word
         # embeddings.
-        quantize_fn = int8_mixed_precision_training(self._config)
         if isinstance(model, TransformerDecoder):
-            quantize_(model.layers, quantize_fn)
+            quantize_(model.layers, quantize_fn, filter_fn=filter_fn)
         else:
-            quantize_(model, quantize_fn)
+            quantize_(model, quantize_fn, filter_fn=filter_fn)
         return model
 
 

@@ -229,6 +229,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 if self._resume_from_checkpoint
                 else None
             ),
+            quantizer_cfg=cfg.get("quantizer", None),
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
@@ -370,6 +371,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         compile_model: bool,
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
+        quantizer_cfg: Optional[DictConfig] = None,
     ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
@@ -391,19 +393,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
-        use_int8_mixed_precision_training = False
-        if use_int8_mixed_precision_training:
-            from torchao import quantize_
-            from torchao.prototype.quantized_training import (
-                int8_mixed_precision_training,
-            )
-
-            from torchtune.modules.peft import DoRALinear, LoRALinear
-
-            def filter_fn(module, name):
-                return isinstance(module, LoRALinear, DoRALinear)
-
-            quantize_(model, int8_mixed_precision_training(), filter_fn=filter_fn)
+        if quantizer_cfg is not None:
+            log.info(f"Preparing model with {quantizer_cfg._component_}")
+            quantizer = config.instantiate(quantizer_cfg)
+            model = quantizer.prepare(model)
 
         base_missing, base_unexpected = model.load_state_dict(
             base_model_state_dict, strict=False
