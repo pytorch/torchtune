@@ -23,6 +23,7 @@ from tests.test_utils import (
     gen_log_file_name,
     get_loss_values_from_metric_logger,
 )
+from torchtune import config
 
 
 class TestLoRADPOSingleDeviceRecipe:
@@ -69,8 +70,8 @@ class TestLoRADPOSingleDeviceRecipe:
 
         # Train for two epochs
         cmd_1 = f"""
-        tune run lora_finetune_single_device \
-            --config llama2/7B_lora_single_device \
+        tune run lora_dpo_single_device \
+            --config llama2/7B_lora_dpo_single_device \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -94,8 +95,8 @@ class TestLoRADPOSingleDeviceRecipe:
 
         # Resume training
         cmd_2 = f"""
-        tune run lora_finetune_single_device \
-            --config llama2/7B_lora_single_device \
+        tune run lora_dpo_single_device \
+            --config llama2/7B_lora_dpo_single_device \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
