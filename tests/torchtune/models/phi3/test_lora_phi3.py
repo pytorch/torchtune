@@ -16,7 +16,7 @@ from torchtune import training
 from torchtune.models.phi3 import lora_phi3, phi3
 from torchtune.models.phi3._component_builders import lora_phi3_self_attention
 from torchtune.modules.peft import get_merged_lora_ckpt, LoRALinear
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 RANK = 4
 ALPHA = 1.0
@@ -67,7 +67,7 @@ class TestLoRAPhi3SelfAttention:
     )
     def test_forward(self, inputs, lora_modules, expected):
         lora_phi_sa = self.get_lora_phi_self_attention(lora_modules)
-        actual = lora_phi_sa(inputs)
+        actual = lora_phi_sa(inputs, inputs)
         assert_expected(actual.shape, (BSZ, SEQ_LEN, EMBED_DIM))
         assert_expected(actual.mean(), expected, atol=1e-4, rtol=1e-6)
 

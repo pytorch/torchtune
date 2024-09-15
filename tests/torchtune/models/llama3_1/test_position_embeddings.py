@@ -12,7 +12,7 @@ from torch import tensor
 
 from torchtune.models.llama3_1._position_embeddings import Llama3ScaledRoPE
 
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 
 @pytest.fixture(autouse=True)

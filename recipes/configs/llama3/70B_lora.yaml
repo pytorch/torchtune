@@ -17,6 +17,7 @@ model:
   apply_lora_to_output: False
   lora_rank: 16
   lora_alpha: 32
+  lora_dropout: 0.0
 
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
@@ -74,6 +75,7 @@ batch_size: 2
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
+  fused: True
   weight_decay: 0.01
   lr: 3e-4
 lr_scheduler:
@@ -91,7 +93,7 @@ gradient_accumulation_steps: 1
 # Logging
 output_dir: /tmp/lora_finetune_output
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
 log_peak_memory_stats: False

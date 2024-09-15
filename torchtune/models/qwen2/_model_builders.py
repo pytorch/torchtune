@@ -7,11 +7,11 @@ from typing import List, Optional
 
 from torchtune.models.qwen2._component_builders import qwen2, lora_qwen2
 from torchtune.models.qwen2._tokenizer import Qwen2Tokenizer
-from torchtune.modules import TransformerDecoder, TiedEmbeddingTransformerDecoder
+from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from torchtune.modules.tokenizers import parse_hf_tokenizer_json
 from torchtune.data._prompt_templates import _TemplateType
-from torchtune.config._utils import _get_prompt_template
+from torchtune.data._utils import _get_prompt_template
 
 """
 Model builders build specific instantiations using component builders. For example
@@ -42,17 +42,17 @@ def qwen2_7b() -> TransformerDecoder:
     )
 
 
-def qwen2_0_5b() -> TiedEmbeddingTransformerDecoder:
+def qwen2_0_5b() -> TransformerDecoder:
     """
     Builder for creating a Qwen2 model initialized w/ the default 0.5B parameter values
     from https://huggingface.co/Qwen/Qwen2-0.5B-Instruct
 
     Returns:
-        TiedEmbeddingTransformerDecoder: Instantiation of Qwen2 0.5B model
+        TransformerDecoder: Instantiation of Qwen2 0.5B model
 
     Note:
         Qwen2 0.5B and Qwen2 1.5B model builders will enable `tie_word_embeddings` by default
-        and returns an instance of `TiedEmbeddingTransformerDecoder`.
+        and returns an instance of `TransformerDecoder`.
     """
     return qwen2(
         vocab_size=151936,
@@ -69,17 +69,17 @@ def qwen2_0_5b() -> TiedEmbeddingTransformerDecoder:
     )
 
 
-def qwen2_1_5b() -> TiedEmbeddingTransformerDecoder:
+def qwen2_1_5b() -> TransformerDecoder:
     """
     Builder for creating a Qwen2 model initialized w/ the default 1.5B parameter values
     from https://huggingface.co/Qwen/Qwen2-1.5B-Instruct
 
     Returns:
-        TiedEmbeddingTransformerDecoder: Instantiation of Qwen2 1.5B model
+        TransformerDecoder: Instantiation of Qwen2 1.5B model
 
     Note:
         Qwen2 0.5B and Qwen2 1.5B model builders will enable `tie_word_embeddings` by default
-        and returns an instance of `TiedEmbeddingTransformerDecoder`.
+        and returns an instance of `TransformerDecoder`.
     """
     return qwen2(
         vocab_size=151936,
@@ -134,7 +134,8 @@ def lora_qwen2_7b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
-    lora_dropout: float = 0.05,
+    lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
@@ -154,6 +155,7 @@ def lora_qwen2_7b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
@@ -176,6 +178,7 @@ def lora_qwen2_7b(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 
@@ -185,9 +188,10 @@ def lora_qwen2_0_5b(
     apply_lora_to_mlp: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
-    lora_dropout: float = 0.05,
+    lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
-) -> TiedEmbeddingTransformerDecoder:
+) -> TransformerDecoder:
     """
     Builder for creating a Qwen2 0.5B model with LoRA enabled.
 
@@ -203,14 +207,15 @@ def lora_qwen2_0_5b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        TiedEmbeddingTransformerDecoder: Instantiation of Qwen2 0.5B model with LoRA applied
+        TransformerDecoder: Instantiation of Qwen2 0.5B model with LoRA applied
 
     Note:
         Qwen2 0.5B and Qwen2 1.5B model builders will enable `tie_word_embeddings` by default
-        and returns an instance of `TiedEmbeddingTransformerDecoder`.
+        and returns an instance of `TransformerDecoder`.
     """
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
@@ -230,6 +235,7 @@ def lora_qwen2_0_5b(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 
@@ -239,9 +245,10 @@ def lora_qwen2_1_5b(
     apply_lora_to_mlp: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
-    lora_dropout: float = 0.05,
+    lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
-) -> TiedEmbeddingTransformerDecoder:
+) -> TransformerDecoder:
     """
     Builder for creating a Qwen2 1.5B model with LoRA enabled.
 
@@ -257,14 +264,15 @@ def lora_qwen2_1_5b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        TiedEmbeddingTransformerDecoder: Instantiation of Qwen2 1.5B model with LoRA applied
+        TransformerDecoder: Instantiation of Qwen2 1.5B model with LoRA applied
 
     Note:
         Qwen2 0.5B and Qwen2 1.5B model builders will enable `tie_word_embeddings` by default
-        and returns an instance of `TiedEmbeddingTransformerDecoder`.
+        and returns an instance of `TransformerDecoder`.
     """
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
@@ -284,5 +292,6 @@ def lora_qwen2_1_5b(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )

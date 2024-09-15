@@ -32,7 +32,8 @@ model:
   lora_attn_modules: ['q_proj', 'k_proj', 'v_proj']
   apply_lora_to_mlp: True
   lora_rank: 64
-  lora_alpha: 16
+  lora_alpha: 128
+  lora_dropout: 0.0
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
@@ -49,11 +50,12 @@ save_adapter_weights_only: False
 
 optimizer:
   _component_: torch.optim.AdamW
+  fused: True
   lr: 2e-5
 
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
-  num_warmup_steps: 100
+  num_warmup_steps: 10
 
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
@@ -76,7 +78,7 @@ dtype: bf16
 
 # Logging
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 output_dir: /tmp/alpaca-gemma-lora
 log_every_n_steps: 1
@@ -85,7 +87,7 @@ log_peak_memory_stats: False
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training
 profiler:
-  _component_: torchtune.utils.setup_torch_profiler
+  _component_: torchtune.training.setup_torch_profiler
   enabled: False
 
   #Output directory of trace artifacts

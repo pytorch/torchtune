@@ -19,7 +19,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
-from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo
 from torchtune.datasets import ConcatDataset
 from torchtune.modules import rlhf
 from torchtune.modules.peft import (
@@ -106,7 +106,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
-        self.seed = utils.set_seed(seed=cfg.seed)
+        self.seed = training.set_seed(seed=cfg.seed)
         self.epochs_run = 0
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
@@ -269,7 +269,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         set_trainable_params(model, self.adapter_params)
 
         if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(
+            training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
@@ -313,8 +313,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
             model.compile(backend=backend)
         if self._device == torch.device("cuda"):
-            memory_stats = utils.get_memory_stats(device=self._device)
-            utils.log_memory_stats(memory_stats)
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(memory_stats)
         return model
 
     def _setup_optimizer(
@@ -375,7 +375,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             sampler=sampler,
             batch_size=batch_size,
             collate_fn=partial(
-                rlhf.padded_collate_dpo,
+                padded_collate_dpo,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=CROSS_ENTROPY_IGNORE_IDX,
             ),
@@ -410,22 +410,33 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 }
             )
 
-        # Move to CPU to avoid a copy on GPU
-        state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
-
-        # Construct the full state dict with LoRA weights merged into base LLM weights
-        merged_state_dict = get_merged_lora_ckpt(
-            state_dict,
-            rank=self._lora_rank,
-            alpha=self._lora_alpha,
-        )
-        ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
-
-        # Construct the adapter weights
         adapter_key_filter = lambda x: x in self.adapter_params
-        adapter_state_dict = {
-            k: v for k, v in self._model.state_dict().items() if adapter_key_filter(k)
-        }
+        if not self._save_adapter_weights_only:
+            # Construct the full state dict with LoRA weights merged into base LLM weights
+
+            # Move to CPU to avoid a copy on GPU
+            state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
+
+            # Construct the adapter weights
+            # Do this using the state_dict to avoid running upcast and H2D in state_dict post hook twice
+            # Must be before get_merged_lora_ckpt because get_merged_lora_ckpt will remove lora keys
+            adapter_state_dict = {
+                k: v for k, v in state_dict.items() if adapter_key_filter(k)
+            }
+
+            merged_state_dict = get_merged_lora_ckpt(
+                state_dict,
+                rank=self._lora_rank,
+                alpha=self._lora_alpha,
+            )
+
+            ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
+        else:
+            # No need to merge state dict if we're only saving adapter weights
+            adapter_state_dict = {
+                k: v.cpu() for k, v in get_adapter_params(self._model).items()
+            }
+
         ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
 
         self._checkpointer.save_checkpoint(
@@ -580,7 +591,9 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                             "logits/chosen": policy_chosen_logits_mean.cpu(),
                         }
                         if self._log_peak_memory_stats:
-                            log_dict.update(utils.get_memory_stats(device=self._device))
+                            log_dict.update(
+                                training.get_memory_stats(device=self._device)
+                            )
                         self._metric_logger.log_dict(
                             log_dict,
                             step=self.global_step,

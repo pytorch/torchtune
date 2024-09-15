@@ -145,10 +145,14 @@ class DummyTokenizer(ModelTokenizer, Transform):
         return tokenized_messages, mask
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
-        messages = sample.pop("messages")
+        messages: List[Message] = sample.pop("messages")
+        images = []
+        for message in messages:
+            images += message.get_media()
         tokens, mask = self.tokenize_messages(messages)
         sample["tokens"] = tokens
         sample["mask"] = mask
+        sample["images"] = images
         return sample
 
     @property

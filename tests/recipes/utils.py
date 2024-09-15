@@ -49,6 +49,17 @@ def get_assets_path():
     return Path(__file__).parent.parent / "assets"
 
 
+def dummy_stack_exchange_dataset_config():
+    data_files = os.path.join(get_assets_path(), "stack_exchange_paired_tiny.json")
+    out = [
+        "dataset._component_=torchtune.datasets.stack_exchange_paired_dataset",
+        "dataset.source='json'",
+        f"dataset.data_files={data_files}",
+        "dataset.split='train'",
+    ]
+    return out
+
+
 def dummy_alpaca_dataset_config():
     data_files = os.path.join(get_assets_path(), "alpaca_tiny.json")
     out = [
@@ -72,7 +83,6 @@ def dummy_text_completion_alpaca_dataset_config():
         f"dataset.data_files={data_files}",
         "dataset.column='instruction'",
         "dataset.split='train[:10%]'",  # 10% of the dataset gets us 8 batches
-        "dataset.max_seq_len=64",
         "dataset.add_eos=False",
     ]
     return out

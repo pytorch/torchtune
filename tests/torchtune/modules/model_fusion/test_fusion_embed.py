@@ -9,7 +9,7 @@ import pytest
 import torch
 from tests.test_utils import assert_expected, fixed_init_model
 from torchtune.modules.model_fusion import FusionEmbedding
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 
 @pytest.fixture(autouse=True)

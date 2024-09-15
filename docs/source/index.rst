@@ -110,6 +110,15 @@ torchtune tutorials.
 .. toctree::
    :glob:
    :maxdepth: 1
+   :caption: Basics
+   :hidden:
+
+   basics/tokenizers
+   basics/prompt_templates
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
    :caption: Tutorials
    :hidden:
 
@@ -143,6 +152,7 @@ torchtune tutorials.
    api_ref_config
    api_ref_data
    api_ref_datasets
+   api_ref_generation
    api_ref_models
    api_ref_modules
    api_ref_training

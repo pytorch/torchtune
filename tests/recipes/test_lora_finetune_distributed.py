@@ -42,6 +42,7 @@ class TestLoRAFinetuneDistributedRecipe:
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
             "gradient_accumulation_steps=1",
+            "compile=False",
         ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self, model_type):
@@ -56,13 +57,13 @@ class TestLoRAFinetuneDistributedRecipe:
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
     @pytest.mark.parametrize(
-        "fsdp_sharding_strategy",
+        "reshard_after_forward",
         [
-            (None),
-            ("NO_SHARD"),
+            True,
+            False,
         ],
     )
-    def test_loss(self, fsdp_sharding_strategy, tmpdir, monkeypatch):
+    def test_loss(self, reshard_after_forward, tmpdir, monkeypatch):
         ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
@@ -79,9 +80,8 @@ class TestLoRAFinetuneDistributedRecipe:
             metric_logger.filename={log_file} \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
+            reshard_after_forward={reshard_after_forward} \
         """.split()
-        if fsdp_sharding_strategy:
-            cmd.append(f"fsdp_sharding_strategy={fsdp_sharding_strategy}")
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
 
@@ -97,14 +97,21 @@ class TestLoRAFinetuneDistributedRecipe:
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
     @pytest.mark.parametrize(
-        "config, model_type, ckpt_type",
+        "config, model_type, ckpt_type, save_adapter_weights_only",
         [
-            ("llama2/7B_lora", "llama2", "hf"),
-            ("llama3/8B_lora", "llama3", "tune"),
+            ("llama2/7B_lora", "llama2", "hf", False),
+            ("llama3/8B_lora", "llama3", "tune", False),
+            ("llama2/7B_lora", "llama2", "hf", True),
         ],
     )
     def test_training_state_on_resume(
-        self, config, model_type, ckpt_type, tmpdir, monkeypatch
+        self,
+        config,
+        model_type,
+        ckpt_type,
+        tmpdir,
+        monkeypatch,
+        save_adapter_weights_only,
     ):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
@@ -139,6 +146,7 @@ class TestLoRAFinetuneDistributedRecipe:
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
+            save_adapter_weights_only={save_adapter_weights_only} \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]

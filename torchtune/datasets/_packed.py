@@ -4,17 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 import torch
 from torch.nn import functional as F
 
 from torch.utils.data import Dataset
-from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.utils import get_world_size_and_rank
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX, PACK_TYPE
 from tqdm import tqdm
-
-PACK_TYPE = Dict[str, Union[torch.Tensor, List[int]]]
 
 
 class PackedDataset(Dataset):
@@ -115,7 +112,11 @@ class PackedDataset(Dataset):
         }
 
         # Only show progress bar on rank 0
-        _, rank = get_world_size_and_rank()
+        rank = (
+            torch.distributed.get_rank()
+            if torch.distributed.is_available() and torch.distributed.is_initialized()
+            else 0
+        )
         if rank == 0:
             pbar = tqdm(total=len(self.ds), desc="Packing dataset", dynamic_ncols=True)
 
@@ -167,7 +168,8 @@ class PackedDataset(Dataset):
         if self.split_across_pack:
             boundary = self.max_seq_len
             # The last elem in ``seq_lens`` ensures that ``sum(seq_lens) == self.max_seq_len``
-            seq_len_padding = [self.max_seq_len - sum(current_pack["seq_lens"][:-1])]
+            leftover_seq_len = self.max_seq_len - sum(current_pack["seq_lens"][:-1])
+            seq_len_padding = [leftover_seq_len] if leftover_seq_len > 0 else []
         else:
             boundary = self.previous_sample_boundary
             # If we aren't splitting across packs, we leave out the last sample b/c
@@ -206,22 +208,21 @@ class PackedDataset(Dataset):
         self.packs.append(pack)
 
     def _convert_to_tensors(self, pack: PACK_TYPE) -> PACK_TYPE:
-        """Converts a pack into tensors. Pack comes in as a dict of lists and is converted to tensors.
-        The only key that does not get converted is ``seq_lens``.
-        """
+        """Converts a pack into tensors. Pack comes in as a dict of lists and is converted to tensors."""
         return {
-            "tokens": torch.tensor(pack["tokens"]),
-            "labels": torch.tensor(pack["labels"]),
-            "input_pos": torch.tensor(pack["input_pos"]),
-            "seq_lens": pack["seq_lens"],
+            "tokens": torch.tensor(pack["tokens"], dtype=torch.long),
+            "labels": torch.tensor(pack["labels"], dtype=torch.long),
+            "input_pos": torch.tensor(pack["input_pos"], dtype=torch.long),
+            "seq_lens": torch.tensor(pack["seq_lens"], dtype=torch.long),
         }
 
     def _pad_pack(self, pack: PACK_TYPE, padding_idx: int) -> PACK_TYPE:
         """Pads a pack to ``self.max_seq_len``."""
         # Pad tokens
+        num_padding_tokens = self.max_seq_len - len(pack["tokens"])
         padded_tokens = F.pad(
             pack["tokens"],
-            (0, self.max_seq_len - len(pack["tokens"])),
+            (0, num_padding_tokens),
             value=padding_idx,
         )
 
@@ -230,6 +231,13 @@ class PackedDataset(Dataset):
             pack["labels"],
             (0, self.max_seq_len - len(pack["labels"])),
             value=CROSS_ENTROPY_IGNORE_IDX,
+        )
+
+        # Add padding tokens as a last seq len to ensure sum is max_seq_len
+        padded_seq_lens = (
+            torch.cat([pack["seq_lens"], torch.tensor([num_padding_tokens])])
+            if num_padding_tokens > 0
+            else pack["seq_lens"]
         )
 
         # Pad input_pos continuing the sequence from last value
@@ -247,44 +255,11 @@ class PackedDataset(Dataset):
             "tokens": padded_tokens,
             "labels": padded_labels,
             "input_pos": padded_input_pos,
-            "seq_lens": pack["seq_lens"],  # seq_len is untouched
+            "seq_lens": padded_seq_lens,
         }
 
     def __len__(self) -> int:
         return len(self.packs)
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
-        """Constructs the attention mask on-the-fly and returns whole sample."""
-        current_pack = self.packs[idx]
-
-        num_samples_in_pack = len(current_pack["seq_lens"])
-        total_seq_len = 0
-
-        block_attn_masks = []
-
-        for i, seq_len in enumerate(current_pack["seq_lens"]):
-            total_seq_len += seq_len
-
-            # Append lower triangular matrix for causal mask
-            block_attn_masks.append(
-                torch.tril(torch.ones(seq_len, seq_len, dtype=torch.bool))
-            )
-
-            # If we're at the last sample and the total seq len is less than the max seq len,
-            # we need to pad with identity matrix for the remainder
-            if i == num_samples_in_pack - 1 and total_seq_len < self.max_seq_len:
-                block_attn_masks.append(
-                    torch.eye(
-                        self.max_seq_len - total_seq_len,
-                        self.max_seq_len - total_seq_len,
-                        dtype=torch.bool,
-                    )
-                )
-
-        return {
-            "tokens": current_pack["tokens"],
-            "labels": current_pack["labels"],
-            "input_pos": current_pack["input_pos"],
-            # Assemble the mask into a block causal matrix
-            "mask": torch.block_diag(*block_attn_masks),
-        }
+        return self.packs[idx]

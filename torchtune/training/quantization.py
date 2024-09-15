@@ -6,13 +6,23 @@
 
 from typing import Callable, Optional
 
-# importing TORCH_VERSION_AFTER_2_3 because `Int8DynActInt4WeightQuantizer`
-# is only available after 2.3 so we have to guard the pytorch versions to decide
-# the list of supported quantizers
-from torchao.utils import TORCH_VERSION_AFTER_2_3, TORCH_VERSION_AFTER_2_4
+from torchao.quantization import int8_dynamic_activation_int4_weight, quantize_
+from torchao.quantization.prototype.qat import (
+    disable_8da4w_fake_quant,
+    enable_8da4w_fake_quant,
+    Int8DynActInt4WeightQATQuantizer,
+)
+from torchao.quantization.prototype.qat._module_swap_api import (
+    disable_8da4w_fake_quant_module_swap,
+    enable_8da4w_fake_quant_module_swap,
+    Int8DynActInt4WeightQATQuantizerModuleSwap,
+)
+
 
 __all__ = [
     "get_quantizer_mode",
+    "Int8DynActInt4WeightQuantizer",
+    "Int8DynActInt4WeightQATQuantizer",
 ]
 
 
@@ -21,24 +31,47 @@ _quantizer_mode_to_disable_fake_quant = {}
 _quantizer_mode_to_enable_fake_quant = {}
 
 
-if TORCH_VERSION_AFTER_2_3:
-    from torchao.quantization.quant_api import Int8DynActInt4WeightQuantizer
-
-    __all__.append("Int8DynActInt4WeightQuantizer")
-    _quantizer_to_mode[Int8DynActInt4WeightQuantizer] = "8da4w"
+# ========================================================
+# int8 dynamic activations + int4 weight tensor subclass |
+# ========================================================
 
 
-if TORCH_VERSION_AFTER_2_4:
-    from torchao.quantization.prototype.qat import (
-        disable_8da4w_fake_quant,
-        enable_8da4w_fake_quant,
-        Int8DynActInt4WeightQATQuantizer,
-    )
+class Int8DynActInt4WeightQuantizer:
+    """
+    Quantizer for applying int8 per token dynamic activation + int4
+    per group weight quantization to linear layers in the model.
+    """
 
-    __all__.append("Int8DynActInt4WeightQATQuantizer")
-    _quantizer_to_mode[Int8DynActInt4WeightQATQuantizer] = "8da4w-qat"
-    _quantizer_mode_to_disable_fake_quant["8da4w-qat"] = disable_8da4w_fake_quant
-    _quantizer_mode_to_enable_fake_quant["8da4w-qat"] = enable_8da4w_fake_quant
+    def __init__(self, groupsize: int = 256):
+        self.groupsize = groupsize
+
+    def quantize(self, model):
+        quantize_fn = int8_dynamic_activation_int4_weight(self.groupsize)
+        quantize_(model, quantize_fn)
+        return model
+
+
+_quantizer_to_mode[Int8DynActInt4WeightQuantizer] = "8da4w"
+_quantizer_to_mode[Int8DynActInt4WeightQATQuantizer] = "8da4w-qat"
+_quantizer_mode_to_disable_fake_quant["8da4w-qat"] = disable_8da4w_fake_quant
+_quantizer_mode_to_enable_fake_quant["8da4w-qat"] = enable_8da4w_fake_quant
+
+
+# ====================================================
+# int8 dynamic activations + int4 weight module swap |
+# ====================================================
+
+# Note: QAT tensor subclass implementation in torchao only works
+# with FSDP2 today. For other distribution strategies like DDP and
+# FSDP1, users will need to fall back to the old module swap flow.
+__all__.append("Int8DynActInt4WeightQATQuantizerModuleSwap")
+_quantizer_to_mode[Int8DynActInt4WeightQATQuantizerModuleSwap] = "8da4w-qat-module-swap"
+_quantizer_mode_to_disable_fake_quant[
+    "8da4w-qat-module-swap"
+] = disable_8da4w_fake_quant_module_swap
+_quantizer_mode_to_enable_fake_quant[
+    "8da4w-qat-module-swap"
+] = enable_8da4w_fake_quant_module_swap
 
 
 def get_quantizer_mode(quantizer: Optional[Callable]) -> Optional[str]:

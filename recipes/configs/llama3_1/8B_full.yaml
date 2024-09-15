@@ -55,8 +55,7 @@ epochs: 3
 optimizer:
   _component_: torch.optim.AdamW
   lr: 2e-5
-  foreach: False
-
+  fused: True
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
@@ -75,7 +74,7 @@ dtype: bf16
 
 # Logging
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 output_dir: /tmp/full-llama3.1-finetune
 log_every_n_steps: 1

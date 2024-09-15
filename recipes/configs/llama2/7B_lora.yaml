@@ -26,6 +26,7 @@ model:
   apply_lora_to_output: False
   lora_rank: 8
   lora_alpha: 16
+  lora_dropout: 0.0
 
 tokenizer:
   _component_: torchtune.models.llama2.llama2_tokenizer
@@ -56,6 +57,7 @@ batch_size: 2
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
+  fused: True
   weight_decay: 0.01
   lr: 3e-4
 lr_scheduler:
@@ -73,7 +75,7 @@ gradient_accumulation_steps: 32
 # Logging
 output_dir: /tmp/lora_finetune_output
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
 log_peak_memory_stats: False
@@ -86,7 +88,7 @@ enable_activation_checkpointing: False
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training
 profiler:
-  _component_: torchtune.utils.setup_torch_profiler
+  _component_: torchtune.training.setup_torch_profiler
 
   enabled: False
 

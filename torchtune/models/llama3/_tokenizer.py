@@ -25,7 +25,7 @@ SPECIAL_TOKENS = {
     "<|eom_id|>": 128008,
     "<|eot_id|>": 128009,
     "<|python_tag|>": 128010,
-    "<|image|>": 128011,
+    "<|image|>": 128256,
     "<|video|>": 128012,
 }
 
@@ -98,8 +98,8 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         # Media tokens
         self.image_id = self.special_tokens["<|image|>"]
 
-        # During generation, stop when either eos_id or eot_id is encountered
-        self.stop_tokens = [self.eos_id, self.eot_id]
+        # During generation, stop when either eos_id, eot_id, or eom_id is encountered
+        self.stop_tokens = [self.eos_id, self.eot_id, self.eom_id]
 
         self.tt_model = TikTokenBaseTokenizer(
             path=path,
@@ -212,42 +212,55 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
     def tokenize_message(
         self,
         message: Message,
-        tokenize_header: bool = True,
-        tokenize_end: bool = True,
+        *,
+        add_start_tokens: bool = True,
+        add_end_tokens: bool = True,
     ) -> List[int]:
         """
         Tokenize a message into a list of token ids.
 
         Args:
             message (Message): The message to tokenize.
-            tokenize_header (bool): Whether to prepend a tokenized header to the message.
-            tokenize_end (bool): Whether to append eot or eom id at the end of the message.
+            add_start_tokens (bool): Whether to prepend a tokenized header to the message. Default is True.
+            add_end_tokens (bool): Whether to append eot or eom id at the end of the message. Default is True.
 
         Returns:
             List[int]: The list of token ids.
         """
-
-        tokenized_header = self._tokenize_header(message) if tokenize_header else []
-
+        tokenized_header = self._tokenize_header(message) if add_start_tokens else []
         tokenized_body = self._tokenize_body(message)
-
-        tokenized_end = self._tokenize_end(message) if tokenize_end else []
+        tokenized_end = self._tokenize_end(message) if add_end_tokens else []
 
         tokenized_message = tokenized_header + tokenized_body + tokenized_end
-
         return tokenized_message
 
     def tokenize_messages(
         self,
         messages: List[Message],
-        add_eos: bool = True,
+        *,
+        add_end_tokens: bool = True,
     ) -> Tuple[List[int], List[bool]]:
         """
         Tokenize a list of messages into a list of token ids and masks.
 
         Args:
             messages (List[Message]): The list of messages to tokenize.
-            add_eos (bool): Wether to add the tokenizer's eos_id. Default True.
+            add_end_tokens (bool): Whether to append end tokens ids (end-of-seq, end-of-turn, end-of-message) at the end of the
+                last assistant message. This value should be set to False for generation. Default is True.
+
+        Examples:
+            >>> # Tokenize a list of messages with default settings
+            >>> messages = [
+            ...     Message(role="user", content="Hello world!", masked=True),
+            ...     Message(role="assistant", content="How are you?", masked=False),
+            ... ]
+            >>> tokenizer = Llama3Tokenizer("/path/to/tt_model")
+            >>> tokenizer.tokenize_messages(messages)
+            ([1, 31587, 29644, 102, 1, 31587, 29644, 102, 2], [True, True, True, True, True, False, False, False, True])
+
+            >>> # Tokenize a list of messages with add_end_tokens set to False
+            >>> tokenizer.tokenize_messages(messages, add_end_tokens=False)
+            ([1, 31587, 29644, 102, 1, 31587, 29644], [True, True, True, True, True, False, False])
 
         Returns:
             Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
@@ -260,37 +273,52 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         tokens = [self.bos_id]
         # bos and eos are always masked
         mask = [True]
-        for message in templated_messages:
-            tokenized_message = self.tokenize_message(message)
+
+        num_messages = len(templated_messages)
+        for i, message in enumerate(templated_messages):
+            # Add end tokens to the last assistant message if add_end_tokens is True
+            # Otherwise, end tokens should always be added
+            add_end_tokens_to_message = (
+                add_end_tokens if i == num_messages - 1 else True
+            )
+            tokenized_message = self.tokenize_message(
+                message, add_end_tokens=add_end_tokens_to_message
+            )
 
             tokens = tokens + tokenized_message
             mask = mask + ([message.masked] * len(tokenized_message))
             if self.max_seq_len and len(tokens) >= self.max_seq_len:
                 break
 
-        if add_eos:
+        if add_end_tokens:
             tokens = tokens + [self.eos_id]
             mask = mask + [True]
+
         if self.max_seq_len:
-            tokens = truncate(tokens, self.max_seq_len, self.eos_id)
-            mask = truncate(mask, self.max_seq_len, True)
+            tokens = truncate(
+                tokens, self.max_seq_len, self.eos_id if add_end_tokens else None
+            )
+            mask = truncate(mask, self.max_seq_len, True if add_end_tokens else None)
 
         return tokens, mask
 
-    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+    def __call__(
+        self, sample: Mapping[str, Any], inference: bool = False
+    ) -> Mapping[str, Any]:
         """
         Apply ``tokenize_messages`` to the "messages" field in the sample.
 
         Args:
             sample (Mapping[str, Any]): A sample with a "messages" field containing
                 a List[Message] to tokenize
+            inference (bool): Whether the template is being used for inference or not.
 
         Returns:
             Mapping[str, Any]: The sample with added "tokens" and "mask" fields
                 and the "messages" field removed.
         """
         messages = sample.pop("messages")
-        tokens, mask = self.tokenize_messages(messages)
+        tokens, mask = self.tokenize_messages(messages, add_end_tokens=not inference)
         sample["tokens"] = tokens
         sample["mask"] = mask
         return sample

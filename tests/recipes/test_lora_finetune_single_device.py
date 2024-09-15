@@ -43,6 +43,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
             "gradient_accumulation_steps=1",
+            "clip_grad_norm=100",
         ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self, model_type):
@@ -74,10 +75,6 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
 
-        # To workaround https://github.com/pytorch/torchtune/issues/676
-        if compile:
-            os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
-
         cmd = f"""
         tune run lora_finetune_single_device \
             --config {config} \
@@ -100,6 +97,10 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
+        # Make sure to clear compile state in between tests
+        if compile:
+            torch._dynamo.reset()
+
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values(model_type)
         torch.testing.assert_close(
@@ -118,10 +119,6 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
-
-        # To workaround https://github.com/pytorch/torchtune/issues/676
-        if compile:
-            os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
 
         cmd = f"""
         tune run lora_finetune_single_device
@@ -145,14 +142,21 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
+        # Make sure to clear compile state in between tests
+        if compile:
+            torch._dynamo.reset()
+
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_qlora_expected_loss_values(dtype=dtype)
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
 
+    @pytest.mark.parametrize("save_adapter_weights_only", [False, True])
     @pytest.mark.integration_test
-    def test_training_state_on_resume(self, tmpdir, monkeypatch):
+    def test_training_state_on_resume(
+        self, tmpdir, monkeypatch, save_adapter_weights_only
+    ):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
         consists of three stages:
@@ -183,6 +187,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
+            save_adapter_weights_only={save_adapter_weights_only} \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
