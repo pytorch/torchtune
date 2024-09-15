@@ -116,7 +116,7 @@ Functions used for preprocessing images.
 
 Reinforcement Learning From Human Feedback (RLHF)
 --------------------------------------------------
-Components for RLHF algorithms like PPO.
+Components and losses for RLHF algorithms like PPO and DPO:
 
 .. autosummary::
    :toctree: generated/
@@ -125,16 +125,8 @@ Components for RLHF algorithms like PPO.
     rlhf.estimate_advantages
     rlhf.get_rewards_ppo
     rlhf.truncate_sequence_at_first_stop_token
-
-Losses
-^^^^^^
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
-   rlhf.loss.PPOLoss
-   rlhf.loss.DPOLoss
-   rlhf.loss.RSOLoss
-   rlhf.loss.IPOLoss
-   rlhf.loss.SimPOLoss
+    rlhf.loss.PPOLoss
+    rlhf.loss.DPOLoss
+    rlhf.loss.RSOLoss
+    rlhf.loss.IPOLoss
+    rlhf.loss.SimPOLoss

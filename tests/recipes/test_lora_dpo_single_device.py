@@ -14,8 +14,7 @@ import torch
 from omegaconf import OmegaConf
 from tests.common import TUNE_PATH
 from tests.recipes.utils import (
-    CKPT_COMPONENT_MAP,
-    dummy_alpaca_dataset_config,
+    dummy_stack_exchange_dataset_config,
     MODEL_TEST_CONFIGS,
     write_hf_ckpt_config,
 )
@@ -23,13 +22,11 @@ from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
     get_loss_values_from_metric_logger,
-    TOKENIZER_PATHS,
 )
 from torchtune import config
-from torchtune.utils import torch_version_ge
 
 
-class TestLoRAFinetuneSingleDeviceRecipe:
+class TestLoRADPOSingleDeviceRecipe:
     def _get_test_config_overrides(self, dtype_str: str = "fp32", epochs: int = 2):
         return [
             "batch_size=8",
@@ -44,113 +41,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             "log_every_n_steps=1",
             "gradient_accumulation_steps=1",
             "clip_grad_norm=100",
-        ] + dummy_alpaca_dataset_config()
-
-    def _fetch_expected_loss_values(self, model_type):
-        loss_values_map = {
-            "llama2": [10.5209, 10.5269, 10.5130, 10.5242],
-            "llama3": [11.9838, 11.9691, 11.9616, 11.9383],
-        }
-        return loss_values_map[model_type]
-
-    def _fetch_qlora_expected_loss_values(self, dtype):
-        if dtype == "bf16":
-            return [10.5197, 10.5272, 10.5129, 10.5243]
-        return [10.5198, 10.5271, 10.5131, 10.5244]
-
-    @pytest.mark.integration_test
-    @pytest.mark.parametrize("compile", [True, False])
-    @pytest.mark.parametrize(
-        "config, model_type, ckpt_type",
-        [
-            ("llama2/7B_lora_single_device", "llama2", "meta"),
-            ("llama3/8B_lora_single_device", "llama3", "tune"),
-        ],
-    )
-    def test_loss(self, compile, config, model_type, ckpt_type, tmpdir, monkeypatch):
-        ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
-        ckpt = model_type + "_" + ckpt_type
-        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
-        tokenizer_path = Path(TOKENIZER_PATHS[model_type])
-        ckpt_dir = ckpt_path.parent
-        log_file = gen_log_file_name(tmpdir)
-
-        cmd = f"""
-        tune run lora_finetune_single_device \
-            --config {config} \
-            output_dir={tmpdir} \
-            checkpointer._component_={ckpt_component} \
-            checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}] \
-            checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type={model_type.upper()} \
-            tokenizer.path='{tokenizer_path}' \
-            tokenizer.prompt_template=null \
-            metric_logger.filename={log_file} \
-            compile={compile} \
-        """.split()
-
-        model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
-
-        cmd = cmd + self._get_test_config_overrides(dtype_str="fp32") + model_config
-        monkeypatch.setattr(sys, "argv", cmd)
-        with pytest.raises(SystemExit, match=""):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        # Make sure to clear compile state in between tests
-        if compile:
-            torch._dynamo.reset()
-
-        loss_values = get_loss_values_from_metric_logger(log_file)
-        expected_loss_values = self._fetch_expected_loss_values(model_type)
-        torch.testing.assert_close(
-            loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
-        )
-
-    @pytest.mark.integration_test
-    @pytest.mark.parametrize("dtype", ["fp32", "bf16"])
-    @pytest.mark.parametrize("compile", [True, False])
-    @pytest.mark.skipif(
-        not torch_version_ge("2.4.0"),
-        reason="Please install a nightly build of torch to run this test.",
-    )
-    def test_loss_qlora(self, compile, dtype, tmpdir, monkeypatch):
-        ckpt = "llama2_meta"
-        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
-        ckpt_dir = ckpt_path.parent
-        log_file = gen_log_file_name(tmpdir)
-
-        cmd = f"""
-        tune run lora_finetune_single_device
-            --config llama2/7B_qlora_single_device \
-            output_dir={tmpdir} \
-            checkpointer=torchtune.training.FullModelMetaCheckpointer
-            checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
-            metric_logger.filename={log_file} \
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
-            tokenizer.prompt_template=null \
-            compile={compile} \
-        """.split()
-
-        model_config = MODEL_TEST_CONFIGS["llama2_qlora"]
-
-        cmd = cmd + self._get_test_config_overrides(dtype_str=dtype) + model_config
-        monkeypatch.setattr(sys, "argv", cmd)
-        with pytest.raises(SystemExit):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        # Make sure to clear compile state in between tests
-        if compile:
-            torch._dynamo.reset()
-
-        loss_values = get_loss_values_from_metric_logger(log_file)
-        expected_loss_values = self._fetch_qlora_expected_loss_values(dtype=dtype)
-        torch.testing.assert_close(
-            loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
-        )
+            "tokenizer.max_seq_len=512",
+        ] + dummy_stack_exchange_dataset_config()
 
     @pytest.mark.parametrize("save_adapter_weights_only", [False, True])
     @pytest.mark.integration_test
@@ -163,6 +55,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             - Train a model for 2 epochs
             - Resume training after epoch 1
             - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
+        Unlike `tests.recipes.test_lora_finetune_single_device`, this test does not use pre-computed loss
+        values to benchmark against. This test just ensures the loss values are identical when resuming.
         """
 
         ckpt = "llama2_hf"
@@ -177,8 +71,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
         # Train for two epochs
         cmd_1 = f"""
-        tune run lora_finetune_single_device \
-            --config llama2/7B_lora_single_device \
+        tune run lora_dpo_single_device \
+            --config llama2/7B_lora_dpo_single_device \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -188,6 +82,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
             save_adapter_weights_only={save_adapter_weights_only} \
+            metric_logger.filename={log_file} \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
@@ -197,10 +92,14 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
+        expected_loss_values = get_loss_values_from_metric_logger(log_file)
+
+        resumed_log_dir = (tmpdir / "resumed/").mkdir()
+        resumed_log_file = gen_log_file_name(resumed_log_dir)
         # Resume training
         cmd_2 = f"""
-        tune run lora_finetune_single_device \
-            --config llama2/7B_lora_single_device \
+        tune run lora_dpo_single_device \
+            --config llama2/7B_lora_dpo_single_device \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
@@ -210,7 +109,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             resume_from_checkpoint=True \
-            metric_logger.filename={log_file} \
+            metric_logger.filename={resumed_log_file} \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
         """.split()
@@ -220,11 +119,10 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Second epoch only
-        expected_loss_values = self._fetch_expected_loss_values("llama2")[2:]
-        loss_values = get_loss_values_from_metric_logger(log_file)[:2]
+        resumed_loss_values = get_loss_values_from_metric_logger(resumed_log_file)
 
         torch.testing.assert_close(
-            loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
+            resumed_loss_values[:2], expected_loss_values[2:], rtol=1e-5, atol=1e-5
         )
 
     @pytest.mark.integration_test
@@ -234,8 +132,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         ckpt_dir = ckpt_path.parent
 
         cmd = f"""
-        tune run lora_finetune_single_device \
-            --config llama2/7B_lora_single_device \
+        tune run lora_dpo_single_device \
+            --config llama2/7B_lora_dpo_single_device \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
