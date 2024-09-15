@@ -49,6 +49,17 @@ def get_assets_path():
     return Path(__file__).parent.parent / "assets"
 
 
+def dummy_stack_exchange_dataset_config():
+    data_files = os.path.join(get_assets_path(), "stack_exchange_paired_tiny.json")
+    out = [
+        "dataset._component_=torchtune.datasets.stack_exchange_paired_dataset",
+        "dataset.source='json'",
+        f"dataset.data_files={data_files}",
+        "dataset.split='train'",
+    ]
+    return out
+
+
 def dummy_alpaca_dataset_config():
     data_files = os.path.join(get_assets_path(), "alpaca_tiny.json")
     out = [

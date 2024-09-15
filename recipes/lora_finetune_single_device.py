@@ -535,11 +535,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
             # Move to CPU to avoid a copy on GPU
             state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
-            merged_state_dict = get_merged_lora_ckpt(
-                state_dict,
-                rank=self._lora_rank,
-                alpha=self._lora_alpha,
-            )
 
             # Construct the adapter weights
             # Do this using the state_dict to avoid running upcast and H2D in state_dict post hook twice
@@ -547,6 +542,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             adapter_state_dict = {
                 k: v for k, v in state_dict.items() if adapter_key_filter(k)
             }
+
+            merged_state_dict = get_merged_lora_ckpt(
+                state_dict,
+                rank=self._lora_rank,
+                alpha=self._lora_alpha,
+            )
+
             ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
         else:
             # No need to merge state dict if we're only saving adapter weights
