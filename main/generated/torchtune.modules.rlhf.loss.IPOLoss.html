@@ -427,16 +427,16 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="torchtune.modules.rlhf.loss.IPOLoss">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.rlhf.loss.</span></span><span class="sig-name descname"><span class="pre">IPOLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tau</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/rlhf/loss/dpo.html#IPOLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.rlhf.loss.IPOLoss" title="Permalink to this definition">¶</a></dt>
-<dd><p>Identity Preference Optimisation (IPO) Loss module: <a class="reference external" href="https://arxiv.org/abs/2310.12036">https://arxiv.org/abs/2310.12036</a>.
+<dd><p>Identity Preference Optimization (IPO) Loss module: <a class="reference external" href="https://arxiv.org/abs/2310.12036">https://arxiv.org/abs/2310.12036</a>.
 Intuition from the paper:</p>
 <blockquote>
-<div><p>(Given a policy pi and reference policy, pi_ref)</p>
+<div><p>(Given a policy <span class="math notranslate nohighlight">\(\pi\)</span> and reference policy, <span class="math notranslate nohighlight">\(\pi_{\text{ref}}\)</span>)</p>
 <p>IPO learns from preferences dataset simply by regressing the gap between log-likelihood ratios</p>
-<p>log(pi(chosen)/pi(rejected)) and log(pi_ref(chosen)/pi_ref(rejected))</p>
-<p>to 1/(2*tau), where tau is the temperature parameter. [T]he weaker the regularisation becomes, the
+<p><span class="math notranslate nohighlight">\(\log \bigg(\frac{(\pi(\text{chosen})}{\pi(\text{rejected})}\bigg)\)</span> and <span class="math notranslate nohighlight">\(\log \bigg(\frac{\pi_{\text{ref}}(\text{chosen})}{\pi_{\text{ref}}(\text{rejected})} \bigg)\)</span></p>
+<p>to <span class="math notranslate nohighlight">\(\frac{1}{2*\tau}\)</span>, where <span class="math notranslate nohighlight">\(\tau\)</span> is the temperature parameter. The weaker the regularisation becomes, the
 higher would be the log-likelihood ratio of chosen to rejected logprobs. In other words IPO, unlike DPO,
-always regularizes its solution towards pi_ref by controlling the gap between the log-likelihood ratios</p>
-<p>log(pi(chosen)/pi(rejected)) and log(pi_ref(chosen)/pi_ref(rejected))</p>
+always regularizes its solution towards <span class="math notranslate nohighlight">\(\pi_{\text{ref}}\)</span> by controlling the gap between the log-likelihood ratios</p>
+<p><span class="math notranslate nohighlight">\(\log \bigg(\frac{\pi(\text{chosen})}{\pi(\text{rejected})}\bigg)\)</span> and <span class="math notranslate nohighlight">\(\log \bigg(\frac{\pi_{\text{ref}}(\text{chosen})}{\pi_{\text{ref}}(\text{rejected})} \bigg)\)</span></p>
 <p>thus avoiding the over-fitting to the preference dataset.</p>
 </div></blockquote>
 <p>Based on the implementation in HF’s TRL library:
@@ -444,7 +444,7 @@ always regularizes its solution towards pi_ref by controlling the gap between th
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>tau</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – <p>Equivalent temperature scaling parameter (from DPO) for the IPO loss. From the TRL documentation:</p>
-<p>the [tau] parameter is the reciprocal of the gap between the log-likelihood ratios of the
+<p>the <span class="math notranslate nohighlight">\(\tau\)</span> parameter is the reciprocal of the gap between the log-likelihood ratios of the
 chosen vs the rejected completion pair and thus the smaller the tau the larger this gap is.</p>
 </p>
 </dd>
@@ -554,6 +554,7 @@ for the rejected responses. Shape: (batch_size)</p></li>
          <script src="../_static/clipboard.min.js"></script>
          <script src="../_static/copybutton.js"></script>
          <script src="../_static/design-tabs.js"></script>
+         <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
      
 
   

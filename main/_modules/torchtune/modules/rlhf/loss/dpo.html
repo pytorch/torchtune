@@ -431,7 +431,7 @@
 
 <div class="viewcode-block" id="DPOLoss"><a class="viewcode-back" href="../../../../../generated/torchtune.modules.rlhf.loss.DPOLoss.html#torchtune.modules.rlhf.loss.DPOLoss">[docs]</a><span class="k">class</span> <span class="nc">DPOLoss</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Direct Preference Optimization (DPO) Loss module: https://arxiv.org/abs/2305.18290.</span>
+<span class="sd">    Direct Preference Optimization (DPO) Loss module: https://arxiv.org/abs/2305.18290</span>
 <span class="sd">    Simply stated from the paper:</span>
 
 <span class="sd">        Intuitively, the DPO update increases the relative log probability of preferred to dispreferred responses,</span>
@@ -579,21 +579,21 @@
 
 
 <div class="viewcode-block" id="IPOLoss"><a class="viewcode-back" href="../../../../../generated/torchtune.modules.rlhf.loss.IPOLoss.html#torchtune.modules.rlhf.loss.IPOLoss">[docs]</a><span class="k">class</span> <span class="nc">IPOLoss</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Identity Preference Optimisation (IPO) Loss module: https://arxiv.org/abs/2310.12036.</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Identity Preference Optimization (IPO) Loss module: https://arxiv.org/abs/2310.12036.</span>
 <span class="sd">    Intuition from the paper:</span>
 
-<span class="sd">        (Given a policy pi and reference policy, pi_ref)</span>
+<span class="sd">        (Given a policy :math:`\pi` and reference policy, :math:`\pi_{\text{ref}}`)</span>
 
 <span class="sd">        IPO learns from preferences dataset simply by regressing the gap between log-likelihood ratios</span>
 
-<span class="sd">        log(pi(chosen)/pi(rejected)) and log(pi_ref(chosen)/pi_ref(rejected))</span>
+<span class="sd">        :math:`\log \bigg(\frac{(\pi(\text{chosen})}{\pi(\text{rejected})}\bigg)` and :math:`\log \bigg(\frac{\pi_{\text{ref}}(\text{chosen})}{\pi_{\text{ref}}(\text{rejected})} \bigg)`</span>
 
-<span class="sd">        to 1/(2*tau), where tau is the temperature parameter. [T]he weaker the regularisation becomes, the</span>
+<span class="sd">        to :math:`\frac{1}{2*\tau}`, where :math:`\tau` is the temperature parameter. The weaker the regularisation becomes, the</span>
 <span class="sd">        higher would be the log-likelihood ratio of chosen to rejected logprobs. In other words IPO, unlike DPO,</span>
-<span class="sd">        always regularizes its solution towards pi_ref by controlling the gap between the log-likelihood ratios</span>
+<span class="sd">        always regularizes its solution towards :math:`\pi_{\text{ref}}` by controlling the gap between the log-likelihood ratios</span>
 
-<span class="sd">        log(pi(chosen)/pi(rejected)) and log(pi_ref(chosen)/pi_ref(rejected))</span>
+<span class="sd">        :math:`\log \bigg(\frac{\pi(\text{chosen})}{\pi(\text{rejected})}\bigg)` and :math:`\log \bigg(\frac{\pi_{\text{ref}}(\text{chosen})}{\pi_{\text{ref}}(\text{rejected})} \bigg)`</span>
 
 <span class="sd">        thus avoiding the over-fitting to the preference dataset.</span>
 
@@ -604,9 +604,9 @@
 <span class="sd">    Args:</span>
 <span class="sd">        tau (float): Equivalent temperature scaling parameter (from DPO) for the IPO loss. From the TRL documentation:</span>
 
-<span class="sd">            the [tau] parameter is the reciprocal of the gap between the log-likelihood ratios of the</span>
+<span class="sd">            the :math:`\tau` parameter is the reciprocal of the gap between the log-likelihood ratios of the</span>
 <span class="sd">            chosen vs the rejected completion pair and thus the smaller the tau the larger this gap is.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: B950</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>

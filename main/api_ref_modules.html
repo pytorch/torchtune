@@ -580,7 +580,7 @@ model specific tokenizers.</p>
 </section>
 <section id="reinforcement-learning-from-human-feedback-rlhf">
 <h2>Reinforcement Learning From Human Feedback (RLHF)<a class="headerlink" href="#reinforcement-learning-from-human-feedback-rlhf" title="Permalink to this heading">¶</a></h2>
-<p>Components for RLHF algorithms like PPO.</p>
+<p>Components and losses for RLHF algorithms like PPO and DPO:</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.estimate_advantages.html#torchtune.modules.rlhf.estimate_advantages" title="torchtune.modules.rlhf.estimate_advantages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.estimate_advantages</span></code></a></p></td>
@@ -592,33 +592,23 @@ model specific tokenizers.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.truncate_sequence_at_first_stop_token.html#torchtune.modules.rlhf.truncate_sequence_at_first_stop_token" title="torchtune.modules.rlhf.truncate_sequence_at_first_stop_token"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.truncate_sequence_at_first_stop_token</span></code></a></p></td>
 <td><p>Truncates sequence(s) after the first stop token and pads with <code class="docutils literal notranslate"><span class="pre">fill_value</span></code>.</p></td>
 </tr>
-</tbody>
-</table>
-<section id="losses">
-<h3>Losses<a class="headerlink" href="#losses" title="Permalink to this heading">¶</a></h3>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.loss.PPOLoss.html#torchtune.modules.rlhf.loss.PPOLoss" title="torchtune.modules.rlhf.loss.PPOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.loss.PPOLoss</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.loss.PPOLoss.html#torchtune.modules.rlhf.loss.PPOLoss" title="torchtune.modules.rlhf.loss.PPOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.loss.PPOLoss</span></code></a></p></td>
 <td><p>Proximal Policy Optimization (PPO) Loss module.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.loss.DPOLoss.html#torchtune.modules.rlhf.loss.DPOLoss" title="torchtune.modules.rlhf.loss.DPOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.loss.DPOLoss</span></code></a></p></td>
-<td><p>Direct Preference Optimization (DPO) Loss module: <a class="reference external" href="https://arxiv.org/abs/2305.18290">https://arxiv.org/abs/2305.18290</a>.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.loss.DPOLoss.html#torchtune.modules.rlhf.loss.DPOLoss" title="torchtune.modules.rlhf.loss.DPOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.loss.DPOLoss</span></code></a></p></td>
+<td><p>Direct Preference Optimization (DPO) Loss module: <a class="reference external" href="https://arxiv.org/abs/2305.18290">https://arxiv.org/abs/2305.18290</a> Simply stated from the paper:</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.loss.RSOLoss.html#torchtune.modules.rlhf.loss.RSOLoss" title="torchtune.modules.rlhf.loss.RSOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.loss.RSOLoss</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.loss.RSOLoss.html#torchtune.modules.rlhf.loss.RSOLoss" title="torchtune.modules.rlhf.loss.RSOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.loss.RSOLoss</span></code></a></p></td>
 <td><p>Statistical Rejection Sampling Optimization (RSO) or &quot;hinge&quot; loss module: <a class="reference external" href="https://arxiv.org/abs/2309.06657">https://arxiv.org/abs/2309.06657</a>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.loss.IPOLoss.html#torchtune.modules.rlhf.loss.IPOLoss" title="torchtune.modules.rlhf.loss.IPOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.loss.IPOLoss</span></code></a></p></td>
-<td><p>Identity Preference Optimisation (IPO) Loss module: <a class="reference external" href="https://arxiv.org/abs/2310.12036">https://arxiv.org/abs/2310.12036</a>.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.loss.IPOLoss.html#torchtune.modules.rlhf.loss.IPOLoss" title="torchtune.modules.rlhf.loss.IPOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.loss.IPOLoss</span></code></a></p></td>
+<td><p>Identity Preference Optimization (IPO) Loss module: <a class="reference external" href="https://arxiv.org/abs/2310.12036">https://arxiv.org/abs/2310.12036</a>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.loss.SimPOLoss.html#torchtune.modules.rlhf.loss.SimPOLoss" title="torchtune.modules.rlhf.loss.SimPOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.loss.SimPOLoss</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.loss.SimPOLoss.html#torchtune.modules.rlhf.loss.SimPOLoss" title="torchtune.modules.rlhf.loss.SimPOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.loss.SimPOLoss</span></code></a></p></td>
 <td><p>SimPO: Simple Preference Optimization with a Reference-Free Reward: <a class="reference external" href="https://arxiv.org/abs/2405.14734">https://arxiv.org/abs/2405.14734</a>.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html#torchtune.modules.loss.CEWithChunkedOutputLoss" title="torchtune.modules.loss.CEWithChunkedOutputLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss.CEWithChunkedOutputLoss</span></code></a></p></td>
-<td><p>CE with chunked outputs that saves memory by only upcasting one chunk at a time.</p></td>
 </tr>
 </tbody>
 </table>
-</section>
 </section>
 </section>
 
@@ -673,10 +663,7 @@ model specific tokenizers.</p>
 <li><a class="reference internal" href="#fusion-components">Fusion Components</a></li>
 <li><a class="reference internal" href="#module-utilities">Module Utilities</a></li>
 <li><a class="reference internal" href="#vision-transforms">Vision Transforms</a></li>
-<li><a class="reference internal" href="#reinforcement-learning-from-human-feedback-rlhf">Reinforcement Learning From Human Feedback (RLHF)</a><ul>
-<li><a class="reference internal" href="#losses">Losses</a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#reinforcement-learning-from-human-feedback-rlhf">Reinforcement Learning From Human Feedback (RLHF)</a></li>
 </ul>
 </li>
 </ul>
