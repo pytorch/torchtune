@@ -45,16 +45,12 @@ class TransformerSelfAttentionLayer(nn.Module):
         self.sa_scale = sa_scale or nn.Identity()
         self.mlp_scale = mlp_scale or nn.Identity()
 
-    def setup_cache(
-        self, batch_size: int, dtype: torch.dtype, max_seq_len: Optional[int] = None
-    ) -> None:
+    def setup_cache(self, batch_size: int, dtype: torch.dtype) -> None:
         """Setup key value caches for attention calculation.
 
         Args:
             batch_size (int): batch size for the caches.
             dtype (torch.dtype): dtype for the caches.
-            max_seq_len (Optional[int]): maximum sequence length for the caches. Default None,
-                in which case ``model.max_seq_len`` is used.
         """
         self.attn.setup_cache(batch_size, dtype)
 
@@ -486,7 +482,6 @@ class TransformerDecoder(nn.Module):
             In the case above when ``input_pos`` are right-shifted due to padding, ``cache_pos``
             should be used to correctly update KV-caches, where ``cache_pos`` is ``torch.arange(prompt_length)``
             during the first pre-fill step, and ``torch.tensor([prompt_length])`` for subsequent steps.
-            This argument is only required when input ids are padded.
 
         Shape notation:
             - b: batch size
