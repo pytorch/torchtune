@@ -12,7 +12,7 @@ import torch
 from omegaconf import DictConfig
 from torch import nn
 
-from torchtune import config, training, utils
+from torchtune import config, generation, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import ChatFormat, InstructTemplate, Message
 
@@ -40,7 +40,7 @@ class InferenceRecipe:
         self._quantizer = config.instantiate(cfg.quantizer)
         self._quantization_mode = training.get_quantizer_mode(self._quantizer)
 
-        utils.set_seed(seed=cfg.seed)
+        training.set_seed(seed=cfg.seed)
 
     def setup(self, cfg: DictConfig) -> None:
         checkpointer = config.instantiate(cfg.checkpointer)
@@ -147,10 +147,10 @@ class InferenceRecipe:
         if self._quantization_mode is not None:
             logger.info("Starting compilation to improve generation performance ...")
             custom_generate_next_token = torch.compile(
-                utils.generate_next_token, mode="max-autotune", fullgraph=True
+                generation.generate_next_token, mode="max-autotune", fullgraph=True
             )
             t0 = time.perf_counter()
-            _ = utils.generate(
+            _ = generation.generate(
                 model=self._model,
                 prompt=prompt,
                 max_generated_tokens=2,
@@ -163,7 +163,7 @@ class InferenceRecipe:
             logger.info(f"Warmup run for quantized model takes: {t:.02f} sec")
 
         t0 = time.perf_counter()
-        generated_tokens = utils.generate(
+        generated_tokens = generation.generate(
             model=self._model,
             prompt=prompt,
             max_generated_tokens=cfg.max_new_tokens,

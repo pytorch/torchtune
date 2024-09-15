@@ -217,7 +217,8 @@ a vanilla minimal LoRA layer, taken from :ref:`the LoRA tutorial <lora_finetune_
 .. code-block:: python
   :emphasize-lines: 3, 13, 19, 20, 39, 40, 41
 
-  from torch import nn, Tensor
+  import torch
+  from torch import nn
   import torch.nn.functional as F
   from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
 
@@ -253,7 +254,7 @@ a vanilla minimal LoRA layer, taken from :ref:`the LoRA tutorial <lora_finetune_
       self.lora_a.weight.requires_grad = True
       self.lora_b.weight.requires_grad = True
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
       # frozen_out would be the output of the original model
       if quantize_base:
         # Call into torchao's linear_nf4 to run linear forward pass w/quantized weight.

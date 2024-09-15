@@ -8,7 +8,7 @@ import pytest
 import torch
 from tests.test_utils import fixed_init_model
 from torchtune.models.mistral import mistral_classifier
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 NUM_LAYERS = 4
 NUM_HEADS = 16

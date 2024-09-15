@@ -8,7 +8,8 @@ import logging
 from typing import Optional
 
 import torch
-from torch import nn, Tensor
+from torch import nn
+from torchtune.modules.attention_utils import _MaskType, _sdpa_or_flex_attention
 from torchtune.modules.kv_cache import KVCache
 
 logger = logging.getLogger(__name__)
@@ -136,6 +137,9 @@ class MultiHeadAttention(nn.Module):
         self.k_norm = k_norm
         self.pos_embeddings = pos_embeddings
 
+        # Use flex attention if supported and we are sample packing
+        self._attention_call = _sdpa_or_flex_attention()
+
     def setup_cache(self, batch_size: int, dtype: torch.dtype) -> None:
         """Setup key value caches for attention calculation. If called
         after kv_cache is already setup, this will be skipped.
@@ -168,30 +172,38 @@ class MultiHeadAttention(nn.Module):
 
     def forward(
         self,
-        x: Tensor,
-        y: Optional[Tensor] = None,
+        x: torch.Tensor,
+        y: Optional[torch.Tensor] = None,
         *,
-        mask: Optional[Tensor] = None,
-        input_pos: Optional[Tensor] = None,
-    ) -> Tensor:
+        mask: Optional[_MaskType] = None,
+        input_pos: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         """
         Args:
-            x (Tensor): input tensor with shape [b x s_x x d]
-            y (Optional[Tensor]): second input tensor for cross attention with shape [b x s_y x d]
-            mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask
-                with shape [batch_size x seq_length x seq_length]. This is applied after
-                the query-key multiplication and before the softmax. A value of True in row i
-                and column j means token i attends to token j. A value of False means token i
-                does not attend to token j. If no mask is specified, a causal mask
-                is used by default. Default is None.
-            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+            x (torch.Tensor): input tensor with shape [b x s_x x d] for the query
+            y (Optional[torch.Tensor]): second input tensor with shape [b x s_y x d], is the input
+                for k and v. For self attention, x=y. Optional only with kv_cache enabled.
+            mask (Optional[_MaskType]): Used to mask the scores after the query-key multiplication
+                and before the softmax. Either a boolean tensor with shape [b x s x s] or a
+                :class:`~torch.nn.attention.flex_attention.BlockMask`. If a boolean tensor, a value
+                of True in row i and column j means token i attends to token j. A value of False means
+                token i does not attend to token j. If no mask is specified, a causal mask
+                is used by default. If a :class:`~torch.nn.attention.flex_attention.BlockMask` is passed
+                for document masking in a packed sequence via `create_block_mask
+                <https://pytorch.org/blog/flexattention/#mask-mods>`_, we use
+                :func:`~torch.nn.attention.flex_attention.flex_attention` when computing attention.
+                Default is None.
+            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
 
+        Raises:
+            ValueError: If no `y` input and `kv_cache` is not enabled.
+
         Returns:
-            Tensor: output tensor with attention applied
+            torch.Tensor: output tensor with attention applied
 
         Notation used for tensor shapes:
             - b: batch size
@@ -205,76 +217,86 @@ class MultiHeadAttention(nn.Module):
         TODO:
             - Return the attention weights
         """
-        # input has shape [b, s_x, d]
+        # x has shape [b, s_x, d]
+        # y has shape [b, s_y, d]
         b, s_x, _ = x.shape
-        y = y if y is not None else x
-        s_y = y.shape[1]
+        s_y = y.shape[1] if y is not None else 0
 
         if self.kv_cache and input_pos is None:
             cache_size = self.kv_cache.size
             input_pos = torch.arange(cache_size, cache_size + s_y, device=x.device)
 
         # q has shape [b, s_x, num_heads * head_dim]
-        # k has shape [b, s_y, num_kv_heads * head_dim]
-        # v has shape [b, s_y, num_kv_heads * head_dim]
         q = self.q_proj(x)
-        k = self.k_proj(y)
-        v = self.v_proj(y)
 
         # number of queries per key/value
         q_per_kv = self.num_heads // self.num_kv_heads
-
-        # q: [b, s_x, n_kv, q_per_kv, h_d]
-        # k: [b, s_y, n_kv, 1, h_d]
-        # v: [b, s_y, n_kv, 1, h_d]
-        q = q.view(b, s_x, self.num_kv_heads, q_per_kv, self.head_dim)
-        k = k.view(b, s_y, self.num_kv_heads, 1, self.head_dim)
-        v = v.view(b, s_y, self.num_kv_heads, 1, self.head_dim)
-
-        # if needed, expand the key and value tensors to have the same shape
-        # as the query tensor by copying values across the relevant dim
-        if self.num_heads != self.num_kv_heads:
-            k = k.expand(b, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
-            v = v.expand(b, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
-
-        # llama applies the RoPE embeddings on tensors with shape
-        # [b, s, n_h, h_d]
-        # Reshape the tensors before we apply RoPE
-        q = q.reshape(b, s_x, -1, self.head_dim)
-        k = k.reshape(b, s_y, -1, self.head_dim)
-        v = v.reshape(b, s_y, -1, self.head_dim)
+        q = q.view(b, s_x, self.num_kv_heads * q_per_kv, self.head_dim)
 
         # Apply positional embeddings
         if self.pos_embeddings is not None:
             q = self.pos_embeddings(q, input_pos=input_pos)
-            k = self.pos_embeddings(k, input_pos=input_pos)
 
-        # [b, n_h, s, h_d]
+        # [b, n_h, s_x, h_d]
         q = q.transpose(1, 2)
-        k = k.transpose(1, 2)
-        v = v.transpose(1, 2)
 
-        # Normalize q and k
-        # Note: normalizing before kv_cache assumes token level
-        #       normalization, not batch or sequence level
+        # Normalize q
         if self.q_norm is not None:
             q = self.q_norm(q)
-            k = self.k_norm(k)
 
-        # Update key-value cache
-        if self.kv_cache is not None:
-            k, v = self.kv_cache.update(input_pos, k, v)
+        if y is None:
+            if self.kv_cache is None:
+                raise ValueError(
+                    "Must provide y input or use kv_cache to enable streaming decoding"
+                )
+            k = self.kv_cache.k_cache
+            v = self.kv_cache.v_cache
+        else:
+            # Update k and v shape, positional embeddings, and normalization
 
-        # shape: [b, 1, s, s]
-        if mask is not None:
-            mask = mask[:, None, :, :]
+            # k has shape [b, s_y, num_kv_heads * head_dim]
+            # v has shape [b, s_y, num_kv_heads * head_dim]
+            k = self.k_proj(y)
+            v = self.v_proj(y)
 
-        # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
-        output = nn.functional.scaled_dot_product_attention(
+            # k: [b, s_y, n_kv, 1, h_d]
+            # v: [b, s_y, n_kv, 1, h_d]
+            k = k.view(b, s_y, self.num_kv_heads, 1, self.head_dim)
+            v = v.view(b, s_y, self.num_kv_heads, 1, self.head_dim)
+
+            # if needed, expand the key and value tensors to have the same shape
+            # as the query tensor by copying values across the relevant dim
+            if self.num_heads != self.num_kv_heads:
+                k = k.expand(b, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
+                v = v.expand(b, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
+
+            # llama applies the RoPE embeddings on tensors with shape
+            # [b, s, n_h, h_d]
+            # Reshape the tensors before we apply RoPE
+            k = k.reshape(b, s_y, -1, self.head_dim)
+            v = v.reshape(b, s_y, -1, self.head_dim)
+
+            # Apply positional embeddings
+            if self.pos_embeddings is not None:
+                k = self.pos_embeddings(k, input_pos=input_pos)
+
+            # [b, n_h, s, h_d]
+            k = k.transpose(1, 2)
+            v = v.transpose(1, 2)
+
+            # Normalize k
+            if self.k_norm is not None:
+                k = self.k_norm(k)
+
+            # Update key-value cache
+            if self.kv_cache is not None:
+                k, v = self.kv_cache.update(input_pos, k, v)
+
+        output = self._attention_call(
             q,
             k,
             v,
-            attn_mask=mask,
+            mask=mask,
             dropout_p=self.attn_dropout,
             is_causal=self.kv_cache is None and mask is None and self.is_causal,
         )
