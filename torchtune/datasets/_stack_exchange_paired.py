@@ -79,6 +79,7 @@ def stack_exchange_paired_dataset(
     column_map: Optional[Dict[str, str]] = None,
     train_on_input: bool = False,
     split: str = "train",
+    **load_dataset_kwargs: Dict[str, Any],
 ) -> PreferenceDataset:
     """
     Family of preference datasets similar to the `Stack Exchange Paired dataset
@@ -101,6 +102,7 @@ def stack_exchange_paired_dataset(
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
     Returns:
         PreferenceDataset: The preference dataset built from source paired data.
@@ -122,4 +124,5 @@ def stack_exchange_paired_dataset(
         tokenizer=tokenizer,
         split=split,
         data_dir="data/rl",
+        **load_dataset_kwargs,
     )
