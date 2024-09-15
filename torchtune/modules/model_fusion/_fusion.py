@@ -334,19 +334,19 @@ class DeepFusionModel(nn.Module):
     ) -> Union[torch.Tensor, List[torch.Tensor]]:
         """
         Args:
-            tokens (torch.Tensor): input tensor with shape [b x s]
+            tokens (torch.Tensor): input tensor with shape ``[b x s]``
             mask (Optional[torch.Tensor]): Optional boolean tensor which contains the attention mask
-                with shape [b x s x s]. This is applied after the query-key multiplication and
+                with shape ``[b x s x s]``. This is applied after the query-key multiplication and
                 before the softmax. A value of True in row i and column j means token i attends
                 to token j. A value of False means token i does not attend to token j. If no
                 mask is specified, a causal mask is used by default. Default is None.
             encoder_input (Optional[Dict]): Optional input for the encoder.
             encoder_mask (Optional[torch.Tensor]):  Boolean tensor defining a relational matrix between
                 tokens and encoder embeddings. A True value at position i,j means token i can attend
-                to embedding j in the decoder. Mask has shape [b x s x s_e]. Default is None.
+                to embedding j in the decoder. Mask has shape ``[b x s x s_e]``. Default is None.
             input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
-                of each token relative to its sample when packed, shape [b x s].
+                of each token relative to its sample when packed, shape ``[b x s]``.
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
 
@@ -356,7 +356,7 @@ class DeepFusionModel(nn.Module):
         KV values for each position.
 
         Returns:
-            Tensor: output tensor with shape [b x s x v] or a list of layer \
+            Tensor: output tensor with shape ``[b x s x v]`` or a list of layer \
                 output tensors defined by ``output_hidden_states`` with the \
                 final output tensor appended to the list.
 

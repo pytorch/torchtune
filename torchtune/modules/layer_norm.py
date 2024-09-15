@@ -25,7 +25,7 @@ class Fp32LayerNorm(nn.LayerNorm):
             x (torch.Tensor): Input tensor.
 
         Returns:
-            torch.Tensor: The normalized output tensor having the same shape as x.
+            torch.Tensor: The normalized output tensor having the same shape as ``x``.
         """
         output = nn.functional.layer_norm(
             x.float(),

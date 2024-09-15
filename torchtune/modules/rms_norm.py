@@ -34,7 +34,7 @@ class RMSNorm(nn.Module):
             x (torch.Tensor): input tensor to normalize
 
         Returns:
-            torch.Tensor: The normalized and scaled tensor having the same shape as x.
+            torch.Tensor: The normalized and scaled tensor having the same shape as ``x``.
         """
         # computation is in fp32
         x_fp32 = x.float()

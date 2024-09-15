@@ -28,7 +28,7 @@ class MultiHeadAttention(nn.Module):
     Following is an example of MHA, GQA and MQA with num_heads = 4
 
     (credit for the documentation:
-    https://github.com/Lightning-AI/litgpt/blob/eda1aaaf391fd689664f95487ab03dc137e213fd/litgpt/config.py).
+    `litgpt.Config <https://github.com/Lightning-AI/litgpt/blob/eda1aaaf391fd689664f95487ab03dc137e213fd/litgpt/config.py>`_).
 
 
     ::
