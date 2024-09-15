@@ -432,9 +432,7 @@
 check that LoRA and/or base model weights are loaded into the full model correctly.
 Unlike that function, this method relies only on the values of missing and unexpected
 as returned by the load_state_dict API with strict=False. This allows us to do the
-validation without any additional calls to .state_dict(), which use additional memory.
-This API should only be used for single-device recipes, or on multi-device after
-<a class="reference external" href="https://github.com/pytorch/pytorch/pull/120600">https://github.com/pytorch/pytorch/pull/120600</a>.</p>
+validation without any additional calls to .state_dict(), which use additional memory.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

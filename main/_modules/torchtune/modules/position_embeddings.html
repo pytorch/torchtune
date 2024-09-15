@@ -442,7 +442,7 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        dim (int): Embedding dimension. This is usually set to the dim of each</span>
-<span class="sd">            head in the attention module computed as ````embed_dim`` // ``num_heads````</span>
+<span class="sd">            head in the attention module computed as ``embed_dim // num_heads``</span>
 <span class="sd">        max_seq_len (int): Maximum expected sequence length for the</span>
 <span class="sd">            model, if exceeded the cached freqs will be recomputed</span>
 <span class="sd">        base (int): The base for the geometric progression used to compute</span>
@@ -495,7 +495,7 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): input tensor with shape</span>
-<span class="sd">                [b, s, n_h, h_d]</span>
+<span class="sd">                ``[b, s, n_h, h_d]``</span>
 <span class="sd">            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids</span>
 <span class="sd">                of each token. During training, this is used to indicate the positions</span>
 <span class="sd">                of each token relative to its sample when packed, shape [b, s].</span>
@@ -503,16 +503,13 @@
 <span class="sd">                If none, assume the index of the token is its position id. Default is None.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            torch.Tensor: output tensor with RoPE applied</span>
+<span class="sd">            torch.Tensor: output tensor with shape ``[b, s, n_h, h_d]``</span>
 
 <span class="sd">        Notation used for tensor shapes:</span>
 <span class="sd">            - b: batch size</span>
 <span class="sd">            - s: sequence length</span>
 <span class="sd">            - n_h: num heads</span>
 <span class="sd">            - h_d: head dim</span>
-
-<span class="sd">        TODO: The implementation below can be made more efficient</span>
-<span class="sd">        for inference.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># input tensor has shape [b, s, n_h, h_d]</span>
         <span class="n">seq_len</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>

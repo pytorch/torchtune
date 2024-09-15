@@ -431,6 +431,8 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loose interface for all data and model transforms. Transforms operate at the</span>
 <span class="sd">    sample level and perform operations on a sample dict, returning the updated dict.</span>
+<span class="sd">    For an example implementation of this protocol, see</span>
+<span class="sd">    :class:`~torchtune.modules.transforms.VisionCrossAttentionMask`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>

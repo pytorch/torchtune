@@ -42,7 +42,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="TikTokenBaseTokenizer" href="torchtune.modules.tokenizers.TikTokenBaseTokenizer.html" />
-    <link rel="prev" title="VisionTransformer" href="torchtune.modules.VisionTransformer.html" />
+    <link rel="prev" title="CEWithChunkedOutputLoss" href="torchtune.modules.loss.CEWithChunkedOutputLoss.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -471,7 +471,7 @@ trimming leading whitespaces.</p>
 <li><p><strong>trim_leading_whitespace</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – Whether to trim leading whitespace from
 underlying sentencepiece tokenization. Sentencepiece normally prepends
 whitespace to any tokenized text, which can cause differences where
-encode(s1) + encode(s2) != encode(s1 + s2) due to leading whitespace
+<code class="docutils literal notranslate"><span class="pre">encode(s1)</span> <span class="pre">+</span> <span class="pre">encode(s2)</span> <span class="pre">!=</span> <span class="pre">encode(s1</span> <span class="pre">+</span> <span class="pre">s2)</span></code> due to leading whitespace
 added to s2. This will only trim leading whitespace if the underlying
 <code class="docutils literal notranslate"><span class="pre">SentencePieceProcessor</span></code> encodes whitespace. Default: False</p></li>
 <li><p><strong>prefix</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – Optional string to encode for trimming leading
@@ -502,7 +502,7 @@ whitespaces. Used only if trim_leading_whitespace=True. Default: None</p></li>
         <a href="torchtune.modules.tokenizers.TikTokenBaseTokenizer.html" class="btn btn-neutral float-right" title="TikTokenBaseTokenizer" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.modules.VisionTransformer.html" class="btn btn-neutral" title="VisionTransformer" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.modules.loss.CEWithChunkedOutputLoss.html" class="btn btn-neutral" title="CEWithChunkedOutputLoss" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   

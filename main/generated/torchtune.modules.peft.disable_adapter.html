@@ -427,16 +427,16 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="torchtune.modules.peft.disable_adapter">
 <span class="sig-prename descclassname"><span class="pre">torchtune.modules.peft.</span></span><span class="sig-name descname"><span class="pre">disable_adapter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generator" title="(in Python v3.12)"><span class="pre">Generator</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/modules/peft/_utils.html#disable_adapter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.peft.disable_adapter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Temporarily disable the adapters in a neural network model. This can be used,
-for example, in DPO for treating the lora adapters as the policy model
+<dd><p>Temporarily disable the adapters in a model. For example,
+this can be used in DPO for treating the LoRA adapters as the policy model
 and disabling it to treat the base model as the reference model.</p>
 <p>This context manager goes through all modules in the provided neural network model,
-and if a module has an ‘adapter_params’ attribute that is callable and a ‘disabled’ attribute,
-it sets ‘disabled’ to True. Then, the control is given back to caller. Once that finalizes,
-it sets ‘disabled’ back to False for all modules that were temporarily disabled.</p>
+and if a module has an <code class="docutils literal notranslate"><span class="pre">adapter_params</span></code> attribute that is callable and a <code class="docutils literal notranslate"><span class="pre">disabled</span></code> attribute,
+it sets <code class="docutils literal notranslate"><span class="pre">disabled</span></code> to True. Then, the control is given back to caller. When exiting the context manager,
+it sets <code class="docutils literal notranslate"><span class="pre">disabled</span></code> back to False for all modules that were temporarily disabled.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>model</strong> (<em>nn.Module</em>) – The neural network model whose adapters are to be temporarily disabled.</p>
+<dd class="field-odd"><p><strong>model</strong> (<em>nn.Module</em>) – The model whose adapters are to be temporarily disabled.</p>
 </dd>
 <dt class="field-even">Yields<span class="colon">:</span></dt>
 <dd class="field-even"><p><em>None</em> – This function yields control back to the caller, with the adapters disabled.</p>

@@ -445,13 +445,13 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        padding_masks (torch.Tensor): torch.Tensor where True indicates a padding token in the generated</span>
-<span class="sd">            sequence, and False otherwise. Shape: (b, reponse_len)</span>
-<span class="sd">        seq_lens (torch.Tensor): The length of each generated sequence. Shape: (b,)</span>
+<span class="sd">            sequence, and False otherwise. Shape: ``(b, response_len)``</span>
+<span class="sd">        seq_lens (torch.Tensor): The length of each generated sequence. Shape: ``(b,)``</span>
 <span class="sd">        penalise_no_eos (bool, optional): Whether to penalise sequences with no EOS token. Defaults to True.</span>
 <span class="sd">        min_response_length (int, optional): The minimum length of the response. If set, any responses is shorter</span>
 <span class="sd">            than this length will be penalised. Defaults to None.</span>
 <span class="sd">    Returns:</span>
-<span class="sd">        torch.Tensor: A mask tensor with shape (b,) where True indicates the corresponding score should be penalised.</span>
+<span class="sd">        torch.Tensor: A mask tensor with shape ``(b,)`` where True indicates the corresponding score should be penalised.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">reward_penalty_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">seq_lens</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
 
@@ -475,16 +475,16 @@
 <span class="sd">    Calculates PPO rewards for the given scores, logprobs, and reference logprobs.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        scores (torch.Tensor): Reward model scores, shape (b,).</span>
-<span class="sd">        logprobs (torch.Tensor): Policy logprobs, shape (b, reponse_len).</span>
-<span class="sd">        ref_logprobs (torch.Tensor): Reference base model, shape (b, reponse_len).</span>
+<span class="sd">        scores (torch.Tensor): Reward model scores, shape ``(b,)``.</span>
+<span class="sd">        logprobs (torch.Tensor): Policy logprobs, shape ``(b, response_len)``.</span>
+<span class="sd">        ref_logprobs (torch.Tensor): Reference base model logprobs, shape ``(b, response_len)``.</span>
 <span class="sd">        kl_coeff (float): KL reward contribution coefficient.</span>
 <span class="sd">        valid_score_idxs (Optional[torch.Tensor]): A tensor of indexes for valid (non-padded) token predictions.</span>
 <span class="sd">            This is useful when calculating rewards for padded sequences, as scores and value estimates are defined</span>
-<span class="sd">            for the last valid predicted token. Shape: (b,). Default None.</span>
+<span class="sd">            for the last valid predicted token. Shape: ``(b,)``. Default None.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple of tensors with shape [b, response_len] each:</span>
+<span class="sd">        Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple of tensors with shape ``(b, response_len)`` each:</span>
 <span class="sd">            - total_reward: total reward combining per-token kl rewards and reward model score.</span>
 <span class="sd">            - kl: kl divergence between policy and reference policy logprobs.</span>
 <span class="sd">            - kl_reward: kl divergence scaled by ``kl_coeff``.</span>
@@ -606,19 +606,19 @@
 <span class="sd">    https://arxiv.org/pdf/1506.02438.pdf</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        values (torch.Tensor): The predicted values for each state. Shape: (b, reponse_len)</span>
-<span class="sd">        rewards (torch.Tensor): The rewards received at each time step. Shape: (b, reponse_len)</span>
+<span class="sd">        values (torch.Tensor): The predicted values for each state. Shape: ``(b, response_len)``</span>
+<span class="sd">        rewards (torch.Tensor): The rewards received at each time step. Shape: ``(b, response_len)``</span>
 <span class="sd">        gamma (float): The discount factor.</span>
 <span class="sd">        lmbda (float): The GAE-Lambda parameter.</span>
 <span class="sd">        masks (Optional[torch.Tensor]): A bool mask tensor, where True indicates the corresponding value in ``values``</span>
 <span class="sd">            should participate in the mean calculation. Default None.</span>
 <span class="sd">    Returns:</span>
 <span class="sd">        Tuple[torch.Tensor, torch.Tensor]: A tuple containing the estimated advantages and returns.</span>
-<span class="sd">            - advantages (torch.Tensor): The estimated advantages. Shape: (b, reponse_len)</span>
-<span class="sd">            - returns (torch.Tensor): The estimated returns. Shape: (b, reponse_len)</span>
+<span class="sd">            - advantages (torch.Tensor): The estimated advantages. Shape: ``(b, response_len)``</span>
+<span class="sd">            - returns (torch.Tensor): The estimated returns. Shape: ``(b, response_len)``</span>
 <span class="sd">    Notation:</span>
 <span class="sd">        - b: batch size</span>
-<span class="sd">        - reponse_len: model response length</span>
+<span class="sd">        - response_len: model response length</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">last_gae_lam</span> <span class="o">=</span> <span class="mi">0</span>

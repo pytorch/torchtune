@@ -446,7 +446,7 @@
 <span class="sd">    Following is an example of MHA, GQA and MQA with num_heads = 4</span>
 
 <span class="sd">    (credit for the documentation:</span>
-<span class="sd">    https://github.com/Lightning-AI/lit-gpt/blob/main/lit_gpt/config.py).</span>
+<span class="sd">    `litgpt.Config &lt;https://github.com/Lightning-AI/litgpt/blob/eda1aaaf391fd689664f95487ab03dc137e213fd/litgpt/config.py&gt;`_).</span>
 
 
 <span class="sd">    ::</span>
@@ -471,9 +471,9 @@
 <span class="sd">        num_heads (int): number of query heads. For MHA this is also the</span>
 <span class="sd">            number of heads for key and value</span>
 <span class="sd">        num_kv_heads (int): number of key and value heads. User should ensure</span>
-<span class="sd">            `num_heads` % `num_kv_heads` == 0. For standard MHA set `num_kv_heads` == `num_heads`,</span>
-<span class="sd">            for GQA `num_kv_heads` &lt; `num_heads`, and for MQA set `num_kv_heads` == 1.</span>
-<span class="sd">        head_dim (int): dimension of each head, calculated by ``embed_dim`` // ``num_heads``.</span>
+<span class="sd">            ``num_heads % num_kv_heads == 0``. For standard MHA set ``num_kv_heads == num_heads``,</span>
+<span class="sd">            for GQA ``num_kv_heads &lt; num_heads``, and for MQA set ``num_kv_heads == 1``.</span>
+<span class="sd">        head_dim (int): dimension of each head, calculated by ``embed_dim // num_heads``.</span>
 <span class="sd">        q_proj (nn.Module): projection layer for query.</span>
 <span class="sd">        k_proj (nn.Module): projection layer for key.</span>
 <span class="sd">        v_proj (nn.Module): projection layer for value.</span>
@@ -492,9 +492,9 @@
 <span class="sd">            self.training is False. Default value is 0.0.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If `num_heads` % `num_kv_heads` != 0</span>
-<span class="sd">        ValueError: If `embed_dim` % `num_heads` != 0</span>
-<span class="sd">        ValueError: If `attn_dropout` &lt; 0 or &gt; 1</span>
+<span class="sd">        ValueError: If ``num_heads % num_kv_heads != 0``</span>
+<span class="sd">        ValueError: If ``embed_dim % num_heads != 0``</span>
+<span class="sd">        ValueError: If ``attn_dropout &lt; 0`` or ``attn_dropout &gt; 1``</span>
 <span class="sd">        ValueError: if q_norm is defined without k_norm or vice versa</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -618,7 +618,7 @@
 <span class="sd">                If none, assume the index of the token is its position id. Default is None.</span>
 
 <span class="sd">        Raises:</span>
-<span class="sd">            ValueError: If no `y` input and `kv_cache` is not enabled.</span>
+<span class="sd">            ValueError: If no ``y`` input and ``kv_cache`` is not enabled.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            torch.Tensor: output tensor with attention applied</span>
@@ -631,9 +631,6 @@
 <span class="sd">            - n_kv: num kv heads</span>
 <span class="sd">            - d: embed dim</span>
 <span class="sd">            - h_d: head dim</span>
-
-<span class="sd">        TODO:</span>
-<span class="sd">            - Return the attention weights</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># x has shape [b, s_x, d]</span>
         <span class="c1"># y has shape [b, s_y, d]</span>

@@ -436,7 +436,7 @@ version where we have a single key and value head shared by all
 query heads.</p>
 <p>Following is an example of MHA, GQA and MQA with num_heads = 4</p>
 <p>(credit for the documentation:
-<a class="reference external" href="https://github.com/Lightning-AI/lit-gpt/blob/main/lit_gpt/config.py">https://github.com/Lightning-AI/lit-gpt/blob/main/lit_gpt/config.py</a>).</p>
+<a class="reference external" href="https://github.com/Lightning-AI/litgpt/blob/eda1aaaf391fd689664f95487ab03dc137e213fd/litgpt/config.py">litgpt.Config</a>).</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>┌───┐┌───┐┌───┐┌───┐     ┌───┐    ┌───┐             ┌───┐
 │ v ││ v ││ v ││ v │     │ v │    │ v │             │ v │
 └───┘└───┘└───┘└───┘     └───┘    └───┘             └───┘
@@ -460,9 +460,9 @@ n_kv_heads =4          n_kv_heads=2           n_kv_heads=1
 <li><p><strong>num_heads</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – number of query heads. For MHA this is also the
 number of heads for key and value</p></li>
 <li><p><strong>num_kv_heads</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – number of key and value heads. User should ensure
-<cite>num_heads</cite> % <cite>num_kv_heads</cite> == 0. For standard MHA set <cite>num_kv_heads</cite> == <cite>num_heads</cite>,
-for GQA <cite>num_kv_heads</cite> &lt; <cite>num_heads</cite>, and for MQA set <cite>num_kv_heads</cite> == 1.</p></li>
-<li><p><strong>head_dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – dimension of each head, calculated by <code class="docutils literal notranslate"><span class="pre">embed_dim</span></code> // <code class="docutils literal notranslate"><span class="pre">num_heads</span></code>.</p></li>
+<code class="docutils literal notranslate"><span class="pre">num_heads</span> <span class="pre">%</span> <span class="pre">num_kv_heads</span> <span class="pre">==</span> <span class="pre">0</span></code>. For standard MHA set <code class="docutils literal notranslate"><span class="pre">num_kv_heads</span> <span class="pre">==</span> <span class="pre">num_heads</span></code>,
+for GQA <code class="docutils literal notranslate"><span class="pre">num_kv_heads</span> <span class="pre">&lt;</span> <span class="pre">num_heads</span></code>, and for MQA set <code class="docutils literal notranslate"><span class="pre">num_kv_heads</span> <span class="pre">==</span> <span class="pre">1</span></code>.</p></li>
+<li><p><strong>head_dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – dimension of each head, calculated by <code class="docutils literal notranslate"><span class="pre">embed_dim</span> <span class="pre">//</span> <span class="pre">num_heads</span></code>.</p></li>
 <li><p><strong>q_proj</strong> (<em>nn.Module</em>) – projection layer for query.</p></li>
 <li><p><strong>k_proj</strong> (<em>nn.Module</em>) – projection layer for key.</p></li>
 <li><p><strong>v_proj</strong> (<em>nn.Module</em>) – projection layer for value.</p></li>
@@ -483,9 +483,9 @@ self.training is False. Default value is 0.0.</p></li>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If <cite>num_heads</cite> % <cite>num_kv_heads</cite> != 0</p></li>
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If <cite>embed_dim</cite> % <cite>num_heads</cite> != 0</p></li>
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If <cite>attn_dropout</cite> &lt; 0 or &gt; 1</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">num_heads</span> <span class="pre">%</span> <span class="pre">num_kv_heads</span> <span class="pre">!=</span> <span class="pre">0</span></code></p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">embed_dim</span> <span class="pre">%</span> <span class="pre">num_heads</span> <span class="pre">!=</span> <span class="pre">0</span></code></p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">attn_dropout</span> <span class="pre">&lt;</span> <span class="pre">0</span></code> or <code class="docutils literal notranslate"><span class="pre">attn_dropout</span> <span class="pre">&gt;</span> <span class="pre">1</span></code></p></li>
 <li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – if q_norm is defined without k_norm or vice versa</p></li>
 </ul>
 </dd>
@@ -516,7 +516,7 @@ If none, assume the index of the token is its position id. Default is None.</p><
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If no <cite>y</cite> input and <cite>kv_cache</cite> is not enabled.</p>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If no <code class="docutils literal notranslate"><span class="pre">y</span></code> input and <code class="docutils literal notranslate"><span class="pre">kv_cache</span></code> is not enabled.</p>
 </dd>
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>output tensor with attention applied</p>
@@ -537,12 +537,6 @@ If none, assume the index of the token is its position id. Default is None.</p><
 </ul>
 </dd>
 </dl>
-<div class="admonition-todo admonition" id="id1">
-<p class="admonition-title">Todo</p>
-<ul class="simple">
-<li><p>Return the attention weights</p></li>
-</ul>
-</div>
 </dd></dl>
 
 <dl class="py method">

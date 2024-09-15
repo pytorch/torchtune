@@ -432,7 +432,7 @@
 <span class="sd">    Implements Root Mean Square Normalization introduced in</span>
 <span class="sd">    https://arxiv.org/abs/1910.07467.</span>
 
-<span class="sd">    Reference implementation (used for correctness verfication)</span>
+<span class="sd">    Reference implementation (used for correctness verification)</span>
 <span class="sd">    can be found here:</span>
 <span class="sd">    https://github.com/facebookresearch/llama/blob/main/llama/model.py</span>
 
@@ -452,7 +452,7 @@
 <span class="sd">            x (torch.Tensor): input tensor to normalize</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            torch.Tensor: The output tensor after applying RMSNorm.</span>
+<span class="sd">            torch.Tensor: The normalized and scaled tensor having the same shape as ``x``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># computation is in fp32</span>
         <span class="n">x_fp32</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>

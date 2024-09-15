@@ -432,8 +432,8 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>values</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – The predicted values for each state. Shape: (b, reponse_len)</p></li>
-<li><p><strong>rewards</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – The rewards received at each time step. Shape: (b, reponse_len)</p></li>
+<li><p><strong>values</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – The predicted values for each state. Shape: <code class="docutils literal notranslate"><span class="pre">(b,</span> <span class="pre">response_len)</span></code></p></li>
+<li><p><strong>rewards</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – The rewards received at each time step. Shape: <code class="docutils literal notranslate"><span class="pre">(b,</span> <span class="pre">response_len)</span></code></p></li>
 <li><p><strong>gamma</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – The discount factor.</p></li>
 <li><p><strong>lmbda</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – The GAE-Lambda parameter.</p></li>
 <li><p><strong>masks</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – A bool mask tensor, where True indicates the corresponding value in <code class="docutils literal notranslate"><span class="pre">values</span></code>
@@ -443,8 +443,8 @@ should participate in the mean calculation. Default None.</p></li>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
 <dt>A tuple containing the estimated advantages and returns.</dt><dd><ul class="simple">
-<li><p>advantages (torch.Tensor): The estimated advantages. Shape: (b, reponse_len)</p></li>
-<li><p>returns (torch.Tensor): The estimated returns. Shape: (b, reponse_len)</p></li>
+<li><p>advantages (torch.Tensor): The estimated advantages. Shape: <code class="docutils literal notranslate"><span class="pre">(b,</span> <span class="pre">response_len)</span></code></p></li>
+<li><p>returns (torch.Tensor): The estimated returns. Shape: <code class="docutils literal notranslate"><span class="pre">(b,</span> <span class="pre">response_len)</span></code></p></li>
 </ul>
 </dd>
 </dl>
@@ -457,7 +457,7 @@ should participate in the mean calculation. Default None.</p></li>
 <dl class="simple">
 <dt>Notation:</dt><dd><ul class="simple">
 <li><p>b: batch size</p></li>
-<li><p>reponse_len: model response length</p></li>
+<li><p>response_len: model response length</p></li>
 </ul>
 </dd>
 </dl>

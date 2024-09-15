@@ -433,7 +433,7 @@ a full overview available in <a class="reference external" href="https://arxiv.o
 <p>This module has the same methods and forward signature as <a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.TransformerDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">TransformerDecoder</span></code></a> and can be used
 interchangeably where <a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.TransformerDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">TransformerDecoder</span></code></a> is. It combines the encoder with the decoder as a
 single module for checkpointing and finetuning. It is expected that the encoder and decoder
-are already defined with any extra learnable <code class="docutils literal notranslate"><span class="pre">fusion_params</span></code>; learnable parameters to help
+are already defined with any extra learnable <code class="docutils literal notranslate"><span class="pre">fusion_params</span></code>: learnable parameters to help
 adapt the pre-trained encoder to the pre-trained decoder.</p>
 <p class="rubric">Example</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># decoder is a TransformerDecoder (e.g. llama3_8b) with fused cross attention layers</span>
@@ -483,19 +483,19 @@ adapt the pre-trained encoder to the pre-trained decoder.</p>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>tokens</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – input tensor with shape [b x s]</p></li>
+<li><p><strong>tokens</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – input tensor with shape <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s]</span></code></p></li>
 <li><p><strong>mask</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – Optional boolean tensor which contains the attention mask
-with shape [b x s x s]. This is applied after the query-key multiplication and
+with shape <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s</span> <span class="pre">x</span> <span class="pre">s]</span></code>. This is applied after the query-key multiplication and
 before the softmax. A value of True in row i and column j means token i attends
 to token j. A value of False means token i does not attend to token j. If no
 mask is specified, a causal mask is used by default. Default is None.</p></li>
 <li><p><strong>encoder_input</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – Optional input for the encoder.</p></li>
 <li><p><strong>encoder_mask</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – Boolean tensor defining a relational matrix between
 tokens and encoder embeddings. A True value at position i,j means token i can attend
-to embedding j in the decoder. Mask has shape [b x s x s_e]. Default is None.</p></li>
+to embedding j in the decoder. Mask has shape <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s</span> <span class="pre">x</span> <span class="pre">s_e]</span></code>. Default is None.</p></li>
 <li><p><strong>input_pos</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – Optional tensor which contains the position ids
 of each token. During training, this is used to indicate the positions
-of each token relative to its sample when packed, shape [b x s].
+of each token relative to its sample when packed, shape <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s]</span></code>.
 During inference, this indicates the position of the current token.
 If none, assume the index of the token is its position id. Default is None.</p></li>
 </ul>
@@ -507,12 +507,7 @@ If none, assume the index of the token is its position id. Default is None.</p><
 KV values for each position.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p><dl class="simple">
-<dt>output tensor with shape [b x s x v] or a list of layer</dt><dd><p>output tensors defined by <code class="docutils literal notranslate"><span class="pre">output_hidden_states</span></code> with the
-final output tensor appended to the list.</p>
-</dd>
-</dl>
-</p>
+<dd class="field-odd"><p>output tensor with shape <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s</span> <span class="pre">x</span> <span class="pre">v]</span></code> or a list of layer                 output tensors defined by <code class="docutils literal notranslate"><span class="pre">output_hidden_states</span></code> with the                 final output tensor appended to the list.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>Tensor</p>

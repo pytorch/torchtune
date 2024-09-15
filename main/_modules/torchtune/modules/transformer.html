@@ -433,7 +433,8 @@
 
 
 <div class="viewcode-block" id="TransformerSelfAttentionLayer"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer">[docs]</a><span class="k">class</span> <span class="nc">TransformerSelfAttentionLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Transformer layer derived from the Llama2 model. Normalization is applied before the attention **and** FF layer.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transformer layer derived from the Llama2 model. Normalization is applied before the attention **and** FF layer.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        attn (MultiHeadAttention): Attention module.</span>
@@ -512,9 +513,6 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            torch.Tensor: output tensor with same shape as input</span>
 <span class="sd">                [batch_size x seq_length x embed_dim]</span>
-
-<span class="sd">        TODO:</span>
-<span class="sd">            - Make position of norm configurable</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Input tensor and attention output have the same shape</span>
         <span class="c1"># [b, s, d]</span>
@@ -534,8 +532,9 @@
 
 
 <div class="viewcode-block" id="TransformerCrossAttentionLayer"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer">[docs]</a><span class="k">class</span> <span class="nc">TransformerCrossAttentionLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Cross attention Transformer layer following the same conventions as the TransformerSelfAttentionLayer.</span>
-<span class="sd">       Normalization is applied before the attention **and** FF layer.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Cross attention Transformer layer following the same conventions as the TransformerSelfAttentionLayer.</span>
+<span class="sd">    Normalization is applied before the attention **and** FF layer.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        attn (MultiHeadAttention): Attention module.</span>

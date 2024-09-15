@@ -431,18 +431,18 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>scores</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – Reward model scores, shape (b,).</p></li>
-<li><p><strong>logprobs</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – Policy logprobs, shape (b, reponse_len).</p></li>
-<li><p><strong>ref_logprobs</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – Reference base model, shape (b, reponse_len).</p></li>
+<li><p><strong>scores</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – Reward model scores, shape <code class="docutils literal notranslate"><span class="pre">(b,)</span></code>.</p></li>
+<li><p><strong>logprobs</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – Policy logprobs, shape <code class="docutils literal notranslate"><span class="pre">(b,</span> <span class="pre">response_len)</span></code>.</p></li>
+<li><p><strong>ref_logprobs</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – Reference base model logprobs, shape <code class="docutils literal notranslate"><span class="pre">(b,</span> <span class="pre">response_len)</span></code>.</p></li>
 <li><p><strong>kl_coeff</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – KL reward contribution coefficient.</p></li>
 <li><p><strong>valid_score_idxs</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – A tensor of indexes for valid (non-padded) token predictions.
 This is useful when calculating rewards for padded sequences, as scores and value estimates are defined
-for the last valid predicted token. Shape: (b,). Default None.</p></li>
+for the last valid predicted token. Shape: <code class="docutils literal notranslate"><span class="pre">(b,)</span></code>. Default None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>A tuple of tensors with shape [b, response_len] each:</dt><dd><ul class="simple">
+<dt>A tuple of tensors with shape <code class="docutils literal notranslate"><span class="pre">(b,</span> <span class="pre">response_len)</span></code> each:</dt><dd><ul class="simple">
 <li><p>total_reward: total reward combining per-token kl rewards and reward model score.</p></li>
 <li><p>kl: kl divergence between policy and reference policy logprobs.</p></li>
 <li><p>kl_reward: kl divergence scaled by <code class="docutils literal notranslate"><span class="pre">kl_coeff</span></code>.</p></li>

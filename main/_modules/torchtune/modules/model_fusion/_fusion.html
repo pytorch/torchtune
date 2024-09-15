@@ -567,7 +567,7 @@
 <span class="sd">    second embedding for the additional tokens. During forward this module routes</span>
 <span class="sd">    the tokens to the appropriate embedding table.</span>
 
-<span class="sd">    Use this as a drop-in replacement for `nn.Embedding` in your model.</span>
+<span class="sd">    Use this as a drop-in replacement for :class:`torch.nn.Embedding` in your model.</span>
 
 <span class="sd">    Example:</span>
 <span class="sd">        &gt;&gt;&gt; embedding = FusionEmbedding(vocab_size=100, fusion_vocab_size=10, embed_dim=128)</span>
@@ -680,7 +680,7 @@
 <span class="sd">    This module has the same methods and forward signature as :class:`~torchtune.modules.TransformerDecoder` and can be used</span>
 <span class="sd">    interchangeably where :class:`~torchtune.modules.TransformerDecoder` is. It combines the encoder with the decoder as a</span>
 <span class="sd">    single module for checkpointing and finetuning. It is expected that the encoder and decoder</span>
-<span class="sd">    are already defined with any extra learnable ``fusion_params``; learnable parameters to help</span>
+<span class="sd">    are already defined with any extra learnable ``fusion_params``: learnable parameters to help</span>
 <span class="sd">    adapt the pre-trained encoder to the pre-trained decoder.</span>
 
 <span class="sd">    Example:</span>
@@ -752,19 +752,19 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
-<span class="sd">            tokens (torch.Tensor): input tensor with shape [b x s]</span>
+<span class="sd">            tokens (torch.Tensor): input tensor with shape ``[b x s]``</span>
 <span class="sd">            mask (Optional[torch.Tensor]): Optional boolean tensor which contains the attention mask</span>
-<span class="sd">                with shape [b x s x s]. This is applied after the query-key multiplication and</span>
+<span class="sd">                with shape ``[b x s x s]``. This is applied after the query-key multiplication and</span>
 <span class="sd">                before the softmax. A value of True in row i and column j means token i attends</span>
 <span class="sd">                to token j. A value of False means token i does not attend to token j. If no</span>
 <span class="sd">                mask is specified, a causal mask is used by default. Default is None.</span>
 <span class="sd">            encoder_input (Optional[Dict]): Optional input for the encoder.</span>
 <span class="sd">            encoder_mask (Optional[torch.Tensor]):  Boolean tensor defining a relational matrix between</span>
 <span class="sd">                tokens and encoder embeddings. A True value at position i,j means token i can attend</span>
-<span class="sd">                to embedding j in the decoder. Mask has shape [b x s x s_e]. Default is None.</span>
+<span class="sd">                to embedding j in the decoder. Mask has shape ``[b x s x s_e]``. Default is None.</span>
 <span class="sd">            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids</span>
 <span class="sd">                of each token. During training, this is used to indicate the positions</span>
-<span class="sd">                of each token relative to its sample when packed, shape [b x s].</span>
+<span class="sd">                of each token relative to its sample when packed, shape ``[b x s]``.</span>
 <span class="sd">                During inference, this indicates the position of the current token.</span>
 <span class="sd">                If none, assume the index of the token is its position id. Default is None.</span>
 
@@ -774,8 +774,8 @@
 <span class="sd">        KV values for each position.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Tensor: output tensor with shape [b x s x v] or a list of layer</span>
-<span class="sd">                output tensors defined by ``output_hidden_states`` with the</span>
+<span class="sd">            Tensor: output tensor with shape ``[b x s x v]`` or a list of layer \</span>
+<span class="sd">                output tensors defined by ``output_hidden_states`` with the \</span>
 <span class="sd">                final output tensor appended to the list.</span>
 
 <span class="sd">        Notation used for tensor shapes:</span>

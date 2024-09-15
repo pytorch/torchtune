@@ -432,6 +432,8 @@
 <div class="viewcode-block" id="BaseTokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.BaseTokenizer.html#torchtune.modules.tokenizers.BaseTokenizer">[docs]</a><span class="k">class</span> <span class="nc">BaseTokenizer</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Abstract token encoding model that implements ``encode`` and ``decode`` methods.</span>
+<span class="sd">    See :class:`~torchtune.modules.tokenizers.SentencePieceBaseTokenizer` and</span>
+<span class="sd">    :class:`~torchtune.modules.tokenizers.TikTokenBaseTokenizer` for example implementations of this protocol.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="BaseTokenizer.encode"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.BaseTokenizer.html#torchtune.modules.tokenizers.BaseTokenizer.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
@@ -463,8 +465,9 @@
 
 <div class="viewcode-block" id="ModelTokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer">[docs]</a><span class="k">class</span> <span class="nc">ModelTokenizer</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Abstract tokenizer that implements model specific special token logic in</span>
-<span class="sd">    the ``tokenize_messages`` method.</span>
+<span class="sd">    Abstract tokenizer that implements model-specific special token logic in</span>
+<span class="sd">    the ``tokenize_messages`` method. See :class:`~torchtune.models.llama3.Llama3Tokenizer`</span>
+<span class="sd">    for an example implementation of this protocol.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">special_tokens</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>

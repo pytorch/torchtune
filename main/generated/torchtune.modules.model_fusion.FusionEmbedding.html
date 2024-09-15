@@ -435,7 +435,7 @@ to indicate an images position in text and require learning an embedding for thi
 The FusionEmbedding keeps the original embeddings frozen while learning a much smaller
 second embedding for the additional tokens. During forward this module routes
 the tokens to the appropriate embedding table.</p>
-<p>Use this as a drop-in replacement for <cite>nn.Embedding</cite> in your model.</p>
+<p>Use this as a drop-in replacement for <a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Embedding.html#torch.nn.Embedding" title="(in PyTorch v2.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.Embedding</span></code></a> in your model.</p>
 <p class="rubric">Example</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">embedding</span> <span class="o">=</span> <span class="n">FusionEmbedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">fusion_vocab_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">embed_dim</span><span class="o">=</span><span class="mi">128</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">TransformerDecoder</span><span class="p">(</span><span class="n">tok_embeddings</span><span class="o">=</span><span class="n">embedding</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
