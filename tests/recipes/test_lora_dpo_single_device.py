@@ -41,6 +41,7 @@ class TestLoRADPOSingleDeviceRecipe:
             "log_every_n_steps=1",
             "gradient_accumulation_steps=1",
             "clip_grad_norm=100",
+            "tokenizer.max_seq_len=512",
         ] + dummy_stack_exchange_dataset_config()
 
     @pytest.mark.parametrize("save_adapter_weights_only", [False, True])
@@ -93,6 +94,8 @@ class TestLoRADPOSingleDeviceRecipe:
 
         expected_loss_values = get_loss_values_from_metric_logger(log_file)
 
+        resumed_log_dir = (tmpdir / "resumed/").mkdir()
+        resumed_log_file = gen_log_file_name(resumed_log_dir)
         # Resume training
         cmd_2 = f"""
         tune run lora_dpo_single_device \
@@ -106,7 +109,7 @@ class TestLoRADPOSingleDeviceRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             resume_from_checkpoint=True \
-            metric_logger.filename={log_file} \
+            metric_logger.filename={resumed_log_file} \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
         """.split()
@@ -116,10 +119,10 @@ class TestLoRADPOSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Second epoch only
-        loss_values = get_loss_values_from_metric_logger(log_file)[:2]
+        resumed_loss_values = get_loss_values_from_metric_logger(resumed_log_file)
 
         torch.testing.assert_close(
-            loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
+            resumed_loss_values[:2], expected_loss_values[2:], rtol=1e-5, atol=1e-5
         )
 
     @pytest.mark.integration_test
