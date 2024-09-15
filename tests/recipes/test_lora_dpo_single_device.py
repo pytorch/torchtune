@@ -142,7 +142,7 @@ class TestLoRADPOSingleDeviceRecipe:
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
 
-        cmd = cmd + self._get_test_config_overrides(dtype_str="fp16") + model_config
+        cmd = cmd + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
