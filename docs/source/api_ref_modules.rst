@@ -25,6 +25,15 @@ Modeling Components and Building Blocks
     TiedEmbeddingTransformerDecoder
     VisionTransformer
 
+Losses
+------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    loss.CEWithChunkedOutputLoss
+
 Base Tokenizers
 ---------------
 Base tokenizers are tokenizer models that perform the direct encoding of text
