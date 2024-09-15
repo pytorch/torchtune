@@ -282,10 +282,6 @@ _ALL_RECIPES = [
         file_path="kd_single_device.py",
         configs=[
             Config(
-                name="llama3_1/kd_single_device",
-                file_path="llama3_1/kd_single_device.yaml",
-            ),
-            Config(
                 name="qwen2/kd_single_device",
                 file_path="qwen2/kd_single_device.yaml",
             ),

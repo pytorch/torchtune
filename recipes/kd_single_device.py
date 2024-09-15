@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
 import sys
 import time
 
@@ -13,6 +12,7 @@ from typing import Any, Dict, Optional, Tuple, Union
 from warnings import warn
 
 import torch
+import torchtune.modules.common_utils as common_utils
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
@@ -222,11 +222,13 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         # log config with parameter override
         self._metric_logger.log_config(cfg)
 
-        self._model_compile = cfg.compile
+        self._compile = cfg.compile
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
         teacher_checkpoint_dict = self.load_teacher_checkpoint(
             cfg_checkpointer=cfg.teacher_checkpointer
         )
+
+        common_utils._use_low_cpu_ram = cfg.get("low_cpu_ram", False)
 
         # set up model
         self._model = self._setup_model(
@@ -261,26 +263,19 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
         self._kd_loss_fn = config.instantiate(cfg.kd_loss)
-        backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+        if self._compile:
+            self._loss_fn = training.compile_loss(self._loss_fn)
+            # TODO: compile kd_loss_fn
+            self._kd_loss_fn = training.compile_loss(self._kd_loss_fn)
         if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
             # set num_output_chunks for model
+            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+            self._teacher_model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+            # assert _loss_fn and _kd_loss_fn have the same num_output_chunks
             assert (
                 self._loss_fn.num_output_chunks == self._kd_loss_fn.num_output_chunks
             ), "Number of output chunks for loss_fn and kd_loss_fn must be the same."
-            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
-            self._teacher_model.set_num_output_chunks(self._loss_fn.num_output_chunks)
-            if self._model_compile:
-                log.info("Compiling loss with torch.compile...")
-                # For CEWithChunkedOutputLoss, if we compile the entire class
-                # we lose the benefits from the chunked loss.
-                # Therefore, we only compile the cross entropy function + upcasting
-                self._loss_fn.compute_cross_entropy = torch.compile(
-                    self._loss_fn.compute_cross_entropy, backend=backend
-                )
-        else:
-            if self._model_compile:
-                log.info("Compiling loss with torch.compile...")
-                self._loss_fn = torch.compile(self._loss_fn, backend=backend)
+
         log.info("Loss is initialized.")
 
         # Dataloader depends on the tokenizer and loss_fn and should be
@@ -413,11 +408,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         set_trainable_params(model, self.adapter_params)
 
         if compile_model:
-            log.info("Compiling model layers with torch.compile...")
-            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-            for m in reversed(list(model.modules())):
-                if isinstance(m, modules.transformer.TransformerSelfAttentionLayer):
-                    m.compile(backend=backend)
+            training.compile_model(model)
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
@@ -664,14 +655,13 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         The core training loop.
         """
 
-        if self._model_compile:
+        if self._compile:
             log.info(
                 "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
             )
 
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
-        running_loss = 0
         running_class_loss = 0
         running_kd_loss = 0
         num_tokens = 0
@@ -706,7 +696,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                     class_loss, kd_loss = self._loss_step(batch)
                     loss = (1 - self._kd_ratio) * class_loss + self._kd_ratio * kd_loss
                     loss = loss / self._gradient_accumulation_steps
-                    running_loss += loss
                     running_class_loss += class_loss / self._gradient_accumulation_steps
                     running_kd_loss += kd_loss / self._gradient_accumulation_steps
                     loss.backward()
@@ -724,7 +713,11 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                         # Update the number of steps when the weights are updated
                         self.global_step += 1
 
-                        loss_to_log = running_loss.item()
+                        class_loss_to_log = running_class_loss.item()
+                        kd_loss_to_log = running_kd_loss.item()
+                        loss_to_log = (
+                            1 - self._kd_ratio
+                        ) * class_loss_to_log + self._kd_ratio * kd_loss_to_log
                         pbar.update(1)
                         pbar.set_description(
                             f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
@@ -735,8 +728,8 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                             time_per_step = time.perf_counter() - t0
                             log_dict = {
                                 "loss": loss_to_log,
-                                "class_loss": running_class_loss.item(),
-                                "kd_loss": running_kd_loss.item(),
+                                "class_loss": class_loss_to_log,
+                                "kd_loss": kd_loss_to_log,
                                 "lr": self._optimizer.param_groups[0]["lr"],
                                 "tokens_per_second_per_gpu": num_tokens / time_per_step,
                             }
@@ -755,7 +748,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                             )
 
                         # Reset running stats for the next step
-                        running_loss = 0
                         running_class_loss = 0
                         running_kd_loss = 0
                         num_tokens = 0
