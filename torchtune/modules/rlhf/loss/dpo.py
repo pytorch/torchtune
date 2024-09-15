@@ -13,7 +13,7 @@ import torch.nn.functional as F
 
 class DPOLoss(nn.Module):
     """
-    Direct Preference Optimization (DPO) Loss module: https://arxiv.org/abs/2305.18290.
+    Direct Preference Optimization (DPO) Loss module: https://arxiv.org/abs/2305.18290
     Simply stated from the paper:
 
         Intuitively, the DPO update increases the relative log probability of preferred to dispreferred responses,
@@ -161,21 +161,21 @@ class RSOLoss(nn.Module):
 
 
 class IPOLoss(nn.Module):
-    """
-    Identity Preference Optimisation (IPO) Loss module: https://arxiv.org/abs/2310.12036.
+    r"""
+    Identity Preference Optimization (IPO) Loss module: https://arxiv.org/abs/2310.12036.
     Intuition from the paper:
 
-        (Given a policy pi and reference policy, pi_ref)
+        (Given a policy :math:`\pi` and reference policy, :math:`\pi_{\text{ref}}`)
 
         IPO learns from preferences dataset simply by regressing the gap between log-likelihood ratios
 
-        log(pi(chosen)/pi(rejected)) and log(pi_ref(chosen)/pi_ref(rejected))
+        :math:`\log \bigg(\frac{(\pi(\text{chosen})}{\pi(\text{rejected})}\bigg)` and :math:`\log \bigg(\frac{\pi_{\text{ref}}(\text{chosen})}{\pi_{\text{ref}}(\text{rejected})} \bigg)`
 
-        to 1/(2*tau), where tau is the temperature parameter. [T]he weaker the regularisation becomes, the
+        to :math:`\frac{1}{2*\tau}`, where :math:`\tau` is the temperature parameter. The weaker the regularisation becomes, the
         higher would be the log-likelihood ratio of chosen to rejected logprobs. In other words IPO, unlike DPO,
-        always regularizes its solution towards pi_ref by controlling the gap between the log-likelihood ratios
+        always regularizes its solution towards :math:`\pi_{\text{ref}}` by controlling the gap between the log-likelihood ratios
 
-        log(pi(chosen)/pi(rejected)) and log(pi_ref(chosen)/pi_ref(rejected))
+        :math:`\log \bigg(\frac{\pi(\text{chosen})}{\pi(\text{rejected})}\bigg)` and :math:`\log \bigg(\frac{\pi_{\text{ref}}(\text{chosen})}{\pi_{\text{ref}}(\text{rejected})} \bigg)`
 
         thus avoiding the over-fitting to the preference dataset.
 
@@ -186,9 +186,9 @@ class IPOLoss(nn.Module):
     Args:
         tau (float): Equivalent temperature scaling parameter (from DPO) for the IPO loss. From the TRL documentation:
 
-            the [tau] parameter is the reciprocal of the gap between the log-likelihood ratios of the
+            the :math:`\tau` parameter is the reciprocal of the gap between the log-likelihood ratios of the
             chosen vs the rejected completion pair and thus the smaller the tau the larger this gap is.
-    """
+    """  # noqa: B950
 
     def __init__(
         self,
