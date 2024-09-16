@@ -38,6 +38,15 @@ class FeedForward(nn.Module):
         self.activation = activation
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x (torch.Tensor): input tensor with shape ``(..., in_dim)``, where ``in_dim`` is the
+                input dimension of both ``gate_proj`` and ``up_proj``.
+
+        Returns:
+            torch.Tensor: output tensor with shape ``(..., out_dim)``, where ``out_dim`` is the \
+                output dimension of ``down_proj``.
+        """
         h = self.activation(self.w1(x))
         if self.w3 is not None:
             h = h * self.w3(x)
