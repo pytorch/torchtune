@@ -45,6 +45,8 @@ to add the text "Correct this to standard English: {prompt} --- Corrected: {resp
 The added text is different from special tokens that are added by the model tokenizer. For an extended
 discussion on the different between prompt templates and special tokens, see :ref:`prompt_template_vs_special_tokens`.
 
+.. _using_prompt_templates:
+
 Using prompt templates
 ----------------------
 Prompt templates are passed into the tokenizer and will be automatically applied for the dataset you are fine-tuning on. You can pass it in two ways:

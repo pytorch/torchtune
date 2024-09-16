@@ -5,12 +5,97 @@ Chat Datasets
 =============
 
 Chat datasets involve multi-turn conversations (multiple back-and-forths) between user and assistant.
+
+.. code-block:: python
+
+    [
+        {"role": "user", "content": "What is the answer to the ultimate question of life?"},
+        {"role": "assistant", "content": "The answer is 42."},
+        {"role": "user", "content": "That's ridiculous"},
+        {"role": "assistant", "content": "Oh I know."},
+    ]
+
 This is more structured than freeform text association that models are typically pre-trained with,
 where they learn to simply predict the next token instead of responding accurately to the user.
 
 The primary entry point for fine-tuning with chat datasets in torchtune is the :func:`~torchtune.datasets.chat_dataset`
 builder. This lets you specify a local or Hugging Face dataset that follows the chat data format
 directly from the config and train your LLM on it.
+
+Example chat dataset
+--------------------
+
+.. code-block:: bash
+
+    head data/my_data.json -n 22
+    # [
+    #     {
+    #         "conversations": [
+    #             {
+    #                 "from": "human",
+    #                 "value": "What is the answer to life?"
+    #             },
+    #             {
+    #                 "from": "assistant",
+    #                 "value": "The answer is 42."
+    #             },
+    #             {
+    #                 "from": "human",
+    #                 "value": "That's ridiculous"
+    #             },
+    #             {
+    #                 "from": "assistant",
+    #                 "value": "Oh I know."
+    #             }
+    #         ]
+    #     }
+    # ]
+
+.. code-block:: python
+
+    from torchtune.models.gemma import gemma_tokenizer
+    from torchtune.datasets import instruct_dataset
+
+    g_tokenizer = gemma_tokenizer(
+        path="/tmp/gemma-7b/tokenizer.model",
+        prompt_template="torchtune.data.GrammarErrorCorrectionTemplate",
+    )
+    ds = instruct_dataset(
+        tokenizer=g_tokenizer,
+        source="json",
+        data_files="data/my_data.json",
+        split="train",
+        # By default, user prompt is ignored in loss. Set to True to include it
+        train_on_input=True,
+        # Prepend a system message to every sample
+        new_system_prompt="You are an AI assistant. ",
+        # Use columns in our dataset instead of default
+        column_map={"input": "incorrect", "output": "correct"},
+    )
+    tokenized_dict = ds[0]
+    tokens, labels = tokenized_dict["tokens"], tokenized_dict["labels"]
+    print(g_tokenizer.decode(tokens))
+    # You are an AI assistant. Correct this to standard English:This are a cat---\nCorrected:This is a cat.
+    print(labels)  # System message is masked out, but not user message
+    # [-100, -100, -100, -100, -100, -100, 27957, 736, 577, ...]
+
+.. code-block:: yaml
+
+    # In config
+    tokenizer:
+      _component_: torchtune.models.gemma.gemma_tokenizer
+      path: /tmp/gemma-7b/tokenizer.model
+      prompt_template: torchtune.data.GrammarErrorCorrectionTemplate
+
+    dataset:
+      source: json
+      data_files: data/my_data.json
+      split: train
+      train_on_input: True
+      new_system_prompt: You are an AI assistant.
+      column_map:
+        input: incorrect
+        output: correct
 
 Chat dataset format
 -------------------
@@ -172,21 +257,13 @@ Renaming columns
 
 You can remap column names similarly to :func:`~torchtune.datasets.instruct_dataset`. See :ref:`column_map` for more info.
 
-Training on user input
-----------------------
-
-You can train on user input similarly to :func:`~torchtune.datasets.instruct_dataset`. See :ref:`train_on_input` for more info.
-
-Adding system prompts
----------------------
-
-You can set a system prompt for your dataset similarly to :func:`~torchtune.datasets.instruct_dataset`. See :ref:`system_prompt` for more info.
 
 Chat templates
 --------------
 
 Chat templates are defined the same way as instruct templates in :func:`~torchtune.datasets.instruct_dataset`. See :ref:`instruct_template` for more info.
 
-Example datasets
-----------------
+
+Built-in chat datasets
+----------------------
 - :class:`~torchtune.datasets.slimorca_dataset`

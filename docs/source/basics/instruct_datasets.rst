@@ -14,10 +14,67 @@ The primary entry point for fine-tuning with instruct datasets in torchtune is t
 builder. This lets you specify a local or Hugging Face dataset that follows the instruct data format
 directly from the config and train your LLM on it.
 
+Example instruct dataset
+------------------------
+
+Here is an example of an instruct dataset to fine-tune for a grammar correction task.
+
+.. code-block:: bash
+
+    head data/my_data.csv
+    # incorrect,correct
+    # This are a cat,This is a cat.
+
+.. code-block:: python
+
+    from torchtune.models.gemma import gemma_tokenizer
+    from torchtune.datasets import instruct_dataset
+
+    g_tokenizer = gemma_tokenizer(
+        path="/tmp/gemma-7b/tokenizer.model",
+        prompt_template="torchtune.data.GrammarErrorCorrectionTemplate",
+    )
+    ds = instruct_dataset(
+        tokenizer=g_tokenizer,
+        source="csv",
+        data_files="data/my_data.csv",
+        split="train",
+        # By default, user prompt is ignored in loss. Set to True to include it
+        train_on_input=True,
+        # Prepend a system message to every sample
+        new_system_prompt="You are an AI assistant. ",
+        # Use columns in our dataset instead of default
+        column_map={"input": "incorrect", "output": "correct"},
+    )
+    tokenized_dict = ds[0]
+    tokens, labels = tokenized_dict["tokens"], tokenized_dict["labels"]
+    print(g_tokenizer.decode(tokens))
+    # You are an AI assistant. Correct this to standard English:This are a cat---\nCorrected:This is a cat.
+    print(labels)  # System message is masked out, but not user message
+    # [-100, -100, -100, -100, -100, -100, 27957, 736, 577, ...]
+
+.. code-block:: yaml
+
+    # In config
+    tokenizer:
+      _component_: torchtune.models.gemma.gemma_tokenizer
+      path: /tmp/gemma-7b/tokenizer.model
+      prompt_template: torchtune.data.GrammarErrorCorrectionTemplate
+
+    dataset:
+      source: csv
+      data_files: data/my_data.csv
+      split: train
+      train_on_input: True
+      new_system_prompt: You are an AI assistant.
+      column_map:
+        input: incorrect
+        output: correct
+
 Instruct dataset format
 -----------------------
 
-Instruct datasets typically follow the input-output format, where the user prompt is in one column
+Instruct datasets are expected to follow an input-output format, where the user prompt is in one column
 and the assistant prompt is in another column.
 
 .. code-block:: text
@@ -27,22 +84,19 @@ and the assistant prompt is in another column.
     | "user prompt"   | "model response" |
 
 The user input column is converted to a :class:`~torchtune.data.Message` with ``role="user"`` and the assistant
-output column is converted to a a :class:`~torchtune.data.Message` with ``role="assistant"``.
+output column is converted to a :class:`~torchtune.data.Message` with ``role="assistant"``.
 
 .. code-block:: python
 
     from torchtune.data import Message
 
     sample = {
-        "input": "user prompt",
-        "output": "model response",
+        "input": "This are a cat",
+        "output": "This is a cat.",
     }
-    #
-    # After message transform
-    #
     msgs = [
-        Message(role="user", content="user prompt"),
-        Message(role="assistant", content="model response")
+        Message(role="user", content=sample["input"]),
+        Message(role="assistant", content=sample["output"])
     ]
 
 These are then tokenized by the model tokenizer with the appropriate model-specific special tokens added
@@ -50,16 +104,15 @@ These are then tokenized by the model tokenizer with the appropriate model-speci
 
 .. code-block:: python
 
-    from torchtune.models.phi3 import phi3_mini_tokenizer
+    from torchtune.models.gemma import gemma_tokenizer
 
-    p_tokenizer = phi3_mini_tokenizer("/tmp/Phi-3-mini-4k-instruct/tokenizer.model")
-    tokens, mask = p_tokenizer.tokenize_messages(msgs)
-    print(tokens)
-    # [1, 32010, 29871, 13, 1792, 9508, 32007, 29871, 13, 32001, 29871, 13, 4299, 2933, 32007, 29871, 13]
+    g_tokenizer = gemma_tokenizer("/tmp/gemma-7b/tokenizer.model")
+    tokens, mask = g_tokenizer.tokenize_messages(msgs)
     print(p_tokenizer.decode(tokens))
     # '\nuser prompt \n \nmodel response \n'
 
 As an example, you can see the schema of the `C4 200M dataset <https://huggingface.co/datasets/liweili/c4_200m>`_.
+
 
 Loading instruct datasets from Hugging Face
 -------------------------------------------
@@ -69,6 +122,7 @@ For most datasets, you will also need to specify the ``split``.
 
 .. code-block:: python
 
+    # In code
     from torchtune.models.gemma import gemma_tokenizer
     from torchtune.datasets import instruct_dataset
 
@@ -81,13 +135,18 @@ For most datasets, you will also need to specify the ``split``.
 
 .. code-block:: yaml
 
+    # In config
+    tokenizer:
+      _component_: torchtune.models.gemma.gemma_tokenizer
+      path: /tmp/gemma-7b/tokenizer.model
+
     # Tokenizer is passed into the dataset in the recipe
     dataset:
       _component_: torchtune.datasets.instruct_dataset
       source: liweili/c4_200m
       split: train
 
-This will use the default column names "input" and "output". To change the column names, use the ``column_map`` argument.
+This will use the default column names "input" and "output". To change the column names, use the ``column_map`` argument (see :ref:`column_map`).
 
 Loading local and remote instruct datasets
 ------------------------------------------
@@ -98,6 +157,7 @@ for more details on loading local or remote files.
 
 .. code-block:: python
 
+    # In code
     from torchtune.models.gemma import gemma_tokenizer
     from torchtune.datasets import instruct_dataset
 
@@ -111,6 +171,11 @@ for more details on loading local or remote files.
 
 .. code-block:: yaml
 
+    # In config
+    tokenizer:
+      _component_: torchtune.models.gemma.gemma_tokenizer
+      path: /tmp/gemma-7b/tokenizer.model
+
     # Tokenizer is passed into the dataset in the recipe
     dataset:
       _component_: torchtune.datasets.instruct_dataset
@@ -123,8 +188,22 @@ for more details on loading local or remote files.
 Renaming columns
 ----------------
 
-If the default column names are "input", "output" and you need to change them to something else,
-such as "prompt", "response" for example, define ``column_map`` as such:
+You can remap the default column names to the column names in your dataset by specifying
+``column_map`` as ``{"<default column>": "<column in your dataset>"}``. The default column names
+are detailed in each of the dataset builders (see :func:`~torchtune.datasets.instruct_dataset` and
+:func:`~torchtune.datasets.chat_dataset` as examples).
+
+For example, if the default column names are "input", "output" and you need to change them to something else,
+such as "prompt", "response", then ``column_map = {"input": "prompt", "output": "response"}``.
+
+.. code-block:: python
+
+    # data/my_data.json
+    [
+        {"prompt": "hello world", "response": "bye world"},
+        {"prompt": "are you a robot", "response": "no, I am an AI assistant"},
+        ...
+    ]
 
 .. code-block:: python
 
@@ -152,65 +231,6 @@ such as "prompt", "response" for example, define ``column_map`` as such:
         input: prompt
         output: response
 
-.. _train_on_input:
-
-Training on user input
-----------------------
-
-By default, user prompts are masked from the loss. To override this behavior, set ``train_on_input=True``.
-
-.. code-block:: python
-
-    from torchtune.models.gemma import gemma_tokenizer
-    from torchtune.datasets import instruct_dataset
-
-    g_tokenizer = gemma_tokenizer("/tmp/gemma-7b/tokenizer.model")
-    ds = instruct_dataset(
-        tokenizer=g_tokenizer,
-        source="liweili/c4_200m",
-        split="train",
-        train_on_input=True,
-    )
-
-.. code-block:: yaml
-
-    # Tokenizer is passed into the dataset in the recipe
-    dataset:
-      _component_: torchtune.datasets.instruct_dataset
-      source: liweili/c4_200m
-      split: train
-      train_on_input: True
-
-.. _system_prompt:
-
-Adding system prompts
----------------------
-
-By specifying a system prompt, you will prepend a system :class:`~torchtune.data.Message` to each sample
-in your dataset.
-
-.. code-block:: python
-
-    from torchtune.models.gemma import gemma_tokenizer
-    from torchtune.datasets import instruct_dataset
-
-    g_tokenizer = gemma_tokenizer("/tmp/gemma-7b/tokenizer.model")
-    ds = instruct_dataset(
-        tokenizer=g_tokenizer,
-        source="liweili/c4_200m",
-        split="train",
-        new_system_prompt="You are a friendly AI assistant",
-    )
-
-.. code-block:: yaml
-
-    # Tokenizer is passed into the dataset in the recipe
-    dataset:
-      _component_: torchtune.datasets.instruct_dataset
-      source: liweili/c4_200m
-      split: train
-      new_system_prompt: You are a friendly AI assistant
-
 .. _instruct_template:
 
 Instruct templates
@@ -219,44 +239,11 @@ Instruct templates
 Typically for instruct datasets, you will want to add a :class:`~torchtune.data.PromptTemplate` to provide task-relevant
 information. For example, for a grammar correction task, we may want to use a prompt template like :class:`~torchtune.data.GrammarErrorCorrectionTemplate`
 to structure each of our samples. Prompt templates are passed into the tokenizer and automatically applied to the dataset
-you are fine-tuning on.
+you are fine-tuning on. See :ref:`using_prompt_templates` for more details.
 
-.. code-block:: text
 
-    Correct this to standard English: {user_message}
-    ---
-    Corrected: {assistant_message}
-
-.. code-block:: python
-
-    from torchtune.models.gemma import gemma_tokenizer
-    from torchtune.datasets import instruct_dataset
-
-    g_tokenizer = gemma_tokenizer(
-        path="/tmp/gemma-7b/tokenizer.model",
-        prompt_template="torchtune.data.GrammarErrorCorrectionTemplate",
-    )
-    ds = instruct_dataset(
-        tokenizer=g_tokenizer,
-        source="liweili/c4_200m",
-        split="train",
-    )
-
-.. code-block:: yaml
-
-    # Tokenizer is passed into the dataset in the recipe
-    tokenizer:
-      _component_: torchtune.models.gemma.gemma_tokenizer
-      path: /tmp/gemma-7b/tokenizer.model
-      prompt_template: torchtune.data.GrammarErrorCorrectionTemplate
-
-    dataset:
-      _component_: torchtune.datasets.instruct_dataset
-      source: liweili/c4_200m
-      split: train
-
-Example datasets
-----------------
+Built-in instruct datasets
+--------------------------
 - :class:`~torchtune.datasets.alpaca_dataset`
 - :class:`~torchtune.datasets.grammar_dataset`
 - :class:`~torchtune.datasets.samsum_dataset`
