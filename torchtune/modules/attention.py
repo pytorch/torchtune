@@ -28,7 +28,7 @@ class MultiHeadAttention(nn.Module):
     Following is an example of MHA, GQA and MQA with num_heads = 4
 
     (credit for the documentation:
-    https://github.com/Lightning-AI/lit-gpt/blob/main/lit_gpt/config.py).
+    `litgpt.Config <https://github.com/Lightning-AI/litgpt/blob/eda1aaaf391fd689664f95487ab03dc137e213fd/litgpt/config.py>`_).
 
 
     ::
@@ -53,9 +53,9 @@ class MultiHeadAttention(nn.Module):
         num_heads (int): number of query heads. For MHA this is also the
             number of heads for key and value
         num_kv_heads (int): number of key and value heads. User should ensure
-            `num_heads` % `num_kv_heads` == 0. For standard MHA set `num_kv_heads` == `num_heads`,
-            for GQA `num_kv_heads` < `num_heads`, and for MQA set `num_kv_heads` == 1.
-        head_dim (int): dimension of each head, calculated by ``embed_dim`` // ``num_heads``.
+            ``num_heads % num_kv_heads == 0``. For standard MHA set ``num_kv_heads == num_heads``,
+            for GQA ``num_kv_heads < num_heads``, and for MQA set ``num_kv_heads == 1``.
+        head_dim (int): dimension of each head, calculated by ``embed_dim // num_heads``.
         q_proj (nn.Module): projection layer for query.
         k_proj (nn.Module): projection layer for key.
         v_proj (nn.Module): projection layer for value.
@@ -74,9 +74,9 @@ class MultiHeadAttention(nn.Module):
             self.training is False. Default value is 0.0.
 
     Raises:
-        ValueError: If `num_heads` % `num_kv_heads` != 0
-        ValueError: If `embed_dim` % `num_heads` != 0
-        ValueError: If `attn_dropout` < 0 or > 1
+        ValueError: If ``num_heads % num_kv_heads != 0``
+        ValueError: If ``embed_dim % num_heads != 0``
+        ValueError: If ``attn_dropout < 0`` or ``attn_dropout > 1``
         ValueError: if q_norm is defined without k_norm or vice versa
     """
 
@@ -177,6 +177,7 @@ class MultiHeadAttention(nn.Module):
         *,
         mask: Optional[_MaskType] = None,
         input_pos: Optional[torch.Tensor] = None,
+        cache_pos: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """
         Args:
@@ -198,9 +199,13 @@ class MultiHeadAttention(nn.Module):
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
+            cache_pos (Optional[torch.Tensor]): Optional tensor which contains the cache positions
+                of each token, used during inference. This is useful when ``input_ids`` are
+                right-shifted to account for padding tokens. Default is None, in which case
+                ``input_pos`` is used (if specified).
 
         Raises:
-            ValueError: If no `y` input and `kv_cache` is not enabled.
+            ValueError: If no ``y`` input and ``kv_cache`` is not enabled.
 
         Returns:
             torch.Tensor: output tensor with attention applied
@@ -213,9 +218,6 @@ class MultiHeadAttention(nn.Module):
             - n_kv: num kv heads
             - d: embed dim
             - h_d: head dim
-
-        TODO:
-            - Return the attention weights
         """
         # x has shape [b, s_x, d]
         # y has shape [b, s_y, d]
@@ -226,6 +228,7 @@ class MultiHeadAttention(nn.Module):
             cache_size = self.kv_cache.size
             input_pos = torch.arange(cache_size, cache_size + s_y, device=x.device)
 
+        cache_pos = input_pos if cache_pos is None else cache_pos
         # q has shape [b, s_x, num_heads * head_dim]
         q = self.q_proj(x)
 
@@ -259,26 +262,29 @@ class MultiHeadAttention(nn.Module):
             k = self.k_proj(y)
             v = self.v_proj(y)
 
+            # Apply positional embeddings
+            # k: [b, s_y, n_kv, h_d]
+            k = k.view(b, s_y, -1, self.head_dim)
+            if self.pos_embeddings is not None:
+                k = self.pos_embeddings(k, input_pos=input_pos)
+
+            # View + expand + reshape bring num_kv_heads to num_heads for k and v
+            # to match q.
+
             # k: [b, s_y, n_kv, 1, h_d]
             # v: [b, s_y, n_kv, 1, h_d]
             k = k.view(b, s_y, self.num_kv_heads, 1, self.head_dim)
             v = v.view(b, s_y, self.num_kv_heads, 1, self.head_dim)
 
-            # if needed, expand the key and value tensors to have the same shape
+            # If needed, expand the key and value tensors to have the same shape
             # as the query tensor by copying values across the relevant dim
             if self.num_heads != self.num_kv_heads:
                 k = k.expand(b, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
                 v = v.expand(b, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
 
-            # llama applies the RoPE embeddings on tensors with shape
             # [b, s, n_h, h_d]
-            # Reshape the tensors before we apply RoPE
             k = k.reshape(b, s_y, -1, self.head_dim)
             v = v.reshape(b, s_y, -1, self.head_dim)
-
-            # Apply positional embeddings
-            if self.pos_embeddings is not None:
-                k = self.pos_embeddings(k, input_pos=input_pos)
 
             # [b, n_h, s, h_d]
             k = k.transpose(1, 2)
@@ -290,7 +296,7 @@ class MultiHeadAttention(nn.Module):
 
             # Update key-value cache
             if self.kv_cache is not None:
-                k, v = self.kv_cache.update(input_pos, k, v)
+                k, v = self.kv_cache.update(cache_pos, k, v)
 
         output = self._attention_call(
             q,

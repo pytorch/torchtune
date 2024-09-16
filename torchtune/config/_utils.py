@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Union
 from omegaconf import DictConfig, OmegaConf
 
 from torchtune.config._errors import InstantiationError
-from torchtune.utils.logging import get_logger, log_rank_zero
+from torchtune.utils._logging import get_logger, log_rank_zero
 
 
 def log_config(recipe_name: str, cfg: DictConfig) -> None:

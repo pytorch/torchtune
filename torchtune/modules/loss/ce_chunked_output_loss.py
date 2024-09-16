@@ -12,16 +12,16 @@ import torch.nn.functional as F
 
 class CEWithChunkedOutputLoss(torch.nn.Module):
     """
-    CE with chunked outputs that saves memory by only upcasting one chunk at a time.
+    Cross-entropy with chunked outputs that saves memory by only upcasting one chunk at a time.
 
-    Since the model is trained with bf16, before running CE, we have to upcast
+    Whenever the model is trained with bf16, before running CE, we have to upcast
     it to fp32 for better accuracy and stability. When upcasting happens, the memory usage doubles.
     Models like llama3 have large vocabulary size and, therefore, have a large output
-    result (bsz, num_tokens, vocab_size). If we chunk on the token level, you can still compute
+    tensor of shape ``(bsz, num_tokens, vocab_size)``. If we chunk on the token level, you can still compute
     the cross entropy normally, but upcasting only one chunk at a time saves considerable memory.
 
     The CE and upcasting have to be compiled together for better performance.
-    When using this class, we recommend using torch.compile only on the method `compute_cross_entropy`.
+    When using this class, we recommend using :func:`torch.compile` only on the method ``compute_cross_entropy``.
     The gains from chunking won't be realized if you compile the entire class.
 
     For more details, please refer to: https://github.com/pytorch/torchtune/pull/1390
@@ -47,8 +47,8 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
         Args:
             logits (List[torch.Tensor]): List of chunked logits of length
                 ``self.num_output_chunks``, where each chunk has shape
-                (batch_size, num_tokens / num_output_chunks, vocab_size).
-            labels (torch.Tensor): Ground truth labels of shape (batch_size, num_tokens).
+                ``(batch_size, num_tokens / num_output_chunks, vocab_size)``.
+            labels (torch.Tensor): Ground truth labels of shape ``(batch_size, num_tokens)``.
 
         Returns:
             torch.Tensor: Cross entropy loss of shape (1,).

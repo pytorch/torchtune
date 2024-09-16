@@ -5,17 +5,19 @@
 # LICENSE file in the root directory of this source tree.
 import copy
 from typing import Callable, Dict, List, Optional, Union
+from warnings import warn
 
 import torch
 import torch.nn.functional as F
 from torch import nn
 from torchtune.modules import MultiHeadAttention
 from torchtune.modules.attention_utils import _MaskType
-from torchtune.utils.logging import deprecated
+from torchtune.utils._logging import deprecated
 
 
 class TransformerSelfAttentionLayer(nn.Module):
-    """Transformer layer derived from the Llama2 model. Normalization is applied before the attention **and** FF layer.
+    """
+    Transformer layer derived from the Llama2 model. Normalization is applied before the attention **and** FF layer.
 
     Args:
         attn (MultiHeadAttention): Attention module.
@@ -68,6 +70,7 @@ class TransformerSelfAttentionLayer(nn.Module):
         *,
         mask: Optional[_MaskType] = None,
         input_pos: Optional[torch.Tensor] = None,
+        cache_pos: Optional[torch.Tensor] = None,
         **kwargs: Dict,
     ) -> torch.Tensor:
         """
@@ -89,20 +92,21 @@ class TransformerSelfAttentionLayer(nn.Module):
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
+            cache_pos (Optional[torch.Tensor]): Optional tensor which contains the cache positions
+                of each token, used during inference. This is useful when ``input_ids`` are
+                right-shifted to account for padding tokens. Default is None, in which case
+                ``input_pos`` is used (if specified).
             **kwargs (Dict): transformer layer inputs not relevant to self attention.
 
         Returns:
             torch.Tensor: output tensor with same shape as input
                 [batch_size x seq_length x embed_dim]
-
-        TODO:
-            - Make position of norm configurable
         """
         # Input tensor and attention output have the same shape
         # [b, s, d]
         # Norm applied before self-attention
         h = self.sa_norm(x)
-        attn_out = self.attn(h, h, mask=mask, input_pos=input_pos)
+        attn_out = self.attn(h, h, mask=mask, input_pos=input_pos, cache_pos=cache_pos)
 
         # Residual connection; shape: [batch_size, seq_length, embed_dim]
         h = self.sa_scale(attn_out) + x
@@ -116,8 +120,9 @@ class TransformerSelfAttentionLayer(nn.Module):
 
 
 class TransformerCrossAttentionLayer(nn.Module):
-    """Cross attention Transformer layer following the same conventions as the TransformerSelfAttentionLayer.
-       Normalization is applied before the attention **and** FF layer.
+    """
+    Cross attention Transformer layer following the same conventions as the TransformerSelfAttentionLayer.
+    Normalization is applied before the attention **and** FF layer.
 
     Args:
         attn (MultiHeadAttention): Attention module.
@@ -213,6 +218,7 @@ class TransformerCrossAttentionLayer(nn.Module):
         *,
         encoder_input: Optional[torch.Tensor] = None,
         encoder_mask: Optional[torch.Tensor] = None,
+        cache_pos: Optional[torch.Tensor] = None,
         **kwargs: Dict,
     ) -> torch.Tensor:
         """
@@ -225,6 +231,10 @@ class TransformerCrossAttentionLayer(nn.Module):
                 tokens and encoder embeddings. A True value at position i,j means token i can attend
                 to embedding j in the decoder. Mask has shape [batch_size x token_sequence x embed_sequence].
                 Default is None.
+            cache_pos (Optional[torch.Tensor]): Optional tensor which contains the cache positions
+                of each token, used during inference. This is useful when ``input_ids`` are
+                right-shifted to account for padding tokens. Default is None, in which case
+                ``input_pos`` is used (if specified).
             **kwargs (Dict): transformer layer inputs not relevant to self attention.
 
         Returns:
@@ -246,7 +256,9 @@ class TransformerCrossAttentionLayer(nn.Module):
         # [b, s, d]
         # Norm applied before self-attention
         # TODO: Add support for sample packing and bring back input_pos
-        attn_out = self.attn(self.ca_norm(x), encoder_input, mask=encoder_mask)
+        attn_out = self.attn(
+            self.ca_norm(x), encoder_input, mask=encoder_mask, cache_pos=cache_pos
+        )
         if skip_mask is not None:
             attn_out.masked_fill_(skip_mask, 0)
 
@@ -364,11 +376,6 @@ class TransformerDecoder(nn.Module):
         for layer in self.layers:
             layer.setup_cache(batch_size, dtype)
 
-        # causal_mask is used during inference to ensure we're attending
-        # to the right tokens
-        self.causal_mask = torch.tril(
-            torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
-        )
         self.pos = 0
 
     def caches_are_enabled(self) -> bool:
@@ -417,6 +424,7 @@ class TransformerDecoder(nn.Module):
         encoder_input: Optional[torch.Tensor] = None,
         encoder_mask: Optional[torch.Tensor] = None,
         input_pos: Optional[torch.Tensor] = None,
+        cache_pos: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, List[torch.Tensor]]:
         """
         Args:
@@ -440,6 +448,10 @@ class TransformerDecoder(nn.Module):
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
+            cache_pos (Optional[torch.Tensor]): Optional tensor which contains the cache positions
+                of each token, used during inference. This is useful when ``input_ids`` are
+                right-shifted to account for padding tokens. Default is None, in which case
+                ``input_pos`` is used (if specified).
 
         Note: At the very first step of inference, when the model is provided with a prompt,
         ``input_pos`` would contain the positions of all of the tokens in the prompt
@@ -453,9 +465,24 @@ class TransformerDecoder(nn.Module):
 
         Raises:
             ValueError: if seq_len of x is bigger than max_seq_len
-            ValueError: if a mask is provided and the model is in inference mode
 
-        Notation used for tensor shapes:
+        Note:
+            At the very first step of inference, when the model is provided with a prompt,
+            ``input_pos`` should contain the positions of all of the tokens in the prompt.
+            For a single-batch prompt, or a batch of prompts with identical lengths, this
+            will be``torch.arange(prompt_length)``. For a batch of varying-length prompts,
+            shorter prompts are left-padded and position ids are correspondingly right-shifted,
+            thus positional ids should be of shape ``[b, padded_prompt_length]``.
+            This is because we will need to retrieve the positional embeddings for each input id.
+            In the subsequent steps, if the model has been setup with KV-caches, ``input_pos`` will contain
+            the position(s) of the current token(s) ``torch.tensor([padded_prompt_length])``. Otherwise,
+            ``input_pos`` will contain all the position ids up to the current token.
+
+            In the case above when ``input_pos`` are right-shifted due to padding, ``cache_pos``
+            should be used to correctly update KV-caches, where ``cache_pos`` is ``torch.arange(prompt_length)``
+            during the first pre-fill step, and ``torch.tensor([prompt_length])`` for subsequent steps.
+
+        Shape notation:
             - b: batch size
             - s: token sequence length
             - s_e: encoder sequence length
@@ -476,18 +503,21 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
-        if self.causal_mask is not None:
-            if mask is not None:
-                raise ValueError(
-                    "An attention mask was set. Cannot use a non-causal mask for inference"
+        if self.caches_are_enabled():
+            if mask is None:
+                warn(
+                    "KV-caches are setup for inference, but a mask was not provided! "
+                    "This may lead to unexpected outputs. Defaulting to a causal mask "
+                    "which attends to all tokens."
                 )
             # Track the input position
             if input_pos is None:
+                warn(
+                    "KV-caches are setup for inference, but a input positions were not provided! "
+                    "This may lead to unexpected outputs."
+                )
                 input_pos = torch.arange(self.pos, self.pos + seq_len, device=h.device)
             self.pos = input_pos.max() + 1
-            # shape: [1, input_pos_len, m_s]
-            # in most cases input_pos_len should be 1
-            mask = self.causal_mask[None, input_pos]
 
         hidden = []
         for i, layer in enumerate(self.layers):
@@ -500,6 +530,7 @@ class TransformerDecoder(nn.Module):
                 encoder_input=encoder_input,
                 encoder_mask=encoder_mask,
                 input_pos=input_pos,
+                cache_pos=cache_pos,
             )
 
         # shape: [b, s, d]
@@ -605,11 +636,6 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         for layer in self.layers:
             layer.setup_cache(batch_size, dtype)
 
-        # causal_mask is used during inference to ensure we're attending
-        # to the right tokens
-        self.causal_mask = torch.tril(
-            torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
-        )
         self.pos = 0
 
     def caches_are_enabled(self) -> bool:

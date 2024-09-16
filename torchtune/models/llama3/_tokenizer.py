@@ -98,8 +98,8 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         # Media tokens
         self.image_id = self.special_tokens["<|image|>"]
 
-        # During generation, stop when either eos_id or eot_id is encountered
-        self.stop_tokens = [self.eos_id, self.eot_id]
+        # During generation, stop when either eos_id, eot_id, or eom_id is encountered
+        self.stop_tokens = [self.eos_id, self.eot_id, self.eom_id]
 
         self.tt_model = TikTokenBaseTokenizer(
             path=path,

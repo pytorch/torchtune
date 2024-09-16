@@ -28,9 +28,9 @@ from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import DoRALinear, LoRALinear
 from torchtune.modules.peft.lora import _lora_a_init_params, _lora_b_init_params
+from torchtune.utils import get_logger
 
 from torchtune.utils._device import get_device
-from torchtune.utils.logging import get_logger
 
 _log: logging.Logger = get_logger()
 

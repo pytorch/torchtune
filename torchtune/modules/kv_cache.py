@@ -50,26 +50,45 @@ class KVCache(nn.Module):
         self.size = 0
 
     def update(
-        self, input_pos: torch.Tensor, k_val: torch.Tensor, v_val: torch.Tensor
+        self, cache_pos: torch.Tensor, k_val: torch.Tensor, v_val: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Update KV cache with the new k_val, v_val and return the updated cache.
 
-        Raises an assertion error if ``input_pos`` is longer than the maximum sequence length.
-
         Args:
-            input_pos (torch.Tensor): Current position tensor with shape [S]
+            cache_pos (torch.Tensor): Current position tensor with shape [S]
             k_val (torch.Tensor): Current key tensor with shape [B, H, S, D]
             v_val (torch.Tensor): Current value tensor with shape [B, H, S, D]
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: Updated KV cache with key first
+            Tuple[torch.Tensor, torch.Tensor]: (k_out, v_out) updated key and value cache, respectively.
+
+        Raises:
+            AssertionError: if ``cache_pos`` is longer than the key-value sequence length.
+
+        Notation:
+            S: sequence length
+            B: batch size
+            H: number of attention heads
+            D: attention head dimension
         """
-        assert input_pos.shape[0] == k_val.shape[2]
-        self.size = input_pos.max() + 1
+        if cache_pos.shape[0] != k_val.shape[2]:
+            raise AssertionError(
+                "The sequence length of cache_pos must be the same as "
+                "the sequence length of the k-v cache. Found cache_pos.shape[0]"
+                f"={cache_pos.shape[0]} and k_val.shape[2]={k_val.shape[2]}."
+            )
+        if k_val.shape[0] != self.k_cache.shape[0]:
+            raise AssertionError(
+                "The batch size of the new key/value tensors must be the same as "
+                "the batch size of the k-v cache. Found k_val.shape[0]"
+                f"={k_val.shape[0]} and self.k_cache.shape[0]={self.k_cache.shape[0]}."
+            )
+        self.size = cache_pos.max() + 1
 
         k_out = self.k_cache
         v_out = self.v_cache
-        k_out[:, :, input_pos] = k_val
-        v_out[:, :, input_pos] = v_val
+
+        k_out.index_copy_(2, cache_pos, k_val)
+        v_out.index_copy_(2, cache_pos, v_val)
 
         return k_out, v_out
