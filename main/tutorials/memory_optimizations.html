@@ -506,6 +506,27 @@ and in most cases training can slow down quite a bit as a result of this activat
 <p>To enable activation checkpointing, use the <code class="docutils literal notranslate"><span class="pre">enable_activation_checkpointing</span></code> config entry or flag
 in any of our recipes, e.g. <code class="docutils literal notranslate"><span class="pre">enable_activation_checkpointing=True</span></code>.</p>
 </section>
+<section id="activation-offloading">
+<span id="glossary-act-off"></span><h2>Activation Offloading<a class="headerlink" href="#activation-offloading" title="Permalink to this heading">¶</a></h2>
+<p><em>What’s going on here?</em></p>
+<p>You may have just read about activation checkpointing! Similar to checkpointing, offloading is a memory
+efficiency technique that allows saving GPU VRAM by temporarily moving activations to CPU and bringing
+them back when needed in the backward pass.</p>
+<p>See <a class="reference external" href="https://pytorch.org/tutorials/intermediate/autograd_saved_tensors_hooks_tutorial.html#saving-tensors-to-cpu">PyTorch autograd hook tutorial</a>
+for more details about how this is implemented through saved_tensors_hooks.</p>
+<p>This setting is especially helpful for larger batch sizes, or longer context lengths when you’re memory constrained.
+However, these savings in memory can come at the cost of training speed (i.e. tokens per-second), as it takes runtime
+and resources to move Tensors from GPU to CPU and back. The implementation in torchtune has the <code class="docutils literal notranslate"><span class="pre">offload_with_streams</span></code>
+option to use multiple CUDA streams in order to overlap the extra communication with the computation to hide the extra
+runtime. As the communication workload is variable depending on the number and size of tensors being offloaded, it is
+common to not offload every single activation. In fact, once can use offloading in conjunction with activations
+checkpointing, where all activations will either be recomputed later in the backward or brought back from the CPU.</p>
+<p><em>Sounds great! How do I use it?</em></p>
+<p>To enable activation offloading, use the <code class="docutils literal notranslate"><span class="pre">enable_activation_offloading</span></code> config entry or flag
+in our lora finetuning single device recipe, e.g. <code class="docutils literal notranslate"><span class="pre">enable_activation_offloading=True</span></code>. To allow
+usage of streams, make sure you are on a torch version later than PyTorch 2.5.0.dev20240907 and
+specify <code class="docutils literal notranslate"><span class="pre">offload_with_streams=True</span></code>.</p>
+</section>
 <section id="gradient-accumulation">
 <span id="glossary-grad-accm"></span><h2>Gradient Accumulation<a class="headerlink" href="#gradient-accumulation" title="Permalink to this heading">¶</a></h2>
 <p><em>What’s going on here?</em></p>
@@ -724,6 +745,7 @@ to see how to configure.</p>
 <li><a class="reference internal" href="#">Memory Optimization Overview</a><ul>
 <li><a class="reference internal" href="#model-precision">Model Precision</a></li>
 <li><a class="reference internal" href="#activation-checkpointing">Activation Checkpointing</a></li>
+<li><a class="reference internal" href="#activation-offloading">Activation Offloading</a></li>
 <li><a class="reference internal" href="#gradient-accumulation">Gradient Accumulation</a></li>
 <li><a class="reference internal" href="#lower-precision-optimizers">Lower Precision Optimizers</a></li>
 <li><a class="reference internal" href="#fusing-optimizer-step-into-backward-pass">Fusing Optimizer Step into Backward Pass</a></li>
