@@ -67,6 +67,14 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             ("llama3/8B_lora_single_device", "llama3", "tune"),
         ],
     )
+    @pytest.mark.parametrize(
+        "enable_activation_checkpointing, enable_activation_offloading",
+        [
+            (False, False),
+            (True, False),
+            (True, True),  # (False, True) only works after ao#881
+        ],
+    )
     def test_loss(self, compile, config, model_type, ckpt_type, tmpdir, monkeypatch):
         ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
         ckpt = model_type + "_" + ckpt_type

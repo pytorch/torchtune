@@ -4,11 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from typing import Optional
 from warnings import warn
 
 import psutil
 import torch
+import torchao
 from torch.autograd.graph import saved_tensors_hooks
+from torchao.dtypes.nf4tensor import NF4Tensor
 
 
 class OffloadActivations(saved_tensors_hooks):
@@ -28,9 +31,9 @@ class OffloadActivations(saved_tensors_hooks):
             memory on the CPU. Pinned memory allows the Tensor to be moved back onto GPU more quickly
             but is a limited resource. Default: True.
 
-        use_streams (bool): Whether or not to use streams for performance optimization where
+        use_streams (Optional[bool]): Whether or not to use streams for performance optimization where
             the communications get overlapped with the computation. Requires a torch build
-            after torch-2.5.0.dev20240907. Default: False.
+            after torch-2.5.0.dev20240907. Default: True if a later torch build is found, else False.
 
         max_fwd_stash_size (int): The maximum size of the forward stash, or the maximum number of
             consecutive activations to keep alive during the forward pass. This number must be at
@@ -45,6 +48,7 @@ class OffloadActivations(saved_tensors_hooks):
 
     Raises:
         ValueError: if max_fwd_stash_size is not at least 1.
+        RuntimeError: if use_streams but torch installation is earlier than torch-2.5.0.dev20240907
 
     Example:
         >>> with OffloadActivations():
@@ -56,10 +60,16 @@ class OffloadActivations(saved_tensors_hooks):
     def __init__(
         self,
         use_pin_memory: bool = True,
-        use_streams: bool = False,
+        use_streams: Optional[bool] = None,
         max_fwd_stash_size: int = 5,
         min_offload_size: int = 1024,
     ) -> None:
+        if use_streams is None:
+            # Default to True if an acceptable torch is installed (later nightly/version or from source)
+            self.use_streams = torch.__version__ >= "2.5.0.dev20240907"
+        else:
+            self.use_streams = use_streams
+
         self.min_tensor_size_bytes = (
             min_offload_size  # we don't want to bother with small tensors
         )
@@ -80,12 +90,11 @@ class OffloadActivations(saved_tensors_hooks):
         self.s0 = torch.cuda.default_stream()  # comp stream
 
         # for streaming
-        if use_streams:
+        if self.use_streams:
             if torch.__version__ < "2.5.0.dev20240907":
                 raise RuntimeError(
                     "OffloadActivations with use_streams=True requires PyTorch 2.5.0.dev20240907 or later."
                 )
-            self.use_streams = use_streams
             self.s1 = torch.cuda.Stream()  # comms stream
             self.fwd_stash = {}  # tensor_id => (activation, ev1)
             if max_fwd_stash_size < 1:
@@ -155,12 +164,19 @@ class OffloadActivations(saved_tensors_hooks):
 
                 stream = self.s1 if use_streams else self.s0
                 with torch.cuda.stream(stream):
-                    cpu_tensor = torch.empty_like(
-                        activation,
-                        pin_memory=self.use_pin_memory,
-                        device=torch.device("cpu"),
-                    )
-
+                    try:
+                        cpu_tensor = torch.empty_like(
+                            activation, pin_memory=self.use_pin_memory, device="cpu"
+                        )
+                    except NotImplementedError as e:
+                        if (
+                            isinstance(activation, NF4Tensor)
+                            and torchao.__version__ < "0.6.0.dev20240917"
+                        ):
+                            raise RuntimeError(
+                                "Offloading NF4Tensors requires torchao-0.6.0.dev20240917 or later"
+                            ) from e
+                        raise e
                     cpu_tensor.copy_(activation, non_blocking=True)
                     self.tracker[tensor_id] = (
                         cpu_tensor,
@@ -198,7 +214,7 @@ class OffloadActivations(saved_tensors_hooks):
 
             maybe_gpu_tensor, modified = self.tracker[unpack_tensor_id]
             if modified:
-                gpu_tensor = maybe_gpu_tensor.to(device="cuda", non_blocking=True)
+                gpu_tensor = maybe_gpu_tensor.to("cuda", non_blocking=True)
                 maybe_gpu_tensor = gpu_tensor
 
             # clear tensor from tracking

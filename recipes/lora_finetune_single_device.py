@@ -62,10 +62,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             activations offloading will drop the activation in the forward to the CPU and bring it
             back during the backward pass. As always, there is a tradeoff--these savings in memory can
             come at the cost of training performance and CPU resources. To recover some runtime cost,
-            specify ``offload_with_streams: True`` to enable offloading on a different stream to permit
-            overlapping with the computation. This option is currently only available on PyTorch nightly
-            version 2.5.0.dev20240907 or later. Activation offloading can be used in conjunction with
-            activation checkpointing.
+            we've added an option to enable offloading on a different stream to permit overlapping with
+            the computation. This option is currently only available on PyTorch nightly 2.5.0.dev20240907
+            or later and will be enabled by default if an acceptable torch version is found. Activation
+            offloading can be used in conjunction with activation checkpointing.
 
         - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
             flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
@@ -240,7 +240,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             enable_activation_offloading=cfg.get("enable_activation_offloading", False),
-            offload_with_streams=cfg.get("offload_with_streams", False),
             compile_model=cfg.compile,
             base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
             lora_weights_state_dict=(
@@ -387,7 +386,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
         enable_activation_offloading: bool,
-        offload_with_streams: bool,
         compile_model: bool,
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
@@ -443,9 +441,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         self.activations_handling_ctx = contextlib.nullcontext()
         if enable_activation_offloading:
-            self.activations_handling_ctx = OffloadActivations(
-                use_streams=offload_with_streams
-            )
+            self.activations_handling_ctx = OffloadActivations()
 
             # Below is our hack to disable offloading the last output Linear in every
             # step, as the cost for offloading the activation and then soon after bringing
