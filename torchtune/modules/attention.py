@@ -262,26 +262,29 @@ class MultiHeadAttention(nn.Module):
             k = self.k_proj(y)
             v = self.v_proj(y)
 
+            # Apply positional embeddings
+            # k: [b, s_y, n_kv, h_d]
+            k = k.view(b, s_y, -1, self.head_dim)
+            if self.pos_embeddings is not None:
+                k = self.pos_embeddings(k, input_pos=input_pos)
+
+            # View + expand + reshape bring num_kv_heads to num_heads for k and v
+            # to match q.
+
             # k: [b, s_y, n_kv, 1, h_d]
             # v: [b, s_y, n_kv, 1, h_d]
             k = k.view(b, s_y, self.num_kv_heads, 1, self.head_dim)
             v = v.view(b, s_y, self.num_kv_heads, 1, self.head_dim)
 
-            # if needed, expand the key and value tensors to have the same shape
+            # If needed, expand the key and value tensors to have the same shape
             # as the query tensor by copying values across the relevant dim
             if self.num_heads != self.num_kv_heads:
                 k = k.expand(b, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
                 v = v.expand(b, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
 
-            # llama applies the RoPE embeddings on tensors with shape
             # [b, s, n_h, h_d]
-            # Reshape the tensors before we apply RoPE
             k = k.reshape(b, s_y, -1, self.head_dim)
             v = v.reshape(b, s_y, -1, self.head_dim)
-
-            # Apply positional embeddings
-            if self.pos_embeddings is not None:
-                k = self.pos_embeddings(k, input_pos=input_pos)
 
             # [b, n_h, s, h_d]
             k = k.transpose(1, 2)
