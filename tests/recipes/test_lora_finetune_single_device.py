@@ -75,7 +75,17 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             (True, True),  # (False, True) only works after ao#881
         ],
     )
-    def test_loss(self, compile, config, model_type, ckpt_type, tmpdir, monkeypatch):
+    def test_loss(
+        self,
+        compile,
+        config,
+        model_type,
+        ckpt_type,
+        enable_activation_checkpointing,
+        enable_activation_offloading,
+        tmpdir,
+        monkeypatch,
+    ):
         ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
         ckpt = model_type + "_" + ckpt_type
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -96,6 +106,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             tokenizer.prompt_template=null \
             metric_logger.filename={log_file} \
             compile={compile} \
+            enable_activation_checkpointing={enable_activation_checkpointing} \
+            enable_activation_offloading={enable_activation_offloading} \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
