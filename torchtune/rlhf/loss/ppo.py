@@ -8,7 +8,7 @@ from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
-from torchtune.modules import rlhf
+from torchtune import rlhf
 
 
 class PPOLoss(nn.Module):

@@ -167,7 +167,7 @@ lmbda: 0.95
 
 # PPO hyperparameters
 loss:
-  _component_: torchtune.modules.rlhf.loss.PPOLoss
+  _component_: torchtune.rlhf.loss.PPOLoss
   epsilon: 0.2
   value_coeff: 0.1
   value_clip_range: 0.2

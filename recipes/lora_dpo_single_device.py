@@ -18,10 +18,9 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import config, modules, training, utils
+from torchtune import config, modules, rlhf, training, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo
 from torchtune.datasets import ConcatDataset
-from torchtune.modules import rlhf
 from torchtune.modules.peft import (
     disable_adapter,
     get_adapter_params,
@@ -30,9 +29,9 @@ from torchtune.modules.peft import (
     validate_missing_and_unexpected_for_lora,
     validate_state_dict_for_lora,
 )
-
-from torchtune.modules.rlhf.loss import SimPOLoss
 from torchtune.recipe_interfaces import FTRecipeInterface
+
+from torchtune.rlhf.loss import SimPOLoss
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -56,10 +55,10 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
 
     The following losses are supported in this recipe:
-        - :class:`~torchtune.modules.rlhf.loss.DPOLoss`: Direct Preference Optimization (DPO).
-        - :class:`~torchtune.modules.rlhf.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
-        - :class:`~torchtune.modules.rlhf.loss.IPOLoss`: Identity Preference Optimization (IPO).
-        - :class:`~torchtune.modules.rlhf.loss.SimPOLoss`: Simple Preference Optimization (SimPO).
+        - :class:`~torchtune.rlhf.loss.DPOLoss`: Direct Preference Optimization (DPO).
+        - :class:`~torchtune.rlhf.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
+        - :class:`~torchtune.rlhf.loss.IPOLoss`: Identity Preference Optimization (IPO).
+        - :class:`~torchtune.rlhf.loss.SimPOLoss`: Simple Preference Optimization (SimPO).
 
     Assumptions:
         - Checkpoints are ONLY saved at epoch boundaries. In case of failure, work done
@@ -471,7 +470,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         all_log_probs = rlhf.get_batch_log_probs(
             all_logits,
             concatenated_labels,
-            # see :class:`~torchtune.modules.rlhf.loss.dpo.SimPOLoss`
+            # see :class:`~torchtune.rlhf.loss.dpo.SimPOLoss`
             return_average_logprobs=isinstance(self._loss_fn, SimPOLoss),
         )
 
