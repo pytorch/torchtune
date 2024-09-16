@@ -51,6 +51,8 @@ class ModelTokenizer(Protocol):
 
     special_tokens: Dict[str, int]
     max_seq_len: Optional[int]
+    add_bos: bool = True # add_bos attribute to reference in tokenize_messages_no_special_tokens
+    add_eos: bool = True # add_eos attribute to reference in tokenize_messages_no_special_tokens
 
     def tokenize_messages(
         self, messages: List[Message], **kwargs: Dict[str, Any]
@@ -144,8 +146,8 @@ def tokenize_messages_no_special_tokens(
             if item["type"] == "text":
                 tokens = tokens + tokenizer.encode(
                     item["content"].rstrip(" "),
-                    add_bos=False,
-                    add_eos=False,
+                    add_bos=False, # We add BOS at the start of each turn
+                    add_eos=False, # We add EOS at the end of each turn
                     trim_leading_whitespace=trim_leading_whitespace,
                 )
             else:
@@ -170,9 +172,9 @@ def tokenize_messages_no_special_tokens(
     # Finally, truncate if necessary
     if max_seq_len:
         # Only truncate the token with the EOS if one was added
-        tokenized_messages = truncate(tokenized_messages, max_seq_len, eos_id)
+        tokenized_messages = truncate(tokenized_messages, max_seq_len, eos_id if tokenizer.add_eos else None) # Mark True if add_eos else None
         # Mark True if add_eos else None
-        mask = truncate(mask, max_seq_len, message.masked)
+        mask = truncate(mask, max_seq_len, message.masked if tokenizer.add_eos else None) # Mark True if add_eos else None
 
     return tokenized_messages, mask
 
