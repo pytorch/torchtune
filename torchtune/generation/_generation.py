@@ -23,11 +23,13 @@ def sample(
     top_k: Optional[int] = None,
 ) -> torch.Tensor:
     """Generic sample from a probability distribution.
+
     Args:
         logits (torch.Tensor): logits from which to sample
         q (torch.Tensor): randomly sampled tensor for softmax sampling trick.
         temperature (float): value to scale the predicted logits by, default 1.0.
         top_k (Optional[int]): If specified, we prune the sampling to only token ids within the top_k probabilities
+
     Returns:
         torch.Tensor: sampled token id
     """
@@ -110,7 +112,7 @@ def get_causal_mask_from_padding_mask(
 ) -> torch.Tensor:
     """
     Converts a padding mask of shape ``[bsz, seq_len]`` to a ``[bsz, seq_len, seq_len]`` causal attention mask suitable for
-    consumption by :func:`~torch.nn.functional.scaled_dot_product_attention~`. If ``target_seq_len``
+    consumption by :func:`~torch.nn.functional.scaled_dot_product_attention`. If ``target_seq_len``
     is provided, this will return a mask of shape ``[bsz, seq_len, target_seq_len]``. This is useful
     when generating masks for static KV caches where the maximum length the caches have been setup with
     are longer than the current sequence.
@@ -130,13 +132,12 @@ def get_causal_mask_from_padding_mask(
 
     Example:
         >>> padding_mask = torch.tensor([[False, True, True, True]])
-        >>> causal_mask = get_causal_mask_from_padding_mask(padding_mask, target_seq_len=5)
-        >>> causal_mask
-        >>> tensor([[[ True, False, False, False, False],
-        >>>          [False,  True, False, False, False],
-        >>>          [False,  True,  True, False, False],
-        >>>          [False,  True,  True,  True, False]]])
-        >>> ])
+        >>> get_causal_mask_from_padding_mask(padding_mask, target_seq_len=5)
+        tensor([[[ True, False, False, False, False],
+                  [False,  True, False, False, False],
+                  [False,  True,  True, False, False],
+                  [False,  True,  True,  True, False]]])
+        ])
     """
     bsz, seq_len = padding_mask.shape
     target_seq_len = seq_len if target_seq_len is None else target_seq_len
@@ -171,9 +172,8 @@ def get_position_ids_from_padding_mask(
 
     Example:
         >>> padding_mask = torch.tensor([False, False, False, True, True, True, True, True])
-        >>> input_pos = get_position_ids_from_padding_mask(padding_mask)
-        >>> input_pos
-        >>> torch.Tensor([0, 0, 0, 0, 1, 2, 3, 4])
+        >>> get_position_ids_from_padding_mask(padding_mask)
+        torch.Tensor([0, 0, 0, 0, 1, 2, 3, 4])
     """
     return ((padding_mask.cumsum(-1) - 1) * padding_mask).to(torch.int)
 
