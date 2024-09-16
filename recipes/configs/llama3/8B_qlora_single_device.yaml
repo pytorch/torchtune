@@ -80,7 +80,10 @@ log_peak_memory_stats: False
 # Environment
 device: cuda
 dtype: bf16
+
+# Activations Memory
 enable_activation_checkpointing: True
+enable_activation_offloading: True
 
 # Profiler (disabled)
 profiler:

@@ -25,6 +25,7 @@ dependencies = [
     "numpy<=1.26.4", # Pin here until https://github.com/tensorflow/tensorboard/issues/6869 is addressed
     "tqdm",
     "omegaconf",
+    "psutil",
 
 ]
 dynamic = ["version"]

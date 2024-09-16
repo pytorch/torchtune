@@ -82,7 +82,10 @@ log_peak_memory_stats: False
 # Environment
 device: cuda
 dtype: bf16
+
+# Activations Memory
 enable_activation_checkpointing: True
+enable_activation_offloading: False
 
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training
