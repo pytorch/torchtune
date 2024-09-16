@@ -109,7 +109,7 @@ def get_causal_mask_from_padding_mask(
     padding_mask: torch.Tensor, target_seq_len: Optional[int] = None
 ) -> torch.Tensor:
     """
-    Converts an attention mask of shape ``[bsz, seq_len]`` to a ``[bsz, seq_len, seq_len]`` causal attention mask suitable for
+    Converts a padding mask of shape ``[bsz, seq_len]`` to a ``[bsz, seq_len, seq_len]`` causal attention mask suitable for
     consumption by :func:`~torch.nn.functional.scaled_dot_product_attention~`. If ``target_seq_len``
     is provided, this will return a mask of shape ``[bsz, seq_len, target_seq_len]``. This is useful
     when generating masks for static KV caches where the maximum length the caches have been setup with
