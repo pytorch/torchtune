@@ -58,7 +58,7 @@ def load_image(image_loc: Union[Path, str]) -> "PIL.Image.Image":
 
     Raises:
         ValueError: If the image cannot be loaded from remote source.
-        ValueError: If the image cannot be opened as a PIL.Image.
+        ValueError: If the image cannot be opened as a :class:`~PIL.Image.Image`.
 
     Examples:
         >>> # Load from remote source
