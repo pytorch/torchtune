@@ -438,7 +438,7 @@ class TransformerDecoder(nn.Module):
 
     def reset_caches(self):
         """Reset the key value caches."""
-        if not (self.encoder_caches_are_enabled or self.decoder_caches_are_enabled):
+        if not (self.encoder_caches_are_enabled() or self.decoder_caches_are_enabled()):
             raise RuntimeError(
                 "Key value caches are not setup. Call ``setup_caches()`` first."
             )
@@ -694,6 +694,25 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         # attributes for KV caches during inference
         self.encoder_max_cache_seq_len = None
         self.decoder_max_cache_seq_len = None
+
+    @torch.compiler.disable
+    def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:
+        """
+        Apply output projection in chunks. This should be applied in conjunction with
+        :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss` as upcasting to fp32 is done there.
+        To use this method, you should first call
+        :func:`~torchtune.modules.TiedEmbeddingTransformerDecoder.set_num_output_chunks`.
+        Args:
+            last_hidden_state (torch.Tensor): last hidden state of the decoder, having shape
+                [b, seq_len, embed_dim].
+        Returns:
+            List[torch.Tensor]: List of num_chunks output tensors, each with shape
+                [b, seq_len/num_chunks, out_dim], where out_dim is usually the vocab size.
+        """
+        return [
+            F.linear(chunk, self.tok_embeddings.weight)
+            for chunk in last_hidden_state.chunk(self.num_output_chunks, dim=1)
+        ]
 
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
