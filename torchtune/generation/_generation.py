@@ -70,6 +70,7 @@ def generate_next_token(
         temperature (float): value to scale the predicted logits by, default 1.0.
         top_k (Optional[int]): Top-k value to use for sampling, default None.
         q (Optional[torch.Tensor]): randomly sampled tensor for softmax sampling trick.
+            See https://github.com/pytorch-labs/gpt-fast/blob/32971d3129541c5bfb4f715abc33d1c5f408d204/generate.py#L40
 
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: tuple of two tensors:
@@ -232,24 +233,36 @@ def generate(
 
     generated_tokens = prompt.clone()
     incremental_decoding = model.caches_are_enabled()
+
+    # grab the correct max_seq_len to generate full causal masks/position ids
+    # this is the model's max cache len if incremental decoding, or the sequence
+    # length otherwise
     max_seq_len = (
         total_response_length if not incremental_decoding else model.max_seq_len
     )
+
     padding_masks = generated_tokens != pad_id
     cache_pos = None
 
     if not padding_masks.all():
+        # we have padding in the prompt due to varying-length sequences in a batch
+        # extend padding masks out to the correct seq len
         padding_masks = torch.nn.functional.pad(
             padding_masks, (0, max_generated_tokens), value=True
         )
+
+        # generate the full causal mask for the whole padding mask with padding ignored
         masks = get_causal_mask_from_padding_mask(
             padding_masks, target_seq_len=max_seq_len
         )
+
+        # right-shift position IDs to account for padding
         input_pos = get_position_ids_from_padding_mask(padding_masks)
         cache_pos = torch.arange(
             0, total_response_length, device=generated_tokens.device
         )
     else:
+        # just use a regular causal mask if there is no padding
         masks = torch.tril(
             torch.ones(
                 total_response_length,
@@ -265,8 +278,12 @@ def generate(
     del padding_masks
 
     if incremental_decoding:
+        # if KV-caches are enabled, we need a causal mask of shape [bsz, prompt_length, max_cache_len]
+        # to match the key/value cache tensor shapes
         curr_masks = masks[:, :prompt_length]
     else:
+        # otherwise the causal mask is shape [bsz, prompt_length, prompt_length] because key/value
+        # tensors are of identical shape to the prompt
         curr_masks = masks[:, :prompt_length, :prompt_length]
 
     q = torch.empty(
@@ -306,7 +323,6 @@ def generate(
             return generated_tokens, generated_logits
 
     for _ in range(max_generated_tokens - 1):
-
         # update stop_token_mask if we reached a stop token in a previous step
         # by appending the logical not of stop_token_reached to the end of the mask
         # reshaped to be bsz first
