@@ -148,7 +148,7 @@ class OffloadActivations(saved_tensors_hooks):
 
             # only offload hefty bois
             if num_bytes >= self.min_tensor_size_bytes:
-                if use_streams:
+                if self.use_streams:
                     # First, sync back and dereference previously offloaded tensors
                     # as the offloading should be done sufficiently long ago.
                     for id in [k for k in self.fwd_stash.keys()]:
@@ -162,7 +162,7 @@ class OffloadActivations(saved_tensors_hooks):
                     # Sync in, offload, and add an event to sync back later
                     self.s1.wait_stream(self.s0)
 
-                stream = self.s1 if use_streams else self.s0
+                stream = self.s1 if self.use_streams else self.s0
                 with torch.cuda.stream(stream):
                     try:
                         cpu_tensor = torch.empty_like(
@@ -183,7 +183,7 @@ class OffloadActivations(saved_tensors_hooks):
                         True,
                     )  # True = (in future) modified
 
-                if use_streams:
+                if self.use_streams:
                     event = self.s1.record_event()
 
                     # Stash to keep activation alive til s1 is done
@@ -307,7 +307,9 @@ class OffloadActivations(saved_tensors_hooks):
             return maybe_gpu_tensor
 
         unpack_tensor = (
-            unpack_tensor_with_streams if use_streams else unpack_tensor_single_stream
+            unpack_tensor_with_streams
+            if self.use_streams
+            else unpack_tensor_single_stream
         )
         super().__init__(pack_tensor, unpack_tensor)
 
