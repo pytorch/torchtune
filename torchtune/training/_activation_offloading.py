@@ -269,9 +269,7 @@ class OffloadActivations(saved_tensors_hooks):
                 else:
                     # Kick off the process to bring tensors back
                     with torch.cuda.stream(self.s1):
-                        gpu_tensor = maybe_gpu_tensor.to(
-                            device="cuda", non_blocking=True
-                        )
+                        gpu_tensor = maybe_gpu_tensor.to("cuda", non_blocking=True)
                         maybe_gpu_tensor = gpu_tensor
 
                     # Tell comp stream to wait for the info to be loaded before executing
