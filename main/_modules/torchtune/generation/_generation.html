@@ -442,11 +442,13 @@
     <span class="n">top_k</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Generic sample from a probability distribution.</span>
+
 <span class="sd">    Args:</span>
 <span class="sd">        logits (torch.Tensor): logits from which to sample</span>
 <span class="sd">        q (torch.Tensor): randomly sampled tensor for softmax sampling trick.</span>
 <span class="sd">        temperature (float): value to scale the predicted logits by, default 1.0.</span>
 <span class="sd">        top_k (Optional[int]): If specified, we prune the sampling to only token ids within the top_k probabilities</span>
+
 <span class="sd">    Returns:</span>
 <span class="sd">        torch.Tensor: sampled token id</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -464,7 +466,7 @@
     <span class="k">return</span> <span class="n">multinomial_sample_one</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">generate_next_token</span><span class="p">(</span>
+<div class="viewcode-block" id="generate_next_token"><a class="viewcode-back" href="../../../generated/torchtune.generation.generate_next_token.html#torchtune.generation.generate_next_token">[docs]</a><span class="k">def</span> <span class="nf">generate_next_token</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">TransformerDecoder</span><span class="p">,</span>
     <span class="n">input_pos</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -509,7 +511,7 @@
     <span class="k">return</span> <span class="p">(</span>
         <span class="n">sample</span><span class="p">(</span><span class="n">logits</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span> <span class="n">q</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="n">top_k</span><span class="p">),</span>
         <span class="n">logits</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="p">)</span></div>
 
 
 <span class="k">def</span> <span class="nf">update_stop_tokens_tracker</span><span class="p">(</span>
@@ -529,7 +531,7 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a padding mask of shape ``[bsz, seq_len]`` to a ``[bsz, seq_len, seq_len]`` causal attention mask suitable for</span>
-<span class="sd">    consumption by :func:`~torch.nn.functional.scaled_dot_product_attention~`. If ``target_seq_len``</span>
+<span class="sd">    consumption by :func:`~torch.nn.functional.scaled_dot_product_attention`. If ``target_seq_len``</span>
 <span class="sd">    is provided, this will return a mask of shape ``[bsz, seq_len, target_seq_len]``. This is useful</span>
 <span class="sd">    when generating masks for static KV caches where the maximum length the caches have been setup with</span>
 <span class="sd">    are longer than the current sequence.</span>
@@ -549,13 +551,12 @@
 
 <span class="sd">    Example:</span>
 <span class="sd">        &gt;&gt;&gt; padding_mask = torch.tensor([[False, True, True, True]])</span>
-<span class="sd">        &gt;&gt;&gt; causal_mask = get_causal_mask_from_padding_mask(padding_mask, target_seq_len=5)</span>
-<span class="sd">        &gt;&gt;&gt; causal_mask</span>
-<span class="sd">        &gt;&gt;&gt; tensor([[[ True, False, False, False, False],</span>
-<span class="sd">        &gt;&gt;&gt;          [False,  True, False, False, False],</span>
-<span class="sd">        &gt;&gt;&gt;          [False,  True,  True, False, False],</span>
-<span class="sd">        &gt;&gt;&gt;          [False,  True,  True,  True, False]]])</span>
-<span class="sd">        &gt;&gt;&gt; ])</span>
+<span class="sd">        &gt;&gt;&gt; get_causal_mask_from_padding_mask(padding_mask, target_seq_len=5)</span>
+<span class="sd">        tensor([[[ True, False, False, False, False],</span>
+<span class="sd">                  [False,  True, False, False, False],</span>
+<span class="sd">                  [False,  True,  True, False, False],</span>
+<span class="sd">                  [False,  True,  True,  True, False]]])</span>
+<span class="sd">        ])</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">bsz</span><span class="p">,</span> <span class="n">seq_len</span> <span class="o">=</span> <span class="n">padding_mask</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">target_seq_len</span> <span class="o">=</span> <span class="n">seq_len</span> <span class="k">if</span> <span class="n">target_seq_len</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">target_seq_len</span>
@@ -590,9 +591,8 @@
 
 <span class="sd">    Example:</span>
 <span class="sd">        &gt;&gt;&gt; padding_mask = torch.tensor([False, False, False, True, True, True, True, True])</span>
-<span class="sd">        &gt;&gt;&gt; input_pos = get_position_ids_from_padding_mask(padding_mask)</span>
-<span class="sd">        &gt;&gt;&gt; input_pos</span>
-<span class="sd">        &gt;&gt;&gt; torch.Tensor([0, 0, 0, 0, 1, 2, 3, 4])</span>
+<span class="sd">        &gt;&gt;&gt; get_position_ids_from_padding_mask(padding_mask)</span>
+<span class="sd">        torch.Tensor([0, 0, 0, 0, 1, 2, 3, 4])</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">((</span><span class="n">padding_mask</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">padding_mask</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">)</span></div>
 
