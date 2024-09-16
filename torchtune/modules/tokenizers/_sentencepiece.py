@@ -63,7 +63,7 @@ class SentencePieceBaseTokenizer(BaseTokenizer):
             trim_leading_whitespace (bool): Whether to trim leading whitespace from
                 underlying sentencepiece tokenization. Sentencepiece normally prepends
                 whitespace to any tokenized text, which can cause differences where
-                encode(s1) + encode(s2) != encode(s1 + s2) due to leading whitespace
+                ``encode(s1) + encode(s2) != encode(s1 + s2)`` due to leading whitespace
                 added to s2. This will only trim leading whitespace if the underlying
                 ``SentencePieceProcessor`` encodes whitespace. Default: False
             prefix (Optional[str]): Optional string to encode for trimming leading

@@ -27,15 +27,13 @@ class Message:
         role (Role): role of the message writer. Can be "system" for system prompts,
             "user" for human prompts, "assistant" for model responses, or "ipython"
             for tool call returns.
-        content (Union[str, List[Dict[str, str]]]): content of the message. If it is text only content,
+        content (Union[str, List[Dict[str, Any]]]): content of the message. If it is text only content,
             you can pass in a string. If it is multimodal content, pass in a list of dictionaries formatted
             as follows::
 
                 [
-                    {"type": "image"}
-                    {"type": "text", "content": "hello"},
-                    {"type": "image"}
-                    {"type": "text", "content": "world"},
+                    {"type": "image", "content": <PIL.Image.Image>},
+                    {"type": "text", "content": "What is in this image?"},
                 ]
 
         masked (bool): whether the message is masked in the sample. If True, do not use
@@ -48,27 +46,39 @@ class Message:
             - For multiple consecutive assistant messages (i.e., tool calls
               by assistant), only the last assistant message will have ``eot=True``
             - All ipython messages (tool call returns) should set ``eot=False``.
+
+    Note:
+        Message class expects any image content to be in
+        `PIL Image format <https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.Image>`_.
     """
 
     def __init__(
         self,
         role: Role,
-        content: Union[str, List[Dict[str, str]]],
+        content: Union[str, List[Dict[str, Any]]],
         masked: bool = False,
         ipython: bool = False,
         eot: bool = True,
     ):
         self.role = role
-        self.content = (
-            [{"type": "text", "content": content}]
-            if isinstance(content, str)
-            else content
-        )
+        self.content = self._convert_to_list_of_dict(content)
         self.masked = masked
         self.ipython = ipython
         self.eot = eot
 
         self._validate_message()
+
+    def _convert_to_list_of_dict(self, content) -> List[Dict[str, Any]]:
+        """User is currently allowed to pass in a string for text-only content.
+        This ensures that the content is formatted as a list of dictionaries."""
+        if isinstance(content, str):
+            return [{"type": "text", "content": content}]
+
+        assert isinstance(
+            content, list
+        ), f"content must be of type List[Dict[str, Any]], got {content}"
+
+        return content
 
     @classmethod
     def from_dict(cls, d: dict) -> "Message":
@@ -89,12 +99,20 @@ class Message:
             eot=d.get("eot", True),
         )
 
+    def get_media(self) -> List["PIL.Image.Image"]:
+        """
+        Returns media content of the message.
+        """
+        return [
+            content["content"] for content in self.content if content["type"] == "image"
+        ]
+
     @property
     def contains_media(self) -> bool:
         """
-        Returns True if message contains non-text content.
+        Returns whether the message contains media.
         """
-        return any(content["type"] != "text" for content in self.content)
+        return any(content["type"] == "image" for content in self.content)
 
     @property
     def text_content(self) -> str:

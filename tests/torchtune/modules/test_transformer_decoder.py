@@ -390,25 +390,6 @@ class TestTransformerDecoder:
         with pytest.raises(RuntimeError, match="Key value caches are not setup"):
             decoder.reset_caches()
 
-    def test_kv_cache_setup_no_mask_in_forward(
-        self,
-        input: torch.Tensor,
-        decoder_with_kv_cache_enabled: TransformerDecoder,
-    ) -> None:
-
-        with pytest.raises(ValueError, match="causal masks must be provided"):
-            decoder_with_kv_cache_enabled(input)
-
-    def test_kv_cache_setup_mask_no_input_pos_in_forward(
-        self,
-        input: torch.Tensor,
-        causal_mask: torch.Tensor,
-        decoder_with_kv_cache_enabled: TransformerDecoder,
-    ) -> None:
-
-        with pytest.raises(ValueError, match="input positions must be provided!"):
-            decoder_with_kv_cache_enabled(input, mask=causal_mask)
-
     def test_kv_cache_batch_size_exceeded(
         self,
         input_max_bs_exceeded: torch.Tensor,
@@ -421,6 +402,26 @@ class TestTransformerDecoder:
             decoder_with_kv_cache_enabled(
                 input_max_bs_exceeded, mask=causal_mask, input_pos=input_pos
             )
+
+    def test_kv_cache_setup_no_mask_in_forward(
+        self,
+        input: torch.Tensor,
+        input_pos: torch.Tensor,
+        decoder_with_kv_cache_enabled: TransformerDecoder,
+    ) -> None:
+
+        with pytest.raises(ValueError, match="masks must be provided"):
+            decoder_with_kv_cache_enabled(input, input_pos=input_pos)
+
+    def test_kv_cache_setup_mask_no_input_pos_in_forward(
+        self,
+        input: torch.Tensor,
+        causal_mask: torch.Tensor,
+        decoder_with_kv_cache_enabled: TransformerDecoder,
+    ) -> None:
+
+        with pytest.raises(ValueError, match="input positions must be provided!"):
+            decoder_with_kv_cache_enabled(input, mask=causal_mask)
 
     def test_rms_norm_propagation(
         self, decoder_params: Tuple[int, int, int, int, int, int]

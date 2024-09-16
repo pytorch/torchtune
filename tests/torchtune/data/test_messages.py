@@ -5,6 +5,8 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
+
+from PIL import Image
 from tests.test_utils import (
     assert_dialogue_equal,
     CHAT_SAMPLE,
@@ -26,17 +28,21 @@ class TestMessage:
         return Message(role="user", content="hello world")
 
     @pytest.fixture
-    def image_message(self):
+    def test_image(self):
+        return Image.new(mode="RGB", size=(4, 4))
+
+    @pytest.fixture
+    def image_message(self, test_image):
         return Message(
             role="user",
             content=[
                 {"type": "text", "content": "hello"},
-                {"type": "image"},
+                {"type": "image", "content": test_image},
                 {"type": "text", "content": " world"},
             ],
         )
 
-    def test_message_validation(self, text_message):
+    def test_message_validation(self, text_message, test_image):
         message = text_message
         assert message.role == "user"
         assert message.content == [{"type": "text", "content": "hello world"}]
@@ -53,7 +59,7 @@ class TestMessage:
         ):
             message = Message(
                 role="user",
-                content=[{"type": "image"}],
+                content=[{"type": "image", "content": test_image}],
                 ipython=True,
             )
 
@@ -68,6 +74,10 @@ class TestMessage:
     def test_contains_media(self, text_message, image_message):
         assert not text_message.contains_media
         assert image_message.contains_media
+
+    def test_get_media(self, text_message, image_message, test_image):
+        assert text_message.get_media() == []
+        assert image_message.get_media() == [test_image]
 
     def test_text_content(self, text_message, image_message):
         assert text_message.text_content == "hello world"

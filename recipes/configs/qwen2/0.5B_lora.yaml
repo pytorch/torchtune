@@ -25,6 +25,7 @@ model:
   apply_lora_to_mlp: False
   lora_rank: 32
   lora_alpha: 64
+  lora_dropout: 0.0
 
 tokenizer:
   _component_: torchtune.models.qwen2.qwen2_tokenizer
@@ -54,6 +55,7 @@ batch_size: 4
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
+  fused: True
   weight_decay: 0.01
   lr: 2e-3
 

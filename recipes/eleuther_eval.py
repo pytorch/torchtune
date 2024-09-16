@@ -13,12 +13,11 @@ import torch
 from omegaconf import DictConfig
 
 from torch import nn
-from torchtune import config, training, utils
+from torchtune import config, generation, training, utils
 from torchtune.data import left_pad_sequence
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.recipe_interfaces import EvalRecipeInterface
-
 
 logger = utils.get_logger("DEBUG")
 
@@ -155,7 +154,7 @@ class _EvalWrapper(HFLM):
                 "``do_sample`` for generation tasks is not supported yet in torchtune."
             )
 
-        toks = utils.generate(
+        toks = generation.generate(
             self._model,
             context,
             max_generated_tokens=self.max_gen_toks,
@@ -223,11 +222,15 @@ class EleutherEvalRecipe(EvalRecipeInterface):
     ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
+
         if self._quantization_mode is not None:
             model = self._quantizer.quantize(model)
             model = model.to(device=self._device, dtype=self._dtype)
-
-        model.load_state_dict(model_state_dict)
+            for k, v in model_state_dict.items():
+                model_state_dict[k] = v.to(self._device)
+            model.load_state_dict(model_state_dict, assign=True)
+        else:
+            model.load_state_dict(model_state_dict)
 
         # Put model in eval mode.
         # Note: This will not disable the dropout applied in SDPA,

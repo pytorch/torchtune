@@ -8,8 +8,8 @@ from typing import Tuple
 
 import torch
 import torch.nn.functional as F
+from torchtune import rlhf
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.modules import rlhf
 
 
 def truncate_sequence_at_first_stop_token(
