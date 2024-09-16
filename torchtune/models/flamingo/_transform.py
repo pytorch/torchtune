@@ -40,7 +40,6 @@ class FlamingoTransform(ModelTokenizer, Transform):
             Llama3 special tokens.
         max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
             after which the input will be truncated. Default is None.
-        encoder_max_seq_len (Optional[int]): maximum sequence length for the encoder input. Default is None.
         image_mean (Optional[Tuple[float, float, float]]): Mean values of each channel, used for normalization.
         image_std (Optional[Tuple[float, float, float]]): Standard deviations for each channel, used for normalization.
         prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
@@ -71,7 +70,6 @@ class FlamingoTransform(ModelTokenizer, Transform):
         max_num_tiles: int = 4,
         special_tokens: Optional[Dict[str, int]] = None,
         max_seq_len: Optional[int] = None,
-        encoder_max_seq_len: Optional[int] = None,
         image_mean: Optional[Tuple[float, float, float]] = None,
         image_std: Optional[Tuple[float, float, float]] = None,
         prompt_template: Optional[PromptTemplate] = None,
@@ -96,7 +94,7 @@ class FlamingoTransform(ModelTokenizer, Transform):
             tile_size=tile_size,
             patch_size=patch_size,
             image_token_id=self.tokenizer.image_id,
-            encoder_max_seq_len=encoder_max_seq_len,
+            max_num_tiles=max_num_tiles,
         )
 
         self.stop_tokens = self.tokenizer.stop_tokens
