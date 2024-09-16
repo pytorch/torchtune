@@ -564,7 +564,7 @@ class TransformerDecoder(nn.Module):
             At the very first step of inference, when the model is provided with a prompt,
             ``input_pos`` should contain the positions of all of the tokens in the prompt.
             For a single-batch prompt, or a batch of prompts with identical lengths, this
-            will be``torch.arange(prompt_length)``. For a batch of varying-length prompts,
+            will be ``torch.arange(prompt_length)``. For a batch of varying-length prompts,
             shorter prompts are left-padded and position ids are correspondingly right-shifted,
             thus positional ids should be of shape ``[b, padded_prompt_length]``.
             This is because we will need to retrieve the positional embeddings for each input id.
