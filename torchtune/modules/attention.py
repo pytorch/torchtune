@@ -140,13 +140,16 @@ class MultiHeadAttention(nn.Module):
         # Use flex attention if supported and we are sample packing
         self._attention_call = _sdpa_or_flex_attention()
 
-    def setup_cache(self, batch_size: int, dtype: torch.dtype) -> None:
+    def setup_cache(
+        self, batch_size: int, dtype: torch.dtype, max_seq_len: int
+    ) -> None:
         """Setup key value caches for attention calculation. If called
         after kv_cache is already setup, this will be skipped.
 
         Args:
             batch_size (int): batch size for the caches.
             dtype (torch.dtype): dtype for the caches.
+            max_seq_len (int): maximum sequence length model will be run with.
         """
         # Don't overwrite user defined kv_cache from init
         if self.kv_cache is not None:
@@ -156,7 +159,7 @@ class MultiHeadAttention(nn.Module):
         else:
             self.kv_cache = KVCache(
                 batch_size=batch_size,
-                max_seq_len=self.max_seq_len,
+                max_seq_len=max_seq_len,
                 num_heads=self.num_heads,
                 head_dim=self.head_dim,
                 dtype=dtype,
@@ -177,7 +180,6 @@ class MultiHeadAttention(nn.Module):
         *,
         mask: Optional[_MaskType] = None,
         input_pos: Optional[torch.Tensor] = None,
-        cache_pos: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """
         Args:
@@ -185,24 +187,23 @@ class MultiHeadAttention(nn.Module):
             y (Optional[torch.Tensor]): second input tensor with shape [b x s_y x d], is the input
                 for k and v. For self attention, x=y. Optional only with kv_cache enabled.
             mask (Optional[_MaskType]): Used to mask the scores after the query-key multiplication
-                and before the softmax. Either a boolean tensor with shape [b x s x s] or a
-                :class:`~torch.nn.attention.flex_attention.BlockMask`. If a boolean tensor, a value
-                of True in row i and column j means token i attends to token j. A value of False means
-                token i does not attend to token j. If no mask is specified, a causal mask
-                is used by default. If a :class:`~torch.nn.attention.flex_attention.BlockMask` is passed
-                for document masking in a packed sequence via `create_block_mask
-                <https://pytorch.org/blog/flexattention/#mask-mods>`_, we use
-                :func:`~torch.nn.attention.flex_attention.flex_attention` when computing attention.
+                and before the softmax. Either:
+
+                A boolean tensor with shape ``[b x s x s]``, ``[b x s x self.encoder_max_cache_seq_len]``,
+                or ``[b x s x self.encoder_max_cache_seq_len]`` if using KV-cacheing with encoder/decoder layers.
+                A value of True in row ``i`` and column ``j`` means token ``i`` attends to token ``j``. A value of False means
+                token ``i`` does not attend to token ``j``. If no mask is specified, a causal mask
+                is used by default.
+
+                A :class:`~torch.nn.attention.flex_attention.BlockMask` for document masking in a packed sequence
+                created via `create_block_mask <https://pytorch.org/blog/flexattention/#mask-mods>`_. We  use
+                :func:`~torch.nn.attention.flex_attention.flex_attention` when computing attention with block masks.
                 Default is None.
             input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
-            cache_pos (Optional[torch.Tensor]): Optional tensor which contains the cache positions
-                of each token, used during inference. This is useful when ``input_ids`` are
-                right-shifted to account for padding tokens. Default is None, in which case
-                ``input_pos`` is used (if specified).
 
         Raises:
             ValueError: If no ``y`` input and ``kv_cache`` is not enabled.
@@ -224,11 +225,6 @@ class MultiHeadAttention(nn.Module):
         b, s_x, _ = x.shape
         s_y = y.shape[1] if y is not None else 0
 
-        if self.kv_cache and input_pos is None:
-            cache_size = self.kv_cache.size
-            input_pos = torch.arange(cache_size, cache_size + s_y, device=x.device)
-
-        cache_pos = input_pos if cache_pos is None else cache_pos
         # q has shape [b, s_x, num_heads * head_dim]
         q = self.q_proj(x)
 
@@ -296,7 +292,7 @@ class MultiHeadAttention(nn.Module):
 
             # Update key-value cache
             if self.kv_cache is not None:
-                k, v = self.kv_cache.update(cache_pos, k, v)
+                k, v = self.kv_cache.update(k, v)
 
         output = self._attention_call(
             q,

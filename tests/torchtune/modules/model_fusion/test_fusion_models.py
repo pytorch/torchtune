@@ -28,7 +28,7 @@ class DummyModel(nn.Module):
         self.v = nn.Linear(dim, dim)
         self.output = nn.Linear(dim, vocab_size)
 
-    def setup_caches(self, batch_size, dtype):
+    def setup_caches(self, batch_size, dtype, *args, **kwargs):
         self.cache_enabled = True
 
     def caches_are_enabled(self):

@@ -68,6 +68,21 @@ class TestGenerate:
         return model
 
     @pytest.fixture
+    def generation_model_batched_fixed_cache_seq_len(self, dtype=torch.float32):
+        model = llama2(
+            vocab_size=4_000,
+            embed_dim=128,
+            num_layers=2,
+            num_heads=4,
+            num_kv_heads=4,
+            max_seq_len=2048,
+        )
+        fixed_init_model(model)
+        model.setup_caches(batch_size=3, dtype=dtype, decoder_max_seq_len=1024)
+        model.eval()
+        return model
+
+    @pytest.fixture
     def prompt_tokens(self):
         """
         Pytest fixture to create a list of prompt tokens for testing.
@@ -256,11 +271,19 @@ class TestGenerate:
 
     @pytest.mark.parametrize(
         "model1",
-        ["generation_model_no_kv_cache", "generation_model_kv_cache_batched"],
+        [
+            "generation_model_no_kv_cache",
+            "generation_model_kv_cache_batched",
+            "generation_model_batched_fixed_cache_seq_len",
+        ],
     )
     @pytest.mark.parametrize(
         "model2",
-        ["generation_model_no_kv_cache", "generation_model_kv_cache_batched"],
+        [
+            "generation_model_no_kv_cache",
+            "generation_model_kv_cache_batched",
+            "generation_model_batched_fixed_cache_seq_len",
+        ],
     )
     @pytest.mark.parametrize(
         "prompt1", ["prompt_tokens_batched", "prompt_tokens_batched_left_padded"]
