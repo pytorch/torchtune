@@ -378,7 +378,9 @@ class TestTransformerDecoder:
         input_max_bs_exceeded: torch.Tensor,
         decoder_with_kv_cache_enabled: TransformerDecoder,
     ) -> None:
-        with pytest.raises(RuntimeError, match="shape mismatch:"):
+        with pytest.raises(
+            AssertionError, match="The batch size of the new key/value tensors"
+        ):
             decoder_with_kv_cache_enabled(input_max_bs_exceeded)
 
     def test_rms_norm_propagation(
