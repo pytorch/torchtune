@@ -427,18 +427,10 @@
 degrading model performance. In torchtune, we use <a class="reference external" href="https://github.com/pytorch/ao">torchao</a> to implement QAT.
 This works by <a class="reference internal" href="../tutorials/qat_finetune.html#what-is-qat-label"><span class="std std-ref">simulating quantization numerics during fine-tuning</span></a>. While this may introduce memory and
 compute overheads during training, our tests found that QAT significantly reduced performance degradation in evaluations of
-quantized model, without compromising on model size reduction gains.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The <a class="reference external" href="https://pytorch.org/blog/quantization-aware-training/">PyTorch blogpost</a> on QAT provides further insight into how QAT works.</p>
-</div>
+quantized model, without compromising on model size reduction gains. Please see the <a class="reference external" href="https://pytorch.org/blog/quantization-aware-training/">PyTorch blogpost</a>
+on QAT for a deeper dive on how the technique works.</p>
 <p>We provide pre-tested out-of-the-box configs which you can get up and running with the latest <a class="reference external" href="https://llama.meta.com/">Llama models</a>
 in just two steps:</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>You may need to be granted access to the Llama model you’re interested in. See
-<a class="reference internal" href="../tutorials/first_finetune_tutorial.html#download-llama-label"><span class="std std-ref">here</span></a> for details on accessing gated repositories.</p>
-</div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Meta-Llama-3-8B-Instruct<span class="w">  </span><span class="se">\</span>
 --output-dir<span class="w"> </span>/tmp/Meta-Llama-3-8B-Instruct<span class="w"> </span><span class="se">\</span>
 --ignore-patterns<span class="w"> </span><span class="s2">&quot;original/consolidated.00.pth&quot;</span><span class="w"> </span><span class="se">\</span>
@@ -450,7 +442,9 @@ tune<span class="w"> </span>run<span class="w"> </span>--nproc_per_node<span cla
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This workload requires at least 6 GPUs, each with VRAM of at least 80GB.</p>
+<p>You may need to be granted access to the Llama model you’re interested in. See
+<a class="reference internal" href="../tutorials/first_finetune_tutorial.html#download-llama-label"><span class="std std-ref">here</span></a> for details on accessing gated repositories.
+Also, this workload requires at least 6 GPUs, each with VRAM of at least 80GB e.g. A100s or H100s.</p>
 </div>
 <p>Currently, the main lever you can pull for QAT is by using <em>delayed fake quantization</em>.
 Delayed fake quantization allows for control over the step after which fake quantization occurs.
