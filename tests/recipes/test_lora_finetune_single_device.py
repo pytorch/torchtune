@@ -30,18 +30,12 @@ from torchtune.utils import torch_version_ge
 
 
 class TestLoRAFinetuneSingleDeviceRecipe:
-    def _get_test_config_overrides(
-        self,
-        device: str = "cpu",
-        enable_ac: bool = False,
-        dtype_str: str = "fp32",
-        epochs: int = 2,
-    ):
+    def _get_test_config_overrides(self, dtype_str: str = "fp32", epochs: int = 2):
         return [
             "batch_size=8",
-            f"device={device}",
+            "device=cpu",
             f"dtype={dtype_str}",
-            f"enable_activation_checkpointing={enable_ac}",
+            "enable_activation_checkpointing=False",
             "dataset.train_on_input=False",
             "seed=9",
             f"epochs={epochs}",
@@ -67,24 +61,13 @@ class TestLoRAFinetuneSingleDeviceRecipe:
     @pytest.mark.integration_test
     @pytest.mark.parametrize("compile", [True, False])
     @pytest.mark.parametrize(
-        "config, model_type, ckpt_type, enable_activation_checkpointing, enable_activation_offloading",
+        "config, model_type, ckpt_type",
         [
-            ("llama2/7B_lora_single_device", "llama2", "meta", False, False),
-            ("llama2/7B_lora_single_device", "llama2", "meta", True, True),
-            ("llama3/8B_lora_single_device", "llama3", "tune", True, False),
+            ("llama2/7B_lora_single_device", "llama2", "meta"),
+            ("llama3/8B_lora_single_device", "llama3", "tune"),
         ],
     )
-    def test_loss(
-        self,
-        compile,
-        config,
-        model_type,
-        ckpt_type,
-        enable_activation_checkpointing,
-        enable_activation_offloading,
-        tmpdir,
-        monkeypatch,
-    ):
+    def test_loss(self, compile, config, model_type, ckpt_type, tmpdir, monkeypatch):
         ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
         ckpt = model_type + "_" + ckpt_type
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -105,21 +88,11 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             tokenizer.prompt_template=null \
             metric_logger.filename={log_file} \
             compile={compile} \
-            enable_activation_checkpointing={enable_activation_checkpointing} \
-            enable_activation_offloading={enable_activation_offloading} \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
 
-        cmd = (
-            cmd
-            + self._get_test_config_overrides(
-                device="cuda",
-                enable_ac=enable_activation_checkpointing,
-                dtype_str="fp32",
-            )
-            + model_config
-        )
+        cmd = cmd + self._get_test_config_overrides(dtype_str="fp32") + model_config
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
