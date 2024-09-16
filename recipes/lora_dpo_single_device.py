@@ -410,22 +410,33 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 }
             )
 
-        # Move to CPU to avoid a copy on GPU
-        state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
-
-        # Construct the full state dict with LoRA weights merged into base LLM weights
-        merged_state_dict = get_merged_lora_ckpt(
-            state_dict,
-            rank=self._lora_rank,
-            alpha=self._lora_alpha,
-        )
-        ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
-
-        # Construct the adapter weights
         adapter_key_filter = lambda x: x in self.adapter_params
-        adapter_state_dict = {
-            k: v for k, v in self._model.state_dict().items() if adapter_key_filter(k)
-        }
+        if not self._save_adapter_weights_only:
+            # Construct the full state dict with LoRA weights merged into base LLM weights
+
+            # Move to CPU to avoid a copy on GPU
+            state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
+
+            # Construct the adapter weights
+            # Do this using the state_dict to avoid running upcast and H2D in state_dict post hook twice
+            # Must be before get_merged_lora_ckpt because get_merged_lora_ckpt will remove lora keys
+            adapter_state_dict = {
+                k: v for k, v in state_dict.items() if adapter_key_filter(k)
+            }
+
+            merged_state_dict = get_merged_lora_ckpt(
+                state_dict,
+                rank=self._lora_rank,
+                alpha=self._lora_alpha,
+            )
+
+            ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
+        else:
+            # No need to merge state dict if we're only saving adapter weights
+            adapter_state_dict = {
+                k: v.cpu() for k, v in get_adapter_params(self._model).items()
+            }
+
         ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
 
         self._checkpointer.save_checkpoint(

@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 from torchtune.data import InputOutputToMessages
 from torchtune.datasets._packed import PackedDataset
@@ -22,6 +22,7 @@ def grammar_dataset(
     new_system_prompt: Optional[str] = None,
     packed: bool = False,
     split: str = "train",
+    **load_dataset_kwargs: Dict[str, Any],
 ) -> Union[SFTDataset, PackedDataset]:
     """
     Support for grammar correction datasets and their variants from Hugging Face Datasets.
@@ -54,6 +55,7 @@ def grammar_dataset(
         packed (bool): Whether or not to pack the dataset to tokenizer's ``max_seq_len`` prior to training. Default is False.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
     Returns:
         Union[SFTDataset, PackedDataset]: dataset configured with source data and template
@@ -78,6 +80,7 @@ def grammar_dataset(
         message_transform=message_transform,
         model_transform=tokenizer,
         split=split,
+        **load_dataset_kwargs,
     )
     if packed:
         if tokenizer.max_seq_len is None:
