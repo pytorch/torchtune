@@ -49,11 +49,11 @@ def test_log_rank_zero(capsys):
     logger.addHandler(handler)
 
     with mock.patch(
-        "torchtune.utils.logging.dist.is_available", return_value=True
-    ), mock.patch("torchtune.utils.logging.dist.is_initialized", return_value=True):
+        "torchtune.utils._logging.dist.is_available", return_value=True
+    ), mock.patch("torchtune.utils._logging.dist.is_initialized", return_value=True):
         # Make sure rank 0 logs as expected
         with mock.patch(
-            "torchtune.utils.logging.dist.get_rank",
+            "torchtune.utils._logging.dist.get_rank",
             return_value=0,
         ):
             log_rank_zero(logger, "this is a test", level=logging.DEBUG)
@@ -66,7 +66,7 @@ def test_log_rank_zero(capsys):
 
         # Make sure all other ranks do not log anything
         with mock.patch(
-            "torchtune.utils.logging.dist.get_rank",
+            "torchtune.utils._logging.dist.get_rank",
             return_value=1,
         ):
             log_rank_zero(logger, "this is a test", level=logging.DEBUG)
