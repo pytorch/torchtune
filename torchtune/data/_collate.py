@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
@@ -223,6 +223,7 @@ def padded_collate_tiled_images_and_mask(
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
     pad_direction: str = "right",
+    pad_max_images: Optional[int] = None,
 ) -> Dict[str, torch.Tensor]:
     """Pad a batch of text sequences, tiled image tensors, aspect ratios,
     and cross attention masks. This can be used for both training and inference.
@@ -254,6 +255,8 @@ def padded_collate_tiled_images_and_mask(
             :func:`torch.nn.utils.rnn.pad_sequence`, otherwise if ``pad_direction="left"``,
             we use :func:`torchtune.data.left_pad_sequence`. For training, we typically want to pad from the right.
             For inference, we typically want to pad from the left. Defaults to "right".
+        pad_max_images (Optional[int]): Maximum number of images to pad to. If None, will pad to the largest number of images
+            in the batch. Defaults to None.
 
     Returns:
         Dict[str, Tensor]: Collated tokens, labels, images, encoder_mask, aspect_ratio tensors.
@@ -365,14 +368,28 @@ def padded_collate_tiled_images_and_mask(
             text_seq_len, image_seq_len = mask.shape
             tokens_per_tile = image_seq_len // n_tiles
             padding_tiles = max_num_tiles - n_tiles
-            padding_text = max_seq_len - text_seq_len
+            right_padding_text = (
+                max_seq_len - text_seq_len if pad_direction == "right" else 0
+            )
+            left_padding_text = (
+                max_seq_len - text_seq_len if pad_direction == "left" else 0
+            )
+
             # Image should now have shape (max_num_tiles, c, h, w)
             padded_image = F.pad(image, (0, 0, 0, 0, 0, 0, 0, padding_tiles), value=0)
             # Mask should now have shape (max_seq_len, max_image_seq_len), where
             # max_image_seq_len = max_num_tiles * tokens_per_tile
             padded_mask = F.pad(
-                mask, (0, padding_tiles * tokens_per_tile, 0, padding_text), value=0
+                mask,
+                (
+                    0,
+                    padding_tiles * tokens_per_tile,
+                    left_padding_text,
+                    right_padding_text,
+                ),
+                value=0,
             )
+
             sample_images.append(padded_image)
             sample_masks.append(padded_mask)
         # Stack multiple images and masks per sample in num_images dimension
@@ -391,6 +408,11 @@ def padded_collate_tiled_images_and_mask(
 
     # Concatenate masks for multiple images across image_seq_len dimension
     concat_masks = collated_masks.view(bsz, max_seq_len, -1)
+    if pad_max_images is not None:
+        _, _, img_seq = concat_masks.shape
+        concat_masks = F.pad(
+            concat_masks, (0, pad_max_images * image_seq_len - img_seq)
+        )
 
     batch_dict = {
         "tokens": collated_text["tokens"],
