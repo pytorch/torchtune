@@ -89,15 +89,35 @@ class FusionLayer(nn.Module):
                 state_dict[new_key] = state_dict[key]
                 del state_dict[key]
 
-    def setup_cache(self, batch_size: int, dtype: torch.dtype) -> None:
+    def setup_cache(
+        self,
+        batch_size: int,
+        dtype: torch.dtype,
+        *,
+        encoder_max_seq_len: int,
+        decoder_max_seq_len: int,
+    ) -> None:
         """Setup key value cache for both layers.
 
         Args:
             batch_size (int): batch size for the caches.
             dtype (torch.dtype): dtype for the caches.
+            encoder_max_seq_len (int): maximum cache sequence length for cross-attention layer.
+            decoder_max_seq_len (int): maximum cache sequence length for self-attention layer.
         """
-        self.layer.setup_cache(batch_size, dtype)
-        self.fusion_layer.setup_cache(batch_size, dtype)
+        self.layer.setup_cache(
+            batch_size,
+            dtype,
+            encoder_max_seq_len=encoder_max_seq_len,
+            decoder_max_seq_len=decoder_max_seq_len,
+        )
+
+        self.fusion_layer.setup_cache(
+            batch_size,
+            dtype,
+            encoder_max_seq_len=encoder_max_seq_len,
+            decoder_max_seq_len=decoder_max_seq_len,
+        )
 
     @property
     def cache_enabled(self) -> bool:
@@ -306,14 +326,33 @@ class DeepFusionModel(nn.Module):
         self.decoder = decoder
         self.encoder = encoder
 
-    def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
-        """Setup key value caches for attention calculation.
+    def setup_caches(
+        self,
+        batch_size: int,
+        dtype: torch.dtype,
+        *,
+        encoder_max_seq_len: int = None,
+        decoder_max_seq_len: int = None,
+    ):
+        """
+        Sets up key-value attention caches for inference for ``self.decoder``.
+        For each layer in ``self.decoder.layers``:
+        - :class:`torchtune.modules.TransformerSelfAttentionLayer` will use ``decoder_max_seq_len``.
+        - :class:`torchtune.modules.TransformerCrossAttentionLayer` will use ``encoder_max_seq_len``.
+        - :class:`torchtune.modules.fusion.FusionLayer` will use both ``decoder_max_seq_len`` and ``encoder_max_seq_len``.
 
         Args:
             batch_size (int): batch size for the caches.
             dtype (torch.dtype): dtype for the caches.
+            encoder_max_seq_len (int): maximum encoder cache sequence length.
+            decoder_max_seq_len (int): maximum decoder cache sequence length.
         """
-        self.decoder.setup_caches(batch_size, dtype)
+        self.decoder.setup_caches(
+            batch_size,
+            dtype,
+            encoder_max_seq_len=encoder_max_seq_len,
+            decoder_max_seq_len=decoder_max_seq_len,
+        )
 
     def caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""

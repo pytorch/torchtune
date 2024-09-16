@@ -54,7 +54,6 @@ def generate_next_token(
     q: torch.Tensor,
     *,
     mask: Optional[torch.Tensor] = None,
-    cache_pos: Optional[torch.Tensor] = None,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -71,10 +70,6 @@ def generate_next_token(
             See https://github.com/pytorch-labs/gpt-fast/blob/32971d3129541c5bfb4f715abc33d1c5f408d204/generate.py#L40
         mask (Optional[torch.Tensor]): attention mask with shape [bsz x seq_length x seq_length],
             default None.
-        cache_pos (Optional[torch.Tensor]): tensor which contains the cache positions
-            of each token, used during inference. This is useful when ``input_ids`` are
-            right-shifted to account for padding tokens. Default is None, in which case
-            ``input_pos`` is used (if specified).
         temperature (float): value to scale the predicted logits by, default 1.0.
         top_k (Optional[int]): Top-k value to use for sampling, default None.
 
@@ -88,7 +83,7 @@ def generate_next_token(
     """
     # model produces logits in [bsz, seq_length, vocab_size]
     # we want to take the last token's logits as the input to the next model call
-    logits = model(x, input_pos=input_pos, mask=mask, cache_pos=cache_pos)
+    logits = model(x, input_pos=input_pos, mask=mask)
     return (
         sample(logits[:, -1].clone(), q, temperature=temperature, top_k=top_k),
         logits,
@@ -212,6 +207,9 @@ def generate(
             performance reasons. If None, we use the default :func:`generate_next_token`.
             Default is None.
 
+    Note:
+        This function has only been tested with decoder-only models.
+
     Examples:
         >>> model = torchtune.models.llama3.llama3_8b()
         >>> tokenizer = torchtune.models.llama3.llama3_tokenizer()
@@ -242,17 +240,18 @@ def generate(
     total_response_length = prompt_length + max_generated_tokens
 
     generated_tokens = prompt.clone()
-    incremental_decoding = model.caches_are_enabled()
+    incremental_decoding = model.decoder_caches_are_enabled()
 
     # grab the correct max_seq_len to generate full causal masks/position ids
     # this is the model's max cache len if incremental decoding, or the sequence
     # length otherwise
     max_seq_len = (
-        total_response_length if not incremental_decoding else model.max_seq_len
+        total_response_length
+        if not incremental_decoding
+        else model.decoder_max_cache_seq_len
     )
 
     padding_masks = generated_tokens != pad_id
-    cache_pos = None
 
     if not padding_masks.all():
         # we have padding in the prompt due to varying-length sequences in a batch
@@ -268,9 +267,6 @@ def generate(
 
         # right-shift position IDs to account for padding
         input_pos = get_position_ids_from_padding_mask(padding_masks)
-        cache_pos = torch.arange(
-            0, total_response_length, device=generated_tokens.device
-        )
     else:
         # just use a regular causal mask if there is no padding
         masks = torch.tril(
@@ -301,7 +297,6 @@ def generate(
         model,
         input_pos=input_pos[:, :prompt_length].squeeze(),
         mask=curr_masks,
-        cache_pos=cache_pos[:prompt_length] if cache_pos is not None else None,
         x=prompt,
         temperature=temperature,
         top_k=top_k,
@@ -311,7 +306,6 @@ def generate(
     generated_tokens = torch.cat([generated_tokens, tokens], dim=-1)
 
     curr_pos = prompt_length
-    curr_cache_pos = None
 
     # keeps track at a high level if we've already hit a stop token in a sequence so we can early stop
     stop_token_reached = torch.zeros(bsz, dtype=torch.bool, device=prompt.device)
@@ -343,9 +337,6 @@ def generate(
         # otherwise, we take the whole sequence up to the current position
         if incremental_decoding:
             curr_input_pos = input_pos[:, curr_pos]
-            curr_cache_pos = (
-                cache_pos[curr_pos].unsqueeze(0) if cache_pos is not None else None
-            )
             curr_masks = masks[:, curr_pos, None, :]
         else:
             tokens = generated_tokens.clone()
@@ -359,7 +350,6 @@ def generate(
             model,
             input_pos=curr_input_pos,
             x=tokens,
-            cache_pos=curr_cache_pos,
             mask=curr_masks,
             temperature=temperature,
             top_k=top_k,
