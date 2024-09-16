@@ -469,27 +469,46 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="mi">0</span></div>
 
 <div class="viewcode-block" id="KVCache.update"><a class="viewcode-back" href="../../../generated/torchtune.modules.KVCache.html#torchtune.modules.KVCache.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">k_val</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">v_val</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">cache_pos</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">k_val</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">v_val</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Update KV cache with the new k_val, v_val and return the updated cache.</span>
 
-<span class="sd">        Raises an assertion error if ``input_pos`` is longer than the maximum sequence length.</span>
-
 <span class="sd">        Args:</span>
-<span class="sd">            input_pos (torch.Tensor): Current position tensor with shape [S]</span>
+<span class="sd">            cache_pos (torch.Tensor): Current position tensor with shape [S]</span>
 <span class="sd">            k_val (torch.Tensor): Current key tensor with shape [B, H, S, D]</span>
 <span class="sd">            v_val (torch.Tensor): Current value tensor with shape [B, H, S, D]</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Tuple[torch.Tensor, torch.Tensor]: Updated KV cache with key first</span>
+<span class="sd">            Tuple[torch.Tensor, torch.Tensor]: (k_out, v_out) updated key and value cache, respectively.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            AssertionError: if ``cache_pos`` is longer than the key-value sequence length.</span>
+
+<span class="sd">        Notation:</span>
+<span class="sd">            S: sequence length</span>
+<span class="sd">            B: batch size</span>
+<span class="sd">            H: number of attention heads</span>
+<span class="sd">            D: attention head dimension</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">input_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">k_val</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">input_pos</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">cache_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">k_val</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
+                <span class="s2">&quot;The sequence length of cache_pos must be the same as &quot;</span>
+                <span class="s2">&quot;the sequence length of the k-v cache. Found cache_pos.shape[0]&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;=</span><span class="si">{</span><span class="n">cache_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> and k_val.shape[2]=</span><span class="si">{</span><span class="n">k_val</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">k_val</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_cache</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
+                <span class="s2">&quot;The batch size of the new key/value tensors must be the same as &quot;</span>
+                <span class="s2">&quot;the batch size of the k-v cache. Found k_val.shape[0]&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;=</span><span class="si">{</span><span class="n">k_val</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> and self.k_cache.shape[0]=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">k_cache</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">cache_pos</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span>
 
         <span class="n">k_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_cache</span>
         <span class="n">v_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">v_cache</span>
-        <span class="n">k_out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">input_pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">k_val</span>
-        <span class="n">v_out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">input_pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">v_val</span>
+
+        <span class="n">k_out</span><span class="o">.</span><span class="n">index_copy_</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">cache_pos</span><span class="p">,</span> <span class="n">k_val</span><span class="p">)</span>
+        <span class="n">v_out</span><span class="o">.</span><span class="n">index_copy_</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">cache_pos</span><span class="p">,</span> <span class="n">v_val</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">k_out</span><span class="p">,</span> <span class="n">v_out</span></div></div>
 </pre></div>

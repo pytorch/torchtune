@@ -426,10 +426,16 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.generation.generate.html#torchtune.generation.generate" title="torchtune.generation.generate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate</span></code></a></p></td>
-<td><p>Generates tokens from a model conditioned on a prompt.</p></td>
+<td><p>Generates tokens from a model conditioned on a prompt, and also returns logits for the generations.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.generation.sample.html#torchtune.generation.sample" title="torchtune.generation.sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample</span></code></a></p></td>
 <td><p>Generic sample from a probability distribution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.generation.get_causal_mask_from_padding_mask.html#torchtune.generation.get_causal_mask_from_padding_mask" title="torchtune.generation.get_causal_mask_from_padding_mask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_causal_mask_from_padding_mask</span></code></a></p></td>
+<td><p>Converts a padding mask of shape <code class="docutils literal notranslate"><span class="pre">[bsz,</span> <span class="pre">seq_len]</span></code> to a <code class="docutils literal notranslate"><span class="pre">[bsz,</span> <span class="pre">seq_len,</span> <span class="pre">seq_len]</span></code> causal attention mask suitable for consumption by <code class="xref py py-func docutils literal notranslate"><span class="pre">scaled_dot_product_attention~()</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.generation.get_position_ids_from_padding_mask.html#torchtune.generation.get_position_ids_from_padding_mask" title="torchtune.generation.get_position_ids_from_padding_mask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_position_ids_from_padding_mask</span></code></a></p></td>
+<td><p>Calculates position ids given a padding mask which right-shifts position ids to start from the first valid token.</p></td>
 </tr>
 </tbody>
 </table>
