@@ -227,7 +227,7 @@ def padded_collate_tiled_images_and_mask(
     """Pad a batch of text sequences, tiled image tensors, aspect ratios,
     and cross attention masks. This can be used for both training and inference.
 
-    ``batch`` is expected to be a list of sample dicts containing the following:
+    ``batch`` is expected to be a list of sample dicts containing the following::
         - "tokens": List[int] of length text_seq_len, varies across samples
         - "labels": List[int] of length text_seq_len, varies across samples
         - "encoder_input": Dict[str, List[torch.Tensor]]
@@ -235,8 +235,13 @@ def padded_collate_tiled_images_and_mask(
             - "aspect_ratio": List[torch.Tensor], each with shape (2, ) to indicate h_ratio, w_ratio
         - "encoder_mask": List[Tensor], each with shape (text_seq_len, image_seq_len)
 
-    where c = channel dim, h = height dim, w = weight dim. For each element in the batch,
-    len(images) == len(encoder_mask) == len(aspect_ratio).
+    Shape notation:
+        - c = channel dim
+        - h = height dim
+        - w = weight dim
+
+    Note:
+        For each element in the batch, ``len(images) == len(encoder_mask) == len(aspect_ratio)``.
 
     This collater does the following:
         (1) Pad text sequence and encoder mask to the longest sequence length in the batch

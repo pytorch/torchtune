@@ -9,10 +9,8 @@ from typing import List, Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchtune.modules import KVCache
-
 from torchtune.modules.transformer import _get_clones, TransformerSelfAttentionLayer
-from torchtune.utils.logging import deprecated
+from torchtune.utils._logging import deprecated
 
 
 @deprecated(
@@ -81,20 +79,36 @@ class GemmaTransformerDecoder(nn.Module):
         This should be called before the first forward pass, in the recipe."""
         self.num_output_chunks = num_output_chunks
 
-    def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
-        """Setup key value caches for attention calculation.
+    def setup_caches(
+        self,
+        batch_size: int,
+        dtype: torch.dtype,
+        *,
+        encoder_max_seq_len: Optional[int] = None,
+        decoder_max_seq_len: Optional[int] = None,
+    ):
+        """
+        Sets up key-value attention caches for inference. For each layer in ``self.layers``:
+        - :class:`torchtune.modules.TransformerSelfAttentionLayer` will use ``decoder_max_seq_len``.
+        - :class:`torchtune.modules.TransformerCrossAttentionLayer` will use ``encoder_max_seq_len``.
+        - :class:`torchtune.modules.fusion.FusionLayer` will use both ``decoder_max_seq_len`` and ``encoder_max_seq_len``.
 
         Args:
             batch_size (int): batch size for the caches.
             dtype (torch.dtype): dtype for the caches.
+            encoder_max_seq_len (Optional[int]): maximum encoder cache sequence length.
+            decoder_max_seq_len (Optional[int]): maximum decoder cache sequence length.
         """
+        if encoder_max_seq_len is not None:
+            self.encoder_max_seq_len = encoder_max_seq_len
+        if decoder_max_seq_len is not None:
+            self.decoder_max_seq_len = decoder_max_seq_len
         for layer in self.layers:
-            layer.attn.kv_cache = KVCache(
-                batch_size=batch_size,
-                max_seq_len=self.max_seq_len,
-                num_heads=self.num_heads,
-                head_dim=self.head_dim,
-                dtype=dtype,
+            layer.setup_cache(
+                batch_size,
+                dtype,
+                encoder_max_seq_len=encoder_max_seq_len,
+                decoder_max_seq_len=decoder_max_seq_len,
             )
 
         # causal_mask is used during inference to ensure we're attending
@@ -143,16 +157,16 @@ class GemmaTransformerDecoder(nn.Module):
             input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
-                During inference, this indicates the position of the current token.
-                If none, assume the index of the token is its position id. Default is None.
+                During inference, this indicates the position of the current token and
+                is required.
 
         Note: At the very first step of inference, when the model is provided with a prompt,
-        ``input_pos`` would contain the positions of all of the tokens in the prompt
+        ``input_pos`` should contain the positions of all of the tokens in the prompt
         (eg: ``torch.arange(prompt_length)``). This is because we will need to compute the
         KV values for each position.
 
         Returns:
-            Tensor: output tensor with shape [b x s x v]
+            torch.Tensor: output tensor with shape [b x s x v]
 
         Raises:
             ValueError: if causal_mask is set but input_pos is None

@@ -16,7 +16,7 @@ from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     apply_activation_checkpointing,
 )
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
-from torchtune.utils.logging import get_logger
+from torchtune.utils import get_logger
 
 _log: logging.Logger = get_logger()
 
