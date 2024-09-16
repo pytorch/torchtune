@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.utils.logging &mdash; torchtune main documentation</title>
+  <title>torchtune.utils._logging &mdash; torchtune main documentation</title>
   
 
   
@@ -384,7 +384,7 @@
         
           <li><a href="../../index.html">Module code</a> &gt;</li>
         
-      <li>torchtune.utils.logging</li>
+      <li>torchtune.utils._logging</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -416,7 +416,7 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>Source code for torchtune.utils.logging</h1><div class="highlight"><pre>
+  <h1>Source code for torchtune.utils._logging</h1><div class="highlight"><pre>
 <span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
 <span class="c1"># All rights reserved.</span>
 <span class="c1">#</span>
@@ -439,6 +439,11 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        level (Optional[str]): The logging level. See https://docs.python.org/3/library/logging.html#levels for list of levels.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; logger = get_logger(&quot;INFO&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; logger.info(&quot;Hello world!&quot;)</span>
+<span class="sd">        INFO:torchtune.utils._logging:Hello world!</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        logging.Logger: The logger.</span>
