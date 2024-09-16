@@ -30,7 +30,7 @@ checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Meta-Llama-3.1-405B-Instruct/
   checkpoint_files:
-    formatted_string: model-{}-of-{}.safetensors
+    filename_format: model-{}-of-{}.safetensors
     max_filename: 00191
   recipe_checkpoint: null
   output_dir: /tmp/Meta-Llama-3.1-405B-Instruct/
