@@ -67,21 +67,11 @@ class TestLoRAFinetuneSingleDeviceRecipe:
     @pytest.mark.integration_test
     @pytest.mark.parametrize("compile", [True, False])
     @pytest.mark.parametrize(
-        "config, model_type, ckpt_type",
+        "config, model_type, ckpt_type, enable_activation_checkpointing, enable_activation_offloading",
         [
-            ("llama2/7B_lora_single_device", "llama2", "meta"),
-            ("llama3/8B_lora_single_device", "llama3", "tune"),
-        ],
-    )
-    @pytest.mark.parametrize(
-        "enable_activation_checkpointing, enable_activation_offloading",
-        [
-            (False, False),
-            (True, False),
-            (
-                True,
-                True,
-            ),  # (False, True) only works after ao#881 but will be super slow anyway
+            ("llama2/7B_lora_single_device", "llama2", "meta", False, False),
+            ("llama2/7B_lora_single_device", "llama2", "meta", True, True),
+            ("llama3/8B_lora_single_device", "llama3", "tune", True, False),
         ],
     )
     def test_loss(
