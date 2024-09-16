@@ -57,7 +57,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         - Activation Offloading. This can be controlled using the ``enable_activation_offloading``
             flag. Activation offloading is a technique similar to activations checkpointing that helps
-            reduce the memory footprint to prevent OOMs and enable bigger batches. Where activations
+            reduce the memory footprint to prevent OOMs on CUDA and enable bigger batches. Where activations
             checkpointing drops the activation in the forward to recompute it later in the backward,
             activations offloading will drop the activation in the forward to the CPU and bring it
             back during the backward pass. As always, there is a tradeoff--these savings in memory can
@@ -118,6 +118,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     Raises:
         ValueError: If ``dtype`` is set to fp16.
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
+        RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
 
     """
 
@@ -155,6 +156,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
+        self._enable_activation_offloading = cfg.get(
+            "enable_activation_offloading", False
+        )
+        if self._enable_activation_offloading and self._device.type != "cuda":
+            raise RuntimeError(
+                "enable_activation_offloading should only be enabled for training on CUDA"
+            )
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -239,7 +247,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
-            enable_activation_offloading=cfg.get("enable_activation_offloading", False),
+            enable_activation_offloading=self._enable_activation_offloading,
             compile_model=cfg.compile,
             base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
             lora_weights_state_dict=(

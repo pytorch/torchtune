@@ -30,12 +30,18 @@ from torchtune.utils import torch_version_ge
 
 
 class TestLoRAFinetuneSingleDeviceRecipe:
-    def _get_test_config_overrides(self, dtype_str: str = "fp32", epochs: int = 2):
+    def _get_test_config_overrides(
+        self,
+        device: str = "cpu",
+        enable_ac: bool = False,
+        dtype_str: str = "fp32",
+        epochs: int = 2,
+    ):
         return [
             "batch_size=8",
-            "device=cpu",
+            f"device={device}",
             f"dtype={dtype_str}",
-            "enable_activation_checkpointing=False",
+            f"enable_activation_checkpointing={enable_ac}",
             "dataset.train_on_input=False",
             "seed=9",
             f"epochs={epochs}",
@@ -72,7 +78,10 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         [
             (False, False),
             (True, False),
-            (True, True),  # (False, True) only works after ao#881
+            (
+                True,
+                True,
+            ),  # (False, True) only works after ao#881 but will be super slow anyway
         ],
     )
     def test_loss(
@@ -112,7 +121,15 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
 
-        cmd = cmd + self._get_test_config_overrides(dtype_str="fp32") + model_config
+        cmd = (
+            cmd
+            + self._get_test_config_overrides(
+                device="cuda",
+                enable_ac=enable_activation_checkpointing,
+                dtype_str="fp32",
+            )
+            + model_config
+        )
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
