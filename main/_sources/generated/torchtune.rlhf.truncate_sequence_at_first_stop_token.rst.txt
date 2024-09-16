@@ -1,6 +1,6 @@
 ﻿.. role:: hidden
     :class: hidden-section
-.. currentmodule:: torchtune.modules.rlhf
+.. currentmodule:: torchtune.rlhf
 
 
 truncate_sequence_at_first_stop_token
