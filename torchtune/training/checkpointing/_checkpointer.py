@@ -25,7 +25,7 @@ from torchtune.training.checkpointing._utils import (
     safe_torch_load,
     save_config,
 )
-from torchtune.utils.logging import get_logger
+from torchtune.utils import get_logger
 
 logger = get_logger("DEBUG")
 

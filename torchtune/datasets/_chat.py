@@ -21,7 +21,7 @@ from torchtune.data import (
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.tokenizers import ModelTokenizer
-from torchtune.utils.logging import deprecated
+from torchtune.utils._logging import deprecated
 
 
 @deprecated(msg="Please use `torchtune.datasets.SFTDataset` for custom chat data.")

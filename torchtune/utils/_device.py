@@ -100,16 +100,21 @@ def _validate_device_from_env(device: torch.device) -> None:
 
 def get_device(device: Optional[str] = None) -> torch.device:
     """Function that takes an optional device string, verifies it's correct and available given the machine and
-    distributed settings, and returns a torch.device. If device string is not provided, this function will
+    distributed settings, and returns a :func:`~torch.device`. If device string is not provided, this function will
     infer the device based on the environment.
 
     If CUDA is available and being used, this function also sets the CUDA device.
 
     Args:
-        device (Optional[str]): The name of the device to use.
+        device (Optional[str]): The name of the device to use, e.g. "cuda" or "cpu".
+
+    Example:
+        >>> device = get_device("cuda")
+        >>> device
+        device(type='cuda', index=0)
 
     Returns:
-        torch.device: device.
+        torch.device: Device
     """
     if device is None:
         device = _get_device_type_from_env()
