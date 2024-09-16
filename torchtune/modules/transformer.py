@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from torch import nn
 from torchtune.modules import MultiHeadAttention
 from torchtune.modules.attention_utils import _MaskType
-from torchtune.utils.logging import deprecated
+from torchtune.utils._logging import deprecated
 
 
 class TransformerSelfAttentionLayer(nn.Module):

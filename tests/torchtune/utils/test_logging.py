@@ -9,7 +9,7 @@ from io import StringIO
 from unittest import mock
 
 import pytest
-from torchtune.utils.logging import deprecated, log_rank_zero
+from torchtune.utils._logging import deprecated, log_rank_zero
 
 
 def test_deprecated():

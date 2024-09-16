@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from torchtune.modules import KVCache
 
 from torchtune.modules.transformer import _get_clones, TransformerSelfAttentionLayer
-from torchtune.utils.logging import deprecated
+from torchtune.utils._logging import deprecated
 
 
 @deprecated(
