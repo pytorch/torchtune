@@ -113,20 +113,3 @@ Functions used for preprocessing images.
 
     transforms.Transform
     transforms.VisionCrossAttentionMask
-
-Reinforcement Learning From Human Feedback (RLHF)
---------------------------------------------------
-Components and losses for RLHF algorithms like PPO and DPO:
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
-    rlhf.estimate_advantages
-    rlhf.get_rewards_ppo
-    rlhf.truncate_sequence_at_first_stop_token
-    rlhf.loss.PPOLoss
-    rlhf.loss.DPOLoss
-    rlhf.loss.RSOLoss
-    rlhf.loss.IPOLoss
-    rlhf.loss.SimPOLoss

@@ -19,7 +19,7 @@ def get_reward_penalty_mask(
     Calculates a mask to penalise scores corresponding to sequences generated during PPO, where True indicates the score
     at the corresponding position should be penalised.
     This function assumes sequences have already been truncated at an EOS, if present, and padded to length,
-    e.g. by :func:`torchtune.modules.rlhf.sequence_processing.truncate_sequence_at_first_stop_token`.
+    e.g. by :func:`torchtune.rlhf.sequence_processing.truncate_sequence_at_first_stop_token`.
 
     Scores are penalised such that:
     - If ``min_response_length`` is set, scores for sequences with ``length < min_response_length`` are penalised.

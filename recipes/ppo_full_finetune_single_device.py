@@ -17,12 +17,11 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import config, generation, modules, training, utils
+from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
-from torchtune.modules import rlhf
-from torchtune.modules.rlhf import PPOStats, Trajectory
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.rlhf import PPOStats, Trajectory
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -679,7 +678,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
 
         Returns:
-            Trajectory: An instance of :class:`~torchtune.modules.rlhf.Trajectory` comprising
+            Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory` comprising
                 the current trajectory.
         """
         batch_size, context_length = input_ids.shape
@@ -799,7 +798,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
 
         Returns:
-            Trajectory: An instance of :class:`~torchtune.modules.rlhf.Trajectory`, comprising
+            Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory`, comprising
                 the current trajectory.
         """
         trajectories: List[Trajectory] = []
@@ -947,7 +946,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             context_length (int): input ids sequence length
 
         Returns:
-            PPOStats: An instance of :class:`~torchtune.modules.rlhf.PPOStats`, a NamedTuple containing:
+            PPOStats: An instance of :class:`~torchtune.rlhf.PPOStats`, a NamedTuple containing:
                - loss (torch.Tensor): The total PPO loss.
                - policy_loss (torch.Tensor): The policy function loss.
                - value_loss (torch.Tensor): The value function loss.
