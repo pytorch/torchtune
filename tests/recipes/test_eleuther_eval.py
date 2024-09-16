@@ -19,12 +19,19 @@ from tests.test_utils import CKPT_MODEL_PATHS
 
 
 class TestEleutherEval:
+    @pytest.mark.parametrize(
+        "eval_name, expected_acc, bsz",
+        [("truthfulqa_gen", 0.1, 1), ("truthfulqa_mc2", 0.3, 8)],
+    )
     @pytest.mark.integration_test
-    def test_torchtune_checkpoint_eval_results(self, capsys, monkeypatch, tmpdir):
+    def test_torchtune_checkpoint_eval_results(
+        self, capsys, monkeypatch, tmpdir, eval_name, expected_acc, bsz
+    ):
         ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
 
+        # TODO @joecummings bsz > 1 isn't supported for generation tasks, update test once integrated
         cmd = f"""
         tune run eleuther_eval \
             --config eleuther_evaluation \
@@ -39,6 +46,8 @@ class TestEleutherEval:
             limit=10 \
             dtype=fp32 \
             device=cpu \
+            tasks=[{eval_name}]\
+            batch_size={bsz} \
         """.split()
 
         model_config = llama2_test_config()
@@ -66,7 +75,7 @@ class TestEleutherEval:
         )
         assert search_results is not None
         acc_result = float(search_results.group(1))
-        assert math.isclose(acc_result, 0.3, abs_tol=0.05)
+        assert math.isclose(acc_result, expected_acc, abs_tol=0.05)
 
     @pytest.fixture
     def hide_available_pkg(self, monkeypatch):
