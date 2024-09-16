@@ -265,7 +265,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self._kd_loss_fn = config.instantiate(cfg.kd_loss)
         if self._compile:
             self._loss_fn = training.compile_loss(self._loss_fn)
-            # TODO: compile kd_loss_fn
             self._kd_loss_fn = training.compile_loss(self._kd_loss_fn)
         if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
             # set num_output_chunks for model
@@ -411,7 +410,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             training.compile_model(model)
 
         if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(
+            training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
