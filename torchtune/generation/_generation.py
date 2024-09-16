@@ -121,11 +121,12 @@ def get_causal_mask_from_padding_mask(
         target_seq_len (Optional[int]): target sequence length to create attention mask with. Default None.
 
     Returns:
-        torch.Tensor: Boolean causal mask with shape [bsz, seq_length, seq_length], or
-            [bsz, seq_length, target_seq_len] if ``target_seq_len`` was specified.
+        torch.Tensor: Boolean causal mask with shape
+            - [bsz, seq_length, seq_length] or
+            - [bsz, seq_length, target_seq_len] if ``target_seq_len`` was specified.
 
     Raises:
-        AssertionError: if ``target_seq_len > ``seq_len``, the sequence length of the padding mask.
+        AssertionError: if ``target_seq_len > seq_len``, the sequence length of the padding mask.
 
     Example:
         >>> padding_mask = torch.tensor([[False, True, True, True]])
