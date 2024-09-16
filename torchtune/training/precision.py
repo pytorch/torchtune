@@ -9,7 +9,7 @@ from typing import Dict, Generator, Iterable, Optional, Tuple
 
 import torch
 
-from torchtune.utils.logging import get_logger
+from torchtune.utils import get_logger
 
 log = get_logger()
 
