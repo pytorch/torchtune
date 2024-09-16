@@ -234,7 +234,7 @@ def lora_llama3_1_405b(
         vocab_size=128_256,
         num_layers=126,
         num_heads=128,
-        num_kv_heads=16,
+        num_kv_heads=8,
         embed_dim=16384,
         max_seq_len=8192,
         intermediate_dim=53248,
