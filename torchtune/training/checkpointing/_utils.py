@@ -72,39 +72,63 @@ class ModelType(Enum):
 
 
 class FormattedCheckpointFiles:
+    """
+    This class gives a more concise way to represent a list of filenames of the format ``file_{i}_of_{n_files}.pth``.
+
+    Args:
+        filename_format (str): Format string for the filename. Must have exactly two placeholders, e.g.
+            ``file_{}_of_{}.pth``.
+        max_filename (str): Maximum filename in the list. Should be a string representation of an integer,
+            possibly with leading zeroes.
+    """
+
     def __init__(
         self,
-        strf_name: str,
+        filename_format: str,
         max_filename: str,
     ):
-        self.strf_name = strf_name
+        self.filename_format = filename_format
         self.max_filename = max_filename
-        self._validate_strf_name()
+        self._validate_filename_format()
 
     @classmethod
     def from_dict(cls, d: dict) -> "FormattedCheckpointFiles":
-        if "strf_name" not in d or "max_filename" not in d:
+        if "filename_format" not in d or "max_filename" not in d:
             raise ValueError(
-                "Must pass 'strf_name' and 'max_filename' keys to generate checkpoint filenames"
+                "Must pass 'filename_format' and 'max_filename' keys to generate checkpoint filenames"
             )
         return cls(
-            strf_name=d["strf_name"],
+            filename_format=d["filename_format"],
             max_filename=d["max_filename"],
         )
 
-    def _validate_strf_name(self):
+    def _validate_filename_format(self):
         n_format_placeholders = [
-            x[1] for x in string.Formatter().parse(self.strf_name) if x[1] is not None
+            x[1]
+            for x in string.Formatter().parse(self.filename_format)
+            if x[1] is not None
         ]
         if len(n_format_placeholders) != 2:
             raise ValueError(
-                "Formatted checkpoint filename string must have exactly two placeholders, e.g. 'file_{i}_of_{n_files}.pth'"
+                "Filename format string must have exactly two placeholders, e.g. 'file_{i}_of_{n_files}.pth'"
             )
 
     def build_checkpoint_filenames(self):
+        """
+        Builds a list of checkpoint filenames from the filename format and max filename.
+
+        Returns:
+            List[str]: List of checkpoint filenames.
+
+        Example:
+            >>> # Example usage
+            >>> f = FormattedCheckpointFiles(filename_format="file_{}_of_{}.safetensors", max_filename="00003")
+            >>> f.build_checkpoint_filenames()
+            >>> ['file_00001_of_00003.safetensors', 'file_00002_of_00003.safetensors', 'file_00003_of_00003.safetensors']
+        """
         num_files = int(self.max_filename)
         return [
-            self.strf_name.format(
+            self.filename_format.format(
                 str(i + 1).zfill(len(self.max_filename)),
                 self.max_filename,
             )
