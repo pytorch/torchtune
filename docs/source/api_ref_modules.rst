@@ -25,6 +25,15 @@ Modeling Components and Building Blocks
     TransformerDecoder
     VisionTransformer
 
+Losses
+------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    loss.CEWithChunkedOutputLoss
+
 Base Tokenizers
 ---------------
 Base tokenizers are tokenizer models that perform the direct encoding of text
@@ -104,29 +113,3 @@ Functions used for preprocessing images.
 
     transforms.Transform
     transforms.VisionCrossAttentionMask
-
-Reinforcement Learning From Human Feedback (RLHF)
---------------------------------------------------
-Components for RLHF algorithms like PPO.
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
-    rlhf.estimate_advantages
-    rlhf.get_rewards_ppo
-    rlhf.truncate_sequence_at_first_stop_token
-
-Losses
-^^^^^^
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
-   rlhf.loss.PPOLoss
-   rlhf.loss.DPOLoss
-   rlhf.loss.RSOLoss
-   rlhf.loss.IPOLoss
-   rlhf.loss.SimPOLoss
-   loss.CEWithChunkedOutputLoss

@@ -8,9 +8,9 @@ import pytest
 
 import torch
 from tests.test_utils import fixed_init_model
+from torchtune import rlhf
 from torchtune.generation._generation import sample
 from torchtune.models.llama2 import llama2
-from torchtune.modules import rlhf
 
 
 class TestGenerateNextTokenWithLogits:
@@ -61,7 +61,7 @@ class TestGenerateNextTokenWithLogits:
 
 class TestGenerate:
     """
-    Test class for text generation functionality in :func:`~torchtune.modules.rlhf.generate`.
+    Test class for text generation functionality in :func:`~torchtune.rlhf.generate`.
     See `torchtune.tests.utils.test_generation` for context.
     """
 
