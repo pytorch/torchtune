@@ -681,26 +681,29 @@
             <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_proj</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
             <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">v_proj</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
 
+            <span class="c1"># Apply positional embeddings</span>
+            <span class="c1"># k: [b, s_y, n_kv, h_d]</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">s_y</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_embeddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_embeddings</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">)</span>
+
+            <span class="c1"># View + expand + reshape bring num_kv_heads to num_heads for k and v</span>
+            <span class="c1"># to match q.</span>
+
             <span class="c1"># k: [b, s_y, n_kv, 1, h_d]</span>
             <span class="c1"># v: [b, s_y, n_kv, 1, h_d]</span>
             <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">s_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_kv_heads</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span><span class="p">)</span>
             <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">s_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_kv_heads</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span><span class="p">)</span>
 
-            <span class="c1"># if needed, expand the key and value tensors to have the same shape</span>
+            <span class="c1"># If needed, expand the key and value tensors to have the same shape</span>
             <span class="c1"># as the query tensor by copying values across the relevant dim</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_kv_heads</span><span class="p">:</span>
                 <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">s_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_kv_heads</span><span class="p">,</span> <span class="n">q_per_kv</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span><span class="p">)</span>
                 <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">s_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_kv_heads</span><span class="p">,</span> <span class="n">q_per_kv</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span><span class="p">)</span>
 
-            <span class="c1"># llama applies the RoPE embeddings on tensors with shape</span>
             <span class="c1"># [b, s, n_h, h_d]</span>
-            <span class="c1"># Reshape the tensors before we apply RoPE</span>
             <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">s_y</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span><span class="p">)</span>
             <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">s_y</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span><span class="p">)</span>
-
-            <span class="c1"># Apply positional embeddings</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_embeddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_embeddings</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">)</span>
 
             <span class="c1"># [b, n_h, s, h_d]</span>
             <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
