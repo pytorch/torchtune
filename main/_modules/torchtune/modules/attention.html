@@ -559,13 +559,16 @@
         <span class="c1"># Use flex attention if supported and we are sample packing</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_attention_call</span> <span class="o">=</span> <span class="n">_sdpa_or_flex_attention</span><span class="p">()</span>
 
-<div class="viewcode-block" id="MultiHeadAttention.setup_cache"><a class="viewcode-back" href="../../../generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention.setup_cache">[docs]</a>    <span class="k">def</span> <span class="nf">setup_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="MultiHeadAttention.setup_cache"><a class="viewcode-back" href="../../../generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention.setup_cache">[docs]</a>    <span class="k">def</span> <span class="nf">setup_cache</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Setup key value caches for attention calculation. If called</span>
 <span class="sd">        after kv_cache is already setup, this will be skipped.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            batch_size (int): batch size for the caches.</span>
 <span class="sd">            dtype (torch.dtype): dtype for the caches.</span>
+<span class="sd">            max_seq_len (int): maximum sequence length model will be run with.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Don&#39;t overwrite user defined kv_cache from init</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kv_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -575,7 +578,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">kv_cache</span> <span class="o">=</span> <span class="n">KVCache</span><span class="p">(</span>
                 <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
-                <span class="n">max_seq_len</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span>
+                <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
                 <span class="n">num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
                 <span class="n">head_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span><span class="p">,</span>
                 <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
@@ -596,7 +599,6 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_MaskType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">cache_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
@@ -604,24 +606,23 @@
 <span class="sd">            y (Optional[torch.Tensor]): second input tensor with shape [b x s_y x d], is the input</span>
 <span class="sd">                for k and v. For self attention, x=y. Optional only with kv_cache enabled.</span>
 <span class="sd">            mask (Optional[_MaskType]): Used to mask the scores after the query-key multiplication</span>
-<span class="sd">                and before the softmax. Either a boolean tensor with shape [b x s x s] or a</span>
-<span class="sd">                :class:`~torch.nn.attention.flex_attention.BlockMask`. If a boolean tensor, a value</span>
-<span class="sd">                of True in row i and column j means token i attends to token j. A value of False means</span>
-<span class="sd">                token i does not attend to token j. If no mask is specified, a causal mask</span>
-<span class="sd">                is used by default. If a :class:`~torch.nn.attention.flex_attention.BlockMask` is passed</span>
-<span class="sd">                for document masking in a packed sequence via `create_block_mask</span>
-<span class="sd">                &lt;https://pytorch.org/blog/flexattention/#mask-mods&gt;`_, we use</span>
-<span class="sd">                :func:`~torch.nn.attention.flex_attention.flex_attention` when computing attention.</span>
+<span class="sd">                and before the softmax. Either:</span>
+
+<span class="sd">                A boolean tensor with shape ``[b x s x s]``, ``[b x s x self.encoder_max_cache_seq_len]``,</span>
+<span class="sd">                or ``[b x s x self.encoder_max_cache_seq_len]`` if using KV-cacheing with encoder/decoder layers.</span>
+<span class="sd">                A value of True in row ``i`` and column ``j`` means token ``i`` attends to token ``j``. A value of False means</span>
+<span class="sd">                token ``i`` does not attend to token ``j``. If no mask is specified, a causal mask</span>
+<span class="sd">                is used by default.</span>
+
+<span class="sd">                A :class:`~torch.nn.attention.flex_attention.BlockMask` for document masking in a packed sequence</span>
+<span class="sd">                created via `create_block_mask &lt;https://pytorch.org/blog/flexattention/#mask-mods&gt;`_. We  use</span>
+<span class="sd">                :func:`~torch.nn.attention.flex_attention.flex_attention` when computing attention with block masks.</span>
 <span class="sd">                Default is None.</span>
 <span class="sd">            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids</span>
 <span class="sd">                of each token. During training, this is used to indicate the positions</span>
 <span class="sd">                of each token relative to its sample when packed, shape [b x s].</span>
 <span class="sd">                During inference, this indicates the position of the current token.</span>
 <span class="sd">                If none, assume the index of the token is its position id. Default is None.</span>
-<span class="sd">            cache_pos (Optional[torch.Tensor]): Optional tensor which contains the cache positions</span>
-<span class="sd">                of each token, used during inference. This is useful when ``input_ids`` are</span>
-<span class="sd">                right-shifted to account for padding tokens. Default is None, in which case</span>
-<span class="sd">                ``input_pos`` is used (if specified).</span>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: If no ``y`` input and ``kv_cache`` is not enabled.</span>
@@ -643,11 +644,6 @@
         <span class="n">b</span><span class="p">,</span> <span class="n">s_x</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
         <span class="n">s_y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kv_cache</span> <span class="ow">and</span> <span class="n">input_pos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">cache_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kv_cache</span><span class="o">.</span><span class="n">size</span>
-            <span class="n">input_pos</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">cache_size</span><span class="p">,</span> <span class="n">cache_size</span> <span class="o">+</span> <span class="n">s_y</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-
-        <span class="n">cache_pos</span> <span class="o">=</span> <span class="n">input_pos</span> <span class="k">if</span> <span class="n">cache_pos</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">cache_pos</span>
         <span class="c1"># q has shape [b, s_x, num_heads * head_dim]</span>
         <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">q_proj</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 
@@ -715,7 +711,7 @@
 
             <span class="c1"># Update key-value cache</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kv_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kv_cache</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">cache_pos</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+                <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kv_cache</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
 
         <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attention_call</span><span class="p">(</span>
             <span class="n">q</span><span class="p">,</span>
