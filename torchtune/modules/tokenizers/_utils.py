@@ -14,6 +14,8 @@ from torchtune.data._utils import truncate
 class BaseTokenizer(Protocol):
     """
     Abstract token encoding model that implements ``encode`` and ``decode`` methods.
+    See :class:`~torchtune.modules.tokenizers.SentencePieceBaseTokenizer` and
+    :class:`~torchtune.modules.tokenizers.TikTokenBaseTokenizer` for example implementations of this protocol.
     """
 
     def encode(self, text: str, **kwargs: Dict[str, Any]) -> List[int]:
@@ -45,8 +47,9 @@ class BaseTokenizer(Protocol):
 
 class ModelTokenizer(Protocol):
     """
-    Abstract tokenizer that implements model specific special token logic in
-    the ``tokenize_messages`` method.
+    Abstract tokenizer that implements model-specific special token logic in
+    the ``tokenize_messages`` method. See :class:`~torchtune.models.llama3.Llama3Tokenizer`
+    for an example implementation of this protocol.
     """
 
     special_tokens: Dict[str, int]

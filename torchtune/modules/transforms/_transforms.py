@@ -13,6 +13,8 @@ class Transform(Protocol):
     """
     Loose interface for all data and model transforms. Transforms operate at the
     sample level and perform operations on a sample dict, returning the updated dict.
+    For an example implementation of this protocol, see
+    :class:`~torchtune.modules.transforms.VisionCrossAttentionMask`.
     """
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:

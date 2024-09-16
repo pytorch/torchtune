@@ -157,5 +157,6 @@ torchtune tutorials.
    api_ref_generation
    api_ref_models
    api_ref_modules
+   api_ref_rlhf
    api_ref_training
    api_ref_utilities

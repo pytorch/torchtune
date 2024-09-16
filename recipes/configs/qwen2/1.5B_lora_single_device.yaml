@@ -52,6 +52,7 @@ batch_size: 2
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
+  fused: True
   lr: 2e-3
 
 lr_scheduler:

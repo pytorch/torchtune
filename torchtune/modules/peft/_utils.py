@@ -16,14 +16,14 @@ LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
 
 class AdapterModule(Protocol):
     """
-    Interface for an nn.Module containing adapter weights.
+    Interface for an ``nn.Module`` containing adapter weights.
     Note that an adapter module does not have to explicitly implement this protocol,
     but it must define the ``adapter_params(self)`` method.
     """
 
     def adapter_params(self) -> List[str]:
         """
-        Return a list of strings corresponding to the names of the nn.Parameters in
+        Return a list of strings corresponding to the names of the ``nn.Parameter`` s in
         the model coming from the adapter.
         E.g. if an nn.Module has adapter ``self.proj = nn.Linear(in_dim, out_dim)``,
         then adapter_params should return ``['proj.weight', 'proj.bias']``.
@@ -272,17 +272,17 @@ def get_merged_lora_ckpt(
 @contextlib.contextmanager
 def disable_adapter(model: nn.Module) -> Generator[None, None, None]:
     """
-    Temporarily disable the adapters in a neural network model. This can be used,
-    for example, in DPO for treating the lora adapters as the policy model
+    Temporarily disable the adapters in a model. For example,
+    this can be used in DPO for treating the LoRA adapters as the policy model
     and disabling it to treat the base model as the reference model.
 
     This context manager goes through all modules in the provided neural network model,
-    and if a module has an 'adapter_params' attribute that is callable and a 'disabled' attribute,
-    it sets 'disabled' to True. Then, the control is given back to caller. Once that finalizes,
-    it sets 'disabled' back to False for all modules that were temporarily disabled.
+    and if a module has an ``adapter_params`` attribute that is callable and a ``disabled`` attribute,
+    it sets ``disabled`` to True. Then, the control is given back to caller. When exiting the context manager,
+    it sets ``disabled`` back to False for all modules that were temporarily disabled.
 
     Args:
-        model (nn.Module): The neural network model whose adapters are to be temporarily disabled.
+        model (nn.Module): The model whose adapters are to be temporarily disabled.
     Yields:
         None: This function yields control back to the caller, with the adapters disabled.
     Example:
@@ -327,8 +327,6 @@ def validate_missing_and_unexpected_for_lora(
     Unlike that function, this method relies only on the values of missing and unexpected
     as returned by the load_state_dict API with strict=False. This allows us to do the
     validation without any additional calls to .state_dict(), which use additional memory.
-    This API should only be used for single-device recipes, or on multi-device after
-    https://github.com/pytorch/pytorch/pull/120600.
 
     Args:
         lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers

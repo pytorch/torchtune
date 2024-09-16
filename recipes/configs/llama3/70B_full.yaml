@@ -79,8 +79,7 @@ epochs: 3
 optimizer:
   _component_: torch.optim.AdamW
   lr: 2e-5
-  foreach: False
-  # Note: highly recommended to use fused=True optimizer flag
+  fused: True  # Note: highly recommended to use fused=True optimizer flag
   # with CPU offload for faster optimizer step.
   fused: True
 
