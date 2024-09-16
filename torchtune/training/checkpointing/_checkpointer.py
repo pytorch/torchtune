@@ -439,7 +439,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             log_rank_zero(
                 logger=logger,
                 msg="Converting Phi-3 Mini weights from HF format."
-                "Note that conversion of adapter weights into PEFT format is not supported."
+                "Note that conversion of adapter weights into PEFT format is not supported.",
             )
             converted_state_dict[training.MODEL_KEY] = phi3_hf_to_tune(
                 merged_state_dict
