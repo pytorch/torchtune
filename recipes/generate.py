@@ -140,7 +140,7 @@ class InferenceRecipe:
         # Ensure the cache is setup on the right device, with only as many tokens as we need
         if cfg.enable_kv_cache:
             with self._device:
-                self._.setup_caches(
+                self._model.setup_caches(
                     batch_size=1,
                     dtype=self._dtype,
                     decoder_max_seq_len=prompt.numel() + cfg.max_new_tokens,
