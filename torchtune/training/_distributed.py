@@ -351,6 +351,7 @@ def get_full_model_state_dict(
     model: "FSDPModule",  # noqa
     is_rank_zero: bool,
     device: Optional[torch.device] = None,
+    trainable_only: bool = False,
 ) -> Dict[str, Any]:
     """
     Converting sharded state dict into a full state dict on CPU
@@ -360,6 +361,7 @@ def get_full_model_state_dict(
         model (FSDPModule): wrapped module
         is_rank_zero (bool): flag to check if the process is on rank 0
         device (Optional[torch.device]): device to use for sharded tensors. Default: None
+        trainable_only (bool): flag to check if only trainable parameters should be returned. Default: False
 
     Raises:
         AssertionError: if the model contains NF4Tensor and the model is not wrapped with FSDP

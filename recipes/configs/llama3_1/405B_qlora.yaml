@@ -2,7 +2,7 @@
 # using a Llama3.1 405B model
 #
 # This config requires PyTorch nightlies to run.
-# See https://github.com/pytorch/torchtune/blob/main/recipes/dev/fsdp2_recipes.md
+# See https://pytorch.org/torchtune/main/install.html#install-instructions
 # for setup instructions.
 #
 # This config assumes that you've run the following command before launching
