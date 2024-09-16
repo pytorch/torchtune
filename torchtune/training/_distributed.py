@@ -346,7 +346,6 @@ def load_from_full_model_state_dict(
     return model.load_state_dict(sharded_sd, strict=strict, assign=True)
 
 
-# TODO: what was up with trainable_only here?
 def get_full_model_state_dict(
     model: "FSDPModule",  # noqa
     is_rank_zero: bool,
