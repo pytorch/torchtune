@@ -36,6 +36,7 @@ from torchtune.training.checkpointing import (
     ADAPTER_KEY,
     Checkpointer,
     EPOCHS_KEY,
+    FormattedCheckpointFiles,
     FullModelHFCheckpointer,
     FullModelMetaCheckpointer,
     FullModelTorchTuneCheckpointer,
@@ -122,4 +123,5 @@ __all__ = [
     "setup_torch_profiler",
     "compile_loss",
     "compile_model",
+    "FormattedCheckpointFiles",
 ]
