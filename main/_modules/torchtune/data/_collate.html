@@ -646,7 +646,7 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Pad a batch of text sequences, tiled image tensors, aspect ratios,</span>
 <span class="sd">    and cross attention masks. This can be used for both training and inference.</span>
 
-<span class="sd">    ``batch`` is expected to be a list of sample dicts containing the following:</span>
+<span class="sd">    ``batch`` is expected to be a list of sample dicts containing the following::</span>
 <span class="sd">        - &quot;tokens&quot;: List[int] of length text_seq_len, varies across samples</span>
 <span class="sd">        - &quot;labels&quot;: List[int] of length text_seq_len, varies across samples</span>
 <span class="sd">        - &quot;encoder_input&quot;: Dict[str, List[torch.Tensor]]</span>
@@ -654,8 +654,13 @@
 <span class="sd">            - &quot;aspect_ratio&quot;: List[torch.Tensor], each with shape (2, ) to indicate h_ratio, w_ratio</span>
 <span class="sd">        - &quot;encoder_mask&quot;: List[Tensor], each with shape (text_seq_len, image_seq_len)</span>
 
-<span class="sd">    where c = channel dim, h = height dim, w = weight dim. For each element in the batch,</span>
-<span class="sd">    len(images) == len(encoder_mask) == len(aspect_ratio).</span>
+<span class="sd">    Shape notation:</span>
+<span class="sd">        - c = channel dim</span>
+<span class="sd">        - h = height dim</span>
+<span class="sd">        - w = weight dim</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        For each element in the batch, ``len(images) == len(encoder_mask) == len(aspect_ratio)``.</span>
 
 <span class="sd">    This collater does the following:</span>
 <span class="sd">        (1) Pad text sequence and encoder mask to the longest sequence length in the batch</span>

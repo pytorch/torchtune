@@ -431,7 +431,7 @@
 <dd><p>Pad a batch of text sequences, tiled image tensors, aspect ratios,
 and cross attention masks. This can be used for both training and inference.</p>
 <dl class="simple">
-<dt><code class="docutils literal notranslate"><span class="pre">batch</span></code> is expected to be a list of sample dicts containing the following:</dt><dd><ul class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">batch</span></code> is expected to be a list of sample dicts containing the following::</dt><dd><ul class="simple">
 <li><p>“tokens”: List[int] of length text_seq_len, varies across samples</p></li>
 <li><p>“labels”: List[int] of length text_seq_len, varies across samples</p></li>
 <li><dl class="simple">
@@ -445,9 +445,17 @@ and cross attention masks. This can be used for both training and inference.</p>
 <li><p>“encoder_mask”: List[Tensor], each with shape (text_seq_len, image_seq_len)</p></li>
 </ul>
 </dd>
+<dt>Shape notation:</dt><dd><ul class="simple">
+<li><p>c = channel dim</p></li>
+<li><p>h = height dim</p></li>
+<li><p>w = weight dim</p></li>
+</ul>
+</dd>
 </dl>
-<p>where c = channel dim, h = height dim, w = weight dim. For each element in the batch,
-len(images) == len(encoder_mask) == len(aspect_ratio).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For each element in the batch, <code class="docutils literal notranslate"><span class="pre">len(images)</span> <span class="pre">==</span> <span class="pre">len(encoder_mask)</span> <span class="pre">==</span> <span class="pre">len(aspect_ratio)</span></code>.</p>
+</div>
 <dl class="simple">
 <dt>This collater does the following:</dt><dd><ol class="arabic simple">
 <li><p>Pad text sequence and encoder mask to the longest sequence length in the batch</p></li>
