@@ -10,28 +10,24 @@ import torch
 from torchtune.modules.transformer import TransformerDecoder
 
 
-def multinomial_sample_one(
-    probs: torch.Tensor, q: Optional[torch.Tensor] = None
-) -> torch.Tensor:
+def multinomial_sample_one(probs: torch.Tensor, q: torch.Tensor) -> torch.Tensor:
     """Samples from a multinomial distribution."""
-
-    q = torch.empty_like(probs).exponential_(1) if q is None else q
     return torch.argmax(probs / q, dim=-1, keepdim=True).to(dtype=torch.int)
 
 
 def sample(
     logits: torch.Tensor,
+    q: torch.Tensor,
     *,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
-    q: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
     """Generic sample from a probability distribution.
     Args:
         logits (torch.Tensor): logits from which to sample
+        q (torch.Tensor): randomly sampled tensor for softmax sampling trick.
         temperature (float): value to scale the predicted logits by, default 1.0.
         top_k (Optional[int]): If specified, we prune the sampling to only token ids within the top_k probabilities
-        q (Optional[torch.Tensor]): randomly sampled tensor for softmax sampling trick.
     Returns:
         torch.Tensor: sampled token id
     """
@@ -53,12 +49,12 @@ def generate_next_token(
     model: TransformerDecoder,
     input_pos: torch.Tensor,
     x: torch.Tensor,
+    q: torch.Tensor,
     *,
     mask: Optional[torch.Tensor] = None,
     cache_pos: Optional[torch.Tensor] = None,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
-    q: Optional[torch.Tensor] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Generates the next tokens given a prompt, and also returns the corresponding logits.
@@ -69,6 +65,8 @@ def generate_next_token(
             with shape [bsz x seq_length].
         x (torch.Tensor): tensor with the token IDs associated with the given prompt,
             with shape [bsz x seq_length].
+        q (torch.Tensor): randomly sampled tensor for softmax sampling trick.
+            See https://github.com/pytorch-labs/gpt-fast/blob/32971d3129541c5bfb4f715abc33d1c5f408d204/generate.py#L40
         mask (Optional[torch.Tensor]): attention mask with shape [bsz x seq_length x seq_length],
             default None.
         cache_pos (Optional[torch.Tensor]): tensor which contains the cache positions
@@ -77,8 +75,6 @@ def generate_next_token(
             ``input_pos`` is used (if specified).
         temperature (float): value to scale the predicted logits by, default 1.0.
         top_k (Optional[int]): Top-k value to use for sampling, default None.
-        q (Optional[torch.Tensor]): randomly sampled tensor for softmax sampling trick.
-            See https://github.com/pytorch-labs/gpt-fast/blob/32971d3129541c5bfb4f715abc33d1c5f408d204/generate.py#L40
 
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: tuple of two tensors:
@@ -92,7 +88,7 @@ def generate_next_token(
     # we want to take the last token's logits as the input to the next model call
     logits = model(x, input_pos=input_pos, mask=mask, cache_pos=cache_pos)
     return (
-        sample(logits[:, -1].clone(), temperature=temperature, top_k=top_k, q=q),
+        sample(logits[:, -1].clone(), q, temperature=temperature, top_k=top_k),
         logits,
     )
 
@@ -193,7 +189,7 @@ def generate(
     stop_tokens: Optional[List[int]] = None,
     rng: Optional[torch.Generator] = None,
     custom_generate_next_token: Optional[Callable] = None,
-):
+) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Generates tokens from a model conditioned on a prompt, and also returns logits for the generations.
 
@@ -225,7 +221,12 @@ def generate(
         Hi my name is Jeremy and I'm a friendly language model assistant!
 
     Returns:
-        torch.Tensor: Generated tokens.
+        Tuple[torch.Tensor, torch.Tensor]: tuple of two tensors:
+            - tokens (torch.Tensor): tensor with the generated tokens,
+                with shape ``[bsz x seq_len + num_generated_tokens]`` where ``num_generated_tokens``
+                may be less than ``max_generated_tokens`` if ``stop_tokens`` are provided.
+            - logits (torch.Tensor): tensor with the logits associated with the generated tokens,
+                with shape ``[bsz x seq_len + num_generated_tokens x vocab_size]``.
     """
     prompt = prompt.view(1, -1) if prompt.ndim == 1 else prompt
 
@@ -282,8 +283,6 @@ def generate(
         input_pos = torch.arange(
             0, total_response_length, device=generated_tokens.device
         ).unsqueeze(0)
-
-    del padding_masks
 
     if incremental_decoding:
         # if KV-caches are enabled, we need a causal mask of shape [bsz, prompt_length, max_cache_len]
