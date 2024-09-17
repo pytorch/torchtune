@@ -445,7 +445,7 @@
     <span class="n">safe_torch_load</span><span class="p">,</span>
     <span class="n">save_config</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">torchtune.utils</span> <span class="kn">import</span> <span class="n">get_logger</span>
+<span class="kn">from</span> <span class="nn">torchtune.utils._logging</span> <span class="kn">import</span> <span class="n">get_logger</span><span class="p">,</span> <span class="n">log_rank_zero</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;DEBUG&quot;</span><span class="p">)</span>
 
@@ -862,9 +862,10 @@
             <span class="k">del</span> <span class="n">state_dict</span>
             <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="s2">&quot;Converting Phi-3 Mini weights from HF format.&quot;</span>
-                <span class="s2">&quot;Note that conversion of adapter weights into PEFT format is not supported.&quot;</span>
+            <span class="n">log_rank_zero</span><span class="p">(</span>
+                <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+                <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Converting Phi-3 Mini weights from HF format.&quot;</span>
+                <span class="s2">&quot;Note that conversion of adapter weights into PEFT format is not supported.&quot;</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">phi3_hf_to_tune</span><span class="p">(</span>
                 <span class="n">merged_state_dict</span>
