@@ -62,7 +62,6 @@ class InferenceRecipe:
         self,
         model_cfg: DictConfig,
         model_state_dict: Dict[str, Any],
-        enable_kv_cache: bool = True,
     ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
