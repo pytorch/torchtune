@@ -52,5 +52,5 @@ For a full list, please run:
 
 .. note::
 
-  Our recipe documentation is currently in construction. Please feel free to follow the progres in our tracker
+  Our recipe documentation is currently in construction. Please feel free to follow the progress in our tracker
   issue `here <https://github.com/pytorch/torchtune/issues/1408>`_.
