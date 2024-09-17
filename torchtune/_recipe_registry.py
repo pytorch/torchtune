@@ -288,6 +288,17 @@ _ALL_RECIPES = [
         ],
         supports_distributed=False,
     ),
+    Recipe(
+        name="kd_distributed",
+        file_path="kd_distributed.py",
+        configs=[
+            Config(
+                name="qwen2/kd_distributed",
+                file_path="qwen2/kd_distributed.yaml",
+            ),
+        ],
+        supports_distributed=True,
+    ),
 ]
 
 

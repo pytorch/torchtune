@@ -24,6 +24,7 @@ from torchtune.data import padded_collate_packed, padded_collate_sft
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     DoRALinear,
+    get_adapter_params,
     get_lora_module_names,
     get_merged_lora_ckpt,
     load_dora_magnitudes,
@@ -426,7 +427,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
-        self.adapter_params = training.get_adapter_params(model)
+        self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
 
         if self._compile:
