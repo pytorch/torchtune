@@ -57,7 +57,6 @@ class InferenceRecipe:
             model_state_dict=ckpt_dict[training.MODEL_KEY],
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
-        self._enable_kv_cache = cfg.enable_kv_cache
 
     def _setup_model(
         self,
