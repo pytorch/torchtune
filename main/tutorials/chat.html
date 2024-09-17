@@ -455,10 +455,6 @@ custom chat dataset for fine-tuning Llama3 Instruct.</p>
 </div>
 </div>
 </div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This tutorial requires a version of torchtune &gt; 0.1.1</p>
-</div>
 <section id="template-changes-from-llama2-to-llama3">
 <h2>Template changes from Llama2 to Llama3<a class="headerlink" href="#template-changes-from-llama2-to-llama3" title="Permalink to this heading">¶</a></h2>
 <p>The Llama2 chat model requires a specific template when prompting the pre-trained
@@ -522,13 +518,13 @@ prompt:</p>
 <span class="p">]</span>
 </pre></div>
 </div>
-<p>Now, let’s format this with the <code class="xref py py-class docutils literal notranslate"><span class="pre">Llama2ChatFormat</span></code> class and
-see how it gets tokenized. The Llama2ChatFormat is an example of a <strong>prompt template</strong>,
+<p>Now, let’s format this with the <a class="reference internal" href="../generated/torchtune.models.llama2.Llama2ChatTemplate.html#torchtune.models.llama2.Llama2ChatTemplate" title="torchtune.models.llama2.Llama2ChatTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">Llama2ChatTemplate</span></code></a> class and
+see how it gets tokenized. The Llama2ChatTemplate is an example of a <strong>prompt template</strong>,
 which simply structures a prompt with flavor text to indicate a certain task.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Llama2ChatFormat</span><span class="p">,</span> <span class="n">Message</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Llama2ChatTemplate</span><span class="p">,</span> <span class="n">Message</span>
 
 <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span><span class="n">Message</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">]</span>
-<span class="n">formatted_messages</span> <span class="o">=</span> <span class="n">Llama2ChatFormat</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+<span class="n">formatted_messages</span> <span class="o">=</span> <span class="n">Llama2ChatTemplate</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">formatted_messages</span><span class="p">)</span>
 <span class="c1"># [</span>
 <span class="c1">#     Message(</span>
@@ -545,7 +541,7 @@ which simply structures a prompt with flavor text to indicate a certain task.</p
 </pre></div>
 </div>
 <p>There are also special tokens used by Llama2, which are not in the prompt template.
-If you look at our <code class="xref py py-class docutils literal notranslate"><span class="pre">Llama2ChatFormat</span></code> class, you’ll notice that
+If you look at our <a class="reference internal" href="../generated/torchtune.models.llama2.Llama2ChatTemplate.html#torchtune.models.llama2.Llama2ChatTemplate" title="torchtune.models.llama2.Llama2ChatTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">Llama2ChatTemplate</span></code></a> class, you’ll notice that
 we don’t include the <code class="code docutils literal notranslate"><span class="pre">&lt;s&gt;</span></code> and <code class="code docutils literal notranslate"><span class="pre">&lt;/s&gt;</span></code> tokens. These are the beginning-of-sequence
 (BOS) and end-of-sequence (EOS) tokens that are represented differently in the tokenizer
 than the rest of the prompt template. Let’s tokenize this example with the
@@ -637,7 +633,7 @@ This would wrap around the user message, with the assistant message untouched.</
 </pre></div>
 </div>
 <p>You can fine-tune Llama2 with this template even though the model was originally pre-trained
-with the <code class="xref py py-class docutils literal notranslate"><span class="pre">Llama2ChatFormat</span></code>, as long as this is what the model
+with the <a class="reference internal" href="../generated/torchtune.models.llama2.Llama2ChatTemplate.html#torchtune.models.llama2.Llama2ChatTemplate" title="torchtune.models.llama2.Llama2ChatTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">Llama2ChatTemplate</span></code></a>, as long as this is what the model
 sees during inference. The model should be robust enough to adapt to a new template.</p>
 </section>
 <section id="fine-tuning-on-a-custom-chat-dataset">
@@ -645,74 +641,67 @@ sees during inference. The model should be robust enough to adapt to a new templ
 <p>Let’s test our understanding by trying to fine-tune the Llama3-8B instruct model with a custom
 chat dataset. We’ll walk through how to set up our data so that it can be tokenized
 correctly and fed into our model.</p>
-<p>Let’s say we have a local dataset saved as a CSV file that contains questions
-and answers from an online forum. How can we get something like this into a format
+<p>Let’s say we have a local dataset saved as a JSON file that contains conversations
+with an AI model. How can we get something like this into a format
 Llama3 understands and tokenizes correctly?</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-
-<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">&#39;your_file.csv&#39;</span><span class="p">,</span> <span class="n">nrows</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Header:&quot;</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
-<span class="c1"># [&#39;input&#39;, &#39;output&#39;]</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;First row:&quot;</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
-<span class="c1"># [</span>
-<span class="c1">#     &quot;How do GPS receivers communicate with satellites?&quot;,</span>
-<span class="c1">#     &quot;The first thing to know is the communication is one-way...&quot;,</span>
-<span class="c1"># ]</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># data/my_data.json</span>
+<span class="p">[</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;dialogue&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;from&quot;</span><span class="p">:</span> <span class="s2">&quot;human&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;What is your name?&quot;</span>
+            <span class="p">},</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;from&quot;</span><span class="p">:</span> <span class="s2">&quot;gpt&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;I am an AI assistant, I don&#39;t have a name.&quot;</span>
+            <span class="p">},</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;from&quot;</span><span class="p">:</span> <span class="s2">&quot;human&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;Pretend you have a name.&quot;</span>
+            <span class="p">},</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;from&quot;</span><span class="p">:</span> <span class="s2">&quot;gpt&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;My name is Mark Zuckerberg.&quot;</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+    <span class="p">},</span>
+<span class="p">]</span>
 </pre></div>
 </div>
-<p>The Llama3 tokenizer class, <code class="xref py py-class docutils literal notranslate"><span class="pre">Llama3Tokenizer</span></code>,
-expects the input to be in the <a class="reference internal" href="../generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> format. Let’s
-quickly write a function that can parse a single row from our csv file into
-the Message dataclass. The function also needs to have a train_on_input parameter.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">message_converter</span><span class="p">(</span><span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
-    <span class="n">input_msg</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]</span>
-    <span class="n">output_msg</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span>
+<p>Let’s first take a look at the <a class="reference internal" href="../api_ref_datasets.html#dataset-builders"><span class="std std-ref">Generic dataset builders</span></a> and see which fits our use case. Since we
+have conversational data, <a class="reference internal" href="../generated/torchtune.datasets.chat_dataset.html#torchtune.datasets.chat_dataset" title="torchtune.datasets.chat_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">chat_dataset()</span></code></a> seems to be a good fit. For any
+custom local dataset we always need to specify <code class="docutils literal notranslate"><span class="pre">source</span></code>, <code class="docutils literal notranslate"><span class="pre">data_files</span></code>, and <code class="docutils literal notranslate"><span class="pre">split</span></code> for any dataset
+builder in torchtune. For <a class="reference internal" href="../generated/torchtune.datasets.chat_dataset.html#torchtune.datasets.chat_dataset" title="torchtune.datasets.chat_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">chat_dataset()</span></code></a>, we additionally need to specify
+<code class="docutils literal notranslate"><span class="pre">conversation_column</span></code> and <code class="docutils literal notranslate"><span class="pre">conversation_style</span></code>. Our data follows the <code class="docutils literal notranslate"><span class="pre">&quot;sharegpt&quot;</span></code> format, so
+we can specify that here. Altogether, our <a class="reference internal" href="../generated/torchtune.datasets.chat_dataset.html#torchtune.datasets.chat_dataset" title="torchtune.datasets.chat_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">chat_dataset()</span></code></a> call should
+look like so:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">chat_dataset</span>
+<span class="kn">from</span> <span class="nn">torchtune.models.llama3</span> <span class="kn">import</span> <span class="n">llama3_tokenizer</span>
 
-    <span class="n">user_message</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span>
-        <span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
-        <span class="n">content</span><span class="o">=</span><span class="n">input_msg</span><span class="p">,</span>
-        <span class="n">masked</span><span class="o">=</span><span class="ow">not</span> <span class="n">train_on_input</span><span class="p">,</span>  <span class="c1"># Mask if not training on prompt</span>
-    <span class="p">)</span>
-    <span class="n">assistant_message</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span>
-        <span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span>
-        <span class="n">content</span><span class="o">=</span><span class="n">output_msg</span><span class="p">,</span>
-        <span class="n">masked</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="c1"># A single turn conversation</span>
-    <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span><span class="n">user_message</span><span class="p">,</span> <span class="n">assistant_message</span><span class="p">]</span>
-
-    <span class="k">return</span> <span class="n">messages</span>
+<span class="n">tokenizer</span> <span class="o">=</span> <span class="n">llama3_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model&quot;</span><span class="p">)</span>
+<span class="n">ds</span> <span class="o">=</span> <span class="n">chat_dataset</span><span class="p">(</span>
+    <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">,</span>
+    <span class="n">data_files</span><span class="o">=</span><span class="s2">&quot;data/my_data.json&quot;</span><span class="p">,</span>
+    <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+    <span class="n">conversation_column</span><span class="o">=</span><span class="s2">&quot;dialogue&quot;</span><span class="p">,</span>
+    <span class="n">conversation_style</span><span class="o">=</span><span class="s2">&quot;sharegpt&quot;</span><span class="p">,</span>
+<span class="p">)</span>
 </pre></div>
 </div>
-<p>Since we’re fine-tuning Llama3, the tokenizer will handle formatting the prompt for
-us. But if we were fine-tuning a model that requires a template, for example the
-Mistral-7B model which uses the <code class="xref py py-class docutils literal notranslate"><span class="pre">MistralTokenizer</span></code>,
-we would need to use a chat format like <code class="xref py py-class docutils literal notranslate"><span class="pre">MistralChatFormat</span></code> to format
-all messages according to their <a class="reference external" href="https://docs.mistral.ai/getting-started/open_weight_models/#chat-template">recommendations</a>.</p>
-<p>Now let’s create a builder function for our dataset that loads in our local file,
-converts to a list of Messages using our function, and creates a <a class="reference internal" href="../generated/torchtune.datasets.ChatDataset.html#torchtune.datasets.ChatDataset" title="torchtune.datasets.ChatDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChatDataset</span></code></a>
-object.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">custom_dataset</span><span class="p">(</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
-    <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2048</span><span class="p">,</span>  <span class="c1"># You can expose this if you want to experiment</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatDataset</span><span class="p">:</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># In config</span>
+<span class="nt">tokenizer</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama3.llama3_tokenizer</span>
+<span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model</span>
 
-    <span class="k">return</span> <span class="n">ChatDataset</span><span class="p">(</span>
-        <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
-        <span class="c1"># For local csv files, we specify &quot;csv&quot; as the source, just like in</span>
-        <span class="c1"># load_dataset</span>
-        <span class="n">source</span><span class="o">=</span><span class="s2">&quot;csv&quot;</span><span class="p">,</span>
-        <span class="c1"># Default split of &quot;train&quot; is required for local files</span>
-        <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
-        <span class="n">convert_to_messages</span><span class="o">=</span><span class="n">message_converter</span><span class="p">,</span>
-        <span class="c1"># Llama3 does not need a chat format</span>
-        <span class="n">chat_format</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
-        <span class="c1"># To load a local file we specify it as data_files just like in</span>
-        <span class="c1"># load_dataset</span>
-        <span class="n">data_files</span><span class="o">=</span><span class="s2">&quot;your_file.csv&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.chat_dataset</span>
+<span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">json</span>
+<span class="w">  </span><span class="nt">data_files</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data/my_data.json</span>
+<span class="w">  </span><span class="nt">split</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">train</span>
+<span class="w">  </span><span class="nt">conversation_column</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dialogue</span>
+<span class="w">  </span><span class="nt">conversation_style</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sharegpt</span>
 </pre></div>
 </div>
 <div class="admonition note">
@@ -722,16 +711,14 @@ Dataset classes and they will honor them. This is useful for common parameters
 such as specifying the data split with <code class="code docutils literal notranslate"><span class="pre">split</span></code> or configuration with
 <code class="code docutils literal notranslate"><span class="pre">name</span></code></p>
 </div>
+<p>If you needed to add a prompt template, you would simply pass it into the tokenizer.
+Since we’re fine-tuning Llama3, the tokenizer will handle all formatting for
+us and prompt templates are optional. Other models such as Mistral’s <code class="xref py py-class docutils literal notranslate"><span class="pre">MistralTokenizer</span></code>,
+use a chat template by default (<a class="reference internal" href="../generated/torchtune.models.mistral.MistralChatTemplate.html#torchtune.models.mistral.MistralChatTemplate" title="torchtune.models.mistral.MistralChatTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">MistralChatTemplate</span></code></a>) to format
+all messages according to their <a class="reference external" href="https://docs.mistral.ai/getting-started/open_weight_models/#chat-template">recommendations</a>.</p>
 <p>Now we’re ready to start fine-tuning! We’ll use the built-in LoRA single device recipe.
 Use the <a class="reference internal" href="../tune_cli.html#tune-cp-cli-label"><span class="std std-ref">tune cp</span></a> command to get a copy of the <code class="code docutils literal notranslate"><span class="pre">8B_lora_single_device.yaml</span></code>
-config and update it to use your new dataset. Create a new folder for your project
-and make sure the dataset builder and message converter are saved in that directory,
-then specify it in the config.</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">path.to.my.custom_dataset</span>
-<span class="w">  </span><span class="nt">max_seq_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2048</span>
-</pre></div>
-</div>
+config and update it with your dataset configuration.</p>
 <p>Launch the fine-tune!</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>custom_8B_lora_single_device.yaml<span class="w"> </span><span class="nv">epochs</span><span class="o">=</span><span class="m">15</span>
 </pre></div>
