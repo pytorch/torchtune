@@ -5,9 +5,9 @@
 # LICENSE file in the root directory of this source tree.
 
 from ._device import get_device
+from ._logging import get_logger
 
 from ._version import torch_version_ge
-from .logging import get_logger
 
 __all__ = [
     "get_device",

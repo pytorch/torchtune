@@ -154,7 +154,7 @@ class _EvalWrapper(HFLM):
                 "``do_sample`` for generation tasks is not supported yet in torchtune."
             )
 
-        toks = generation.generate(
+        toks, _ = generation.generate(
             self._model,
             context,
             max_generated_tokens=self.max_gen_toks,
@@ -162,6 +162,7 @@ class _EvalWrapper(HFLM):
             top_k=None,  # do_sample is not supported currently
             stop_tokens=self._tokenizer.stop_tokens,
         )
+        self._model.reset_caches()
         return torch.tensor(toks, dtype=torch.int32)
 
 
