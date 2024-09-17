@@ -159,7 +159,6 @@ def validate_messages(
     Given a list of messages, ensure that messages form a valid
     back-and-forth conversation. An error will be raised if:
 
-    - There is a system message that's not the first message
     - There are two consecutive user messages
     - An assistant message comes before the first user message
     - The message is empty
@@ -186,10 +185,6 @@ def validate_messages(
         if message.role == "user" and last_turn == "user":
             raise ValueError(
                 f"Two consecutive user messages at index {i} and {i - 1} in messages"
-            )
-        if message.role == "system" and i > 0:
-            raise ValueError(
-                f"System message at index {i} in messages, but system messages must come first"
             )
         last_turn = message.role
 
