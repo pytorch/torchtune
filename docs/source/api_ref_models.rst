@@ -29,7 +29,7 @@ To download the Llama3-405B-Instruct model:
 
 .. code-block:: bash
 
-    tune download meta-llama/Meta-Llama-3.1-405B-Instruct --hf-token <HF_TOKEN> --ignore-patterns "original/consolidated*" --hf-token <HF_TOKEN>
+    tune download meta-llama/Meta-Llama-3.1-405B-Instruct --ignore-patterns "original/consolidated*" --hf-token <HF_TOKEN>
 
 To download the Llama3 weights of the above models, you can instead download from `Meta-Llama-3-8B-Instruct` and
 `Meta-Llama-3-70B-Instruct`.

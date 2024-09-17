@@ -24,7 +24,7 @@ Finetuning
 
 Our recipes include:
 
-* :ref:`Single-device <lora_finetune_recipe_label>` LoRA fine-tuning.
+* :ref:`Single-device LoRA fine-tuning <lora_finetune_recipe_label>`.
 * Single-device full fine-tuning
 * Distributed full fine-tuning
 * Distributed lora fine-tuning
