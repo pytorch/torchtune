@@ -241,6 +241,10 @@ class TransformerCrossAttentionLayer(nn.Module):
 
         # A mask of tokens (x) with no encoder_input
         skip_mask = self._skip_mask(encoder_mask)
+        # TODO: remove after PyTorch 2.5 is released
+        # This unmasks the skipped rows to avoid NaNs in SPDA Softmax
+        # This doesn't affect the output since outputs are masked out later
+        encoder_mask = encoder_mask.masked_fill(skip_mask, True)
 
         # Input tensor and attention output have the same shape
         # [b, s, d]
@@ -248,7 +252,7 @@ class TransformerCrossAttentionLayer(nn.Module):
         # TODO: Add support for sample packing and bring back input_pos
         attn_out = self.attn(self.ca_norm(x), encoder_input, mask=encoder_mask)
         if skip_mask is not None:
-            attn_out.masked_fill_(skip_mask, 0)
+            attn_out = attn_out.masked_fill(skip_mask, 0)
 
         # Residual connection; shape: [batch_size, seq_length, embed_dim]
         h = self.ca_scale(attn_out) + x
@@ -256,7 +260,7 @@ class TransformerCrossAttentionLayer(nn.Module):
         # Norm applied before the feedforward layer
         mlp_out = self.mlp(self.mlp_norm(h))
         if skip_mask is not None:
-            mlp_out.masked_fill_(skip_mask, 0)
+            mlp_out = mlp_out.masked_fill(skip_mask, 0)
 
         # Residual connection; shape: [batch_size, seq_length, embed_dim]
         out = h + self.mlp_scale(mlp_out)
