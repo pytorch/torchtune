@@ -441,17 +441,26 @@ This is usually a mask for padding tokens, where True indicates a padding token.
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
-<p>Notation used for tensor shapes:
-- b: batch size
-- s: sequence length</p>
+<dl class="simple">
+<dt>Shape notation:</dt><dd><ul class="simple">
+<li><p>b = batch size</p></li>
+<li><p>s = sequence length</p></li>
+</ul>
+</dd>
+</dl>
 <p class="rubric">Example</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">input_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span>
-<span class="gp">&gt;&gt;&gt; </span>       <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-<span class="gp">&gt;&gt;&gt; </span>       <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-<span class="gp">&gt;&gt;&gt; </span>       <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">9</span><span class="p">]</span>
-<span class="gp">&gt;&gt;&gt; </span>   <span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">get_last_unmasked_token_idx</span><span class="p">(</span><span class="n">input_ids</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">tensor</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+<span class="gp">... </span>       <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+<span class="gp">... </span>       <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+<span class="gp">... </span>       <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">9</span><span class="p">]</span>
+<span class="gp">... </span>   <span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mask</span> <span class="o">=</span> <span class="n">input_ids</span> <span class="o">==</span> <span class="mi">0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mask</span>
+<span class="go">tensor([[False, False,  True,  True],</span>
+<span class="go">        [False, False, False,  True],</span>
+<span class="go">        [False, False, False, False]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">get_unmasked_sequence_lengths</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+<span class="go">tensor([1, 2, 3])</span>
 </pre></div>
 </div>
 </dd></dl>

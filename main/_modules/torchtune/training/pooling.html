@@ -436,18 +436,24 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        Tensor: Sequence indices logits with shape [b]</span>
 
-<span class="sd">    Notation used for tensor shapes:</span>
-<span class="sd">    - b: batch size</span>
-<span class="sd">    - s: sequence length</span>
+<span class="sd">    Shape notation:</span>
+<span class="sd">        - b = batch size</span>
+<span class="sd">        - s = sequence length</span>
 
 <span class="sd">    Example:</span>
 <span class="sd">        &gt;&gt;&gt; input_ids = torch.tensor([</span>
-<span class="sd">        &gt;&gt;&gt;        [2, 4, 0, 0],</span>
-<span class="sd">        &gt;&gt;&gt;        [2, 4, 6, 0],</span>
-<span class="sd">        &gt;&gt;&gt;        [2, 4, 6, 9]</span>
-<span class="sd">        &gt;&gt;&gt;    ])</span>
-<span class="sd">        &gt;&gt;&gt; get_last_unmasked_token_idx(input_ids == 0)</span>
-<span class="sd">        &gt;&gt;&gt; tensor([1, 2, 3])</span>
+<span class="sd">        ...        [2, 4, 0, 0],</span>
+<span class="sd">        ...        [2, 4, 6, 0],</span>
+<span class="sd">        ...        [2, 4, 6, 9]</span>
+<span class="sd">        ...    ])</span>
+<span class="sd">        &gt;&gt;&gt; mask = input_ids == 0</span>
+<span class="sd">        &gt;&gt;&gt; mask</span>
+<span class="sd">        tensor([[False, False,  True,  True],</span>
+<span class="sd">                [False, False, False,  True],</span>
+<span class="sd">                [False, False, False, False]])</span>
+<span class="sd">        &gt;&gt;&gt; get_unmasked_sequence_lengths(mask)</span>
+<span class="sd">        tensor([1, 2, 3])</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># calculate per-batch-element sequence lengths by finding last valid tokens</span>
     <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
