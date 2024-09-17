@@ -15,6 +15,7 @@ from .lr_schedulers import get_cosine_schedule_with_warmup  # noqa
 from .position_embeddings import RotaryPositionalEmbeddings  # noqa
 from .rms_norm import RMSNorm  # noqa
 from .tanh_gate import TanhGate  # noqa
+from .tied_linear import TiedLinear  # noqa
 from .transformer import (  # noqa
     TiedEmbeddingTransformerDecoder,
     TransformerCrossAttentionLayer,
@@ -32,6 +33,7 @@ __all__ = [
     "KVCache",
     "RotaryPositionalEmbeddings",
     "RMSNorm",
+    "TiedLinear",
     "Fp32LayerNorm",
     "VisionTransformer",
     "TransformerDecoder",

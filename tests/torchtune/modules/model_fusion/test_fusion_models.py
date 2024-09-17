@@ -29,7 +29,7 @@ class DummyModel(nn.Module):
         self.output = nn.Linear(dim, vocab_size)
         register_fusion_module(self.output)
 
-    def setup_caches(self, batch_size, dtype):
+    def setup_caches(self, batch_size, dtype, *args, **kwargs):
         self.cache_enabled = True
 
     def caches_are_enabled(self):

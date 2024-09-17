@@ -65,7 +65,7 @@ class LoRALinear(nn.Module, AdapterModule):
         self.register_parameter(
             "bias", nn.Parameter(bias) if bias is not None else None
         )
-        self.dropout = nn.Dropout(p=dropout)
+        self.dropout = nn.Dropout(p=dropout) if dropout > 0.0 else nn.Identity()
         self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=False)
         self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=False)
         self.merged = False

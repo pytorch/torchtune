@@ -8,20 +8,11 @@ QAT allows for taking advantage of memory-saving optimizations from quantization
 degrading model performance. In torchtune, we use `torchao <https://github.com/pytorch/ao>`_ to implement QAT.
 This works by :ref:`simulating quantization numerics during fine-tuning <what_is_qat_label>`. While this may introduce memory and
 compute overheads during training, our tests found that QAT significantly reduced performance degradation in evaluations of
-quantized model, without compromising on model size reduction gains.
-
-.. note::
-
-  The `PyTorch blogpost <https://pytorch.org/blog/quantization-aware-training/>`_ on QAT provides further insight into how QAT works.
-
+quantized model, without compromising on model size reduction gains. Please see the `PyTorch blogpost <https://pytorch.org/blog/quantization-aware-training/>`_
+on QAT for a deeper dive on how the technique works.
 
 We provide pre-tested out-of-the-box configs which you can get up and running with the latest `Llama models <https://llama.meta.com/>`_
 in just two steps:
-
-.. note::
-
-    You may need to be granted access to the Llama model you're interested in. See
-    :ref:`here <download_llama_label>` for details on accessing gated repositories.
 
 .. code-block:: bash
 
@@ -34,8 +25,9 @@ in just two steps:
     --config llama3/8B_qat_full
 
 .. note::
-  This workload requires at least 6 GPUs, each with VRAM of at least 80GB.
-
+  You may need to be granted access to the Llama model you're interested in. See
+  :ref:`here <download_llama_label>` for details on accessing gated repositories.
+  Also, this workload requires at least 6 GPUs, each with VRAM of at least 80GB e.g. A100s or H100s.
 
 Currently, the main lever you can pull for QAT is by using *delayed fake quantization*.
 Delayed fake quantization allows for control over the step after which fake quantization occurs.

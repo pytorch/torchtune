@@ -14,7 +14,7 @@ import numpy as np
 import torch
 
 from torchtune.training._distributed import _broadcast_tensor, get_world_size_and_rank
-from torchtune.utils.logging import get_logger
+from torchtune.utils import get_logger
 
 _log: logging.Logger = get_logger()
 

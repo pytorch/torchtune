@@ -1,7 +1,7 @@
 .. _chat_tutorial_label:
 
 =================================
-Fine-tuning Llama3 with Chat Data
+Fine-Tuning Llama3 with Chat Data
 =================================
 
 Llama3 Instruct introduced a new prompt template for fine-tuning with chat data. In this tutorial,
@@ -72,6 +72,7 @@ Llama3 template to understand how.
     Llama3 Instruct with its prompt template. The rest of this tutorial assumes you are using
     Llama3 Instruct.
 
+.. _prompt_template_vs_special_tokens:
 
 Tokenizing prompt templates & special tokens
 --------------------------------------------
