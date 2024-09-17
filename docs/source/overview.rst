@@ -9,22 +9,28 @@ On this page, we'll walk through an overview of torchtune, including features, k
 What is torchtune?
 ------------------
 
-torchtune is a PyTorch library for easily authoring, fine-tuning and experimenting with LLMs. The library emphasizes 4 key aspects:
+torchtune is a native PyTorch library for easily authoring, fine-tuning and experimenting with LLMs.
 
-- **Simplicity and Extensibility**. Native-PyTorch, componentized design and easy-to-reuse abstractions
+The library emphasizes four key principles:
+
+- **Simplicity and Extensibility**. Native PyTorch, componentized design and easy-to-reuse abstractions
 - **Correctness**. High bar on proving the correctness of components and recipes
 - **Stability**. PyTorch just works. So should torchtune
 - **Democratizing LLM fine-tuning**. Works out-of-the-box on different hardware
 
 
-torchtune provides:
+torchtune features
+------------------
 
-- Modular native-PyTorch implementations of popular LLMs
+torchtune provides the following features:
+
+- Modular, native PyTorch implementations of popular LLMs
 - Interoperability with popular model zoos through checkpoint-conversion utilities
 - Training recipes for a variety of fine-tuning techniques
 - Integration with `Hugging Face Datasets <https://huggingface.co/docs/datasets/en/index>`_ for training and `EleutherAI's Eval Harness <https://github.com/EleutherAI/lm-evaluation-harness>`_ for evaluation
 - Support for distributed training using `FSDP <https://pytorch.org/docs/stable/fsdp.html>`_
 - YAML configs for easily configuring training runs
+
 
 Excited? To get started, checkout some of our tutorials, including:
 
@@ -49,7 +55,9 @@ Each recipe implements a training method (eg: full fine-tuning) with a set of me
 features (eg: FSDP + Activation Checkpointing + Gradient Accumulation + Reduced Precision training)
 applied to a given model family (eg: Llama2). See the ":ref:`What Are Recipes?<recipe_deepdive>`" deep-dive for more information.
 
-|
+.. figure:: images/ecosystem.png
+   :width: 100%
+   :align: center
 
 .. _design_principles_label:
 
@@ -60,7 +68,7 @@ torchtune embodies `PyTorch’s design philosophy <https://pytorch.org/docs/stab
 
 **Native PyTorch**
 
-torchtune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: `Hugging Face Datasets <https://huggingface.co/docs/datasets/en/index>`_,
+torchtune is a native PyTorch library. While we provide integrations with the surrounding ecosystem (eg: `Hugging Face Datasets <https://huggingface.co/docs/datasets/en/index>`_,
 `EleutherAI's Eval Harness <https://github.com/EleutherAI/lm-evaluation-harness>`_), all of the core functionality is written in PyTorch.
 
 
