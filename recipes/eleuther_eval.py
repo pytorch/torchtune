@@ -141,7 +141,6 @@ class _EvalWrapper(HFLM):
         # Technically this is not necessary, but it's a good way to ensure that
         # the caches won't error on a different batch size. In addition, caches
         # are not needed for a regular model call, so we just setup here
-        # TODO @joecummings this is being called multiple times resulting in many WARNINGs
         if self.enable_kv_cache:
             with context.device:
                 self._model.setup_caches(batch_size=curr_batch_size, dtype=self._dtype)
@@ -163,6 +162,7 @@ class _EvalWrapper(HFLM):
             top_k=None,  # do_sample is not supported currently
             stop_tokens=self._tokenizer.stop_tokens,
         )
+        self._model.reset_caches()
         return torch.tensor(toks, dtype=torch.int32)
 
 
