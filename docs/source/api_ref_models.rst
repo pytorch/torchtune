@@ -25,7 +25,7 @@ To download the Llama3.1-70B-Instruct model:
 
     tune download meta-llama/Meta-Llama-3.1-70B-Instruct --output-dir /tmp/Meta-Llama-3.1-70B-Instruct --ignore-patterns "original/consolidated*" --hf-token <HF_TOKEN>
 
-To download the Llama3-405B-Instruct model:
+To download the Llama3.1-405B-Instruct model:
 
 .. code-block:: bash
 
