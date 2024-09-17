@@ -14,9 +14,6 @@ This deep-dive will walk you through the design of training-recipes in torchtune
       * What are the core components that make up a recipe?
       * How should I structure a new recipe?
 
-
-What are Recipes?
------------------
 Recipes are the primary entry points for torchtune users. These can be thought of
 as "targeted" end-to-end pipelines for training and optionally evaluating LLMs.
 Each recipe implements a training method (eg: full fine-tuning) with a set of meaningful
