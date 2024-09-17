@@ -11,22 +11,28 @@ llama3 & llama3.1
 
 All models from the `Llama3 family <https://llama.meta.com/llama3/>`_.
 
-Request Access on `Hugging Face <https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct>`__.
+Important: You need to request access on `Hugging Face <https://huggingface.co/meta-llama/Meta-Llama-3.1-8B-Instruct>`__ before downloading it.
 
-To download the Llama3-8B-Instruct model:
-
-.. code-block:: bash
-
-    tune download meta-llama/Meta-Llama-3-8B-Instruct --hf-token <HF_TOKEN>
-
-To download the Llama3-70B-Instruct model:
+To download the Llama3.1-8B-Instruct model:
 
 .. code-block:: bash
 
-    tune download meta-llama/Meta-Llama-3-70B-Instruct --ignore-patterns "original/consolidated*" --hf-token <HF_TOKEN>
+    tune download meta-llama/Meta-Llama-3.1-8B-Instruct --output-dir /tmp/Meta-Llama-3.1-8B-Instruct --ignore-patterns "original/consolidated.00.pth" --hf-token <HF_TOKEN>
 
-To download the Llama3.1 weights of the above models, you can instead download from `Meta-Llama-3.1-8B-Instruct`,
-`Meta-Llama-3.1-70B-Instruct`, or `Meta-Llama-3.1-405B-Instruct`.
+To download the Llama3.1-70B-Instruct model:
+
+.. code-block:: bash
+
+    tune download meta-llama/Meta-Llama-3.1-70B-Instruct --output-dir /tmp/Meta-Llama-3.1-70B-Instruct --ignore-patterns "original/consolidated*" --hf-token <HF_TOKEN>
+
+To download the Llama3.1-405B-Instruct model:
+
+.. code-block:: bash
+
+    tune download meta-llama/Meta-Llama-3.1-405B-Instruct --ignore-patterns "original/consolidated*" --hf-token <HF_TOKEN>
+
+To download the Llama3 weights of the above models, you can instead download from `Meta-Llama-3-8B-Instruct` and
+`Meta-Llama-3-70B-Instruct`.
 
 .. autosummary::
     :toctree: generated/
@@ -41,7 +47,6 @@ To download the Llama3.1 weights of the above models, you can instead download f
     llama3.lora_llama3_70b
     llama3.qlora_llama3_70b
     llama3.llama3_tokenizer
-    llama3.Llama3Tokenizer
 
     |
 
@@ -65,25 +70,25 @@ llama2
 
 All models from the `Llama2 family <https://llama.meta.com/llama2/>`_.
 
-Request Access on `Hugging Face <https://huggingface.co/meta-llama/Llama-2-7b>`__.
+Important: You need to request access on `Hugging Face <https://huggingface.co/meta-llama/Llama-2-7b-hf>`__ before downloading it.
 
 To download the Llama2-7B model:
 
 .. code-block:: bash
 
-    tune download meta-llama/Llama-2-7b-hf --hf-token <HF_TOKEN>
+   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --hf-token <HF_TOKEN>
 
 To download the Llama2-13B model:
 
 .. code-block:: bash
 
-    tune download meta-llama/Llama-2-13b-hf --hf-token <HF_TOKEN>
+    tune download meta-llama/Llama-2-13b-hf --output-dir /tmp/Llama-2-13b-hf --hf-token <HF_TOKEN>
 
 To download the Llama2-70B model:
 
 .. code-block:: bash
 
-    tune download meta-llama/Llama-2-70b-hf --hf-token <HF_TOKEN>
+    tune download meta-llama/Llama-2-70b-hf --output-dir /tmp/Llama-2-70b-hf --hf-token <HF_TOKEN>
 
 .. autosummary::
     :toctree: generated/
@@ -101,7 +106,6 @@ To download the Llama2-70B model:
     llama2.lora_llama2_70b
     llama2.qlora_llama2_70b
     llama2.llama2_tokenizer
-    llama2.Llama2Tokenizer
     llama2.llama2_reward_7b
     llama2.lora_llama2_reward_7b
     llama2.qlora_llama2_reward_7b
@@ -113,13 +117,13 @@ code llama
 
 Models from the `Code Llama family <https://arxiv.org/pdf/2308.12950>`_.
 
-Request Access on `Hugging Face <https://huggingface.co/meta-llama/Llama-2-7b>`__.
+Important: You need to request access on `Hugging Face <https://huggingface.co/meta-llama/CodeLlama-7b-hf>`__ before downloading it.
 
 To download the CodeLlama-7B model:
 
 .. code-block:: bash
 
-    tune download codellama/CodeLlama-7b-hf --hf-token <HF_TOKEN>
+    tune download meta-llama/CodeLlama-7b-hf --output-dir /tmp/CodeLlama-7b-hf --hf-token <HF_TOKEN>
 
 .. autosummary::
     :toctree: generated/
@@ -159,7 +163,6 @@ To download the Qwen2 1.5B model, for example:
     qwen2.lora_qwen2_0_5b
     qwen2.lora_qwen2_1_5b
     qwen2.qwen2_tokenizer
-    qwen2.Qwen2Tokenizer
 
 phi-3
 -----
@@ -170,7 +173,7 @@ To download the Phi-3 Mini 4k instruct model:
 
 .. code-block:: bash
 
-    tune download microsoft/Phi-3-mini-4k-instruct --ignore-patterns None --hf-token <HF_TOKEN>
+    tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --ignore-patterns None --hf-token <HF_TOKEN>
 
 .. autosummary::
     :toctree: generated/
@@ -182,21 +185,19 @@ To download the Phi-3 Mini 4k instruct model:
     phi3.lora_phi3_mini
     phi3.qlora_phi3_mini
     phi3.phi3_mini_tokenizer
-    phi3.Phi3MiniTokenizer
-
 
 mistral
 -------
 
 All models from `Mistral AI family <https://mistral.ai/technology/#models>`_.
 
-Request Access on `Hugging Face <https://huggingface.co/mistralai/Mistral-7B-v0.3>`__.
+Important: You need to request access on `Hugging Face <https://huggingface.co/mistralai/Mistral-7B-v0.1>`__ to download this model.
 
 To download the Mistral 7B v0.1 model:
 
 .. code-block:: bash
 
-    tune download mistralai/Mistral-7B-v0.1 --hf-token <HF_TOKEN>
+    tune download mistralai/Mistral-7B-v0.1 --output-dir /tmp/Mistral-7B-v0.1 --hf-token <HF_TOKEN>
 
 .. autosummary::
     :toctree: generated/
@@ -213,7 +214,6 @@ To download the Mistral 7B v0.1 model:
     mistral.lora_mistral_reward_7b
     mistral.qlora_mistral_reward_7b
     mistral.mistral_tokenizer
-    mistral.MistralTokenizer
     mistral.MistralChatTemplate
 
 
@@ -222,9 +222,9 @@ gemma
 
 Models of size 2B and 7B from the `Gemma family <https://blog.google/technology/developers/gemma-open-models/>`_.
 
-Request Access on `Hugging Face <https://huggingface.co/google/gemma-2b>`__.
+Important: You need to request access on `Hugging Face <https://huggingface.co/google/gemma-2b>`__ to use this model.
 
-To download the Gemma 2B model:
+To download the Gemma 2B model (not Gemma2):
 
 .. code-block:: bash
 
@@ -249,19 +249,18 @@ To download the Gemma 7B model:
     gemma.lora_gemma_7b
     gemma.qlora_gemma_7b
     gemma.gemma_tokenizer
-    gemma.GemmaTokenizer
 
 
-clip
------
+.. clip
+.. -----
 
-Vision components to support multimodality using `CLIP encoder <https://arxiv.org/abs/2103.00020>`_.
+.. Vision components to support multimodality using `CLIP encoder <https://arxiv.org/abs/2103.00020>`_.
 
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
+.. .. autosummary::
+..     :toctree: generated/
+..     :nosignatures:
 
-    clip.clip_vision_encoder
-    clip.TokenPositionalEmbedding
-    clip.TiledTokenPositionalEmbedding
-    clip.TilePositionalEmbedding
+..     clip.clip_vision_encoder
+..     clip.TokenPositionalEmbedding
+..     clip.TiledTokenPositionalEmbedding
+..     clip.TilePositionalEmbedding
