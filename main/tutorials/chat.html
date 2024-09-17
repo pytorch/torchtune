@@ -660,7 +660,7 @@ Llama3 understands and tokenizes correctly?</p>
 <span class="c1"># ]</span>
 </pre></div>
 </div>
-<p>The Llama3 tokenizer class, <a class="reference internal" href="../generated/torchtune.models.llama3.Llama3Tokenizer.html#torchtune.models.llama3.Llama3Tokenizer" title="torchtune.models.llama3._tokenizer.Llama3Tokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">Llama3Tokenizer</span></code></a>,
+<p>The Llama3 tokenizer class, <code class="xref py py-class docutils literal notranslate"><span class="pre">Llama3Tokenizer</span></code>,
 expects the input to be in the <a class="reference internal" href="../generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> format. Let’s
 quickly write a function that can parse a single row from our csv file into
 the Message dataclass. The function also needs to have a train_on_input parameter.</p>
@@ -686,7 +686,7 @@ the Message dataclass. The function also needs to have a train_on_input paramete
 </div>
 <p>Since we’re fine-tuning Llama3, the tokenizer will handle formatting the prompt for
 us. But if we were fine-tuning a model that requires a template, for example the
-Mistral-7B model which uses the <a class="reference internal" href="../generated/torchtune.models.mistral.MistralTokenizer.html#torchtune.models.mistral.MistralTokenizer" title="torchtune.models.mistral._tokenizer.MistralTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">MistralTokenizer</span></code></a>,
+Mistral-7B model which uses the <code class="xref py py-class docutils literal notranslate"><span class="pre">MistralTokenizer</span></code>,
 we would need to use a chat format like <code class="xref py py-class docutils literal notranslate"><span class="pre">MistralChatFormat</span></code> to format
 all messages according to their <a class="reference external" href="https://docs.mistral.ai/getting-started/open_weight_models/#chat-template">recommendations</a>.</p>
 <p>Now let’s create a builder function for our dataset that loads in our local file,

@@ -424,51 +424,40 @@
   <section id="lora-single-device-finetuning">
 <span id="lora-finetune-recipe-label"></span><h1>LoRA Single Device Finetuning<a class="headerlink" href="#lora-single-device-finetuning" title="Permalink to this heading">¶</a></h1>
 <p>This recipe supports finetuning on next-token prediction tasks using parameter efficient fine-tuning techniques (PEFT)
-such as <a class="reference external" href="https://arxiv.org/abs/2106.09685">LoRA</a> and <a class="reference external" href="https://arxiv.org/abs/2305.14314">QLoRA</a>.  These techniques
+such as <a class="reference internal" href="../tutorials/memory_optimizations.html#glossary-lora"><span class="std std-ref">Low Rank Adaptation (LoRA)</span></a> and <a class="reference internal" href="../tutorials/memory_optimizations.html#glossary-qlora"><span class="std std-ref">Quantized Low Rank Adaptation (QLoRA)</span></a>. These techniques
 significantly reduce memory consumption during training whilst still maintaining competitive performance.</p>
-<p>We provide pre-tested out-of-the-box configs which you can get up and running with the latest <a class="reference external" href="https://llama.meta.com/">Llama models</a>
-in just two steps:</p>
+<p>We provide configs which you can get up and running quickly. Here is an example with llama 3.1 8B:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>You may need to be granted access to the Llama model you’re interested in. See
 <a class="reference internal" href="../tutorials/first_finetune_tutorial.html#download-llama-label"><span class="std std-ref">here</span></a> for details on accessing gated repositories.</p>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Meta-Llama-3.1-8B-Instruct<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># download the model</span>
+tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Meta-Llama-3.1-8B-Instruct<span class="w"> </span><span class="se">\</span>
 --output-dir<span class="w"> </span>/tmp/Meta-Llama-3.1-8B-Instruct<span class="w"> </span><span class="se">\</span>
 --ignore-patterns<span class="w"> </span><span class="s2">&quot;original/consolidated.00.pth&quot;</span>
 
+<span class="c1"># run the recipe</span>
 tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span><span class="se">\</span>
 --config<span class="w"> </span>llama3_1/8B_lora_single_device
 </pre></div>
 </div>
-<p>You can quickly customize this recipe through the <a class="reference internal" href="../tune_cli.html#cli-label"><span class="std std-ref">torchtune CLI</span></a>. For example, when fine-tuning with LoRA, you can adjust the layers which LoRA are applied to,
-and the scale of the imapct of LoRA during training:</p>
+<p>You can customize this recipe through the <a class="reference internal" href="../tune_cli.html#cli-label"><span class="std std-ref">torchtune CLI</span></a>. For example, when fine-tuning with LoRA, you can adjust the layers which LoRA are applied to:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span><span class="se">\</span>
 --config<span class="w"> </span>llama3_1/8B_lora_single_device<span class="w"> </span><span class="se">\</span>
---model.lora_attn_modules<span class="o">=[</span><span class="s2">&quot;q_proj&quot;</span>,<span class="w"> </span><span class="s2">&quot;k_proj&quot;</span>,<span class="w"> </span><span class="s2">&quot;v_proj&quot;</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
---model.apply_lora_to_mlp<span class="o">=</span>True<span class="w"> </span><span class="se">\</span>
---model.lora_rank<span class="o">=</span><span class="m">64</span><span class="w"> </span><span class="se">\</span>
---model.lora_alpha<span class="o">=</span><span class="m">128</span>
+model.lora_attn_modules<span class="o">=</span>“<span class="o">[</span>q_proj,k_proj,v_proj<span class="o">]</span>”<span class="w"> </span><span class="se">\</span>
+model.apply_lora_to_mlp<span class="o">=</span>True<span class="w"> </span><span class="se">\</span>
+model.lora_rank<span class="o">=</span><span class="m">64</span><span class="w"> </span><span class="se">\</span>
+model.lora_alpha<span class="o">=</span><span class="m">128</span>
 </pre></div>
 </div>
-<p>This configuration in particular results in a aggressive LoRA policy which
-will tradeoff higher training accuracy with increased memory usage and slower training.</p>
 <p>For a deeper understanding of the different levers you can pull when using this recipe,
 see our documentation for the different PEFT training paradigms we support:</p>
 <ul class="simple">
 <li><p><a class="reference internal" href="../tutorials/memory_optimizations.html#glossary-lora"><span class="std std-ref">Low Rank Adaptation (LoRA)</span></a></p></li>
 <li><p><a class="reference internal" href="../tutorials/memory_optimizations.html#glossary-qlora"><span class="std std-ref">Quantized Low Rank Adaptation (QLoRA)</span></a></p></li>
 </ul>
-<p>Many of our other memory optimization features can be used in this recipe, too:</p>
-<ul class="simple">
-<li><p>Adjust <a class="reference internal" href="../tutorials/memory_optimizations.html#glossary-precision"><span class="std std-ref">model precision</span></a>.</p></li>
-<li><p>Use <a class="reference internal" href="../tutorials/memory_optimizations.html#glossary-act-ckpt"><span class="std std-ref">activation checkpointing</span></a>.</p></li>
-<li><p>Enable <a class="reference internal" href="../tutorials/memory_optimizations.html#glossary-grad-accm"><span class="std std-ref">gradient accumulation</span></a>.</p></li>
-<li><p>Use <a class="reference internal" href="../tutorials/memory_optimizations.html#glossary-low-precision-opt"><span class="std std-ref">lower precision optimizers</span></a>. However, note that since LoRA
-significantly reduces memory usage due to gradient state, you will likely not need this
-feature.</p></li>
-</ul>
-<p>You can learn more about all of our memory optimization features in our  <a class="reference internal" href="../tutorials/memory_optimizations.html#memory-optimization-overview-label"><span class="std std-ref">memory optimization overview</span></a>.</p>
+<p>Many of our other memory optimization features can be used in this recipe. You can learn more about all of our memory optimization features in our <a class="reference internal" href="../tutorials/memory_optimizations.html#memory-optimization-overview-label"><span class="std std-ref">memory optimization overview</span></a>.</p>
 <p>Interested in seeing this recipe in action? Check out some of our tutorials to show off how it can be used:</p>
 <ul class="simple">
 <li><p><a class="reference internal" href="../tutorials/lora_finetune.html#lora-finetune-label"><span class="std std-ref">Finetuning Llama2 with LoRA</span></a></p></li>
