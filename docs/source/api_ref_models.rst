@@ -74,7 +74,7 @@ All models from the `Llama2 family <https://llama.meta.com/llama2/>`_.
 
 Important: You need to request access on `Hugging Face <https://huggingface.co/meta-llama/Llama-2-7b-hf>`__ before downloading it.
 
-To download the Llama2-7B-hf model:
+To download the Llama2-7B model:
 
 .. code-block:: bash
 
