@@ -592,6 +592,11 @@
         <span class="c1"># key string to reflect this</span>
         <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">yaml_kwargs</span> <span class="ow">and</span> <span class="n">_has_component</span><span class="p">(</span><span class="n">yaml_kwargs</span><span class="p">[</span><span class="n">k</span><span class="p">]):</span>
             <span class="n">k</span> <span class="o">+=</span> <span class="s2">&quot;._component_&quot;</span>
+        <span class="c1"># TODO: this is a hack but otherwise we can&#39;t pass strings with leading zeroes</span>
+        <span class="c1"># to define the checkpoint file format. We manually override OmegaConf behavior</span>
+        <span class="c1"># by prepending the value with !!str to force a string type</span>
+        <span class="k">if</span> <span class="s2">&quot;max_filename&quot;</span> <span class="ow">in</span> <span class="n">k</span><span class="p">:</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="s2">&quot;!!str &quot;</span> <span class="o">+</span> <span class="n">v</span>
         <span class="n">cli_dotlist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="c1"># Merge the args</span>

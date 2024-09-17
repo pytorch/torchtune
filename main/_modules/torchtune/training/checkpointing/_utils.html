@@ -424,6 +424,7 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">string</span>
 <span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Tuple</span>
@@ -487,6 +488,71 @@
     <span class="n">PHI3_MINI</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;phi3_mini&quot;</span>
     <span class="n">REWARD</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;reward&quot;</span>
     <span class="n">QWEN2</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;qwen2&quot;</span></div>
+
+
+<div class="viewcode-block" id="FormattedCheckpointFiles"><a class="viewcode-back" href="../../../../generated/torchtune.training.FormattedCheckpointFiles.html#torchtune.training.FormattedCheckpointFiles">[docs]</a><span class="k">class</span> <span class="nc">FormattedCheckpointFiles</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class gives a more concise way to represent a list of filenames of the format ``file_{i}_of_{n_files}.pth``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        filename_format (str): Format string for the filename. Must have exactly two placeholders, e.g.</span>
+<span class="sd">            ``file_{}_of_{}.pth``.</span>
+<span class="sd">        max_filename (str): Maximum filename in the list. Should be a string representation of an integer,</span>
+<span class="sd">            possibly with leading zeroes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">filename_format</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">max_filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename_format</span> <span class="o">=</span> <span class="n">filename_format</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_filename</span> <span class="o">=</span> <span class="n">max_filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_filename_format</span><span class="p">()</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;FormattedCheckpointFiles&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;filename_format&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">d</span> <span class="ow">or</span> <span class="s2">&quot;max_filename&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Must pass &#39;filename_format&#39; and &#39;max_filename&#39; keys to generate checkpoint filenames&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">filename_format</span><span class="o">=</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;filename_format&quot;</span><span class="p">],</span>
+            <span class="n">max_filename</span><span class="o">=</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;max_filename&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validate_filename_format</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">n_format_placeholders</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">string</span><span class="o">.</span><span class="n">Formatter</span><span class="p">()</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename_format</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">n_format_placeholders</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Filename format string must have exactly two placeholders, e.g. &#39;file_</span><span class="si">{i}</span><span class="s2">_of_</span><span class="si">{n_files}</span><span class="s2">.pth&#39;&quot;</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="FormattedCheckpointFiles.build_checkpoint_filenames"><a class="viewcode-back" href="../../../../generated/torchtune.training.FormattedCheckpointFiles.html#torchtune.training.FormattedCheckpointFiles.build_checkpoint_filenames">[docs]</a>    <span class="k">def</span> <span class="nf">build_checkpoint_filenames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Builds a list of checkpoint filenames from the filename format and max filename.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List[str]: List of checkpoint filenames.</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; # Example usage</span>
+<span class="sd">            &gt;&gt;&gt; f = FormattedCheckpointFiles(filename_format=&quot;file_{}_of_{}.safetensors&quot;, max_filename=&quot;00003&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; f.build_checkpoint_filenames()</span>
+<span class="sd">            &gt;&gt;&gt; [&#39;file_00001_of_00003.safetensors&#39;, &#39;file_00002_of_00003.safetensors&#39;, &#39;file_00003_of_00003.safetensors&#39;]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">num_files</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_filename</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename_format</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_filename</span><span class="p">)),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">max_filename</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_files</span><span class="p">)</span>
+        <span class="p">]</span></div></div>
 
 
 <span class="k">def</span> <span class="nf">get_path</span><span class="p">(</span><span class="n">input_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">missing_ok</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
