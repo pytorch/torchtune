@@ -26,7 +26,7 @@ from torchtune.training.checkpointing._utils import (
     safe_torch_load,
     save_config,
 )
-from torchtune.utils import get_logger
+from torchtune.utils._logging import get_logger, log_rank_zero
 
 logger = get_logger("DEBUG")
 
@@ -443,9 +443,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             del state_dict
             gc.collect()
         if self._model_type == ModelType.PHI3_MINI:
-            logger.warning(
-                "Converting Phi-3 Mini weights from HF format."
-                "Note that conversion of adapter weights into PEFT format is not supported."
+            log_rank_zero(
+                logger=logger,
+                msg="Converting Phi-3 Mini weights from HF format."
+                "Note that conversion of adapter weights into PEFT format is not supported.",
             )
             converted_state_dict[training.MODEL_KEY] = phi3_hf_to_tune(
                 merged_state_dict
