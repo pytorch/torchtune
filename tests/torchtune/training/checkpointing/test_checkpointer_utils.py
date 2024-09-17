@@ -11,6 +11,7 @@ import pytest
 import torch
 from torchtune.models.llama2 import llama2, llama2_classifier
 from torchtune.training.checkpointing._utils import (
+    FormattedCheckpointFiles,
     safe_torch_load,
     update_state_dict_for_classifier,
 )
@@ -175,3 +176,45 @@ class TestUpdateStateDictForClassifer:
 
         assert set(model_state_dict.keys()) == set(state_dict_to_load.keys())
         assert torch.equal(model_state_dict["output.weight"], expected_output_weight)
+
+
+class TestFormattedCheckpointFiles:
+    @pytest.fixture
+    def expected_filenames(self):
+        return [
+            "model_0001_of_0012.pt",
+            "model_0002_of_0012.pt",
+            "model_0003_of_0012.pt",
+            "model_0004_of_0012.pt",
+            "model_0005_of_0012.pt",
+            "model_0006_of_0012.pt",
+            "model_0007_of_0012.pt",
+            "model_0008_of_0012.pt",
+            "model_0009_of_0012.pt",
+            "model_0010_of_0012.pt",
+            "model_0011_of_0012.pt",
+            "model_0012_of_0012.pt",
+        ]
+
+    def test_invalid_to_dict(self):
+        invalid_dict = {"bad_key": "model_{}_of_{}.pt", "max_filename": "0005"}
+        with pytest.raises(ValueError, match="Must pass 'filename_format'"):
+            _ = FormattedCheckpointFiles.from_dict(invalid_dict)
+
+    def test_invalid_filename_format(self):
+        formatted_string = "invalid_format_{}.pt"
+        formatted_file_dict = {
+            "filename_format": formatted_string,
+            "max_filename": "0005",
+        }
+        with pytest.raises(ValueError, match="must have exactly two placeholders"):
+            FormattedCheckpointFiles.from_dict(formatted_file_dict)
+
+    def test_build_checkpoint_filenames(self, expected_filenames):
+        formatted_file_dict = {
+            "filename_format": "model_{}_of_{}.pt",
+            "max_filename": "0012",
+        }
+        formatted_files = FormattedCheckpointFiles.from_dict(formatted_file_dict)
+        actual_filenames = formatted_files.build_checkpoint_filenames()
+        assert actual_filenames == expected_filenames
