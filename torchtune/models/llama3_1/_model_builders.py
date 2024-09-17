@@ -62,6 +62,7 @@ def llama3_1_70b() -> TransformerDecoder:
 def llama3_1_405b() -> TransformerDecoder:
     """
     Builder for creating a Llama3.1 model initialized w/ the default 405B parameter values.
+    
     Returns:
         TransformerDecoder: Instantiation of Llama3.1 405B model
     """
