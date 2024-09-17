@@ -34,7 +34,7 @@ You can customize this recipe through the :ref:`cli_label`. For example, when fi
     tune run lora_finetune_single_device \
     --config llama3_1/8B_lora_single_device \
     model.lora_attn_modules=“[q_proj,k_proj,v_proj]” \
-    model.apply_lora_to_mlp=False \
+    model.apply_lora_to_mlp=True \
     model.lora_rank=64 \
     model.lora_alpha=128
 
