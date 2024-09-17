@@ -318,20 +318,20 @@
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="qat_finetune.html">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
 <li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="memory_optimizations.html">Memory Optimization Overview</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All About Configs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
@@ -493,11 +493,10 @@ inference, evaluation, and quantization.</p>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Check out our <a class="reference internal" href="../recipes/recipes_overview.html#recipes-overview-label"><span class="std std-ref">recipes index</span></a> to see all the fine-tuning techniques we support.
-To learn more about the concept of “recipes”, check out our technical deep-dive: <a class="reference internal" href="../deep_dives/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">What Are Recipes?</span></a>.</p>
+<p>To learn more about the concept of “recipes”, check out our technical deep-dive: <a class="reference internal" href="../deep_dives/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">What Are Recipes?</span></a>.</p>
 </div>
 <p>torchtune provides built-in recipes for finetuning on single device, on multiple devices with <a class="reference external" href="https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/">FSDP</a>,
-using memory efficient techniques like <a class="reference external" href="https://arxiv.org/abs/2106.09685">LoRA</a>, and more! Check out all our built-in recipes in our <a class="reference internal" href="../recipes/recipes_overview.html#recipes-overview-label"><span class="std std-ref">recipe index</span></a>. You can also utilize the
+using memory efficient techniques like <a class="reference external" href="https://arxiv.org/abs/2106.09685">LoRA</a>, and more! Check out all our built-in recipes in our <a class="reference internal" href="../recipes/recipes_overview.html#recipes-overview-label"><span class="std std-ref">recipes overview</span></a>. You can also utilize the
 <code class="code docutils literal notranslate"><span class="pre">tune</span> <span class="pre">ls</span></code> command to print out all recipes and corresponding configs.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>ls
 RECIPE<span class="w">                                   </span>CONFIG
@@ -513,7 +512,7 @@ lora_finetune_single_device<span class="w">              </span>llama2/7B_lora_s
 </pre></div>
 </div>
 <p>For the purposes of this tutorial, you’ll will be using the recipe for finetuning a Llama2 model using <a class="reference external" href="https://arxiv.org/abs/2106.09685">LoRA</a> on
-a single device. For a more in-depth discussion on LoRA in torchtune, you can see the complete <a class="reference internal" href="lora_finetune.html#lora-finetune-label"><span class="std std-ref">Finetuning Llama2 with LoRA</span></a> tutorial.</p>
+a single device. For a more in-depth discussion on LoRA in torchtune, you can see the complete “<a class="reference internal" href="lora_finetune.html#lora-finetune-label"><span class="std std-ref">Fine-Tuning Llama2 with LoRA</span></a>” tutorial.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p><strong>Why have a separate recipe for single device vs. distributed?</strong> This is discussed in
@@ -547,7 +546,7 @@ Copied<span class="w"> </span>file<span class="w"> </span>to<span class="w"> </s
 changing the LoRA rank, update batch size, etc.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Check out <a class="reference internal" href="../deep_dives/configs.html#config-tutorial-label"><span class="std std-ref">All About Configs</span></a> for a deeper dive on configs in torchtune.</p>
+<p>Check out “<a class="reference internal" href="../deep_dives/configs.html#config-tutorial-label"><span class="std std-ref">All About Configs</span></a>” for a deeper dive on configs in torchtune.</p>
 </div>
 <div class="line-block">
 <div class="line"><br /></div>
@@ -556,7 +555,7 @@ changing the LoRA rank, update batch size, etc.</p>
 <section id="training-a-model">
 <h2>Training a model<a class="headerlink" href="#training-a-model" title="Permalink to this heading">¶</a></h2>
 <p>Now that you have a model in the proper format and a config that suits your needs, let’s get training!</p>
-<p>Just like all the other steps, you will be using the <a class="reference internal" href="../tune_cli.html#cli-label"><span class="std std-ref">tune</span></a> CLI tool to launch your finetuning run.</p>
+<p>Just like all the other steps, you will be using the tune CLI tool to launch your finetuning run.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama2/7B_lora_single_device<span class="w"> </span><span class="nv">epochs</span><span class="o">=</span><span class="m">1</span>
 INFO:torchtune.utils.logging:Running<span class="w"> </span>LoRAFinetuneRecipeSingleDevice<span class="w"> </span>with<span class="w"> </span>resolved<span class="w"> </span>config:
 Writing<span class="w"> </span>logs<span class="w"> </span>to<span class="w"> </span>/tmp/lora_finetune_output/log_1713194212.txt
@@ -579,7 +578,7 @@ will also log some more metrics, such as GPU memory usage, at an interval define
 <section id="next-steps">
 <h2>Next steps<a class="headerlink" href="#next-steps" title="Permalink to this heading">¶</a></h2>
 <p>Now that you have trained your model and set up your environment, let’s take a look at what we can do with our
-new model by checking out the <a class="reference internal" href="e2e_flow.html#e2e-flow"><span class="std std-ref">E2E Workflow Tutorial</span></a>.</p>
+new model by checking out the “<a class="reference internal" href="e2e_flow.html#e2e-flow"><span class="std std-ref">E2E Workflow Tutorial</span></a>”.</p>
 </section>
 </section>
 
