@@ -54,6 +54,8 @@ To download the Llama3.1 weights of the above models, you can instead download f
     llama3_1.lora_llama3_1_70b
     llama3_1.qlora_llama3_1_70b
     llama3_1.llama3_1_405b
+    llama3_1.lora_llama3_1_405b
+    llama3_1.qlora_llama3_1_405b
 
 
 .. note::

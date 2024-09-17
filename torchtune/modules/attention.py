@@ -140,13 +140,16 @@ class MultiHeadAttention(nn.Module):
         # Use flex attention if supported and we are sample packing
         self._attention_call = _sdpa_or_flex_attention()
 
-    def setup_cache(self, batch_size: int, dtype: torch.dtype) -> None:
+    def setup_cache(
+        self, batch_size: int, dtype: torch.dtype, max_seq_len: int
+    ) -> None:
         """Setup key value caches for attention calculation. If called
         after kv_cache is already setup, this will be skipped.
 
         Args:
             batch_size (int): batch size for the caches.
             dtype (torch.dtype): dtype for the caches.
+            max_seq_len (int): maximum sequence length model will be run with.
         """
         # Don't overwrite user defined kv_cache from init
         if self.kv_cache is not None:
@@ -156,7 +159,7 @@ class MultiHeadAttention(nn.Module):
         else:
             self.kv_cache = KVCache(
                 batch_size=batch_size,
-                max_seq_len=self.max_seq_len,
+                max_seq_len=max_seq_len,
                 num_heads=self.num_heads,
                 head_dim=self.head_dim,
                 dtype=dtype,
@@ -184,14 +187,17 @@ class MultiHeadAttention(nn.Module):
             y (Optional[torch.Tensor]): second input tensor with shape [b x s_y x d], is the input
                 for k and v. For self attention, x=y. Optional only with kv_cache enabled.
             mask (Optional[_MaskType]): Used to mask the scores after the query-key multiplication
-                and before the softmax. Either a boolean tensor with shape [b x s x s] or a
-                :class:`~torch.nn.attention.flex_attention.BlockMask`. If a boolean tensor, a value
-                of True in row i and column j means token i attends to token j. A value of False means
-                token i does not attend to token j. If no mask is specified, a causal mask
-                is used by default. If a :class:`~torch.nn.attention.flex_attention.BlockMask` is passed
-                for document masking in a packed sequence via `create_block_mask
-                <https://pytorch.org/blog/flexattention/#mask-mods>`_, we use
-                :func:`~torch.nn.attention.flex_attention.flex_attention` when computing attention.
+                and before the softmax. Either:
+
+                A boolean tensor with shape ``[b x s x s]``, ``[b x s x self.encoder_max_cache_seq_len]``,
+                or ``[b x s x self.encoder_max_cache_seq_len]`` if using KV-cacheing with encoder/decoder layers.
+                A value of True in row ``i`` and column ``j`` means token ``i`` attends to token ``j``. A value of False means
+                token ``i`` does not attend to token ``j``. If no mask is specified, a causal mask
+                is used by default.
+
+                A :class:`~torch.nn.attention.flex_attention.BlockMask` for document masking in a packed sequence
+                created via `create_block_mask <https://pytorch.org/blog/flexattention/#mask-mods>`_. We  use
+                :func:`~torch.nn.attention.flex_attention.flex_attention` when computing attention with block masks.
                 Default is None.
             input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
@@ -218,10 +224,6 @@ class MultiHeadAttention(nn.Module):
         # y has shape [b, s_y, d]
         b, s_x, _ = x.shape
         s_y = y.shape[1] if y is not None else 0
-
-        if self.kv_cache and input_pos is None:
-            cache_size = self.kv_cache.size
-            input_pos = torch.arange(cache_size, cache_size + s_y, device=x.device)
 
         # q has shape [b, s_x, num_heads * head_dim]
         q = self.q_proj(x)
@@ -256,26 +258,29 @@ class MultiHeadAttention(nn.Module):
             k = self.k_proj(y)
             v = self.v_proj(y)
 
+            # Apply positional embeddings
+            # k: [b, s_y, n_kv, h_d]
+            k = k.view(b, s_y, -1, self.head_dim)
+            if self.pos_embeddings is not None:
+                k = self.pos_embeddings(k, input_pos=input_pos)
+
+            # View + expand + reshape bring num_kv_heads to num_heads for k and v
+            # to match q.
+
             # k: [b, s_y, n_kv, 1, h_d]
             # v: [b, s_y, n_kv, 1, h_d]
             k = k.view(b, s_y, self.num_kv_heads, 1, self.head_dim)
             v = v.view(b, s_y, self.num_kv_heads, 1, self.head_dim)
 
-            # if needed, expand the key and value tensors to have the same shape
+            # If needed, expand the key and value tensors to have the same shape
             # as the query tensor by copying values across the relevant dim
             if self.num_heads != self.num_kv_heads:
                 k = k.expand(b, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
                 v = v.expand(b, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
 
-            # llama applies the RoPE embeddings on tensors with shape
             # [b, s, n_h, h_d]
-            # Reshape the tensors before we apply RoPE
             k = k.reshape(b, s_y, -1, self.head_dim)
             v = v.reshape(b, s_y, -1, self.head_dim)
-
-            # Apply positional embeddings
-            if self.pos_embeddings is not None:
-                k = self.pos_embeddings(k, input_pos=input_pos)
 
             # [b, n_h, s, h_d]
             k = k.transpose(1, 2)
@@ -287,7 +292,7 @@ class MultiHeadAttention(nn.Module):
 
             # Update key-value cache
             if self.kv_cache is not None:
-                k, v = self.kv_cache.update(input_pos, k, v)
+                k, v = self.kv_cache.update(k, v)
 
         output = self._attention_call(
             q,

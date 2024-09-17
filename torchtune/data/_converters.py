@@ -7,7 +7,7 @@
 from typing import Any, List, Mapping
 
 from torchtune.data._messages import Message
-from torchtune.utils.logging import deprecated
+from torchtune.utils._logging import deprecated
 
 
 @deprecated(
@@ -18,7 +18,7 @@ def get_sharegpt_messages(
     sample: Mapping[str, Any], train_on_input: bool = False
 ) -> List[Message]:
     """
-    Note:
+    Warning:
         This class is deprecated and will be removed in a future release. Please use
         :class:`~torchtune.data.ShareGPTToMessages` instead. The following are equivalent:
 
@@ -88,7 +88,7 @@ def get_openai_messages(
     train_on_input: bool = False,
 ) -> List[Message]:
     """
-    Note:
+    Warning:
         This class is deprecated and will be removed in a future release. Please use
         :class:`~torchtune.data.JSONToMessages` instead. The following are equivalent:
 

@@ -9,7 +9,7 @@ import json
 import os
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Dict, List, Optional, Protocol, Union
 
 import torch
 from safetensors.torch import save_file
@@ -20,12 +20,13 @@ from torchtune.models.phi3._convert_weights import phi3_hf_to_tune, phi3_tune_to
 from torchtune.models.qwen2._convert_weights import qwen2_hf_to_tune, qwen2_tune_to_hf
 from torchtune.rlhf.utils import reward_hf_to_tune, reward_tune_to_hf
 from torchtune.training.checkpointing._utils import (
+    FormattedCheckpointFiles,
     get_path,
     ModelType,
     safe_torch_load,
     save_config,
 )
-from torchtune.utils.logging import get_logger
+from torchtune.utils._logging import get_logger, log_rank_zero
 
 logger = get_logger("DEBUG")
 
@@ -319,8 +320,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
     Args:
         checkpoint_dir (str): Directory containing the checkpoint files
-        checkpoint_files (List[str]): List of checkpoint files to load. Since the checkpointer takes care
-            of sorting by file ID, the order in this list does not matter
+        checkpoint_files (Union[List[str], Dict[str, str]]): List of checkpoint files to load. Since the checkpointer takes care
+            of sorting by file ID, the order in this list does not matter. TODO: update this
         model_type (ModelType): Model type of the model for which the checkpointer is being loaded
         output_dir (str): Directory to save the checkpoint files
         adapter_checkpoint (Optional[str]): Path to the adapter weights. Default is None
@@ -336,7 +337,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
     def __init__(
         self,
         checkpoint_dir: str,
-        checkpoint_files: List[str],
+        checkpoint_files: Union[List[str], Dict[str, str]],
         model_type: ModelType,
         output_dir: str,
         adapter_checkpoint: Optional[str] = None,
@@ -345,6 +346,12 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         safe_serialization: bool = False,
     ) -> None:
         self._checkpoint_dir = Path(checkpoint_dir)
+
+        if not isinstance(checkpoint_files, List):
+            formatted_checkpoint_files = FormattedCheckpointFiles.from_dict(
+                checkpoint_files
+            )
+            checkpoint_files = formatted_checkpoint_files.build_checkpoint_filenames()
         self._checkpoint_paths = self._validate_hf_checkpoint_files(checkpoint_files)
         self._adapter_checkpoint = (
             get_path(self._checkpoint_dir, adapter_checkpoint)
@@ -436,9 +443,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             del state_dict
             gc.collect()
         if self._model_type == ModelType.PHI3_MINI:
-            logger.warning(
-                "Converting Phi-3 Mini weights from HF format."
-                "Note that conversion of adapter weights into PEFT format is not supported."
+            log_rank_zero(
+                logger=logger,
+                msg="Converting Phi-3 Mini weights from HF format."
+                "Note that conversion of adapter weights into PEFT format is not supported.",
             )
             converted_state_dict[training.MODEL_KEY] = phi3_hf_to_tune(
                 merged_state_dict

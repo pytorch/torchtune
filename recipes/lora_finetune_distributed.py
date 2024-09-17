@@ -604,6 +604,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             self._model,
             self._is_rank_zero,
             device=self._device,
+            trainable_only=self._save_adapter_weights_only,
         )
 
         if intermediate_checkpoint:
@@ -660,6 +661,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 "peft_type": "LORA",
             }
             checkpoint_dict.update({training.ADAPTER_CONFIG: adapter_config})
+            print("saving checkpoint")
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
                 epoch=epoch,
