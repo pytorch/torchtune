@@ -17,18 +17,24 @@ def get_unmasked_sequence_lengths(mask: torch.Tensor) -> torch.Tensor:
     Returns:
         Tensor: Sequence indices logits with shape [b]
 
-    Notation used for tensor shapes:
-    - b: batch size
-    - s: sequence length
+    Shape notation:
+        - b = batch size
+        - s = sequence length
 
     Example:
         >>> input_ids = torch.tensor([
-        >>>        [2, 4, 0, 0],
-        >>>        [2, 4, 6, 0],
-        >>>        [2, 4, 6, 9]
-        >>>    ])
-        >>> get_last_unmasked_token_idx(input_ids == 0)
-        >>> tensor([1, 2, 3])
+        ...        [2, 4, 0, 0],
+        ...        [2, 4, 6, 0],
+        ...        [2, 4, 6, 9]
+        ...    ])
+        >>> mask = input_ids == 0
+        >>> mask
+        tensor([[False, False,  True,  True],
+                [False, False, False,  True],
+                [False, False, False, False]])
+        >>> get_unmasked_sequence_lengths(mask)
+        tensor([1, 2, 3])
+
     """
     # calculate per-batch-element sequence lengths by finding last valid tokens
     if mask.any():
