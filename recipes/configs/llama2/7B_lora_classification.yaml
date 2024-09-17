@@ -1,0 +1,128 @@
+# Config for multi-device LoRA finetuning in lora_finetune_classification_distributed.py
+# using a Llama2 7B model
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --hf-token <HF_TOKEN>
+#
+# To launch on 2 devices, run the following command from root:
+#   tune run --nnodes 1 --nproc_per_node 2 --recipes lora_finetune_classification_distributed.py --config llama2/7B_lora_classification
+#
+# You can add specific overrides through the command line. For example
+# to override the checkpointer directory while launching training
+# you can run:
+#   tune run --nnodes 1 --nproc_per_node 2 --recipes lora_finetune_classification_distributed.py --config llama2/7B_lora_classification checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#
+# This config works best when the model is being fine-tuned on 2+ GPUs.
+# For single device LoRA finetuning please use 7B_lora_single_device.yaml
+# or 7B_qlora_single_device.yaml
+
+# Add some high level XP naming configs
+xp_name: may_baseline_reorganized_classification
+base_model_path: /nfs/scratch/qhsu/models/base
+output_dir_parent: /nfs/scratch/qhsu/models/finetuned
+
+# Model Arguments
+model:
+  _component_: torchtune.models.llama2.lora_llama2_classification_7b
+  lora_attn_modules: ['q_proj', 'v_proj', 'k_proj']
+  apply_lora_to_mlp: true
+  apply_lora_to_output: true
+  lora_rank: 24
+  lora_alpha: 32
+  lora_dropout: 0.05
+  num_classes: 4
+
+tokenizer:
+  _component_: torchtune.models.llama2.llama2_tokenizer
+  path: ${base_model_path}/Llama-2-7b-hf/tokenizer.model
+
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: ${base_model_path}/Llama-2-7b-hf
+  checkpoint_files: [pytorch_model-00001-of-00002.bin, pytorch_model-00002-of-00002.bin]
+  adapter_checkpoint:
+  eval_adapter_checkpoint: ${output_dir_parent}/${xp_name}/adapter_1.pt
+  recipe_checkpoint:
+  output_dir: ${output_dir_parent}/${xp_name}
+  model_type: LLAMA2
+resume_from_checkpoint: false
+save_adapter_weights_only: false
+
+# Dataset and Sampler
+dataset:
+  _component_: torchtune.datasets.prompt_classification_dataset
+  source: /nfs/scratch/qhsu/dataset/relevance_labeling_esci__may_baseline_reorganized
+  from_disk: true
+  text_column: prompt
+  label_column: completion
+  split: train
+  max_seq_len: 1000
+  packed: false
+  classes: ["exact", "substitute", "complement", "irrelevant"]
+seed:
+shuffle: true
+batch_size: 4
+
+# Hack for now to have separate validation dataset loader
+val_dataset:
+  _component_: torchtune.datasets.prompt_classification_dataset
+  source: /nfs/scratch/qhsu/dataset/relevance_labeling_esci__may_baseline_reorganized
+  from_disk: true
+  text_column: prompt
+  label_column: completion
+  split: test
+  max_seq_len: 1000
+  packed: false
+val_batch_size: 32
+# validate_every_n_steps: 2 # Not working
+
+# Optimizer and Scheduler
+optimizer:
+  _component_: torch.optim.AdamW
+  weight_decay: 0.01
+  lr: 1e-4
+lr_scheduler:
+  _component_: torchtune.modules.get_cosine_schedule_with_warmup
+  num_warmup_steps: 100
+
+loss:
+  _component_: torch.nn.BCEWithLogitsLoss
+
+# Training
+epochs: 2
+max_steps_per_epoch:
+gradient_accumulation_steps: 32
+
+# Environment
+device: cuda
+dtype: bf16
+enable_activation_checkpointing: false
+
+# Logging
+output_dir: ${output_dir_parent}/${xp_name}/logs
+# enable logging to the built-in CometLogger
+metric_logger:
+  _component_: torchtune.training.metric_logging.CometLogger
+  # the Comet project to log to
+  project: llama-query-product-relevance
+  experiment_name: ${xp_name}
+  tags: [lora, llama2_7B, classification, distributed]
+log_every_n_steps: 5
+log_peak_memory_stats: true
+
+# Profiling example, disabled by default since slows down a lot
+profiler:
+  _component_: torchtune.training.setup_torch_profiler
+  enabled: false
+  output_dir: ${output_dir}/profiling_outputs
+  cpu: true
+  cuda: true
+  profile_memory: true
+  with_stack: false
+  record_shapes: false
+  with_flops: false
+  wait_steps: 5
+  warmup_steps: 5
+  active_steps: 2
+  num_cycles: 1

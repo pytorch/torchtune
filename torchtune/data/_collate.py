@@ -60,6 +60,7 @@ def padded_collate(
     pad_direction: str,
     keys_to_pad: List[str],
     padding_idx: Union[int, Dict[str, int]],
+    num_classes: int = None,
 ):
     """
     A generic padding collation function which pads ``keys_to_pad`` entries in a
@@ -80,6 +81,7 @@ def padded_collate(
         padding_idx (Union[int, Dict[str, int]]): Either a single integer padding value to apply to all
             ``keys_to_pad`` elements, or a mapping with keys identical to ``keys_to_pad`` with per-key
             padding values.
+        num_classes (int): Number of classes for one hot encoding labels. Defaults to None.
 
     Returns:
         torch.Tensor: The padded tensor of input ids with shape [batch_size, max_seq_len].
@@ -140,6 +142,12 @@ def padded_collate(
     batch_keys = [k for k in batch[0].keys() if k not in keys_to_pad]
     output_dict = {k: torch.tensor([x[k] for x in batch]) for k in batch_keys}
 
+    # Hack to 1 hot encode multiclass labels
+    if num_classes is not None:
+        output_dict["labels"] = F.one_hot(
+            output_dict["labels"], num_classes=num_classes
+        )
+
     # now pad the remaining keys
     pad_fn = (
         torch.nn.utils.rnn.pad_sequence
@@ -150,9 +158,11 @@ def padded_collate(
         output_dict[k] = pad_fn(
             [torch.tensor(x[k]) for x in batch],
             batch_first=True,
-            padding_value=padding_idx[k]
-            if isinstance(padding_idx, dict)
-            else padding_idx,
+            padding_value=(
+                0.0
+                if k == "mask"
+                else (padding_idx[k] if isinstance(padding_idx, dict) else padding_idx)
+            ),
         )
     return output_dict
 
@@ -188,6 +198,11 @@ def padded_collate_sft(
         >>> collated["labels"]
         >>> tensor([[4, 5, 6], [10, -100, -100]])
     """
+    # let's pull out any batch elements which don't need any padding
+    # and convert to tensors
+    batch_keys = [k for k in batch[0].keys() if k not in ["tokens", "labels"]]
+    output_dict = {k: torch.tensor([x[k] for x in batch]) for k in batch_keys}
+
     input_ids = pad_sequence(
         [torch.tensor(x["tokens"]) for x in batch],
         batch_first=True,
@@ -213,7 +228,8 @@ def padded_collate_sft(
             (0, labels_seq_len - input_ids_seq_len),
             value=padding_idx,
         )
-    return {"tokens": input_ids.long(), "labels": labels.long()}
+
+    return {"tokens": input_ids.long(), "labels": labels.long(), **output_dict}
 
 
 # TODO: Generalize this to support any type of encoder input, right now this assumes

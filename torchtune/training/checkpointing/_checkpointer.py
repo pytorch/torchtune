@@ -354,7 +354,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             checkpoint_files = formatted_checkpoint_files.build_checkpoint_filenames()
         self._checkpoint_paths = self._validate_hf_checkpoint_files(checkpoint_files)
         self._adapter_checkpoint = (
-            get_path(self._checkpoint_dir, adapter_checkpoint)
+            # get_path(self._checkpoint_dir, adapter_checkpoint)
+            # Specify full path of adapter so that we can load it from a different directory than base model
+            # this is important in cases where we only save the adapter weights
+            Path(adapter_checkpoint)
             if adapter_checkpoint
             else None
         )

@@ -115,7 +115,8 @@ class InferenceRecipe:
         # To hit this block, either the raw prompt is a string or an
         # instruct template has been provided to convert it to a string
         if isinstance(prompt, str):
-            return self._tokenizer.encode(prompt, add_bos=True, add_eos=False)
+            # Temp modification to add eos token for prompt completion
+            return self._tokenizer.encode(prompt, add_bos=True, add_eos=True)
 
         # dict.items() will respect order for Python >= 3.7
         else:

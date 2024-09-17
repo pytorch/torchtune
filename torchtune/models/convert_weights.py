@@ -247,6 +247,29 @@ def tune_to_peft_adapter_config(
     return adapter_config
 
 
+# When we only save adapter weights, we need to convert back from peft format to tune format
+# This lets us map the right weight names when reloading state dicts
+# peft_to_tune_adapter_config
+def peft_to_tune_adapter_config(
+    adapter_config: Dict[str, Any],
+):
+    if not all([x in adapter_config.keys() for x in _PEFT_CONFIG_EXPECTED_KEYS]):
+        raise ValueError(
+            f"PEFT adapter config requires {_PEFT_CONFIG_EXPECTED_KEYS}, found {adapter_config.keys()}"
+        )
+
+    _peft_to_tune_target_modules = {v: k for k, v in _TO_PEFT_TARGET_MODULES.items()}
+
+    for k in adapter_config["target_modules"]:
+        if k not in _peft_to_tune_target_modules:
+            raise ValueError(f"Unknown target module {k}")
+    adapter_config["target_modules"] = list(
+        map(_peft_to_tune_target_modules.get, adapter_config["target_modules"])
+    )
+
+    return adapter_config
+
+
 def tune_to_peft_adapter_weights(
     state_dict: Dict[str, torch.Tensor],
     num_heads: int = 32,
@@ -289,3 +312,49 @@ def tune_to_peft_adapter_weights(
             value = _permute_lora_matrix(value, num_kv_heads)
         converted_state_dict["base_model.model." + new_key] = value
     return converted_state_dict
+
+
+def peft_to_tune_adapter_weights(
+    state_dict: Dict[str, torch.Tensor],
+    num_heads: int = 32,
+    num_kv_heads: int = 32,
+    dim: int = 4096,
+    head_dim: int = None,
+):
+    inverted_state_dict = {}
+    full_mapping = {}
+
+    # Reconstruct the mapping in reverse
+    for k, v in _TO_PEFT_KEYS.items():
+        full_mapping.update(
+            {
+                kk.replace(".weight", f".{v}.weight"): vv.replace(
+                    ".weight", f".{k}.weight"
+                )
+                for kk, vv in _FROM_HF.items()
+                if vv is not None
+            }
+        )
+
+    if head_dim is None:
+        head_dim = dim // num_heads
+
+    def _reverse_permute_lora_matrix(t, n_heads):
+        rank = t.shape[-1]
+        return (
+            t.view(n_heads, 2, head_dim // 2, rank)
+            .transpose(1, 2)
+            .reshape((head_dim // 2 * 2 * n_heads), rank)
+        )
+
+    for key, value in state_dict.items():
+        # Remove the "base_model.model." prefix to get the original key
+        base_key = key.replace("base_model.model.", "")
+        original_key = get_mapped_key(base_key, full_mapping)
+        if "q_proj" in original_key and "lora_B" in original_key:
+            value = _reverse_permute_lora_matrix(value, num_heads)
+        elif "k_proj" in original_key and "lora_B" in original_key:
+            value = _reverse_permute_lora_matrix(value, num_kv_heads)
+        inverted_state_dict[original_key] = value
+
+    return inverted_state_dict
