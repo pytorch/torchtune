@@ -21,8 +21,6 @@ custom chat dataset for fine-tuning Llama3 Instruct.
       * Be familiar with :ref:`configuring datasets<dataset_tutorial_label>`
       * Know how to :ref:`download Llama3 Instruct weights <llama3_label>`
 
-.. note::
-    This tutorial requires a version of torchtune > 0.1.1
 
 Template changes from Llama2 to Llama3
 --------------------------------------
@@ -319,7 +317,7 @@ look like so:
 If you needed to add a prompt template, you would simply pass it into the tokenizer.
 Since we're fine-tuning Llama3, the tokenizer will handle all formatting for
 us and prompt templates are optional. Other models such as Mistral's :class:`~torchtune.models.mistral._tokenizer.MistralTokenizer`,
-use a chat template by default (:class:`~torchtune.data.MistralChatTemplate`) to format
+use a chat template by default (:class:`~torchtune.models.mistral.MistralChatTemplate`) to format
 all messages according to their `recommendations <https://docs.mistral.ai/getting-started/open_weight_models/#chat-template>`_.
 
 Now we're ready to start fine-tuning! We'll use the built-in LoRA single device recipe.
