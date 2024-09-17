@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
 import sys
 import time
 
@@ -58,7 +57,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
     The following losses are supported in this recipe:
         - :class:`~torchtune.modules.rlhf.loss.DPOLoss`: Direct Preference Optimization (DPO).
         - :class:`~torchtune.modules.rlhf.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
-        - :class:`~torchtune.modules.rlhf.loss.IPOLoss`: Identity Preference Optimization (IPO).
         - :class:`~torchtune.modules.rlhf.loss.SimPOLoss`: Simple Preference Optimization (SimPO).
 
     Assumptions:
@@ -309,9 +307,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
         # Compile model, if enabled.
         if compile_model:
-            log.info("Compiling model with torch.compile...")
-            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-            model.compile(backend=backend)
+            training.compile_model(model)
         if self._device == torch.device("cuda"):
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
