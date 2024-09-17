@@ -4,7 +4,7 @@ torchtune.rlhf
 
 .. currentmodule:: torchtune.rlhf
 
-Components and losses for RLHF algorithms like PPO and DPO:
+Components and losses for RLHF algorithms like PPO and DPO.
 
 .. autosummary::
    :toctree: generated/
