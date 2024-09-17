@@ -42,7 +42,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="torchtune.training" href="../api_ref_training.html" />
-    <link rel="prev" title="IPOLoss" href="torchtune.rlhf.loss.IPOLoss.html" />
+    <link rel="prev" title="RSOLoss" href="torchtune.rlhf.loss.RSOLoss.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -439,7 +439,7 @@ encourage a larger margin between the winning and losing responses, further enha
 <a class="reference external" href="https://github.com/huggingface/trl/blob/98ad01ddfd1e1b67ec018014b83cba40e0caea66/trl/trainer/cpo_trainer.py#L603">https://github.com/huggingface/trl/blob/98ad01ddfd1e1b67ec018014b83cba40e0caea66/trl/trainer/cpo_trainer.py#L603</a></p>
 <p>SimPO is pretty much identitcal to DPO but uses average logprobs to eliminate the need for a reference model to regularize
 the policy during training. It also uses a target reward margin to guide the policy towards better responses.
-This is kind of the same intuition as in <a class="reference internal" href="torchtune.rlhf.loss.IPOLoss.html#torchtune.rlhf.loss.IPOLoss" title="torchtune.rlhf.loss.IPOLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">IPOLoss</span></code></a>, but instead of optimizing against
+This is kind of the same intuition as in <code class="xref py py-class docutils literal notranslate"><span class="pre">IPOLoss</span></code>, but instead of optimizing against
 a margin between the reference policy and policy models, we’re optimizing against a margin between the chosen and
 rejected responses.</p>
 <dl class="field-list simple">
@@ -494,7 +494,7 @@ for the rejected responses with shape [b,].</p></li>
         <a href="../api_ref_training.html" class="btn btn-neutral float-right" title="torchtune.training" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.rlhf.loss.IPOLoss.html" class="btn btn-neutral" title="IPOLoss" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.rlhf.loss.RSOLoss.html" class="btn btn-neutral" title="RSOLoss" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
