@@ -240,9 +240,11 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=checkpoint_dict[training.OPT_KEY]
-            if self._resume_from_checkpoint
-            else None,
+            opt_state_dict=(
+                checkpoint_dict[training.OPT_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
@@ -299,6 +301,11 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
               full state dicts are loaded with ``torch.load(mmap=True)``
            c. We register (pre-)forward hooks with ``fully_shard`` instead of wrapping `nn.Module`
         """
+        self._lora_rank = cfg_model.lora_rank
+        self._lora_alpha = cfg_model.lora_alpha
+        self._lora_attn_modules = list(cfg_model.lora_attn_modules)
+        self._apply_lora_to_mlp = cfg_model.apply_lora_to_mlp
+        self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
 
         if self._is_rank_zero:
             log.info(
