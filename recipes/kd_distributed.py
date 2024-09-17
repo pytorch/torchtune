@@ -246,6 +246,8 @@ class KDRecipeDistributed(FTRecipeInterface):
 
         self._teacher_model = self._setup_teacher_model(
             model_cfg=cfg.teacher_model,
+            fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
+            reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
             model_state_dict=teacher_checkpoint_dict[training.MODEL_KEY],
         )
 
@@ -532,24 +534,90 @@ class KDRecipeDistributed(FTRecipeInterface):
     def _setup_teacher_model(
         self,
         model_cfg: DictConfig,
+        fsdp_cpu_offload: bool,
+        reshard_after_forward: bool,
         model_state_dict: Dict[str, Any],
     ) -> nn.Module:
-        with training.set_default_dtype(self._dtype), self._device:
+        """
+        Model initialization for teacher model has some important considerations:
+          a. To minimize GPU peak memory, we initialize the model on meta device with
+              the right dtype
+           b. All ranks calls ``load_state_dict`` without peaking CPU RAMs since
+              full state dicts are loaded with ``torch.load(mmap=True)``
+        """
+
+        if self._is_rank_zero:
+            log.info(
+                "FSDP enabled. Instantiating teacher model and loading checkpoint on Rank 0 ..."
+            )
+            init_start = time.perf_counter()
+
+        with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(model_cfg)
 
-        model.load_state_dict(model_state_dict)
+        # For FSDP sharding, we can condition on either the module or its name
+        # Shard conditions should be callables taking name (relative to model root)
+        # and the module itself and returning a bool on whether to shard the given module
+        fsdp_shard_conditions = []
+
+        # Shard transformer decoder layers (or AC-wrapped versions)
+        # Alternatively we could condition on the module type (TransformerDecoder or CheckpointWrapper)
+        # But directly using the name is more concise
+        def _is_layer_fqn(s: str) -> bool:
+            """
+            Return True for layers.i and False for all other module names
+            Covers sharding for both AC-wrapped and non-AC-wrapped modules in one shot
+            """
+            s_list = s.split(".")
+            return len(s_list) == 2 and s_list[0] == "layers" and str.isdigit(s_list[1])
+
+        fsdp_shard_conditions = [lambda n, m: _is_layer_fqn(n)]
+
+        training.shard_model(
+            model=model,
+            shard_conditions=fsdp_shard_conditions,
+            cpu_offload=fsdp_cpu_offload,
+            reshard_after_forward=reshard_after_forward,
+        )
+
+        with training.set_default_dtype(self._dtype), self._device:
+            for m in model.modules():
+                # RoPE is not covered in state dict
+                if hasattr(m, "rope_init"):
+                    m.rope_init()
+
+        # This method will convert the full model state dict into a sharded state
+        # dict and load into the model
+        training.load_from_full_model_state_dict(
+            model,
+            model_state_dict,
+            self._device,
+            self._is_rank_zero,
+            strict=True,
+            cpu_offload=fsdp_cpu_offload,
+        )
 
         # Put model in eval mode.
         # Note: This will not disable the dropout applied in SDPA,
         # see https://github.com/pytorch/pytorch/issues/124464
         model.eval()
 
-        # Validate model was loaded in with the expected dtype.
-        training.validate_expected_param_dtype(
-            model.named_parameters(), dtype=self._dtype
-        )
+        for p in model.parameters():
+            p.requires_grad = False
+
+        # Ensure no params and buffers are on meta device
+        training.validate_no_params_on_meta_device(model)
+
         if self._is_rank_zero:
-            log.info(f"Teacher model is initialized with precision {self._dtype}.")
+            log.info(
+                f"Instantiating teacher model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
+            )
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(memory_stats)
+
+        # synchronize before training begins
+        torch.distributed.barrier()
+
         return model
 
     def _setup_optimizer(
