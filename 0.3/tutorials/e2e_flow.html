@@ -1,0 +1,1158 @@
+
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>End-to-End Workflow with torchtune &mdash; torchtune 0.3 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Configuring Datasets for Fine-Tuning" href="datasets.html" />
+    <link rel="prev" title="Finetuning Llama3 with QAT" href="qat_finetune.html" />
+  <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-T8XT4PS');</script>
+    <!-- End Google Tag Manager -->
+  
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+  <!-- Preload the theme fonts -->
+
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+<!-- Preload the katex fonts -->
+
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Main-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size1-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size4-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size2-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size3-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Caligraphic-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.2/css/all.css" integrity="sha384-vSIIfh2YWi9wW0r9iZe7RJPrKwp6bG+s9QZMoITbCckVJqGCCRhc+ccxNcdpHuYu" crossorigin="anonymous">
+</head>
+
+<div class="container-fluid header-holder tutorials-header" id="header-holder">
+  <div class="container">
+    <div class="header-container">
+      <a class="header-logo" href="https://pytorch.org/" aria-label="PyTorch"></a>
+
+      <div class="main-menu">
+        <ul>
+
+          <li class="main-menu-item">
+          <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Learn
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/get-started">
+                  <span class=dropdown-title>Get Started</span>
+                  <p>Run PyTorch locally or get started quickly with one of the supported cloud platforms</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials">
+                  <span class="dropdown-title">Tutorials</span>
+                  <p>Whats new in PyTorch tutorials</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials/beginner/basics/intro.html">
+                  <span class="dropdown-title">Learn the Basics</span>
+                  <p>Familiarize yourself with PyTorch concepts and modules</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials/recipes/recipes_index.html">
+                  <span class="dropdown-title">PyTorch Recipes</span>
+                  <p>Bite-size, ready-to-deploy PyTorch code examples</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials/beginner/introyt.html">
+                  <span class="dropdown-title">Intro to PyTorch - YouTube Series</span>
+                  <p>Master PyTorch basics with our engaging YouTube tutorial series</p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li>
+          <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Ecosystem
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/ecosystem">
+                  <span class="dropdown-title">Tools</span>
+                  <p>Learn about the tools and frameworks in the PyTorch Ecosystem</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/#community-module">
+                  <span class=dropdown-title>Community</span>
+                  <p>Join the PyTorch developer community to contribute, learn, and get your questions answered</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://discuss.pytorch.org/" target="_blank">
+                  <span class=dropdown-title>Forums</span>
+                  <p>A place to discuss PyTorch code, issues, install, research</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/resources">
+                  <span class=dropdown-title>Developer Resources</span>
+                  <p>Find resources and get questions answered</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/ecosystem/contributor-awards-2023">
+                  <span class="dropdown-title">Contributor Awards - 2023</span>
+                  <p>Award winners announced at this year's PyTorch Conference</p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li>
+          <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Edge
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/edge">
+                  <span class="dropdown-title">About PyTorch Edge</span>
+                  <p>Build innovative and privacy-aware AI experiences for edge devices</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/executorch-overview">
+                  <span class="dropdown-title">ExecuTorch</span>
+                  <p>End-to-end solution for enabling on-device inference capabilities across mobile and edge devices</p>
+                </a>
+              </div>
+            </div>  
+          </li>
+
+          <li class="main-menu-item">
+            <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Docs
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/docs/stable/index.html">
+                  <span class="dropdown-title">PyTorch</span>
+                  <p>Explore the documentation for comprehensive guidance on how to use PyTorch</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/pytorch-domains">
+                  <span class="dropdown-title">PyTorch Domains</span>
+                  <p>Read the PyTorch Domains documentation to learn more about domain-specific libraries</p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li>
+            <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Blogs & News 
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/blog/">
+                  <span class="dropdown-title">PyTorch Blog</span>
+                  <p>Catch up on the latest technical news and happenings</p>
+                </a>
+                 <a class="nav-dropdown-item" href="https://pytorch.org/community-blog">
+                  <span class="dropdown-title">Community Blog</span>
+                  <p>Stories from the PyTorch ecosystem</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/videos">
+                  <span class="dropdown-title">Videos</span>
+                  <p>Learn about the latest PyTorch tutorials, new, and more </p>
+                <a class="nav-dropdown-item" href="https://pytorch.org/community-stories">
+                  <span class="dropdown-title">Community Stories</span>
+                  <p>Learn how our community solves real, everyday machine learning problems with PyTorch</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/events">
+                  <span class="dropdown-title">Events</span>
+                  <p>Find events, webinars, and podcasts</p>
+                </a>
+            </div>
+          </li>
+
+          <li>
+            <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                About
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/foundation">
+                  <span class="dropdown-title">PyTorch Foundation</span>
+                  <p>Learn more about the PyTorch Foundation</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/governing-board">
+                  <span class="dropdown-title">Governing Board</span>
+                  <p></p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li class="main-menu-item">
+            <div class="no-dropdown">
+              <a href="https://pytorch.org/join" data-cta="join">
+                Become a Member
+              </a>
+            </div>
+          </li>
+          <li>
+           <div class="main-menu-item">
+             <a href="https://github.com/pytorch/pytorch" class="github-icon">
+             </a>
+           </div>
+          </li>
+          <!--- TODO: This block adds the search icon to the nav bar. We will enable it later. 
+          <li>
+            <div class="main-menu-item">
+             <a href="https://github.com/pytorch/pytorch" class="search-icon">
+             </a>
+            </div>
+          </li>
+          --->
+        </ul>
+      </div>
+
+      <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a>
+    </div>
+  </div>
+</div>
+
+<body class="pytorch-body">
+
+   
+
+    
+
+    <div class="table-of-contents-link-wrapper">
+      <span>Table of Contents</span>
+      <a href="#" class="toggle-table-of-contents" data-behavior="toggle-table-of-contents"></a>
+    </div>
+
+    <nav data-toggle="wy-nav-shift" class="pytorch-left-menu" id="pytorch-left-menu">
+      <div class="pytorch-side-scroll">
+        <div class="pytorch-menu pytorch-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          <div class="pytorch-left-menu-search">
+            
+    <div class="version">
+        <a href='https://pytorch.org/torchtune/versions.html'>0.3 &#x25BC</a>
+      </div>
+    
+
+
+  
+
+
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search Docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          </div>
+
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tune_cli.html">torchtune CLI</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Finetuning Recipes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/recipes_overview.html">Recipes Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="llama3.html">Meta Llama3 in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qat_finetune.html">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="datasets.html">Configuring Datasets for Fine-Tuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chat.html">Fine-tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="memory_optimizations.html">Memory Optimization Overview</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/comet_logging.html">Logging to Comet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All About Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_generation.html">torchtune.generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <div class="pytorch-container">
+      <div class="pytorch-page-level-bar" id="pytorch-page-level-bar">
+        <div class="pytorch-breadcrumbs-wrapper">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="pytorch-breadcrumbs">
+    
+      <li>
+        <a href="../index.html">
+          
+            Docs
+          
+        </a> &gt;
+      </li>
+
+        
+      <li>End-to-End Workflow with torchtune</li>
+    
+    
+      <li class="pytorch-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/tutorials/e2e_flow.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+</div>
+        </div>
+
+        <div class="pytorch-shortcuts-wrapper" id="pytorch-shortcuts-wrapper">
+          Shortcuts
+        </div>
+      </div>
+
+      <section data-toggle="wy-nav-shift" id="pytorch-content-wrap" class="pytorch-content-wrap">
+        <div class="pytorch-content-left">
+
+        
+          <!-- Google Tag Manager (noscript) -->
+          <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T8XT4PS"
+          height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+          <!-- End Google Tag Manager (noscript) -->
+          
+          <div class="rst-content">
+          
+            <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
+             <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
+              
+  <section id="end-to-end-workflow-with-torchtune">
+<span id="e2e-flow"></span><h1>End-to-End Workflow with torchtune<a class="headerlink" href="#end-to-end-workflow-with-torchtune" title="Permalink to this heading">¶</a></h1>
+<p>In this tutorial, we’ll walk through an end-to-end example of how you can fine-tune,
+evaluate, optionally quantize and then run generation with your favorite LLM using
+torchtune. We’ll also go over how you can use some popular tools and libraries
+from the community seemlessly with torchtune.</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
+<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 docutils">
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+<svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-mortar-board" viewBox="0 0 16 16" aria-hidden="true"><path d="M7.693 1.066a.747.747 0 0 1 .614 0l7.25 3.25a.75.75 0 0 1 0 1.368L13 6.831v2.794c0 1.024-.81 1.749-1.66 2.173-.893.447-2.075.702-3.34.702-.278 0-.55-.012-.816-.036a.75.75 0 0 1 .133-1.494c.22.02.45.03.683.03 1.082 0 2.025-.221 2.67-.543.69-.345.83-.682.83-.832V7.503L8.307 8.934a.747.747 0 0 1-.614 0L4 7.28v1.663c.296.105.575.275.812.512.438.438.688 1.059.688 1.796v3a.75.75 0 0 1-.75.75h-3a.75.75 0 0 1-.75-.75v-3c0-.737.25-1.358.688-1.796.237-.237.516-.407.812-.512V6.606L.443 5.684a.75.75 0 0 1 0-1.368ZM2.583 5 8 7.428 13.416 5 8 2.572ZM2.5 11.25v2.25H4v-2.25c0-.388-.125-.611-.25-.735a.697.697 0 0 0-.5-.203.707.707 0 0 0-.5.203c-.125.124-.25.347-.25.735Z"></path></svg> What this tutorial will cover:</div>
+<ul class="simple">
+<li><p class="sd-card-text">Different type of recipes available in torchtune beyond fine-tuning</p></li>
+<li><p class="sd-card-text">End-to-end example connecting all of these recipes</p></li>
+<li><p class="sd-card-text">Different tools and libraries you can use with torchtune</p></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+<svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-list-unordered" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.75 2.5h8.5a.75.75 0 0 1 0 1.5h-8.5a.75.75 0 0 1 0-1.5Zm0 5h8.5a.75.75 0 0 1 0 1.5h-8.5a.75.75 0 0 1 0-1.5Zm0 5h8.5a.75.75 0 0 1 0 1.5h-8.5a.75.75 0 0 1 0-1.5ZM2 14a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm1-6a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM2 4a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg> Prerequisites</div>
+<ul class="simple">
+<li><p class="sd-card-text">Be familiar with the <a class="reference internal" href="../overview.html#overview-label"><span class="std std-ref">overview of torchtune</span></a></p></li>
+<li><p class="sd-card-text">Make sure to <a class="reference internal" href="../install.html#install-label"><span class="std std-ref">install torchtune</span></a></p></li>
+<li><p class="sd-card-text">Concepts such as <a class="reference internal" href="../deep_dives/configs.html#config-tutorial-label"><span class="std std-ref">configs</span></a> and
+<a class="reference internal" href="../deep_dives/checkpointer.html#understand-checkpointer"><span class="std std-ref">checkpoints</span></a></p></li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading">¶</a></h2>
+<p>Fine-tuning an LLM is usually only one step in a larger workflow. An example workflow that you
+might have can look something like this:</p>
+<ul class="simple">
+<li><p>Download a popular model from <a class="reference external" href="https://huggingface.co/docs/hub/en/index">HF Hub</a></p></li>
+<li><p>Fine-tune the model using a relevant fine-tuning technique. The exact technique used
+will depend on factors such as the model, amount and nature of training data, your hardware
+setup and the end task for which the model will be used</p></li>
+<li><p>Evaluate the model on some benchmarks to validate model quality</p></li>
+<li><p>Run some generations to make sure the model output looks reasonable</p></li>
+<li><p>Quantize the model for efficient inference</p></li>
+<li><p>[Optional] Export the model for specific environments such as inference on a mobile phone</p></li>
+</ul>
+<p>In this tutorial, we’ll cover how you can use torchtune for all of the above, leveraging
+integrations with popular tools and libraries from the ecosystem.</p>
+<p>We’ll use the Llama2 7B model for this tutorial. You can find a complete set of models supported
+by torchtune <a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/README.md#introduction">here</a>.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</section>
+<section id="download-llama2-7b">
+<h2>Download Llama2 7B<a class="headerlink" href="#download-llama2-7b" title="Permalink to this heading">¶</a></h2>
+<p>In this tutorial, we’ll use the Hugging Face model weights for the Llama2 7B mode.
+For more information on checkpoint formats and how these are handled in torchtune, take a look at
+this tutorial on <a class="reference internal" href="../deep_dives/checkpointer.html#understand-checkpointer"><span class="std std-ref">checkpoints</span></a>.</p>
+<p>To download the HF format Llama2 7B model, we’ll use the tune CLI.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span><span class="se">\</span>
+meta-llama/Llama-2-7b-hf<span class="w"> </span><span class="se">\</span>
+--output-dir<span class="w"> </span>&lt;checkpoint_dir&gt;<span class="w"> </span><span class="se">\</span>
+--hf-token<span class="w"> </span>&lt;ACCESS<span class="w"> </span>TOKEN&gt;
+</pre></div>
+</div>
+<p>Make a note of <code class="docutils literal notranslate"><span class="pre">&lt;checkpoint_dir&gt;</span></code>, we’ll use this many times in this tutorial.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</section>
+<section id="finetune-the-model-using-lora">
+<h2>Finetune the model using LoRA<a class="headerlink" href="#finetune-the-model-using-lora" title="Permalink to this heading">¶</a></h2>
+<p>For this tutorial, we’ll fine-tune the model using LoRA. LoRA is a parameter efficient fine-tuning
+technique which is especially helpful when you don’t have a lot of GPU memory to play with. LoRA
+freezes the base LLM and adds a very small percentage of learnable parameters. This helps keep
+memory associated with gradients and optimizer state low. Using torchtune, you should be able to
+fine-tune a Llama2 7B model with LoRA in less than 16GB of GPU memory using bfloat16 on a
+RTX 3090/4090. For more information on how to use LoRA, take a look at our
+<a class="reference internal" href="lora_finetune.html#lora-finetune-label"><span class="std std-ref">LoRA Tutorial</span></a>.</p>
+<p>We’ll fine-tune using our
+<a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_single_device.py">single device LoRA recipe</a>
+and use the standard settings from the
+<a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_lora_single_device.yaml">default config</a>.</p>
+<p>This will fine-tune our model using a <code class="docutils literal notranslate"><span class="pre">batch_size=2</span></code> and <code class="docutils literal notranslate"><span class="pre">dtype=bfloat16</span></code>. With these settings the model
+should have a peak memory usage of ~16GB and total training time of around two hours for each epoch.
+We’ll need to make some changes to the config to make sure our recipe can access the
+right checkpoints.</p>
+<p>Let’s look for the right config for this use case by using the tune CLI.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>ls
+
+RECIPE<span class="w">                                   </span>CONFIG
+full_finetune_single_device<span class="w">              </span>llama2/7B_full_low_memory
+<span class="w">                                         </span>mistral/7B_full_low_memory
+full_finetune_distributed<span class="w">                </span>llama2/7B_full
+<span class="w">                                         </span>llama2/13B_full
+<span class="w">                                         </span>mistral/7B_full
+lora_finetune_single_device<span class="w">              </span>llama2/7B_lora_single_device
+<span class="w">                                         </span>llama2/7B_qlora_single_device
+<span class="w">                                         </span>mistral/7B_lora_single_device
+...
+</pre></div>
+</div>
+<p>For this tutorial we’ll use the <code class="docutils literal notranslate"><span class="pre">llama2/7B_lora_single_device</span></code> config.</p>
+<p>The config already points to the HF Checkpointer and the right checkpoint files.
+All we need to do is update the checkpoint directory for both the model and the
+tokenizer. Let’s do this using the overrides in the tune CLI while starting training!</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span><span class="se">\</span>
+--config<span class="w"> </span>llama2/7B_lora_single_device<span class="w"> </span><span class="se">\</span>
+checkpointer.checkpoint_dir<span class="o">=</span>&lt;checkpoint_dir&gt;<span class="w"> </span><span class="se">\</span>
+tokenizer.path<span class="o">=</span>&lt;checkpoint_dir&gt;/tokenizer.model<span class="w"> </span><span class="se">\</span>
+checkpointer.output_dir<span class="o">=</span>&lt;checkpoint_dir&gt;
+</pre></div>
+</div>
+<p>Once training is complete, you’ll see the following in the logs.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">[</span>_checkpointer.py:473<span class="o">]</span><span class="w"> </span>Model<span class="w"> </span>checkpoint<span class="w"> </span>of<span class="w"> </span>size<span class="w"> </span><span class="m">9</span>.98<span class="w"> </span>GB<span class="w"> </span>saved<span class="w"> </span>to<span class="w"> </span>&lt;checkpoint_dir&gt;/hf_model_0001_0.pt
+
+<span class="o">[</span>_checkpointer.py:473<span class="o">]</span><span class="w"> </span>Model<span class="w"> </span>checkpoint<span class="w"> </span>of<span class="w"> </span>size<span class="w"> </span><span class="m">3</span>.50<span class="w"> </span>GB<span class="w"> </span>saved<span class="w"> </span>to<span class="w"> </span>&lt;checkpoint_dir&gt;/hf_model_0002_0.pt
+
+<span class="o">[</span>_checkpointer.py:484<span class="o">]</span><span class="w"> </span>Adapter<span class="w"> </span>checkpoint<span class="w"> </span>of<span class="w"> </span>size<span class="w"> </span><span class="m">0</span>.01<span class="w"> </span>GB<span class="w"> </span>saved<span class="w"> </span>to<span class="w"> </span>&lt;checkpoint_dir&gt;/adapter_0.pt
+</pre></div>
+</div>
+<p>The final trained weights are merged with the original model and split across two checkpoint files
+similar to the source checkpoints from the HF Hub
+(see the <a class="reference internal" href="lora_finetune.html#lora-finetune-label"><span class="std std-ref">LoRA Tutorial</span></a> for more details).
+In fact the keys will be identical between these checkpoints.
+We also have a third checkpoint file which is much smaller in size
+and contains the learnt LoRA adapter weights. For this tutorial, we’ll only use the model
+checkpoints and not the adapter weights.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</section>
+<section id="run-evaluation-using-eleutherai-s-eval-harness">
+<span id="eval-harness-label"></span><h2>Run Evaluation using EleutherAI’s Eval Harness<a class="headerlink" href="#run-evaluation-using-eleutherai-s-eval-harness" title="Permalink to this heading">¶</a></h2>
+<p>We’ve fine-tuned a model. But how well does this model really do? Let’s run some Evaluations!</p>
+<p>torchtune integrates with
+<a class="reference external" href="https://github.com/EleutherAI/lm-evaluation-harness">EleutherAI’s evaluation harness</a>.
+An example of this is available through the
+<code class="docutils literal notranslate"><span class="pre">eleuther_eval</span></code> recipe. In this tutorial, we’re going to directly use this recipe by
+modifying its associated config <code class="docutils literal notranslate"><span class="pre">eleuther_evaluation.yaml</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For this section of the tutorial, you should first run <code class="code docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">lm_eval==0.4.*</span></code>
+to install the EleutherAI evaluation harness.</p>
+</div>
+<p>Since we plan to update all of the checkpoint files to point to our fine-tuned checkpoints,
+let’s first copy over the config to our local working directory so we can make changes. This
+will be easier than overriding all of these elements through the CLI.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>cp<span class="w"> </span>eleuther_evaluation<span class="w"> </span>./custom_eval_config.yaml<span class="w"> </span><span class="se">\</span>
+</pre></div>
+</div>
+<p>For this tutorial we’ll use the <a class="reference external" href="https://github.com/sylinrl/TruthfulQA">truthfulqa_mc2</a> task from the harness.
+This task measures a model’s propensity to be truthful when answering questions and
+measures the model’s zero-shot accuracy on a question followed by one or more true
+responses and one or more false responses. Let’s first run a baseline without fine-tuning.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>eleuther_eval<span class="w"> </span>--config<span class="w"> </span>./custom_eval_config.yaml
+checkpointer.checkpoint_dir<span class="o">=</span>&lt;checkpoint_dir&gt;<span class="w"> </span><span class="se">\</span>
+tokenizer.path<span class="o">=</span>&lt;checkpoint_dir&gt;/tokenizer.model
+
+<span class="o">[</span>evaluator.py:324<span class="o">]</span><span class="w"> </span>Running<span class="w"> </span>loglikelihood<span class="w"> </span>requests
+<span class="o">[</span>eleuther_eval.py:195<span class="o">]</span><span class="w"> </span>Eval<span class="w"> </span>completed<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="m">121</span>.27<span class="w"> </span>seconds.
+<span class="o">[</span>eleuther_eval.py:197<span class="o">]</span><span class="w"> </span>truthfulqa_mc2:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;acc,none&#39;</span>:<span class="w"> </span><span class="m">0</span>.388...
+</pre></div>
+</div>
+<p>The model has an accuracy around 38.8%. Let’s compare this with the fine-tuned model.</p>
+<p>First, we modify <code class="docutils literal notranslate"><span class="pre">custom_eval_config.yaml</span></code> to include the fine-tuned checkpoints.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.FullModelHFCheckpointer</span>
+
+<span class="w">    </span><span class="c1"># directory with the checkpoint files</span>
+<span class="w">    </span><span class="c1"># this should match the output_dir specified during</span>
+<span class="w">    </span><span class="c1"># finetuning</span>
+<span class="w">    </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
+
+<span class="w">    </span><span class="c1"># checkpoint files for the fine-tuned model. This should</span>
+<span class="w">    </span><span class="c1"># match what&#39;s shown in the logs above</span>
+<span class="w">    </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
+<span class="w">        </span><span class="nv">hf_model_0001_0.pt</span><span class="p p-Indicator">,</span>
+<span class="w">        </span><span class="nv">hf_model_0002_0.pt</span><span class="p p-Indicator">,</span>
+<span class="w">    </span><span class="p p-Indicator">]</span>
+
+<span class="w">    </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
+<span class="w">    </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA2</span>
+
+<span class="c1"># Make sure to update the tokenizer path to the right</span>
+<span class="c1"># checkpoint directory as well</span>
+<span class="nt">tokenizer</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama2.llama2_tokenizer</span>
+<span class="w">    </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;/tokenizer.model</span>
+</pre></div>
+</div>
+<p>Now, let’s run the recipe.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>eleuther_eval<span class="w"> </span>--config<span class="w"> </span>./custom_eval_config.yaml
+</pre></div>
+</div>
+<p>The results should look something like this.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">[</span>evaluator.py:324<span class="o">]</span><span class="w"> </span>Running<span class="w"> </span>loglikelihood<span class="w"> </span>requests
+<span class="o">[</span>eleuther_eval.py:195<span class="o">]</span><span class="w"> </span>Eval<span class="w"> </span>completed<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="m">121</span>.27<span class="w"> </span>seconds.
+<span class="o">[</span>eleuther_eval.py:197<span class="o">]</span><span class="w"> </span>truthfulqa_mc2:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;acc,none&#39;</span>:<span class="w"> </span><span class="m">0</span>.489<span class="w"> </span>...
+</pre></div>
+</div>
+<p>Our fine-tuned model gets ~48% on this task, which is ~10 points
+better than the baseline. Great! Seems like our fine-tuning helped.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</section>
+<section id="generation">
+<h2>Generation<a class="headerlink" href="#generation" title="Permalink to this heading">¶</a></h2>
+<p>We’ve run some evaluations and the model seems to be doing well. But does it really
+generate meaningful text for the prompts you care about? Let’s find out!</p>
+<p>For this, we’ll use the
+<a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/generate.py">generate recipe</a>
+and the associated
+<a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/configs/generation.yaml">config</a>.</p>
+<p>Let’s first copy over the config to our local working directory so we can make changes.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>cp<span class="w"> </span>generation<span class="w"> </span>./custom_generation_config.yaml
+</pre></div>
+</div>
+<p>Let’s modify <code class="docutils literal notranslate"><span class="pre">custom_generation_config.yaml</span></code> to include the following changes.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.FullModelHFCheckpointer</span>
+
+<span class="w">    </span><span class="c1"># directory with the checkpoint files</span>
+<span class="w">    </span><span class="c1"># this should match the output_dir specified during</span>
+<span class="w">    </span><span class="c1"># finetuning</span>
+<span class="w">    </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
+
+<span class="w">    </span><span class="c1"># checkpoint files for the fine-tuned model. This should</span>
+<span class="w">    </span><span class="c1"># match what&#39;s shown in the logs above</span>
+<span class="w">    </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
+<span class="w">        </span><span class="nv">hf_model_0001_0.pt</span><span class="p p-Indicator">,</span>
+<span class="w">        </span><span class="nv">hf_model_0002_0.pt</span><span class="p p-Indicator">,</span>
+<span class="w">    </span><span class="p p-Indicator">]</span>
+
+<span class="w">    </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
+<span class="w">    </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA2</span>
+
+<span class="c1"># Make sure to update the tokenizer path to the right</span>
+<span class="c1"># checkpoint directory as well</span>
+<span class="nt">tokenizer</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama2.llama2_tokenizer</span>
+<span class="w">    </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;/tokenizer.model</span>
+</pre></div>
+</div>
+<p>Once the config is updated, let’s kick off generation! We’ll use the
+default settings for sampling with <code class="docutils literal notranslate"><span class="pre">top_k=300</span></code> and a
+<code class="docutils literal notranslate"><span class="pre">temperature=0.8</span></code>. These parameters control how the probabilities for
+sampling are computed. These are standard settings for Llama2 7B and
+we recommend inspecting the model with these before playing around with
+these parameters.</p>
+<p>We’ll use a different prompt from the one in the config</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>generate<span class="w"> </span>--config<span class="w"> </span>./custom_generation_config.yaml<span class="w"> </span><span class="se">\</span>
+<span class="nv">prompt</span><span class="o">=</span><span class="s2">&quot;What are some interesting sites to visit in the Bay Area?&quot;</span>
+</pre></div>
+</div>
+<p>Once generation is complete, you’ll see the following in the logs.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">[</span>generate.py:92<span class="o">]</span><span class="w"> </span>Exploratorium<span class="w"> </span><span class="k">in</span><span class="w"> </span>San<span class="w"> </span>Francisco<span class="w"> </span>has<span class="w"> </span>made<span class="w"> </span>the<span class="w"> </span>cover<span class="w"> </span>of<span class="w"> </span>Time<span class="w"> </span>Magazine,
+<span class="w">                 </span>and<span class="w"> </span>its<span class="w"> </span>awesome.<span class="w"> </span>And<span class="w"> </span>the<span class="w"> </span>bridge<span class="w"> </span>is<span class="w"> </span>pretty<span class="w"> </span>cool...
+
+<span class="o">[</span>generate.py:96<span class="o">]</span><span class="w"> </span>Time<span class="w"> </span><span class="k">for</span><span class="w"> </span>inference:<span class="w"> </span><span class="m">11</span>.61<span class="w"> </span>sec<span class="w"> </span>total,<span class="w"> </span><span class="m">25</span>.83<span class="w"> </span>tokens/sec
+<span class="o">[</span>generate.py:99<span class="o">]</span><span class="w"> </span>Memory<span class="w"> </span>used:<span class="w"> </span><span class="m">15</span>.72<span class="w"> </span>GB
+</pre></div>
+</div>
+<p>Indeed, the bridge is pretty cool! Seems like our LLM knows a little something about the
+Bay Area!</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</section>
+<section id="speeding-up-generation-using-quantization">
+<h2>Speeding up Generation using Quantization<a class="headerlink" href="#speeding-up-generation-using-quantization" title="Permalink to this heading">¶</a></h2>
+<p>We rely on <a class="reference external" href="https://github.com/pytorch-labs/ao">torchao</a> for <a class="reference external" href="https://github.com/pytorch/ao/tree/main/torchao/quantization#quantization">post-training quantization</a>.
+To quantize the fine-tuned model after installing torchao we can run the following command:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># we also support `int8_weight_only()` and `int8_dynamic_activation_int8_weight()`, see</span>
+<span class="c1"># https://github.com/pytorch/ao/tree/main/torchao/quantization#other-available-quantization-techniques</span>
+<span class="c1"># for a full list of techniques that we support</span>
+<span class="kn">from</span> <span class="nn">torchao.quantization.quant_api</span> <span class="kn">import</span> <span class="n">quantize_</span><span class="p">,</span> <span class="n">int4_weight_only</span>
+<span class="n">quantize_</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">int4_weight_only</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>After quantization, we rely on torch.compile for speedups. For more details, please see <a class="reference external" href="https://github.com/pytorch/ao/blob/main/torchao/quantization/README.md#quantization-flow-example">this example usage</a>.</p>
+<p>torchao also provides <a class="reference external" href="https://github.com/pytorch/ao#inference">this table</a> listing performance and accuracy results for <code class="docutils literal notranslate"><span class="pre">llama2</span></code> and <code class="docutils literal notranslate"><span class="pre">llama3</span></code>.</p>
+<p>For Llama models, you can run generation directly in torchao on the quantized model using their <code class="docutils literal notranslate"><span class="pre">generate.py</span></code> script as
+discussed in <a class="reference external" href="https://github.com/pytorch/ao/tree/main/torchao/_models/llama">this readme</a>. This way you can compare your own results
+to those in the previously-linked table.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</section>
+<section id="using-torchtune-checkpoints-with-other-libraries">
+<h2>Using torchtune checkpoints with other libraries<a class="headerlink" href="#using-torchtune-checkpoints-with-other-libraries" title="Permalink to this heading">¶</a></h2>
+<p>As we mentioned above, one of the benefits of handling of the checkpoint
+conversion is that you can directly work with standard formats. This helps
+with interoperability with other libraries since torchtune doesn’t add yet
+another format to the mix.</p>
+<p>Let’s take a look at an example of how this would work with a popular codebase
+used for running performant inference with LLMs -
+<a class="reference external" href="https://github.com/pytorch-labs/gpt-fast/tree/main">gpt-fast</a>. This section
+assumes that you’ve cloned that repository on your machine.</p>
+<p><code class="docutils literal notranslate"><span class="pre">gpt-fast</span></code> makes some assumptions about the checkpoint and the availability of
+the key-to-file mapping i.e. a file mapping parameter names to the files containing them.
+Let’s satisfy these assumptions, by creating this mapping
+file. Let’s assume we’ll be using <code class="docutils literal notranslate"><span class="pre">&lt;new_dir&gt;/Llama-2-7B-hf</span></code> as the directory
+for this. <code class="docutils literal notranslate"><span class="pre">gpt-fast</span></code> assumes that the directory with checkpoints has the
+same format at the HF repo-id.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="c1"># create the output dictionary</span>
+<span class="n">output_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;weight_map&quot;</span><span class="p">:</span> <span class="p">{}}</span>
+
+<span class="c1"># Load the checkpoints</span>
+<span class="n">sd_1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;&lt;checkpoint_dir&gt;/hf_model_0001_0.pt&#39;</span><span class="p">,</span> <span class="n">mmap</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">)</span>
+<span class="n">sd_2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;&lt;checkpoint_dir&gt;/hf_model_0002_0.pt&#39;</span><span class="p">,</span> <span class="n">mmap</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">)</span>
+
+<span class="c1"># create the weight map</span>
+<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">sd_1</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+    <span class="n">output_dict</span><span class="p">[</span><span class="s1">&#39;weight_map&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span>  <span class="s2">&quot;hf_model_0001_0.pt&quot;</span>
+<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">sd_2</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+    <span class="n">output_dict</span><span class="p">[</span><span class="s1">&#39;weight_map&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span>  <span class="s2">&quot;hf_model_0002_0.pt&quot;</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;&lt;new_dir&gt;/Llama-2-7B-hf/pytorch_model.bin.index.json&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">output_dict</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now that we’ve created the weight_map, let’s copy over our checkpoints.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cp<span class="w">  </span>&lt;checkpoint_dir&gt;/hf_model_0001_0.pt<span class="w">  </span>&lt;new_dir&gt;/Llama-2-7B-hf/
+cp<span class="w">  </span>&lt;checkpoint_dir&gt;/hf_model_0002_0.pt<span class="w">  </span>&lt;new_dir&gt;/Llama-2-7B-hf/
+cp<span class="w">  </span>&lt;checkpoint_dir&gt;/tokenizer.model<span class="w">     </span>&lt;new_dir&gt;/Llama-2-7B-hf/
+</pre></div>
+</div>
+<p>Once the directory structure is setup, let’s convert the checkpoints and run inference!</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>gpt-fast/
+
+<span class="c1"># convert the checkpoints into a format readable by gpt-fast</span>
+python<span class="w"> </span>scripts/convert_hf_checkpoint.py<span class="w"> </span><span class="se">\</span>
+--checkpoint_dir<span class="w"> </span>&lt;new_dir&gt;/Llama-2-7B-hf/<span class="w"> </span><span class="se">\</span>
+--model<span class="w"> </span>7B
+
+<span class="c1"># run inference using the converted model</span>
+python<span class="w"> </span>generate.py<span class="w"> </span><span class="se">\</span>
+--compile<span class="w"> </span><span class="se">\</span>
+--checkpoint_path<span class="w"> </span>&lt;new_dir&gt;/Llama-2-7B-hf/model.pth<span class="w"> </span><span class="se">\</span>
+--device<span class="w"> </span>cuda
+</pre></div>
+</div>
+<p>The output should look something like this:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>Hello,<span class="w"> </span>my<span class="w"> </span>name<span class="w"> </span>is<span class="w"> </span>Justin.<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span>a<span class="w"> </span>middle<span class="w"> </span>school<span class="w"> </span>math<span class="w"> </span>teacher
+at<span class="w"> </span>WS<span class="w"> </span>Middle<span class="w"> </span>School<span class="w"> </span>...
+
+Time<span class="w"> </span><span class="k">for</span><span class="w"> </span>inference<span class="w"> </span><span class="m">5</span>:<span class="w"> </span><span class="m">1</span>.94<span class="w"> </span>sec<span class="w"> </span>total,<span class="w"> </span><span class="m">103</span>.28<span class="w"> </span>tokens/sec
+Bandwidth<span class="w"> </span>achieved:<span class="w"> </span><span class="m">1391</span>.84<span class="w"> </span>GB/sec
+</pre></div>
+</div>
+<p>And thats it! Try your own prompt!</p>
+</section>
+<section id="uploading-your-model-to-the-hugging-face-hub">
+<h2>Uploading your model to the Hugging Face Hub<a class="headerlink" href="#uploading-your-model-to-the-hugging-face-hub" title="Permalink to this heading">¶</a></h2>
+<p>Your new model is working great and you want to share it with the world. The easiest way to do this
+is utilizing the <a class="reference external" href="https://huggingface.co/docs/huggingface_hub/en/guides/cli">huggingface-cli</a> command, which works seamlessly with torchtune. Simply point the CLI
+to your finetuned model directory like so:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>huggingface-cli<span class="w"> </span>upload<span class="w"> </span>&lt;hf-repo-id&gt;<span class="w"> </span>&lt;checkpoint-dir&gt;
+</pre></div>
+</div>
+<p>The command should output a link to your repository on the Hub. If the repository doesn’t exist yet, it will
+be created automatically:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>https://huggingface.co/&lt;hf-repo-id&gt;/tree/main/.
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Before uploading, make sure you are <a class="reference external" href="https://huggingface.co/docs/huggingface_hub/quick-start#authentication">authenticated with Hugging Face</a> by running <code class="docutils literal notranslate"><span class="pre">huggingface-cli</span> <span class="pre">login</span></code>.</p>
+</div>
+<p>For more details on the <code class="docutils literal notranslate"><span class="pre">huggingface-cli</span> <span class="pre">upload</span></code> feature check out the <a class="reference external" href="https://huggingface.co/docs/huggingface_hub/en/guides/cli#huggingface-cli-upload">Hugging Face docs</a>.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>Hopefully this tutorial gave you some insights into how you can use torchtune for
+your own workflows. Happy Tuning!</p>
+</section>
+</section>
+
+
+             </article>
+             
+            </div>
+            <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="datasets.html" class="btn btn-neutral float-right" title="Configuring Datasets for Fine-Tuning" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+      
+      
+        <a href="qat_finetune.html" class="btn btn-neutral" title="Finetuning Llama3 with QAT" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+      
+    </div>
+  
+
+  
+
+    <hr>
+
+  
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2023-present, torchtune Contributors.
+
+    </p>
+  </div>
+    
+      <div>
+        Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+      </div>
+     
+
+</footer>
+
+          </div>
+        </div>
+
+        <div class="pytorch-content-right" id="pytorch-content-right">
+          <div class="pytorch-right-menu" id="pytorch-right-menu">
+            <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
+              <ul>
+<li><a class="reference internal" href="#">End-to-End Workflow with torchtune</a><ul>
+<li><a class="reference internal" href="#overview">Overview</a></li>
+<li><a class="reference internal" href="#download-llama2-7b">Download Llama2 7B</a></li>
+<li><a class="reference internal" href="#finetune-the-model-using-lora">Finetune the model using LoRA</a></li>
+<li><a class="reference internal" href="#run-evaluation-using-eleutherai-s-eval-harness">Run Evaluation using EleutherAI’s Eval Harness</a></li>
+<li><a class="reference internal" href="#generation">Generation</a></li>
+<li><a class="reference internal" href="#speeding-up-generation-using-quantization">Speeding up Generation using Quantization</a></li>
+<li><a class="reference internal" href="#using-torchtune-checkpoints-with-other-libraries">Using torchtune checkpoints with other libraries</a></li>
+<li><a class="reference internal" href="#uploading-your-model-to-the-hugging-face-hub">Uploading your model to the Hugging Face Hub</a></li>
+</ul>
+</li>
+</ul>
+
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  
+
+
+  
+
+     
+       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+         <script src="../_static/jquery.js"></script>
+         <script src="../_static/underscore.js"></script>
+         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../_static/doctools.js"></script>
+         <script src="../_static/clipboard.min.js"></script>
+         <script src="../_static/copybutton.js"></script>
+         <script src="../_static/design-tabs.js"></script>
+     
+
+  
+
+  <script type="text/javascript" src="../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+<!-- Disabling "auto-collapsing" of sections on the left side bar. Replace script with commented out sections to reenable. -->
+<!--  
+<script script type="text/javascript">
+    var collapsedSections = ['Introduction', 'Getting Started', 'Tutorials']
+</script> -->
+
+<script script type="text/javascript">
+    var collapsedSections = []
+</script>
+
+
+  <!-- Begin Footer -->
+
+  <div class="container-fluid docs-tutorials-resources" id="docs-tutorials-resources">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-4 text-center">
+          <h2>Docs</h2>
+          <p>Access comprehensive developer documentation for PyTorch</p>
+          <a class="with-right-arrow" href="https://pytorch.org/docs/stable/index.html">View Docs</a>
+        </div>
+
+        <div class="col-md-4 text-center">
+          <h2>Tutorials</h2>
+          <p>Get in-depth tutorials for beginners and advanced developers</p>
+          <a class="with-right-arrow" href="https://pytorch.org/tutorials">View Tutorials</a>
+        </div>
+
+        <div class="col-md-4 text-center">
+          <h2>Resources</h2>
+          <p>Find development resources and get your questions answered</p>
+          <a class="with-right-arrow" href="https://pytorch.org/resources">View Resources</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-logo-wrapper">
+        <a href="https://pytorch.org/" class="footer-logo"></a>
+      </div>
+
+      <div class="footer-links-wrapper">
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch.org/">PyTorch</a></li>
+            <li><a href="https://pytorch.org/get-started">Get Started</a></li>
+            <li><a href="https://pytorch.org/features">Features</a></li>
+            <li><a href="https://pytorch.org/ecosystem">Ecosystem</a></li>
+            <li><a href="https://pytorch.org/blog/">Blog</a></li>
+            <li><a href="https://github.com/pytorch/pytorch/blob/master/CONTRIBUTING.md">Contributing</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch.org/resources">Resources</a></li>
+            <li><a href="https://pytorch.org/tutorials">Tutorials</a></li>
+            <li><a href="https://pytorch.org/docs/stable/index.html">Docs</a></li>
+            <li><a href="https://discuss.pytorch.org" target="_blank">Discuss</a></li>
+            <li><a href="https://github.com/pytorch/pytorch/issues" target="_blank">Github Issues</a></li>
+            <li><a href="https://pytorch.org/assets/brand-guidelines/PyTorch-Brand-Guidelines.pdf" target="_blank">Brand Guidelines</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title">Stay up to date</li>
+            <li><a href="https://www.facebook.com/pytorch" target="_blank">Facebook</a></li>
+            <li><a href="https://twitter.com/pytorch" target="_blank">Twitter</a></li>
+            <li><a href="https://www.youtube.com/pytorch" target="_blank">YouTube</a></li>
+            <li><a href="https://www.linkedin.com/company/pytorch" target="_blank">LinkedIn</a></li>
+          </ul>  
+          </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title">PyTorch Podcasts</li>
+            <li><a href="https://open.spotify.com/show/6UzHKeiy368jKfQMKKvJY5" target="_blank">Spotify</a></li>
+            <li><a href="https://podcasts.apple.com/us/podcast/pytorch-developer-podcast/id1566080008" target="_blank">Apple</a></li>
+            <li><a href="https://www.google.com/podcasts?feed=aHR0cHM6Ly9mZWVkcy5zaW1wbGVjYXN0LmNvbS9PQjVGa0lsOA%3D%3D" target="_blank">Google</a></li>
+            <li><a href="https://music.amazon.com/podcasts/7a4e6f0e-26c2-49e9-a478-41bd244197d0/PyTorch-Developer-Podcast?" target="_blank">Amazon</a></li>
+          </ul>
+         </div>
+        </div>
+        
+        <div class="privacy-policy">
+          <ul>
+            <li class="privacy-policy-links"><a href="https://www.linuxfoundation.org/terms/" target="_blank">Terms</a></li>
+            <li class="privacy-policy-links">|</li>
+            <li class="privacy-policy-links"><a href="https://www.linuxfoundation.org/privacy-policy/" target="_blank">Privacy</a></li>
+          </ul>
+        </div>
+        <div class="copyright">
+        <p>© Copyright The Linux Foundation. The PyTorch Foundation is a project of The Linux Foundation.
+          For web site terms of use, trademark policy and other policies applicable to The PyTorch Foundation please see
+          <a href="https://www.linuxfoundation.org/policies/">www.linuxfoundation.org/policies/</a>. The PyTorch Foundation supports the PyTorch open source
+          project, which has been established as PyTorch Project a Series of LF Projects, LLC. For policies applicable to the PyTorch Project a Series of LF Projects, LLC,
+          please see <a href="https://www.lfprojects.org/policies/">www.lfprojects.org/policies/</a>.</p>
+      </div>
+     </div>
+
+  </footer>
+
+  <div class="cookie-banner-wrapper">
+  <div class="container">
+    <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
+    <img class="close-button" src="../_static/images/pytorch-x.svg">
+  </div>
+</div>
+
+  <!-- End Footer -->
+
+  <!-- Begin Mobile Menu -->
+
+  <div class="mobile-main-menu">
+    <div class="container-fluid">
+      <div class="container">
+        <div class="mobile-main-menu-header-container">
+          <a class="header-logo" href="https://pytorch.org/" aria-label="PyTorch"></a>
+          <a class="main-menu-close-button" href="#" data-behavior="close-mobile-menu"></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-main-menu-links-container">
+      <div class="main-menu">
+        <ul>
+           <li class="resources-mobile-menu-title">
+             <a>Learn</a>
+           </li>
+           <ul class="resources-mobile-menu-items">
+             <li>
+               <a href="https://pytorch.org/get-started">Get Started</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials">Tutorials</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials/beginner/basics/intro.html">Learn the Basics</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials/recipes/recipes_index.html">PyTorch Recipes</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials/beginner/introyt.html">Introduction to PyTorch - YouTube Series</a>
+             </li>
+           </ul>
+           <li class="resources-mobile-menu-title">
+             <a>Ecosystem</a>
+           </li>
+           <ul class="resources-mobile-menu-items">
+             <li>
+               <a href="https://pytorch.org/ecosystem">Tools</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/#community-module">Community</a>
+             </li>
+             <li>
+               <a href="https://discuss.pytorch.org/">Forums</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/resources">Developer Resources</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/ecosystem/contributor-awards-2023">Contributor Awards - 2023</a>
+             </li>
+           </ul>
+
+           <li class="resources-mobile-menu-title">
+             <a>Edge</a>
+           </li>
+
+           <ul class="resources-mobile-menu-items">
+             <li>
+               <a href="https://pytorch.org/edge">About PyTorch Edge</a>
+             </li>
+             
+             <li>
+               <a href="https://pytorch.org/executorch-overview">ExecuTorch</a>
+             </li>
+           </ul>
+
+           <li class="resources-mobile-menu-title">
+             <a>Docs</a>
+           </li>
+
+           <ul class="resources-mobile-menu-items">
+            <li>
+              <a href="https://pytorch.org/docs/stable/index.html">PyTorch</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/pytorch-domains">PyTorch Domains</a>
+            </li>
+          </ul>
+
+          <li class="resources-mobile-menu-title">
+            <a>Blog & News</a>
+          </li>
+            
+           <ul class="resources-mobile-menu-items">
+            <li>
+              <a href="https://pytorch.org/blog/">PyTorch Blog</a>
+            </li>
+            <li>
+              <a href="https://pytorch.org/community-blog">Community Blog</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/videos">Videos</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/community-stories">Community Stories</a>
+            </li>
+            <li>
+              <a href="https://pytorch.org/events">Events</a>
+            </li>
+          </ul>
+          
+          <li class="resources-mobile-menu-title">
+            <a>About</a>
+          </li>
+
+          <ul class="resources-mobile-menu-items">
+            <li>
+              <a href="https://pytorch.org/foundation">PyTorch Foundation</a>
+            </li>
+            <li>
+              <a href="https://pytorch.org/governing-board">Governing Board</a>
+            </li>
+          </ul>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- End Mobile Menu -->
+
+  <script type="text/javascript" src="../_static/js/vendor/anchor.min.js"></script>
+
+  <script type="text/javascript">
+    $(document).ready(function() {
+      mobileMenu.bind();
+      mobileTOC.bind();
+      pytorchAnchors.bind();
+      sideMenus.bind();
+      scrollToAnchor.bind();
+      highlightNavigation.bind();
+      mainMenuDropdown.bind();
+      filterTags.bind();
+
+      // Add class to links that have code blocks, since we cannot create links in code blocks
+      $("article.pytorch-article a span.pre").each(function(e) {
+        $(this).closest("a").addClass("has-code");
+      });
+    })
+  </script>
+</body>
+</html>

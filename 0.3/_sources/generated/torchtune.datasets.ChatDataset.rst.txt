@@ -1,0 +1,6 @@
+﻿torchtune.datasets.ChatDataset
+==============================
+
+.. currentmodule:: torchtune.datasets
+
+.. autodata:: ChatDataset

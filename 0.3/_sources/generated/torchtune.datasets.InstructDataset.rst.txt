@@ -1,0 +1,6 @@
+﻿torchtune.datasets.InstructDataset
+==================================
+
+.. currentmodule:: torchtune.datasets
+
+.. autodata:: InstructDataset

@@ -1,0 +1,1293 @@
+
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Configuring Datasets for Fine-Tuning &mdash; torchtune 0.3 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Fine-tuning Llama3 with Chat Data" href="chat.html" />
+    <link rel="prev" title="End-to-End Workflow with torchtune" href="e2e_flow.html" />
+  <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-T8XT4PS');</script>
+    <!-- End Google Tag Manager -->
+  
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+  <!-- Preload the theme fonts -->
+
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+<!-- Preload the katex fonts -->
+
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Main-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size1-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size4-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size2-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size3-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Caligraphic-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.2/css/all.css" integrity="sha384-vSIIfh2YWi9wW0r9iZe7RJPrKwp6bG+s9QZMoITbCckVJqGCCRhc+ccxNcdpHuYu" crossorigin="anonymous">
+</head>
+
+<div class="container-fluid header-holder tutorials-header" id="header-holder">
+  <div class="container">
+    <div class="header-container">
+      <a class="header-logo" href="https://pytorch.org/" aria-label="PyTorch"></a>
+
+      <div class="main-menu">
+        <ul>
+
+          <li class="main-menu-item">
+          <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Learn
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/get-started">
+                  <span class=dropdown-title>Get Started</span>
+                  <p>Run PyTorch locally or get started quickly with one of the supported cloud platforms</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials">
+                  <span class="dropdown-title">Tutorials</span>
+                  <p>Whats new in PyTorch tutorials</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials/beginner/basics/intro.html">
+                  <span class="dropdown-title">Learn the Basics</span>
+                  <p>Familiarize yourself with PyTorch concepts and modules</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials/recipes/recipes_index.html">
+                  <span class="dropdown-title">PyTorch Recipes</span>
+                  <p>Bite-size, ready-to-deploy PyTorch code examples</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials/beginner/introyt.html">
+                  <span class="dropdown-title">Intro to PyTorch - YouTube Series</span>
+                  <p>Master PyTorch basics with our engaging YouTube tutorial series</p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li>
+          <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Ecosystem
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/ecosystem">
+                  <span class="dropdown-title">Tools</span>
+                  <p>Learn about the tools and frameworks in the PyTorch Ecosystem</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/#community-module">
+                  <span class=dropdown-title>Community</span>
+                  <p>Join the PyTorch developer community to contribute, learn, and get your questions answered</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://discuss.pytorch.org/" target="_blank">
+                  <span class=dropdown-title>Forums</span>
+                  <p>A place to discuss PyTorch code, issues, install, research</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/resources">
+                  <span class=dropdown-title>Developer Resources</span>
+                  <p>Find resources and get questions answered</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/ecosystem/contributor-awards-2023">
+                  <span class="dropdown-title">Contributor Awards - 2023</span>
+                  <p>Award winners announced at this year's PyTorch Conference</p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li>
+          <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Edge
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/edge">
+                  <span class="dropdown-title">About PyTorch Edge</span>
+                  <p>Build innovative and privacy-aware AI experiences for edge devices</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/executorch-overview">
+                  <span class="dropdown-title">ExecuTorch</span>
+                  <p>End-to-end solution for enabling on-device inference capabilities across mobile and edge devices</p>
+                </a>
+              </div>
+            </div>  
+          </li>
+
+          <li class="main-menu-item">
+            <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Docs
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/docs/stable/index.html">
+                  <span class="dropdown-title">PyTorch</span>
+                  <p>Explore the documentation for comprehensive guidance on how to use PyTorch</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/pytorch-domains">
+                  <span class="dropdown-title">PyTorch Domains</span>
+                  <p>Read the PyTorch Domains documentation to learn more about domain-specific libraries</p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li>
+            <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Blogs & News 
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/blog/">
+                  <span class="dropdown-title">PyTorch Blog</span>
+                  <p>Catch up on the latest technical news and happenings</p>
+                </a>
+                 <a class="nav-dropdown-item" href="https://pytorch.org/community-blog">
+                  <span class="dropdown-title">Community Blog</span>
+                  <p>Stories from the PyTorch ecosystem</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/videos">
+                  <span class="dropdown-title">Videos</span>
+                  <p>Learn about the latest PyTorch tutorials, new, and more </p>
+                <a class="nav-dropdown-item" href="https://pytorch.org/community-stories">
+                  <span class="dropdown-title">Community Stories</span>
+                  <p>Learn how our community solves real, everyday machine learning problems with PyTorch</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/events">
+                  <span class="dropdown-title">Events</span>
+                  <p>Find events, webinars, and podcasts</p>
+                </a>
+            </div>
+          </li>
+
+          <li>
+            <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                About
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/foundation">
+                  <span class="dropdown-title">PyTorch Foundation</span>
+                  <p>Learn more about the PyTorch Foundation</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/governing-board">
+                  <span class="dropdown-title">Governing Board</span>
+                  <p></p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li class="main-menu-item">
+            <div class="no-dropdown">
+              <a href="https://pytorch.org/join" data-cta="join">
+                Become a Member
+              </a>
+            </div>
+          </li>
+          <li>
+           <div class="main-menu-item">
+             <a href="https://github.com/pytorch/pytorch" class="github-icon">
+             </a>
+           </div>
+          </li>
+          <!--- TODO: This block adds the search icon to the nav bar. We will enable it later. 
+          <li>
+            <div class="main-menu-item">
+             <a href="https://github.com/pytorch/pytorch" class="search-icon">
+             </a>
+            </div>
+          </li>
+          --->
+        </ul>
+      </div>
+
+      <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a>
+    </div>
+  </div>
+</div>
+
+<body class="pytorch-body">
+
+   
+
+    
+
+    <div class="table-of-contents-link-wrapper">
+      <span>Table of Contents</span>
+      <a href="#" class="toggle-table-of-contents" data-behavior="toggle-table-of-contents"></a>
+    </div>
+
+    <nav data-toggle="wy-nav-shift" class="pytorch-left-menu" id="pytorch-left-menu">
+      <div class="pytorch-side-scroll">
+        <div class="pytorch-menu pytorch-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          <div class="pytorch-left-menu-search">
+            
+    <div class="version">
+        <a href='https://pytorch.org/torchtune/versions.html'>0.3 &#x25BC</a>
+      </div>
+    
+
+
+  
+
+
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search Docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          </div>
+
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tune_cli.html">torchtune CLI</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Finetuning Recipes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/recipes_overview.html">Recipes Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="llama3.html">Meta Llama3 in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qat_finetune.html">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Configuring Datasets for Fine-Tuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chat.html">Fine-tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="memory_optimizations.html">Memory Optimization Overview</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/comet_logging.html">Logging to Comet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All About Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_generation.html">torchtune.generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <div class="pytorch-container">
+      <div class="pytorch-page-level-bar" id="pytorch-page-level-bar">
+        <div class="pytorch-breadcrumbs-wrapper">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="pytorch-breadcrumbs">
+    
+      <li>
+        <a href="../index.html">
+          
+            Docs
+          
+        </a> &gt;
+      </li>
+
+        
+      <li>Configuring Datasets for Fine-Tuning</li>
+    
+    
+      <li class="pytorch-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/tutorials/datasets.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+</div>
+        </div>
+
+        <div class="pytorch-shortcuts-wrapper" id="pytorch-shortcuts-wrapper">
+          Shortcuts
+        </div>
+      </div>
+
+      <section data-toggle="wy-nav-shift" id="pytorch-content-wrap" class="pytorch-content-wrap">
+        <div class="pytorch-content-left">
+
+        
+          <!-- Google Tag Manager (noscript) -->
+          <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T8XT4PS"
+          height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+          <!-- End Google Tag Manager (noscript) -->
+          
+          <div class="rst-content">
+          
+            <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
+             <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
+              
+  <section id="configuring-datasets-for-fine-tuning">
+<span id="dataset-tutorial-label"></span><h1>Configuring Datasets for Fine-Tuning<a class="headerlink" href="#configuring-datasets-for-fine-tuning" title="Permalink to this heading">¶</a></h1>
+<p>This tutorial will guide you through how to set up a dataset to fine-tune on.</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
+<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 docutils">
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+<svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-mortar-board" viewBox="0 0 16 16" aria-hidden="true"><path d="M7.693 1.066a.747.747 0 0 1 .614 0l7.25 3.25a.75.75 0 0 1 0 1.368L13 6.831v2.794c0 1.024-.81 1.749-1.66 2.173-.893.447-2.075.702-3.34.702-.278 0-.55-.012-.816-.036a.75.75 0 0 1 .133-1.494c.22.02.45.03.683.03 1.082 0 2.025-.221 2.67-.543.69-.345.83-.682.83-.832V7.503L8.307 8.934a.747.747 0 0 1-.614 0L4 7.28v1.663c.296.105.575.275.812.512.438.438.688 1.059.688 1.796v3a.75.75 0 0 1-.75.75h-3a.75.75 0 0 1-.75-.75v-3c0-.737.25-1.358.688-1.796.237-.237.516-.407.812-.512V6.606L.443 5.684a.75.75 0 0 1 0-1.368ZM2.583 5 8 7.428 13.416 5 8 2.572ZM2.5 11.25v2.25H4v-2.25c0-.388-.125-.611-.25-.735a.697.697 0 0 0-.5-.203.707.707 0 0 0-.5.203c-.125.124-.25.347-.25.735Z"></path></svg> What you will learn</div>
+<ul class="simple">
+<li><p class="sd-card-text">How to quickly get started with built-in datasets</p></li>
+<li><p class="sd-card-text">How to use any dataset from Hugging Face Hub</p></li>
+<li><p class="sd-card-text">How to use instruct, chat, or text completion datasets</p></li>
+<li><p class="sd-card-text">How to configure datasets from code, config, or command-line</p></li>
+<li><p class="sd-card-text">How to fully customize your own dataset</p></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+<svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-list-unordered" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.75 2.5h8.5a.75.75 0 0 1 0 1.5h-8.5a.75.75 0 0 1 0-1.5Zm0 5h8.5a.75.75 0 0 1 0 1.5h-8.5a.75.75 0 0 1 0-1.5Zm0 5h8.5a.75.75 0 0 1 0 1.5h-8.5a.75.75 0 0 1 0-1.5ZM2 14a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm1-6a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM2 4a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg> Prerequisites</div>
+<ul class="simple">
+<li><p class="sd-card-text">Know how to <a class="reference internal" href="../deep_dives/configs.html#config-tutorial-label"><span class="std std-ref">configure components from the config</span></a></p></li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<p>Datasets are a core component of fine-tuning workflows that serve as a “steering
+wheel” to guide LLM generation for a particular use case. Many publicly shared
+open-source datasets have become popular for fine-tuning LLMs and serve as a great
+starting point to train your model. torchtune gives you the tools to download external
+community datasets, load in custom local datasets, or create your own datasets.</p>
+<section id="built-in-datasets">
+<h2>Built-in datasets<a class="headerlink" href="#built-in-datasets" title="Permalink to this heading">¶</a></h2>
+<p>To use one of the built-in datasets in the library, simply import and call the dataset builder
+function. You can see a list of all supported datasets <a class="reference internal" href="../api_ref_datasets.html#datasets"><span class="std std-ref">here</span></a>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">alpaca_dataset</span>
+
+<span class="c1"># Load in tokenizer</span>
+<span class="n">tokenizer</span> <span class="o">=</span> <span class="o">...</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">alpaca_dataset</span><span class="p">(</span><span class="n">tokenizer</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># YAML config</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.alpaca_dataset</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Command line</span>
+tune<span class="w"> </span>run<span class="w"> </span>full_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_full_single_device<span class="w"> </span><span class="se">\</span>
+<span class="nv">dataset</span><span class="o">=</span>torchtune.datasets.alpaca_dataset
+</pre></div>
+</div>
+</section>
+<section id="hugging-face-datasets">
+<h2>Hugging Face datasets<a class="headerlink" href="#hugging-face-datasets" title="Permalink to this heading">¶</a></h2>
+<p>We provide first class support for datasets on the Hugging Face hub. Under the hood,
+all of our built-in datasets and dataset builders are using Hugging Face’s <a class="reference external" href="https://huggingface.co/docs/datasets/v2.20.0/en/package_reference/loading_methods#datasets.load_dataset">load_dataset()</a>
+to load in your data, whether local or on the hub.</p>
+<p>You can pass in a Hugging Face dataset path to the <code class="docutils literal notranslate"><span class="pre">source</span></code> parameter in any of our builders
+to specify which dataset on the hub to download or use from a local directory path (see <a class="reference internal" href="#local-and-remote-datasets">Local and remote datasets</a>). Additionally, all builders accept
+any keyword-arguments that <code class="docutils literal notranslate"><span class="pre">load_dataset()</span></code> supports. You can see a full list
+on Hugging Face’s <a class="reference external" href="https://huggingface.co/docs/datasets/en/loading">documentation.</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">text_completion_dataset</span>
+
+<span class="c1"># Load in tokenizer</span>
+<span class="n">tokenizer</span> <span class="o">=</span> <span class="o">...</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">text_completion_dataset</span><span class="p">(</span>
+    <span class="n">tokenizer</span><span class="p">,</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">&quot;allenai/c4&quot;</span><span class="p">,</span>
+    <span class="c1"># Keyword-arguments that are passed into load_dataset</span>
+    <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+    <span class="n">data_dir</span><span class="o">=</span><span class="s2">&quot;realnewslike&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># YAML config</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.text_completion_dataset</span>
+<span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">allenai/c4</span>
+<span class="w">  </span><span class="nt">split</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">train</span>
+<span class="w">  </span><span class="nt">data_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">realnewslike</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Command line</span>
+tune<span class="w"> </span>run<span class="w"> </span>full_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_full_single_device<span class="w"> </span><span class="se">\</span>
+<span class="nv">dataset</span><span class="o">=</span>torchtune.datasets.text_completion_dataset<span class="w"> </span>dataset.source<span class="o">=</span>allenai/c4<span class="w"> </span><span class="se">\</span>
+dataset.split<span class="o">=</span>train<span class="w"> </span>dataset.data_dir<span class="o">=</span>realnewslike
+</pre></div>
+</div>
+</section>
+<section id="setting-max-sequence-length">
+<h2>Setting max sequence length<a class="headerlink" href="#setting-max-sequence-length" title="Permalink to this heading">¶</a></h2>
+<p>The default collator, <a class="reference internal" href="../generated/torchtune.data.padded_collate.html#torchtune.data.padded_collate" title="torchtune.data.padded_collate"><code class="xref py py-func docutils literal notranslate"><span class="pre">padded_collate()</span></code></a>, used in all
+our training recipes will pad samples to the max sequence length within the batch,
+not globally. If you wish to set an upper limit on the max sequence length globally,
+you can specify it in the dataset builder with <code class="docutils literal notranslate"><span class="pre">max_seq_len</span></code>. Any sample in the dataset
+that is longer than <code class="docutils literal notranslate"><span class="pre">max_seq_len</span></code> will be truncated in <a class="reference internal" href="../generated/torchtune.data.truncate.html#torchtune.data.truncate" title="torchtune.data.truncate"><code class="xref py py-func docutils literal notranslate"><span class="pre">truncate()</span></code></a>.
+The tokenizer’s EOS ids are ensured to be the last token, except in <a class="reference internal" href="../generated/torchtune.datasets.TextCompletionDataset.html#torchtune.datasets.TextCompletionDataset" title="torchtune.datasets.TextCompletionDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextCompletionDataset</span></code></a>.</p>
+<p>Generally, you want the max sequence length returned in each data sample to match the context window
+size of your model. You can also decrease this value to reduce memory usage
+depending on your hardware constraints.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">alpaca_dataset</span>
+
+<span class="c1"># Load in tokenizer</span>
+<span class="n">tokenizer</span> <span class="o">=</span> <span class="o">...</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">alpaca_dataset</span><span class="p">(</span>
+    <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+    <span class="n">max_seq_len</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># YAML config</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.alpaca_dataset</span>
+<span class="w">  </span><span class="nt">max_seq_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4096</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Command line</span>
+tune<span class="w"> </span>run<span class="w"> </span>full_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_full_single_device<span class="w"> </span><span class="se">\</span>
+dataset.max_seq_len<span class="o">=</span><span class="m">4096</span>
+</pre></div>
+</div>
+</section>
+<section id="sample-packing">
+<h2>Sample packing<a class="headerlink" href="#sample-packing" title="Permalink to this heading">¶</a></h2>
+<p>You can use sample packing with any of the single dataset builders by passing in
+<code class="code docutils literal notranslate"><span class="pre">packed=True</span></code>. This requires some pre-processing of the dataset which may
+slow down time-to-first-batch, but can introduce significant training speedups
+depending on the dataset.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">alpaca_dataset</span><span class="p">,</span> <span class="n">PackedDataset</span>
+
+<span class="c1"># Load in tokenizer</span>
+<span class="n">tokenizer</span> <span class="o">=</span> <span class="o">...</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">alpaca_dataset</span><span class="p">(</span>
+    <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+    <span class="n">packed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">PackedDataset</span><span class="p">))</span>  <span class="c1"># True</span>
+</pre></div>
+</div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># YAML config</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.alpaca_dataset</span>
+<span class="w">  </span><span class="nt">packed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Command line</span>
+tune<span class="w"> </span>run<span class="w"> </span>full_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_full_single_device<span class="w"> </span><span class="se">\</span>
+dataset.packed<span class="o">=</span>True
+</pre></div>
+</div>
+</section>
+<section id="custom-unstructured-text-corpus">
+<h2>Custom unstructured text corpus<a class="headerlink" href="#custom-unstructured-text-corpus" title="Permalink to this heading">¶</a></h2>
+<p>For continued pre-training, typically a similar data setup to pre-training is used
+for a simple text completion task. This means no instruct templates, chat formats,
+and minimal special tokens (only BOS and, optionally,  EOS). To specify an unstructured text corpus,
+you can use the <a class="reference internal" href="../generated/torchtune.datasets.text_completion_dataset.html#torchtune.datasets.text_completion_dataset" title="torchtune.datasets.text_completion_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">text_completion_dataset()</span></code></a> builder with
+a Hugging Face dataset or a custom local corpus. Here is how to specify it for local
+files:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">text_completion_dataset</span>
+
+<span class="c1"># Load in tokenizer</span>
+<span class="n">tokenizer</span> <span class="o">=</span> <span class="o">...</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">text_completion_dataset</span><span class="p">(</span>
+    <span class="n">tokenizer</span><span class="p">,</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">&quot;text&quot;</span><span class="p">,</span>
+    <span class="n">data_files</span><span class="o">=</span><span class="s2">&quot;path/to/my_data.txt&quot;</span><span class="p">,</span>
+    <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># YAML config</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.text_completion_dataset</span>
+<span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text</span>
+<span class="w">  </span><span class="nt">data_files</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">path/to/my_data.txt</span>
+<span class="w">  </span><span class="nt">split</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">train</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Command line</span>
+tune<span class="w"> </span>run<span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">4</span><span class="w"> </span>full_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>llama3/8B_full<span class="w"> </span><span class="se">\</span>
+<span class="nv">dataset</span><span class="o">=</span>torchtune.datasets.text_completion_dataset<span class="w"> </span>dataset.source<span class="o">=</span>text<span class="w"> </span><span class="se">\</span>
+dataset.data_files<span class="o">=</span>path/to/my_data.txt<span class="w"> </span>dataset.split<span class="o">=</span>train
+</pre></div>
+</div>
+</section>
+<section id="custom-instruct-dataset-and-instruct-templates">
+<h2>Custom instruct dataset and instruct templates<a class="headerlink" href="#custom-instruct-dataset-and-instruct-templates" title="Permalink to this heading">¶</a></h2>
+<p>If you have a custom instruct dataset that’s not already provided in the library,
+you can use the <a class="reference internal" href="../generated/torchtune.datasets.instruct_dataset.html#torchtune.datasets.instruct_dataset" title="torchtune.datasets.instruct_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">instruct_dataset()</span></code></a> builder and specify
+the source path. Instruct datasets typically have multiple columns with text that
+are formatted into a prompt template.</p>
+<p>To fine-tune an LLM on a particular task, a common approach is to create a fixed instruct
+template that guides the model to generate output with a specific goal. Instruct templates
+are simply flavor text that structures your inputs for the model. It is model agnostic
+and is tokenized normally just like any other text, but it can help condition the model
+to respond better to an expected format. For example, the <code class="xref py py-class docutils literal notranslate"><span class="pre">AlpacaInstructTemplate</span></code>
+structures the data in the following way:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;Below is an instruction that describes a task, paired with an input that provides further context. &quot;</span>
+<span class="s2">&quot;Write a response that appropriately completes the request.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+<span class="s2">&quot;### Instruction:</span><span class="se">\n</span><span class="si">{instruction}</span><span class="se">\n\n</span><span class="s2">### Input:</span><span class="se">\n</span><span class="si">{input}</span><span class="se">\n\n</span><span class="s2">### Response:</span><span class="se">\n</span><span class="s2">&quot;</span>
+</pre></div>
+</div>
+<p>Here is an example of a sample that is formatted with <code class="xref py py-class docutils literal notranslate"><span class="pre">AlpacaInstructTemplate</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">AlpacaInstructTemplate</span>
+
+<span class="n">sample</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;instruction&quot;</span><span class="p">:</span> <span class="s2">&quot;Classify the following into animals, plants, and minerals&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="s2">&quot;Oak tree, copper ore, elephant&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">prompt</span> <span class="o">=</span> <span class="n">AlpacaInstructTemplate</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+<span class="c1"># Below is an instruction that describes a task, paired with an input that provides further context.</span>
+<span class="c1"># Write a response that appropriately completes the request.</span>
+<span class="c1">#</span>
+<span class="c1"># ### Instruction:</span>
+<span class="c1"># Classify the following into animals, plants, and minerals</span>
+<span class="c1">#</span>
+<span class="c1"># ### Input:</span>
+<span class="c1"># Oak tree, copper ore, elephant</span>
+<span class="c1">#</span>
+<span class="c1"># ### Response:</span>
+<span class="c1">#</span>
+</pre></div>
+</div>
+<p>We provide <a class="reference internal" href="../api_ref_data.html#data"><span class="std std-ref">other instruct templates</span></a>
+for common tasks such summarization and grammar correction. If you need to create your own
+instruct template for a custom task, you can inherit from <a class="reference internal" href="../generated/torchtune.data.InstructTemplate.html#torchtune.data.InstructTemplate" title="torchtune.data.InstructTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">InstructTemplate</span></code></a>
+and create your own class.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">instruct_dataset</span>
+<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">InstructTemplate</span>
+
+<span class="k">class</span> <span class="nc">CustomTemplate</span><span class="p">(</span><span class="n">InstructTemplate</span><span class="p">):</span>
+    <span class="c1"># Define the template as string with {} as placeholders for data columns</span>
+    <span class="n">template</span> <span class="o">=</span> <span class="o">...</span>
+
+    <span class="c1"># Implement this method</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">format</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="o">...</span>
+
+<span class="c1"># Load in tokenizer</span>
+<span class="n">tokenizer</span> <span class="o">=</span> <span class="o">...</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">instruct_dataset</span><span class="p">(</span>
+    <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">&quot;my/dataset/path&quot;</span><span class="p">,</span>
+    <span class="n">template</span><span class="o">=</span><span class="s2">&quot;import.path.to.CustomTemplate&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># YAML config</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.instruct_dataset</span>
+<span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my/dataset/path</span>
+<span class="w">  </span><span class="nt">template</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">import.path.to.CustomTemplate</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Command line</span>
+tune<span class="w"> </span>run<span class="w"> </span>full_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_full_single_device<span class="w"> </span><span class="se">\</span>
+<span class="nv">dataset</span><span class="o">=</span>torchtune.datasets.instruct_dataset<span class="w"> </span>dataset.source<span class="o">=</span>my/dataset/path<span class="w"> </span><span class="se">\</span>
+dataset.template<span class="o">=</span>import.path.to.CustomTemplate
+</pre></div>
+</div>
+<p>torchtune uses <code class="code docutils literal notranslate"><span class="pre">importlib.import_module</span></code> (see <code class="docutils literal notranslate"><span class="pre">importlib</span></code> <a class="reference external" href="https://docs.python.org/3/library/importlib.html">docs</a> for more details)
+to locate components from their dotpaths. You can place your custom template class
+in any Python file as long as the file is accessible by Python’s import mechanism.
+This means the module should be in a directory that is included in Python’s search
+paths (<code class="code docutils literal notranslate"><span class="pre">sys.path</span></code>). This often includes:</p>
+<ul class="simple">
+<li><p>The current directory from which your Python interpreter or script is run.</p></li>
+<li><p>Directories where Python packages are installed (like <code class="code docutils literal notranslate"><span class="pre">site-packages</span></code>).</p></li>
+<li><p>Any directories added to <code class="code docutils literal notranslate"><span class="pre">sys.path</span></code> at runtime using <code class="code docutils literal notranslate"><span class="pre">sys.path.append</span></code> or through the <code class="code docutils literal notranslate"><span class="pre">PYTHONPATH</span></code> environment variable.</p></li>
+</ul>
+</section>
+<section id="custom-chat-dataset-and-chat-formats">
+<h2>Custom chat dataset and chat formats<a class="headerlink" href="#custom-chat-dataset-and-chat-formats" title="Permalink to this heading">¶</a></h2>
+<p>If you have a custom chat/conversational dataset that’s not already provided in the library,
+you can use the <a class="reference internal" href="../generated/torchtune.datasets.chat_dataset.html#torchtune.datasets.chat_dataset" title="torchtune.datasets.chat_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">chat_dataset()</span></code></a> builder and specify
+the source path. Chat datasets typically have a single column with multiple back
+and forth messages between the user and assistant.</p>
+<p>Chat formats are similar to instruct templates, except that they format system,
+user, and assistant messages into a list of messages (see <a class="reference internal" href="../generated/torchtune.data.ChatFormat.html#torchtune.data.ChatFormat" title="torchtune.data.ChatFormat"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChatFormat</span></code></a>)
+for a conversational dataset. These can be configured quite similarly to instruct
+datasets.</p>
+<p>Here is how messages would be formatted using the <code class="xref py py-class docutils literal notranslate"><span class="pre">Llama2ChatFormat</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Llama2ChatFormat</span><span class="p">,</span> <span class="n">Message</span>
+
+<span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Message</span><span class="p">(</span>
+        <span class="n">role</span><span class="o">=</span><span class="s2">&quot;system&quot;</span><span class="p">,</span>
+        <span class="n">content</span><span class="o">=</span><span class="s2">&quot;You are a helpful, respectful, and honest assistant.&quot;</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">Message</span><span class="p">(</span>
+        <span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
+        <span class="n">content</span><span class="o">=</span><span class="s2">&quot;I am going to Paris, what should I see?&quot;</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">Message</span><span class="p">(</span>
+        <span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span>
+        <span class="n">content</span><span class="o">=</span><span class="s2">&quot;Paris, the capital of France, is known for its stunning architecture...&quot;</span>
+    <span class="p">),</span>
+<span class="p">]</span>
+<span class="n">formatted_messages</span> <span class="o">=</span> <span class="n">Llama2ChatFormat</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">formatted_messages</span><span class="p">)</span>
+<span class="c1"># [</span>
+<span class="c1">#     Message(</span>
+<span class="c1">#         role=&quot;user&quot;,</span>
+<span class="c1">#         content=&quot;[INST] &lt;&lt;SYS&gt;&gt;\nYou are a helpful, respectful and honest assistant.\n&lt;&lt;/SYS&gt;&gt;\n\n&quot;</span>
+<span class="c1">#         &quot;I am going to Paris, what should I see? [/INST] &quot;,</span>
+<span class="c1">#     ),</span>
+<span class="c1">#     Message(</span>
+<span class="c1">#         role=&quot;assistant&quot;,</span>
+<span class="c1">#         content=&quot;Paris, the capital of France, is known for its stunning architecture...&quot;</span>
+<span class="c1">#     ),</span>
+<span class="c1"># ]</span>
+</pre></div>
+</div>
+<p>Note that the system message is now incorporated in the user message. If you create custom ChatFormats
+you can also add more advanced behavior.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">chat_dataset</span>
+<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">ChatFormat</span>
+
+<span class="k">class</span> <span class="nc">CustomChatFormat</span><span class="p">(</span><span class="n">ChatFormat</span><span class="p">):</span>
+    <span class="c1"># Define templates for system, user, assistant messages</span>
+    <span class="c1"># as strings with {} as placeholders for message content</span>
+    <span class="n">system</span> <span class="o">=</span> <span class="o">...</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="o">...</span>
+    <span class="n">assistant</span> <span class="o">=</span> <span class="o">...</span>
+
+    <span class="c1"># Implement this method</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">format</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">sample</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
+        <span class="o">...</span>
+
+<span class="c1"># Load in tokenizer</span>
+<span class="n">tokenizer</span> <span class="o">=</span> <span class="o">...</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">chat_dataset</span><span class="p">(</span>
+    <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">&quot;my/dataset/path&quot;</span><span class="p">,</span>
+    <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+    <span class="n">conversation_style</span><span class="o">=</span><span class="s2">&quot;openai&quot;</span><span class="p">,</span>
+    <span class="n">chat_format</span><span class="o">=</span><span class="s2">&quot;import.path.to.CustomChatFormat&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># YAML config</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.chat_dataset</span>
+<span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my/dataset/path</span>
+<span class="w">  </span><span class="nt">conversation_style</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai</span>
+<span class="w">  </span><span class="nt">chat_format</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">import.path.to.CustomChatFormat</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Command line</span>
+tune<span class="w"> </span>run<span class="w"> </span>full_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_full_single_device<span class="w"> </span><span class="se">\</span>
+<span class="nv">dataset</span><span class="o">=</span>torchtune.datasets.chat_dataset<span class="w"> </span>dataset.source<span class="o">=</span>my/dataset/path<span class="w"> </span><span class="se">\</span>
+dataset.conversation_style<span class="o">=</span>openai<span class="w"> </span>dataset.chat_format<span class="o">=</span>import.path.to.CustomChatFormat
+</pre></div>
+</div>
+</section>
+<section id="multiple-in-memory-datasets">
+<h2>Multiple in-memory datasets<a class="headerlink" href="#multiple-in-memory-datasets" title="Permalink to this heading">¶</a></h2>
+<p>It is also possible to train on multiple datasets and configure them individually using
+our <a class="reference internal" href="../generated/torchtune.datasets.ConcatDataset.html#torchtune.datasets.ConcatDataset" title="torchtune.datasets.ConcatDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConcatDataset</span></code></a> interface. You can even mix instruct and chat datasets
+or other custom datasets.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># YAML config</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.instruct_dataset</span>
+<span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vicgalle/alpaca-gpt4</span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.data.AlpacaInstructTemplate</span>
+<span class="w">    </span><span class="nt">split</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">train</span>
+<span class="w">    </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.instruct_dataset</span>
+<span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">samsum</span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.data.SummarizeTemplate</span>
+<span class="w">    </span><span class="nt">column_map</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">output</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">summary</span>
+<span class="w">    </span><span class="nt">split</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">train</span>
+<span class="w">    </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.chat_dataset</span>
+<span class="w">    </span><span class="l l-Scalar l-Scalar-Plain">...</span>
+</pre></div>
+</div>
+</section>
+<section id="local-and-remote-datasets">
+<h2>Local and remote datasets<a class="headerlink" href="#local-and-remote-datasets" title="Permalink to this heading">¶</a></h2>
+<p>To use a dataset saved on your local hard drive, simply specify the file type for
+<code class="docutils literal notranslate"><span class="pre">source</span></code> and pass in the <code class="docutils literal notranslate"><span class="pre">data_files</span></code> argument using any of the dataset
+builder functions. We support all <a class="reference external" href="https://huggingface.co/docs/datasets/en/loading#local-and-remote-files">file types</a>
+supported by Hugging Face’s <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>, including csv, json, txt, and more.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">instruct_dataset</span>
+
+<span class="c1"># Load in tokenizer</span>
+<span class="n">tokenizer</span> <span class="o">=</span> <span class="o">...</span>
+<span class="c1"># Local files</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">instruct_dataset</span><span class="p">(</span>
+    <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">&quot;csv&quot;</span><span class="p">,</span>
+    <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+    <span class="n">template</span><span class="o">=</span><span class="s2">&quot;import.path.to.CustomTemplate&quot;</span>
+    <span class="n">data_files</span><span class="o">=</span><span class="s2">&quot;path/to/my/data.csv&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="c1"># Remote files</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">instruct_dataset</span><span class="p">(</span>
+    <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">,</span>
+    <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+    <span class="n">template</span><span class="o">=</span><span class="s2">&quot;import.path.to.CustomTemplate&quot;</span>
+    <span class="n">data_files</span><span class="o">=</span><span class="s2">&quot;https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json&quot;</span><span class="p">,</span>
+    <span class="c1"># You can also pass in any kwarg that load_dataset accepts</span>
+    <span class="n">field</span><span class="o">=</span><span class="s2">&quot;data&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># YAML config - local files</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.instruct_dataset</span>
+<span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">csv</span>
+<span class="w">  </span><span class="nt">template</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">import.path.to.CustomTemplate</span>
+<span class="w">  </span><span class="nt">data_files</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">path/to/my/data.csv</span>
+
+<span class="c1"># YAML config - remote files</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.instruct_dataset</span>
+<span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">json</span>
+<span class="w">  </span><span class="nt">template</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">import.path.to.CustomTemplate</span>
+<span class="w">  </span><span class="nt">data_files</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json</span>
+<span class="w">  </span><span class="nt">field</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Command line - local files</span>
+tune<span class="w"> </span>run<span class="w"> </span>full_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_full_single_device<span class="w"> </span><span class="se">\</span>
+<span class="nv">dataset</span><span class="o">=</span>torchtune.datasets.chat_dataset<span class="w"> </span>dataset.source<span class="o">=</span>csv<span class="w"> </span><span class="se">\</span>
+dataset.template<span class="o">=</span>import.path.to.CustomTemplate<span class="w"> </span>dataset.data_files<span class="o">=</span>path/to/my/data.csv
+</pre></div>
+</div>
+</section>
+<section id="fully-customized-datasets">
+<h2>Fully customized datasets<a class="headerlink" href="#fully-customized-datasets" title="Permalink to this heading">¶</a></h2>
+<p>More advanced tasks and dataset formats that don’t fit into the templating and processing
+that <a class="reference internal" href="../generated/torchtune.datasets.InstructDataset.html#torchtune.datasets.InstructDataset" title="torchtune.datasets.InstructDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">InstructDataset</span></code></a>, <a class="reference internal" href="../generated/torchtune.datasets.ChatDataset.html#torchtune.datasets.ChatDataset" title="torchtune.datasets.ChatDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChatDataset</span></code></a>,
+and <a class="reference internal" href="../generated/torchtune.datasets.TextCompletionDataset.html#torchtune.datasets.TextCompletionDataset" title="torchtune.datasets.TextCompletionDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextCompletionDataset</span></code></a> provide may require you to create your own dataset
+class for more flexibility. Let’s walk through the <a class="reference internal" href="../generated/torchtune.datasets.PreferenceDataset.html#torchtune.datasets.PreferenceDataset" title="torchtune.datasets.PreferenceDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">PreferenceDataset</span></code></a>,
+which has custom functionality for RLHF preference data, as an example to understand what you’ll need to do.</p>
+<p>If you take a look at the code for the <a class="reference internal" href="../generated/torchtune.datasets.PreferenceDataset.html#torchtune.datasets.PreferenceDataset" title="torchtune.datasets.PreferenceDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">PreferenceDataset</span></code></a> class,
+you’ll notice it’s quite similar to <a class="reference internal" href="../generated/torchtune.datasets.InstructDataset.html#torchtune.datasets.InstructDataset" title="torchtune.datasets.InstructDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">InstructDataset</span></code></a> with a few
+adjustments for chosen and rejected samples in preference data.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">chosen_message</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">transformed_sample</span><span class="p">[</span><span class="n">key_chosen</span><span class="p">]),</span>
+<span class="p">]</span>
+<span class="n">rejected_message</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">transformed_sample</span><span class="p">[</span><span class="n">key_rejected</span><span class="p">]),</span>
+<span class="p">]</span>
+
+<span class="n">chosen_input_ids</span><span class="p">,</span> <span class="n">c_masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span>
+    <span class="n">chosen_message</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span>
+<span class="p">)</span>
+<span class="n">chosen_labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">c_masks</span><span class="p">,</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">chosen_input_ids</span><span class="p">)</span>
+<span class="p">)</span>
+
+<span class="n">rejected_input_ids</span><span class="p">,</span> <span class="n">r_masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span>
+    <span class="n">rejected_message</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span>
+<span class="p">)</span>
+<span class="n">rejected_labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">r_masks</span><span class="p">,</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">rejected_input_ids</span><span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>For a specific dataset that’s easy to customize from the config, you can create
+a builder function. This is the builder function for the <code class="xref py py-func docutils literal notranslate"><span class="pre">stack_exchanged_paired_dataset()</span></code>,
+which creates a <a class="reference internal" href="../generated/torchtune.datasets.PreferenceDataset.html#torchtune.datasets.PreferenceDataset" title="torchtune.datasets.PreferenceDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">PreferenceDataset</span></code></a> configured to use
+a paired dataset from Hugging Face. Notice that we’ve also had
+to add a custom instruct template as well.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">stack_exchanged_paired_dataset</span><span class="p">(</span>
+    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
+    <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PreferenceDataset</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">PreferenceDataset</span><span class="p">(</span>
+        <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+        <span class="n">source</span><span class="o">=</span><span class="s2">&quot;lvwerra/stack-exchange-paired&quot;</span><span class="p">,</span>
+        <span class="n">template</span><span class="o">=</span><span class="n">StackExchangedPairedTemplate</span><span class="p">(),</span>
+        <span class="n">column_map</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;prompt&quot;</span><span class="p">:</span> <span class="s2">&quot;question&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;chosen&quot;</span><span class="p">:</span> <span class="s2">&quot;response_j&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;rejected&quot;</span><span class="p">:</span> <span class="s2">&quot;response_k&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+        <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+        <span class="n">data_dir</span><span class="o">=</span><span class="s2">&quot;data/rl&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+<p>Now we can easily specify our custom dataset from the config, or from command-line.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># This is how you would configure the Alpaca dataset using the builder</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.stack_exchanged_paired_dataset</span>
+<span class="w">  </span><span class="nt">max_seq_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">512</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Command line - local files</span>
+tune<span class="w"> </span>run<span class="w"> </span>full_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_full_single_device<span class="w"> </span><span class="se">\</span>
+<span class="nv">dataset</span><span class="o">=</span>torchtune.datasets.stack_exchanged_paired_dataset<span class="w"> </span>dataset.max_seq_len<span class="o">=</span><span class="m">512</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+             </article>
+             
+            </div>
+            <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="chat.html" class="btn btn-neutral float-right" title="Fine-tuning Llama3 with Chat Data" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+      
+      
+        <a href="e2e_flow.html" class="btn btn-neutral" title="End-to-End Workflow with torchtune" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+      
+    </div>
+  
+
+  
+
+    <hr>
+
+  
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2023-present, torchtune Contributors.
+
+    </p>
+  </div>
+    
+      <div>
+        Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+      </div>
+     
+
+</footer>
+
+          </div>
+        </div>
+
+        <div class="pytorch-content-right" id="pytorch-content-right">
+          <div class="pytorch-right-menu" id="pytorch-right-menu">
+            <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
+              <ul>
+<li><a class="reference internal" href="#">Configuring Datasets for Fine-Tuning</a><ul>
+<li><a class="reference internal" href="#built-in-datasets">Built-in datasets</a></li>
+<li><a class="reference internal" href="#hugging-face-datasets">Hugging Face datasets</a></li>
+<li><a class="reference internal" href="#setting-max-sequence-length">Setting max sequence length</a></li>
+<li><a class="reference internal" href="#sample-packing">Sample packing</a></li>
+<li><a class="reference internal" href="#custom-unstructured-text-corpus">Custom unstructured text corpus</a></li>
+<li><a class="reference internal" href="#custom-instruct-dataset-and-instruct-templates">Custom instruct dataset and instruct templates</a></li>
+<li><a class="reference internal" href="#custom-chat-dataset-and-chat-formats">Custom chat dataset and chat formats</a></li>
+<li><a class="reference internal" href="#multiple-in-memory-datasets">Multiple in-memory datasets</a></li>
+<li><a class="reference internal" href="#local-and-remote-datasets">Local and remote datasets</a></li>
+<li><a class="reference internal" href="#fully-customized-datasets">Fully customized datasets</a></li>
+</ul>
+</li>
+</ul>
+
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  
+
+
+  
+
+     
+       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+         <script src="../_static/jquery.js"></script>
+         <script src="../_static/underscore.js"></script>
+         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../_static/doctools.js"></script>
+         <script src="../_static/clipboard.min.js"></script>
+         <script src="../_static/copybutton.js"></script>
+         <script src="../_static/design-tabs.js"></script>
+     
+
+  
+
+  <script type="text/javascript" src="../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+<!-- Disabling "auto-collapsing" of sections on the left side bar. Replace script with commented out sections to reenable. -->
+<!--  
+<script script type="text/javascript">
+    var collapsedSections = ['Introduction', 'Getting Started', 'Tutorials']
+</script> -->
+
+<script script type="text/javascript">
+    var collapsedSections = []
+</script>
+
+
+  <!-- Begin Footer -->
+
+  <div class="container-fluid docs-tutorials-resources" id="docs-tutorials-resources">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-4 text-center">
+          <h2>Docs</h2>
+          <p>Access comprehensive developer documentation for PyTorch</p>
+          <a class="with-right-arrow" href="https://pytorch.org/docs/stable/index.html">View Docs</a>
+        </div>
+
+        <div class="col-md-4 text-center">
+          <h2>Tutorials</h2>
+          <p>Get in-depth tutorials for beginners and advanced developers</p>
+          <a class="with-right-arrow" href="https://pytorch.org/tutorials">View Tutorials</a>
+        </div>
+
+        <div class="col-md-4 text-center">
+          <h2>Resources</h2>
+          <p>Find development resources and get your questions answered</p>
+          <a class="with-right-arrow" href="https://pytorch.org/resources">View Resources</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-logo-wrapper">
+        <a href="https://pytorch.org/" class="footer-logo"></a>
+      </div>
+
+      <div class="footer-links-wrapper">
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch.org/">PyTorch</a></li>
+            <li><a href="https://pytorch.org/get-started">Get Started</a></li>
+            <li><a href="https://pytorch.org/features">Features</a></li>
+            <li><a href="https://pytorch.org/ecosystem">Ecosystem</a></li>
+            <li><a href="https://pytorch.org/blog/">Blog</a></li>
+            <li><a href="https://github.com/pytorch/pytorch/blob/master/CONTRIBUTING.md">Contributing</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch.org/resources">Resources</a></li>
+            <li><a href="https://pytorch.org/tutorials">Tutorials</a></li>
+            <li><a href="https://pytorch.org/docs/stable/index.html">Docs</a></li>
+            <li><a href="https://discuss.pytorch.org" target="_blank">Discuss</a></li>
+            <li><a href="https://github.com/pytorch/pytorch/issues" target="_blank">Github Issues</a></li>
+            <li><a href="https://pytorch.org/assets/brand-guidelines/PyTorch-Brand-Guidelines.pdf" target="_blank">Brand Guidelines</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title">Stay up to date</li>
+            <li><a href="https://www.facebook.com/pytorch" target="_blank">Facebook</a></li>
+            <li><a href="https://twitter.com/pytorch" target="_blank">Twitter</a></li>
+            <li><a href="https://www.youtube.com/pytorch" target="_blank">YouTube</a></li>
+            <li><a href="https://www.linkedin.com/company/pytorch" target="_blank">LinkedIn</a></li>
+          </ul>  
+          </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title">PyTorch Podcasts</li>
+            <li><a href="https://open.spotify.com/show/6UzHKeiy368jKfQMKKvJY5" target="_blank">Spotify</a></li>
+            <li><a href="https://podcasts.apple.com/us/podcast/pytorch-developer-podcast/id1566080008" target="_blank">Apple</a></li>
+            <li><a href="https://www.google.com/podcasts?feed=aHR0cHM6Ly9mZWVkcy5zaW1wbGVjYXN0LmNvbS9PQjVGa0lsOA%3D%3D" target="_blank">Google</a></li>
+            <li><a href="https://music.amazon.com/podcasts/7a4e6f0e-26c2-49e9-a478-41bd244197d0/PyTorch-Developer-Podcast?" target="_blank">Amazon</a></li>
+          </ul>
+         </div>
+        </div>
+        
+        <div class="privacy-policy">
+          <ul>
+            <li class="privacy-policy-links"><a href="https://www.linuxfoundation.org/terms/" target="_blank">Terms</a></li>
+            <li class="privacy-policy-links">|</li>
+            <li class="privacy-policy-links"><a href="https://www.linuxfoundation.org/privacy-policy/" target="_blank">Privacy</a></li>
+          </ul>
+        </div>
+        <div class="copyright">
+        <p>© Copyright The Linux Foundation. The PyTorch Foundation is a project of The Linux Foundation.
+          For web site terms of use, trademark policy and other policies applicable to The PyTorch Foundation please see
+          <a href="https://www.linuxfoundation.org/policies/">www.linuxfoundation.org/policies/</a>. The PyTorch Foundation supports the PyTorch open source
+          project, which has been established as PyTorch Project a Series of LF Projects, LLC. For policies applicable to the PyTorch Project a Series of LF Projects, LLC,
+          please see <a href="https://www.lfprojects.org/policies/">www.lfprojects.org/policies/</a>.</p>
+      </div>
+     </div>
+
+  </footer>
+
+  <div class="cookie-banner-wrapper">
+  <div class="container">
+    <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
+    <img class="close-button" src="../_static/images/pytorch-x.svg">
+  </div>
+</div>
+
+  <!-- End Footer -->
+
+  <!-- Begin Mobile Menu -->
+
+  <div class="mobile-main-menu">
+    <div class="container-fluid">
+      <div class="container">
+        <div class="mobile-main-menu-header-container">
+          <a class="header-logo" href="https://pytorch.org/" aria-label="PyTorch"></a>
+          <a class="main-menu-close-button" href="#" data-behavior="close-mobile-menu"></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-main-menu-links-container">
+      <div class="main-menu">
+        <ul>
+           <li class="resources-mobile-menu-title">
+             <a>Learn</a>
+           </li>
+           <ul class="resources-mobile-menu-items">
+             <li>
+               <a href="https://pytorch.org/get-started">Get Started</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials">Tutorials</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials/beginner/basics/intro.html">Learn the Basics</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials/recipes/recipes_index.html">PyTorch Recipes</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials/beginner/introyt.html">Introduction to PyTorch - YouTube Series</a>
+             </li>
+           </ul>
+           <li class="resources-mobile-menu-title">
+             <a>Ecosystem</a>
+           </li>
+           <ul class="resources-mobile-menu-items">
+             <li>
+               <a href="https://pytorch.org/ecosystem">Tools</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/#community-module">Community</a>
+             </li>
+             <li>
+               <a href="https://discuss.pytorch.org/">Forums</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/resources">Developer Resources</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/ecosystem/contributor-awards-2023">Contributor Awards - 2023</a>
+             </li>
+           </ul>
+
+           <li class="resources-mobile-menu-title">
+             <a>Edge</a>
+           </li>
+
+           <ul class="resources-mobile-menu-items">
+             <li>
+               <a href="https://pytorch.org/edge">About PyTorch Edge</a>
+             </li>
+             
+             <li>
+               <a href="https://pytorch.org/executorch-overview">ExecuTorch</a>
+             </li>
+           </ul>
+
+           <li class="resources-mobile-menu-title">
+             <a>Docs</a>
+           </li>
+
+           <ul class="resources-mobile-menu-items">
+            <li>
+              <a href="https://pytorch.org/docs/stable/index.html">PyTorch</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/pytorch-domains">PyTorch Domains</a>
+            </li>
+          </ul>
+
+          <li class="resources-mobile-menu-title">
+            <a>Blog & News</a>
+          </li>
+            
+           <ul class="resources-mobile-menu-items">
+            <li>
+              <a href="https://pytorch.org/blog/">PyTorch Blog</a>
+            </li>
+            <li>
+              <a href="https://pytorch.org/community-blog">Community Blog</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/videos">Videos</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/community-stories">Community Stories</a>
+            </li>
+            <li>
+              <a href="https://pytorch.org/events">Events</a>
+            </li>
+          </ul>
+          
+          <li class="resources-mobile-menu-title">
+            <a>About</a>
+          </li>
+
+          <ul class="resources-mobile-menu-items">
+            <li>
+              <a href="https://pytorch.org/foundation">PyTorch Foundation</a>
+            </li>
+            <li>
+              <a href="https://pytorch.org/governing-board">Governing Board</a>
+            </li>
+          </ul>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- End Mobile Menu -->
+
+  <script type="text/javascript" src="../_static/js/vendor/anchor.min.js"></script>
+
+  <script type="text/javascript">
+    $(document).ready(function() {
+      mobileMenu.bind();
+      mobileTOC.bind();
+      pytorchAnchors.bind();
+      sideMenus.bind();
+      scrollToAnchor.bind();
+      highlightNavigation.bind();
+      mainMenuDropdown.bind();
+      filterTags.bind();
+
+      // Add class to links that have code blocks, since we cannot create links in code blocks
+      $("article.pytorch-article a span.pre").each(function(e) {
+        $(this).closest("a").addClass("has-code");
+      });
+    })
+  </script>
+</body>
+</html>

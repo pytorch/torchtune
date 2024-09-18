@@ -1,0 +1,9 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.data
+
+
+get_sharegpt_messages
+=====================
+
+.. autofunction:: get_sharegpt_messages
