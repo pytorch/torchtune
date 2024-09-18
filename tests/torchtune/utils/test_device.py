@@ -52,7 +52,7 @@ class TestDevice:
         assert batch["b"]["d"].device == device
 
         batch["e"] = 0
-        with pytest.raises(AttributeError):
+        with pytest.raises(ValueError):
             batch_to_device(batch, device)
 
     @pytest.mark.skipif(not cuda_available, reason="The test requires GPUs to run.")
