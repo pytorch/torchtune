@@ -6,7 +6,7 @@
 
 import pytest
 import torch
-from torchtune.rlhf.loss import DPOLoss, IPOLoss, RSOLoss, SimPOLoss
+from torchtune.rlhf.loss import DPOLoss, RSOLoss, SimPOLoss
 
 
 @pytest.fixture(autouse=True)
@@ -26,12 +26,6 @@ class TestDPOLosses:
     def rso_loss(self):
         return RSOLoss(
             gamma=0.1,
-        )
-
-    @pytest.fixture
-    def ipo_loss(self):
-        return IPOLoss(
-            tau=0.1,
         )
 
     @pytest.fixture
@@ -107,24 +101,6 @@ class TestDPOLosses:
 
         losses, *_ = rso_loss(*loss_inputs)
 
-        torch.testing.assert_close(losses, expected_losses, atol=1e-4, rtol=1e-5)
-
-    def test_ipo_loss(self, ipo_loss, loss_inputs):
-        """
-        # maths:
-        ratios = torch.tensor([-0.4, 20.0, 20.0])
-        ref_ratios = torch.tensor([-0.4, 10, 0.0])
-
-        # logits is ratios - ref_ratios
-
-        logits = torch.tensor([0.0, 10.0, 20.0])
-
-        # ipo loss is (logits - 1 / (2 * tau)) ** 2
-        = [-5, 5, 15] ** 2
-        = [25, 25, 225]
-        """
-        expected_losses = torch.tensor([25.0, 25.0, 225.0])
-        losses, *_ = ipo_loss(*loss_inputs)
         torch.testing.assert_close(losses, expected_losses, atol=1e-4, rtol=1e-5)
 
     def test_simpo_loss(self, simpo_loss, loss_inputs):
