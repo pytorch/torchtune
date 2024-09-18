@@ -143,6 +143,6 @@ def batch_to_device(batch: dict, device: torch.device) -> None:
         elif isinstance(v, torch.Tensor):
             batch[k] = v.to(device)
         else:
-            raise AttributeError(
+            raise ValueError(
                 "To use batch_to_device, all elements in the batch must be a dict or Tensor"
             )
