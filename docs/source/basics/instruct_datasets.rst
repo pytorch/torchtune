@@ -33,6 +33,7 @@ Here is an example of an instruct dataset to fine-tune for a grammar correction 
     g_tokenizer = gemma_tokenizer(
         path="/tmp/gemma-7b/tokenizer.model",
         prompt_template="torchtune.data.GrammarErrorCorrectionTemplate",
+        max_seq_len=8192,
     )
     ds = instruct_dataset(
         tokenizer=g_tokenizer,
@@ -60,6 +61,7 @@ Here is an example of an instruct dataset to fine-tune for a grammar correction 
       _component_: torchtune.models.gemma.gemma_tokenizer
       path: /tmp/gemma-7b/tokenizer.model
       prompt_template: torchtune.data.GrammarErrorCorrectionTemplate
+      max_seq_len: 8192
 
     dataset:
       source: csv
@@ -82,34 +84,6 @@ and the assistant prompt is in another column.
     |  input          |  output          |
     |-----------------|------------------|
     | "user prompt"   | "model response" |
-
-The user input column is converted to a :class:`~torchtune.data.Message` with ``role="user"`` and the assistant
-output column is converted to a :class:`~torchtune.data.Message` with ``role="assistant"``.
-
-.. code-block:: python
-
-    from torchtune.data import Message
-
-    sample = {
-        "input": "This are a cat",
-        "output": "This is a cat.",
-    }
-    msgs = [
-        Message(role="user", content=sample["input"]),
-        Message(role="assistant", content=sample["output"])
-    ]
-
-These are then tokenized by the model tokenizer with the appropriate model-specific special tokens added
-(such as beginning-of-sequence, end-of-sequence, and others).
-
-.. code-block:: python
-
-    from torchtune.models.gemma import gemma_tokenizer
-
-    g_tokenizer = gemma_tokenizer("/tmp/gemma-7b/tokenizer.model")
-    tokens, mask = g_tokenizer.tokenize_messages(msgs)
-    print(p_tokenizer.decode(tokens))
-    # '\nuser prompt \n \nmodel response \n'
 
 As an example, you can see the schema of the `C4 200M dataset <https://huggingface.co/datasets/liweili/c4_200m>`_.
 
