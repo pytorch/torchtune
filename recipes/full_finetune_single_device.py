@@ -242,9 +242,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
-        collate_name = cfg.get(
-            "collate_fn", "torchtune.modules.collate.padded_collate_sft"
-        )
+        collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
         self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
