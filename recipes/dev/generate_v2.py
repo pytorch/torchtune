@@ -48,29 +48,6 @@ class SingleTurnYAMLToMessages(Transform):
         return messages
 
 
-def batch_to_device(batch: dict, device: torch.device) -> None:
-    """Function that takes a dictionary (or nested dictionary) of tensors and sets them
-    all to the same device. This utility is intended to be used for batches of data to be
-    moved to device, the update is inplace.
-
-    Args:
-        batch (dict): dict of Tensors or more nested dicts of tensors.
-        device (torch.device): torch device to move the tensor's too
-
-    Raises:
-        AttributeError: if batch dict contains anything other than tensors
-    """
-    for k, v in batch.items():
-        if isinstance(v, dict):
-            batch_to_device(v, device)
-        elif isinstance(v, torch.Tensor):
-            batch[k] = v.to(device)
-        else:
-            raise AttributeError(
-                "To use batch_to_device, all elements in the batch must be a dict or Tensor"
-            )
-
-
 class InferenceRecipe:
     """
     Recipe for generating tokens from a dense Transformer-based LLM.
@@ -135,7 +112,7 @@ class InferenceRecipe:
                     batch_first=True,
                 )
             }
-        batch_to_device(batch, self._device)
+        utils.batch_to_device(batch, self._device)
 
         # 4. Prefill step
         generated_tokens = []
@@ -177,7 +154,7 @@ class InferenceRecipe:
             f"Bandwidth achieved: {model_size * tokens_sec / 1e9:.02f} GB/s"
         )
         self._logger.info(
-            f"Memory used: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB"
+            f"Max memory allocated: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB"
         )
 
 
