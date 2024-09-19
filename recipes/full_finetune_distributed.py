@@ -6,7 +6,6 @@
 
 import sys
 import time
-import copy
 
 from functools import partial
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -21,7 +20,7 @@ from torch.distributed import destroy_process_group, init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
-from torchtune.data import padded_collate_packed, padded_collate_sft
+from torchtune.data import padded_collate_sft
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
@@ -39,7 +38,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
     Features:
         - FSDP. Supported using PyTorch's FSDP APIs. CPU offload of parameters, gradients, and optimizer states
-            is supported via ``fsdp_cpu_offload``. Resharding of parameters after the forward pass is
+            is supported via the ``fsdp_cpu_offload``. Resharding of parameters after the forward pass is
             done by default (corresponding to FULL_SHARD sharding strategy), but can be disabled by setting the config
             ``fsdp_reshard_after_forward`` to False (this corresponds to SHARD_GRAD_OP sharding strategy).
             DDP is currently not supported. Training on CPU is not supported.
@@ -134,8 +133,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
 
-        self._buff = {}
-
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. If resume_from_checkpoint
@@ -146,7 +143,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             resume_from_checkpoint=self._resume_from_checkpoint,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
-        
+
         if self._resume_from_checkpoint:
             self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
@@ -229,14 +226,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._loss_fn = config.instantiate(cfg.loss)
 
         if self._compile:
-            training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
+            training.compile_loss(self.loss_fn, verbose=self._is_rank_zero)
 
         if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
             # set num_output_chunks for model
             self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
 
-        if self._is_rank_zero:
-            log.info("Loss is initialized.")
+        log.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
@@ -367,9 +363,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
-        if self._compile:
-            training.compile_model(model, verbose=self._is_rank_zero)
-
         # We currently have two versions of activation checkpointing in this recipe
         # for testing and BC purposes. ``enable_activation_checkpointing`` controls
         # the older version of AC and this behavior is unchanged
@@ -452,10 +445,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         return model
 
     def _setup_optimizer(
-        self, 
-        cfg_optimizer: DictConfig, 
+        self,
+        cfg_optimizer: DictConfig,
         optimizer_in_bwd: bool = False,
-        opt_state_dict: Optional[Dict[str, Any]] = None
+        opt_state_dict: Optional[Dict[str, Any]] = None,
     ) -> Optimizer:
         if not optimizer_in_bwd:
             optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
@@ -474,15 +467,18 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 param: config.instantiate(cfg_optimizer, [param])
                 for param in self._model.parameters()
             }
-            
+
             def optim_hook(param) -> None:
                 optim_dict[param].step()
                 optim_dict[param].zero_grad()
 
             for param in self._model.parameters():
                 param.register_post_accumulate_grad_hook(optim_hook)
-            
-            self._optim_ckpt_wrapper = {name: optim_dict[param] for name, param in self._model.named_parameters()}
+
+            self._optim_ckpt_wrapper = {
+                name: optim_dict[param]
+                for name, param in self._model.named_parameters()
+            }
 
             optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
             if opt_state_dict is not None:
@@ -490,13 +486,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     if param not in self._optim_ckpt_wrapper:
                         raise RuntimeError(
                             f"Trying to load optimizer state for unexpected param {param}"
-                        )                    
+                        )
                     training.load_from_full_optimizer_state_dict(
                         self._optim_ckpt_wrapper[param],
                         opt_state_dict[param],
                         self._device,
                     )
-                    
+
             if self._is_rank_zero:
                 log.info("In-backward optimizers are set up.")
             return None
@@ -532,14 +528,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
-            collate_fn=partial(
-                padded_collate_sft,
-                padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
-            )
-            if not packed
-            else partial(
-                padded_collate_packed,
+            collate_fn=(
+                partial(
+                    padded_collate_sft,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else None
             ),
         )
 
@@ -581,7 +577,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 device=self._device,
             )
         elif intermediate_checkpoint and self._is_rank_zero:
-            opt_state_dict = {param: opt.state_dict() for param, opt in self._optim_ckpt_wrapper.items()}
+            opt_state_dict = {
+                param: opt.state_dict()
+                for param, opt in self._optim_ckpt_wrapper.items()
+            }
         else:
             opt_state_dict = None
 
@@ -602,14 +601,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         training.MAX_STEPS_KEY: self.max_steps_per_epoch,
                     }
                 )
-            self._buff = copy.deepcopy(checkpoint_dict['model'])
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
                 epoch=epoch,
                 intermediate_checkpoint=intermediate_checkpoint,
             )
 
-    def train(self, cfg: DictConfig) -> None:
+    def train(self) -> None:
         """
         The core training loop.
         """
@@ -630,7 +628,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
@@ -695,7 +692,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     if not self._optimizer_in_bwd:
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
-                    
+
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
@@ -714,7 +711,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         log_dict = {
                             "loss": loss_to_log,
                             "lr": (
-                                list(self._optim_ckpt_wrapper.values())[0].param_groups[0]["lr"]
+                                list(self._optim_ckpt_wrapper.values())[0].param_groups[
+                                    0
+                                ]["lr"]
                                 if self._optimizer_in_bwd
                                 else self._optimizer.param_groups[0]["lr"]
                             ),
@@ -786,7 +785,7 @@ def recipe_main(cfg: DictConfig) -> None:
 
     recipe = FullFinetuneRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)
-    recipe.train(cfg=cfg)
+    recipe.train()
     recipe.cleanup()
 
 
