@@ -219,7 +219,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            optimizer_in_bwd = self._optimizer_in_bwd,
+            optimizer_in_bwd=self._optimizer_in_bwd,
             opt_state_dict=checkpoint_dict[training.OPT_KEY]
             if self._resume_from_checkpoint
             else None,
