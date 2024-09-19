@@ -123,6 +123,11 @@ class _EvalWrapper(HFLM):
         self, context: torch.Tensor, **generation_kwargs
     ) -> torch.Tensor:
         curr_batch_size = context.size(0)
+
+        # if we've recieved fewer than self._batch_size samples in the current
+        # batch we need to pad the batch out. here we're padding the end of the
+        # current batch to the correct length. this is because when we use static
+        # KV-caches, the model will expect a fixed batch size for all samples.
         maybe_padded_context = torch.nn.functional.pad(
             context,
             (0, 0, 0, self._batch_size - curr_batch_size),
