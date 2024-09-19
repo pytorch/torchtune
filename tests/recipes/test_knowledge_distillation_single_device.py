@@ -56,7 +56,7 @@ class TestKDSingleDeviceRecipe:
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type",
         [
-            ("qwen2/kd_single_device", "llama3", "tune"),
+            ("qwen2/knowledge_distillation_single_device", "llama3", "tune"),
         ],
     )
     def test_loss(self, compile, config, model_type, ckpt_type, tmpdir, monkeypatch):
@@ -68,7 +68,7 @@ class TestKDSingleDeviceRecipe:
         log_file = gen_log_file_name(tmpdir)
 
         cmd = f"""
-        tune run kd_single_device \
+        tune run knowledge_distillation_single_device \
             --config {config} \
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
@@ -88,8 +88,6 @@ class TestKDSingleDeviceRecipe:
             metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={log_file} \
             compile={compile} \
-            kd_loss._component_=torchtune.modules.loss.ForwardKLWithChunkedOutputLoss \
-            kd_ratio=0.5 \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
@@ -116,8 +114,6 @@ class TestKDSingleDeviceRecipe:
         num_losses = int(len(loss_values) / 4)  # 2 steps per epoch, 2 epochs
         loss_values = loss_values[0::num_losses]
         expected_loss_values = self._fetch_expected_loss_values(model_type)
-        print(loss_values)
-        print(expected_loss_values)
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
@@ -145,8 +141,8 @@ class TestKDSingleDeviceRecipe:
 
         # Train for two epochs
         cmd_1 = f"""
-        tune run kd_single_device \
-            --config qwen2/kd_single_device \
+        tune run knowledge_distillation_single_device \
+            --config qwen2/knowledge_distillation_single_device \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -163,8 +159,6 @@ class TestKDSingleDeviceRecipe:
             tokenizer.prompt_template=null \
             ~tokenizer.merges_file \
             metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
-            kd_loss._component_=torchtune.modules.loss.ForwardKLWithChunkedOutputLoss \
-            kd_ratio=0.5 \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama3_lora"]
@@ -181,8 +175,8 @@ class TestKDSingleDeviceRecipe:
 
         # Resume training
         cmd_2 = f"""
-        tune run kd_single_device \
-            --config qwen2/kd_single_device \
+        tune run knowledge_distillation_single_device \
+            --config qwen2/knowledge_distillation_single_device \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
@@ -203,8 +197,6 @@ class TestKDSingleDeviceRecipe:
             tokenizer.path={tokenizer_path} \
             tokenizer.prompt_template=null \
             ~tokenizer.merges_file \
-            kd_loss._component_=torchtune.modules.loss.ForwardKLWithChunkedOutputLoss \
-            kd_ratio=0.5 \
         """.split()
         cmd_2 = (
             cmd_2
@@ -239,8 +231,8 @@ class TestKDSingleDeviceRecipe:
         log_file = gen_log_file_name(tmpdir)
 
         cmd = f"""
-        tune run kd_single_device \
-            --config qwen2/kd_single_device \
+        tune run knowledge_distillation_single_device \
+            --config qwen2/knowledge_distillation_single_device \
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -258,8 +250,6 @@ class TestKDSingleDeviceRecipe:
             ~tokenizer.merges_file \
             metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={log_file} \
-            kd_loss._component_=torchtune.modules.loss.ForwardKLWithChunkedOutputLoss \
-            kd_ratio=0.5 \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]

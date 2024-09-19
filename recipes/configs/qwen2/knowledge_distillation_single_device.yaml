@@ -10,7 +10,7 @@
 #   tune run lora_finetune_single_device --config qwen2/1.5B_lora_single_device
 #
 # To launch on a single device, run the following command from root:
-#   tune run kd_single_device --config qwen2/kd_single_device
+#   tune run knowledge_distillation_single_device --config qwen2/knowledge_distillation_single_device
 #
 # This config works only for distilling on a single device.
 

@@ -282,12 +282,12 @@ _ALL_RECIPES = [
         supports_distributed=True,
     ),
     Recipe(
-        name="kd_single_device",
-        file_path="kd_single_device.py",
+        name="knowledge_distillation_single_device",
+        file_path="knowledge_distillation_single_device.py",
         configs=[
             Config(
-                name="qwen2/kd_single_device",
-                file_path="qwen2/kd_single_device.yaml",
+                name="qwen2/knowledge_distillation_single_device",
+                file_path="qwen2/knowledge_distillation_single_device.yaml",
             ),
         ],
         supports_distributed=False,

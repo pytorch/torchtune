@@ -623,6 +623,10 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         # run model
         logits = self._model(tokens, mask=mask, input_pos=input_pos)
 
+        # Compute teacher logits
+        with torch.no_grad():
+            teacher_logits = self._teacher_model(tokens, mask=mask, input_pos=input_pos)
+
         # Shift labels to compute loss
         # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
         # But this way we dont need to slice the logits. We just add an ignore index to labels.
@@ -632,10 +636,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         if not isinstance(logits, list):
             labels = labels.reshape(-1)
             logits = logits.reshape(-1, logits.size(-1))
-
-        # Compute KD loss
-        with torch.no_grad():
-            teacher_logits = self._teacher_model(tokens, mask=mask, input_pos=input_pos)
+            teacher_logits = teacher_logits.reshape(-1, teacher_logits.size(-1))
 
         # Compute kd loss
         kd_loss = self._kd_loss_fn(logits, teacher_logits, labels)
