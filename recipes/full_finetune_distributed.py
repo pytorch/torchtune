@@ -20,7 +20,7 @@ from torch.distributed import destroy_process_group, init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
-from torchtune.data import padded_collate_sft
+from torchtune.data import padded_collate_packed, padded_collate_sft
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
@@ -38,7 +38,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
     Features:
         - FSDP. Supported using PyTorch's FSDP APIs. CPU offload of parameters, gradients, and optimizer states
-            is supported via the ``fsdp_cpu_offload``. Resharding of parameters after the forward pass is
+            is supported via ``fsdp_cpu_offload``. Resharding of parameters after the forward pass is
             done by default (corresponding to FULL_SHARD sharding strategy), but can be disabled by setting the config
             ``fsdp_reshard_after_forward`` to False (this corresponds to SHARD_GRAD_OP sharding strategy).
             DDP is currently not supported. Training on CPU is not supported.
@@ -226,7 +226,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._loss_fn = config.instantiate(cfg.loss)
 
         if self._compile:
-            training.compile_loss(self.loss_fn, verbose=self._is_rank_zero)
+            training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
         if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
             # set num_output_chunks for model
@@ -535,7 +535,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     ignore_idx=self._loss_fn.ignore_index,
                 )
                 if not packed
-                else None
+                else partial(padded_collate_packed)
             ),
         )
 
@@ -576,9 +576,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 self._is_rank_zero,
                 device=self._device,
             )
-        elif intermediate_checkpoint and self._is_rank_zero:
+        elif intermediate_checkpoint and self._optimizer_in_bwd:
             opt_state_dict = {
-                param: opt.state_dict()
+                param: training.get_full_optimizer_state_dict(opt, self._is_rank_zero, device=self._device)
                 for param, opt in self._optim_ckpt_wrapper.items()
             }
         else:
