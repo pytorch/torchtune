@@ -181,6 +181,9 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         self._quantization_mode = training.get_quantizer_mode(self._quantizer)
         self._enable_kv_cache = self._cfg.get("enable_kv_cache", True)
 
+        self._batch_size = self._cfg.batch_size
+        self._max_seq_length = self._cfg.get("max_seq_length", 4096)
+
         training.set_seed(seed=self._cfg.seed)
 
         checkpointer = config.instantiate(self._cfg.checkpointer)
@@ -236,8 +239,8 @@ class EleutherEvalRecipe(EvalRecipeInterface):
             self._model,
             self._tokenizer,
             device=self._device,
-            max_seq_length=self._cfg.max_seq_length,
-            batch_size=self._cfg.batch_size,
+            max_seq_length=self._max_seq_length,
+            batch_size=self._batch_size,
             dtype=self._dtype,
         )
 
@@ -250,7 +253,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         task_manager = TaskManager(include_path=self._cfg.get("include_path", None))
         task_dict = get_task_dict(self._tasks, task_manager)
 
-        task_types = set([task.OUTPUT_TYPE for task, _ in task_dict])
+        task_types = set([task.OUTPUT_TYPE for _, task in task_dict.items()])
         if len(task_types) > 1 and "generate_until" in task_types:
             raise RuntimeError(
                 "Evaluating on multiple task types where any one task involves "
@@ -262,9 +265,9 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         if self._enable_kv_cache and "generate_until" in task_types:
             with self._device:
                 self._model.setup_caches(
-                    batch_size=self._cfg.batch_size,
+                    batch_size=self._batch_size,
                     dtype=self._dtype,
-                    decoder_max_seq_len=self._cfg.max_seq_len
+                    decoder_max_seq_len=self._max_seq_length
                     + model_eval_wrapper.max_gen_toks,
                 )
 
