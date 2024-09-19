@@ -263,7 +263,7 @@ class TransformerCrossAttentionLayer(nn.Module):
         skip_mask = self._skip_mask(encoder_mask)
         if encoder_mask is not None:
             # TODO: remove after PyTorch 2.5 is released
-            # This unmasks the skipped rows to avoid NaNs in SPDA Softmax backward
+            # This unmasks the skipped rows to avoid NaNs in SDPA Softmax backward
             # This doesn't affect the output since outputs are masked out later
             encoder_mask = encoder_mask.masked_fill(skip_mask, True)
 

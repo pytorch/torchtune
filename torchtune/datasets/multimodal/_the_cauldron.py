@@ -25,27 +25,33 @@ class TheCauldronToMessages(Transform):
         {
             "texts": [
                 {
-                    "user": Q,
-                    "assistant": A,
+                    "user": "What are in these images.",
+                    "assistant": "They are images of dogs.",
                 },
                 ...
             ],
             "images": [
-                [PIL.Image.Image],
+                [PIL.Image.Image, PIL.Image.Image],
             ],
         }
 
     will be converted to::
 
         [
-            {
-                "role": "system" | "user" | "assistant",
-                "content":
-                    [
-                        {"type": "image", "content": <PIL.Image.Image>},
-                        {"type": "text", "content": "This is a sample image."},
-                    ],
-            },
+            Message(
+                role = "user",
+                content = [
+                    {"type": "image", "content": <PIL.Image.Image>},
+                    {"type": "image", "content": <PIL.Image.Image>},
+                    {"type": "text", "content": "What are in these images."},
+                ],
+            ),
+            Message(
+                role = "assistant",
+                content = [
+                    {"type": "text", "content": "They are images of dogs."},
+                ],
+            ),
             ...
         ]
 
