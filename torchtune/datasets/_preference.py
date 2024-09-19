@@ -221,6 +221,7 @@ def preference_dataset(
     Examples:
 
     ::
+
         my_preference_dataset.json
         [
             {
@@ -243,23 +244,23 @@ def preference_dataset(
 
     ::
 
-    >>> from torchtune.datasets import preference_dataset
-    >>> column_map = {
-    ...     "chosen": "chosen_conversations",
-    ...     "rejected": "rejected_conversations"
-    >>> }
-    >>> dataset = preference_dataset(
-    ...     tokenizer=tokenizer,
-    ...     source="json",
-    ...     column_map=column_map,
-    ...     data_files=my_preference_dataset.json,
-    ...     train_on_input=False,
-    ...     split="train",
-    >>> )
-    >>> tokenizer.decode(dataset[0]["chosen_input_ids"], skip_special_tokens=True)
-    What do I do when I have a hole in my trousers?Fix the hole.
-    >>> tokenizer.decode(dataset[0]["rejected_input_ids"], skip_special_tokens=True)
-    What do I do when I have a hole in my trousers?Take them off.
+        >>> from torchtune.datasets import preference_dataset
+        >>> column_map = {
+        ...     "chosen": "chosen_conversations",
+        ...     "rejected": "rejected_conversations"
+        >>> }
+        >>> dataset = preference_dataset(
+        ...     tokenizer=tokenizer,
+        ...     source="json",
+        ...     column_map=column_map,
+        ...     data_files=my_preference_dataset.json,
+        ...     train_on_input=False,
+        ...     split="train",
+        >>> )
+        >>> tokenizer.decode(dataset[0]["chosen_input_ids"], skip_special_tokens=True)
+        What do I do when I have a hole in my trousers?Fix the hole.
+        >>> tokenizer.decode(dataset[0]["rejected_input_ids"], skip_special_tokens=True)
+        What do I do when I have a hole in my trousers?Take them off.
 
     This can also be accomplished via the yaml config:
 
@@ -274,6 +275,7 @@ def preference_dataset(
             rejected: rejected_conversations
           train_on_input: False
           split: train
+
 
     Returns:
         PreferenceDataset: The preference dataset built from source paired data.
