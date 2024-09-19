@@ -62,8 +62,6 @@ lr_scheduler:
 
 loss:
   _component_: torchtune.rlhf.loss.DPOLoss
-  beta: 0.1
-  label_smoothing: 0
 
 # Training
 epochs: 1

@@ -21,6 +21,7 @@ torchtune supports several widely used text-only datasets to help quickly bootst
     alpaca_dataset
     alpaca_cleaned_dataset
     grammar_dataset
+    hh_rlhf_helpful_dataset
     samsum_dataset
     slimorca_dataset
     stack_exchange_paired_dataset
@@ -34,9 +35,10 @@ Multimodal datasets
     :toctree: generated/
     :nosignatures:
 
-    llava_instruct_dataset
-    the_cauldron_dataset
+    multimodal.llava_instruct_dataset
+    multimodal.the_cauldron_dataset
 
+.. _dataset_builders:
 
 Generic dataset builders
 ------------------------
@@ -50,6 +52,7 @@ These are especially useful for specifying from a YAML config.
 
     instruct_dataset
     chat_dataset
+    preference_dataset
     text_completion_dataset
 
 Generic dataset classes

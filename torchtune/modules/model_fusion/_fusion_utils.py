@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import functools
-from typing import List
+from typing import Dict, List
 
 from torch import nn
 
@@ -37,3 +37,33 @@ def register_fusion_module(module: nn.Module):
         return [k for k, v in self.named_parameters()]
 
     module.fusion_params = functools.partial(fusion_params, module)
+
+
+def get_fusion_params(model: nn.Module) -> Dict[str, nn.Parameter]:
+    """
+    Return the subset of parameters from a model that correspond to fused
+    modules. Assumes that any fusion class has defined the
+    :func:`~torchtune.modules.model_fusion.FusionLayer.fusion_params` method.
+
+    Args:
+        model (nn.Module): Instance of model class containing some
+            fusion params.
+
+    Returns:
+        Dict[str, nn.Parameter]: the subset of model's state dict containing
+            only adapter parameters.
+
+    """
+    fusion_params = {}
+    for k, v in model.named_modules():
+        if hasattr(v, "fusion_params") and callable(v.fusion_params):
+            current_fusion_params = v.fusion_params()
+            for n, p in v.named_parameters(recurse=True):
+                if n in current_fusion_params:
+                    full_key = f"{k}.{n}" if k else n
+                    fusion_params.update({full_key: p})
+                    current_fusion_params.remove(n)
+            assert (
+                current_fusion_params == []
+            ), f"Fusion params {current_adapter_params} not converted"
+    return fusion_params

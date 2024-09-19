@@ -57,8 +57,8 @@ class VisionCrossAttentionMask(Transform):
             E.g. for patch_size = 40, a tile of shape (400, 400) will have 10x10 grid of patches
             with shape (40, 40) each.
         image_token_id (int): Token ID of the image special token.
-        encoder_max_seq_len (Optional[int]): Maximum sequence length of the vision sequence, used to
-            pad mask during inference. Defaults to None.
+        max_num_tiles (Optional[int]): Maximum number of tiles in an image, used to
+            pad mask during inference. Defaults to None
     """
 
     def __init__(
@@ -66,13 +66,12 @@ class VisionCrossAttentionMask(Transform):
         tile_size: int,
         patch_size: int,
         image_token_id: int,
-        encoder_max_seq_len: Optional[int] = None,
+        max_num_tiles: Optional[int] = None,
     ):
         patch_grid_size = tile_size // patch_size
         self.patches_per_tile = patch_grid_size**2
         self.image_token_id = image_token_id
-
-        self.encoder_max_seq_len = encoder_max_seq_len
+        self.max_num_tiles = max_num_tiles
 
     def _get_image_attention_intervals(self, tokens: List[int]) -> List[List[int]]:
         """
@@ -164,7 +163,9 @@ class VisionCrossAttentionMask(Transform):
         # which can vary based on number of tiles since they are not yet tile padded.
         # The masks are padded and concatenated together in the batch collator
         text_seq_len = len(tokens)
-        max_image_size = self.encoder_max_seq_len if inference else None
+        max_image_size = None
+        if inference and self.max_num_tiles is not None:
+            max_image_size = self.max_num_tiles * (self.patches_per_tile + 1)
         masks = []
         for image_num, interval in enumerate(intervals):
             # Identify what part of text sequence should be attended
