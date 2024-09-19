@@ -131,7 +131,7 @@ class _EvalWrapper(HFLM):
         maybe_padded_context = torch.nn.functional.pad(
             context,
             (0, 0, 0, self._batch_size - curr_batch_size),
-            value=self._tokenizer.eos_id,
+            value=self._tokenizer.eos_id,  # pad with one of the tokenizer's stop tokens so generation can stop early
         )
 
         temperature = generation_kwargs.get("temperature", 0.0)
