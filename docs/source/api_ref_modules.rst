@@ -19,11 +19,20 @@ Modeling Components and Building Blocks
     RMSNorm
     Fp32LayerNorm
     TanhGate
+    TiedLinear
     TransformerSelfAttentionLayer
     TransformerCrossAttentionLayer
     TransformerDecoder
-    TiedEmbeddingTransformerDecoder
     VisionTransformer
+
+Losses
+------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    loss.CEWithChunkedOutputLoss
 
 Base Tokenizers
 ---------------
@@ -81,6 +90,7 @@ Components for building models that are a fusion of two+ pre-trained models.
     model_fusion.FusionLayer
     model_fusion.FusionEmbedding
     model_fusion.register_fusion_module
+    model_fusion.get_fusion_params
 
 
 Module Utilities
@@ -104,29 +114,3 @@ Functions used for preprocessing images.
 
     transforms.Transform
     transforms.VisionCrossAttentionMask
-
-Reinforcement Learning From Human Feedback (RLHF)
---------------------------------------------------
-Components for RLHF algorithms like PPO.
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
-    rlhf.estimate_advantages
-    rlhf.get_rewards_ppo
-    rlhf.truncate_sequence_at_first_stop_token
-
-Losses
-^^^^^^
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
-   rlhf.loss.PPOLoss
-   rlhf.loss.DPOLoss
-   rlhf.loss.RSOLoss
-   rlhf.loss.IPOLoss
-   rlhf.loss.SimPOLoss
-   loss.CEWithChunkedOutputLoss

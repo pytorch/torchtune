@@ -604,6 +604,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             self._model,
             self._is_rank_zero,
             device=self._device,
+            trainable_only=self._save_adapter_weights_only,
         )
 
         if intermediate_checkpoint:
@@ -628,12 +629,13 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             checkpoint_dict.update({training.ADAPTER_KEY: adapter_state_dict})
 
             # merge the adapter weights and base weights to create the model checkpoint
-            merged_state_dict = get_merged_lora_ckpt(
-                cpu_state_dict,
-                rank=self._lora_rank,
-                alpha=self._lora_alpha,
-            )
-            checkpoint_dict.update({training.MODEL_KEY: merged_state_dict})
+            if not self._save_adapter_weights_only:
+                merged_state_dict = get_merged_lora_ckpt(
+                    cpu_state_dict,
+                    rank=self._lora_rank,
+                    alpha=self._lora_alpha,
+                )
+                checkpoint_dict.update({training.MODEL_KEY: merged_state_dict})
 
             # if training is in-progress, checkpoint the optimizer state and recipe state
             # as well.
@@ -659,6 +661,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 "peft_type": "LORA",
             }
             checkpoint_dict.update({training.ADAPTER_CONFIG: adapter_config})
+            print("saving checkpoint")
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
                 epoch=epoch,

@@ -21,6 +21,11 @@ def get_logger(level: Optional[str] = None) -> logging.Logger:
     Args:
         level (Optional[str]): The logging level. See https://docs.python.org/3/library/logging.html#levels for list of levels.
 
+    Example:
+        >>> logger = get_logger("INFO")
+        >>> logger.info("Hello world!")
+        INFO:torchtune.utils._logging:Hello world!
+
     Returns:
         logging.Logger: The logger.
     """

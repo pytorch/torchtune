@@ -32,7 +32,7 @@ model:
   lora_attn_modules: ['q_proj', 'k_proj', 'v_proj']
   apply_lora_to_mlp: True
   lora_rank: 64
-  lora_alpha: 16
+  lora_alpha: 128
   lora_dropout: 0.0
 
 checkpointer:
@@ -50,11 +50,12 @@ save_adapter_weights_only: False
 
 optimizer:
   _component_: torch.optim.AdamW
+  fused: True
   lr: 2e-5
 
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
-  num_warmup_steps: 100
+  num_warmup_steps: 10
 
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
@@ -71,6 +72,7 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True
+enable_activation_offloading: False
 
 # Reduced precision
 dtype: bf16

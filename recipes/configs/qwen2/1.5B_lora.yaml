@@ -1,5 +1,5 @@
 # Config for multi-device LoRA finetuning in lora_finetune_distributed.py
-# using a Qwen2 0.5B model
+# using a Qwen2 1.5B model
 #
 # This config assumes that you've run the following command before launching
 # this run:
@@ -27,18 +27,18 @@ model:
 
 tokenizer:
   _component_: torchtune.models.qwen2.qwen2_tokenizer
-  path: /tmp/Qwen2-0.5B-Instruct/vocab.json
-  merges_file: /tmp/Qwen2-0.5B-Instruct/merges.txt
+  path: /tmp/Qwen2-1.5B-Instruct/vocab.json
+  merges_file: /tmp/Qwen2-1.5B-Instruct/merges.txt
   max_seq_len: null
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Qwen2-0.5B-Instruct
+  checkpoint_dir: /tmp/Qwen2-1.5B-Instruct
   checkpoint_files: [
     model.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Qwen2-0.5B-Instruct-lora-finetune
+  output_dir: /tmp/Qwen2-1.5B-Instruct-lora-finetune
   model_type: QWEN2
 resume_from_checkpoint: False
 
@@ -52,6 +52,7 @@ batch_size: 2
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
+  fused: True
   lr: 2e-5
 
 lr_scheduler:
@@ -67,7 +68,7 @@ max_steps_per_epoch: null
 gradient_accumulation_steps: 8
 
 # Logging
-output_dir: /tmp/Qwen2-0.5B-Instruct-lora-finetune
+output_dir: /tmp/Qwen2-1.5B-Instruct-lora-finetune
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}

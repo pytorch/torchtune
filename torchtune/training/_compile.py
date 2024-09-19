@@ -5,16 +5,11 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
-from typing import Union
 
 import torch
 from torch import nn
 
-from torchtune.modules import (
-    TiedEmbeddingTransformerDecoder,
-    TransformerDecoder,
-    TransformerSelfAttentionLayer,
-)
+from torchtune.modules import TransformerDecoder, TransformerSelfAttentionLayer
 from torchtune.modules.loss import CEWithChunkedOutputLoss
 from torchtune.utils import get_logger, torch_version_ge
 
@@ -22,7 +17,7 @@ log = get_logger("INFO")
 
 
 def compile_model(
-    model: Union[TransformerDecoder, TiedEmbeddingTransformerDecoder],
+    model: TransformerDecoder,
     verbose: bool = True,
 ) -> None:
     """
@@ -30,7 +25,7 @@ def compile_model(
     to reduce compile times. Otherwise we compile the full model, which takes longer.
 
     Args:
-        model (Union[TransformerDecoder, TiedEmbeddingTransformerDecoder]): A transformer model to compile.
+        model (TransformerDecoder): A transformer model to compile.
         verbose (bool): Whether to log compile info. Default: True
     Returns:
         None
