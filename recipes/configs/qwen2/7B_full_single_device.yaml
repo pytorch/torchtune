@@ -60,7 +60,7 @@ optimizer_in_bwd: True
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
-gradient_accumulation_steps: 16
+gradient_accumulation_steps: 1
 compile: False
 
 # Training environment

@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
+import os
 import runpy
 import sys
 import textwrap
@@ -166,6 +167,11 @@ For a list of all possible recipes, run `tune ls`."""
         # Prepare args
         args.recipe = recipe_path
         args.recipe_args[config_idx] = config_path
+
+        # Make sure user code in current directory is importable
+        # TODO: This is a temporary fix, figure out how to make runpy and torchrun
+        # run from this directory
+        sys.path.append(os.getcwd())
 
         # Execute recipe
         if self._is_distributed_args(args):

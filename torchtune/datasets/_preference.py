@@ -4,13 +4,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List, Mapping
+from typing import Any, Dict, List, Mapping, Optional
 
 import numpy as np
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
-from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.data import ChosenRejectedToMessages, CROSS_ENTROPY_IGNORE_IDX
 
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
@@ -35,8 +35,11 @@ class PreferenceDataset(Dataset):
         |----------|----------|------------|
         |  Q1      |  A1      |  A2        |
 
-    At a high level, this class will load the data from source and apply the following pre-processing steps
-    when a sample is retrieved:
+
+    In the above case when the format is prompt-chosen-rejected, only single-turn interactions are supported.
+
+    At a high level, this class will load the data from source and apply the following pre-processing steps when a
+    sample is retrieved:
 
     1. Dataset-specific transform. This is typically unique to each dataset and extracts
        the necessary prompt and chosen/rejected columns into torchtune's :class:`~torchtune.data.Message`
@@ -137,3 +140,157 @@ class PreferenceDataset(Dataset):
         )
 
         return tokenized_dict
+
+
+def preference_dataset(
+    tokenizer: ModelTokenizer,
+    *,
+    source: str,
+    column_map: Optional[Dict[str, str]] = None,
+    train_on_input: bool = False,
+    new_system_prompt: Optional[str] = None,
+    split: str = "train",
+    **load_dataset_kwargs: Dict[str, Any],
+) -> PreferenceDataset:
+    """
+    Configures a custom preference dataset comprising interactions between user and
+    model assistant.
+
+    This builder function can be used to configure a custom preference dataset directly from the yaml config
+    as an alternative to :class:`~torchtune.datasets.PreferenceDataset`, as it is made to be config friendly.
+
+    This function requires the dataset to have "chosen" and "rejected" columns. A single sample will share an
+    identical system +/ user prompt between both "chosen" and "rejected" columns, followed by one or multiple
+    turns of user and assistant messages::
+
+        |  chosen                                |  rejected                              |
+        |----------------------------------------|----------------------------------------|
+        | [{"role": "user", "content": Q1},      | [{"role": "user", "content": Q1},      |
+        |  {"role": "assistant", "content": C1}] |  {"role": "assistant", "content": R1}] |
+
+
+    This example will be converted to:
+
+    .. code-block:: python
+
+        chosen_messages = [
+            Message(role="user", content="Q1"),
+            Message(role="assistant", content="C1"),
+        ]
+
+        rejected_messages = [
+            Message(role="user", content="Q1"),
+            Message(role="assistant", content="R1"),
+        ]
+
+
+    These lists of messages are then tokenized for model training. Currently, this function only supports
+    conversations identical to :class:`~torchtune.data.JSONToMessages`, and does not support custom
+    message formats.
+
+    If your dataset does not follow this format, we recommend creating a custom message transform similar to
+    :class:`~torchtune.data.ChosenRejectedToMessages` and using it in a custom dataset builder function similar
+    to :class:`~torchtune.datasets.preference_dataset`.
+
+    Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is:
+    set to ``False`` by default.
+
+    - If ``train_on_input`` is True, the prompt is used during training and
+      contributes to the loss.
+    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100).
+
+    Args:
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
+        source (str): path to dataset repository on Hugging Face. For local datasets,
+            define source as the data file type (e.g. "json", "csv", "text"), pass
+            in the filepath in ``data_files``, and set ``split="train"``. See `Hugging Face's
+            <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
+            ``load_dataset`` for more details.
+        column_map (Optional[Dict[str, str]]): a mapping from the expected columns "chosen" and "rejected"
+            in the message transform :class:`~torchtune.data.ChosenRejectedToMessages` to the new column names in
+            the dataset. Keys should be "chosen" and "rejected" and values should be the actual column names.
+            If None, keep the default columns "chosen" and "rejected".
+        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        new_system_prompt (Optional[str]): if specified, prepend a system message to every sample for both chosen
+            and rejected. This can serve as instructions to guide the model response. Setting this will OVERRIDE
+            any system messages already present in the dataset. Default is None.
+        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
+            of a given split, e.g. ``split="train[:10%]"``. Default is "train".
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
+
+    Examples:
+
+    ::
+
+        my_preference_dataset.json
+        [
+            {
+                "chosen_conversations": [
+                    {
+                        "content": "What do I do when I have a hole in my trousers?",
+                        "role": "user"
+                    },
+                    { "content": "Fix the hole.", "role": "assistant" }
+                ],
+                "rejected_conversations": [
+                    {
+                        "content": "What do I do when I have a hole in my trousers?",
+                        "role": "user"
+                    },
+                    { "content": "Take them off.", "role": "assistant" }
+                ]
+            }
+        ]
+
+    ::
+
+        >>> from torchtune.datasets import preference_dataset
+        >>> column_map = {
+        ...     "chosen": "chosen_conversations",
+        ...     "rejected": "rejected_conversations"
+        >>> }
+        >>> dataset = preference_dataset(
+        ...     tokenizer=tokenizer,
+        ...     source="json",
+        ...     column_map=column_map,
+        ...     data_files=my_preference_dataset.json,
+        ...     train_on_input=False,
+        ...     split="train",
+        >>> )
+        >>> tokenizer.decode(dataset[0]["chosen_input_ids"], skip_special_tokens=True)
+        What do I do when I have a hole in my trousers?Fix the hole.
+        >>> tokenizer.decode(dataset[0]["rejected_input_ids"], skip_special_tokens=True)
+        What do I do when I have a hole in my trousers?Take them off.
+
+    This can also be accomplished via the yaml config:
+
+    .. code-block:: yaml
+
+        dataset:
+          _component_: torchtune.datasets.preference_dataset
+          source: json
+          data_files: my_preference_dataset.json
+          column_map:
+            chosen: chosen_conversations
+            rejected: rejected_conversations
+          train_on_input: False
+          split: train
+
+
+    Returns:
+        PreferenceDataset: The preference dataset built from source paired data.
+    """
+
+    message_transform = ChosenRejectedToMessages(
+        train_on_input=train_on_input,
+        column_map=column_map,
+        new_system_prompt=new_system_prompt,
+    )
+
+    return PreferenceDataset(
+        source=source,
+        message_transform=message_transform,
+        tokenizer=tokenizer,
+        split=split,
+        **load_dataset_kwargs,
+    )
