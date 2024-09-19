@@ -577,10 +577,11 @@
 <span class="sd">    towards the column with the conversations.</span>
 
 <span class="sd">    Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is</span>
-<span class="sd">    set to ``False`` by default</span>
+<span class="sd">    set to ``False`` by default.</span>
+
 <span class="sd">    - If ``train_on_input`` is True, the prompt is used during training and</span>
-<span class="sd">    contributes to the loss.</span>
-<span class="sd">    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)</span>
+<span class="sd">      contributes to the loss.</span>
+<span class="sd">    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100).</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.</span>

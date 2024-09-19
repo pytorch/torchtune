@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>PreferenceDataset &mdash; torchtune main documentation</title>
+  <title>preference_dataset &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="SFTDataset" href="torchtune.datasets.SFTDataset.html" />
-    <link rel="prev" title="PackedDataset" href="torchtune.datasets.PackedDataset.html" />
+    <link rel="next" title="text_completion_dataset" href="torchtune.datasets.text_completion_dataset.html" />
+    <link rel="prev" title="chat_dataset" href="torchtune.datasets.chat_dataset.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -387,13 +387,13 @@
         
           <li><a href="../api_ref_datasets.html">torchtune.datasets</a> &gt;</li>
         
-      <li>PreferenceDataset</li>
+      <li>preference_dataset</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.datasets.PreferenceDataset.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.datasets.preference_dataset.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -423,80 +423,130 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="preferencedataset">
-<h1>PreferenceDataset<a class="headerlink" href="#preferencedataset" title="Permalink to this heading">¶</a></h1>
-<dl class="py class">
-<dt class="sig sig-object py" id="torchtune.datasets.PreferenceDataset">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.datasets.</span></span><span class="sig-name descname"><span class="pre">PreferenceDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="torchtune.modules.transforms.Transform.html#torchtune.modules.transforms.Transform" title="torchtune.modules.transforms._transforms.Transform"><span class="pre">Transform</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer" title="torchtune.modules.tokenizers._utils.ModelTokenizer"><span class="pre">ModelTokenizer</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">load_dataset_kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/datasets/_preference.html#PreferenceDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.datasets.PreferenceDataset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Primary class for fine-tuning via preference modelling techniques (e.g. training
-a preference model for RLHF, or directly optimizing a model through DPO) on a
-preference dataset sourced from Hugging Face Hub, local files, or remote files. This
-class requires the dataset to have “chosen” and “rejected” model responses. These are
-typically either full conversations between user and assistant in separate columns:</p>
+  <section id="preference-dataset">
+<h1>preference_dataset<a class="headerlink" href="#preference-dataset" title="Permalink to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="torchtune.datasets.preference_dataset">
+<span class="sig-prename descclassname"><span class="pre">torchtune.datasets.</span></span><span class="sig-name descname"><span class="pre">preference_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer" title="torchtune.modules.tokenizers._utils.ModelTokenizer"><span class="pre">ModelTokenizer</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_on_input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_system_prompt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'train'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">load_dataset_kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.datasets.PreferenceDataset.html#torchtune.datasets.PreferenceDataset" title="torchtune.datasets._preference.PreferenceDataset"><span class="pre">PreferenceDataset</span></a></span></span><a class="reference internal" href="../_modules/torchtune/datasets/_preference.html#preference_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.datasets.preference_dataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configures a custom preference dataset comprising interactions between user and
+model assistant.</p>
+<p>This builder function can be used to configure a custom preference dataset directly from the yaml config
+as an alternative to <a class="reference internal" href="torchtune.datasets.PreferenceDataset.html#torchtune.datasets.PreferenceDataset" title="torchtune.datasets.PreferenceDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">PreferenceDataset</span></code></a>, as it is made to be config friendly.</p>
+<p>This function requires the dataset to have “chosen” and “rejected” columns. A single sample will share an
+identical system +/ user prompt between both “chosen” and “rejected” columns, followed by one or multiple
+turns of user and assistant messages:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>  <span class="n">chosen</span>                                <span class="o">|</span>  <span class="n">rejected</span>                              <span class="o">|</span>
 <span class="o">|----------------------------------------|----------------------------------------|</span>
 <span class="o">|</span> <span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">Q1</span><span class="p">},</span>      <span class="o">|</span> <span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">Q1</span><span class="p">},</span>      <span class="o">|</span>
-<span class="o">|</span>  <span class="p">{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">A1</span><span class="p">}]</span> <span class="o">|</span>  <span class="p">{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">A2</span><span class="p">}]</span> <span class="o">|</span>
+<span class="o">|</span>  <span class="p">{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">C1</span><span class="p">}]</span> <span class="o">|</span>  <span class="p">{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">R1</span><span class="p">}]</span> <span class="o">|</span>
 </pre></div>
 </div>
-<p>or a user prompt column with separate chosen and rejected assistant reponses:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>  <span class="n">prompt</span>  <span class="o">|</span>  <span class="n">chosen</span>  <span class="o">|</span>  <span class="n">rejected</span>  <span class="o">|</span>
-<span class="o">|----------|----------|------------|</span>
-<span class="o">|</span>  <span class="n">Q1</span>      <span class="o">|</span>  <span class="n">A1</span>      <span class="o">|</span>  <span class="n">A2</span>        <span class="o">|</span>
-</pre></div>
-</div>
-<p>In the above case when the format is prompt-chosen-rejected, only single-turn interactions are supported.</p>
-<p>At a high level, this class will load the data from source and apply the following pre-processing steps when a
-sample is retrieved:</p>
-<ol class="arabic simple">
-<li><p>Dataset-specific transform. This is typically unique to each dataset and extracts
-the necessary prompt and chosen/rejected columns into torchtune’s <a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a>
-format, a standardized API for all model tokenizers.</p></li>
-<li><p>Tokenization with optional prompt template if configured</p></li>
-</ol>
-<p>All datasets are formatted into a list of <a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a>
-because preference datasets can be considered as chosen and rejected “conversations”
-with the model, or AI assistant. Thus, we can standardize all text content as messages
-in a conversation assigned to a role:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">&quot;user&quot;</span></code> messages contain the input prompt into the model</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">&quot;assistant&quot;</span></code> messages are the response of the model and what you actually want
-to train for and compute loss directly against</p></li>
-</ul>
-<p>The <a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> forms the core data unit that all tokenizer
-APIs expect. The key component of this class that ensures any dataset is transformed
-into this format is the <code class="docutils literal notranslate"><span class="pre">message_transform</span></code>. This is a callable class that takes
-in a sample dictionary - typically a single row from the source dataset - that
-processes the sample in any configurable way to output a list of messages:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
-    <span class="n">Message</span><span class="p">(</span>
-        <span class="n">role</span><span class="o">=&lt;</span><span class="n">system</span><span class="o">|</span><span class="n">user</span><span class="o">|</span><span class="n">assistant</span><span class="o">|</span><span class="n">ipython</span><span class="o">&gt;</span><span class="p">,</span>
-        <span class="n">content</span><span class="o">=&lt;</span><span class="n">message</span><span class="o">&gt;</span><span class="p">,</span>
-    <span class="p">),</span>
-    <span class="o">...</span>
+<p>This example will be converted to:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">chosen_messages</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="s2">&quot;Q1&quot;</span><span class="p">),</span>
+    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="s2">&quot;C1&quot;</span><span class="p">),</span>
+<span class="p">]</span>
+
+<span class="n">rejected_messages</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="s2">&quot;Q1&quot;</span><span class="p">),</span>
+    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="s2">&quot;R1&quot;</span><span class="p">),</span>
 <span class="p">]</span>
 </pre></div>
 </div>
-<p>For any custom dataset, use the <code class="docutils literal notranslate"><span class="pre">message_transform</span></code> to contain all pre-processing to
-return the list of messages.</p>
+<p>These lists of messages are then tokenized for model training. Currently, this function only supports
+conversations identical to <a class="reference internal" href="torchtune.data.JSONToMessages.html#torchtune.data.JSONToMessages" title="torchtune.data.JSONToMessages"><code class="xref py py-class docutils literal notranslate"><span class="pre">JSONToMessages</span></code></a>, and does not support custom
+message formats.</p>
+<p>If your dataset does not follow this format, we recommend creating a custom message transform similar to
+<a class="reference internal" href="torchtune.data.ChosenRejectedToMessages.html#torchtune.data.ChosenRejectedToMessages" title="torchtune.data.ChosenRejectedToMessages"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChosenRejectedToMessages</span></code></a> and using it in a custom dataset builder function similar
+to <a class="reference internal" href="#torchtune.datasets.preference_dataset" title="torchtune.datasets.preference_dataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">preference_dataset</span></code></a>.</p>
+<p>Masking of the prompt during training is controlled by the <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> flag, which is:
+set to <code class="docutils literal notranslate"><span class="pre">False</span></code> by default.</p>
+<ul class="simple">
+<li><p>If <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> is True, the prompt is used during training and
+contributes to the loss.</p></li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> is False, the prompt is masked out (tokens replaced with -100).</p></li>
+</ul>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
+<li><p><strong>tokenizer</strong> (<a class="reference internal" href="torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer" title="torchtune.modules.tokenizers.ModelTokenizer"><em>ModelTokenizer</em></a>) – Tokenizer used by the model that implements the <code class="docutils literal notranslate"><span class="pre">tokenize_messages</span></code> method.</p></li>
 <li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path to dataset repository on Hugging Face. For local datasets,
-define source as the data file type (e.g. “json”, “csv”, “text”) and pass
-in the filepath in <code class="docutils literal notranslate"><span class="pre">data_files</span></code>. See <a class="reference external" href="https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path">Hugging Face’s</a>
+define source as the data file type (e.g. “json”, “csv”, “text”), pass
+in the filepath in <code class="docutils literal notranslate"><span class="pre">data_files</span></code>, and set <code class="docutils literal notranslate"><span class="pre">split=&quot;train&quot;</span></code>. See <a class="reference external" href="https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path">Hugging Face’s</a>
 <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code> for more details.</p></li>
-<li><p><strong>message_transform</strong> (<a class="reference internal" href="torchtune.modules.transforms.Transform.html#torchtune.modules.transforms.Transform" title="torchtune.modules.transforms.Transform"><em>Transform</em></a>) – callable that keys into the desired fields in the sample
-and converts text content to a list of <a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a>. It is expected that the final list
-of messages are stored in the <code class="docutils literal notranslate"><span class="pre">&quot;chosen&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;rejected&quot;</span></code> keys.</p></li>
-<li><p><strong>tokenizer</strong> (<a class="reference internal" href="torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer" title="torchtune.modules.tokenizers.ModelTokenizer"><em>ModelTokenizer</em></a>) – Tokenizer used by the model that implements the <code class="docutils literal notranslate"><span class="pre">tokenize_messages</span></code> method.
-Since PreferenceDataset only supports text data, it requires a
-<a class="reference internal" href="torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer" title="torchtune.modules.tokenizers.ModelTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModelTokenizer</span></code></a> instead of the <code class="docutils literal notranslate"><span class="pre">model_transform</span></code> in
-<a class="reference internal" href="torchtune.datasets.SFTDataset.html#torchtune.datasets.SFTDataset" title="torchtune.datasets.SFTDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">SFTDataset</span></code></a>.</p></li>
-<li><p><strong>**load_dataset_kwargs</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – additional keyword arguments to pass to <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>. See Hugging
-Face’s <a class="reference external" href="https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset">API ref</a>
-for more details.</p></li>
+<li><p><strong>column_map</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em><em>]</em>) – a mapping from the expected columns “chosen” and “rejected”
+in the message transform <a class="reference internal" href="torchtune.data.ChosenRejectedToMessages.html#torchtune.data.ChosenRejectedToMessages" title="torchtune.data.ChosenRejectedToMessages"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChosenRejectedToMessages</span></code></a> to the new column names in
+the dataset. Keys should be “chosen” and “rejected” and values should be the actual column names.
+If None, keep the default columns “chosen” and “rejected”.</p></li>
+<li><p><strong>train_on_input</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – Whether the model is trained on the prompt or not. Default is False.</p></li>
+<li><p><strong>new_system_prompt</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – if specified, prepend a system message to every sample for both chosen
+and rejected. This can serve as instructions to guide the model response. Setting this will OVERRIDE
+any system messages already present in the dataset. Default is None.</p></li>
+<li><p><strong>split</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – <code class="docutils literal notranslate"><span class="pre">split</span></code> argument for <code class="docutils literal notranslate"><span class="pre">datasets.load_dataset</span></code>. You can use this argument to load a subset
+of a given split, e.g. <code class="docutils literal notranslate"><span class="pre">split=&quot;train[:10%]&quot;</span></code>. Default is “train”.</p></li>
+<li><p><strong>**load_dataset_kwargs</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – additional keyword arguments to pass to <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>.</p></li>
 </ul>
+</dd>
+</dl>
+<p>Examples:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">my_preference_dataset</span><span class="o">.</span><span class="n">json</span>
+<span class="p">[</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;chosen_conversations&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;What do I do when I have a hole in my trousers?&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span>
+            <span class="p">},</span>
+            <span class="p">{</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;Fix the hole.&quot;</span><span class="p">,</span> <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;assistant&quot;</span> <span class="p">}</span>
+        <span class="p">],</span>
+        <span class="s2">&quot;rejected_conversations&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;What do I do when I have a hole in my trousers?&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span>
+            <span class="p">},</span>
+            <span class="p">{</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;Take them off.&quot;</span><span class="p">,</span> <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;assistant&quot;</span> <span class="p">}</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">preference_dataset</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">column_map</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>    <span class="s2">&quot;chosen&quot;</span><span class="p">:</span> <span class="s2">&quot;chosen_conversations&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s2">&quot;rejected&quot;</span><span class="p">:</span> <span class="s2">&quot;rejected_conversations&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">preference_dataset</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">source</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">column_map</span><span class="o">=</span><span class="n">column_map</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">data_files</span><span class="o">=</span><span class="n">my_preference_dataset</span><span class="o">.</span><span class="n">json</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">train_on_input</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">dataset</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;chosen_input_ids&quot;</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">What do I do when I have a hole in my trousers?Fix the hole.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">dataset</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;rejected_input_ids&quot;</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">What do I do when I have a hole in my trousers?Take them off.</span>
+</pre></div>
+</div>
+<p>This can also be accomplished via the yaml config:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.preference_dataset</span>
+<span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">json</span>
+<span class="w">  </span><span class="nt">data_files</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my_preference_dataset.json</span>
+<span class="w">  </span><span class="nt">column_map</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">chosen</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">chosen_conversations</span>
+<span class="w">    </span><span class="nt">rejected</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rejected_conversations</span>
+<span class="w">  </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
+<span class="w">  </span><span class="nt">split</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">train</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The preference dataset built from source paired data.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="torchtune.datasets.PreferenceDataset.html#torchtune.datasets.PreferenceDataset" title="torchtune.datasets.PreferenceDataset">PreferenceDataset</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -511,10 +561,10 @@ for more details.</p></li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.datasets.SFTDataset.html" class="btn btn-neutral float-right" title="SFTDataset" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.datasets.text_completion_dataset.html" class="btn btn-neutral float-right" title="text_completion_dataset" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.datasets.PackedDataset.html" class="btn btn-neutral" title="PackedDataset" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.datasets.chat_dataset.html" class="btn btn-neutral" title="chat_dataset" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -546,7 +596,7 @@ for more details.</p></li>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">PreferenceDataset</a></li>
+<li><a class="reference internal" href="#">preference_dataset</a></li>
 </ul>
 
             </div>

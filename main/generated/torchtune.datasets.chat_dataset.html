@@ -41,7 +41,7 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="text_completion_dataset" href="torchtune.datasets.text_completion_dataset.html" />
+    <link rel="next" title="preference_dataset" href="torchtune.datasets.preference_dataset.html" />
     <link rel="prev" title="instruct_dataset" href="torchtune.datasets.instruct_dataset.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -455,10 +455,12 @@ builder function similar to <a class="reference internal" href="#torchtune.datas
 <p>If your column names are different, use the <code class="docutils literal notranslate"><span class="pre">conversation_column</span></code> parameter to point
 towards the column with the conversations.</p>
 <p>Masking of the prompt during training is controlled by the <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> flag, which is
-set to <code class="docutils literal notranslate"><span class="pre">False</span></code> by default
-- If <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> is True, the prompt is used during training and
-contributes to the loss.
-- If <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> is False, the prompt is masked out (tokens replaced with -100)</p>
+set to <code class="docutils literal notranslate"><span class="pre">False</span></code> by default.</p>
+<ul class="simple">
+<li><p>If <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> is True, the prompt is used during training and
+contributes to the loss.</p></li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> is False, the prompt is masked out (tokens replaced with -100).</p></li>
+</ul>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -557,7 +559,7 @@ such as <code class="docutils literal notranslate"><span class="pre">data_files<
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.datasets.text_completion_dataset.html" class="btn btn-neutral float-right" title="text_completion_dataset" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.datasets.preference_dataset.html" class="btn btn-neutral float-right" title="preference_dataset" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="torchtune.datasets.instruct_dataset.html" class="btn btn-neutral" title="instruct_dataset" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>

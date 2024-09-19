@@ -423,13 +423,13 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">datasets</span> <span class="kn">import</span> <span class="n">load_dataset</span>
 <span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span>
+<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">ChosenRejectedToMessages</span><span class="p">,</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">ModelTokenizer</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
@@ -454,8 +454,11 @@
 <span class="sd">        |----------|----------|------------|</span>
 <span class="sd">        |  Q1      |  A1      |  A2        |</span>
 
-<span class="sd">    At a high level, this class will load the data from source and apply the following pre-processing steps</span>
-<span class="sd">    when a sample is retrieved:</span>
+
+<span class="sd">    In the above case when the format is prompt-chosen-rejected, only single-turn interactions are supported.</span>
+
+<span class="sd">    At a high level, this class will load the data from source and apply the following pre-processing steps when a</span>
+<span class="sd">    sample is retrieved:</span>
 
 <span class="sd">    1. Dataset-specific transform. This is typically unique to each dataset and extracts</span>
 <span class="sd">       the necessary prompt and chosen/rejected columns into torchtune&#39;s :class:`~torchtune.data.Message`</span>
@@ -556,6 +559,160 @@
         <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">tokenized_dict</span></div>
+
+
+<div class="viewcode-block" id="preference_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.preference_dataset.html#torchtune.datasets.preference_dataset">[docs]</a><span class="k">def</span> <span class="nf">preference_dataset</span><span class="p">(</span>
+    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">split</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PreferenceDataset</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Configures a custom preference dataset comprising interactions between user and</span>
+<span class="sd">    model assistant.</span>
+
+<span class="sd">    This builder function can be used to configure a custom preference dataset directly from the yaml config</span>
+<span class="sd">    as an alternative to :class:`~torchtune.datasets.PreferenceDataset`, as it is made to be config friendly.</span>
+
+<span class="sd">    This function requires the dataset to have &quot;chosen&quot; and &quot;rejected&quot; columns. A single sample will share an</span>
+<span class="sd">    identical system +/ user prompt between both &quot;chosen&quot; and &quot;rejected&quot; columns, followed by one or multiple</span>
+<span class="sd">    turns of user and assistant messages::</span>
+
+<span class="sd">        |  chosen                                |  rejected                              |</span>
+<span class="sd">        |----------------------------------------|----------------------------------------|</span>
+<span class="sd">        | [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: Q1},      | [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: Q1},      |</span>
+<span class="sd">        |  {&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: C1}] |  {&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: R1}] |</span>
+
+
+<span class="sd">    This example will be converted to:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        chosen_messages = [</span>
+<span class="sd">            Message(role=&quot;user&quot;, content=&quot;Q1&quot;),</span>
+<span class="sd">            Message(role=&quot;assistant&quot;, content=&quot;C1&quot;),</span>
+<span class="sd">        ]</span>
+
+<span class="sd">        rejected_messages = [</span>
+<span class="sd">            Message(role=&quot;user&quot;, content=&quot;Q1&quot;),</span>
+<span class="sd">            Message(role=&quot;assistant&quot;, content=&quot;R1&quot;),</span>
+<span class="sd">        ]</span>
+
+
+<span class="sd">    These lists of messages are then tokenized for model training. Currently, this function only supports</span>
+<span class="sd">    conversations identical to :class:`~torchtune.data.JSONToMessages`, and does not support custom</span>
+<span class="sd">    message formats.</span>
+
+<span class="sd">    If your dataset does not follow this format, we recommend creating a custom message transform similar to</span>
+<span class="sd">    :class:`~torchtune.data.ChosenRejectedToMessages` and using it in a custom dataset builder function similar</span>
+<span class="sd">    to :class:`~torchtune.datasets.preference_dataset`.</span>
+
+<span class="sd">    Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is:</span>
+<span class="sd">    set to ``False`` by default.</span>
+
+<span class="sd">    - If ``train_on_input`` is True, the prompt is used during training and</span>
+<span class="sd">      contributes to the loss.</span>
+<span class="sd">    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.</span>
+<span class="sd">        source (str): path to dataset repository on Hugging Face. For local datasets,</span>
+<span class="sd">            define source as the data file type (e.g. &quot;json&quot;, &quot;csv&quot;, &quot;text&quot;), pass</span>
+<span class="sd">            in the filepath in ``data_files``, and set ``split=&quot;train&quot;``. See `Hugging Face&#39;s</span>
+<span class="sd">            &lt;https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path&gt;`_</span>
+<span class="sd">            ``load_dataset`` for more details.</span>
+<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected columns &quot;chosen&quot; and &quot;rejected&quot;</span>
+<span class="sd">            in the message transform :class:`~torchtune.data.ChosenRejectedToMessages` to the new column names in</span>
+<span class="sd">            the dataset. Keys should be &quot;chosen&quot; and &quot;rejected&quot; and values should be the actual column names.</span>
+<span class="sd">            If None, keep the default columns &quot;chosen&quot; and &quot;rejected&quot;.</span>
+<span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
+<span class="sd">        new_system_prompt (Optional[str]): if specified, prepend a system message to every sample for both chosen</span>
+<span class="sd">            and rejected. This can serve as instructions to guide the model response. Setting this will OVERRIDE</span>
+<span class="sd">            any system messages already present in the dataset. Default is None.</span>
+<span class="sd">        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset</span>
+<span class="sd">            of a given split, e.g. ``split=&quot;train[:10%]&quot;``. Default is &quot;train&quot;.</span>
+<span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.</span>
+
+<span class="sd">    Examples:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        my_preference_dataset.json</span>
+<span class="sd">        [</span>
+<span class="sd">            {</span>
+<span class="sd">                &quot;chosen_conversations&quot;: [</span>
+<span class="sd">                    {</span>
+<span class="sd">                        &quot;content&quot;: &quot;What do I do when I have a hole in my trousers?&quot;,</span>
+<span class="sd">                        &quot;role&quot;: &quot;user&quot;</span>
+<span class="sd">                    },</span>
+<span class="sd">                    { &quot;content&quot;: &quot;Fix the hole.&quot;, &quot;role&quot;: &quot;assistant&quot; }</span>
+<span class="sd">                ],</span>
+<span class="sd">                &quot;rejected_conversations&quot;: [</span>
+<span class="sd">                    {</span>
+<span class="sd">                        &quot;content&quot;: &quot;What do I do when I have a hole in my trousers?&quot;,</span>
+<span class="sd">                        &quot;role&quot;: &quot;user&quot;</span>
+<span class="sd">                    },</span>
+<span class="sd">                    { &quot;content&quot;: &quot;Take them off.&quot;, &quot;role&quot;: &quot;assistant&quot; }</span>
+<span class="sd">                ]</span>
+<span class="sd">            }</span>
+<span class="sd">        ]</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        &gt;&gt;&gt; from torchtune.datasets import preference_dataset</span>
+<span class="sd">        &gt;&gt;&gt; column_map = {</span>
+<span class="sd">        ...     &quot;chosen&quot;: &quot;chosen_conversations&quot;,</span>
+<span class="sd">        ...     &quot;rejected&quot;: &quot;rejected_conversations&quot;</span>
+<span class="sd">        &gt;&gt;&gt; }</span>
+<span class="sd">        &gt;&gt;&gt; dataset = preference_dataset(</span>
+<span class="sd">        ...     tokenizer=tokenizer,</span>
+<span class="sd">        ...     source=&quot;json&quot;,</span>
+<span class="sd">        ...     column_map=column_map,</span>
+<span class="sd">        ...     data_files=my_preference_dataset.json,</span>
+<span class="sd">        ...     train_on_input=False,</span>
+<span class="sd">        ...     split=&quot;train&quot;,</span>
+<span class="sd">        &gt;&gt;&gt; )</span>
+<span class="sd">        &gt;&gt;&gt; tokenizer.decode(dataset[0][&quot;chosen_input_ids&quot;], skip_special_tokens=True)</span>
+<span class="sd">        What do I do when I have a hole in my trousers?Fix the hole.</span>
+<span class="sd">        &gt;&gt;&gt; tokenizer.decode(dataset[0][&quot;rejected_input_ids&quot;], skip_special_tokens=True)</span>
+<span class="sd">        What do I do when I have a hole in my trousers?Take them off.</span>
+
+<span class="sd">    This can also be accomplished via the yaml config:</span>
+
+<span class="sd">    .. code-block:: yaml</span>
+
+<span class="sd">        dataset:</span>
+<span class="sd">          _component_: torchtune.datasets.preference_dataset</span>
+<span class="sd">          source: json</span>
+<span class="sd">          data_files: my_preference_dataset.json</span>
+<span class="sd">          column_map:</span>
+<span class="sd">            chosen: chosen_conversations</span>
+<span class="sd">            rejected: rejected_conversations</span>
+<span class="sd">          train_on_input: False</span>
+<span class="sd">          split: train</span>
+
+
+<span class="sd">    Returns:</span>
+<span class="sd">        PreferenceDataset: The preference dataset built from source paired data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">message_transform</span> <span class="o">=</span> <span class="n">ChosenRejectedToMessages</span><span class="p">(</span>
+        <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
+        <span class="n">column_map</span><span class="o">=</span><span class="n">column_map</span><span class="p">,</span>
+        <span class="n">new_system_prompt</span><span class="o">=</span><span class="n">new_system_prompt</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">PreferenceDataset</span><span class="p">(</span>
+        <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
+        <span class="n">message_transform</span><span class="o">=</span><span class="n">message_transform</span><span class="p">,</span>
+        <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+        <span class="n">split</span><span class="o">=</span><span class="n">split</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">,</span>
+    <span class="p">)</span></div>
 </pre></div>
 
              </article>
