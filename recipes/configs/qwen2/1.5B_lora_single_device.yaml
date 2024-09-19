@@ -23,6 +23,7 @@ model:
   apply_lora_to_mlp: False
   lora_rank: 32
   lora_alpha: 64
+  lora_dropout: 0.0
 
 tokenizer:
   _component_: torchtune.models.qwen2.qwen2_tokenizer
@@ -51,6 +52,7 @@ batch_size: 2
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
+  fused: True
   lr: 2e-3
 
 lr_scheduler:
@@ -77,7 +79,10 @@ log_peak_memory_stats: False
 # Environment
 device: cuda
 dtype: bf16
+
+# Activations Memory
 enable_activation_checkpointing: True
+enable_activation_offloading: False
 
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training

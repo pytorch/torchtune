@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
+import torch.nn.functional as F
 
 
 def pad_dim_to_size(
@@ -28,16 +29,18 @@ def pad_dim_to_size(
     Returns:
         torch.Tensor: Padded input.
     """
-    cur_size = input.shape[dim]
-    pad_size = size - cur_size
+    pad_size = size - input.shape[dim]
     assert (
         pad_size >= 0
-    ), f"Tensor input shape {cur_size} is larger than given size {size}"
-    if pad_size == 0:
-        return input
-    shape = list(input.shape)
-    shape[dim] = pad_size
-    padding = torch.full(
-        size=shape, fill_value=fill, dtype=input.dtype, device=input.device
-    )
-    return torch.cat([input, padding], dim=dim)
+    ), f"Tensor input shape {input.shape[dim]} is larger than given size {size}"
+
+    # Set up 0 padding for the entire tensor.
+    # Padding is in order W*H*C*N, with front and back for each dim.
+    # https://pytorch.org/docs/stable/generated/torch.nn.functional.pad.html
+    padding = [0] * 2 * input.dim()
+    # Find the pad_index: convert NCHW to WHCN, and only pad the back
+    # (not both sides).
+    pad_index = (input.dim() - dim) * 2 - 1
+    padding[pad_index] = pad_size
+    # Pad dim to size.
+    return F.pad(input, padding, value=fill)

@@ -154,7 +154,7 @@ class _EvalWrapper(HFLM):
                 "``do_sample`` for generation tasks is not supported yet in torchtune."
             )
 
-        toks = generation.generate(
+        toks, _ = generation.generate(
             self._model,
             context,
             max_generated_tokens=self.max_gen_toks,
@@ -162,6 +162,7 @@ class _EvalWrapper(HFLM):
             top_k=None,  # do_sample is not supported currently
             stop_tokens=self._tokenizer.stop_tokens,
         )
+        self._model.reset_caches()
         return torch.tensor(toks, dtype=torch.int32)
 
 
@@ -222,11 +223,15 @@ class EleutherEvalRecipe(EvalRecipeInterface):
     ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
+
         if self._quantization_mode is not None:
             model = self._quantizer.quantize(model)
             model = model.to(device=self._device, dtype=self._dtype)
-
-        model.load_state_dict(model_state_dict)
+            for k, v in model_state_dict.items():
+                model_state_dict[k] = v.to(self._device)
+            model.load_state_dict(model_state_dict, assign=True)
+        else:
+            model.load_state_dict(model_state_dict)
 
         # Put model in eval mode.
         # Note: This will not disable the dropout applied in SDPA,

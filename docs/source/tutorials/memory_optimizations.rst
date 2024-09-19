@@ -74,14 +74,43 @@ To quote:
   gradient computation during backward, forward computation in checkpointed
   regions omits saving tensors for backward and recomputes them during the backward pass.
 
-This setting is especially helpful for larger batch sizes, or longer context lengths when you're memory constrained.
-However, these savings in memory come at the cost of training speed (i.e. tokens per-second),
-and in most cases training can slow-down quite a bit as a result of this activation recomputation.
+This setting is helpful for when you're memory-constrained, especially due to larger batch sizes or longer context lengths.
+However, these savings in memory come at the cost of training speed (i.e. tokens-per-second),
+and in most cases training can slow down quite a bit as a result of this activation recomputation.
 
 *Sounds great! How do I use it?*
 
 To enable activation checkpointing, use the ``enable_activation_checkpointing`` config entry or flag
 in any of our recipes, e.g. ``enable_activation_checkpointing=True``.
+
+.. _glossary_act_off:
+
+Activation Offloading
+---------------------
+
+*What's going on here?*
+
+You may have just read about activation checkpointing! Similar to checkpointing, offloading is a memory
+efficiency technique that allows saving GPU VRAM by temporarily moving activations to CPU and bringing
+them back when needed in the backward pass.
+
+See `PyTorch autograd hook tutorial <https://pytorch.org/tutorials/intermediate/autograd_saved_tensors_hooks_tutorial.html#saving-tensors-to-cpu>`_
+for more details about how this is implemented through saved_tensors_hooks.
+
+This setting is especially helpful for larger batch sizes, or longer context lengths when you're memory constrained.
+However, these savings in memory can come at the cost of training speed (i.e. tokens per-second), as it takes runtime
+and resources to move Tensors from GPU to CPU and back. The implementation in torchtune has the ``offload_with_streams``
+option to use multiple CUDA streams in order to overlap the extra communication with the computation to hide the extra
+runtime. As the communication workload is variable depending on the number and size of tensors being offloaded, it is
+common to not offload every single activation. In fact, once can use offloading in conjunction with activations
+checkpointing, where all activations will either be recomputed later in the backward or brought back from the CPU.
+
+*Sounds great! How do I use it?*
+
+To enable activation offloading, use the ``enable_activation_offloading`` config entry or flag
+in our lora finetuning single device recipe, e.g. ``enable_activation_offloading=True``. To allow
+usage of streams, make sure you are on a torch version later than PyTorch 2.5.0.dev20240907 and
+specify ``offload_with_streams=True``.
 
 .. _glossary_grad_accm:
 
@@ -181,8 +210,8 @@ To understand how this works, we encourage you to read through the relevant PyTo
 .. todo ref full finetune recipe doc
 
 In torchtune, you can enable this feature using the ``optimizer_in_bwd`` flag, which is currently only supported in our
-single-device full finetune recipe. This feature works best when gradient memory is particularly large
-i.e. when using a stateful optimizer with a model with a lot of parameters, and when you don't need to use
+single-device full finetune recipe. This feature works best when gradient memory is particularly large;
+e.g. when using a stateful optimizer with a model with a lot of parameters, and when you don't need to use
 :ref:`gradient accumulation <glossary_grad_accm>`.
 
 .. _glossary_peft:
@@ -244,9 +273,9 @@ These are all specified under the ``model`` flag or config entry, i.e:
 
 .. code-block:: bash
 
-  tune run lora_finetune_single_device --config 8B_lora_single_device  \
+  tune run lora_finetune_single_device --config llama3/8B_lora_single_device  \
   model.apply_lora_to_mlp=True \
-  model.lora_attn_modules=["q_proj", "k_proj", "v_proj"]
+  model.lora_attn_modules=["q_proj","k_proj","v_proj"]
 
 .. code-block:: yaml
 
@@ -279,11 +308,11 @@ Quantized Low Rank Adaptation (QLoRA)
 
 *What's going on here?*
 
-You can read our tutorial on :ref:`finetuning Llama2 with QLoRA<qlora_finetune_label>` for a deeper understanding of how it works.
 `QLoRA <https://arxiv.org/abs/2305.14314>`_ is an enhancement on top of `LoRA <https://arxiv.org/abs/2106.09685>`_
 that maintains the frozen model parameters from LoRA in 4-bit quantized precision, thereby reducing memory usage.
 This is enabled through a novel  4-bit NormalFloat (NF4) data type proposed by the authors, which allows for 4-8x less
-parameter memory usage whilst retaining model accuracy.
+parameter memory usage whilst retaining model accuracy. You can read our tutorial on :ref:`finetuning Llama2 with QLoRA<qlora_finetune_label>`
+for a deeper understanding of how it works.
 
 When considering using QLoRA to reduce memory usage, it's worth noting that QLoRA prevents accuracy degradation during quantization
 by up-casting quantized parameters to the original higher precision datatype during model forward passes - this up-casting may
@@ -294,7 +323,7 @@ to address this by speeding up training.
 
 You can finetune using QLoRA with any of our LoRA recipes, i.e. recipes with the ``lora_`` prefix, e.g. :ref:`lora_finetune_single_device<lora_finetune_recipe_label>`. These recipes utilize
 QLoRA-enabled model builders, which we support for all our models, and also use the ``qlora_`` prefix, e.g.
-the :func:`torchtune.models.llama3.llama3` model has a corresponding :func:`torchtune.models.llama3.qlora_llama3`.
+the :func:`torchtune.models.llama3.llama3_8b` model has a corresponding :func:`torchtune.models.llama3.qlora_llama3_8b`.
 We aim to provide a comprehensive set of configurations to allow you to get started with training with QLoRA quickly,
 just specify any config with ``_qlora`` in its name, e.g:
 
@@ -302,7 +331,6 @@ just specify any config with ``_qlora`` in its name, e.g:
 .. code-block:: bash
 
   tune run lora_finetune_single_device --config llama3/8B_qlora_single_device
-
 
 All the rest of the LoRA parameters remain the same for QLoRA - check out the section above on :ref:`LoRA <glossary_lora>`
 to see how to configure.
@@ -321,8 +349,3 @@ to see how to configure.
 
 .. All our ``_distributed`` recipes use `FSDP <https://pytorch.org/docs/stable/fsdp.html>`.
 .. .. _glossary_fsdp2:
-
-.. (Experimental) Fully Sharded Data Parallel 2 (FSDP2)
-.. ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. This directory contains distributed training recipes for LoRA and QLoRA using `FSDP2 <https://github.com/pytorch/pytorch/issues/114299>`_.
-.. Currently FSDP2 is only available in PyTorch nightly releases.

@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
-from torchtune.modules import rlhf
+from torchtune import rlhf
 
 
 class TestGetRewards:
@@ -182,7 +182,7 @@ class TestEstimateAdvantages:
             ]
         )
 
-        # see `torchtune.modules.rlhf.estimate_advantages`
+        # see `torchtune.rlhf.estimate_advantages`
         expected_advantages = returns - values
         expected_whitened_advantages = rlhf.whiten(expected_advantages, shift_mean=True)
         advantages, _ = rlhf.estimate_advantages(values, rewards, gamma, lmbda)
@@ -209,7 +209,7 @@ class TestEstimateAdvantages:
             ]
         )
 
-        # see `torchtune.modules.rlhf.estimate_advantages`
+        # see `torchtune.rlhf.estimate_advantages`
         expected_advantages = returns - values
         expected_advantages = rlhf.whiten(expected_advantages, mask=masks)
         expected_advantages[..., -1] = 0.0

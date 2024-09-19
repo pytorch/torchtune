@@ -49,6 +49,8 @@ Converts data from common JSON formats into a torchtune :class:`Message`.
     get_sharegpt_messages
     get_openai_messages
 
+.. _message_transforms_ref:
+
 Message transforms
 ------------------
 
@@ -73,6 +75,7 @@ Collaters used to collect samples into batches and handle any padding.
     :nosignatures:
 
     padded_collate
+    padded_collate_tiled_images_and_mask
     padded_collate_sft
     padded_collate_dpo
     left_pad_sequence
@@ -88,3 +91,5 @@ Miscellaneous helper functions used in modifying data.
 
     validate_messages
     truncate
+    load_image
+    format_content_with_images
