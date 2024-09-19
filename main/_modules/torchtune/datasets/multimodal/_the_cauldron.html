@@ -423,10 +423,9 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets._packed</span> <span class="kn">import</span> <span class="n">PackedDataset</span>
+<span class="kn">from</span> <span class="nn">torchtune.data._messages</span> <span class="kn">import</span> <span class="n">Message</span>
 <span class="kn">from</span> <span class="nn">torchtune.datasets._sft</span> <span class="kn">import</span> <span class="n">SFTDataset</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
 
@@ -445,27 +444,33 @@
 <span class="sd">        {</span>
 <span class="sd">            &quot;texts&quot;: [</span>
 <span class="sd">                {</span>
-<span class="sd">                    &quot;user&quot;: Q,</span>
-<span class="sd">                    &quot;assistant&quot;: A,</span>
+<span class="sd">                    &quot;user&quot;: &quot;What are in these images.&quot;,</span>
+<span class="sd">                    &quot;assistant&quot;: &quot;They are images of dogs.&quot;,</span>
 <span class="sd">                },</span>
 <span class="sd">                ...</span>
 <span class="sd">            ],</span>
 <span class="sd">            &quot;images&quot;: [</span>
-<span class="sd">                [PIL.Image.Image],</span>
+<span class="sd">                [PIL.Image.Image, PIL.Image.Image],</span>
 <span class="sd">            ],</span>
 <span class="sd">        }</span>
 
 <span class="sd">    will be converted to::</span>
 
 <span class="sd">        [</span>
-<span class="sd">            {</span>
-<span class="sd">                &quot;role&quot;: &quot;system&quot; | &quot;user&quot; | &quot;assistant&quot;,</span>
-<span class="sd">                &quot;content&quot;:</span>
-<span class="sd">                    [</span>
-<span class="sd">                        {&quot;type&quot;: &quot;image&quot;, &quot;content&quot;: &lt;PIL.Image.Image&gt;},</span>
-<span class="sd">                        {&quot;type&quot;: &quot;text&quot;, &quot;content&quot;: &quot;This is a sample image.&quot;},</span>
-<span class="sd">                    ],</span>
-<span class="sd">            },</span>
+<span class="sd">            Message(</span>
+<span class="sd">                role = &quot;user&quot;,</span>
+<span class="sd">                content = [</span>
+<span class="sd">                    {&quot;type&quot;: &quot;image&quot;, &quot;content&quot;: &lt;PIL.Image.Image&gt;},</span>
+<span class="sd">                    {&quot;type&quot;: &quot;image&quot;, &quot;content&quot;: &lt;PIL.Image.Image&gt;},</span>
+<span class="sd">                    {&quot;type&quot;: &quot;text&quot;, &quot;content&quot;: &quot;What are in these images.&quot;},</span>
+<span class="sd">                ],</span>
+<span class="sd">            ),</span>
+<span class="sd">            Message(</span>
+<span class="sd">                role = &quot;assistant&quot;,</span>
+<span class="sd">                content = [</span>
+<span class="sd">                    {&quot;type&quot;: &quot;text&quot;, &quot;content&quot;: &quot;They are images of dogs.&quot;},</span>
+<span class="sd">                ],</span>
+<span class="sd">            ),</span>
 <span class="sd">            ...</span>
 <span class="sd">        ]</span>
 
@@ -504,18 +509,21 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;texts&quot;</span><span class="p">:</span> <span class="s2">&quot;texts&quot;</span><span class="p">,</span> <span class="s2">&quot;images&quot;</span><span class="p">:</span> <span class="s2">&quot;images&quot;</span><span class="p">}</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="c1"># Dataset images to be prepended to the first user message</span>
+        <span class="n">img_content</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;images&quot;</span><span class="p">]]:</span>
+            <span class="n">img_content</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">img</span><span class="p">})</span>
+
+        <span class="c1"># Convert to messages</span>
         <span class="n">messages</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;texts&quot;</span><span class="p">]]:</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">message</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;texts&quot;</span><span class="p">]]):</span>
+            <span class="n">user_content</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;user&quot;</span><span class="p">]}]</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">user_content</span> <span class="o">=</span> <span class="n">img_content</span> <span class="o">+</span> <span class="n">user_content</span>
             <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="n">Message</span><span class="p">(</span>
                     <span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
-                    <span class="n">content</span><span class="o">=</span><span class="p">[</span>
-                        <span class="p">{</span>
-                            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;image&quot;</span><span class="p">,</span>
-                            <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;images&quot;</span><span class="p">]],</span>
-                        <span class="p">},</span>
-                        <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;user&quot;</span><span class="p">]},</span>
-                    <span class="p">],</span>
+                    <span class="n">content</span><span class="o">=</span><span class="n">user_content</span><span class="p">,</span>
                     <span class="n">masked</span><span class="o">=</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="p">)</span>
@@ -537,18 +545,18 @@
 
 
 <span class="c1"># TODO: point to Flamingo model transform as an example</span>
-<div class="viewcode-block" id="the_cauldron_dataset"><a class="viewcode-back" href="../../../../generated/torchtune.datasets.the_cauldron_dataset.html#torchtune.datasets.the_cauldron_dataset">[docs]</a><span class="k">def</span> <span class="nf">the_cauldron_dataset</span><span class="p">(</span>
+<div class="viewcode-block" id="the_cauldron_dataset"><a class="viewcode-back" href="../../../../generated/torchtune.datasets.multimodal.the_cauldron_dataset.html#torchtune.datasets.multimodal.the_cauldron_dataset">[docs]</a><span class="k">def</span> <span class="nf">the_cauldron_dataset</span><span class="p">(</span>
     <span class="n">model_transform</span><span class="p">:</span> <span class="n">Transform</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">subset</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;HuggingFaceM4/the_cauldron&quot;</span><span class="p">,</span>
     <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">packed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">split</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span>
     <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">SFTDataset</span><span class="p">,</span> <span class="n">PackedDataset</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SFTDataset</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Support for family of image + text datasets similar to</span>
 <span class="sd">    `The Cauldron &lt;https://huggingface.co/datasets/HuggingFaceM4/the_cauldron&gt;`_</span>
@@ -619,10 +627,10 @@
 <span class="sd">            for more details.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Union[SFTDataset, PackedDataset]: dataset configured with source data and transform</span>
+<span class="sd">        SFTDataset: dataset configured with source data and transform</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If ``packed`` is True and ``max_seq_len`` is not set on the model_transform.</span>
+<span class="sd">        ValueError: If ``packed`` is True, they are not supported for multimodal datasets yet.</span>
 
 <span class="sd">    Example:</span>
 <span class="sd">        &gt;&gt;&gt; cauldron_ds = the_cauldron_dataset(model_transform=model_transform, subset=&quot;ai2d&quot;)</span>
@@ -646,11 +654,7 @@
         <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">packed</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">model_transform</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;PackedDataset requires a max_seq_len to be set on the model_transform.&quot;</span>
-            <span class="p">)</span>
-        <span class="k">return</span> <span class="n">PackedDataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">model_transform</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Multimodal datasets don&#39;t support packing yet.&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">ds</span></div>
 </pre></div>
 

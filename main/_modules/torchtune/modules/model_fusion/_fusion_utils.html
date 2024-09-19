@@ -424,7 +424,7 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">import</span> <span class="nn">functools</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span>
 
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
 
@@ -456,6 +456,36 @@
         <span class="k">return</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">()]</span>
 
     <span class="n">module</span><span class="o">.</span><span class="n">fusion_params</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">fusion_params</span><span class="p">,</span> <span class="n">module</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_fusion_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.get_fusion_params.html#torchtune.modules.model_fusion.get_fusion_params">[docs]</a><span class="k">def</span> <span class="nf">get_fusion_params</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the subset of parameters from a model that correspond to fused</span>
+<span class="sd">    modules. Assumes that any fusion class has defined the</span>
+<span class="sd">    :func:`~torchtune.modules.model_fusion.FusionLayer.fusion_params` method.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model (nn.Module): Instance of model class containing some</span>
+<span class="sd">            fusion params.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, nn.Parameter]: the subset of model&#39;s state dict containing</span>
+<span class="sd">            only adapter parameters.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fusion_params</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_modules</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s2">&quot;fusion_params&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">callable</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">fusion_params</span><span class="p">):</span>
+            <span class="n">current_fusion_params</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">fusion_params</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">(</span><span class="n">recurse</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">current_fusion_params</span><span class="p">:</span>
+                    <span class="n">full_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">k</span> <span class="k">else</span> <span class="n">n</span>
+                    <span class="n">fusion_params</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">full_key</span><span class="p">:</span> <span class="n">p</span><span class="p">})</span>
+                    <span class="n">current_fusion_params</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="n">current_fusion_params</span> <span class="o">==</span> <span class="p">[]</span>
+            <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Fusion params </span><span class="si">{</span><span class="n">current_adapter_params</span><span class="si">}</span><span class="s2"> not converted&quot;</span>
+    <span class="k">return</span> <span class="n">fusion_params</span></div>
 </pre></div>
 
              </article>

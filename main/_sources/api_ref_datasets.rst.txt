@@ -35,8 +35,8 @@ Multimodal datasets
     :toctree: generated/
     :nosignatures:
 
-    llava_instruct_dataset
-    the_cauldron_dataset
+    multimodal.llava_instruct_dataset
+    multimodal.the_cauldron_dataset
 
 .. _dataset_builders:
 

@@ -542,6 +542,29 @@
         <span class="n">device</span> <span class="o">=</span> <span class="n">_setup_cuda_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="n">_validate_device_from_env</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">device</span></div>
+
+
+<div class="viewcode-block" id="batch_to_device"><a class="viewcode-back" href="../../../generated/torchtune.utils.batch_to_device.html#torchtune.utils.batch_to_device">[docs]</a><span class="k">def</span> <span class="nf">batch_to_device</span><span class="p">(</span><span class="n">batch</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Function that takes a dictionary (or nested dictionary) of tensors and sets them</span>
+<span class="sd">    all to the same device. This utility is intended to be used for batches of data to be</span>
+<span class="sd">    moved to device, the update is inplace.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        batch (dict): dict of Tensors or more nested dicts of tensors.</span>
+<span class="sd">        device (torch.device): torch device to move the tensor&#39;s too</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        AttributeError: if batch dict contains anything other than tensors</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">batch</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">batch_to_device</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+            <span class="n">batch</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;To use batch_to_device, all elements in the batch must be a dict or Tensor&quot;</span>
+            <span class="p">)</span></div>
 </pre></div>
 
              </article>

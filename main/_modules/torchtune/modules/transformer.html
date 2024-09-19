@@ -679,6 +679,11 @@
 
         <span class="c1"># A mask of tokens (x) with no encoder_input</span>
         <span class="n">skip_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_skip_mask</span><span class="p">(</span><span class="n">encoder_mask</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">encoder_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># TODO: remove after PyTorch 2.5 is released</span>
+            <span class="c1"># This unmasks the skipped rows to avoid NaNs in SDPA Softmax backward</span>
+            <span class="c1"># This doesn&#39;t affect the output since outputs are masked out later</span>
+            <span class="n">encoder_mask</span> <span class="o">=</span> <span class="n">encoder_mask</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span><span class="n">skip_mask</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 
         <span class="c1"># Input tensor and attention output have the same shape</span>
         <span class="c1"># [b, s, d]</span>
@@ -686,7 +691,7 @@
         <span class="c1"># TODO: Add support for sample packing and bring back input_pos</span>
         <span class="n">attn_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ca_norm</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">encoder_input</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">encoder_mask</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">skip_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">attn_out</span><span class="o">.</span><span class="n">masked_fill_</span><span class="p">(</span><span class="n">skip_mask</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">attn_out</span> <span class="o">=</span> <span class="n">attn_out</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span><span class="n">skip_mask</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
         <span class="c1"># Residual connection; shape: [batch_size, seq_length, embed_dim]</span>
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ca_scale</span><span class="p">(</span><span class="n">attn_out</span><span class="p">)</span> <span class="o">+</span> <span class="n">x</span>
@@ -694,7 +699,7 @@
         <span class="c1"># Norm applied before the feedforward layer</span>
         <span class="n">mlp_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mlp_norm</span><span class="p">(</span><span class="n">h</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">skip_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">mlp_out</span><span class="o">.</span><span class="n">masked_fill_</span><span class="p">(</span><span class="n">skip_mask</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">mlp_out</span> <span class="o">=</span> <span class="n">mlp_out</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span><span class="n">skip_mask</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
         <span class="c1"># Residual connection; shape: [batch_size, seq_length, embed_dim]</span>
         <span class="n">out</span> <span class="o">=</span> <span class="n">h</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp_scale</span><span class="p">(</span><span class="n">mlp_out</span><span class="p">)</span>

@@ -424,10 +424,10 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">format_content_with_images</span><span class="p">,</span> <span class="n">load_image</span><span class="p">,</span> <span class="n">Message</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets._packed</span> <span class="kn">import</span> <span class="n">PackedDataset</span>
+<span class="kn">from</span> <span class="nn">torchtune.data._messages</span> <span class="kn">import</span> <span class="n">Message</span>
+<span class="kn">from</span> <span class="nn">torchtune.data._utils</span> <span class="kn">import</span> <span class="n">format_content_with_images</span><span class="p">,</span> <span class="n">load_image</span>
 <span class="kn">from</span> <span class="nn">torchtune.datasets._sft</span> <span class="kn">import</span> <span class="n">SFTDataset</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
 
@@ -537,7 +537,7 @@
 
 
 <span class="c1"># TODO: point to Flamingo model transform as an example</span>
-<div class="viewcode-block" id="llava_instruct_dataset"><a class="viewcode-back" href="../../../../generated/torchtune.datasets.llava_instruct_dataset.html#torchtune.datasets.llava_instruct_dataset">[docs]</a><span class="k">def</span> <span class="nf">llava_instruct_dataset</span><span class="p">(</span>
+<div class="viewcode-block" id="llava_instruct_dataset"><a class="viewcode-back" href="../../../../generated/torchtune.datasets.multimodal.llava_instruct_dataset.html#torchtune.datasets.multimodal.llava_instruct_dataset">[docs]</a><span class="k">def</span> <span class="nf">llava_instruct_dataset</span><span class="p">(</span>
     <span class="n">model_transform</span><span class="p">:</span> <span class="n">Transform</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;liuhaotian/LLaVA-Instruct-150K&quot;</span><span class="p">,</span>
@@ -549,7 +549,7 @@
     <span class="n">split</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span>
     <span class="n">data_files</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;llava_instruct_150k.json&quot;</span><span class="p">,</span>
     <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">SFTDataset</span><span class="p">,</span> <span class="n">PackedDataset</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SFTDataset</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Support for family of image + text datasets similar to</span>
 <span class="sd">    `LLaVA-Instruct-150K &lt;https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K&gt;`_</span>
@@ -630,10 +630,10 @@
 <span class="sd">            for more details.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Union[SFTDataset, PackedDataset]: dataset configured with source data and transform</span>
+<span class="sd">        SFTDataset: dataset configured with source data and transform</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If ``packed`` is True and ``max_seq_len`` is not set on the model_transform.</span>
+<span class="sd">        ValueError: If ``packed`` is True, they are not supported for multimodal datasets yet.</span>
 
 <span class="sd">    Example:</span>
 <span class="sd">        &gt;&gt;&gt; llava_instruct_ds = llava_instruct_dataset(model_transform=model_transform)</span>
@@ -658,11 +658,7 @@
         <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">packed</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">model_transform</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;PackedDataset requires a max_seq_len to be set on the model_transform.&quot;</span>
-            <span class="p">)</span>
-        <span class="k">return</span> <span class="n">PackedDataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">model_transform</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Multimodal datasets don&#39;t support packing yet.&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">ds</span></div>
 </pre></div>
 

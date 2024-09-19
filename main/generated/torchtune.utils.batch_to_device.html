@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>llava_instruct_dataset &mdash; torchtune main documentation</title>
+  <title>batch_to_device &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="the_cauldron_dataset" href="torchtune.datasets.the_cauldron_dataset.html" />
-    <link rel="prev" title="wikitext_dataset" href="torchtune.datasets.wikitext_dataset.html" />
+    <link rel="next" title="get_device" href="torchtune.utils.get_device.html" />
+    <link rel="prev" title="torchtune.utils" href="../api_ref_utilities.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -338,13 +338,13 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -385,15 +385,15 @@
       </li>
 
         
-          <li><a href="../api_ref_datasets.html">torchtune.datasets</a> &gt;</li>
+          <li><a href="../api_ref_utilities.html">torchtune.utils</a> &gt;</li>
         
-      <li>llava_instruct_dataset</li>
+      <li>batch_to_device</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.datasets.llava_instruct_dataset.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.utils.batch_to_device.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -423,99 +423,25 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="llava-instruct-dataset">
-<h1>llava_instruct_dataset<a class="headerlink" href="#llava-instruct-dataset" title="Permalink to this heading">¶</a></h1>
+  <section id="batch-to-device">
+<h1>batch_to_device<a class="headerlink" href="#batch-to-device" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.datasets.llava_instruct_dataset">
-<span class="sig-prename descclassname"><span class="pre">torchtune.datasets.</span></span><span class="sig-name descname"><span class="pre">llava_instruct_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="torchtune.modules.transforms.Transform.html#torchtune.modules.transforms.Transform" title="torchtune.modules.transforms._transforms.Transform"><span class="pre">Transform</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'liuhaotian/LLaVA-Instruct-150K'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">images_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'coco/'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_system_prompt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_on_input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">packed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'train'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_files</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'llava_instruct_150k.json'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">load_dataset_kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.12)"><span class="pre">Union</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="torchtune.datasets.SFTDataset.html#torchtune.datasets.SFTDataset" title="torchtune.datasets._sft.SFTDataset"><span class="pre">SFTDataset</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="torchtune.datasets.PackedDataset.html#torchtune.datasets.PackedDataset" title="torchtune.datasets._packed.PackedDataset"><span class="pre">PackedDataset</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/datasets/multimodal/_llava_instruct.html#llava_instruct_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.datasets.llava_instruct_dataset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Support for family of image + text datasets similar to
-<a class="reference external" href="https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K">LLaVA-Instruct-150K</a>
-from Hugging Face Datasets.</p>
-<p>To use this dataset, you must first download the COCO Train 2017 image dataset. You can do so
-by visiting <a class="reference external" href="https://cocodataset.org/#download">https://cocodataset.org/#download</a> or downloading it directly:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>wget<span class="w"> </span>-c<span class="w"> </span>http://images.cocodataset.org/zips/train2017.zip
-unzip<span class="w"> </span>train2017.zip<span class="w"> </span>-d<span class="w"> </span>coco/
-</pre></div>
-</div>
-<p>The resulting directory should be passed into the model transform for loading
-and processing of the images.</p>
-<p>The model transform is expected to be a callable that applies pre-processing steps specific
-to a model. For multimodal datasets, this is expected to be at minimum a tokenizer and
-an image transform. The tokenizer will convert text sequences into token IDs after the dataset
-is converted to a list of <a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a>. The image transform will load the
-image and process it in accordance to the model’s requirements.</p>
-<p>Here is a minimal example for illustrative purposes:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.llama3</span> <span class="kn">import</span> <span class="n">llama3_tokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.clip</span> <span class="kn">import</span> <span class="n">CLIPImageTransform</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
-
-<span class="k">class</span> <span class="nc">MyModelTransform</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">tokenizer_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">llama3_tokenizer</span><span class="p">(</span><span class="n">tokenizer_path</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">image_transform</span> <span class="o">=</span> <span class="n">CLIPImageTransform</span><span class="p">()</span>
-
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="s2">&quot;messages&quot;</span><span class="p">])</span>
-        <span class="n">images</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_transform</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="s2">&quot;images&quot;</span><span class="p">])</span>
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">tokens</span><span class="p">,</span>
-            <span class="s2">&quot;mask&quot;</span><span class="p">:</span> <span class="n">mask</span><span class="p">,</span>
-            <span class="s2">&quot;images&quot;</span><span class="p">:</span> <span class="n">images</span><span class="p">,</span>
-        <span class="p">}</span>
-</pre></div>
-</div>
-<p>See <a class="reference internal" href="torchtune.datasets.SFTDataset.html#torchtune.datasets.SFTDataset" title="torchtune.datasets.SFTDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">SFTDataset</span></code></a> for more details about model transforms and
-message transforms.</p>
+<dt class="sig sig-object py" id="torchtune.utils.batch_to_device">
+<span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">batch_to_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.4)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/utils/_device.html#batch_to_device"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.batch_to_device" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function that takes a dictionary (or nested dictionary) of tensors and sets them
+all to the same device. This utility is intended to be used for batches of data to be
+moved to device, the update is inplace.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model_transform</strong> (<a class="reference internal" href="torchtune.modules.transforms.Transform.html#torchtune.modules.transforms.Transform" title="torchtune.modules.transforms.Transform"><em>Transform</em></a>) – model-specific transform class that takes in a sample dict and applies custom
-transforms on the keys. It should consist of at minimum two components: text tokenization (called
-on the “messages” field) and image transform (called on the “images” field). The keys returned by
-the model transform should be aligned with the expected inputs into the model.</p></li>
-<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path to dataset repository on Hugging Face. For local datasets,
-define source as the data file type (e.g. “json”, “csv”, “text”) and pass
-in the filepath in <code class="docutils literal notranslate"><span class="pre">data_files</span></code>. See <a class="reference external" href="https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path">Hugging Face’s</a></p></li>
-<li><p><strong>images_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path to the directory containing the images as you are expected to download the COCO dataset
-before using. Default is “coco/”.</p></li>
-<li><p><strong>column_map</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em><em>]</em>) – a mapping from the expected columns (“conversations”)
-to the new column names in the dataset. If None, assume these are identical.
-Default is None.</p></li>
-<li><p><strong>new_system_prompt</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – if specified, prepend a system message. This can
-serve as instructions to guide the model response. Setting this will OVERRIDE any system
-messages already present in the dataset. Default is None.</p></li>
-<li><p><strong>train_on_input</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – Whether the model is trained on the prompt or not. Default is False.</p></li>
-<li><p><strong>packed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – Whether or not to pack the dataset to <code class="docutils literal notranslate"><span class="pre">max_seq_len</span></code> prior to training. Default is False.</p></li>
-<li><p><strong>split</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – <code class="docutils literal notranslate"><span class="pre">split</span></code> argument for <code class="docutils literal notranslate"><span class="pre">datasets.load_dataset</span></code>. You can use this argument to load a subset
-of a given split, e.g. <code class="docutils literal notranslate"><span class="pre">split=&quot;train[:10%]&quot;</span></code>. Default is “train”.</p></li>
-<li><p><strong>data_files</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path to the json file to load as dataset. See the <a class="reference external" href="https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K/tree/main">dataset repo</a> for options.
-Default is “llava_instruct_150k.json”.</p></li>
-<li><p><strong>**load_dataset_kwargs</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – additional keyword arguments to pass to <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>. See Hugging
-Face’s <a class="reference external" href="https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset">API ref</a>
-for more details.</p></li>
+<li><p><strong>batch</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – dict of Tensors or more nested dicts of tensors.</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.4)"><em>torch.device</em></a>) – torch device to move the tensor’s too</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>dataset configured with source data and transform</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Union[<a class="reference internal" href="torchtune.datasets.SFTDataset.html#torchtune.datasets.SFTDataset" title="torchtune.datasets.SFTDataset">SFTDataset</a>, <a class="reference internal" href="torchtune.datasets.PackedDataset.html#torchtune.datasets.PackedDataset" title="torchtune.datasets.PackedDataset">PackedDataset</a>]</p>
-</dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">packed</span></code> is True and <code class="docutils literal notranslate"><span class="pre">max_seq_len</span></code> is not set on the model_transform.</p>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#AttributeError" title="(in Python v3.12)"><strong>AttributeError</strong></a> – if batch dict contains anything other than tensors</p>
 </dd>
 </dl>
-<p class="rubric">Example</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">llava_instruct_ds</span> <span class="o">=</span> <span class="n">llava_instruct_dataset</span><span class="p">(</span><span class="n">model_transform</span><span class="o">=</span><span class="n">model_transform</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">Dataloader</span><span class="p">(</span><span class="n">llava_instruct_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">8</span><span class="p">):</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Batch size: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">Batch</span> <span class="n">size</span><span class="p">:</span> <span class="mi">8</span>
-</pre></div>
-</div>
 </dd></dl>
 
 </section>
@@ -528,10 +454,10 @@ for more details.</p></li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.datasets.the_cauldron_dataset.html" class="btn btn-neutral float-right" title="the_cauldron_dataset" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.utils.get_device.html" class="btn btn-neutral float-right" title="get_device" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.datasets.wikitext_dataset.html" class="btn btn-neutral" title="wikitext_dataset" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="../api_ref_utilities.html" class="btn btn-neutral" title="torchtune.utils" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -563,7 +489,7 @@ for more details.</p></li>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">llava_instruct_dataset</a></li>
+<li><a class="reference internal" href="#">batch_to_device</a></li>
 </ul>
 
             </div>

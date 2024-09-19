@@ -1,6 +1,6 @@
 ﻿.. role:: hidden
     :class: hidden-section
-.. currentmodule:: torchtune.datasets
+.. currentmodule:: torchtune.datasets.multimodal
 
 
 llava_instruct_dataset
