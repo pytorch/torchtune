@@ -24,7 +24,7 @@ class TestEleutherEval:
         [
             ("truthfulqa_gen", 0.1, 8),
             ("truthfulqa_gen", 0.1, 1),
-            ("truthfulqa_mc2", 0.3, 8),
+            ("truthfulqa_mc2", 0.4, 8),
         ],
     )
     @pytest.mark.integration_test
@@ -67,18 +67,17 @@ class TestEleutherEval:
         # v0.4.2 format
         # |    Tasks     |Version|Filter|n-shot|Metric|Value |   |Stderr|
         # |--------------|------:|------|-----:|------|-----:|---|-----:|
-        # |truthfulqa_mc2|      2|none  |     0|acc   |0.3469|±  |0.1444|
+        # |truthfulqa_mc2|      2|none  |     0|acc   |0.4497|±  |0.1067|
 
         # v0.4.3 format
         # |    Tasks     |Version|Filter|n-shot|Metric|   |Value |   |Stderr|
         # |--------------|------:|------|-----:|------|---|-----:|---|-----:|
-        # |truthfulqa_mc2|      2|none  |     0|acc   |↑  |0.3469|±  |0.1444|
+        # |truthfulqa_mc2|      2|none  |     0|acc   |↑  |0.4497|±  |0.1067|
 
         # The below RegEx command will pick up both formats
         search_results = re.search(
             r"acc(?:_norm)?\s*\|?\s*(?:\↑\s*\|?)?([\d.]+)", out.strip()
         )
-
         assert search_results is not None
         acc_result = float(search_results.group(1))
         assert math.isclose(acc_result, expected_acc, abs_tol=0.05)
