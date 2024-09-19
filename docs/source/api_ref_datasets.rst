@@ -37,6 +37,7 @@ Multimodal datasets
     multimodal.llava_instruct_dataset
     multimodal.the_cauldron_dataset
 
+.. _dataset_builders:
 
 Generic dataset builders
 ------------------------
