@@ -12,7 +12,7 @@ import pytest
 from tests.test_utils import DummyTokenizer
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
-from torchtune.datasets import the_cauldron_dataset
+from torchtune.datasets.multimodal import the_cauldron_dataset
 
 
 class TestTheCauldronDataset:
@@ -32,7 +32,7 @@ class TestTheCauldronDataset:
         # mock the call to HF datasets
         load_dataset.return_value = [
             {
-                "images": test_image_pil,
+                "images": [test_image_pil],
                 "texts": [
                     {
                         "user": "Question: What do respiration and combustion give out"
@@ -90,7 +90,7 @@ class TestTheCauldronDataset:
         # mock the call to HF datasets
         load_dataset.return_value = [
             {
-                "images": test_image_pil,
+                "images": [test_image_pil],
                 "texts": [
                     {
                         "user": "Question: What do respiration and combustion give out"

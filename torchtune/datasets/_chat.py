@@ -10,9 +10,9 @@ import numpy as np
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
-from torchtune.data import (
-    ChatFormat,
-    CROSS_ENTROPY_IGNORE_IDX,
+from torchtune.data._chat_formats import ChatFormat
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.data._messages import (
     JSONToMessages,
     Message,
     ShareGPTToMessages,
