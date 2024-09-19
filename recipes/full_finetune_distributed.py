@@ -6,6 +6,7 @@
 
 import sys
 import time
+import copy
 
 from functools import partial
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -123,9 +124,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
-        self._fsdp_sharding_strategy = torch.distributed.fsdp.ShardingStrategy[
-            cfg.get("fsdp_sharding_strategy", "FULL_SHARD")
-        ]
         self._optimizer_in_bwd = cfg.optimizer_in_bwd
 
         # These are public properties which are updated by the checkpoint loader
@@ -135,6 +133,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
+
+        self._buff = {}
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -146,7 +146,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             resume_from_checkpoint=self._resume_from_checkpoint,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
-
+        
         if self._resume_from_checkpoint:
             self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
@@ -471,22 +471,28 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 for param in self._model.parameters()
             }
             
-            def optim_step(param) -> None:
+            def optim_hook(param) -> None:
                 optim_dict[param].step()
                 optim_dict[param].zero_grad()
 
             for param in self._model.parameters():
-                param.register_post_accumulate_grad_hook(optim_step)
-
+                param.register_post_accumulate_grad_hook(optim_hook)
+            
             self._optim_ckpt_wrapper = {name: optim_dict[param] for name, param in self._model.named_parameters()}
 
+            optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
             if opt_state_dict is not None:
                 for param in opt_state_dict.keys():
                     if param not in self._optim_ckpt_wrapper:
                         raise RuntimeError(
                             f"Trying to load optimizer state for unexpected param {param}"
-                        )
-                    self._optim_ckpt_wrapper[param].load_state_dict(opt_state_dict[param])
+                        )                    
+                    training.load_from_full_optimizer_state_dict(
+                        self._optim_ckpt_wrapper[param],
+                        opt_state_dict[param],
+                        self._device,
+                    )
+                    
             if self._is_rank_zero:
                 log.info("In-backward optimizers are set up.")
             return None
@@ -592,14 +598,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         training.MAX_STEPS_KEY: self.max_steps_per_epoch,
                     }
                 )
-
+            self._buff = copy.deepcopy(checkpoint_dict['model'])
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
                 epoch=epoch,
                 intermediate_checkpoint=intermediate_checkpoint,
             )
 
-    def train(self) -> None:
+    def train(self, cfg: DictConfig) -> None:
         """
         The core training loop.
         """
@@ -776,7 +782,7 @@ def recipe_main(cfg: DictConfig) -> None:
 
     recipe = FullFinetuneRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)
-    recipe.train()
+    recipe.train(cfg=cfg)
     recipe.cleanup()
 
 
