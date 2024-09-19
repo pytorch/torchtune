@@ -23,7 +23,7 @@ logger = utils.get_logger("DEBUG")
 
 try:
     import lm_eval
-    from lm_eval.evaluator import evaluate, get_task_list
+    from lm_eval.evaluator import evaluate
     from lm_eval.models.huggingface import HFLM
     from lm_eval.tasks import get_task_dict, TaskManager
     from lm_eval.utils import make_table
@@ -46,7 +46,6 @@ class _EvalWrapper(HFLM):
         max_seq_length (int): The maximum sequence length to use.
         batch_size (int): The batch size per GPU to use.
         dtype (torch.dtype): dtype for the model caches during generation.
-        enable_kv_cache (bool): Whether to enable KV cache for generation.
     """
 
     def __init__(
@@ -58,7 +57,6 @@ class _EvalWrapper(HFLM):
         max_seq_length: int = 4096,
         batch_size: int = 8,
         dtype: torch.dtype = torch.float32,
-        enable_kv_cache: bool = True,
     ):
         super().__init__(pretrained="gpt2", device=str(device))
         self._model = model
@@ -108,7 +106,7 @@ class _EvalWrapper(HFLM):
         x = left_pad_sequence(
             [torch.tensor(x) for x in tokenized_text],
             batch_first=True,
-            padding_value=self.eot_token_id,
+            padding_value=self._tokenizer.pad_id,
         )
 
         return x, torch.ones_like(x)  # return 'mask' b/c it's expected by the harness
@@ -252,10 +250,10 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         task_manager = TaskManager(include_path=self._cfg.get("include_path", None))
         task_dict = get_task_dict(self._tasks, task_manager)
 
-        task_types = set([x.task.OUTPUT_TYPE for x in get_task_list(task_dict)])
+        task_types = set([task.OUTPUT_TYPE for task, _ in task_dict])
         if len(task_types) > 1 and "generate_until" in task_types:
             raise RuntimeError(
-                "Evaluating on multiple tasks where any one task involves "
+                "Evaluating on multiple task types where any one task involves "
                 "generation is currently not supported. See the issue below for more info: "
                 "https://github.com/pytorch/torchtune/issues/1621"
             )
@@ -264,7 +262,10 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         if self._enable_kv_cache and "generate_until" in task_types:
             with self._device:
                 self._model.setup_caches(
-                    batch_size=self._cfg.batch_size, dtype=self._dtype
+                    batch_size=self._cfg.batch_size,
+                    dtype=self._dtype,
+                    decoder_max_seq_len=self._cfg.max_seq_len
+                    + model_eval_wrapper.max_gen_toks,
                 )
 
         logger.info(f"Running evaluation on {self._tasks} tasks.")
