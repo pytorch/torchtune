@@ -23,7 +23,7 @@ logger = utils.get_logger("DEBUG")
 
 try:
     import lm_eval
-    from lm_eval.evaluator import evaluate
+    from lm_eval.evaluator import evaluate, get_task_list
     from lm_eval.models.huggingface import HFLM
     from lm_eval.tasks import get_task_dict, TaskManager
     from lm_eval.utils import make_table
@@ -66,7 +66,6 @@ class _EvalWrapper(HFLM):
         self._max_seq_length = max_seq_length
         self._batch_size = batch_size
         self._dtype = dtype
-        self._enable_kv_cache = enable_kv_cache
 
     @property
     def model(self):
@@ -92,10 +91,6 @@ class _EvalWrapper(HFLM):
     def device(self):
         return self._device
 
-    @property
-    def enable_kv_cache(self):
-        return self._enable_kv_cache
-
     def tok_encode(self, text: str, **kwargs) -> List[int]:
         # Note on add_bos flag: setting to False as this gives better results, for example
         # +1% on truthfulqa_mc2 with a LoRA finetune. lit-gpt also sets this to False,
@@ -113,7 +108,7 @@ class _EvalWrapper(HFLM):
         x = left_pad_sequence(
             [torch.tensor(x) for x in tokenized_text],
             batch_first=True,
-            padding_value=self._tokenizer.pad_id,
+            padding_value=self.eot_token_id,
         )
 
         return x, torch.ones_like(x)  # return 'mask' b/c it's expected by the harness
@@ -130,20 +125,11 @@ class _EvalWrapper(HFLM):
         self, context: torch.Tensor, **generation_kwargs
     ) -> torch.Tensor:
         curr_batch_size = context.size(0)
-
-        if curr_batch_size > 1:
-            raise ValueError(
-                f"Got a batch size of '{curr_batch_size}'. Batch size > 1 is not supported for "
-                "generation. See https://github.com/pytorch/torchtune/issues/1250 for more info."
-            )
-
-        # Setup caches for a given batch size
-        # Technically this is not necessary, but it's a good way to ensure that
-        # the caches won't error on a different batch size. In addition, caches
-        # are not needed for a regular model call, so we just setup here
-        if self.enable_kv_cache:
-            with context.device:
-                self._model.setup_caches(batch_size=curr_batch_size, dtype=self._dtype)
+        maybe_padded_context = torch.nn.functional.pad(
+            context,
+            (0, 0, 0, self._batch_size - curr_batch_size),
+            value=self._tokenizer.eos_id,
+        )
 
         temperature = generation_kwargs.get("temperature", 0.0)
         do_sample = generation_kwargs.get("do_sample", False)
@@ -156,14 +142,14 @@ class _EvalWrapper(HFLM):
 
         toks, _ = generation.generate(
             self._model,
-            context,
+            maybe_padded_context,
             max_generated_tokens=self.max_gen_toks,
             temperature=temperature,
             top_k=None,  # do_sample is not supported currently
             stop_tokens=self._tokenizer.stop_tokens,
         )
         self._model.reset_caches()
-        return torch.tensor(toks, dtype=torch.int32)
+        return toks[:curr_batch_size]
 
 
 class EleutherEvalRecipe(EvalRecipeInterface):
@@ -175,7 +161,6 @@ class EleutherEvalRecipe(EvalRecipeInterface):
     Features:
         - Single GPU evaluation. Multi-GPU evaluation is currently not supported.
         - Loading model in fp32 or bf16. Fp16 is currently not supported.
-        - Any task from the EleutherAI eval harness that is *not* free generation
 
     We recommend launching evaluation using the tune CLI:
 
@@ -256,7 +241,6 @@ class EleutherEvalRecipe(EvalRecipeInterface):
             max_seq_length=self._cfg.max_seq_length,
             batch_size=self._cfg.batch_size,
             dtype=self._dtype,
-            enable_kv_cache=self._enable_kv_cache,
         )
 
         # Task initialization API changed between v0.4.1 and 0.4.2
@@ -267,6 +251,21 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
         task_manager = TaskManager(include_path=self._cfg.get("include_path", None))
         task_dict = get_task_dict(self._tasks, task_manager)
+
+        task_types = set([x.task.OUTPUT_TYPE for x in get_task_list(task_dict)])
+        if len(task_types) > 1 and "generate_until" in task_types:
+            raise RuntimeError(
+                "Evaluating on multiple tasks where any one task involves "
+                "generation is currently not supported. See the issue below for more info: "
+                "https://github.com/pytorch/torchtune/issues/1621"
+            )
+
+        # Setup caches for a given batch size
+        if self._enable_kv_cache and "generate_until" in task_types:
+            with self._device:
+                self._model.setup_caches(
+                    batch_size=self._cfg.batch_size, dtype=self._dtype
+                )
 
         logger.info(f"Running evaluation on {self._tasks} tasks.")
         output = evaluate(

@@ -21,7 +21,11 @@ from tests.test_utils import CKPT_MODEL_PATHS
 class TestEleutherEval:
     @pytest.mark.parametrize(
         "eval_name, expected_acc, bsz",
-        [("truthfulqa_gen", 0.1, 1), ("truthfulqa_mc2", 0.3, 8)],
+        [
+            ("truthfulqa_gen", 0.1, 8),
+            ("truthfulqa_gen", 0.1, 1),
+            ("truthfulqa_mc2", 0.3, 8),
+        ],
     )
     @pytest.mark.integration_test
     def test_torchtune_checkpoint_eval_results(
@@ -31,7 +35,8 @@ class TestEleutherEval:
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
 
-        # TODO @joecummings bsz > 1 isn't supported for generation tasks, update test once integrated
+        # explicitly setting limit to an odd number here to ensure generation tasks
+        # work with KV-cacheing + bsz > 1 - we'll recieve batches of size 8, 8, 5
         cmd = f"""
         tune run eleuther_eval \
             --config eleuther_evaluation \
@@ -43,7 +48,7 @@ class TestEleutherEval:
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
-            limit=10 \
+            limit=21 \
             dtype=fp32 \
             device=cpu \
             tasks=[{eval_name}]\
@@ -73,6 +78,7 @@ class TestEleutherEval:
         search_results = re.search(
             r"acc(?:_norm)?\s*\|?\s*(?:\↑\s*\|?)?([\d.]+)", out.strip()
         )
+
         assert search_results is not None
         acc_result = float(search_results.group(1))
         assert math.isclose(acc_result, expected_acc, abs_tol=0.05)
