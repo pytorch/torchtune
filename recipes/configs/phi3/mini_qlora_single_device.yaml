@@ -58,6 +58,7 @@ batch_size: 2
 gradient_accumulation_steps: 16
 optimizer:
   _component_: torch.optim.AdamW
+  fused: True
   weight_decay: 0.01
   lr: 3e-4
 lr_scheduler:
@@ -72,6 +73,9 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True
+enable_activation_offloading: False
+
+# Reduced precision
 dtype: bf16
 
 # Logging

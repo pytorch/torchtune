@@ -1,7 +1,7 @@
 .. _qat_finetune_label:
 
 ===========================
-Finetuning Llama3 with QAT
+Fine-Tuning Llama3 with QAT
 ===========================
 
 Quantization-Aware Training (QAT) is a common technique for users to quantize their

@@ -10,7 +10,8 @@ import numpy as np
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
-from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, validate_messages
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.data._messages import validate_messages
 from torchtune.modules.transforms import Transform
 
 

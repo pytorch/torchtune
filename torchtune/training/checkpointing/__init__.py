@@ -14,6 +14,7 @@ from torchtune.training.checkpointing._utils import (
     ADAPTER_CONFIG,
     ADAPTER_KEY,
     EPOCHS_KEY,
+    FormattedCheckpointFiles,
     MAX_STEPS_KEY,
     MODEL_KEY,
     ModelType,
@@ -48,4 +49,5 @@ __all__ = [
     "SEED_KEY",
     "STEPS_KEY",
     "TOTAL_EPOCHS_KEY",
+    "FormattedCheckpointFiles",
 ]
