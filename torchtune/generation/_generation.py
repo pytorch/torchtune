@@ -50,7 +50,7 @@ def sample(
 
     # if q is None, we use the default softmax sampling trick
     if q is None:
-        q = torch.empty_like(probs).exponential_(1).to(device=probs.device)
+        q = torch.empty_like(probs).exponential_(1)
 
     return multinomial_sample_one(probs, q)
 
