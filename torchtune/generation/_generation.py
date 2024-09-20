@@ -101,7 +101,7 @@ def generate_next_token(
     # we want to take the last token's logits as the input to the next model call
     logits = model(x, input_pos=input_pos, mask=mask)
     return (
-        sample(logits[:, -1].clone(), q, temperature=temperature, top_k=top_k),
+        sample(logits[:, -1].clone(), temperature=temperature, top_k=top_k, q=q),
         logits,
     )
 
