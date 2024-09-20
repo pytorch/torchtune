@@ -312,6 +312,8 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Basics</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chat_datasets.html">Chat Datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tokenizers.html">Tokenizers</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Prompt Templates</a></li>
 </ul>
@@ -461,7 +463,7 @@ to add the text “Correct this to standard English: {prompt} — Corrected: {re
 <p>The added text is different from special tokens that are added by the model tokenizer. For an extended
 discussion on the different between prompt templates and special tokens, see <a class="reference internal" href="../tutorials/chat.html#prompt-template-vs-special-tokens"><span class="std std-ref">Tokenizing prompt templates &amp; special tokens</span></a>.</p>
 <section id="using-prompt-templates">
-<h2>Using prompt templates<a class="headerlink" href="#using-prompt-templates" title="Permalink to this heading">¶</a></h2>
+<span id="id1"></span><h2>Using prompt templates<a class="headerlink" href="#using-prompt-templates" title="Permalink to this heading">¶</a></h2>
 <p>Prompt templates are passed into the tokenizer and will be automatically applied for the dataset you are fine-tuning on. You can pass it in two ways:</p>
 <ul class="simple">
 <li><p>A string dotpath to a prompt template class, i.e., “torchtune.models.mistral.MistralChatTemplate” or “path.to.my.CustomPromptTemplate”</p></li>

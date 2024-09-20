@@ -309,6 +309,8 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Basics</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/chat_datasets.html">Chat Datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../basics/tokenizers.html">Tokenizers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../basics/prompt_templates.html">Prompt Templates</a></li>
 </ul>
@@ -537,6 +539,7 @@
     <span class="n">conversation_column</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">conversation_style</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">packed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">SFTDataset</span><span class="p">,</span> <span class="n">PackedDataset</span><span class="p">]:</span>
@@ -595,6 +598,8 @@
 <span class="sd">            for automatic conversion to the :class:`~torchtune.data.Message` structure.</span>
 <span class="sd">            Supported styles are: &quot;sharegpt&quot;, &quot;json&quot;</span>
 <span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
+<span class="sd">        new_system_prompt (Optional[str]): if specified, prepend a system message. This can</span>
+<span class="sd">            serve as instructions to guide the model response. Default is None.</span>
 <span class="sd">        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.</span>
 <span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,</span>
 <span class="sd">            such as ``data_files`` or ``split``.</span>
@@ -667,10 +672,13 @@
         <span class="n">message_transform</span> <span class="o">=</span> <span class="n">ShareGPTToMessages</span><span class="p">(</span>
             <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
             <span class="n">column_map</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;conversations&quot;</span><span class="p">:</span> <span class="n">conversation_column</span><span class="p">},</span>
+            <span class="n">new_system_prompt</span><span class="o">=</span><span class="n">new_system_prompt</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">elif</span> <span class="n">conversation_style</span> <span class="o">==</span> <span class="s2">&quot;json&quot;</span><span class="p">:</span>
         <span class="n">message_transform</span> <span class="o">=</span> <span class="n">JSONToMessages</span><span class="p">(</span>
-            <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span> <span class="n">column_map</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">conversation_column</span><span class="p">}</span>
+            <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
+            <span class="n">column_map</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">conversation_column</span><span class="p">},</span>
+            <span class="n">new_system_prompt</span><span class="o">=</span><span class="n">new_system_prompt</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported conversation style: </span><span class="si">{</span><span class="n">conversation_style</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
