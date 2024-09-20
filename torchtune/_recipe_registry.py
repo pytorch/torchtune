@@ -264,6 +264,10 @@ _ALL_RECIPES = [
                 name="multimodal_generation",
                 file_path="dev/multimodal_generation.yaml",
             ),
+            Config(
+                name="generation",
+                file_path="dev/generation.yaml",
+            )
         ],
         supports_distributed=False,
     ),
