@@ -293,12 +293,12 @@ _ALL_RECIPES = [
         supports_distributed=False,
     ),
     Recipe(
-        name="kd_distributed",
-        file_path="kd_distributed.py",
+        name="knowledge_distillation_distributed",
+        file_path="knowledge_distillation_distributed.py",
         configs=[
             Config(
-                name="qwen2/kd_distributed",
-                file_path="qwen2/kd_distributed.yaml",
+                name="qwen2/knowledge_distillation_distributed",
+                file_path="qwen2/knowledge_distillation_distributed.yaml",
             ),
         ],
         supports_distributed=True,

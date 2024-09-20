@@ -68,8 +68,8 @@ class TestKDDistributedDeviceRecipe:
         tokenizer_path = Path(TOKENIZER_PATHS["llama3"])
 
         cmd = f"""
-        tune run --nnodes 1 --nproc_per_node 2 kd_distributed \
-            --config qwen2/kd_distributed \
+        tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed \
+            --config qwen2/knowledge_distillation_distributed \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -135,8 +135,8 @@ class TestKDDistributedDeviceRecipe:
 
         # Train for two epochs
         cmd_1 = f"""
-        tune run --nnodes 1 --nproc_per_node 2 kd_distributed \
-            --config qwen2/kd_distributed \
+        tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed \
+            --config qwen2/knowledge_distillation_distributed \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -170,8 +170,8 @@ class TestKDDistributedDeviceRecipe:
 
         # Resume training
         cmd_2 = f"""
-        tune run --nnodes 1 --nproc_per_node 2 kd_distributed \
-            --config qwen2/kd_distributed \
+        tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed \
+            --config qwen2/knowledge_distillation_distributed \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
@@ -227,8 +227,8 @@ class TestKDDistributedDeviceRecipe:
         log_file = gen_log_file_name(tmpdir)
 
         cmd = f"""
-        tune run --nnodes 1 --nproc_per_node 2 kd_distributed \
-            --config qwen2/kd_distributed \
+        tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed \
+            --config qwen2/knowledge_distillation_distributed \
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \

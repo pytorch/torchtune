@@ -1,4 +1,4 @@
-# Config for multi-device knowledge distillation in kd_distributed.py
+# Config for multi-device knowledge distillation in knowledge_distillation_distributed.py
 # using a teacher and student model
 #
 # This config assumes that you've ran the following commands before launching KD:
@@ -10,7 +10,7 @@
 #   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config qwen2/1.5B_lora
 #
 # To launch on a single device, run the following command from root:
-#   tune run --nnodes 1 --nproc_per_node 2 kd_distributed --config qwen2/kd_distributed
+#   tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed --config qwen2/knowledge_distillation_distributed
 #
 # This config works only for distilling on a single device.
 
