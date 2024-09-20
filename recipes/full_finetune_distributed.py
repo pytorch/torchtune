@@ -4,8 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import pickle
 import sys
 import time
+import wandb
 
 from functools import partial
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -638,6 +640,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
             pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
             for idx, batch in enumerate(self._dataloader):
+                start_time=time.perf_counter()
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)
@@ -753,7 +756,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     # Note that this is called within gradient accumulation block, hence
                     # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
-
+                end_time=time.perf_counter()
+                time_per_sample = (end_time - start_time) / len(batch)
+                wandb.log({"time_per_sample": time_per_sample}, step=self.global_step)
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
@@ -774,6 +779,8 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in config (see available configs through ``tune ls``)
         - Overwritten by arguments from the command-line
     """
+    wandb.init(project="distributed_backward")
+    torch.cuda.memory._record_memory_history(max_entries=100000)
     if not training.is_distributed():
         raise RuntimeError(
             "Distributed finetune recipe should be run via a distributed launcher."
@@ -786,11 +793,13 @@ def recipe_main(cfg: DictConfig) -> None:
         training.set_torch_num_threads()
 
     config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
-
+    
     recipe = FullFinetuneRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()
+    snapshot = torch.cuda.memory._snapshot()
+    pickle.dump(snapshot, open('your_name.pickle', 'wb'))
 
 
 if __name__ == "__main__":
