@@ -210,6 +210,7 @@ class TestKDDistributedDeviceRecipe:
         )
 
     @pytest.mark.integration_test
+    @gpu_test(gpu_count=2)
     def test_save_and_load_merged_weights(self, tmpdir, monkeypatch):
         ckpt_type = "tune"
         model_type = "llama3"
