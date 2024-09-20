@@ -221,10 +221,7 @@ class TestGenerate:
         # set all probabilities except for token_id=100 to 0
         logits = torch.zeros(2000)
         logits[100] = 1
-        q = torch.empty(
-            (1, 2000),
-        ).exponential_(1)
-        token = sample(logits, temperature=1, top_k=1, q=q)
+        token = sample(logits, top_k=1)
         assert token.item() == 100
 
     @pytest.mark.parametrize(
