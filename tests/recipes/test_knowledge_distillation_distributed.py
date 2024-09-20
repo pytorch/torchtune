@@ -87,8 +87,6 @@ class TestKDDistributedDeviceRecipe:
             ~tokenizer.merges_file \
             metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={log_file} \
-            kd_loss._component_=torchtune.modules.loss.ForwardKLWithChunkedOutputLoss \
-            kd_ratio=0.5 \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama3_lora"]
@@ -153,8 +151,6 @@ class TestKDDistributedDeviceRecipe:
             tokenizer.prompt_template=null \
             ~tokenizer.merges_file \
             metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
-            kd_loss._component_=torchtune.modules.loss.ForwardKLWithChunkedOutputLoss \
-            kd_ratio=0.5 \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama3_lora"]
@@ -192,8 +188,6 @@ class TestKDDistributedDeviceRecipe:
             tokenizer.path={tokenizer_path} \
             tokenizer.prompt_template=null \
             ~tokenizer.merges_file \
-            kd_loss._component_=torchtune.modules.loss.ForwardKLWithChunkedOutputLoss \
-            kd_ratio=0.5 \
         """.split()
         cmd_2 = (
             cmd_2
@@ -246,8 +240,6 @@ class TestKDDistributedDeviceRecipe:
             ~tokenizer.merges_file \
             metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={log_file} \
-            kd_loss._component_=torchtune.modules.loss.ForwardKLWithChunkedOutputLoss \
-            kd_ratio=0.5 \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
