@@ -5,11 +5,10 @@ Message Transforms
 ==================
 
 Message transforms perform the conversion of raw sample dictionaries from your dataset into torchtune's
-:class:`~torchtune.data.Message` structure. This is where you, as the architect of your data and training pipeline,
-get to place all your data preprocessing and formatting logic without having to worry about the rest of
-the pipeline to tokenization and model inputs. We provide utilities to make this as easy as possible,
-and if your dataset folows a standard format, you can use our built-in utilities to quickly get
-fine-tuning without having to write any data transforms.
+:class:`~torchtune.data.Message` structure. Once you data is represented as Messages, torchtune will handle
+tokenization and preparing it for the model.
+
+.. TODO (rafiayub): place an image here to depict overall pipeline
 
 
 Configuring message transforms
