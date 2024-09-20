@@ -25,31 +25,31 @@ directly from the config and train your LLM on it.
 Example chat dataset
 --------------------
 
-.. code-block:: bash
+.. code-block:: python
 
-    head data/my_data.json -n 22
-    # [
-    #     {
-    #         "conversations": [
-    #             {
-    #                 "from": "human",
-    #                 "value": "What is the answer to life?"
-    #             },
-    #             {
-    #                 "from": "gpt",
-    #                 "value": "The answer is 42."
-    #             },
-    #             {
-    #                 "from": "human",
-    #                 "value": "That's ridiculous"
-    #             },
-    #             {
-    #                 "from": "gpt",
-    #                 "value": "Oh I know."
-    #             }
-    #         ]
-    #     }
-    # ]
+    # data/my_data.json
+    [
+        {
+            "conversations": [
+                {
+                    "from": "human",
+                    "value": "What is the answer to life?"
+                },
+                {
+                    "from": "gpt",
+                    "value": "The answer is 42."
+                },
+                {
+                    "from": "human",
+                    "value": "That's ridiculous"
+                },
+                {
+                    "from": "gpt",
+                    "value": "Oh I know."
+                }
+            ]
+        }
+    ]
 
 .. code-block:: python
 
@@ -70,6 +70,7 @@ Example chat dataset
         conversation_style="sharegpt",
         # By default, user prompt is ignored in loss. Set to True to include it
         train_on_input=True,
+        new_system_prompt=None,
     )
     tokenized_dict = ds[0]
     tokens, labels = tokenized_dict["tokens"], tokenized_dict["labels"]
@@ -95,7 +96,7 @@ Example chat dataset
       conversation_column: conversations
       conversation_style: sharegpt
       train_on_input: True
-      new_system_prompt: You are an AI assistant.
+      new_system_prompt: null
 
 Chat dataset format
 -------------------
@@ -171,7 +172,7 @@ for more details on loading local or remote files.
 
     # Tokenizer is passed into the dataset in the recipe
     dataset:
-      _component_: torchtune.datasets.instruct_dataset
+      _component_: torchtune.datasets.chat_dataset
       source: json
       conversation_column: conversations
       conversation_style: sharegpt
@@ -212,6 +213,34 @@ The associated message transform is :class:`~torchtune.data.ShareGPTToMessages`.
         ]
     }
 
+You can specify ``conversation_style=sharegpt`` in code or config:
+
+.. code-block:: python
+
+    from torchtune.models.gemma import gemma_tokenizer
+    from torchtune.datasets import chat_dataset
+
+    g_tokenizer = gemma_tokenizer("/tmp/gemma-7b/tokenizer.model")
+    ds = chat_dataset(
+        tokenizer=g_tokenizer,
+        source="json",
+        conversation_column="conversations",
+        conversation_style="sharegpt",
+        data_files="data/my_data.json",
+        split="train",
+    )
+
+.. code-block:: yaml
+
+    # Tokenizer is passed into the dataset in the recipe
+    dataset:
+      _component_: torchtune.datasets.chat_dataset
+      source: json
+      conversation_column: conversations
+      conversation_style: sharegpt
+      data_files: data/my_data.json
+      split: train
+
 ``"json"``
 ^^^^^^^^^^
 The associated message transform is :class:`~torchtune.data.JSONToMessages`. The expected format is:
@@ -228,13 +257,93 @@ The associated message transform is :class:`~torchtune.data.JSONToMessages`. The
         ]
     }
 
+You can specify ``conversation_style=json`` in code or config:
+
+.. code-block:: python
+
+    from torchtune.models.gemma import gemma_tokenizer
+    from torchtune.datasets import chat_dataset
+
+    g_tokenizer = gemma_tokenizer("/tmp/gemma-7b/tokenizer.model")
+    ds = chat_dataset(
+        tokenizer=g_tokenizer,
+        source="json",
+        conversation_column="conversations",
+        conversation_style="json",
+        data_files="data/my_data.json",
+        split="train",
+    )
+
+.. code-block:: yaml
+
+    # Tokenizer is passed into the dataset in the recipe
+    dataset:
+      _component_: torchtune.datasets.chat_dataset
+      source: json
+      conversation_column: conversations
+      conversation_style: json
+      data_files: data/my_data.json
+      split: train
+
 If your dataset does not fit one of the above conversation styles, then you will need to create a custom message transform.
 
 
 Renaming columns
 ----------------
 
-You can remap column names similarly to :func:`~torchtune.datasets.instruct_dataset`. See :ref:`column_map` for more info.
+To specify the column that contains your conversation data, use ``conversation_column``.
+
+.. code-block:: python
+
+    # data/my_data.json
+    [
+        {
+            "dialogue": [
+                {
+                    "from": "human",
+                    "value": "What is the answer to life?"
+                },
+                {
+                    "from": "gpt",
+                    "value": "The answer is 42."
+                },
+                {
+                    "from": "human",
+                    "value": "That's ridiculous"
+                },
+                {
+                    "from": "gpt",
+                    "value": "Oh I know."
+                }
+            ]
+        }
+    ]
+
+.. code-block:: python
+
+    from torchtune.models.gemma import gemma_tokenizer
+    from torchtune.datasets import chat_dataset
+
+    g_tokenizer = gemma_tokenizer("/tmp/gemma-7b/tokenizer.model")
+    ds = chat_dataset(
+        tokenizer=g_tokenizer,
+        source="json",
+        conversation_column="dialogue",
+        conversation_style="sharegpt",
+        data_files="data/my_data.json",
+        split="train",
+    )
+
+.. code-block:: yaml
+
+    # Tokenizer is passed into the dataset in the recipe
+    dataset:
+      _component_: torchtune.datasets.chat_dataset
+      source: json
+      conversation_column: dialogue
+      conversation_style: sharegpt
+      data_files: data/my_data.json
+      split: train
 
 
 Chat templates
