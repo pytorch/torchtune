@@ -75,13 +75,13 @@ class ModelTokenizer(Protocol):
 def tokenize_messages_no_special_tokens(
     tokenizer: ModelTokenizer,
     messages: List[Message],
-    bos_id: int,
-    eos_id: int,
-    max_seq_len: Optional[int] = None,
+    *,
+    bos_id: Optional[int] = None,
+    eos_id: Optional[int] = None,
 ) -> Tuple[List[int], List[bool]]:
     r"""Tokenize a list of messages one at a time then concatenate them,
     returning a list of tokens and a list of masks. Does not add any special
-    tokens except for BOS and EOS. This serves as a common starting point for
+    tokens except for BOS and EOS (if provided). This serves as a common starting point for
     model tokenizers that do not rely heavily on special tokens.
 
     Examples:
@@ -94,9 +94,8 @@ def tokenize_messages_no_special_tokens(
         >>> tokens = tokenize_messages_no_special_tokens(
         ...     tokenizer,
         ...     messages,
-        ...     tokenizer.bos_id,
-        ...     tokenizer.eos_id,
-        ...     max_seq_len
+        ...     bos_id=tokenizer.bos_id,
+        ...     eos_id=tokenizer.eos_id,
         ... )[0]
         >>> print(tokens)
         [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]
@@ -109,10 +108,9 @@ def tokenize_messages_no_special_tokens(
         tokenizer (ModelTokenizer): Tokenizer to encode messages with.
         messages (List[Message]): A list of messages, each containing role, content,
             and masked attributes.
-        bos_id (int): Beggining-of-sequence token id.
-        eos_id (int): End-of-sequence token id.
-        max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
-            Default: None
+        bos_id (Optional[int]): Beginning-of-sequence token id. If None, no BOS token will
+            be added. Default None.
+        eos_id (Optional[int]): End-of-sequence token id. If None, no EOS token will be added. Default None.
 
     Returns:
         Tuple[List[int], List[bool]]: The tokenized messages.
@@ -123,6 +121,7 @@ def tokenize_messages_no_special_tokens(
     start_of_turn = True
     end_of_turn = False
     prev_ends_with_space = False
+    max_seq_len = tokenizer.max_seq_len  # We define this on ModelTokenizer
     tokenized_messages = []
     mask = []
     for message in messages:
@@ -130,9 +129,9 @@ def tokenize_messages_no_special_tokens(
         end_of_turn = message.role == "assistant"
 
         # Prepend BOS on start of new turns
-        if start_of_turn:
+        if start_of_turn and bos_id is not None:
             tokenized_messages.append(bos_id)
-            mask.append(message.masked)
+            mask.append(True)
 
         # We want to trim leading whitespace on the next message when
         # (a) it is a continuation of the turn (i.e. not the first message)
@@ -159,21 +158,22 @@ def tokenize_messages_no_special_tokens(
 
         # If assistant message, append EOS at end
         if end_of_turn:
-            tokenized_messages.append(eos_id)
-            mask.append(message.masked)
+            if eos_id is not None:
+                tokenized_messages.append(eos_id)
+                mask.append(True)
             end_of_turn = False
             start_of_turn = True
         else:
             start_of_turn = False
 
         # Break out early if we reach max_seq_len
-        if max_seq_len and len(tokenized_messages) >= max_seq_len:
+        if max_seq_len is not None and len(tokenized_messages) >= max_seq_len:
             break
 
     # Finally, truncate if necessary
-    if max_seq_len:
+    if max_seq_len is not None:
         tokenized_messages = truncate(tokenized_messages, max_seq_len, eos_id)
-        mask = truncate(mask, max_seq_len, message.masked)
+        mask = truncate(mask, max_seq_len, True if eos_id is not None else None)
 
     return tokenized_messages, mask
 
