@@ -10,9 +10,9 @@ import numpy as np
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
-from torchtune.data import (
-    ChatFormat,
-    CROSS_ENTROPY_IGNORE_IDX,
+from torchtune.data._chat_formats import ChatFormat
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.data._messages import (
     JSONToMessages,
     Message,
     ShareGPTToMessages,
@@ -159,10 +159,11 @@ def chat_dataset(
     towards the column with the conversations.
 
     Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is
-    set to ``False`` by default
+    set to ``False`` by default.
+
     - If ``train_on_input`` is True, the prompt is used during training and
-    contributes to the loss.
-    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)
+      contributes to the loss.
+    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100).
 
     Args:
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.

@@ -281,6 +281,17 @@ _ALL_RECIPES = [
         ],
         supports_distributed=True,
     ),
+    Recipe(
+        name="knowledge_distillation_single_device",
+        file_path="knowledge_distillation_single_device.py",
+        configs=[
+            Config(
+                name="qwen2/knowledge_distillation_single_device",
+                file_path="qwen2/knowledge_distillation_single_device.yaml",
+            ),
+        ],
+        supports_distributed=False,
+    ),
 ]
 
 

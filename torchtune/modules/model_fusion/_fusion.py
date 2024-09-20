@@ -9,6 +9,8 @@ from typing import Dict, List, Optional, Union
 import torch
 from torch import nn
 from torchtune.modules import TransformerDecoder
+from torchtune.modules.model_fusion._fusion_utils import get_fusion_params
+from torchtune.modules.peft._utils import set_trainable_params
 
 
 class FusionLayer(nn.Module):
@@ -269,8 +271,8 @@ class FusionEmbedding(nn.Module):
         # [batch_size x seq_length x embed_dim]
         out = self._fused_embed(bs, seq_len)
         mask = mask.unsqueeze(-1).expand(bs, seq_len, self.dim)
-        out.masked_scatter_(mask, embeds)
-        out.masked_scatter_(~mask, fusion_embeds)
+        out = out.masked_scatter(mask, embeds)
+        out = out.masked_scatter(~mask, fusion_embeds)
         return out
 
 
@@ -315,16 +317,44 @@ class DeepFusionModel(nn.Module):
     Args:
         decoder (TransformerDecoder): decoder module
         encoder (nn.Module): encoder module
+        decoder_trainable (bool): whether to train or freeze the decoder. Default is False.
+        encoder_trainable (bool): whether to train or freeze the encoder. Default is False.
+        fusion_trainable (bool): whether to train the fusion parameters. Default is True.
+
     """
 
     def __init__(
         self,
         decoder: TransformerDecoder,
         encoder: nn.Module,
+        *,
+        decoder_trainable: bool = False,
+        encoder_trainable: bool = False,
+        fusion_trainable: bool = True,
     ):
         super().__init__()
         self.decoder = decoder
         self.encoder = encoder
+
+        trainable_params = set()
+        if encoder_trainable:
+            trainable_params |= {
+                f"encoder.{n}" for n, p in self.encoder.named_parameters()
+            }
+        if decoder_trainable:
+            trainable_params |= {
+                f"decoder.{n}" for n, p in self.decoder.named_parameters()
+            }
+        if fusion_trainable:
+            trainable_params |= set(get_fusion_params(self))
+        else:
+            trainable_params -= set(get_fusion_params(self))
+        set_trainable_params(self, trainable_params)
+
+    def set_num_output_chunks(self, num_output_chunks: int) -> None:
+        """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
+        This should be called before the first forward pass, in the recipe."""
+        self.decoder.set_num_output_chunks(num_output_chunks)
 
     def setup_caches(
         self,
