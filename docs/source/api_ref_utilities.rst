@@ -14,6 +14,7 @@ Miscellaneous
     :toctree: generated/
     :nosignatures:
 
+    batch_to_device
     get_device
     get_logger
     torch_version_ge
