@@ -10,9 +10,9 @@ import numpy as np
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
-from torchtune.data import (
-    ChatFormat,
-    CROSS_ENTROPY_IGNORE_IDX,
+from torchtune.data._chat_formats import ChatFormat
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.data._messages import (
     JSONToMessages,
     Message,
     ShareGPTToMessages,
@@ -118,6 +118,7 @@ def chat_dataset(
     conversation_column: str,
     conversation_style: str,
     train_on_input: bool = False,
+    new_system_prompt: Optional[str] = None,
     packed: bool = False,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> Union[SFTDataset, PackedDataset]:
@@ -158,10 +159,11 @@ def chat_dataset(
     towards the column with the conversations.
 
     Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is
-    set to ``False`` by default
+    set to ``False`` by default.
+
     - If ``train_on_input`` is True, the prompt is used during training and
-    contributes to the loss.
-    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)
+      contributes to the loss.
+    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100).
 
     Args:
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
@@ -175,6 +177,8 @@ def chat_dataset(
             for automatic conversion to the :class:`~torchtune.data.Message` structure.
             Supported styles are: "sharegpt", "json"
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        new_system_prompt (Optional[str]): if specified, prepend a system message. This can
+            serve as instructions to guide the model response. Default is None.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
             such as ``data_files`` or ``split``.
@@ -247,10 +251,13 @@ def chat_dataset(
         message_transform = ShareGPTToMessages(
             train_on_input=train_on_input,
             column_map={"conversations": conversation_column},
+            new_system_prompt=new_system_prompt,
         )
     elif conversation_style == "json":
         message_transform = JSONToMessages(
-            train_on_input=train_on_input, column_map={"messages": conversation_column}
+            train_on_input=train_on_input,
+            column_map={"messages": conversation_column},
+            new_system_prompt=new_system_prompt,
         )
     else:
         raise ValueError(f"Unsupported conversation style: {conversation_style}")
