@@ -142,7 +142,7 @@ class InferenceRecipe:
         generated_tokens = []
         t0 = time.perf_counter()
         logits = self.model(**batch)[:, -1]
-        token = sample(logits, cfg.temperature, cfg.top_k)
+        token = sample(logits, temperature=cfg.temperature, top_k=cfg.top_k)
         generated_tokens.append(token.item())
 
         if is_multimodal_input:
@@ -152,7 +152,6 @@ class InferenceRecipe:
 
         # 5. Continue generating
         curr_input_pos = batch.pop("input_pos")[:, -1:]
-        print(curr_input_pos)
         for i in range(cfg.max_new_tokens):
             if token.item() in self.model_transform.stop_tokens:
                 break
