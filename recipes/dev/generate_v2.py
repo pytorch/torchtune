@@ -95,17 +95,9 @@ class InferenceRecipe:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg.model)
         model.load_state_dict(_ckpt_dict[training.MODEL_KEY])
+        self.model = model
         self._logger.info(f"Model was initialized with precision {self._dtype}.")
 
-        # Ensure the cache is setup on the right device
-        with self._device:
-            model.setup_caches(
-                batch_size=1,
-                dtype=self._dtype,
-                decoder_max_seq_len=cfg.max_new_tokens + 15,
-            )
-
-        self.model = model
         self.model_transform = config.instantiate(cfg.transform)
         self.to_messages = SingleTurnYAMLToMessages()
 
@@ -114,27 +106,42 @@ class InferenceRecipe:
         # 1. Convert input to messages
         messages = self.to_messages(cfg.prompt)
         is_multimodal_input = any([m.contains_media for m in messages])
+        print([m.content for m in messages])
 
         # 2. Apply model transform
         model_inputs = self.model_transform({"messages": messages}, inference=True)
+        seq_len = len(model_inputs["tokens"])
+        total_response_length = seq_len + cfg.max_new_tokens
+
+        # 3. Setup KV cache
+        with self._device:
+            self.model.setup_caches(
+                batch_size=1,
+                dtype=self._dtype,
+                decoder_max_seq_len=total_response_length,
+            )
+
+        # 4. Setup masks and input_pos
+        causal_mask = torch.tril(
+            torch.ones(
+                total_response_length,
+                total_response_length,
+                dtype=torch.bool,
+                device=self._device,
+            )
+        ).unsqueeze(0)
+        input_pos = torch.arange(total_response_length).unsqueeze(0)
 
         # 3. Collate to batch size of 1 and tensor-ify
-        # seq_len = len(model_inputs["tokens"])
         if is_multimodal_input:
             batch = padded_collate_tiled_images_and_mask(
                 [model_inputs], pad_direction="left"
             )
         else:
-            padding_mask = torch.tensor(model_inputs["mask"]).unsqueeze(0)
             batch = {
-                "tokens": left_pad_sequence(
-                    [torch.tensor(model_inputs["tokens"])],
-                    batch_first=True,
-                ),
-                "mask": get_causal_mask_from_padding_mask(
-                    padding_mask, target_seq_len=cfg.max_new_tokens + 15
-                ),
-                "input_pos": torch.arange(len(model_inputs["tokens"])).unsqueeze(0),
+                "tokens": torch.tensor(model_inputs["tokens"]).unsqueeze(0),
+                "mask": causal_mask[:, :seq_len],
+                "input_pos": input_pos[:, :seq_len],
             }
         utils.batch_to_device(batch, self._device)
 
@@ -145,20 +152,25 @@ class InferenceRecipe:
         token = sample(logits, temperature=cfg.temperature, top_k=cfg.top_k)
         generated_tokens.append(token.item())
 
-        if is_multimodal_input:
-            cache_mask = {"encoder_mask": batch["encoder_mask"][:, -1:]}
-        else:
-            cache_mask = {}
-
         # 5. Continue generating
-        curr_input_pos = batch.pop("input_pos")[:, -1:]
         for i in range(cfg.max_new_tokens):
+            # Update batch params
+            batch_params = {
+                "input_pos": input_pos[:, seq_len],
+                "mask": causal_mask[:, seq_len, None, :],
+                "encoder_mask": (
+                    batch["encoder_mask"][:, -1:] if is_multimodal_input else None
+                ),
+            }
+
             if token.item() in self.model_transform.stop_tokens:
                 break
-            logits = self.model(token, **cache_mask, input_pos=curr_input_pos)[:, -1]
-            token = sample(logits, cfg.temperature, cfg.top_k)
+
+            logits = self.model(token, **batch_params)[:, -1]
+            token = sample(logits, temperature=cfg.temperature, top_k=cfg.top_k)
             generated_tokens.append(token.item())
-            curr_input_pos += 1
+            seq_len += 1
+
         t = time.perf_counter() - t0
 
         # 6. Decode tokens
