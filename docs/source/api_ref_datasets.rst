@@ -9,7 +9,7 @@ torchtune.datasets
 For a detailed general usage guide, please see our :ref:`datasets tutorial <dataset_tutorial_label>`.
 
 
-Text-only datasets
+Text datasets
 ------------------
 
 torchtune supports several widely used text-only datasets to help quickly bootstrap your fine-tuning.
@@ -28,8 +28,8 @@ torchtune supports several widely used text-only datasets to help quickly bootst
     cnn_dailymail_articles_dataset
     wikitext_dataset
 
-Multimodal datasets
--------------------
+Image + Text datasets
+---------------------
 
 .. autosummary::
     :toctree: generated/
