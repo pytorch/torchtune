@@ -224,7 +224,7 @@ class TestGenerate:
         q = torch.empty(
             (1, 2000),
         ).exponential_(1)
-        token = sample(logits, q, temperature=1, top_k=1)
+        token = sample(logits, temperature=1, top_k=1, q=q)
         assert token.item() == 100
 
     @pytest.mark.parametrize(
