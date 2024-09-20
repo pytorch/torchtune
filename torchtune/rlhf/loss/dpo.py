@@ -13,7 +13,7 @@ import torch.nn.functional as F
 
 class DPOLoss(nn.Module):
     """
-    Direct Preference Optimization (DPO) Loss module: https://arxiv.org/abs/2305.18290.
+    Direct Preference Optimization (DPO) Loss module: https://arxiv.org/abs/2305.18290
     Simply stated from the paper:
 
         Intuitively, the DPO update increases the relative log probability of preferred to dispreferred responses,
@@ -160,87 +160,6 @@ class RSOLoss(nn.Module):
         return losses, chosen_rewards, rejected_rewards
 
 
-class IPOLoss(nn.Module):
-    """
-    Identity Preference Optimisation (IPO) Loss module: https://arxiv.org/abs/2310.12036.
-    Intuition from the paper:
-
-        (Given a policy pi and reference policy, pi_ref)
-
-        IPO learns from preferences dataset simply by regressing the gap between log-likelihood ratios
-
-        log(pi(chosen)/pi(rejected)) and log(pi_ref(chosen)/pi_ref(rejected))
-
-        to 1/(2*tau), where tau is the temperature parameter. [T]he weaker the regularisation becomes, the
-        higher would be the log-likelihood ratio of chosen to rejected logprobs. In other words IPO, unlike DPO,
-        always regularizes its solution towards pi_ref by controlling the gap between the log-likelihood ratios
-
-        log(pi(chosen)/pi(rejected)) and log(pi_ref(chosen)/pi_ref(rejected))
-
-        thus avoiding the over-fitting to the preference dataset.
-
-    Based on the implementation in HF's TRL library:
-    https://github.com/huggingface/trl/blob/4dce042a3863db1d375358e8c8092b874b02934b/trl/trainer/dpo_trainer.py#L1143
-
-
-    Args:
-        tau (float): Equivalent temperature scaling parameter (from DPO) for the IPO loss. From the TRL documentation:
-
-            the [tau] parameter is the reciprocal of the gap between the log-likelihood ratios of the
-            chosen vs the rejected completion pair and thus the smaller the tau the larger this gap is.
-    """
-
-    def __init__(
-        self,
-        tau: float = 0.1,
-    ):
-        super().__init__()
-        self.tau = tau
-
-    def forward(
-        self,
-        policy_chosen_logps: torch.Tensor,
-        policy_rejected_logps: torch.Tensor,
-        reference_chosen_logps: torch.Tensor,
-        reference_rejected_logps: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
-        Compute the DPO loss for a batch of policy and reference model log probabilities.
-
-        Args:
-            policy_chosen_logps (torch.Tensor): Log probabilities of the policy model
-                for the chosen responses. Shape: (batch_size)
-            policy_rejected_logps (torch.Tensor): Log probabilities of the policy model
-                for the rejected responses. Shape: (batch_size)
-            reference_chosen_logps (torch.Tensor): Log probabilities of the reference model
-                for the chosen responses. Shape: (batch_size)
-            reference_rejected_logps (torch.Tensor): Log probabilities of the reference model
-                for the rejected responses. Shape: (batch_size)
-
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple of three tensors:
-                - losses: The DPO loss for each example in the batch.
-                - chosen_rewards: Rewards for the chosen responses.
-                - rejected_rewards: Rewards for the rejected responses.
-
-        """
-        pi_logratios = policy_chosen_logps - policy_rejected_logps
-        ref_logratios = reference_chosen_logps - reference_rejected_logps
-
-        logits = pi_logratios - ref_logratios
-
-        losses = (logits - 1 / (2 * self.tau)) ** 2
-
-        chosen_rewards = (
-            self.tau * (policy_chosen_logps - reference_chosen_logps).detach()
-        )
-        rejected_rewards = (
-            self.tau * (policy_rejected_logps - reference_rejected_logps).detach()
-        )
-
-        return losses, chosen_rewards, rejected_rewards
-
-
 class SimPOLoss(nn.Module):
     """
     SimPO: Simple Preference Optimization with a Reference-Free Reward: https://arxiv.org/abs/2405.14734.
@@ -255,7 +174,7 @@ class SimPOLoss(nn.Module):
 
     SimPO is pretty much identitcal to DPO but uses average logprobs to eliminate the need for a reference model to regularize
     the policy during training. It also uses a target reward margin to guide the policy towards better responses.
-    This is kind of the same intuition as in :class:`~torchtune.modules.rlhf.loss.IPOLoss`, but instead of optimizing against
+    This is kind of the same intuition as in :class:`~torchtune.rlhf.loss.IPOLoss`, but instead of optimizing against
     a margin between the reference policy and policy models, we're optimizing against a margin between the chosen and
     rejected responses.
 

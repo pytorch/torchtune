@@ -8,10 +8,11 @@ from typing import Any, Mapping
 from unittest import mock
 
 import pytest
+from tests.common import ASSETS
 from tests.test_utils import DummyTokenizer
 from torchtune.data import Message
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.datasets._preference import PreferenceDataset
+from torchtune.datasets._preference import preference_dataset, PreferenceDataset
 from torchtune.modules.transforms import Transform
 
 
@@ -111,3 +112,46 @@ class TestPreferenceDataset:
         prompt, label = ds[0]["rejected_input_ids"], ds[0]["rejected_labels"]
         assert prompt == expected_rejected_tokens
         assert label == expected_rejected_labels
+
+    def test_load_local_json(self):
+        expected_tokenized_chosen_prompts = [
+            [0, 4, 2, 1, 2, 4, 1, 4, 1, 4, 2, 2, 9, 3, 3, 5, -1]
+        ]
+        expected_tokenized_rejected_prompts = [
+            [0, 4, 2, 1, 2, 4, 1, 4, 1, 4, 2, 2, 9, 4, 4, 4, -1]
+        ]
+
+        # prompt length is number of tokens shared between
+        # the tokenized rejected and chosen messages
+        prompt_length = 13
+        expected_chosen_labels = [
+            [CROSS_ENTROPY_IGNORE_IDX] * prompt_length + [3, 3, 5, -1]
+        ]
+        expected_rejected_labels = [
+            [CROSS_ENTROPY_IGNORE_IDX] * prompt_length + [4, 4, 4, -1]
+        ]
+
+        ds = preference_dataset(
+            tokenizer=DummyTokenizer(),
+            source="json",
+            data_files=str(ASSETS / "hh_rlhf_tiny.json"),
+            train_on_input=False,
+            split="train",
+        )
+
+        assert len(ds) == 1
+
+        expected_keys = [
+            "chosen_input_ids",
+            "chosen_labels",
+            "rejected_input_ids",
+            "rejected_labels",
+        ]
+        assert set(ds[0].keys()) == set(expected_keys)
+        assert len(ds[0].keys()) == 4
+
+        assert expected_tokenized_chosen_prompts[0] == ds[0]["chosen_input_ids"]
+        assert expected_tokenized_rejected_prompts[0] == ds[0]["rejected_input_ids"]
+
+        assert expected_chosen_labels[0] == ds[0]["chosen_labels"]
+        assert expected_rejected_labels[0] == ds[0]["rejected_labels"]

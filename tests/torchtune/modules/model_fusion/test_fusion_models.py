@@ -9,7 +9,7 @@ import pytest
 import torch
 from tests.test_utils import assert_expected, fixed_init_model
 from torch import nn
-from torchtune.modules.model_fusion import DeepFusionModel
+from torchtune.modules.model_fusion import DeepFusionModel, register_fusion_module
 from torchtune.training.seed import set_seed
 
 
@@ -27,8 +27,9 @@ class DummyModel(nn.Module):
         self.k = nn.Linear(dim, dim)
         self.v = nn.Linear(dim, dim)
         self.output = nn.Linear(dim, vocab_size)
+        register_fusion_module(self.output)
 
-    def setup_caches(self, batch_size, dtype):
+    def setup_caches(self, batch_size, dtype, *args, **kwargs):
         self.cache_enabled = True
 
     def caches_are_enabled(self):
@@ -145,3 +146,41 @@ class TestDeepFusionModel:
         assert fused_model.caches_are_enabled()
         fused_model.reset_caches()
         assert not fused_model.caches_are_enabled()
+
+    def test_set_trainable_params(self, fused_model, encoder, decoder):
+        """
+        Test that the trainable parameters are set correctly.
+        """
+        # Test default case
+        trainable_params = {
+            n for n, p in fused_model.named_parameters() if p.requires_grad
+        }
+        assert trainable_params == {"decoder.output.weight", "decoder.output.bias"}
+
+        # Test encoder only
+        model = DeepFusionModel(
+            encoder=encoder,
+            decoder=decoder,
+            encoder_trainable=True,
+            fusion_trainable=False,
+        )
+        trainable_params = {n for n, p in model.named_parameters() if p.requires_grad}
+        assert trainable_params == {"encoder.weight"}
+
+        # Test decoder only, and confirm fusion layers are removed independently
+        model = DeepFusionModel(
+            encoder=encoder,
+            decoder=decoder,
+            decoder_trainable=True,
+            fusion_trainable=False,
+        )
+        trainable_params = {n for n, p in model.named_parameters() if p.requires_grad}
+        assert trainable_params == {
+            "decoder.q.weight",
+            "decoder.q.bias",
+            "decoder.k.weight",
+            "decoder.k.bias",
+            "decoder.v.weight",
+            "decoder.v.bias",
+            "decoder.embed.weight",
+        }

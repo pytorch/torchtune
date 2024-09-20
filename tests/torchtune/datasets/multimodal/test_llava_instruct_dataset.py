@@ -15,7 +15,7 @@ from datasets import Dataset
 from tests.test_utils import DummyTokenizer
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
-from torchtune.datasets import llava_instruct_dataset
+from torchtune.datasets.multimodal import llava_instruct_dataset
 
 
 class TestLLaVAInstructDataset:

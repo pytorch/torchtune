@@ -234,6 +234,10 @@ _ALL_RECIPES = [
             Config(name="llama3_1/70B_lora", file_path="llama3_1/70B_lora.yaml"),
             Config(name="llama3/8B_lora", file_path="llama3/8B_lora.yaml"),
             Config(name="llama3_1/8B_lora", file_path="llama3_1/8B_lora.yaml"),
+            Config(
+                name="llama3_1/405B_qlora",
+                file_path="llama3_1/405B_qlora.yaml",
+            ),
             Config(name="mistral/7B_lora", file_path="mistral/7B_lora.yaml"),
             Config(name="gemma/2B_lora", file_path="gemma/2B_lora.yaml"),
             Config(name="gemma/7B_lora", file_path="gemma/7B_lora.yaml"),
@@ -276,6 +280,17 @@ _ALL_RECIPES = [
             Config(name="llama3/8B_qat_full", file_path="llama3/8B_qat_full.yaml"),
         ],
         supports_distributed=True,
+    ),
+    Recipe(
+        name="knowledge_distillation_single_device",
+        file_path="knowledge_distillation_single_device.py",
+        configs=[
+            Config(
+                name="qwen2/knowledge_distillation_single_device",
+                file_path="qwen2/knowledge_distillation_single_device.yaml",
+            ),
+        ],
+        supports_distributed=False,
     ),
 ]
 

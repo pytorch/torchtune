@@ -100,16 +100,21 @@ def _validate_device_from_env(device: torch.device) -> None:
 
 def get_device(device: Optional[str] = None) -> torch.device:
     """Function that takes an optional device string, verifies it's correct and available given the machine and
-    distributed settings, and returns a torch.device. If device string is not provided, this function will
+    distributed settings, and returns a :func:`~torch.device`. If device string is not provided, this function will
     infer the device based on the environment.
 
     If CUDA is available and being used, this function also sets the CUDA device.
 
     Args:
-        device (Optional[str]): The name of the device to use.
+        device (Optional[str]): The name of the device to use, e.g. "cuda" or "cpu".
+
+    Example:
+        >>> device = get_device("cuda")
+        >>> device
+        device(type='cuda', index=0)
 
     Returns:
-        torch.device: device.
+        torch.device: Device
     """
     if device is None:
         device = _get_device_type_from_env()
@@ -118,3 +123,26 @@ def get_device(device: Optional[str] = None) -> torch.device:
         device = _setup_cuda_device(device)
     _validate_device_from_env(device)
     return device
+
+
+def batch_to_device(batch: dict, device: torch.device) -> None:
+    """Function that takes a dictionary (or nested dictionary) of tensors and sets them
+    all to the same device. This utility is intended to be used for batches of data to be
+    moved to device, the update is inplace.
+
+    Args:
+        batch (dict): dict of Tensors or more nested dicts of tensors.
+        device (torch.device): torch device to move the tensor's too
+
+    Raises:
+        AttributeError: if batch dict contains anything other than tensors
+    """
+    for k, v in batch.items():
+        if isinstance(v, dict):
+            batch_to_device(v, device)
+        elif isinstance(v, torch.Tensor):
+            batch[k] = v.to(device)
+        else:
+            raise ValueError(
+                "To use batch_to_device, all elements in the batch must be a dict or Tensor"
+            )
