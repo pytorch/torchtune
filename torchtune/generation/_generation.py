@@ -17,18 +17,20 @@ def multinomial_sample_one(probs: torch.Tensor, q: torch.Tensor) -> torch.Tensor
 
 def sample(
     logits: torch.Tensor,
-    q: torch.Tensor,
     *,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
+    q: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
-    """Generic sample from a probability distribution.
+    """Generic sample from a probability distribution. Includes support for Top-K sampling
+    and Temperature.
 
     Args:
         logits (torch.Tensor): logits from which to sample
-        q (torch.Tensor): randomly sampled tensor for softmax sampling trick.
         temperature (float): value to scale the predicted logits by, default 1.0.
         top_k (Optional[int]): If specified, we prune the sampling to only token ids within the top_k probabilities
+        q (Optional[torch.Tensor]): randomly sampled tensor for softmax sampling trick. Default None.
+            If None, we use the default softmax sampling trick.
 
     Returns:
         torch.Tensor: sampled token id
@@ -42,8 +44,14 @@ def sample(
         # set everything smaller than pivot value to inf since these
         # should be pruned
         logits = torch.where(logits < pivot, -float("Inf"), logits)
+
     # change logits into probabilities
     probs = torch.nn.functional.softmax(logits, dim=-1)
+
+    # if q is None, we use the default softmax sampling trick
+    if q is None:
+        q = torch.empty_like(probs).exponential_(1).to(device=probs.device)
+
     return multinomial_sample_one(probs, q)
 
 
