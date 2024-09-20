@@ -67,8 +67,8 @@ class SDPA(nn.Module):
         # Expand the key and value tensors to have the same shape
         # as the query tensor by copying values across the relevant dim
         if self.num_heads != self.num_kv_heads:
-            k = k.expand(bsz, seq_len, self.num_kv_heads, q_per_kv, self.head_dim)
-            v = v.expand(bsz, seq_len, self.num_kv_heads, q_per_kv, self.head_dim)
+            k = k.expand(bsz, seq_len, self.num_kv_heads, self.q_per_kv, self.head_dim)
+            v = v.expand(bsz, seq_len, self.num_kv_heads, self.q_per_kv, self.head_dim)
 
         # [bsz, s, n_h, h_d]
         k = k.reshape(bsz, seq_len, -1, self.head_dim)
