@@ -239,6 +239,7 @@ class TestGemmaTokenizer:
             4,
             2,
         ]
-        expected_mask = [True] * 75 + [False] * 125
+        # Mask user, unmask assistant, add EOS token
+        expected_mask = [True] * 75 + [False] * 124 + [True]
         assert expected_tokens == tokens
         assert expected_mask == mask

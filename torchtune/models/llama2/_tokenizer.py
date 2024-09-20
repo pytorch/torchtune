@@ -153,7 +153,6 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
             messages=templated_messages,
             bos_id=self.bos_id,
             eos_id=self.eos_id,
-            max_seq_len=self.max_seq_len,
         )
 
     def __call__(

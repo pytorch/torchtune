@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import pytest
 
 from tests.test_utils import DummyTokenizer
@@ -5,11 +11,12 @@ from torchtune.data import Message
 
 from torchtune.modules.tokenizers import tokenize_messages_no_special_tokens
 
+
 class TestTokenizerUtils:
     @pytest.fixture
     def tokenizer(self):
         return DummyTokenizer(max_seq_len=100)
-    
+
     @pytest.fixture
     def messages(self):
         return [
@@ -33,17 +40,17 @@ class TestTokenizerUtils:
         )
 
         assert len(tokens) == len(mask)
-        
+
         if add_bos:
             assert tokens[0] == tokenizer.bos_id
-            assert mask[0] == True
+            assert mask[0] is True
         else:
             assert tokens[0] != tokenizer.bos_id
-            assert mask[0] == False
-        
+            assert mask[0] is False
+
         if add_eos:
             assert tokens[-1] == tokenizer.eos_id
-            assert mask[-1] == True
+            assert mask[-1] is True
         else:
             assert tokens[-1] != tokenizer.eos_id
-            assert mask[-1] == False
+            assert mask[-1] is False
