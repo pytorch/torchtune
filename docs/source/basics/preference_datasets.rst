@@ -100,7 +100,7 @@ Preference dataset format
 -------------------------
 
 Preference datasets are expected to have two columns: *"chosen"*, which indicates the human annotator's preferred response, and *"rejected"*, indicating
-the human annotator's dis-preferred response. Each of these columns should contain a list of messages with an identical prompt, followed by a list of messages.
+the human annotator's dis-preferred response. Each of these columns should contain a list of messages with an identical prompt.
 The list of messages could include a system prompt, an instruction, multiple turns between user and assistant, or tool calls/returns. Let's take a look at
 Anthropic's helpfulness/harmlessness dataset `on Hugging Face <https://huggingface.co/datasets/RLHFlow/HH-RLHF-Helpful-standard>`_ as an example:
 
