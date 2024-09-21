@@ -20,7 +20,7 @@ class TestTokenizerUtils:
     @pytest.fixture
     def messages(self):
         return [
-            Message(role="user", content="hello world!"),
+            Message(role="user", content="hello world!", masked=True),
             Message(role="assistant", content="hello back!"),
         ]
 
@@ -41,16 +41,17 @@ class TestTokenizerUtils:
 
         assert len(tokens) == len(mask)
 
+        # User message should be masked
+        assert mask[0] is True
+        # Assistant message should not be masked
+        assert mask[-1] is False
+
         if add_bos:
             assert tokens[0] == tokenizer.bos_id
-            assert mask[0] is True
         else:
             assert tokens[0] != tokenizer.bos_id
-            assert mask[0] is False
 
         if add_eos:
             assert tokens[-1] == tokenizer.eos_id
-            assert mask[-1] is True
         else:
             assert tokens[-1] != tokenizer.eos_id
-            assert mask[-1] is False

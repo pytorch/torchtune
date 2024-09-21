@@ -131,7 +131,7 @@ def tokenize_messages_no_special_tokens(
         # Prepend BOS on start of new turns
         if start_of_turn and bos_id is not None:
             tokenized_messages.append(bos_id)
-            mask.append(True)
+            mask.append(message.masked)
 
         # We want to trim leading whitespace on the next message when
         # (a) it is a continuation of the turn (i.e. not the first message)
@@ -160,7 +160,7 @@ def tokenize_messages_no_special_tokens(
         if end_of_turn:
             if eos_id is not None:
                 tokenized_messages.append(eos_id)
-                mask.append(True)
+                mask.append(message.masked)
             end_of_turn = False
             start_of_turn = True
         else:
@@ -173,7 +173,9 @@ def tokenize_messages_no_special_tokens(
     # Finally, truncate if necessary
     if max_seq_len is not None:
         tokenized_messages = truncate(tokenized_messages, max_seq_len, eos_id)
-        mask = truncate(mask, max_seq_len, True if eos_id is not None else None)
+        mask = truncate(
+            mask, max_seq_len, message.masked if eos_id is not None else None
+        )
 
     return tokenized_messages, mask
 
