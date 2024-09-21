@@ -242,7 +242,7 @@ You can specify ``conversation_style=sharegpt`` in code or config:
       split: train
 
 ``"openai"``
-^^^^^^^^^^
+^^^^^^^^^^^^
 The associated message transform is :class:`~torchtune.data.OpenAIToMessages`. The expected format is:
 
 .. code-block:: python
