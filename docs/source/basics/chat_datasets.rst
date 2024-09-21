@@ -22,6 +22,8 @@ The primary entry point for fine-tuning with chat datasets in torchtune is the :
 builder. This lets you specify a local or Hugging Face dataset that follows the chat data format
 directly from the config and train your LLM on it.
 
+.. _example_chat:
+
 Example chat dataset
 --------------------
 
