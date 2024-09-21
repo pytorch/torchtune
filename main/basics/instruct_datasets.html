@@ -42,7 +42,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Chat Datasets" href="chat_datasets.html" />
-    <link rel="prev" title="Distributed Quantization-Aware Training (QAT)" href="../recipes/qat_distributed.html" />
+    <link rel="prev" title="Message Transforms" href="message_transforms.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -312,6 +312,8 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Basics</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="message_transforms.html">Message Transforms</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Instruct Datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="chat_datasets.html">Chat Datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tokenizers.html">Tokenizers</a></li>
@@ -435,7 +437,7 @@ the task.</p>
 builder. This lets you specify a local or Hugging Face dataset that follows the instruct data format
 directly from the config and train your LLM on it.</p>
 <section id="example-instruct-dataset">
-<h2>Example instruct dataset<a class="headerlink" href="#example-instruct-dataset" title="Permalink to this heading">¶</a></h2>
+<span id="example-instruct"></span><h2>Example instruct dataset<a class="headerlink" href="#example-instruct-dataset" title="Permalink to this heading">¶</a></h2>
 <p>Here is an example of an instruct dataset to fine-tune for a grammar correction task.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>head<span class="w"> </span>data/my_data.csv
 <span class="c1"># incorrect,correct</span>
@@ -631,7 +633,7 @@ you are fine-tuning on. See <a class="reference internal" href="prompt_templates
         <a href="chat_datasets.html" class="btn btn-neutral float-right" title="Chat Datasets" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="../recipes/qat_distributed.html" class="btn btn-neutral" title="Distributed Quantization-Aware Training (QAT)" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="message_transforms.html" class="btn btn-neutral" title="Message Transforms" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
