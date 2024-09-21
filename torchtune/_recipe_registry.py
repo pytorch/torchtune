@@ -265,8 +265,8 @@ _ALL_RECIPES = [
                 file_path="dev/multimodal_generation.yaml",
             ),
             Config(
-                name="generation",
-                file_path="dev/generation.yaml",
+                name="llama2/generation_v2",
+                file_path="llama2/generation_v2.yaml",
             )
         ],
         supports_distributed=False,

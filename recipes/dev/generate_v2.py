@@ -20,8 +20,6 @@ from torchtune.data import (
 )
 
 from torchtune.generation import (
-    get_causal_mask_from_padding_mask,
-    get_position_ids_from_padding_mask,
     sample,
 )
 
@@ -33,30 +31,24 @@ class SingleTurnYAMLToMessages(Transform):
     Converts a single turn conversation in YAML format to a list of messages.
     """
 
-    def __call__(self, prompt: Union[str, Dict[str, Any]]) -> List[Message]:
+    def __call__(self, prompt: Dict[str, Any]) -> List[Message]:
         messages = []
 
-        # If the prompt is a string, assume it's the user's message
-        if isinstance(prompt, str):
-            messages.append(
-                Message(role="user", content=[{"type": "text", "content": prompt}])
-            )
-        else:
-            # If the prompt is a dict, assume it's a proper chat template
-            for role, content in prompt.items():
-                if isinstance(content, str):
-                    new_content = [{"type": "text", "content": content}]
-                else:
-                    assert (
-                        "image" in content.keys()
-                    ), "Multiple entries per role expect an image key"
-                    image_loc = content["image"]
-                    image = load_image(image_loc)
-                    new_content = [
-                        {"type": "image", "content": image},
-                        {"type": "text", "content": content["text"]},
-                    ]
-                messages.append(Message(role=role, content=new_content))
+        # Iterate through roles and add content
+        for role, content in prompt.items():
+            if isinstance(content, str):
+                new_content = [{"type": "text", "content": content}]
+            else:
+                assert (
+                    "image" in content.keys()
+                ), "Multiple entries per role expect an image key"
+                image_loc = content["image"]
+                image = load_image(image_loc)
+                new_content = [
+                    {"type": "image", "content": image},
+                    {"type": "text", "content": content["text"]},
+                ]
+            messages.append(Message(role=role, content=new_content))
 
         # Finally, add an empty assistant message
         messages.append(
@@ -89,15 +81,18 @@ class InferenceRecipe:
         training.set_seed(seed=cfg.seed)
 
     def setup(self, cfg: DictConfig) -> None:
+        # Load checkpointer and state_dict
         _checkpointer = config.instantiate(cfg.checkpointer)
         _ckpt_dict = _checkpointer.load_checkpoint()
 
+        # Instantiate model
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg.model)
         model.load_state_dict(_ckpt_dict[training.MODEL_KEY])
         self.model = model
         self._logger.info(f"Model was initialized with precision {self._dtype}.")
 
+        # Instantiate transforms
         self.model_transform = config.instantiate(cfg.transform)
         self.to_messages = SingleTurnYAMLToMessages()
 
@@ -106,7 +101,6 @@ class InferenceRecipe:
         # 1. Convert input to messages
         messages = self.to_messages(cfg.prompt)
         is_multimodal_input = any([m.contains_media for m in messages])
-        print([m.content for m in messages])
 
         # 2. Apply model transform
         model_inputs = self.model_transform({"messages": messages}, inference=True)
@@ -132,7 +126,7 @@ class InferenceRecipe:
         ).unsqueeze(0)
         input_pos = torch.arange(total_response_length).unsqueeze(0)
 
-        # 3. Collate to batch size of 1 and tensor-ify
+        # 5. Collate to batch size of 1 and tensor-ify
         if is_multimodal_input:
             batch = padded_collate_tiled_images_and_mask(
                 [model_inputs], pad_direction="left"
@@ -145,14 +139,14 @@ class InferenceRecipe:
             }
         utils.batch_to_device(batch, self._device)
 
-        # 4. Prefill step
+        # 6. Prefill step
         generated_tokens = []
         t0 = time.perf_counter()
         logits = self.model(**batch)[:, -1]
         token = sample(logits, temperature=cfg.temperature, top_k=cfg.top_k)
         generated_tokens.append(token.item())
 
-        # 5. Continue generating
+        # 7. Continue generating
         for i in range(cfg.max_new_tokens):
             # Update batch params
             batch_params = {
@@ -173,11 +167,11 @@ class InferenceRecipe:
 
         t = time.perf_counter() - t0
 
-        # 6. Decode tokens
+        # 8. Decode tokens
         decoded = self.model_transform.decode(generated_tokens)
         self._logger.info(decoded)
 
-        # 7. Log metrics
+        # 9. Log metrics
         model_size = sum(
             [
                 p.numel() * p.dtype.itemsize
