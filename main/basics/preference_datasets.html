@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>get_logger &mdash; torchtune main documentation</title>
+  <title>Preference Datasets &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="torch_version_ge" href="torchtune.utils.torch_version_ge.html" />
-    <link rel="prev" title="get_device" href="torchtune.utils.get_device.html" />
+    <link rel="next" title="Meta Llama3 in torchtune" href="../tutorials/llama3.html" />
+    <link rel="prev" title="Prompt Templates" href="prompt_templates.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -311,12 +311,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Basics</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../basics/instruct_datasets.html">Instruct Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/chat_datasets.html">Chat Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/tokenizers.html">Tokenizers</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/prompt_templates.html">Prompt Templates</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/preference_datasets.html">Preference Datasets</a></li>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prompt_templates.html">Prompt Templates</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Preference Datasets</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
@@ -338,7 +338,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
-<ul class="current">
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
@@ -347,7 +347,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -388,15 +388,13 @@
       </li>
 
         
-          <li><a href="../api_ref_utilities.html">torchtune.utils</a> &gt;</li>
-        
-      <li>get_logger</li>
+      <li>Preference Datasets</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.utils.get_logger.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/basics/preference_datasets.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -426,33 +424,150 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="get-logger">
-<h1>get_logger<a class="headerlink" href="#get-logger" title="Permalink to this heading">¶</a></h1>
-<dl class="py function">
-<dt class="sig sig-object py" id="torchtune.utils.get_logger">
-<span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">get_logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Logger" title="(in Python v3.12)"><span class="pre">Logger</span></a></span></span><a class="reference internal" href="../_modules/torchtune/utils/_logging.html#get_logger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.get_logger" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get a logger with a stream handler.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>level</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – The logging level. See <a class="reference external" href="https://docs.python.org/3/library/logging.html#levels">https://docs.python.org/3/library/logging.html#levels</a> for list of levels.</p>
-</dd>
-</dl>
-<p class="rubric">Example</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;INFO&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Hello world!&quot;</span><span class="p">)</span>
-<span class="go">INFO:torchtune.utils._logging:Hello world!</span>
+  <section id="preference-datasets">
+<span id="preference-dataset-usage-label"></span><h1>Preference Datasets<a class="headerlink" href="#preference-datasets" title="Permalink to this heading">¶</a></h1>
+<p>Preference datasets are used for reward modelling, where the downstream task is to fine-tune a base model
+to capture some underlying human preferences. Currently, these datasets are used in torchtune with the
+Direct Preference Optimization (DPO) <a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/lora_dpo_single_device.py">recipe</a>.</p>
+<p>The ground-truth in preference datasets is usually the outcome of a binary comparison between two completions for the same prompt,
+and where a human annotator has indicated that one completion is more preferable than the other, according to some pre-set criterion.
+These prompt-completion pairs could be instruct style (single-turn, optionally with a single prompt), chat style (multi-turn), or
+some other set of interactions between a user and model (e.g. free-form text completion).</p>
+<p>The primary entry point for fine-tuning with preference datasets in torchtune with the DPO recipe is <a class="reference internal" href="../generated/torchtune.datasets.preference_dataset.html#torchtune.datasets.preference_dataset" title="torchtune.datasets.preference_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">preference_dataset()</span></code></a>.</p>
+<section id="example-local-preference-dataset">
+<h2>Example local preference dataset<a class="headerlink" href="#example-local-preference-dataset" title="Permalink to this heading">¶</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># my_preference_dataset.json</span>
+<span class="o">[</span>
+<span class="w">    </span><span class="o">{</span>
+<span class="w">        </span><span class="s2">&quot;chosen_conversations&quot;</span>:<span class="w"> </span><span class="o">[</span>
+<span class="w">            </span><span class="o">{</span>
+<span class="w">                </span><span class="s2">&quot;content&quot;</span>:<span class="w"> </span><span class="s2">&quot;What do I do when I have a hole in my trousers?&quot;</span>,
+<span class="w">                </span><span class="s2">&quot;role&quot;</span>:<span class="w"> </span><span class="s2">&quot;user&quot;</span>
+<span class="w">            </span><span class="o">}</span>,
+<span class="w">            </span><span class="o">{</span><span class="w"> </span><span class="s2">&quot;content&quot;</span>:<span class="w"> </span><span class="s2">&quot;Fix the hole.&quot;</span>,<span class="w"> </span><span class="s2">&quot;role&quot;</span>:<span class="w"> </span><span class="s2">&quot;assistant&quot;</span><span class="w"> </span><span class="o">}</span>
+<span class="w">        </span><span class="o">]</span>,
+<span class="w">        </span><span class="s2">&quot;rejected_conversations&quot;</span>:<span class="w"> </span><span class="o">[</span>
+<span class="w">            </span><span class="o">{</span>
+<span class="w">                </span><span class="s2">&quot;content&quot;</span>:<span class="w"> </span><span class="s2">&quot;What do I do when I have a hole in my trousers?&quot;</span>,
+<span class="w">                </span><span class="s2">&quot;role&quot;</span>:<span class="w"> </span><span class="s2">&quot;user&quot;</span>
+<span class="w">            </span><span class="o">}</span>,
+<span class="w">            </span><span class="o">{</span><span class="w"> </span><span class="s2">&quot;content&quot;</span>:<span class="w"> </span><span class="s2">&quot;Take them off.&quot;</span>,<span class="w"> </span><span class="s2">&quot;role&quot;</span>:<span class="w"> </span><span class="s2">&quot;assistant&quot;</span><span class="w"> </span><span class="o">}</span>
+<span class="w">        </span><span class="o">]</span>
+<span class="w">    </span><span class="o">}</span>
+<span class="o">]</span>
 </pre></div>
 </div>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>The logger.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Logger" title="(in Python v3.12)">logging.Logger</a></p>
-</dd>
-</dl>
-</dd></dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.mistral</span> <span class="kn">import</span> <span class="n">mistral_tokenizer</span>
+<span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">preference_dataset</span>
 
+ <span class="n">m_tokenizer</span> <span class="o">=</span> <span class="n">mistral_tokenizer</span><span class="p">(</span>
+     <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/tmp/Mistral-7B-v0.1/tokenizer.model&quot;</span><span class="p">,</span>
+     <span class="n">prompt_template</span><span class="o">=</span><span class="s2">&quot;torchtune.models.mistral.MistralChatTemplate&quot;</span><span class="p">,</span>
+     <span class="n">max_seq_len</span><span class="o">=</span><span class="mi">8192</span><span class="p">,</span>
+ <span class="p">)</span>
+<span class="n">column_map</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;chosen&quot;</span><span class="p">:</span> <span class="s2">&quot;chosen_conversations&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;rejected&quot;</span><span class="p">:</span> <span class="s2">&quot;rejected_conversations&quot;</span>
+<span class="p">}</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">preference_dataset</span><span class="p">(</span>
+    <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">,</span>
+    <span class="n">column_map</span><span class="o">=</span><span class="n">column_map</span><span class="p">,</span>
+    <span class="n">data_files</span><span class="o">=</span><span class="s2">&quot;my_preference_dataset.json&quot;</span><span class="p">,</span>
+    <span class="n">train_on_input</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">tokenized_dict</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">m_tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">tokenized_dict</span><span class="p">[</span><span class="s2">&quot;rejected_input_ids&quot;</span><span class="p">]))</span>
+<span class="c1"># user\n\nWhat do I do when I have a hole in my trousers?assistant\n\nTake them off.</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">tokenized_dict</span><span class="p">[</span><span class="s2">&quot;rejected_labels&quot;</span><span class="p">])</span>
+<span class="c1"># [-100,-100,-100,-100,-100,-100,-100,-100,-100,-100,-100,-100, -100,-100,\</span>
+<span class="c1"># -100,-100,-100,-100,-100,128006,78191,128007,271,18293,1124,1022,13,128009,-100]</span>
+</pre></div>
+</div>
+<p>This can also be accomplished via the yaml config:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># In config</span>
+<span class="nt">tokenizer</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.mistral.mistral_tokenizer</span>
+<span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp/Mistral-7B-v0.1/tokenizer.model</span>
+<span class="w">  </span><span class="nt">prompt_template</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.mistral.MistralChatTemplate</span>
+<span class="w">  </span><span class="nt">max_seq_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8192</span>
+
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.preference_dataset</span>
+<span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">json</span>
+<span class="w">  </span><span class="nt">data_files</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my_preference_dataset.json</span>
+<span class="w">  </span><span class="nt">column_map</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">chosen</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">chosen_conversations</span>
+<span class="w">    </span><span class="nt">rejected</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rejected_conversations</span>
+<span class="w">  </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
+<span class="w">  </span><span class="nt">split</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">train</span>
+</pre></div>
+</div>
+<p>In this example, we’ve also shown how <cite>column_map</cite> can be used when the “chosen” and/or “rejected” column names differ from the corresponding columns in your dataset.</p>
+</section>
+<section id="preference-dataset-format">
+<h2>Preference dataset format<a class="headerlink" href="#preference-dataset-format" title="Permalink to this heading">¶</a></h2>
+<p>Preference datasets are expected to have two columns: <em>“chosen”</em>, which indicates the human annotator’s preferred response, and <em>“rejected”</em>, indicating
+the human annotator’s dis-preferred response. Each of these columns should contain a list of messages with an identical prompt.
+The list of messages could include a system prompt, an instruction, multiple turns between user and assistant, or tool calls/returns. Let’s take a look at
+Anthropic’s helpfulness/harmlessness dataset <a class="reference external" href="https://huggingface.co/datasets/RLHFlow/HH-RLHF-Helpful-standard">on Hugging Face</a> as an example of a multi-turn
+chat-style format:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>| chosen                                | rejected                              |
+|---------------------------------------|---------------------------------------|
+|[{                                     |[{                                     |
+| &quot;role&quot;: &quot;user&quot;,                       | &quot;role&quot;: &quot;user&quot;,                       |
+| &quot;content&quot;: &quot;helping my granny with her| &quot;content&quot;: &quot;helping my granny with her|
+| mobile phone issue&quot;                   | mobile phone issue&quot;                   |
+| },                                    | },                                    |
+| {                                     | {                                     |
+| &quot;role&quot;: &quot;assistant&quot;,                  | &quot;role&quot;: &quot;assistant&quot;,                  |
+| &quot;content&quot;: &quot;I see you are chatting    | &quot;content&quot;: &quot;Well, the best choice here|
+| with your grandmother about an issue  | could be helping with so-called &#39;self-|
+| with her mobile phone. How can I      | management behaviors&#39;. These are      |
+| help?&quot;                                | things your grandma can do on her own |
+| },                                    | to help her feel more in control.&quot;    |
+| {                                     | }]                                    |
+| &quot;role&quot;: &quot;user&quot;,                       |                                       |
+| &quot;content&quot;: &quot;her phone is not turning  |                                       |
+| on&quot;                                   |                                       |
+| },                                    |                                       |
+| {...},                                |                                       |
+|]                                      |                                       |
+</pre></div>
+</div>
+<p>Currently, only JSON-format conversations are supported, as shown in the example above.
+You can use this dataset out-of-the-box in torchtune through <a class="reference internal" href="../generated/torchtune.datasets.hh_rlhf_helpful_dataset.html#torchtune.datasets.hh_rlhf_helpful_dataset" title="torchtune.datasets.hh_rlhf_helpful_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">hh_rlhf_helpful_dataset()</span></code></a>.</p>
+</section>
+<section id="loading-preference-datasets-from-hugging-face">
+<h2>Loading preference datasets from Hugging Face<a class="headerlink" href="#loading-preference-datasets-from-hugging-face" title="Permalink to this heading">¶</a></h2>
+<p>To load in preference datasets from Hugging Face you’ll need to pass in the dataset repo name to <code class="docutils literal notranslate"><span class="pre">source</span></code>. For most HF datasets, you will also need to specify the <code class="docutils literal notranslate"><span class="pre">split</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.gemma</span> <span class="kn">import</span> <span class="n">gemma_tokenizer</span>
+<span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">preference_dataset</span>
+
+<span class="n">g_tokenizer</span> <span class="o">=</span> <span class="n">gemma_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/gemma-7b/tokenizer.model&quot;</span><span class="p">)</span>
+<span class="n">ds</span> <span class="o">=</span> <span class="n">chat_dataset</span><span class="p">(</span>
+    <span class="n">tokenizer</span><span class="o">=</span><span class="n">g_tokenizer</span><span class="p">,</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">&quot;hendrydong/preference_700K&quot;</span><span class="p">,</span>
+    <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Tokenizer is passed into the dataset in the recipe so we don&#39;t need it here</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.preference_dataset</span>
+<span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">hendrydong/preference_700K</span>
+<span class="w">  </span><span class="nt">split</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">train</span>
+</pre></div>
+</div>
+</section>
+<section id="built-in-preference-datasets">
+<h2>Built-in preference datasets<a class="headerlink" href="#built-in-preference-datasets" title="Permalink to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="../generated/torchtune.datasets.hh_rlhf_helpful_dataset.html#torchtune.datasets.hh_rlhf_helpful_dataset" title="torchtune.datasets.hh_rlhf_helpful_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">hh_rlhf_helpful_dataset()</span></code></a></p></li>
+<li><p><a class="reference internal" href="../generated/torchtune.datasets.stack_exchange_paired_dataset.html#torchtune.datasets.stack_exchange_paired_dataset" title="torchtune.datasets.stack_exchange_paired_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">stack_exchange_paired_dataset()</span></code></a></p></li>
+</ul>
+</section>
 </section>
 
 
@@ -463,10 +578,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.utils.torch_version_ge.html" class="btn btn-neutral float-right" title="torch_version_ge" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="../tutorials/llama3.html" class="btn btn-neutral float-right" title="Meta Llama3 in torchtune" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.utils.get_device.html" class="btn btn-neutral" title="get_device" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="prompt_templates.html" class="btn btn-neutral" title="Prompt Templates" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -498,7 +613,13 @@
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">get_logger</a></li>
+<li><a class="reference internal" href="#">Preference Datasets</a><ul>
+<li><a class="reference internal" href="#example-local-preference-dataset">Example local preference dataset</a></li>
+<li><a class="reference internal" href="#preference-dataset-format">Preference dataset format</a></li>
+<li><a class="reference internal" href="#loading-preference-datasets-from-hugging-face">Loading preference datasets from Hugging Face</a></li>
+<li><a class="reference internal" href="#built-in-preference-datasets">Built-in preference datasets</a></li>
+</ul>
+</li>
 </ul>
 
             </div>
