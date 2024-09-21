@@ -470,7 +470,6 @@ class TestMistralTokenizer:
             4,
             2,
         ]
-        # Mask user, unmask assistant, add EOS token
         expected_mask = [True] * 88 + [False] * 125
         assert expected_tokens == tokens
         assert expected_mask == mask
