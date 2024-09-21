@@ -11,18 +11,22 @@ from pathlib import Path
 import pytest
 
 from tests.common import TUNE_PATH
-from tests.recipes.utils import llama2_test_config
-from tests.test_utils import CKPT_MODEL_PATHS
+from tests.recipes.utils import MODEL_TEST_CONFIGS, write_hf_ckpt_config
+from tests.test_utils import CKPT_MODEL_PATHS, TOKENIZER_PATHS
 
 
 class TestGenerateV2:
     """Recipe test suite for the generate_v2 recipe."""
 
     @pytest.mark.integration_test
-    def test_llama2_generate_results(self, capsys, monkeypatch, tmpdir, prompt):
+    def test_llama2_generate_results(self, caplog, monkeypatch, tmpdir):
         ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        tokenizer_path = Path(TOKENIZER_PATHS["llama2"])
         ckpt_dir = ckpt_path.parent
+
+        # Config file needed for model conversion.
+        write_hf_ckpt_config(ckpt_dir)
 
         cmd = f"""
         tune run dev/generate_v2 \
@@ -34,16 +38,25 @@ class TestGenerateV2:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            device=cpu \
+            dtype=fp32 \
+            max_new_tokens=10 \
+            seed=123 \
         """.split()
 
-        model_config = llama2_test_config()
+        model_config = MODEL_TEST_CONFIGS["llama2"]
         cmd = cmd + model_config
 
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        expected_output = "Of course! The capital of France is Paris. 🇫🇷"
+        # this is gibberish b/c the model is random weights, but it's
+        # the expected value for what we currently have in V2
+        # this test should catch any changes to the generate recipe that affect output
+        expected_output = (
+            "Country maior Connection Koh episodeSerial деревняfireathongeo ordin"
+        )
 
-        out = capsys.readouterr().out
-        assert expected_output in out
+        logs = caplog.text
+        assert expected_output in logs
