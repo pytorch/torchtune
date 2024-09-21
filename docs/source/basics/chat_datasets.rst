@@ -243,7 +243,7 @@ You can specify ``conversation_style=sharegpt`` in code or config:
 
 ``"json"``
 ^^^^^^^^^^
-The associated message transform is :class:`~torchtune.data.JSONToMessages`. The expected format is:
+The associated message transform is :class:`~torchtune.data.OpenAIToMessages`. The expected format is:
 
 .. code-block:: python
 

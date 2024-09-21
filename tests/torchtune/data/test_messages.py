@@ -16,8 +16,8 @@ from tests.test_utils import (
 from torchtune.data._messages import (
     ChosenRejectedToMessages,
     InputOutputToMessages,
-    JSONToMessages,
     Message,
+    OpenAIToMessages,
     ShareGPTToMessages,
 )
 
@@ -282,7 +282,7 @@ class TestShareGPTToMessages:
             )
 
 
-class TestJSONToMessages:
+class TestOpenAIToMessages:
     samples = {
         "messages": [
             {
@@ -301,19 +301,19 @@ class TestJSONToMessages:
     }
 
     def test_call(self):
-        transform = JSONToMessages()
+        transform = OpenAIToMessages()
         converted_messages = transform(self.samples)
         assert_dialogue_equal(converted_messages["messages"], MESSAGE_SAMPLE)
 
     def test_call_train_on_input(self):
-        transform = JSONToMessages(train_on_input=True)
+        transform = OpenAIToMessages(train_on_input=True)
         converted_messages = transform(self.samples)
         assert_dialogue_equal(
             converted_messages["messages"], MESSAGE_SAMPLE_TRAIN_ON_INPUT
         )
 
     def test_system_prompt(self):
-        transform = JSONToMessages(new_system_prompt="you are a robot")
+        transform = OpenAIToMessages(new_system_prompt="you are a robot")
         converted_messages = transform(self.samples)
         assert_dialogue_equal(
             converted_messages["messages"],
@@ -327,6 +327,6 @@ class TestJSONToMessages:
 
     def test_raise_value_error_when_messages_not_in_column_map(self):
         with pytest.raises(ValueError, match="Expected a key of 'messages'"):
-            JSONToMessages(
+            OpenAIToMessages(
                 column_map={"bananas": "maybe_messages"},
             )

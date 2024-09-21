@@ -19,8 +19,8 @@ from torchtune.data._instruct_templates import InstructTemplate
 from torchtune.data._messages import (
     ChosenRejectedToMessages,
     InputOutputToMessages,
-    JSONToMessages,
     Message,
+    OpenAIToMessages,
     Role,
     ShareGPTToMessages,
     validate_messages,
@@ -41,7 +41,7 @@ __all__ = [
     "GrammarErrorCorrectionTemplate",
     "InstructTemplate",
     "SummarizeTemplate",
-    "JSONToMessages",
+    "OpenAIToMessages",
     "ShareGPTToMessages",
     "truncate",
     "Message",

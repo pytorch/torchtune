@@ -393,10 +393,10 @@ class ShareGPTToMessages(Transform):
         return {"messages": messages}
 
 
-class JSONToMessages(Transform):
+class OpenAIToMessages(Transform):
     """
-    Convert a single chat sample with identical json structure to torchtune's :class:`~torchtune.data.Message`
-    structure. This transform simply creates Message dataclasses from the provided jsons.
+    Convert a single chat sample adhering to the `OpenAI chat completion <https://platform.openai.com/docs/api-reference/chat>`_
+    json structure to torchtune's :class:`~torchtune.data.Message` structure.
 
     A single sample typically consists of a single optional system prompt and one or multiple
     turns of user and assistant messages.
