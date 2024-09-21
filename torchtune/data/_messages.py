@@ -304,7 +304,7 @@ class ChosenRejectedToMessages(Transform):
 
 class ShareGPTToMessages(Transform):
     """
-    Convert a single chat sample adhering to the ShareGPT json structure to torchtune's :class:`~torchtune.data.Message`
+    Convert a single chat sample adhering to the ShareGPT JSON structure to torchtune's :class:`~torchtune.data.Message`
     structure.
 
     A single sample typically consists of a single optional system prompt and one or multiple
@@ -396,7 +396,7 @@ class ShareGPTToMessages(Transform):
 class OpenAIToMessages(Transform):
     """
     Convert a single chat sample adhering to the `OpenAI chat completion <https://platform.openai.com/docs/api-reference/chat>`_
-    json structure to torchtune's :class:`~torchtune.data.Message` structure.
+    JSON structure to torchtune's :class:`~torchtune.data.Message` structure.
 
     A single sample typically consists of a single optional system prompt and one or multiple
     turns of user and assistant messages.
