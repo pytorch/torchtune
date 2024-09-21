@@ -17,39 +17,8 @@ Most of our built-in message transforms contain parameters for controlling input
 adding a system prompt (``new_system_prompt``), and changing the expected column names (``column_map``).
 These are exposed in our dataset builders :func:`~torchtune.datasets.instruct_dataset` and :func:`~torchtune.datasets.chat_dataset`
 so you don't have to worry about the message transform itself and can configure this directly from the config.
-You can view the API ref for these builders for more details.
+You can see :ref:`example_instruct` or :ref:`example_chat` for more details.
 
-For example, :func:`~torchtune.datasets.instruct_dataset` uses :class:`~torchtune.data.InputOutputToMessages` as the message transform.
-The following code will configure :class:`~torchtune.data.InputOutputToMessages` to train on the user prompt, prepend a custom system
-prompt, and use the column names "prompt" and "response" instead.
-
-.. code-block:: python
-
-    # In code
-    from torchtune.datasets import instruct_dataset
-
-    ds = instruct_dataset(
-        source="json",
-        data_files="data/my_data.json",
-        split="train",
-        train_on_input=True,
-        new_system_prompt="You are a friendly AI assistant.",
-        column_map={"input": "prompt", "output": "response"},
-    )
-
-.. code-block:: yaml
-
-    # In config
-    dataset:
-      _component_: torchtune.datasets.instruct_dataset
-      source: json
-      data_files: data/my_data.json
-      split: train
-      train_on_input: True
-      new_system_prompt: You are a friendly AI assistant.
-      column_map:
-        input: prompt
-        output: response
 
 Custom message transforms
 -------------------------
