@@ -22,25 +22,25 @@ Example local preference dataset
 
 .. code-block:: bash
 
-   head my_preference_dataset.json -n 19
-   # [
-   #     {
-   #         "chosen_conversations": [
-   #             {
-   #                 "content": "What do I do when I have a hole in my trousers?",
-   #                 "role": "user"
-   #             },
-   #             { "content": "Fix the hole.", "role": "assistant" }
-   #         ],
-   #         "rejected_conversations": [
-   #             {
-   #                 "content": "What do I do when I have a hole in my trousers?",
-   #                 "role": "user"
-   #             },
-   #             { "content": "Take them off.", "role": "assistant" }
-   #         ]
-   #     }
-   # ]
+   # my_preference_dataset.json
+   [
+       {
+           "chosen_conversations": [
+               {
+                   "content": "What do I do when I have a hole in my trousers?",
+                   "role": "user"
+               },
+               { "content": "Fix the hole.", "role": "assistant" }
+           ],
+           "rejected_conversations": [
+               {
+                   "content": "What do I do when I have a hole in my trousers?",
+                   "role": "user"
+               },
+               { "content": "Take them off.", "role": "assistant" }
+           ]
+       }
+   ]
 
 
 .. code-block:: python
@@ -102,7 +102,8 @@ Preference dataset format
 Preference datasets are expected to have two columns: *"chosen"*, which indicates the human annotator's preferred response, and *"rejected"*, indicating
 the human annotator's dis-preferred response. Each of these columns should contain a list of messages with an identical prompt, followed by a list of messages.
 The list of messages could include a system prompt, an instruction, multiple turns between user and assistant, or tool calls/returns. Let's take a look at
-Anthropic's helpfulness/harmlessness dataset `on Hugging Face <https://huggingface.co/datasets/RLHFlow/HH-RLHF-Helpful-standard>`_ as an example:
+Anthropic's helpfulness/harmlessness dataset `on Hugging Face <https://huggingface.co/datasets/RLHFlow/HH-RLHF-Helpful-standard>`_ as an example of a multi-turn
+chat-style format:
 
 .. code-block:: text
 
@@ -128,6 +129,7 @@ Anthropic's helpfulness/harmlessness dataset `on Hugging Face <https://huggingfa
     | {...},                                |                                       |
     |]                                      |                                       |
 
+Currently, only JSON-format conversations are supported, as shown in the example above.
 You can use this dataset out-of-the-box in torchtune through :func:`~torchtune.datasets.hh_rlhf_helpful_dataset`.
 
 Loading preference datasets from Hugging Face
@@ -158,5 +160,5 @@ To load in preference datasets from Hugging Face you'll need to pass in the data
 
 Built-in preference datasets
 ----------------------------
-- :class:`~torchtune.datasets.hh_rlhf_helpful_dataset`
-- :class:`~torchtune.datasets.stack_exchange_paired_dataset`
+- :func:`~torchtune.datasets.hh_rlhf_helpful_dataset`
+- :func:`~torchtune.datasets.stack_exchange_paired_dataset`
