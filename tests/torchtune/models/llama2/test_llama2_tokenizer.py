@@ -252,11 +252,21 @@ class TestLlama2Tokenizer:
         assert expected_tokens == tokens
         assert expected_mask == mask
 
-    def test_tokenize_messages_chat_template(self, messages):
+    @pytest.mark.parametrize(
+        "add_start_tokens, add_end_tokens",
+        [
+            (True, True),
+            (False, False),
+        ],
+    )
+    def test_tokenize_messages_chat_template(
+        self, messages, add_start_tokens, add_end_tokens
+    ):
         tokenizer = self.tokenizer(template=True)
-        tokens, mask = tokenizer.tokenize_messages(messages)
+        tokens, mask = tokenizer.tokenize_messages(
+            messages, add_start_tokens=add_start_tokens, add_end_tokens=add_end_tokens
+        )
         expected_tokens = [
-            1,
             351,
             82,
             391,
@@ -468,9 +478,18 @@ class TestLlama2Tokenizer:
             24,
             24,
             4,
-            2,
         ]
-        # Mask user, unmask assistant, add EOS token
-        expected_mask = [True] * 88 + [False] * 124 + [True]
+
+        # Mask user, unmask assistant
+        expected_mask = [True] * 87 + [False] * 124
+
+        if add_end_tokens:
+            expected_tokens = expected_tokens + [tokenizer.eos_id]
+            expected_mask = expected_mask + [True]
+
+        if add_start_tokens:
+            expected_tokens = [tokenizer.bos_id] + expected_tokens
+            expected_mask = [True] + expected_mask
+
         assert expected_tokens == tokens
         assert expected_mask == mask
