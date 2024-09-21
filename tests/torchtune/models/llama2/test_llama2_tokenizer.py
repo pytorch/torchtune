@@ -248,7 +248,7 @@ class TestLlama2Tokenizer:
             2,
         ]
         # Mask user, unmask assistant, add EOS token
-        expected_mask = [True] * 75 + [False] * 124 + [True]
+        expected_mask = [True] * 75 + [False] * 125
         assert expected_tokens == tokens
         assert expected_mask == mask
 
@@ -485,7 +485,7 @@ class TestLlama2Tokenizer:
 
         if add_end_tokens:
             expected_tokens = expected_tokens + [tokenizer.eos_id]
-            expected_mask = expected_mask + [True]
+            expected_mask = expected_mask + [False]
 
         if add_start_tokens:
             expected_tokens = [tokenizer.bos_id] + expected_tokens
