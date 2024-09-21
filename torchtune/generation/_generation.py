@@ -17,18 +17,28 @@ def multinomial_sample_one(probs: torch.Tensor, q: torch.Tensor) -> torch.Tensor
 
 def sample(
     logits: torch.Tensor,
-    q: torch.Tensor,
     *,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
+    q: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
-    """Generic sample from a probability distribution.
+    """Generic sample from a probability distribution. Includes support for Top-K sampling
+    and Temperature.
 
     Args:
         logits (torch.Tensor): logits from which to sample
-        q (torch.Tensor): randomly sampled tensor for softmax sampling trick.
         temperature (float): value to scale the predicted logits by, default 1.0.
         top_k (Optional[int]): If specified, we prune the sampling to only token ids within the top_k probabilities
+        q (Optional[torch.Tensor]): randomly sampled tensor for softmax sampling trick. If None,
+            we use the default softmax sampling trick. Default None.
+
+    Example:
+        >>> from torchtune.generation import sample
+        >>> logits = torch.empty(3, 3).uniform_(0, 1)
+        >>> sample(logits)
+        tensor([[1],
+                [2],
+                [0]], dtype=torch.int32)
 
     Returns:
         torch.Tensor: sampled token id
@@ -42,8 +52,14 @@ def sample(
         # set everything smaller than pivot value to inf since these
         # should be pruned
         logits = torch.where(logits < pivot, -float("Inf"), logits)
+
     # change logits into probabilities
     probs = torch.nn.functional.softmax(logits, dim=-1)
+
+    # if q is None, we use the default softmax sampling trick
+    if q is None:
+        q = torch.empty_like(probs).exponential_(1)
+
     return multinomial_sample_one(probs, q)
 
 
@@ -85,7 +101,7 @@ def generate_next_token(
     # we want to take the last token's logits as the input to the next model call
     logits = model(x, input_pos=input_pos, mask=mask)
     return (
-        sample(logits[:, -1].clone(), q, temperature=temperature, top_k=top_k),
+        sample(logits[:, -1].clone(), temperature=temperature, top_k=top_k, q=q),
         logits,
     )
 
@@ -147,7 +163,7 @@ def get_causal_mask_from_padding_mask(
         diagonal=0,
     ).repeat(bsz, 1, 1)
     mask.narrow(2, 0, seq_len).mul_(padding_mask[:, None, :].expand(-1, seq_len, -1))
-    mask.diagonal(dim1=1, dim2=2).copy_(True)
+    mask.diagonal(dim1=1, dim2=2).copy_(torch.Tensor([True]))
     return mask
 
 
