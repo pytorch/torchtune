@@ -6,22 +6,15 @@
 import itertools
 import sys
 import time
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List
 
 import torch
 from omegaconf import DictConfig
 
 from torchtune import config, training, utils
-from torchtune.data import (
-    left_pad_sequence,
-    load_image,
-    Message,
-    padded_collate_tiled_images_and_mask,
-)
+from torchtune.data import load_image, Message, padded_collate_tiled_images_and_mask
 
-from torchtune.generation import (
-    sample,
-)
+from torchtune.generation import sample
 
 from torchtune.modules.transforms import Transform
 

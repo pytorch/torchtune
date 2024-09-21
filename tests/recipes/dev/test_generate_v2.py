@@ -4,9 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import builtins
-import math
-import re
 import runpy
 import sys
 from pathlib import Path
@@ -22,9 +19,7 @@ class TestGenerateV2:
     """Recipe test suite for the generate_v2 recipe."""
 
     @pytest.mark.integration_test
-    def test_llama2_generate_results(
-        self, capsys, monkeypatch, tmpdir, prompt
-    ):
+    def test_llama2_generate_results(self, capsys, monkeypatch, tmpdir, prompt):
         ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
@@ -52,4 +47,3 @@ class TestGenerateV2:
 
         out = capsys.readouterr().out
         assert expected_output in out
-    

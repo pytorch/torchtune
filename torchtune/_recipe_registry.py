@@ -267,7 +267,7 @@ _ALL_RECIPES = [
             Config(
                 name="llama2/generation_v2",
                 file_path="llama2/generation_v2.yaml",
-            )
+            ),
         ],
         supports_distributed=False,
     ),
