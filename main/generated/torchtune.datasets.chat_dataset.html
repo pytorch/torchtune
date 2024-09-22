@@ -454,7 +454,7 @@ as an alternative to <a class="reference internal" href="torchtune.datasets.SFTD
 <p>You may have a different structure for your conversations, such as different role names or
 different keys in the json structure. You can use the <code class="docutils literal notranslate"><span class="pre">conversation_style</span></code> parameter
 to choose from standard formats such as “sharegpt” (see <a class="reference internal" href="torchtune.data.ShareGPTToMessages.html#torchtune.data.ShareGPTToMessages" title="torchtune.data.ShareGPTToMessages"><code class="xref py py-class docutils literal notranslate"><span class="pre">ShareGPTToMessages</span></code></a>)
-or “json” (see <a class="reference internal" href="torchtune.data.JSONToMessages.html#torchtune.data.JSONToMessages" title="torchtune.data.JSONToMessages"><code class="xref py py-class docutils literal notranslate"><span class="pre">JSONToMessages</span></code></a>). If your dataset is not in one of these
+or “openai” (see <a class="reference internal" href="torchtune.data.OpenAIToMessages.html#torchtune.data.OpenAIToMessages" title="torchtune.data.OpenAIToMessages"><code class="xref py py-class docutils literal notranslate"><span class="pre">OpenAIToMessages</span></code></a>). If your dataset is not in one of these
 formats, we recommend creating a custom message transform and using it in a custom dataset
 builder function similar to <a class="reference internal" href="#torchtune.datasets.chat_dataset" title="torchtune.datasets.chat_dataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">chat_dataset</span></code></a>.</p>
 <p>If your column names are different, use the <code class="docutils literal notranslate"><span class="pre">conversation_column</span></code> parameter to point
@@ -477,7 +477,7 @@ in the filepath in <code class="docutils literal notranslate"><span class="pre">
 <li><p><strong>conversation_column</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – name of column containing the conversations.</p></li>
 <li><p><strong>conversation_style</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – string specifying expected style of conversations in the dataset
 for automatic conversion to the <a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> structure.
-Supported styles are: “sharegpt”, “json”</p></li>
+Supported styles are: “sharegpt”, “openai”</p></li>
 <li><p><strong>train_on_input</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – Whether the model is trained on the prompt or not. Default is False.</p></li>
 <li><p><strong>new_system_prompt</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – if specified, prepend a system message. This can
 serve as instructions to guide the model response. Default is None.</p></li>

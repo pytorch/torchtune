@@ -3,8 +3,8 @@
 .. currentmodule:: torchtune.data
 
 
-JSONToMessages
-==============
+OpenAIToMessages
+================
 
-.. autoclass:: JSONToMessages
+.. autoclass:: OpenAIToMessages
     :members:

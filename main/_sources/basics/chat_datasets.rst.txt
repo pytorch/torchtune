@@ -243,9 +243,9 @@ You can specify ``conversation_style=sharegpt`` in code or config:
       data_files: data/my_data.json
       split: train
 
-``"json"``
-^^^^^^^^^^
-The associated message transform is :class:`~torchtune.data.JSONToMessages`. The expected format is:
+``"openai"``
+^^^^^^^^^^^^
+The associated message transform is :class:`~torchtune.data.OpenAIToMessages`. The expected format is:
 
 .. code-block:: python
 
@@ -259,7 +259,7 @@ The associated message transform is :class:`~torchtune.data.JSONToMessages`. The
         ]
     }
 
-You can specify ``conversation_style=json`` in code or config:
+You can specify ``conversation_style=openai`` in code or config:
 
 .. code-block:: python
 
@@ -271,7 +271,7 @@ You can specify ``conversation_style=json`` in code or config:
         tokenizer=g_tokenizer,
         source="json",
         conversation_column="conversations",
-        conversation_style="json",
+        conversation_style="openai",
         data_files="data/my_data.json",
         split="train",
     )
@@ -283,7 +283,7 @@ You can specify ``conversation_style=json`` in code or config:
       _component_: torchtune.datasets.chat_dataset
       source: json
       conversation_column: conversations
-      conversation_style: json
+      conversation_style: openai
       data_files: data/my_data.json
       split: train
 

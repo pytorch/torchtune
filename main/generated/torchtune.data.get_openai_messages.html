@@ -436,12 +436,12 @@
 <dd><div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>This class is deprecated and will be removed in a future release. Please use
-<a class="reference internal" href="torchtune.data.JSONToMessages.html#torchtune.data.JSONToMessages" title="torchtune.data.JSONToMessages"><code class="xref py py-class docutils literal notranslate"><span class="pre">JSONToMessages</span></code></a> instead. The following are equivalent:</p>
+<a class="reference internal" href="torchtune.data.OpenAIToMessages.html#torchtune.data.OpenAIToMessages" title="torchtune.data.OpenAIToMessages"><code class="xref py py-class docutils literal notranslate"><span class="pre">OpenAIToMessages</span></code></a> instead. The following are equivalent:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Deprecated</span>
 <span class="n">transformed_sample</span> <span class="o">=</span> <span class="n">get_openai_messages</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="n">train_on_input</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="c1"># New</span>
-<span class="n">transformed_sample</span> <span class="o">=</span> <span class="n">JSONToMessages</span><span class="p">(</span><span class="n">train_on_input</span><span class="o">=</span><span class="kc">True</span><span class="p">)(</span><span class="n">sample</span><span class="p">)</span>
+<span class="n">transformed_sample</span> <span class="o">=</span> <span class="n">OpenAIToMessages</span><span class="p">(</span><span class="n">train_on_input</span><span class="o">=</span><span class="kc">True</span><span class="p">)(</span><span class="n">sample</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>

@@ -459,7 +459,7 @@ turns of user and assistant messages:</p>
 </pre></div>
 </div>
 <p>These lists of messages are then tokenized for model training. Currently, this function only supports
-conversations identical to <a class="reference internal" href="torchtune.data.JSONToMessages.html#torchtune.data.JSONToMessages" title="torchtune.data.JSONToMessages"><code class="xref py py-class docutils literal notranslate"><span class="pre">JSONToMessages</span></code></a>, and does not support custom
+conversations identical to <a class="reference internal" href="torchtune.data.OpenAIToMessages.html#torchtune.data.OpenAIToMessages" title="torchtune.data.OpenAIToMessages"><code class="xref py py-class docutils literal notranslate"><span class="pre">OpenAIToMessages</span></code></a>, and does not support custom
 message formats.</p>
 <p>If your dataset does not follow this format, we recommend creating a custom message transform similar to
 <a class="reference internal" href="torchtune.data.ChosenRejectedToMessages.html#torchtune.data.ChosenRejectedToMessages" title="torchtune.data.ChosenRejectedToMessages"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChosenRejectedToMessages</span></code></a> and using it in a custom dataset builder function similar

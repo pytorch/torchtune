@@ -641,9 +641,9 @@ that follows this format:</p>
 </pre></div>
 </div>
 </section>
-<section id="json">
-<h3><code class="docutils literal notranslate"><span class="pre">&quot;json&quot;</span></code><a class="headerlink" href="#json" title="Permalink to this heading">¶</a></h3>
-<p>The associated message transform is <a class="reference internal" href="../generated/torchtune.data.JSONToMessages.html#torchtune.data.JSONToMessages" title="torchtune.data.JSONToMessages"><code class="xref py py-class docutils literal notranslate"><span class="pre">JSONToMessages</span></code></a>. The expected format is:</p>
+<section id="openai">
+<h3><code class="docutils literal notranslate"><span class="pre">&quot;openai&quot;</span></code><a class="headerlink" href="#openai" title="Permalink to this heading">¶</a></h3>
+<p>The associated message transform is <a class="reference internal" href="../generated/torchtune.data.OpenAIToMessages.html#torchtune.data.OpenAIToMessages" title="torchtune.data.OpenAIToMessages"><code class="xref py py-class docutils literal notranslate"><span class="pre">OpenAIToMessages</span></code></a>. The expected format is:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
     <span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="p">[</span>
         <span class="p">{</span>
@@ -655,7 +655,7 @@ that follows this format:</p>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>You can specify <code class="docutils literal notranslate"><span class="pre">conversation_style=json</span></code> in code or config:</p>
+<p>You can specify <code class="docutils literal notranslate"><span class="pre">conversation_style=openai</span></code> in code or config:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.gemma</span> <span class="kn">import</span> <span class="n">gemma_tokenizer</span>
 <span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">chat_dataset</span>
 
@@ -664,7 +664,7 @@ that follows this format:</p>
     <span class="n">tokenizer</span><span class="o">=</span><span class="n">g_tokenizer</span><span class="p">,</span>
     <span class="n">source</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">,</span>
     <span class="n">conversation_column</span><span class="o">=</span><span class="s2">&quot;conversations&quot;</span><span class="p">,</span>
-    <span class="n">conversation_style</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">,</span>
+    <span class="n">conversation_style</span><span class="o">=</span><span class="s2">&quot;openai&quot;</span><span class="p">,</span>
     <span class="n">data_files</span><span class="o">=</span><span class="s2">&quot;data/my_data.json&quot;</span><span class="p">,</span>
     <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
 <span class="p">)</span>
@@ -675,7 +675,7 @@ that follows this format:</p>
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.chat_dataset</span>
 <span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">json</span>
 <span class="w">  </span><span class="nt">conversation_column</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conversations</span>
-<span class="w">  </span><span class="nt">conversation_style</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">json</span>
+<span class="w">  </span><span class="nt">conversation_style</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai</span>
 <span class="w">  </span><span class="nt">data_files</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data/my_data.json</span>
 <span class="w">  </span><span class="nt">split</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">train</span>
 </pre></div>
@@ -798,7 +798,7 @@ that follows this format:</p>
 <li><a class="reference internal" href="#loading-local-and-remote-chat-datasets">Loading local and remote chat datasets</a></li>
 <li><a class="reference internal" href="#specifying-conversation-style">Specifying conversation style</a><ul>
 <li><a class="reference internal" href="#sharegpt"><code class="docutils literal notranslate"><span class="pre">&quot;sharegpt&quot;</span></code></a></li>
-<li><a class="reference internal" href="#json"><code class="docutils literal notranslate"><span class="pre">&quot;json&quot;</span></code></a></li>
+<li><a class="reference internal" href="#openai"><code class="docutils literal notranslate"><span class="pre">&quot;openai&quot;</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#renaming-columns">Renaming columns</a></li>

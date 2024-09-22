@@ -437,8 +437,8 @@
 <span class="kn">from</span> <span class="nn">torchtune.data._chat_formats</span> <span class="kn">import</span> <span class="n">ChatFormat</span>
 <span class="kn">from</span> <span class="nn">torchtune.data._common</span> <span class="kn">import</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span>
 <span class="kn">from</span> <span class="nn">torchtune.data._messages</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">JSONToMessages</span><span class="p">,</span>
     <span class="n">Message</span><span class="p">,</span>
+    <span class="n">OpenAIToMessages</span><span class="p">,</span>
     <span class="n">ShareGPTToMessages</span><span class="p">,</span>
     <span class="n">validate_messages</span><span class="p">,</span>
 <span class="p">)</span>
@@ -575,7 +575,7 @@
 <span class="sd">    You may have a different structure for your conversations, such as different role names or</span>
 <span class="sd">    different keys in the json structure. You can use the ``conversation_style`` parameter</span>
 <span class="sd">    to choose from standard formats such as &quot;sharegpt&quot; (see :class:`~torchtune.data.ShareGPTToMessages`)</span>
-<span class="sd">    or &quot;json&quot; (see :class:`~torchtune.data.JSONToMessages`). If your dataset is not in one of these</span>
+<span class="sd">    or &quot;openai&quot; (see :class:`~torchtune.data.OpenAIToMessages`). If your dataset is not in one of these</span>
 <span class="sd">    formats, we recommend creating a custom message transform and using it in a custom dataset</span>
 <span class="sd">    builder function similar to :class:`~torchtune.datasets.chat_dataset`.</span>
 
@@ -599,7 +599,7 @@
 <span class="sd">        conversation_column (str): name of column containing the conversations.</span>
 <span class="sd">        conversation_style (str): string specifying expected style of conversations in the dataset</span>
 <span class="sd">            for automatic conversion to the :class:`~torchtune.data.Message` structure.</span>
-<span class="sd">            Supported styles are: &quot;sharegpt&quot;, &quot;json&quot;</span>
+<span class="sd">            Supported styles are: &quot;sharegpt&quot;, &quot;openai&quot;</span>
 <span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
 <span class="sd">        new_system_prompt (Optional[str]): if specified, prepend a system message. This can</span>
 <span class="sd">            serve as instructions to guide the model response. Default is None.</span>
@@ -677,8 +677,8 @@
             <span class="n">column_map</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;conversations&quot;</span><span class="p">:</span> <span class="n">conversation_column</span><span class="p">},</span>
             <span class="n">new_system_prompt</span><span class="o">=</span><span class="n">new_system_prompt</span><span class="p">,</span>
         <span class="p">)</span>
-    <span class="k">elif</span> <span class="n">conversation_style</span> <span class="o">==</span> <span class="s2">&quot;json&quot;</span><span class="p">:</span>
-        <span class="n">message_transform</span> <span class="o">=</span> <span class="n">JSONToMessages</span><span class="p">(</span>
+    <span class="k">elif</span> <span class="n">conversation_style</span> <span class="o">==</span> <span class="s2">&quot;openai&quot;</span><span class="p">:</span>
+        <span class="n">message_transform</span> <span class="o">=</span> <span class="n">OpenAIToMessages</span><span class="p">(</span>
             <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
             <span class="n">column_map</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">conversation_column</span><span class="p">},</span>
             <span class="n">new_system_prompt</span><span class="o">=</span><span class="n">new_system_prompt</span><span class="p">,</span>

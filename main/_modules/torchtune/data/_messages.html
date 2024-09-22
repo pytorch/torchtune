@@ -430,6 +430,8 @@
 
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
+<span class="kn">from</span> <span class="nn">torchtune.data._utils</span> <span class="kn">import</span> <span class="n">load_image</span>
+
 <span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
 
 <span class="n">Role</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span>
@@ -728,7 +730,7 @@
 
 <div class="viewcode-block" id="ShareGPTToMessages"><a class="viewcode-back" href="../../../generated/torchtune.data.ShareGPTToMessages.html#torchtune.data.ShareGPTToMessages">[docs]</a><span class="k">class</span> <span class="nc">ShareGPTToMessages</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Convert a single chat sample adhering to the ShareGPT json structure to torchtune&#39;s :class:`~torchtune.data.Message`</span>
+<span class="sd">    Convert a single chat sample adhering to the ShareGPT JSON structure to torchtune&#39;s :class:`~torchtune.data.Message`</span>
 <span class="sd">    structure.</span>
 
 <span class="sd">    A single sample typically consists of a single optional system prompt and one or multiple</span>
@@ -817,10 +819,11 @@
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">messages</span><span class="p">}</span></div>
 
 
-<div class="viewcode-block" id="JSONToMessages"><a class="viewcode-back" href="../../../generated/torchtune.data.JSONToMessages.html#torchtune.data.JSONToMessages">[docs]</a><span class="k">class</span> <span class="nc">JSONToMessages</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
+<div class="viewcode-block" id="OpenAIToMessages"><a class="viewcode-back" href="../../../generated/torchtune.data.OpenAIToMessages.html#torchtune.data.OpenAIToMessages">[docs]</a><span class="k">class</span> <span class="nc">OpenAIToMessages</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Convert a single chat sample with identical json structure to torchtune&#39;s :class:`~torchtune.data.Message`</span>
-<span class="sd">    structure. This transform simply creates Message dataclasses from the provided jsons.</span>
+<span class="sd">    Convert a single chat sample adhering to the `OpenAI chat completion &lt;https://platform.openai.com/docs/api-reference/chat&gt;`_</span>
+<span class="sd">    JSON structure to torchtune&#39;s :class:`~torchtune.data.Message` structure. This supports both</span>
+<span class="sd">    text and image messages.</span>
 
 <span class="sd">    A single sample typically consists of a single optional system prompt and one or multiple</span>
 <span class="sd">    turns of user and assistant messages.</span>
@@ -831,7 +834,17 @@
 <span class="sd">            &quot;messages&quot;: [</span>
 <span class="sd">                {</span>
 <span class="sd">                    &quot;role&quot;: &lt;system|user|assistant&gt;,</span>
-<span class="sd">                    &quot;content&quot;: &lt;message&gt;,</span>
+<span class="sd">                    &quot;content&quot;: [</span>
+<span class="sd">                        {</span>
+<span class="sd">                            &quot;type&quot;: &quot;text&quot;,</span>
+<span class="sd">                            &quot;text&quot;: &quot;What&#39;\&#39;&#39;s in this image?&quot;,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            &quot;type&quot;: &quot;image_url&quot;,</span>
+<span class="sd">                            &quot;image_url&quot;: {</span>
+<span class="sd">                                &quot;url&quot;: &lt;url&gt;,</span>
+<span class="sd">                            },</span>
+<span class="sd">                        },</span>
 <span class="sd">                },</span>
 <span class="sd">                ...</span>
 <span class="sd">            ]</span>
@@ -842,7 +855,16 @@
 <span class="sd">        [</span>
 <span class="sd">            {</span>
 <span class="sd">                &quot;role&quot;: &lt;system|user|assistant&gt;,</span>
-<span class="sd">                &quot;content&quot;: &lt;message&gt;,</span>
+<span class="sd">                &quot;content&quot;: [</span>
+<span class="sd">                    {</span>
+<span class="sd">                        &quot;type&quot;: &quot;text&quot;,</span>
+<span class="sd">                        &quot;content&quot;: &quot;What&#39;\&#39;&#39;s in this image?&quot;,</span>
+<span class="sd">                    },</span>
+<span class="sd">                    {</span>
+<span class="sd">                        &quot;type&quot;: &quot;image&quot;,</span>
+<span class="sd">                        &quot;content&quot;: &lt;PIL.Image.Image&gt;,</span>
+<span class="sd">                    },</span>
+<span class="sd">                ],</span>
 <span class="sd">            },</span>
 <span class="sd">            ...</span>
 <span class="sd">        ]</span>
@@ -878,6 +900,25 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="s2">&quot;messages&quot;</span><span class="p">}</span>
 
+    <span class="k">def</span> <span class="nf">_convert_from_openai_content</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">content</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Converts a list of content dicts from the OpenAI format to the torchtune format.&quot;&quot;&quot;</span>
+        <span class="n">converted_content</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">content_dict</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">content_dict</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span>
+                <span class="n">converted_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">content_dict</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]}</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">content_dict</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;image_url&quot;</span><span class="p">:</span>
+                <span class="n">converted_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;image&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">load_image</span><span class="p">(</span><span class="n">content_dict</span><span class="p">[</span><span class="s2">&quot;image_url&quot;</span><span class="p">][</span><span class="s2">&quot;url&quot;</span><span class="p">]),</span>
+                    <span class="p">}</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="n">converted_content</span>
+
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return a list of Message objects from the provided sample dict.</span>
@@ -899,10 +940,18 @@
         <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;messages&quot;</span><span class="p">]]:</span>
             <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;system&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">continue</span>
-            <span class="n">message</span><span class="p">[</span><span class="s2">&quot;masked&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
-                <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span>
+            <span class="n">masked</span> <span class="o">=</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_from_openai_content</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">]</span>
+            <span class="n">updated_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">Message</span><span class="p">(</span>
+                    <span class="n">role</span><span class="o">=</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">],</span>
+                    <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
+                    <span class="n">masked</span><span class="o">=</span><span class="n">masked</span><span class="p">,</span>
+                <span class="p">),</span>
             <span class="p">)</span>
-            <span class="n">updated_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Message</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">message</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">updated_messages</span><span class="p">}</span></div>
 

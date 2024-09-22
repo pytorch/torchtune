@@ -430,6 +430,8 @@
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
+<span class="kn">from</span> <span class="nn">torchtune.config._utils</span> <span class="kn">import</span> <span class="n">_get_component_from_path</span>
+
 <span class="kn">from</span> <span class="nn">torchtune.data._messages</span> <span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">Role</span>
 
 <span class="n">_TemplateType</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Role</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span>
@@ -671,6 +673,35 @@
 
 <span class="s2">Please see :class:`~torchtune.data.PromptTemplate` for full API arguments.</span>
 <span class="s2">&quot;&quot;&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">_get_prompt_template</span><span class="p">(</span>
+    <span class="n">prompt_template</span><span class="p">:</span> <span class="n">_TemplateType</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PromptTemplateInterface</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Retrieve prompt template from import dotpath or create a custom one with provided</span>
+<span class="sd">    template dictionary.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        prompt_template (_TemplateType): optional specified prompt template.</span>
+<span class="sd">            If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`</span>
+<span class="sd">            class. If a dictionary, it is assumed to be a custom prompt template mapping role to the</span>
+<span class="sd">            prepend/append tags.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        PromptTemplateInterface: the specified prompt template</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If a string or dictionary is not passed in</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prompt_template</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_get_component_from_path</span><span class="p">(</span><span class="n">prompt_template</span><span class="p">)()</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prompt_template</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">PromptTemplate</span><span class="p">(</span><span class="n">prompt_template</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Prompt template must be a dotpath string or dictionary with custom template, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">prompt_template</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
 </pre></div>
 
              </article>
