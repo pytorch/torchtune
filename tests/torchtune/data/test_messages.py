@@ -21,6 +21,7 @@ from torchtune.data._messages import (
     Message,
     OpenAIToMessages,
     ShareGPTToMessages,
+    validate_messages,
 )
 
 
@@ -388,3 +389,68 @@ class TestOpenAIToMessages:
             ],
         )
         mock_load_image.assert_called_once_with("https://example.com")
+
+
+def test_validate_messages():
+    messages = [
+        Message(role="system", content="hello"),
+        Message(role="user", content="hello"),
+        Message(role="assistant", content="world"),
+    ]
+
+    # Test valid conversation with system
+    validate_messages(messages)
+
+    # Test valid conversation without system
+    validate_messages(messages[1:])
+
+    # Test system not first
+    messages = [
+        Message(role="user", content="hello"),
+        Message(role="system", content="hello"),
+        Message(role="assistant", content="world"),
+    ]
+    with pytest.raises(
+        ValueError,
+        match="System message at index 1 in messages, but system messages must come first",
+    ):
+        validate_messages(messages)
+
+    # Test empty assistant message
+    messages = [
+        Message(role="system", content="hello"),
+        Message(role="user", content="world"),
+        Message(role="assistant", content=""),
+    ]
+    validate_messages(messages)
+
+    # Test single message
+    messages = [
+        Message(role="user", content="hello"),
+    ]
+    with pytest.raises(
+        ValueError, match="Messages must be at least length 2, but got 1 messages"
+    ):
+        validate_messages(messages)
+
+    # Test repeated user message
+    messages = [
+        Message(role="user", content="hello"),
+        Message(role="user", content="world"),
+        Message(role="assistant", content="world"),
+    ]
+    with pytest.raises(
+        ValueError, match="Two consecutive user messages at index 1 and 0 in messages"
+    ):
+        validate_messages(messages)
+
+    # Test assistant message comes first
+    messages = [
+        Message(role="assistant", content="hello"),
+        Message(role="user", content="world"),
+    ]
+    with pytest.raises(
+        ValueError,
+        match="Assistant message before expected user message at index 0 in messages",
+    ):
+        validate_messages(messages)

@@ -10,15 +10,7 @@ import pytest
 from PIL import Image
 
 from tests.common import ASSETS
-from torchtune.data import (
-    format_content_with_images,
-    Message,
-    PromptTemplate,
-    truncate,
-    validate_messages,
-)
-from torchtune.data._utils import _get_prompt_template, load_image
-from torchtune.models.llama2 import Llama2ChatTemplate
+from torchtune.data._utils import format_content_with_images, load_image, truncate
 
 
 def test_truncate():
@@ -36,71 +28,6 @@ def test_truncate():
     # Test truncated mask
     truncated_masks = truncate(tokens=masks, max_seq_len=4, eos_id=False)
     assert truncated_masks == [True, True, False, False]
-
-
-def test_validate_messages():
-    messages = [
-        Message(role="system", content="hello"),
-        Message(role="user", content="hello"),
-        Message(role="assistant", content="world"),
-    ]
-
-    # Test valid conversation with system
-    validate_messages(messages)
-
-    # Test valid conversation without system
-    validate_messages(messages[1:])
-
-    # Test system not first
-    messages = [
-        Message(role="user", content="hello"),
-        Message(role="system", content="hello"),
-        Message(role="assistant", content="world"),
-    ]
-    with pytest.raises(
-        ValueError,
-        match="System message at index 1 in messages, but system messages must come first",
-    ):
-        validate_messages(messages)
-
-    # Test empty assistant message
-    messages = [
-        Message(role="system", content="hello"),
-        Message(role="user", content="world"),
-        Message(role="assistant", content=""),
-    ]
-    validate_messages(messages)
-
-    # Test single message
-    messages = [
-        Message(role="user", content="hello"),
-    ]
-    with pytest.raises(
-        ValueError, match="Messages must be at least length 2, but got 1 messages"
-    ):
-        validate_messages(messages)
-
-    # Test repeated user message
-    messages = [
-        Message(role="user", content="hello"),
-        Message(role="user", content="world"),
-        Message(role="assistant", content="world"),
-    ]
-    with pytest.raises(
-        ValueError, match="Two consecutive user messages at index 1 and 0 in messages"
-    ):
-        validate_messages(messages)
-
-    # Test assistant message comes first
-    messages = [
-        Message(role="assistant", content="hello"),
-        Message(role="user", content="world"),
-    ]
-    with pytest.raises(
-        ValueError,
-        match="Assistant message before expected user message at index 0 in messages",
-    ):
-        validate_messages(messages)
 
 
 def test_format_content_with_images():
@@ -232,19 +159,3 @@ def test_load_image(monkeypatch, tmp_path):
         f.write(b"Invalid image data")
     with pytest.raises(ValueError, match="Failed to open image as PIL.Image"):
         load_image(str(image_path))
-
-
-def test_get_prompt_template():
-    template = _get_prompt_template("torchtune.models.llama2.Llama2ChatTemplate")
-    assert isinstance(template, Llama2ChatTemplate)
-
-    template = _get_prompt_template({"user": ("1", "2"), "assistant": ("3", "4")})
-    assert isinstance(template, PromptTemplate)
-    assert template.template["user"] == ("1", "2")
-    assert template.template["assistant"] == ("3", "4")
-
-    with pytest.raises(
-        ValueError,
-        match="Prompt template must be a dotpath string or dictionary with custom template",
-    ):
-        _ = _get_prompt_template(["user", "assistant"])
