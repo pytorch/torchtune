@@ -65,7 +65,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             helpful for larger batch sizes when you're memory constrained. But these savings in memory
             come at the cost of training performance. In most cases training can slow-down quite a bit as
             a result of this activation recomputation.
-        
+
         - Activation Offloading. This can be controlled using the ``enable_activation_offloading``
             flag. Activation offloading is a technique similar to activations checkpointing that helps
             reduce the memory footprint to prevent OOMs on CUDA and enable bigger batches. Where activations
@@ -153,7 +153,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # training attributes
         self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
-        self._enable_activation_offloading = cfg.get("enable_activation_offloading", False)
+        self._enable_activation_offloading = cfg.get(
+            "enable_activation_offloading", False
+        )
         if self._enable_activation_offloading and self._device.type != "cuda":
             raise RuntimeError(
                 "enable_activation_offloading should only be enabled for training on CUDA"
