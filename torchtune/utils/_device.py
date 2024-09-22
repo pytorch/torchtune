@@ -154,5 +154,5 @@ def batch_to_device(batch: dict, device: torch.device) -> None:
         else:
             raise ValueError(
                 f"""To use batch_to_device, all elements in the batch must be a dict or Tensor.
-Got key {k} with value {v} of type {type(v)}"""
+Got key "{k}" with value of type {type(v)}"""
             )
