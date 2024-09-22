@@ -4,6 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from unittest import mock
+
 import pytest
 
 from PIL import Image
@@ -300,6 +302,26 @@ class TestOpenAIToMessages:
         ],
     }
 
+    image_samples = {
+        "messages": [
+            {
+                "role": "system",
+                "content": CHAT_SAMPLE["system"],
+            },
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": CHAT_SAMPLE["user"]},
+                    {"type": "image_url", "image_url": {"url": "https://example.com"}},
+                ],
+            },
+            {
+                "role": "assistant",
+                "content": CHAT_SAMPLE["assistant"],
+            },
+        ],
+    }
+
     def test_call(self):
         transform = OpenAIToMessages()
         converted_messages = transform(self.samples)
@@ -330,3 +352,39 @@ class TestOpenAIToMessages:
             OpenAIToMessages(
                 column_map={"bananas": "maybe_messages"},
             )
+
+    @mock.patch("torchtune.data._messages.load_image")
+    def test_convert_from_openai_content(self, mock_load_image):
+        test_img = Image.new(mode="RGB", size=(4, 4))
+        mock_load_image.return_value = test_img
+        transform = OpenAIToMessages()
+        converted_content = transform._convert_from_openai_content(
+            self.image_samples["messages"][1]["content"]
+        )
+        assert converted_content == [
+            {"type": "text", "content": CHAT_SAMPLE["user"]},
+            {"type": "image", "content": test_img},
+        ]
+        mock_load_image.assert_called_once_with("https://example.com")
+
+    @mock.patch("torchtune.data._messages.load_image")
+    def test_call_image_messages(self, mock_load_image):
+        test_img = Image.new(mode="RGB", size=(4, 4))
+        mock_load_image.return_value = test_img
+        transform = OpenAIToMessages()
+        converted_messages = transform(self.image_samples)
+        assert_dialogue_equal(
+            converted_messages["messages"],
+            [
+                MESSAGE_SAMPLE[0],
+                Message(
+                    role="user",
+                    content=[
+                        {"type": "text", "content": CHAT_SAMPLE["user"]},
+                        {"type": "image", "content": test_img},
+                    ],
+                ),
+                MESSAGE_SAMPLE[2],
+            ],
+        )
+        mock_load_image.assert_called_once_with("https://example.com")

@@ -8,15 +8,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, TypeVar, Union
 from urllib import request
 
-from torchtune.config._utils import _get_component_from_path
-
-from torchtune.data._messages import Message
-from torchtune.data._prompt_templates import (
-    _TemplateType,
-    PromptTemplate,
-    PromptTemplateInterface,
-)
-
 T = TypeVar("T", bound=type)
 
 
@@ -150,74 +141,3 @@ def format_content_with_images(
             final_content_list.append({"type": "image", "content": images.pop(0)})
 
     return final_content_list
-
-
-def validate_messages(
-    messages: List[Message],
-) -> None:
-    """
-    Given a list of messages, ensure that messages form a valid
-    back-and-forth conversation. An error will be raised if:
-
-    - There is a system message that's not the first message
-    - There are two consecutive user messages
-    - An assistant message comes before the first user message
-    - The message is empty
-    - Messages are shorter than length of 2 (min. one user-assistant turn)
-
-
-    Args:
-        messages (List[Message]): the messages to validate.
-
-    Raises:
-        ValueError: If the messages are invalid.
-    """
-    if len(messages) < 2:
-        raise ValueError(
-            f"Messages must be at least length 2, but got {len(messages)} messages"
-        )
-
-    last_turn = "assistant"
-    for i, message in enumerate(messages):
-        if message.role == "assistant" and last_turn != "user":
-            raise ValueError(
-                f"Assistant message before expected user message at index {i} in messages"
-            )
-        if message.role == "user" and last_turn == "user":
-            raise ValueError(
-                f"Two consecutive user messages at index {i} and {i - 1} in messages"
-            )
-        if message.role == "system" and i > 0:
-            raise ValueError(
-                f"System message at index {i} in messages, but system messages must come first"
-            )
-        last_turn = message.role
-
-
-def _get_prompt_template(
-    prompt_template: _TemplateType,
-) -> PromptTemplateInterface:
-    """
-    Retrieve prompt template from import dotpath or create a custom one with provided
-    template dictionary.
-
-    Args:
-        prompt_template (_TemplateType): optional specified prompt template.
-            If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
-            class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
-            prepend/append tags.
-
-    Returns:
-        PromptTemplateInterface: the specified prompt template
-
-    Raises:
-        ValueError: If a string or dictionary is not passed in
-    """
-    if isinstance(prompt_template, str):
-        return _get_component_from_path(prompt_template)()
-    elif isinstance(prompt_template, dict):
-        return PromptTemplate(prompt_template)
-    else:
-        raise ValueError(
-            f"Prompt template must be a dotpath string or dictionary with custom template, got {type(prompt_template)}"
-        )
