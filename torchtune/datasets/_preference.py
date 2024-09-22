@@ -253,7 +253,7 @@ def preference_dataset(
         ...     tokenizer=tokenizer,
         ...     source="json",
         ...     column_map=column_map,
-        ...     data_files=my_preference_dataset.json,
+        ...     data_files="my_preference_dataset.json",
         ...     train_on_input=False,
         ...     split="train",
         >>> )

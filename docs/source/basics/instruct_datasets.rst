@@ -14,6 +14,8 @@ The primary entry point for fine-tuning with instruct datasets in torchtune is t
 builder. This lets you specify a local or Hugging Face dataset that follows the instruct data format
 directly from the config and train your LLM on it.
 
+.. _example_instruct:
+
 Example instruct dataset
 ------------------------
 
