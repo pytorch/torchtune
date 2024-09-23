@@ -280,5 +280,5 @@ class MultiHeadAttention(nn.Module):
             if self.kv_cache is not None:
                 self._sdpa.kv_cache_update(input_pos, k, v)
 
-        output = self._sdpa.forward(q, k, v, b, s_x)
+        output = self._sdpa(q, k, v, b, s_x)
         return self.output_proj(output)
