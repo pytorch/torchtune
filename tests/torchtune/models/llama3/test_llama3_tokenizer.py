@@ -428,3 +428,16 @@ class TestLlama3Tokenizer:
                     "<|python_tag|>": 128255,
                 },
             )
+
+    def test_skip_special_tokens(
+        self,
+        tokenizer,
+        user_text_message,
+        assistant_text_message,
+        user_text_a,
+        user_text_b,
+        assistant_text,
+    ):
+        tokens = user_text_message[1] + assistant_text_message[1]
+        text = tokenizer.decode(tokens, skip_special_tokens=True)
+        assert text == "\n\n" + user_text_a + user_text_b + "\n\n" + assistant_text

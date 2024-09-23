@@ -166,11 +166,34 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         Returns:
             str: The decoded string.
         """
-        return self.tt_model.decode(
-            token_ids,
-            truncate_at_eos=truncate_at_eos,
-            skip_special_tokens=skip_special_tokens,
-        )
+        if skip_special_tokens:
+            not_header = [True] * len(token_ids)
+            mask = True
+            idx = 0
+            while idx < len(token_ids):
+                if token_ids[idx] == self.start_header_id:
+                    # Start masking out at beginning of header
+                    mask = False
+                elif token_ids[idx] == self.end_header_id:
+                    # Mask out end header id and "\n\n" after it, then reset mask
+                    not_header[idx] = False
+                    mask = True
+                    idx += 1
+                    continue
+                not_header[idx] = mask
+                idx += 1
+
+            return self.tt_model.decode(
+                [token_ids[i] for i, m in enumerate(not_header) if m],
+                truncate_at_eos=truncate_at_eos,
+                skip_special_tokens=skip_special_tokens,
+            )
+        else:
+            return self.tt_model.decode(
+                token_ids=token_ids,
+                truncate_at_eos=truncate_at_eos,
+                skip_special_tokens=skip_special_tokens,
+            )
 
     def _tokenize_header(self, message: Message) -> List[int]:
         """
