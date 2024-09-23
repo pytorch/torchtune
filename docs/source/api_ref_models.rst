@@ -230,7 +230,7 @@ To download the Gemma 2B model (not Gemma2):
 
 .. code-block:: bash
 
-    tune download google/gemma-2b --ignore-patterns None  --hf-token <HF_TOKEN>
+    tune download google/gemma-2b --ignore-patterns "gemma-2b.gguf"  --hf-token <HF_TOKEN>
 
 To download the Gemma 7B model:
 
