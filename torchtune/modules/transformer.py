@@ -429,20 +429,13 @@ class TransformerDecoder(nn.Module):
                 decoder_max_seq_len=self.decoder_max_cache_seq_len,
             )
 
-    def encoder_caches_are_enabled(self) -> bool:
-        """Checks if there are any :class:`~torchtune.modules.TransformerCrossAttentionLayer`,
-        or :class:`~torchtune.modules.fusion.FusionLayer` layers which have cache enabled.
-        """
-        return self.encoder_max_cache_seq_len is not None
-
-    def decoder_caches_are_enabled(self) -> bool:
-        """Check if there are any :class:`~torchtune.modules.TransformerCrossAttentionLayer`
-        layers which have cache enabled."""
-        return self.decoder_max_cache_seq_len is not None
+    def caches_are_enabled(self) -> bool:
+        """Check if the key value caches are setup."""
+        return self.layers[0].cache_enabled
 
     def reset_caches(self):
         """Reset the key value caches."""
-        if not (self.encoder_caches_are_enabled() or self.decoder_caches_are_enabled()):
+        if not self.caches_are_enabled():
             raise RuntimeError(
                 "Key value caches are not setup. Call ``setup_caches()`` first."
             )
@@ -476,6 +469,7 @@ class TransformerDecoder(nn.Module):
         self,
         seq_len: int,
         mask: Optional[torch.Tensor] = None,
+        encoder_input: Optional[torch.Tensor] = None,
         encoder_mask: Optional[torch.Tensor] = None,
         input_pos: Optional[torch.Tensor] = None,
     ):
@@ -500,26 +494,23 @@ class TransformerDecoder(nn.Module):
                 f"than max_seq_len ({self.max_seq_len})"
             )
 
-        if self.decoder_caches_are_enabled():
+        if self.caches_are_enabled():
             if mask is None:
                 raise ValueError(
                     "KV-caches for self-attention layers are setup for inference mode, causal masks must be provided!"
                     " Use the `mask` arg to provide a causal mask."
                 )
 
-        if self.encoder_caches_are_enabled():
-            if encoder_mask is None:
+            if encoder_input is None and encoder_mask:
                 raise ValueError(
-                    "KV-caches for cross-attention/fusion layers are setup for inference mode, causal masks must be provided!"
-                    " Use the `encoder_mask` arg to provide a causal mask."
+                    "KV-caches for cross-attention/fusion layers are setup for inference mode and you seem to be using encoder_input,"
+                    " causal masks must be provided! Use the `encoder_mask` arg to provide a causal mask."
                 )
 
-        if (
-            self.encoder_caches_are_enabled() or self.decoder_caches_are_enabled()
-        ) and input_pos is None:
-            raise ValueError(
-                "KV-caches are setup for inference mode, input positions must be provided!"
-            )
+            if input_pos is None:
+                raise ValueError(
+                    "KV-caches are setup for inference mode, input positions must be provided!"
+                )
 
     def forward(
         self,
@@ -589,7 +580,11 @@ class TransformerDecoder(nn.Module):
         bsz, seq_len = tokens.shape
 
         self._validate_inputs(
-            seq_len, mask=mask, encoder_mask=encoder_mask, input_pos=input_pos
+            seq_len,
+            mask=mask,
+            encoder_input=encoder_input,
+            encoder_mask=encoder_mask,
+            input_pos=input_pos,
         )
 
         # shape: [b, s, d]
