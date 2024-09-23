@@ -31,12 +31,8 @@ class TestLLaVAInstructDataset:
 
     @patch("torchtune.datasets._sft.load_dataset")
     @patch("torchtune.datasets.multimodal._llava_instruct.load_image")
-    def test_label_no_masking(
-        self, load_image, load_dataset, tokenizer, test_image_pil
-    ):
+    def test_get_item(self, load_image, load_dataset, tokenizer, test_image_pil):
         """
-        Test whether the input and the labels are correctly created when the input is not masked.
-
         WARNING: careful with these mocks, they are applied in bottom up order
         """
         # mock the call to load_image
@@ -68,71 +64,8 @@ class TestLLaVAInstructDataset:
 
         ds = llava_instruct_dataset(
             model_transform=tokenizer,
-            train_on_input=True,
         )
 
-        input, labels, images = ds[0]["tokens"], ds[0]["labels"], ds[0]["images"]
-
-        expected_count = {
-            3: 17,
-            2: 15,
-            4: 11,
-            8: 9,
-            5: 8,
-            7: 8,
-            6: 5,
-            1: 5,
-            9: 2,
-            0: 1,
-            -2: 1,
-            12: 1,
-            10: 1,
-            -1: 1,
-        }
-
-        assert Counter(input) == expected_count
-        assert Counter(labels) == expected_count
-        assert images == [test_image_pil]
-
-    @patch("torchtune.datasets._sft.load_dataset")
-    @patch("torchtune.datasets.multimodal._llava_instruct.load_image")
-    def test_label_masking(self, load_image, load_dataset, tokenizer, test_image_pil):
-        """
-        Test whether the input and the labels are correctly created when the input is masked.
-
-        WARNING: careful with these mocks, they are applied in bottom up order
-        """
-        # mock the call to load_image
-        load_image.return_value = test_image_pil
-
-        # mock the call to HF datasets
-        load_dataset.return_value = Dataset.from_list(
-            [
-                {
-                    "image": "test_image.jpg",
-                    "conversations": [
-                        {
-                            "from": "human",
-                            "value": "<image>\nWhat can you infer about the man's outdoor activity?",
-                        },
-                        {
-                            "from": "gpt",
-                            "value": "From the image, we can infer that the man is engaging in a "
-                            "recreational activity involving a frisbee in a park or grass field. "
-                            "The frisbee is in the air, and the man appears to be either catching "
-                            "or throwing it. This suggests that he might be playing a casual game "
-                            "of catch with a friend or practicing his frisbee skills, enjoying the "
-                            "outdoors and getting some physical activity at the same time.",
-                        },
-                    ],
-                }
-            ]
-        )
-
-        ds = llava_instruct_dataset(
-            model_transform=tokenizer,
-            train_on_input=False,
-        )
         input, labels, images = ds[0]["tokens"], ds[0]["labels"], ds[0]["images"]
 
         expected_count = {

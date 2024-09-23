@@ -56,8 +56,6 @@ class TheCauldronToMessages(Transform):
         ]
 
     Args:
-        train_on_input (bool): Whether the model is trained on the user prompt or not.
-            Default is True.
         column_map (Optional[Dict[str, str]]): a mapping to change the expected "texts"
             column names to the actual column names in the dataset. Default is None,
             keeping the default column names.
@@ -70,11 +68,9 @@ class TheCauldronToMessages(Transform):
 
     def __init__(
         self,
-        train_on_input: bool = True,
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
     ):
-        self.train_on_input = train_on_input
         self.new_system_prompt = new_system_prompt
         if column_map is not None:
             if "images" not in column_map:
@@ -105,7 +101,7 @@ class TheCauldronToMessages(Transform):
                 Message(
                     role="user",
                     content=user_content,
-                    masked=not self.train_on_input,
+                    masked=True,
                 )
             )
             messages.append(
@@ -133,7 +129,6 @@ def the_cauldron_dataset(
     source: str = "HuggingFaceM4/the_cauldron",
     column_map: Optional[Dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
-    train_on_input: bool = False,
     packed: bool = False,
     split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],
@@ -199,7 +194,6 @@ def the_cauldron_dataset(
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
-        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
@@ -221,7 +215,6 @@ def the_cauldron_dataset(
     """
 
     message_transform = TheCauldronToMessages(
-        train_on_input=train_on_input,
         column_map=column_map,
         new_system_prompt=new_system_prompt,
     )

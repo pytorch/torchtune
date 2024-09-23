@@ -48,7 +48,6 @@ class LlavaInstructToMessages(Transform):
         ]
 
     Args:
-        train_on_input (bool): whether the prompt should remain unmasked. Default: False
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("conversations", "image")
             to the new column names in the dataset. Keys should be "conversations" and "image" and values should
             be the new column names. If None, keep the default "conversations" and "image".
@@ -65,12 +64,10 @@ class LlavaInstructToMessages(Transform):
 
     def __init__(
         self,
-        train_on_input: bool = False,
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
         images_dir: Optional[Path] = None,
     ):
-        self.train_on_input = train_on_input
         self.new_system_prompt = new_system_prompt
         if column_map:
             if "image" not in column_map:
@@ -115,7 +112,7 @@ class LlavaInstructToMessages(Transform):
                         images=[pil_image],
                     )
                     image_loaded = True
-            masked = (role != "assistant") and (not self.train_on_input)
+            masked = role != "assistant"
             messages.append(Message(role=role, content=content, masked=masked))
 
         return {"messages": messages}
@@ -129,7 +126,6 @@ def llava_instruct_dataset(
     images_dir: str = "coco/train2017/",
     column_map: Optional[Dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
-    train_on_input: bool = True,
     packed: bool = False,
     split: str = "train",
     data_files: str = "llava_instruct_150k.json",
@@ -203,7 +199,6 @@ def llava_instruct_dataset(
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
-        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
@@ -228,7 +223,6 @@ def llava_instruct_dataset(
     """
 
     message_transform = LlavaInstructToMessages(
-        train_on_input=train_on_input,
         column_map=column_map,
         new_system_prompt=new_system_prompt,
         images_dir=Path(images_dir),
