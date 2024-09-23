@@ -57,6 +57,7 @@ class LlavaInstructToMessages(Transform):
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
         images_dir (Optional[Path]): path to the directory containing the images. User is expected to download the COCO dataset.
+            If None, assume images are available in current working directory. Default is None.
 
     Raises:
         ValueError: If ``column_map`` is provided and ``conversations`` not in ``column_map``.
@@ -96,21 +97,24 @@ class LlavaInstructToMessages(Transform):
             )
 
         # Add in image stuffs / load from file
+        image_loaded = False
         for message in sample[self._column_map["conversations"]]:
             role = role_map[message["from"]]
             content = message["value"]
             if role == "system" and self.new_system_prompt is not None:
                 continue
             if role == "user":
-                image_path = sample[self._column_map["image"]]
-                if self.images_dir is not None:
-                    image_path = self.images_dir / image_path
-                pil_image = load_image(image_path)
-                content = format_content_with_images(
-                    content,
-                    image_tag="<image>",
-                    images=[pil_image],
-                )
+                if not image_loaded:
+                    image_path = sample[self._column_map["image"]]
+                    if self.images_dir is not None:
+                        image_path = self.images_dir / image_path
+                    pil_image = load_image(image_path)
+                    content = format_content_with_images(
+                        content,
+                        image_tag="<image>",
+                        images=[pil_image],
+                    )
+                    image_loaded = True
             masked = (role != "assistant") and (not self.train_on_input)
             messages.append(Message(role=role, content=content, masked=masked))
 
@@ -122,7 +126,7 @@ def llava_instruct_dataset(
     model_transform: Transform,
     *,
     source: str = "liuhaotian/LLaVA-Instruct-150K",
-    images_dir: str = "coco/",
+    images_dir: str = "coco/train2017/",
     column_map: Optional[Dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
     train_on_input: bool = True,
