@@ -185,7 +185,7 @@ def preference_dataset(
 
 
     These lists of messages are then tokenized for model training. Currently, this function only supports
-    conversations identical to :class:`~torchtune.data.JSONToMessages`, and does not support custom
+    conversations identical to :class:`~torchtune.data.OpenAIToMessages`, and does not support custom
     message formats.
 
     If your dataset does not follow this format, we recommend creating a custom message transform similar to
@@ -253,7 +253,7 @@ def preference_dataset(
         ...     tokenizer=tokenizer,
         ...     source="json",
         ...     column_map=column_map,
-        ...     data_files=my_preference_dataset.json,
+        ...     data_files="my_preference_dataset.json",
         ...     train_on_input=False,
         ...     split="train",
         >>> )

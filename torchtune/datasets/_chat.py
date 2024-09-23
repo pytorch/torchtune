@@ -13,8 +13,8 @@ from torch.utils.data import Dataset
 from torchtune.data._chat_formats import ChatFormat
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._messages import (
-    JSONToMessages,
     Message,
+    OpenAIToMessages,
     ShareGPTToMessages,
     validate_messages,
 )
@@ -118,6 +118,7 @@ def chat_dataset(
     conversation_column: str,
     conversation_style: str,
     train_on_input: bool = False,
+    new_system_prompt: Optional[str] = None,
     packed: bool = False,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> Union[SFTDataset, PackedDataset]:
@@ -150,7 +151,7 @@ def chat_dataset(
     You may have a different structure for your conversations, such as different role names or
     different keys in the json structure. You can use the ``conversation_style`` parameter
     to choose from standard formats such as "sharegpt" (see :class:`~torchtune.data.ShareGPTToMessages`)
-    or "json" (see :class:`~torchtune.data.JSONToMessages`). If your dataset is not in one of these
+    or "openai" (see :class:`~torchtune.data.OpenAIToMessages`). If your dataset is not in one of these
     formats, we recommend creating a custom message transform and using it in a custom dataset
     builder function similar to :class:`~torchtune.datasets.chat_dataset`.
 
@@ -174,8 +175,10 @@ def chat_dataset(
         conversation_column (str): name of column containing the conversations.
         conversation_style (str): string specifying expected style of conversations in the dataset
             for automatic conversion to the :class:`~torchtune.data.Message` structure.
-            Supported styles are: "sharegpt", "json"
+            Supported styles are: "sharegpt", "openai"
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        new_system_prompt (Optional[str]): if specified, prepend a system message. This can
+            serve as instructions to guide the model response. Default is None.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
             such as ``data_files`` or ``split``.
@@ -248,10 +251,13 @@ def chat_dataset(
         message_transform = ShareGPTToMessages(
             train_on_input=train_on_input,
             column_map={"conversations": conversation_column},
+            new_system_prompt=new_system_prompt,
         )
-    elif conversation_style == "json":
-        message_transform = JSONToMessages(
-            train_on_input=train_on_input, column_map={"messages": conversation_column}
+    elif conversation_style == "openai":
+        message_transform = OpenAIToMessages(
+            train_on_input=train_on_input,
+            column_map={"messages": conversation_column},
+            new_system_prompt=new_system_prompt,
         )
     else:
         raise ValueError(f"Unsupported conversation style: {conversation_style}")

@@ -12,7 +12,7 @@ from torchtune.models.mistral._component_builders import (
     lora_mistral_classifier,
 )
 from torchtune.data._prompt_templates import _TemplateType
-from torchtune.data._utils import _get_prompt_template
+from torchtune.data._prompt_templates import _get_prompt_template
 
 from torchtune.modules import TransformerDecoder
 from torchtune.models.mistral._tokenizer import MistralTokenizer

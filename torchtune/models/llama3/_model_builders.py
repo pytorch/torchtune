@@ -13,7 +13,7 @@ from torchtune.models.llama3._tokenizer import Llama3Tokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from torchtune.modules.tokenizers import parse_hf_tokenizer_json
 from torchtune.data._prompt_templates import _TemplateType
-from torchtune.data._utils import _get_prompt_template
+from torchtune.data._prompt_templates import _get_prompt_template
 
 
 """
