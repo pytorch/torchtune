@@ -98,6 +98,6 @@ Example message transforms
     - :class:`~torchtune.data.InputOutputToMessages`
 - Chat
     - :class:`~torchtune.data.ShareGPTToMessages`
-    - :class:`~torchtune.data.JSONToMessages`
+    - :class:`~torchtune.data.OpenAIToMessages`
 - Preference
     - :class:`~torchtune.data.ChosenRejectedToMessages`
