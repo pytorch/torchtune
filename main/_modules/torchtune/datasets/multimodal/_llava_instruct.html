@@ -472,7 +472,6 @@
 <span class="sd">        ]</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        train_on_input (bool): whether the prompt should remain unmasked. Default: False</span>
 <span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected columns (&quot;conversations&quot;, &quot;image&quot;)</span>
 <span class="sd">            to the new column names in the dataset. Keys should be &quot;conversations&quot; and &quot;image&quot; and values should</span>
 <span class="sd">            be the new column names. If None, keep the default &quot;conversations&quot; and &quot;image&quot;.</span>
@@ -481,6 +480,7 @@
 <span class="sd">            serve as instructions to guide the model response. Setting this will OVERRIDE any system</span>
 <span class="sd">            messages already present in the dataset. Default is None.</span>
 <span class="sd">        images_dir (Optional[Path]): path to the directory containing the images. User is expected to download the COCO dataset.</span>
+<span class="sd">            If None, assume images are available in current working directory. Default is None.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If ``column_map`` is provided and ``conversations`` not in ``column_map``.</span>
@@ -488,12 +488,10 @@
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">images_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="o">=</span> <span class="n">train_on_input</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span> <span class="o">=</span> <span class="n">new_system_prompt</span>
         <span class="k">if</span> <span class="n">column_map</span><span class="p">:</span>
             <span class="k">if</span> <span class="s2">&quot;image&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">column_map</span><span class="p">:</span>
@@ -520,22 +518,25 @@
             <span class="p">)</span>
 
         <span class="c1"># Add in image stuffs / load from file</span>
+        <span class="n">image_loaded</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;conversations&quot;</span><span class="p">]]:</span>
             <span class="n">role</span> <span class="o">=</span> <span class="n">role_map</span><span class="p">[</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;from&quot;</span><span class="p">]]</span>
             <span class="n">content</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;system&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">continue</span>
             <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;user&quot;</span><span class="p">:</span>
-                <span class="n">image_path</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]]</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">images_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">image_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">images_dir</span> <span class="o">/</span> <span class="n">image_path</span>
-                <span class="n">pil_image</span> <span class="o">=</span> <span class="n">load_image</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
-                <span class="n">content</span> <span class="o">=</span> <span class="n">format_content_with_images</span><span class="p">(</span>
-                    <span class="n">content</span><span class="p">,</span>
-                    <span class="n">image_tag</span><span class="o">=</span><span class="s2">&quot;&lt;image&gt;&quot;</span><span class="p">,</span>
-                    <span class="n">images</span><span class="o">=</span><span class="p">[</span><span class="n">pil_image</span><span class="p">],</span>
-                <span class="p">)</span>
-            <span class="n">masked</span> <span class="o">=</span> <span class="p">(</span><span class="n">role</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">image_loaded</span><span class="p">:</span>
+                    <span class="n">image_path</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]]</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">images_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">image_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">images_dir</span> <span class="o">/</span> <span class="n">image_path</span>
+                    <span class="n">pil_image</span> <span class="o">=</span> <span class="n">load_image</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
+                    <span class="n">content</span> <span class="o">=</span> <span class="n">format_content_with_images</span><span class="p">(</span>
+                        <span class="n">content</span><span class="p">,</span>
+                        <span class="n">image_tag</span><span class="o">=</span><span class="s2">&quot;&lt;image&gt;&quot;</span><span class="p">,</span>
+                        <span class="n">images</span><span class="o">=</span><span class="p">[</span><span class="n">pil_image</span><span class="p">],</span>
+                    <span class="p">)</span>
+                    <span class="n">image_loaded</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">masked</span> <span class="o">=</span> <span class="n">role</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span>
             <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="n">role</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="n">masked</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">messages</span><span class="p">}</span>
@@ -546,10 +547,9 @@
     <span class="n">model_transform</span><span class="p">:</span> <span class="n">Transform</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;liuhaotian/LLaVA-Instruct-150K&quot;</span><span class="p">,</span>
-    <span class="n">images_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;coco/&quot;</span><span class="p">,</span>
+    <span class="n">images_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;coco/train2017/&quot;</span><span class="p">,</span>
     <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">packed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">split</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span>
     <span class="n">data_files</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;llava_instruct_150k.json&quot;</span><span class="p">,</span>
@@ -623,7 +623,6 @@
 <span class="sd">        new_system_prompt (Optional[str]): if specified, prepend a system message. This can</span>
 <span class="sd">            serve as instructions to guide the model response. Setting this will OVERRIDE any system</span>
 <span class="sd">            messages already present in the dataset. Default is None.</span>
-<span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
 <span class="sd">        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.</span>
 <span class="sd">        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset</span>
 <span class="sd">            of a given split, e.g. ``split=&quot;train[:10%]&quot;``. Default is &quot;train&quot;.</span>
@@ -648,7 +647,6 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">message_transform</span> <span class="o">=</span> <span class="n">LlavaInstructToMessages</span><span class="p">(</span>
-        <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
         <span class="n">column_map</span><span class="o">=</span><span class="n">column_map</span><span class="p">,</span>
         <span class="n">new_system_prompt</span><span class="o">=</span><span class="n">new_system_prompt</span><span class="p">,</span>
         <span class="n">images_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="n">images_dir</span><span class="p">),</span>
