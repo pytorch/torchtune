@@ -478,6 +478,7 @@ class TransformerDecoder(nn.Module):
         Args:
             seq_len (int): Input tensor sequence length.
             mask (Optional[torch.Tensor]): Attention mask used for inference and for sequence packing.
+            encoder_input (Optional[torch.Tensor]): Encoder input for cross-attention.
             encoder_mask (Optional[torch.Tensor]): Encoder attention mask for cross-embedding attention.
             input_pos (Optional[torch.Tensor]): Input tensor position IDs.
 
@@ -503,8 +504,8 @@ class TransformerDecoder(nn.Module):
 
             if encoder_input is None and encoder_mask:
                 raise ValueError(
-                    "KV-caches for cross-attention/fusion layers are setup for inference mode and you seem to be using encoder_input,"
-                    " causal masks must be provided! Use the `encoder_mask` arg to provide a causal mask."
+                    "KV-caches for cross-attention/fusion layers are setup for inference mode and you seem to be using"
+                    " encoder_input, causal masks must be provided! Use the `encoder_mask` arg to provide a causal mask."
                 )
 
             if input_pos is None:
