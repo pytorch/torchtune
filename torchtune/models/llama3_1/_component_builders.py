@@ -271,7 +271,7 @@ def lora_llama3_1(
     return model
 
 
-def lora_llama3_1_self_attention(
+def lora_llama3_self_attention(
     lora_modules: List[LORA_ATTN_MODULES],
     pos_embeddings: nn.Module,
     *,
