@@ -95,7 +95,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         cfg (DictConfig): OmegaConf object parsed from yaml file
 
     Raises:
-        RuntimeError: If ``dtype`` is set to fp16.
+        ValueError: If ``dtype`` is set to fp16.
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
         RuntimeError: If ``gradient_accumulation_steps > 1`` and ``optimizer_in_bwd`` is `True`.
         RuntimeError: If ``left_pad_sequence`` is set as the data collator.
@@ -107,7 +107,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Disable for fp16, as we haven't validated "full" fp16 with this recipe, nor
         # enabled necessary features such as gradient scaling.
         if self._dtype == torch.float16:
-            raise RuntimeError(
+            raise ValueError(
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
