@@ -47,7 +47,7 @@ class SDPA(nn.Module):
         k, v = self._kv_cache.update(input_pos, k, v)
         return k, v
 
-    def sdpa(
+    def forward(
         self,
         q: Tensor,  # [b, s, n_h, h_d]
         k: Tensor,  # [b, s, n_kv, h_d]
