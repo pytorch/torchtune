@@ -507,12 +507,12 @@ class TransformerDecoder(nn.Module):
                     " Use the `mask` arg to provide a causal mask."
                 )
 
-        if self.encoder_caches_are_enabled():
-            if encoder_mask is None:
-                raise ValueError(
-                    "KV-caches for cross-attention/fusion layers are setup for inference mode, causal masks must be provided!"
-                    " Use the `encoder_mask` arg to provide a causal mask."
-                )
+        # if self.encoder_caches_are_enabled():
+        #     if encoder_mask is None:
+        #         raise ValueError(
+        #             "KV-caches for cross-attention/fusion layers are setup for inference mode, causal masks must be provided!"
+        #             " Use the `encoder_mask` arg to provide a causal mask."
+        #         )
 
         if (
             self.encoder_caches_are_enabled() or self.decoder_caches_are_enabled()
@@ -859,12 +859,12 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
                     "KV-caches for self-attention layers are setup for inference mode, masks must be provided!"
                     " Use the `mask` arg to provide a mask."
                 )
-        if self.encoder_caches_are_enabled:
-            if encoder_mask is None:
-                raise ValueError(
-                    "KV-caches for cross-attention/fusion layers are setup for inference mode, encoder masks must be provided!"
-                    " Use the `encoder_mask` arg to provide an encoder mask."
-                )
+        # if self.encoder_caches_are_enabled:
+            # if encoder_mask is None:
+            #     raise ValueError(
+            #         "KV-caches for cross-attention/fusion layers are setup for inference mode, encoder masks must be provided!"
+            #         " Use the `encoder_mask` arg to provide an encoder mask."
+            #     )
 
         if (
             self.encoder_caches_are_enabled
