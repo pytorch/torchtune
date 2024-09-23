@@ -12,9 +12,9 @@ from torch import nn, Tensor
 class SDPA(nn.Module):
     """
     The core of SDPA which can be optimized and can be swapped
-    out for a more efficient implemmentations.
-
-    TODO: word the above docstring better.
+    out for a more efficient implementations. Split into
+    kv cache update and core sdpa (foward) components because
+    they are easier to optimize separately.
     """
 
     def __init__(
