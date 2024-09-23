@@ -587,7 +587,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 keys_to_pad=["tokens", "labels"],
                 padding_idx=self._tokenizer.pad_id,
             ),
-            drop_last=True,
         )
 
         return sampler, dataloader
