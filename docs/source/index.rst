@@ -120,6 +120,7 @@ torchtune tutorials.
    basics/tokenizers
    basics/prompt_templates
    basics/preference_datasets
+   basics/multimodal_datasets
 
 .. toctree::
    :glob:
