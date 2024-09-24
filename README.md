@@ -98,22 +98,27 @@ If you are interested in running on different hardware or with different models,
 
 ## Installation
 
-**Step 1:** [Install PyTorch](https://pytorch.org/get-started/locally/). torchtune is tested with the latest stable PyTorch release as well as the preview nightly version. torchtune leverages
+torchtune is tested with the latest stable PyTorch release as well as the preview nightly version. torchtune leverages
 torchvision for fine-tuning multimodal LLMs and torchao for the latest in quantization techniques; you should install these as well.
 
-```
-# Install stable version of PyTorch libraries using pip
-pip install torch torchvision torchao
-
-# Nightly install for latest features
-pip install --pre torch torchvision torchao --index-url https://download.pytorch.org/whl/nightly/cu121
-```
-
-**Step 2:** The latest stable version of torchtune is hosted on PyPI and can be downloaded with the following command:
+### Install stable release
 
 ```bash
+# Install stable PyTorch, torchvision, torchao stable releases
+pip install torch torchvision torchao
 pip install torchtune
 ```
+
+### Install nightly release
+
+```bash
+# Install PyTorch, torchvision, torchao nightlies
+pip install --pre torch torchvision torchao --index-url https://download.pytorch.org/whl/nightly/cu121
+pip install --pre torchtune --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+```
+
+You can also check out our [install documentation](https://pytorch.org/torchtune/main/install.html) for more information, including installing torchtune from source.
+
 
 To confirm that the package is installed correctly, you can run the following command:
 
@@ -133,14 +138,6 @@ options:
 
 ...
 ```
-
-Alternatively, you can install a nightly build of torchtune to gain access to the latest features not yet available in the stable release.
-
-```bash
-pip install --pre torchtune --extra-index-url https://download.pytorch.org/whl/nightly/cpu
-```
-
-You can also check out our [install documentation](https://pytorch.org/torchtune/main/install.html) for more information, including installing torchtune from source.
 
 &nbsp;
 
@@ -229,7 +226,7 @@ Check out `tune --help` for all possible CLI commands and options. For more info
 
 ---
 
-## Llama3 and Llama3.1
+## Llama3.1
 
 torchtune supports fine-tuning for the Llama3/Llama3.1 8B, 70B, and 405B size models. You can fine-tune the 8B model with LoRA, QLoRA and full fine-tunes on one or more GPUs. You can also fine-tune the 70B model with QLoRA on a single device or LoRA and full-finetunes on multiple devices. Finally, you can fine-tune the 405B model on a single node with QLoRA. For all the details, take a look at our [tutorial](https://pytorch.org/torchtune/main/tutorials/llama3.html).
 
@@ -273,7 +270,7 @@ tune run --nproc_per_node 2 lora_finetune_distributed --config llama3_1/8B_lora
 
 LoRA 70B
 
-Note that the download command for the Meta-Llama3 70B model slightly differs from download commands for the 8B models. This is because we use the HuggingFace [safetensor](https://huggingface.co/docs/safetensors/en/index) model format to load the model. To download the 70B model, run
+Note that the download command for the Meta-Llama3.1 70B model slightly differs from download commands for the 8B models. This is because we use the HuggingFace [safetensor](https://huggingface.co/docs/safetensors/en/index) model format to load the model. To download the 70B model, run
 ```bash
 tune download meta-llama/Meta-Llama-3.1-70b --hf-token <> --output-dir /tmp/Meta-Llama-3.1-70b --ignore-patterns "original/consolidated*"
 ```
@@ -326,7 +323,7 @@ The Llama2 code in this repository is inspired by the original [Llama2 code](htt
 We want to give a huge shout-out to EleutherAI, Hugging Face and Weights & Biases for being wonderful collaborators and for working with us on some of these integrations within torchtune.
 
 We also want to acknowledge some awesome libraries and tools from the ecosystem:
-- [gpt-fast](https://github.com/pytorch-labs/gpt-fast) for performant LLM inference techniques which we've adopted OOTB
+- [gpt-fast](https://github.com/pytorch-labs/gpt-fast) for performant LLM inference techniques which we've adopted out-of-the-box
 - [llama recipes](https://github.com/meta-llama/llama-recipes) for spring-boarding the llama2 community
 - [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) for bringing several memory and performance based techniques to the PyTorch ecosystem
 - [@winglian](https://github.com/winglian/) and [axolotl](https://github.com/OpenAccess-AI-Collective/axolotl) for early feedback and brainstorming on torchtune's design and feature set.
