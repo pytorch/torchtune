@@ -463,6 +463,7 @@ this is computed using <code class="xref py py-func docutils literal notranslate
 <li><p><strong>lora_rank</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – rank of each low-rank approximation</p></li>
 <li><p><strong>lora_alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – scaling factor for the low-rank approximation</p></li>
 <li><p><strong>lora_dropout</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – LoRA dropout probability. Default: 0.0</p></li>
+<li><p><strong>use_dora</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – Whether to use DoRA layers instead of LoRA layers. Default is <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
 <li><p><strong>quantize_base</strong> – (bool): Whether to quantize base model weights or not. Only applied to base
 weights within linear layers LoRA is applied to. The final output linear projection is not
 supported for quantization currently.</p></li>
