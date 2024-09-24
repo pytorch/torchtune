@@ -101,6 +101,8 @@ If you are interested in running on different hardware or with different models,
 torchtune is tested with the latest stable PyTorch release as well as the preview nightly version. torchtune leverages
 torchvision for finetuning multimodal LLMs and torchao for the latest in quantization techniques; you should install these as well.
 
+&nbsp;
+
 ### Install stable release
 
 ```bash
@@ -108,6 +110,8 @@ torchvision for finetuning multimodal LLMs and torchao for the latest in quantiz
 pip install torch torchvision torchao
 pip install torchtune
 ```
+
+&nbsp;
 
 ### Install nightly release
 
@@ -119,6 +123,7 @@ pip install --pre torchtune --extra-index-url https://download.pytorch.org/whl/n
 
 You can also check out our [install documentation](https://pytorch.org/torchtune/main/install.html) for more information, including installing torchtune from source.
 
+&nbsp;
 
 To confirm that the package is installed correctly, you can run the following command:
 
@@ -145,7 +150,7 @@ options:
 
 ## Get Started
 
-To get started with torchtune, see our [First Finetune Tutorial](https://pytorch.org/torchtune/main/tutorials/first_finetune_tutorial.html). Our [end-to-end workflow](https://pytorch.org/torchtune/main/tutorials/e2e_flow.html) tutorial will show you how to evaluate, quantize and run inference with a Llama model. The rest of this section will provide a quick overview of these steps with Llama3.1.
+To get started with torchtune, see our [First Finetune Tutorial](https://pytorch.org/torchtune/main/tutorials/first_finetune_tutorial.html). Our [End-to-End Workflow Tutorial](https://pytorch.org/torchtune/main/tutorials/e2e_flow.html) will show you how to evaluate, quantize and run inference with a Llama model. The rest of this section will provide a quick overview of these steps with Llama3.1.
 
 
 ### Downloading a model
@@ -167,14 +172,14 @@ tune download meta-llama/Meta-Llama-3.1-8B-Instruct \
 
 ### Running finetuning recipes
 
-Llama3.1 8B + LoRA on single GPU:
+You can finetune Llama3.1 8B with LoRA on a single GPU using the following command:
 
 ```bash
 tune run lora_finetune_single_device --config llama3_1/8B_lora_single_device
 ```
 
 For distributed training, tune CLI integrates with [torchrun](https://pytorch.org/docs/stable/elastic/run.html).
-To finetune Llama3.1 8B with LoRA on two GPUs:
+To run a full finetune of Llama3.1 8B on two GPUs:
 
 ```bash
 tune run --nproc_per_node 2 full_finetune_distributed --config llama3_1/8B_full
@@ -191,7 +196,7 @@ There are two ways in which you can modify configs:
 
 **Config Overrides**
 
-You can easily overwrite config properties from the command-line:
+You can directly overwrite config fields from the command line:
 
 ```bash
 tune run lora_finetune_single_device \
@@ -206,8 +211,8 @@ max_steps_per_epoch=128
 You can also copy the config to your local directory and modify the contents directly:
 
 ```bash
-tune cp llama2/7B_full ./my_custom_config.yaml
-Copied to ./7B_full.yaml
+tune cp llama3_1/8B_full ./my_custom_config.yaml
+Copied to ./my_custom_config.yaml
 ```
 
 Then, you can run your custom recipe by directing the `tune run` command to your local files:
