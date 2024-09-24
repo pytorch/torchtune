@@ -7,6 +7,7 @@
 from typing import Any, Tuple
 
 import torch
+import torch.nn.functional as F
 from torch import nn
 
 # TODO (@Felipe): add load hooks + interpolation on positional encodings,
@@ -35,8 +36,7 @@ class TokenPositionalEmbedding(nn.Module):
         patch_grid_size = tile_size // patch_size
         scale = embed_dim**-0.5
         self.positional_embedding = nn.Parameter(
-            scale
-            * torch.randn((patch_grid_size**2 + 1, embed_dim))  # +1 for CLS token
+            scale * torch.randn((patch_grid_size**2 + 1, embed_dim))  # +1 for CLS token
         )
 
     def forward(self, x: torch.Tensor, *args: Tuple[Any]) -> torch.Tensor:
@@ -83,8 +83,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
 
         # different for every token, same for every tile
         self.local_token_positional_embedding = nn.Parameter(
-            scale
-            * torch.randn((patch_grid_size**2 + 1, embed_dim))  # +1 for CLS token
+            scale * torch.randn((patch_grid_size**2 + 1, embed_dim))  # +1 for CLS token
         )
 
         # different for every token, different for every tile
@@ -98,6 +97,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
             )
         )
 
+        self.max_num_tiles = max_num_tiles
         self.gate = nn.Parameter(torch.zeros(1))
 
     def forward(self, x: torch.Tensor, aspect_ratio: torch.Tensor) -> torch.Tensor:
@@ -121,20 +121,34 @@ class TiledTokenPositionalEmbedding(nn.Module):
             # When we batch images, all are padded to the same amount of tiles.
             # The aspect_ratio lets us know the non padded tiles for each image.
             # We only add positional encoding to those.
+            n_tiles_h = n_tiles_h.item()
+            n_tiles_w = n_tiles_w.item()
+
             n_non_padded_tiles = int(n_tiles_h * n_tiles_w)
 
             # We get only the positional encoding for non padded tiles,
             # i.e. n_tiles_h, n_tiles_w.
-            pos_embed = self.global_token_positional_embedding[
-                :n_tiles_h, :n_tiles_w, :, :
-            ]
+            torch._check_is_size(n_tiles_h)
+            torch._check_is_size(n_tiles_w)
+            torch._check(n_tiles_h <= self.max_num_tiles)
+            torch._check(n_tiles_w <= self.max_num_tiles)
+            padded_embedding = F.pad(
+                self.global_token_positional_embedding, (0, 0, 0, 0, 0, 1, 0, 1)
+            )
+
+            pos_embed = padded_embedding[:n_tiles_h, :n_tiles_w, :, :]
 
             # Add pos encoding to the non padded tiles.
+            pos_embed = pos_embed.clone()
             pos_embed = pos_embed.reshape(
                 n_non_padded_tiles, self.n_tokens_per_tile, embed_dim
             )
             pos_embed = pos_embed * self.gate.tanh()
+            x = F.pad(x, (0, 0, 0, 0, 0, 1, 0, 0))
+            torch._check(n_non_padded_tiles < self.max_num_tiles + 1)
+            torch._check(n_non_padded_tiles < x.size(1))
             x[batch_idx, :n_non_padded_tiles, :, :] += pos_embed
+            x = x[:, :n_tiles, :, :]
 
         return x
 
@@ -176,19 +190,34 @@ class TilePositionalEmbedding(nn.Module):
             torch.Tensor: The input tensor with added positional embeddings.
         """
         bsz_and_n_imgs, n_tiles, n_tokens, embed_dim = x.shape
+        torch._check(n_tiles <= self.max_num_tiles)
 
         for batch_idx, (n_tiles_h, n_tiles_w) in enumerate(aspect_ratio):
             # When we batch images, all are padded to the same amount of tiles.
             # The aspect_ratio lets us know the non padded tiles for each image.
             # We only add positional encoding to those.
+            n_tiles_h = n_tiles_h.item()
+            n_tiles_w = n_tiles_w.item()
+
             n_non_padded_tiles = int(n_tiles_h * n_tiles_w)
 
             # We get only the positional encoding for non padded tiles,
             # i.e. n_tiles_h, n_tiles_w.
-            pos_embed = self.embedding[:n_tiles_h, :n_tiles_w, :, :]
+            torch._check_is_size(n_tiles_h)
+            torch._check_is_size(n_tiles_w)
+            torch._check(n_tiles_h <= self.max_num_tiles)
+            torch._check(n_tiles_w <= self.max_num_tiles)
+            padded_embedding = F.pad(self.embedding, (0, 0, 0, 0, 0, 1, 0, 1))
+            pos_embed = padded_embedding[:n_tiles_h, :n_tiles_w, :, :]
 
             # Add pos encoding to the non padded tiles.
+            pos_embed = pos_embed.clone()
             pos_embed = pos_embed.reshape(n_non_padded_tiles, 1, self.embed_dim)
+
+            x = F.pad(x, (0, 0, 0, 0, 0, 1, 0, 0))
+            torch._check_is_size(n_non_padded_tiles)
+            torch._check(n_non_padded_tiles < x.size(1))
             x[batch_idx, :n_non_padded_tiles, :, :] += pos_embed * self.gate.tanh()
+            x = x[:, :n_tiles, :, :]
 
         return x
