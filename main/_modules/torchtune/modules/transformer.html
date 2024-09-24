@@ -853,20 +853,13 @@
                 <span class="n">decoder_max_seq_len</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder_max_cache_seq_len</span><span class="p">,</span>
             <span class="p">)</span></div>
 
-<div class="viewcode-block" id="TransformerDecoder.encoder_caches_are_enabled"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.encoder_caches_are_enabled">[docs]</a>    <span class="k">def</span> <span class="nf">encoder_caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Checks if there are any :class:`~torchtune.modules.TransformerCrossAttentionLayer`,</span>
-<span class="sd">        or :class:`~torchtune.modules.fusion.FusionLayer` layers which have cache enabled.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_max_cache_seq_len</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
-
-<div class="viewcode-block" id="TransformerDecoder.decoder_caches_are_enabled"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.decoder_caches_are_enabled">[docs]</a>    <span class="k">def</span> <span class="nf">decoder_caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if there are any :class:`~torchtune.modules.TransformerCrossAttentionLayer`</span>
-<span class="sd">        layers which have cache enabled.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_max_cache_seq_len</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
+<div class="viewcode-block" id="TransformerDecoder.caches_are_enabled"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.caches_are_enabled">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the key value caches are setup. This is useful to efficient inference.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cache_enabled</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder.reset_caches"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.reset_caches">[docs]</a>    <span class="k">def</span> <span class="nf">reset_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the key value caches.&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">encoder_caches_are_enabled</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_caches_are_enabled</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">():</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
                 <span class="s2">&quot;Key value caches are not setup. Call ``setup_caches()`` first.&quot;</span>
             <span class="p">)</span>
@@ -900,6 +893,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">encoder_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">encoder_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
@@ -908,6 +902,7 @@
 <span class="sd">        Args:</span>
 <span class="sd">            seq_len (int): Input tensor sequence length.</span>
 <span class="sd">            mask (Optional[torch.Tensor]): Attention mask used for inference and for sequence packing.</span>
+<span class="sd">            encoder_input (Optional[torch.Tensor]): Encoder input for cross-attention.</span>
 <span class="sd">            encoder_mask (Optional[torch.Tensor]): Encoder attention mask for cross-embedding attention.</span>
 <span class="sd">            input_pos (Optional[torch.Tensor]): Input tensor position IDs.</span>
 
@@ -924,26 +919,23 @@
                 <span class="sa">f</span><span class="s2">&quot;than max_seq_len (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="si">}</span><span class="s2">)&quot;</span>
             <span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_caches_are_enabled</span><span class="p">():</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="s2">&quot;KV-caches for self-attention layers are setup for inference mode, causal masks must be provided!&quot;</span>
                     <span class="s2">&quot; Use the `mask` arg to provide a causal mask.&quot;</span>
                 <span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_caches_are_enabled</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">encoder_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">encoder_input</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">encoder_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">&quot;KV-caches for cross-attention/fusion layers are setup for inference mode, causal masks must be provided!&quot;</span>
-                    <span class="s2">&quot; Use the `encoder_mask` arg to provide a causal mask.&quot;</span>
+                    <span class="s2">&quot;KV-caches for cross-attention/fusion layers are setup for inference mode and you seem to be using&quot;</span>
+                    <span class="s2">&quot; encoder_input, causal masks must be provided! Use the `encoder_mask` arg to provide a causal mask.&quot;</span>
                 <span class="p">)</span>
 
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">encoder_caches_are_enabled</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_caches_are_enabled</span><span class="p">()</span>
-        <span class="p">)</span> <span class="ow">and</span> <span class="n">input_pos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;KV-caches are setup for inference mode, input positions must be provided!&quot;</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">input_pos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;KV-caches are setup for inference mode, input positions must be provided!&quot;</span>
+                <span class="p">)</span>
 
 <div class="viewcode-block" id="TransformerDecoder.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -1013,7 +1005,11 @@
         <span class="n">bsz</span><span class="p">,</span> <span class="n">seq_len</span> <span class="o">=</span> <span class="n">tokens</span><span class="o">.</span><span class="n">shape</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_inputs</span><span class="p">(</span>
-            <span class="n">seq_len</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">encoder_mask</span><span class="o">=</span><span class="n">encoder_mask</span><span class="p">,</span> <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span>
+            <span class="n">seq_len</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
+            <span class="n">encoder_input</span><span class="o">=</span><span class="n">encoder_input</span><span class="p">,</span>
+            <span class="n">encoder_mask</span><span class="o">=</span><span class="n">encoder_mask</span><span class="p">,</span>
+            <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># shape: [b, s, d]</span>

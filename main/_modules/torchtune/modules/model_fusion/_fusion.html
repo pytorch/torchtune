@@ -869,10 +869,6 @@
         <span class="k">if</span> <span class="n">encoder_input</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">encoder_embed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="o">**</span><span class="n">encoder_input</span><span class="p">)</span>
 
-        <span class="c1"># input_pos specifies the sequence position of the provided tokens</span>
-        <span class="c1"># we slice the encoder_mask to only include those same positions</span>
-        <span class="k">if</span> <span class="n">input_pos</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">encoder_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">encoder_mask</span> <span class="o">=</span> <span class="n">encoder_mask</span><span class="p">[:,</span> <span class="n">input_pos</span><span class="p">]</span>
         <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span>
             <span class="n">tokens</span><span class="o">=</span><span class="n">tokens</span><span class="p">,</span>
             <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>

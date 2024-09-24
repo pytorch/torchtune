@@ -680,7 +680,7 @@
     <span class="n">total_response_length</span> <span class="o">=</span> <span class="n">prompt_length</span> <span class="o">+</span> <span class="n">max_generated_tokens</span>
 
     <span class="n">generated_tokens</span> <span class="o">=</span> <span class="n">prompt</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-    <span class="n">incremental_decoding</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">decoder_caches_are_enabled</span><span class="p">()</span>
+    <span class="n">incremental_decoding</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">()</span>
 
     <span class="c1"># grab the correct max_seq_len to generate full causal masks/position ids</span>
     <span class="c1"># this is the model&#39;s max cache len if incremental decoding, or the sequence</span>
