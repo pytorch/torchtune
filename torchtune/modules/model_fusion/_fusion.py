@@ -445,12 +445,6 @@ class DeepFusionModel(nn.Module):
         if encoder_input is not None:
             encoder_embed = self.encoder(**encoder_input)
 
-        # input_pos specifies the sequence position of the provided tokens
-        # we slice the encoder_mask to only include those same positions
-        # if input_pos is not None and encoder_mask is not None:
-        #     import pdb; pdb.set_trace()
-        #     encoder_mask = encoder_mask[]
-
         output = self.decoder(
             tokens=tokens,
             mask=mask,

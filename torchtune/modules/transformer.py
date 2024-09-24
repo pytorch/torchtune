@@ -429,16 +429,9 @@ class TransformerDecoder(nn.Module):
                 decoder_max_seq_len=self.decoder_max_cache_seq_len,
             )
 
-    def encoder_caches_are_enabled(self) -> bool:
-        """Checks if there are any :class:`~torchtune.modules.TransformerCrossAttentionLayer`,
-        or :class:`~torchtune.modules.fusion.FusionLayer` layers which have cache enabled.
-        """
-        return self.encoder_max_cache_seq_len is not None
-
-    def decoder_caches_are_enabled(self) -> bool:
-        """Check if there are any :class:`~torchtune.modules.TransformerCrossAttentionLayer`
-        layers which have cache enabled."""
-        return self.decoder_max_cache_seq_len is not None
+    def caches_are_enabled(self) -> bool:
+        """Check if the key value caches are setup. This is useful to efficient inference."""
+        return self.layers[0].cache_enabled
 
     def reset_caches(self):
         """Reset the key value caches."""
