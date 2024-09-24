@@ -4,6 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from unittest import mock
+
 import pytest
 
 from PIL import Image
@@ -16,9 +18,10 @@ from tests.test_utils import (
 from torchtune.data._messages import (
     ChosenRejectedToMessages,
     InputOutputToMessages,
-    JSONToMessages,
     Message,
+    OpenAIToMessages,
     ShareGPTToMessages,
+    validate_messages,
 )
 
 
@@ -282,7 +285,7 @@ class TestShareGPTToMessages:
             )
 
 
-class TestJSONToMessages:
+class TestOpenAIToMessages:
     samples = {
         "messages": [
             {
@@ -300,20 +303,40 @@ class TestJSONToMessages:
         ],
     }
 
+    image_samples = {
+        "messages": [
+            {
+                "role": "system",
+                "content": CHAT_SAMPLE["system"],
+            },
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": CHAT_SAMPLE["user"]},
+                    {"type": "image_url", "image_url": {"url": "https://example.com"}},
+                ],
+            },
+            {
+                "role": "assistant",
+                "content": CHAT_SAMPLE["assistant"],
+            },
+        ],
+    }
+
     def test_call(self):
-        transform = JSONToMessages()
+        transform = OpenAIToMessages()
         converted_messages = transform(self.samples)
         assert_dialogue_equal(converted_messages["messages"], MESSAGE_SAMPLE)
 
     def test_call_train_on_input(self):
-        transform = JSONToMessages(train_on_input=True)
+        transform = OpenAIToMessages(train_on_input=True)
         converted_messages = transform(self.samples)
         assert_dialogue_equal(
             converted_messages["messages"], MESSAGE_SAMPLE_TRAIN_ON_INPUT
         )
 
     def test_system_prompt(self):
-        transform = JSONToMessages(new_system_prompt="you are a robot")
+        transform = OpenAIToMessages(new_system_prompt="you are a robot")
         converted_messages = transform(self.samples)
         assert_dialogue_equal(
             converted_messages["messages"],
@@ -327,6 +350,107 @@ class TestJSONToMessages:
 
     def test_raise_value_error_when_messages_not_in_column_map(self):
         with pytest.raises(ValueError, match="Expected a key of 'messages'"):
-            JSONToMessages(
+            OpenAIToMessages(
                 column_map={"bananas": "maybe_messages"},
             )
+
+    @mock.patch("torchtune.data._messages.load_image")
+    def test_convert_from_openai_content(self, mock_load_image):
+        test_img = Image.new(mode="RGB", size=(4, 4))
+        mock_load_image.return_value = test_img
+        transform = OpenAIToMessages()
+        converted_content = transform._convert_from_openai_content(
+            self.image_samples["messages"][1]["content"]
+        )
+        assert converted_content == [
+            {"type": "text", "content": CHAT_SAMPLE["user"]},
+            {"type": "image", "content": test_img},
+        ]
+        mock_load_image.assert_called_once_with("https://example.com")
+
+    @mock.patch("torchtune.data._messages.load_image")
+    def test_call_image_messages(self, mock_load_image):
+        test_img = Image.new(mode="RGB", size=(4, 4))
+        mock_load_image.return_value = test_img
+        transform = OpenAIToMessages()
+        converted_messages = transform(self.image_samples)
+        assert_dialogue_equal(
+            converted_messages["messages"],
+            [
+                MESSAGE_SAMPLE[0],
+                Message(
+                    role="user",
+                    content=[
+                        {"type": "text", "content": CHAT_SAMPLE["user"]},
+                        {"type": "image", "content": test_img},
+                    ],
+                ),
+                MESSAGE_SAMPLE[2],
+            ],
+        )
+        mock_load_image.assert_called_once_with("https://example.com")
+
+
+def test_validate_messages():
+    messages = [
+        Message(role="system", content="hello"),
+        Message(role="user", content="hello"),
+        Message(role="assistant", content="world"),
+    ]
+
+    # Test valid conversation with system
+    validate_messages(messages)
+
+    # Test valid conversation without system
+    validate_messages(messages[1:])
+
+    # Test system not first
+    messages = [
+        Message(role="user", content="hello"),
+        Message(role="system", content="hello"),
+        Message(role="assistant", content="world"),
+    ]
+    with pytest.raises(
+        ValueError,
+        match="System message at index 1 in messages, but system messages must come first",
+    ):
+        validate_messages(messages)
+
+    # Test empty assistant message
+    messages = [
+        Message(role="system", content="hello"),
+        Message(role="user", content="world"),
+        Message(role="assistant", content=""),
+    ]
+    validate_messages(messages)
+
+    # Test single message
+    messages = [
+        Message(role="user", content="hello"),
+    ]
+    with pytest.raises(
+        ValueError, match="Messages must be at least length 2, but got 1 messages"
+    ):
+        validate_messages(messages)
+
+    # Test repeated user message
+    messages = [
+        Message(role="user", content="hello"),
+        Message(role="user", content="world"),
+        Message(role="assistant", content="world"),
+    ]
+    with pytest.raises(
+        ValueError, match="Two consecutive user messages at index 1 and 0 in messages"
+    ):
+        validate_messages(messages)
+
+    # Test assistant message comes first
+    messages = [
+        Message(role="assistant", content="hello"),
+        Message(role="user", content="world"),
+    ]
+    with pytest.raises(
+        ValueError,
+        match="Assistant message before expected user message at index 0 in messages",
+    ):
+        validate_messages(messages)

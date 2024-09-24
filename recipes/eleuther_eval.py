@@ -23,7 +23,7 @@ logger = utils.get_logger("DEBUG")
 
 try:
     import lm_eval
-    from lm_eval.evaluator import evaluate
+    from lm_eval.evaluator import evaluate, get_task_list
     from lm_eval.models.huggingface import HFLM
     from lm_eval.tasks import get_task_dict, TaskManager
     from lm_eval.utils import make_table
@@ -258,7 +258,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         task_manager = TaskManager(include_path=self._cfg.get("include_path", None))
         task_dict = get_task_dict(self._tasks, task_manager)
 
-        task_types = set([task.OUTPUT_TYPE for _, task in task_dict.items()])
+        task_types = set([t.task.OUTPUT_TYPE for t in get_task_list(task_dict)])
         if len(task_types) > 1 and "generate_until" in task_types:
             raise RuntimeError(
                 "Evaluating on multiple task types where any one task involves "
