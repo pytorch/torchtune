@@ -15,7 +15,7 @@
 
 ## Introduction
 
-torchtune is a PyTorch library for easily authoring, fine-tuning and experimenting with LLMs.
+torchtune is a PyTorch library for easily authoring, finetuning and experimenting with LLMs.
 
 torchtune provides:
 
@@ -47,12 +47,12 @@ We're always adding new models, but feel free to [file an issue](https://github.
 
 &nbsp;
 
-### Fine-tuning recipes
+### Finetuning recipes
 
-torchtune provides the following fine-tuning recipes for training on one or more devices.
+torchtune provides the following finetuning recipes for training on one or more devices.
 
 
-| Fine-tuning method                          | Devices | Recipe  | Example config(s) |
+| Finetuning method                          | Devices | Recipe  | Example config(s) |
 |:-:|:-:|:-:|:-:|
 | Full finetuning  | 1-8 | [full_finetune_single_device](recipes/full_finetune_single_device.py) <br> [full_finetune_distributed](recipes/full_finetune_distributed.py)| [Llama3.1 8B single-device](recipes/configs/llama3_1/8B_full_single_device.yaml) <br> [Llama 3.1 70B distributed](recipes/configs/llama3_1/70B_full.yaml)
 | LoRA finetuning | 1-8  | [lora_finetune_single_device](recipes/lora_finetune_single_device.py) <br> [lora_finetune_distributed](recipes/lora_finetune_distributed.py) | [Qwen2 0.5B single-device](recipes/configs/qwen2/0.5B_lora_single_device.yaml) <br> [Gemma 7B distributed](recipes/configs/gemma/7B_lora.yaml)
@@ -99,7 +99,7 @@ If you are interested in running on different hardware or with different models,
 ## Installation
 
 torchtune is tested with the latest stable PyTorch release as well as the preview nightly version. torchtune leverages
-torchvision for fine-tuning multimodal LLMs and torchao for the latest in quantization techniques; you should install these as well.
+torchvision for finetuning multimodal LLMs and torchao for the latest in quantization techniques; you should install these as well.
 
 ### Install stable release
 
@@ -145,20 +145,18 @@ options:
 
 ## Get Started
 
-To get started with torchtune, see our [Fine-Tune Your First LLM Tutorial](https://pytorch.org/torchtune/main/tutorials/first_finetune_tutorial.html). Our [end-to-end workflow](https://pytorch.org/torchtune/main/tutorials/e2e_flow.html) tutorial will show you how to evaluate, quantize and run inference with this model. The rest of this section will provide a quick overview of these steps with Llama3.
-
-If you have a more custom workflow or need additional information on torchtune components and recipes, please check out our documentation page.
+To get started with torchtune, see our [First Finetune Tutorial](https://pytorch.org/torchtune/main/tutorials/first_finetune_tutorial.html). Our [end-to-end workflow](https://pytorch.org/torchtune/main/tutorials/e2e_flow.html) tutorial will show you how to evaluate, quantize and run inference with a Llama model. The rest of this section will provide a quick overview of these steps with Llama3.1.
 
 
 ### Downloading a model
 
 Follow the instructions on the official [`meta-llama`](https://huggingface.co/meta-llama) repository to ensure you have access to the official Llama model weights. Once you have confirmed access, you can run the following command to download the weights to your local machine. This will also download the tokenizer model and a responsible use guide.
 
+To download Llama3.1, you can run:
 
-### Llama3 download
 ```bash
-tune download meta-llama/Meta-Llama-3-8B \
---output-dir /tmp/Meta-Llama-3-8B \
+tune download meta-llama/Meta-Llama-3.1-8B-Instruct \
+--output-dir /tmp/Meta-Llama-3.1-8B-Instruct \
 --hf-token <HF_TOKEN> \
 ```
 
@@ -167,7 +165,7 @@ tune download meta-llama/Meta-Llama-3-8B \
 
 &nbsp;
 
-### Running fine-tuning recipes
+### Running finetuning recipes
 
 Llama3.1 8B + LoRA on single GPU:
 
@@ -176,7 +174,7 @@ tune run lora_finetune_single_device --config llama3_1/8B_lora_single_device
 ```
 
 For distributed training, tune CLI integrates with [torchrun](https://pytorch.org/docs/stable/elastic/run.html).
-To fine-tune Llama3.1 8B with LoRA on two GPUs:
+To finetune Llama3.1 8B with LoRA on two GPUs:
 
 ```bash
 tune run --nproc_per_node 2 full_finetune_distributed --config llama3_1/8B_full
@@ -224,6 +222,12 @@ Check out `tune --help` for all possible CLI commands and options. For more info
 
 &nbsp;
 
+### Custom Datasets
+
+torchtune supports finetuning on a variety of different datasets, including [instruct-style](https://pytorch.org/torchtune/main/basics/instruct_datasets.html), [chat-style](https://pytorch.org/torchtune/main/basics/chat_datasets.html), [preference datasets](https://pytorch.org/torchtune/main/basics/preference_datasets.html), and more. If you want to learn more about how to apply these components to finetune on your own custom dataset, please check out the provided links along with our [API docs](https://pytorch.org/torchtune/main/api_ref_datasets.html).
+
+&nbsp;
+
 ---
 
 ## Community
@@ -237,9 +241,9 @@ torchtune focuses on integrating with popular tools and libraries from the ecosy
 - [torchao](https://github.com/pytorch-labs/ao) for lower precision dtypes and [post-training quantization](recipes/quantize.py) techniques
 - [Weights & Biases](https://wandb.ai/site) for [logging](https://pytorch.org/torchtune/main/deep_dives/wandb_logging.html) metrics and checkpoints, and tracking training progress
 - [Comet](https://www.comet.com/site/) as another option for [logging](https://pytorch.org/torchtune/main/deep_dives/comet_logging.html)
-- [ExecuTorch](https://pytorch.org/executorch-overview) for [on-device inference](https://github.com/pytorch/executorch/tree/main/examples/models/llama2#optional-finetuning) using fine-tuned models
+- [ExecuTorch](https://pytorch.org/executorch-overview) for [on-device inference](https://github.com/pytorch/executorch/tree/main/examples/models/llama2#optional-finetuning) using finetuned models
 - [bitsandbytes](https://huggingface.co/docs/bitsandbytes/main/en/index) for low memory optimizers for our [single-device recipes](recipes/configs/llama2/7B_full_low_memory.yaml)
-- [PEFT](https://github.com/huggingface/peft) for continued fine-tuning or inference with torchtune models in the Hugging Face ecosystem
+- [PEFT](https://github.com/huggingface/peft) for continued finetuning or inference with torchtune models in the Hugging Face ecosystem
 
 &nbsp;
 
@@ -268,7 +272,7 @@ We also want to acknowledge some awesome libraries and tools from the ecosystem:
 - [llama recipes](https://github.com/meta-llama/llama-recipes) for spring-boarding the llama2 community
 - [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) for bringing several memory and performance based techniques to the PyTorch ecosystem
 - [@winglian](https://github.com/winglian/) and [axolotl](https://github.com/OpenAccess-AI-Collective/axolotl) for early feedback and brainstorming on torchtune's design and feature set.
-- [lit-gpt](https://github.com/Lightning-AI/litgpt) for pushing the LLM fine-tuning community forward.
+- [lit-gpt](https://github.com/Lightning-AI/litgpt) for pushing the LLM finetuning community forward.
 - [HF TRL](https://github.com/huggingface/trl) for making reward modeling more accessible to the PyTorch community.
 
 &nbsp;
