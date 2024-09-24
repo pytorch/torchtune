@@ -42,7 +42,7 @@ class KVCache(nn.Module):
         )
         self.register_buffer(
             "cache_pos", torch.arange(0, cache_shape[2]), persistent=False
-        )  #
+        )
         self.batch_size = batch_size
 
     def reset(self) -> None:
