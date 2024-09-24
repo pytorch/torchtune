@@ -11,7 +11,7 @@ from torchtune.modules import TransformerDecoder
 from torchtune.models.gemma._tokenizer import GemmaTokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from torchtune.data._prompt_templates import _TemplateType
-from torchtune.data._utils import _get_prompt_template
+from torchtune.data._prompt_templates import _get_prompt_template
 
 from functools import partial
 

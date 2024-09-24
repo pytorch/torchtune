@@ -9,6 +9,13 @@ from typing import Optional
 
 import torch
 
+from torchtune.utils._import_guard import _SUPPORTS_FLEX_ATTENTION
+
+if _SUPPORTS_FLEX_ATTENTION:
+    from torch.nn.attention.flex_attention import BlockMask
+else:
+    BlockMask = torch.Tensor
+
 
 def _get_local_rank() -> Optional[int]:
     """Function that gets the local rank from the environment.
@@ -142,7 +149,10 @@ def batch_to_device(batch: dict, device: torch.device) -> None:
             batch_to_device(v, device)
         elif isinstance(v, torch.Tensor):
             batch[k] = v.to(device)
+        elif _SUPPORTS_FLEX_ATTENTION and isinstance(v, BlockMask):
+            batch[k] = v.to(device)
         else:
             raise ValueError(
-                "To use batch_to_device, all elements in the batch must be a dict or Tensor"
+                f"""To use batch_to_device, all elements in the batch must be a dict or Tensor.
+Got key "{k}" with value of type {type(v)}"""
             )
