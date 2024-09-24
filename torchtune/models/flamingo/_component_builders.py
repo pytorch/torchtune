@@ -266,43 +266,45 @@ def flamingo_projection_head(
     head_dim = clip_embed_dim // num_heads
     num_kv_heads = num_heads
 
-    self_attn = MultiHeadAttention(
-        embed_dim=clip_embed_dim,
-        num_heads=num_heads,
-        num_kv_heads=num_heads,
-        head_dim=head_dim,
-        q_proj=nn.Linear(clip_embed_dim, num_heads * head_dim, bias=False),
-        k_proj=nn.Linear(clip_embed_dim, num_kv_heads * head_dim, bias=False),
-        v_proj=nn.Linear(clip_embed_dim, num_kv_heads * head_dim, bias=False),
-        output_proj=nn.Linear(clip_embed_dim, clip_embed_dim, bias=False),
-        pos_embeddings=None,
-        attn_dropout=0.0,
-        is_causal=False,
-    )
+    layers = []
+    for _ in range(num_layers):
+        self_attn = MultiHeadAttention(
+            embed_dim=clip_embed_dim,
+            num_heads=num_heads,
+            num_kv_heads=num_heads,
+            head_dim=head_dim,
+            q_proj=nn.Linear(clip_embed_dim, num_heads * head_dim, bias=False),
+            k_proj=nn.Linear(clip_embed_dim, num_kv_heads * head_dim, bias=False),
+            v_proj=nn.Linear(clip_embed_dim, num_kv_heads * head_dim, bias=False),
+            output_proj=nn.Linear(clip_embed_dim, clip_embed_dim, bias=False),
+            pos_embeddings=None,
+            attn_dropout=0.0,
+            is_causal=False,
+        )
 
-    mlp = clip_mlp(
-        in_dim=clip_embed_dim,
-        hidden_dim=hidden_dim,
-        out_dim=clip_embed_dim,
-        activation=nn.GELU(),
-    )
+        mlp = clip_mlp(
+            in_dim=clip_embed_dim,
+            hidden_dim=hidden_dim,
+            out_dim=clip_embed_dim,
+            activation=nn.GELU(),
+        )
 
-    layer = TransformerSelfAttentionLayer(
-        attn=self_attn,
-        mlp=mlp,
-        sa_norm=Fp32LayerNorm(clip_embed_dim, eps=1e-5),
-        mlp_norm=Fp32LayerNorm(clip_embed_dim, eps=1e-5),
-        sa_scale=TanhGate(),
-        mlp_scale=TanhGate(),
-    )
+        layer = TransformerSelfAttentionLayer(
+            attn=self_attn,
+            mlp=mlp,
+            sa_norm=Fp32LayerNorm(clip_embed_dim, eps=1e-5),
+            mlp_norm=Fp32LayerNorm(clip_embed_dim, eps=1e-5),
+            sa_scale=TanhGate(),
+            mlp_scale=TanhGate(),
+        )
+        layers.append(layer)
 
     # we concatenate clip embeddings and hidden layers output
     # and project it to embed_dim_out, which will be used for the
     # cross encoding
     proj_in = clip_embed_dim * (num_hidden_inputs + 1)
     return FlamingoProjectionHead(
-        layer=layer,
-        num_layers=num_layers,
+        layers=layers,
         output=nn.Linear(proj_in, decoder_embed_dim),
         num_hidden_inputs=num_hidden_inputs
     )
@@ -677,49 +679,52 @@ def lora_flamingo_projection_head(
     head_dim = clip_embed_dim // num_heads
     num_kv_heads = num_heads
 
-    self_attn = lora_clip_attention(
-        lora_modules=lora_modules,
-        embed_dim=clip_embed_dim,
-        num_heads=num_heads,
-        num_kv_heads=num_heads,
-        head_dim=head_dim,
-        attn_dropout=0.0,
-        lora_rank=lora_rank,
-        lora_alpha=lora_alpha,
-        lora_dropout=lora_dropout,
-        use_dora=use_dora,
-        quantize_base=quantize_base,
-    )
-
-    if apply_lora_to_mlp:
-        mlp = lora_clip_mlp(
-            in_dim=clip_embed_dim,
-            hidden_dim=hidden_dim,
-            out_dim=clip_embed_dim,
-            activation=nn.GELU(),
+    layers = []
+    for _ in range(num_layers):
+        self_attn = lora_clip_attention(
+            lora_modules=lora_modules,
+            embed_dim=clip_embed_dim,
+            num_heads=num_heads,
+            num_kv_heads=num_heads,
+            head_dim=head_dim,
+            attn_dropout=0.0,
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
-            quantize_base=quantize_base,
             lora_dropout=lora_dropout,
             use_dora=use_dora,
-        )
-    else:
-        mlp = clip_mlp(
-            in_dim=clip_embed_dim,
-            hidden_dim=hidden_dim,
-            out_dim=clip_embed_dim,
-            activation=nn.GELU(),
-            quantize_base=quantize_base
+            quantize_base=quantize_base,
         )
 
-    layer = TransformerSelfAttentionLayer(
-        attn=self_attn,
-        mlp=mlp,
-        sa_norm=Fp32LayerNorm(clip_embed_dim, eps=1e-5),
-        mlp_norm=Fp32LayerNorm(clip_embed_dim, eps=1e-5),
-        sa_scale=TanhGate(),
-        mlp_scale=TanhGate(),
-    )
+        if apply_lora_to_mlp:
+            mlp = lora_clip_mlp(
+                in_dim=clip_embed_dim,
+                hidden_dim=hidden_dim,
+                out_dim=clip_embed_dim,
+                activation=nn.GELU(),
+                lora_rank=lora_rank,
+                lora_alpha=lora_alpha,
+                quantize_base=quantize_base,
+                lora_dropout=lora_dropout,
+                use_dora=use_dora,
+            )
+        else:
+            mlp = clip_mlp(
+                in_dim=clip_embed_dim,
+                hidden_dim=hidden_dim,
+                out_dim=clip_embed_dim,
+                activation=nn.GELU(),
+                quantize_base=quantize_base
+            )
+
+        layer = TransformerSelfAttentionLayer(
+            attn=self_attn,
+            mlp=mlp,
+            sa_norm=Fp32LayerNorm(clip_embed_dim, eps=1e-5),
+            mlp_norm=Fp32LayerNorm(clip_embed_dim, eps=1e-5),
+            sa_scale=TanhGate(),
+            mlp_scale=TanhGate(),
+        )
+        layers.append(layer)
 
     # we concatenate clip embeddings and hidden layers output
     # and project it to embed_dim_out, which will be used for the
@@ -733,8 +738,7 @@ def lora_flamingo_projection_head(
         else nn.Linear(proj_in, decoder_embed_dim)
     )
     return FlamingoProjectionHead(
-        layer=layer,
-        num_layers=num_layers,
+        layers=layers,
         output=output_proj,
         num_hidden_inputs=num_hidden_inputs,
     )
