@@ -90,7 +90,7 @@ class InferenceRecipe:
         self._logger.info(f"Model was initialized with precision {self._dtype}.")
 
         # Instantiate transforms
-        self.model_transform = config.instantiate(cfg.transform)
+        self.model_transform = config.instantiate(cfg.tokenizer)
         self.to_messages = SingleTurnYAMLToMessages()
 
     def log_metrics(self, total_time: int, tokens_per_second: float) -> None:
