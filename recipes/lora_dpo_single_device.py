@@ -369,6 +369,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             dataset=ds,
             sampler=sampler,
             batch_size=batch_size,
+            # dropping last avoids shape issues with compile + flex attention
+            drop_last=cfg_dataset.get("drop_last", True),
             collate_fn=partial(
                 padded_collate_dpo,
                 padding_idx=self._tokenizer.pad_id,
