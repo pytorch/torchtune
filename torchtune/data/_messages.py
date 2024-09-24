@@ -6,6 +6,8 @@
 
 from typing import Any, Dict, List, Literal, Mapping, Optional, Union
 
+from torchtune.data._utils import load_image
+
 from torchtune.modules.transforms import Transform
 
 Role = Literal[
@@ -304,7 +306,7 @@ class ChosenRejectedToMessages(Transform):
 
 class ShareGPTToMessages(Transform):
     """
-    Convert a single chat sample adhering to the ShareGPT json structure to torchtune's :class:`~torchtune.data.Message`
+    Convert a single chat sample adhering to the ShareGPT JSON structure to torchtune's :class:`~torchtune.data.Message`
     structure.
 
     A single sample typically consists of a single optional system prompt and one or multiple
@@ -393,10 +395,11 @@ class ShareGPTToMessages(Transform):
         return {"messages": messages}
 
 
-class JSONToMessages(Transform):
+class OpenAIToMessages(Transform):
     """
-    Convert a single chat sample with identical json structure to torchtune's :class:`~torchtune.data.Message`
-    structure. This transform simply creates Message dataclasses from the provided jsons.
+    Convert a single chat sample adhering to the `OpenAI chat completion <https://platform.openai.com/docs/api-reference/chat>`_
+    JSON structure to torchtune's :class:`~torchtune.data.Message` structure. This supports both
+    text and image messages.
 
     A single sample typically consists of a single optional system prompt and one or multiple
     turns of user and assistant messages.
@@ -407,7 +410,17 @@ class JSONToMessages(Transform):
             "messages": [
                 {
                     "role": <system|user|assistant>,
-                    "content": <message>,
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "What'\''s in this image?",
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": <url>,
+                            },
+                        },
                 },
                 ...
             ]
@@ -418,7 +431,16 @@ class JSONToMessages(Transform):
         [
             {
                 "role": <system|user|assistant>,
-                "content": <message>,
+                "content": [
+                    {
+                        "type": "text",
+                        "content": "What'\''s in this image?",
+                    },
+                    {
+                        "type": "image",
+                        "content": <PIL.Image.Image>,
+                    },
+                ],
             },
             ...
         ]
@@ -454,6 +476,25 @@ class JSONToMessages(Transform):
         else:
             self._column_map = {"messages": "messages"}
 
+    def _convert_from_openai_content(
+        self, content: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Converts a list of content dicts from the OpenAI format to the torchtune format."""
+        converted_content = []
+        for content_dict in content:
+            if content_dict["type"] == "text":
+                converted_content.append(
+                    {"type": "text", "content": content_dict["text"]}
+                )
+            elif content_dict["type"] == "image_url":
+                converted_content.append(
+                    {
+                        "type": "image",
+                        "content": load_image(content_dict["image_url"]["url"]),
+                    }
+                )
+        return converted_content
+
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         """
         Return a list of Message objects from the provided sample dict.
@@ -475,10 +516,18 @@ class JSONToMessages(Transform):
         for message in sample[self._column_map["messages"]]:
             if message["role"] == "system" and self.new_system_prompt is not None:
                 continue
-            message["masked"] = (message["role"] != "assistant") and (
-                not self.train_on_input
+            masked = (message["role"] != "assistant") and (not self.train_on_input)
+            if isinstance(message["content"], list):
+                content = self._convert_from_openai_content(message["content"])
+            elif isinstance(message["content"], str):
+                content = message["content"]
+            updated_messages.append(
+                Message(
+                    role=message["role"],
+                    content=content,
+                    masked=masked,
+                ),
             )
-            updated_messages.append(Message.from_dict(message))
 
         return {"messages": updated_messages}
 

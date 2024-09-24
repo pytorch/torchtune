@@ -127,6 +127,7 @@ class TestDeepFusionModel:
         """
         tokens, encoder_input, encoder_mask, input_pos = inputs
         tokens = tokens[:, input_pos]
+        encoder_mask = encoder_mask[:, input_pos]
         batch_size, seq_len = tokens.shape
         out = fused_model(
             tokens,
