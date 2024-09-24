@@ -37,7 +37,7 @@ class TestGenerateV2:
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
-            transform.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             device=cpu \
             dtype=fp32 \
             max_new_tokens=10 \
