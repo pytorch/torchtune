@@ -129,7 +129,8 @@ def format_content_with_images(
     num_image_tags_in_content = content.count(image_tag)
     if len(images) != num_image_tags_in_content:
         raise ValueError(
-            f"Number of images ({len(images)}) does not match number of image tags ({num_image_tags_in_content})"
+            f"Number of images ({len(images)}) does not match number of image tags "
+            f"({num_image_tags_in_content}) in content: {content}"
         )
 
     split_content = content.split(image_tag)
