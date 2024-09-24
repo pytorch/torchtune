@@ -261,10 +261,6 @@ _ALL_RECIPES = [
         file_path="dev/generate_v2.py",
         configs=[
             Config(
-                name="multimodal_generation",
-                file_path="dev/multimodal_generation.yaml",
-            ),
-            Config(
                 name="llama2/generation_v2",
                 file_path="llama2/generation_v2.yaml",
             ),
