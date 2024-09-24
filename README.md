@@ -49,7 +49,7 @@ We're always adding new models, but feel free to [file an issue](https://github.
 
 ### Fine-tuning recipes
 
-torchtune provides the following fine-tuning recipes.
+torchtune provides the following fine-tuning recipes for training on one or more devices.
 
 
 | Fine-tuning method                          | Devices | Recipe  | Example config(s) |
@@ -70,7 +70,12 @@ The above configs are just examples to get you started. If you see a model above
 
 ### Memory and training speed
 
-Below is an example of the memory requirements and training speed for different Llama 3.1 models. For ease of comparison, all the below numbers are provided for batch size 2, packed sequence length 2048, and no gradient accumulation with torch compile enabled. If you are interested in running on different hardware or with different models, check out our documentation on memory optimizations [here](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html) to find the right setup for you.
+Below is an example of the memory requirements and training speed for different Llama 3.1 models.
+
+> [!NOTE]
+> For ease of comparison, all the below numbers are provided for batch size 2 (without gradient accumulation), a dataset packed to sequence length 2048, and torch compile enabled.
+
+If you are interested in running on different hardware or with different models, check out our documentation on memory optimizations [here](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html) to find the right setup for you.
 
 | Model | Finetuning Method | Runnable On | Peak Memory per GPU | Tokens/sec * |
 |:-:|:-:|:-:|:-:|:-:|
