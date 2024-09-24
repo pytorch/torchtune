@@ -257,6 +257,17 @@ _ALL_RECIPES = [
         supports_distributed=False,
     ),
     Recipe(
+        name="dev/generate_v2",
+        file_path="dev/generate_v2.py",
+        configs=[
+            Config(
+                name="llama2/generation_v2",
+                file_path="llama2/generation_v2.yaml",
+            ),
+        ],
+        supports_distributed=False,
+    ),
+    Recipe(
         name="eleuther_eval",
         file_path="eleuther_eval.py",
         configs=[
