@@ -33,12 +33,13 @@ These are intended to be drop-in replacements for tokenizers in multimodal datas
                 role="user",
                 content=[
                     {"type": "image", "content": Image.new(mode="RGB", size=(224, 224))},
-                    {"type": "text", "content": "What is in this image?"},
+                    {"type": "image", "content": Image.new(mode="RGB", size=(224, 224))},
+                    {"type": "text", "content": "What is common in these two images?"},
                 ],
             ),
             Message(
                 role="assistant",
-                content="A robot.",
+                content="A robot is in both images.",
             ),
         ],
     }
@@ -49,7 +50,7 @@ These are intended to be drop-in replacements for tokenizers in multimodal datas
     )
     tokenized_dict = transform(sample)
     print(transform.decode(tokenized_dict["tokens"], skip_special_tokens=False))
-    # '<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\n<|image|>What is in this image?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nA robot.<|eot_id|>'
+    # '<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\n<|image|><|image|>What is common in these two images?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nA robot is in both images.<|eot_id|>'
     print(tokenized_dict["encoder_input"]["images"][0].shape)  # (num_tiles, num_channels, tile_height, tile_width)
     # torch.Size([4, 3, 224, 224])
 
@@ -136,10 +137,31 @@ The following methods are required on the model transform:
                     encoder_input["aspect_ratio"].append(out["aspect_ratio"])
             sample["encoder_input"] = encoder_input
 
-            # Transform all text
+            # Transform all text - returns same dictionary with additional keys "tokens" and "mask"
             sample = self.tokenizer(sample, inference=inference)
 
             return sample
+
+    transform = MyMultimodalTransform(...)
+    sample = {
+        "messages": [
+            Message(
+                role="user",
+                content=[
+                    {"type": "image", "content": Image.new(mode="RGB", size=(224, 224))},
+                    {"type": "image", "content": Image.new(mode="RGB", size=(224, 224))},
+                    {"type": "text", "content": "What is common in these two images?"},
+                ],
+            ),
+            Message(
+                role="assistant",
+                content="A robot is in both images.",
+            ),
+        ],
+    }
+    tokenized_dict = transform(sample)
+    print(tokenized_dict)
+    # {'encoder_input': {'images': ..., 'aspect_ratio': ...}, 'tokens': ..., 'mask': ...}
 
 
 Example model transforms
