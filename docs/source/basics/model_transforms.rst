@@ -90,7 +90,56 @@ You can pass them into any multimodal dataset builder just as you would a model 
 
 Creating model transforms
 -------------------------
-Model transforms are expected to
+Model transforms are expected to process both text and images in the sample dictionary.
+Both should be contained in the ``"messages"`` field of the sample.
+
+The following methods are required on the model transform:
+
+- ``tokenize_messages``
+- ``__call__``
+
+.. code-block:: python
+
+    from torchtune.modules.tokenizers import ModelTokenizer
+    from torchtune.modules.transforms import Transform
+
+    class MyMultimodalTransform(ModelTokenizer, Transform):
+        def __init__(...):
+            self.tokenizer = my_tokenizer_builder(...)
+            self.transform_image = MyImageTransform(...)
+
+        def tokenize_messages(
+            self,
+            messages: List[Message],
+            add_eos: bool = True,
+        ) -> Tuple[List[int], List[bool]]:
+            # Any other custom logic here
+            ...
+
+            return self.tokenizer.tokenize_messages(
+                messages=messages,
+                add_eos=add_eos,
+            )
+
+        def __call__(
+            self, sample: Mapping[str, Any], inference: bool = False
+        ) -> Mapping[str, Any]:
+            # Expected input parameters for vision encoder
+            encoder_input = {"images": [], "aspect_ratio": []}
+            messages = sample["messages"]
+
+            # Transform all images in sample
+            for message in messages:
+                for image in message.get_media():
+                    out = self.transform_image({"image": image}, inference=inference)
+                    encoder_input["images"].append(out["image"])
+                    encoder_input["aspect_ratio"].append(out["aspect_ratio"])
+            sample["encoder_input"] = encoder_input
+
+            # Transform all text
+            sample = self.tokenizer(sample, inference=inference)
+
+            return sample
 
 
 Example model transforms
