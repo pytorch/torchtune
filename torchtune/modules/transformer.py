@@ -430,7 +430,7 @@ class TransformerDecoder(nn.Module):
             )
 
     def caches_are_enabled(self) -> bool:
-        """Check if the key value caches are setup."""
+        """Check if the key value caches are setup. This is useful to efficient inference."""
         return self.layers[0].cache_enabled
 
     def reset_caches(self):
@@ -502,7 +502,7 @@ class TransformerDecoder(nn.Module):
                     " Use the `mask` arg to provide a causal mask."
                 )
 
-            if encoder_input is None and encoder_mask:
+            if encoder_input is not None and encoder_mask is None:
                 raise ValueError(
                     "KV-caches for cross-attention/fusion layers are setup for inference mode and you seem to be using"
                     " encoder_input, causal masks must be provided! Use the `encoder_mask` arg to provide a causal mask."
