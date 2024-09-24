@@ -43,18 +43,6 @@ can take either nn.Linear or nn.LoRALinear for ``q_proj``.
 the building blocks simple.
 """
 
-# Options/TODOs
-# [x] Implement CLIP MLP LoRA
-# [x] Implement CLIP LoRA Attention
-# [x] Implement CLIP LoRA Encoder
-# ~~[ ] Add quantize base to encoder/decoder/fusion
-# [x] Update lora_llama3_self_attention name everywhere
-# [x] Implement Flamingo LoRA Decoder (use lora_llama3_attention for sa and ca)
-# ~~[ ] Add Unit Tests
-# [ ] Update LoRA Single Device -> test recipe
-# [ ] Update LoRA Distributed -> test recipe
-# [ ] Add QLoRA configs
-
 
 def flamingo_vision_encoder(
     # clip encoder parameters
@@ -179,10 +167,11 @@ def flamingo_decoder(
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     hidden_dim = intermediate_dim or scale_hidden_dim_for_mlp(embed_dim)
     layers = []
+
+    rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
     for idx in range(1, num_layers + 1):
 
         # Self attention layers for text decoder
-        rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
         self_attn = MultiHeadAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
@@ -524,10 +513,11 @@ def lora_flamingo_decoder(
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     hidden_dim = intermediate_dim or scale_hidden_dim_for_mlp(embed_dim)
     layers = []
+
+    rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
     for idx in range(1, num_layers + 1):
 
         # Self attention layers for text decoder
-        rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
         self_attn = lora_llama3_attention(
             lora_modules=lora_attn_modules,
             pos_embeddings=rope,
