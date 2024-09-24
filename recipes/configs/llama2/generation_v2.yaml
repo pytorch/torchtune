@@ -1,6 +1,9 @@
-# Config for running the InferenceRecipe in generate.py to generate output from an LLM
+# Config for running the InferenceRecipe in generate_V2.py to generate output from an LLM
 #
-# To launch, run the following command from root torchtune directory:
+# This config assumes that you've run the following command before launching:
+#   tune download meta-llama/Llama-2-7b-chat-hf --output-dir /tmp/Llama-2-7b-chat-hf
+#
+# To launch, run the following command:
 #    tune run dev/generate_v2 --config llama2/generation_v2
 
 # Model arguments
@@ -24,6 +27,7 @@ checkpointer:
   output_dir: ./
   model_type: LLAMA2
 
+# Device
 device: cuda
 dtype: bf16
 seed: 1234
@@ -31,9 +35,8 @@ log_level: INFO
 
 # Generation arguments
 prompt:
-  system: You are a helpful and concise AI assistant.
+  system: You are a helpful and creative AI assistant.
   user: What is the capital of France?
-
-max_new_tokens: 50
+max_new_tokens: 200
 temperature: 0.6 # 0.8 and 0.6 are popular values to try
 top_k: 300

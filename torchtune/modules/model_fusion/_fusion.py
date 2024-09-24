@@ -450,7 +450,7 @@ class DeepFusionModel(nn.Module):
         # if input_pos is not None and encoder_mask is not None:
         #     import pdb; pdb.set_trace()
         #     encoder_mask = encoder_mask[]
-        
+
         output = self.decoder(
             tokens=tokens,
             mask=mask,
