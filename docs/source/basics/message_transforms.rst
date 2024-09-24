@@ -19,6 +19,7 @@ These are exposed in our dataset builders :func:`~torchtune.datasets.instruct_da
 so you don't have to worry about the message transform itself and can configure this directly from the config.
 You can see :ref:`example_instruct` or :ref:`example_chat` for more details.
 
+.. _custom_message_transform:
 
 Custom message transforms
 -------------------------

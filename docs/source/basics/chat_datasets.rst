@@ -199,6 +199,8 @@ that follows this format:
         ...
     ]
 
+.. _sharegpt:
+
 ``"sharegpt"``
 ^^^^^^^^^^^^^^
 The associated message transform is :class:`~torchtune.data.ShareGPTToMessages`. The expected format is:
