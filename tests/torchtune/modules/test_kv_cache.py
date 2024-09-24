@@ -53,8 +53,7 @@ class TestKVCache:
     def test_kv_cache_reset(self, kv_cache, k_vals_full, v_vals_full):
         kv_cache.update(k_vals_full, v_vals_full)
         kv_cache.reset()
-        # import pdb
-        # pdb.set_trace()
+
         assert (kv_cache.k_cache == 0).all() and (kv_cache.v_cache == 0).all()
         assert kv_cache.size == 0
 
