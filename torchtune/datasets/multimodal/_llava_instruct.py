@@ -17,7 +17,7 @@ def llava_instruct_dataset(
     model_transform: Transform,
     *,
     source: str = "liuhaotian/LLaVA-Instruct-150K",
-    images_dir: str = "coco/train2017/",
+    image_dir: str = "coco/train2017/",
     column_map: Optional[Dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
     packed: bool = False,
@@ -85,7 +85,7 @@ def llava_instruct_dataset(
             define source as the data file type (e.g. "json", "csv", "text") and pass
             in the filepath in ``data_files``. See `Hugging Face's
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
-        images_dir (str): path to the directory containing the images as you are expected to download the COCO dataset
+        image_dir (str): path to the directory containing the images as you are expected to download the COCO dataset
             before using. Default is "coco/".
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("conversations")
             to the new column names in the dataset. If None, assume these are identical.
@@ -120,7 +120,8 @@ def llava_instruct_dataset(
         train_on_input=False,
         column_map=column_map,
         new_system_prompt=new_system_prompt,
-        images_dir=Path(images_dir),
+        image_dir=Path(image_dir),
+        image_tag="<image>",
     )
 
     ds = SFTDataset(

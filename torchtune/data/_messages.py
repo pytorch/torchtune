@@ -417,11 +417,10 @@ class ShareGPTToMessages(Transform):
                     pil_image = load_image(image_path)
                     # If image tag is not specified, prepend by default
                     if self.image_tag is None:
-                        content = format_content_with_images(
-                            "<image>" + content,
-                            image_tag="<image>",
-                            images=[pil_image],
-                        )
+                        content = [
+                            {"type": "image", "content": pil_image},
+                            {"type": "text", "content": content},
+                        ]
                     else:
                         content = format_content_with_images(
                             content,
@@ -431,7 +430,7 @@ class ShareGPTToMessages(Transform):
                     image_loaded = True
 
             masked = (role != "assistant") and (
-                not self.train_on_input and not is_multimodal
+                not self.train_on_input or is_multimodal
             )
             messages.append(Message(role=role, content=content, masked=masked))
 
