@@ -99,6 +99,7 @@ class FlamingoTransform(ModelTokenizer, Transform):
 
         self.stop_tokens = self.tokenizer.stop_tokens
         self.max_seq_len = max_seq_len
+        self.image_seq_len = max_num_tiles * (self.xattn_mask.patches_per_tile + 1)
         self.prompt_template = prompt_template
         self.pad_id = self.tokenizer.pad_id
 

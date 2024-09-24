@@ -1,11 +1,19 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
+from functools import partial
+from enum import Enum
 from typing import Optional, List
 
 from torch import nn
 
-from torchtune.models.llama3._component_builders import llama3_mlp, lora_llama3_mlp, lora_llama3_attention
 from torchtune.models.llama3._model_utils import scale_hidden_dim_for_mlp
+from torchtune.models.llama3_1._component_builders import llama3_mlp, lora_llama3_mlp, lora_llama3_attention
 from torchtune.models.llama3_1._position_embeddings import Llama3ScaledRoPE
-from torchtune.models.clip import clip_vision_encoder, clip_mlp, lora_clip_mlp, lora_clip_vision_encoder
+from torchtune.models.clip._component_builders import clip_vision_encoder, clip_mlp, lora_clip_attention, lora_clip_mlp, lora_clip_vision_encoder
 from torchtune.models.flamingo._encoder import FlamingoProjectionHead, FlamingoEncoder
 
 from torchtune.modules.model_fusion import FusionEmbedding, FusionLayer
@@ -18,6 +26,10 @@ from torchtune.modules import (
     TransformerSelfAttentionLayer,
     Fp32LayerNorm
 )
+
+from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
+
+from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 
 
 """
@@ -32,20 +44,16 @@ the building blocks simple.
 """
 
 # Options/TODOs
-# Implement CLIP MLP LoRA
-# Implement CLIP LoRA Attention
-# Implement CLIP LoRA Encoder
-# Update lora_llama3_self_attention name everywhere
-# Implement Flamingo LoRA Decoder (use lora_llama3_attention for sa and ca)
-# Add Unit Tests
-# Update LoRA Single Device -> test recipe
-# Update LoRA Distributed -> test recipe
-
-
-class LoRATrainable(Enum):
-    FULL = "full"
-    LORA = "lora"
-    FROZEN = "frozen"
+# [x] Implement CLIP MLP LoRA
+# [x] Implement CLIP LoRA Attention
+# [x] Implement CLIP LoRA Encoder
+# ~~[ ] Add quantize base to encoder/decoder/fusion
+# [x] Update lora_llama3_self_attention name everywhere
+# [x] Implement Flamingo LoRA Decoder (use lora_llama3_attention for sa and ca)
+# ~~[ ] Add Unit Tests
+# [ ] Update LoRA Single Device -> test recipe
+# [ ] Update LoRA Distributed -> test recipe
+# [ ] Add QLoRA configs
 
 
 def flamingo_vision_encoder(
@@ -313,6 +321,12 @@ def flamingo_projection_head(
 # ------------------ LoRA Flamingo ------------------
 
 
+class LoRATrainable(Enum):
+    FULL = "full"
+    LORA = "lora"
+    FROZEN = "frozen"
+
+
 def lora_flamingo_vision_encoder(
     encoder_lora: bool,
     fusion_lora: bool,
@@ -379,6 +393,7 @@ def lora_flamingo_vision_encoder(
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
+        use_dora (bool): Whether to use DoRA layers instead of LoRA layers. Default is ``False``.
         quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
@@ -388,7 +403,7 @@ def lora_flamingo_vision_encoder(
         FlamingoEncoder: Instantiation of Flamingo encoder.
     """
     lora_options = {
-        "lora_attn_modules": lora_attn_modules,
+        "lora_modules": lora_attn_modules,
         "apply_lora_to_mlp": apply_lora_to_mlp,
         "apply_lora_to_output": apply_lora_to_output,
         "lora_rank": lora_rank,
@@ -434,7 +449,13 @@ def lora_flamingo_vision_encoder(
 
 
 def lora_flamingo_decoder(
+    decoder_lora: bool,
+    fusion_lora: bool,
+    lora_attn_modules: List[LORA_ATTN_MODULES],
+    apply_lora_to_mlp: bool = False,
+    apply_lora_to_output: bool = False,
     *,
+    # decoder params
     vocab_size: int,
     num_layers: int,
     fusion_interval: int,
@@ -446,6 +467,12 @@ def lora_flamingo_decoder(
     encoder_max_seq_len: int,
     rope_base: int = 500000.0,
     intermediate_dim: Optional[int] = None,
+     # LoRA parameters
+    lora_rank: int = 8,
+    lora_alpha: float = 16,
+    lora_dropout: float = 0.0,
+    use_dora: bool = False,
+    quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
     Build the decoder associated with the Llama3 model with additional fused
@@ -457,6 +484,15 @@ def lora_flamingo_decoder(
     - Final projection into token space
 
     Args:
+        decoder_lora (bool): whether to apply LoRA to the language decoder
+        fusion_lora (bool): whether to apply LoRA to the projection head
+        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+            LoRA should be applied to in each self-attention block. Options are
+            ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
+        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
+            Default: False
+        apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
+            Default: False
         vocab_size (int): number of tokens in vocabulary.
         num_layers (int): number of layers in the transformer decoder.
         fusion_interval (int): interval number of layers between fusion layers.
@@ -473,6 +509,13 @@ def lora_flamingo_decoder(
             by :func:`~torchtune.modules.KVCache`.
         intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
             this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`.
+        lora_rank (int): rank of each low-rank approximation
+        lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): LoRA dropout probability. Default: 0.0
+        use_dora (bool): Whether to use DoRA layers instead of LoRA layers. Default is ``False``.
+        quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
+            weights within linear layers LoRA is applied to. The final output linear projection is not
+            supported for quantization currently.
 
     Returns:
         TransformerDecoder: Instantiation of Flamingo decoder.
@@ -485,20 +528,33 @@ def lora_flamingo_decoder(
 
         # Self attention layers for text decoder
         rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-        self_attn = MultiHeadAttention(
+        self_attn = lora_llama3_attention(
+            lora_modules=lora_attn_modules,
+            pos_embeddings=rope,
+            head_dim=head_dim,
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
-            head_dim=head_dim,
-            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
-            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
-            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
-            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
-            pos_embeddings=rope,
             max_seq_len=max_seq_len,
             attn_dropout=0.0,
+            lora_rank=lora_rank,
+            lora_alpha=lora_alpha,
+            lora_dropout=lora_dropout,
+            use_dora=use_dora,
+            quantize_base=quantize_base,
         )
-        mlp = llama3_mlp(dim=embed_dim, hidden_dim=hidden_dim)
+        if apply_lora_to_mlp:
+            mlp = lora_llama3_mlp(
+                dim=embed_dim,
+                hidden_dim=hidden_dim,
+                lora_rank=lora_rank,
+                lora_alpha=lora_alpha,
+                quantize_base=quantize_base,
+                lora_dropout=lora_dropout,
+                use_dora=use_dora,
+            )
+        else:
+            mlp = llama3_mlp(dim=embed_dim, hidden_dim=hidden_dim, quantize_base=quantize_base)
         decoder_layer = TransformerSelfAttentionLayer(
             attn=self_attn,
             mlp=mlp,
@@ -509,23 +565,36 @@ def lora_flamingo_decoder(
         # cross attention layers, mixing text and vision,
         # placed every `fusion_interval` layers
         if idx % fusion_interval == 0:
-            attn = MultiHeadAttention(
+            attn = lora_llama3_attention(
+                lora_modules=lora_attn_modules,
+                pos_embeddings=None,
+                head_dim=head_dim,
                 embed_dim=embed_dim,
                 num_heads=num_heads,
                 num_kv_heads=num_kv_heads,
-                head_dim=head_dim,
-                q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
-                k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
-                v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
-                output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
                 q_norm=RMSNorm(dim=head_dim, eps=1e-05),
                 k_norm=RMSNorm(dim=head_dim, eps=1e-05),
-                pos_embeddings=None,
                 max_seq_len=encoder_max_seq_len,
                 is_causal=False,
                 attn_dropout=0.0,
+                lora_rank=lora_rank,
+                lora_alpha=lora_alpha,
+                lora_dropout=lora_dropout,
+                use_dora=use_dora,
+                quantize_base=quantize_base,
             )
-            mlp = llama3_mlp(dim=embed_dim, hidden_dim=hidden_dim)
+            if apply_lora_to_mlp:
+                mlp = lora_llama3_mlp(
+                    dim=embed_dim,
+                    hidden_dim=hidden_dim,
+                    lora_rank=lora_rank,
+                    lora_alpha=lora_alpha,
+                    quantize_base=quantize_base,
+                    lora_dropout=lora_dropout,
+                    use_dora=use_dora,
+                )
+            else:
+                mlp = llama3_mlp(dim=embed_dim, hidden_dim=hidden_dim, quantize_base=quantize_base)
             xattn_layer = TransformerCrossAttentionLayer(
                 attn=attn,
                 mlp=mlp,
@@ -540,9 +609,16 @@ def lora_flamingo_decoder(
             layers.append(decoder_layer)
 
     tok_embeddings = FusionEmbedding(vocab_size, num_special_tokens, embed_dim)
-    output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
+    
+     # TODO: quantize_base is not applied to final output_proj currently.
+    adapter_cls = DoRALinear if use_dora else LoRALinear
+    output_proj = (
+        adapter_cls(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout)
+        if apply_lora_to_output
+        else nn.Linear(embed_dim, vocab_size, bias=False)
+    )
 
-    return TransformerDecoder(
+    model = TransformerDecoder(
         tok_embeddings=tok_embeddings,
         layers=layers,
         max_seq_len=max_seq_len,
@@ -552,10 +628,18 @@ def lora_flamingo_decoder(
         output=output_proj,
     )
 
+    if quantize_base:
+        # For QLoRA, we reparametrize 4-bit tensors to bf16, and offload to CPU on the fly
+        # so as to not increase peak memory
+        model._register_state_dict_hook(
+            partial(reparametrize_as_dtype_state_dict_post_hook, offload_to_cpu=True)
+        )
+
+    return model
+
 
 def lora_flamingo_projection_head(
     lora_modules: List[LORA_ATTN_MODULES],
-    pos_embeddings: nn.Module,
     *,
     # projection head parameters
     num_layers: int,
@@ -564,6 +648,8 @@ def lora_flamingo_projection_head(
     clip_embed_dim: int,
     num_hidden_inputs: int,
     # LoRA args
+    apply_lora_to_mlp: bool,
+    apply_lora_to_output: bool,
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
@@ -577,16 +663,19 @@ def lora_flamingo_projection_head(
         lora_modules (List[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to. Options are ``{"q_proj", "k_proj", "v_proj",
             "output_proj"}``.
-        pos_embeddings (nn.Module): positional embeddings module to be passed to
-            MultiHeadAttention.
         num_layers (int): number of layers in the projection head.
         num_heads (int): number of heads in the projection head.
         decoder_embed_dim (int): embedding dimension for the decoder.
         clip_embed_dim (int): embedding dimension for the CLIP encoder.
         num_hidden_inputs (int): number of hidden inputs to the projection head.
+        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
+            Default: False
+        apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
+            Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
+        use_dora (bool): Whether to use DoRA layers instead of LoRA layers. Default is ``False``.
         quantize_base (bool): Whether to quantize base model parameters for linear layers
             LoRA is being applied to. Default is ``False``.
 
@@ -598,15 +687,13 @@ def lora_flamingo_projection_head(
     head_dim = clip_embed_dim // num_heads
     num_kv_heads = num_heads
 
-    self_attn = lora_llama3_attention(
-        lora_modules=lora_attn_modules,
+    self_attn = lora_clip_attention(
+        lora_modules=lora_modules,
         embed_dim=clip_embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_heads,
         head_dim=head_dim,
-        pos_embeddings=None,
         attn_dropout=0.0,
-        is_causal=False,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
@@ -632,6 +719,7 @@ def lora_flamingo_projection_head(
             hidden_dim=hidden_dim,
             out_dim=clip_embed_dim,
             activation=nn.GELU(),
+            quantize_base=quantize_base
         )
 
     layer = TransformerSelfAttentionLayer(
@@ -650,9 +738,9 @@ def lora_flamingo_projection_head(
     proj_in = clip_embed_dim * (num_hidden_inputs + 1)
     adapter_cls = DoRALinear if use_dora else LoRALinear
     output_proj = (
-        adapter_cls(proj_in, proj_in, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout, use_bias=True)
+        adapter_cls(proj_in, decoder_embed_dim, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout, use_bias=True)
         if apply_lora_to_output
-        else nn.Linear(proj_in, vocab_size)
+        else nn.Linear(proj_in, decoder_embed_dim)
     )
     return FlamingoProjectionHead(
         layer=layer,
