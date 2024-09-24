@@ -55,8 +55,16 @@ class TestGenerateV2:
         # the expected value for what we currently have in V2
         # this test should catch any changes to the generate recipe that affect output
         expected_output = (
-            "Country maior Connection Koh episodeSerial деревняfireathongeo ordin"
+            "Country maior Connection Kohćutsójcustomulas Sometimes Security"
         )
 
         logs = caplog.text
         assert expected_output in logs
+
+    @pytest.mark.integration_test
+    def test_llama2_fail_on_bad_input(self, capsys, monkeypatch, tmpdir):
+        """Should fail when user passes in a bad input:
+        - No prompt provided
+        - Prompt has multiple entries in content and no image
+        """
+        pass

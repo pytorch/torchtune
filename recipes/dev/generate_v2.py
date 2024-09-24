@@ -9,7 +9,7 @@ import time
 from typing import Any, Dict, List
 
 import torch
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 from torchtune import config, training, utils
 from torchtune.data import load_image, Message, padded_collate_tiled_images_and_mask
@@ -119,7 +119,7 @@ class InferenceRecipe:
     def generate(self, cfg: DictConfig):
         """The main entry point for generating tokens from a prompt."""
         # 1. Convert input to messages
-        messages = self.to_messages(cfg.prompt)
+        messages = self.to_messages(OmegaConf.to_container(cfg.prompt))
         is_multimodal_input = any([m.contains_media for m in messages])
 
         # 2. Apply model transform
