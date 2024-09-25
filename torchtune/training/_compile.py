@@ -40,11 +40,12 @@ def compile_model(
 
     """
     backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-    model_to_compile = model if isinstance(model, TransformerDecoder) else model.decoder
+    if isinstance(model, DeepFusionModel):
+        model = model.decoder
     if torch_version_ge("2.5.0"):
         if verbose:
             log.info("Compiling model layers with torch.compile...")
-        for m in reversed(list(model_to_compile.modules())):
+        for m in reversed(list(model.modules())):
             if isinstance(m, TransformerSelfAttentionLayer) or isinstance(
                 m, TransformerCrossAttentionLayer
             ):
@@ -57,7 +58,7 @@ def compile_model(
                 For faster compile times via per-layer compile, please run on PyTorch nightlies.
                 """
             )
-        model_to_compile.compile(backend=backend)
+        model.compile(backend=backend)
 
 
 def compile_loss(loss: nn.Module, verbose: bool = True) -> None:
