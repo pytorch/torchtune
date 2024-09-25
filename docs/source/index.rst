@@ -113,6 +113,7 @@ torchtune tutorials.
    :caption: Basics
    :hidden:
 
+   basics/datasets_overview
    basics/messages
    basics/message_transforms
    basics/instruct_datasets
