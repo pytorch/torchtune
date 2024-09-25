@@ -30,14 +30,21 @@ from torchtune.modules.transforms import Transform
 from torchtune.recipe_interfaces import EvalRecipeInterface
 
 try:
-    lm_eval_version = importlib.metadata.version("lm_eval")
-except importlib.metadata.PackageNotFoundError:
-    lm_eval_version = ""
-
-if not lm_eval_version >= "0.4.2":
-    raise ImportError(
-        "lm_eval version must be >= 0.4.2. Please install lm_eval >= 0.4.2."
+    import lm_eval
+except ImportError:
+    print(
+        "You must install the EleutherAI Eval Harness to run this recipe. "
+        "Please install with `pip install lm_eval>=0.4.4`"
     )
+    sys.exit(1)
+
+lm_eval_version = importlib.metadata.version("lm_eval")
+if not lm_eval_version >= "0.4.2":
+    print(
+        "You must install the EleutherAI Eval Harness >= v0.4.2 to run this recipe. "
+        "Please install with `pip install lm_eval>=0.4.4`"
+    )
+    sys.exit(1)
 
 from lm_eval.evaluator import evaluate, get_task_list
 
@@ -55,7 +62,6 @@ except ImportError as e:
 
 from lm_eval.models.huggingface import HFLM
 from lm_eval.tasks import get_task_dict, TaskManager
-from lm_eval.utils import make_table
 
 
 class _VLMEvalWrapper(HFMultimodalLM):
@@ -534,7 +540,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         self.logger.info(
             f"Max memory allocated: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB"
         )
-        formatted_output = make_table(output)
+        formatted_output = lm_eval.utils.make_table(output)
         self.logger.info(f"\n\n{formatted_output}\n")
 
 
