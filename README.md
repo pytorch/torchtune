@@ -11,8 +11,6 @@
 
 &nbsp;
 
----
-
 ## Introduction
 
 torchtune is a PyTorch library for easily authoring, finetuning and experimenting with LLMs.
@@ -94,8 +92,6 @@ If you are interested in running on different hardware or with different models,
 
 &nbsp;
 
----
-
 ## Installation
 
 torchtune is tested with the latest stable PyTorch release as well as the preview nightly version. torchtune leverages
@@ -145,8 +141,6 @@ options:
 ```
 
 &nbsp;
-
----
 
 ## Get Started
 
@@ -233,8 +227,6 @@ torchtune supports finetuning on a variety of different datasets, including [ins
 
 &nbsp;
 
----
-
 ## Community
 
 torchtune focuses on integrating with popular tools and libraries from the ecosystem. These are just a few examples, with more under development:
@@ -263,8 +255,6 @@ We really value our community and the contributions made by our wonderful users.
 
 
 &nbsp;
-
----
 
 ## Acknowledgements
 
