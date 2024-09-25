@@ -11,19 +11,19 @@ llama3.2
 
 Text-only models from the 3.2 version of `Llama3 family <https://llama.meta.com/llama3/>`_.
 
-Important: You need to request access on `Hugging Face <https://huggingface.co/meta-llama/Meta-Llama-3.2-1B-Instruct>`__ before downloading it.
+Important: You need to request access on `Hugging Face <https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct>`__ before downloading it.
 
 To download the Llama-3.2-1B-Instruct model:
 
 .. code-block:: bash
 
-    tune download meta-llama/Meta-Llama-3.2-1B-Instruct --output-dir /tmp/Meta-Llama-3.2-1B-Instruct --ignore-patterns "original/consolidated.00.pth" --hf-token <HF_TOKEN>
+    tune download meta-llama/Llama-3.2-1B-Instruct --output-dir /tmp/Llama-3.2-1B-Instruct --ignore-patterns "original/consolidated.00.pth" --hf-token <HF_TOKEN>
 
 To download the Llama-3.2-3B-Instruct model:
 
 .. code-block:: bash
 
-    tune download meta-llama/Meta-Llama-3.2-3B-Instruct --output-dir /tmp/Meta-Llama-3.2-3B-Instruct --ignore-patterns "original/consolidated*" --hf-token <HF_TOKEN>
+    tune download meta-llama/Llama-3.2-3B-Instruct --output-dir /tmp/Llama-3.2-3B-Instruct --ignore-patterns "original/consolidated*" --hf-token <HF_TOKEN>
 
 .. autosummary::
     :toctree: generated/
@@ -45,13 +45,13 @@ llama3.2 Vision
 
 Vision-Language Models from the 3.2 version of `Llama3 family <https://llama.meta.com/llama3/>`_.
 
-Important: You need to request access on `Hugging Face <https://huggingface.co/meta-llama/Meta-Llama-3.2-11B-Vision-Instruct>`__ before downloading it.
+Important: You need to request access on `Hugging Face <https://huggingface.co/meta-llama/Llama-3.2-11B-Vision-Instruct>`__ before downloading it.
 
 To download the Llama-3.2-11B-Instruct model:
 
 .. code-block:: bash
 
-    tune download meta-llama/Meta-Llama-3.2-11B-Vision-Instruct --output-dir /tmp/Meta-Llama-3.2-11B-Vision-Instruct --hf-token <HF_TOKEN>
+    tune download meta-llama/Llama-3.2-11B-Vision-Instruct --output-dir /tmp/Llama-3.2-11B-Vision-Instruct --hf-token <HF_TOKEN>
 
 .. autosummary::
     :toctree: generated/
