@@ -4,7 +4,8 @@
 Multimodal Datasets
 ===================
 
-Multimodal datasets include both text and image data used to train VLMs. torchtune currently supports multimodal chat datasets.
+Multimodal datasets include more than one data modality, e.g. text + image, and can be used to train transformer-based models.
+torchtune currently only supports multimodal text+image chat datasets for Vision-Language Models (VLMs).
 
 The primary entry point for fine-tuning with multimodal datasets in torchtune is the :func:`~torchtune.datasets.multimodal.multimodal_chat_dataset`
 builder. This lets you specify a local or Hugging Face dataset that follows the multimodal chat data format
@@ -15,7 +16,9 @@ directly from the config and train your VLM on it.
 Example multimodal dataset
 --------------------------
 
-Here is an example of a multimodal chat dataset for a visual question-answering task.
+Here is an example of a multimodal chat dataset for a visual question-answering task. Note that there is a placeholder
+in the text, ``"<image>"`` for where to place the image tokens. This will get replaced by the image special token
+``<|image|>`` in the example below.
 
 .. code-block:: python
 
@@ -69,7 +72,7 @@ Here is an example of a multimodal chat dataset for a visual question-answering 
 
 .. code-block:: yaml
 
-    # In config
+    # In config - model_transforms takes the place of the tokenizer
     model_transform:
       _component_: torchtune.models.flamingo
       path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
@@ -102,6 +105,8 @@ and the user-assistant conversations are in another column.
     |  {"from": "gpt", "value": "A1"}]   |              |
 
 As an example, you can see the schema of the `ShareGPT4V dataset <https://huggingface.co/datasets/Lin-Chen/ShareGPT4V>`_.
+
+Currently, :func:`~torchtune.datasets.multimodal.multimodal_chat_dataset` only supports a single image path per conversation sample.
 
 
 Loading multimodal datasets from Hugging Face

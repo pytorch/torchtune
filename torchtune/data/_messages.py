@@ -346,12 +346,13 @@ class ShareGPTToMessages(Transform):
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
         image_dir (Optional[Path]): path to the directory containing the images that is prepended to all image
-            paths in the dataset. If None, assume images are available in current working directory or are located
-            on a remote url. For text-only,leave as None. Default is None.
-        image_tag (Optional[str]): placeholder tags in the text content of each message to be replaced by dictionaries
-            indicating to the tokenizer where to place image tokens. If images are present and this is None,
-            then will prepend image tokens to the first user message in the sample by default. If text-only, leave
-            this as None. Default is None.
+            paths in the dataset. For example, if ``image_dir="/home/user/dataset/"` and the sample image path
+            was ``"images/1.jpg"``, the final image path that will be loaded is ``"/home/user/dataset/images/1.jpg"``.
+            If None, assume images are available in current working directory or are located
+            on a remote url. For text-only, leave as None. Default is None.
+        image_tag (Optional[str]): placeholder tags in the text content of each message to be replaced by image
+            special tokens. If images are present and this is None, then will prepend image tokens to the first
+            user message in the sample by default. If text-only, this field is ignored. Default is ``"<image>"``.
 
     Raises:
         ValueError: If ``column_map`` is provided and ``conversations`` not in ``column_map``.
@@ -363,7 +364,7 @@ class ShareGPTToMessages(Transform):
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
         image_dir: Optional[Path] = None,
-        image_tag: Optional[str] = None,
+        image_tag: Optional[str] = "<image>",
     ):
         self.train_on_input = train_on_input
         self.new_system_prompt = new_system_prompt
@@ -402,7 +403,7 @@ class ShareGPTToMessages(Transform):
             "image" in self._column_map and self._column_map["image"] in sample
         )
 
-        # Add in image stuffs / load from file
+        # Gate variable to ensure that we only prepend image tokens to the first user message
         image_loaded = False
         for message in sample[self._column_map["conversations"]]:
             role = role_map[message["from"]]
@@ -429,6 +430,8 @@ class ShareGPTToMessages(Transform):
                         )
                     image_loaded = True
 
+            # If multimodal and user message, always mask
+            # Otherwise, if user message, mask if train_on_input is False
             masked = (role != "assistant") and (
                 not self.train_on_input or is_multimodal
             )

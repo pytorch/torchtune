@@ -52,7 +52,8 @@ def multimodal_chat_dataset(
             Message(role="assistant", content="A1"),
         ]
 
-    This list of messages is then tokenized for model training.
+    This list of messages is then tokenized for model training. Currently, only a single image per conversation sample
+    is supported, and it is always added to the first user message.
 
     If your dataset is not in the ShareGPT format, we recommend creating a custom message transform and
     using it in a custom dataset builder function similar to :class:`~torchtune.datasets.multimodal_chat_dataset`.
