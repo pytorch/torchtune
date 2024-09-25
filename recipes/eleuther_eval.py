@@ -46,7 +46,13 @@ from lm_eval.evaluator import evaluate, get_task_list
 try:
     from lm_eval.models.hf_vlms import HFMultimodalLM
 except ImportError as e:
-    pass
+    # Create a dummy class to avoid having to import the HF models
+    # TODO (@joecummings): Remove this once v0.4.5 patch is released
+    class HFMultimodalLM:
+        def __init__(self, *args, **kwargs):
+            pass
+
+
 from lm_eval.models.huggingface import HFLM
 from lm_eval.tasks import get_task_dict, TaskManager
 from lm_eval.utils import make_table
