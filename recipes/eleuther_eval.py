@@ -34,7 +34,7 @@ try:
 except ImportError:
     print(
         "You must install the EleutherAI Eval Harness to run this recipe. "
-        "Please install with `pip install lm_eval>=0.4.4`"
+        "Please install with `pip install lm_eval>=0.4.2`"
     )
     sys.exit(1)
 
@@ -42,7 +42,7 @@ lm_eval_version = importlib.metadata.version("lm_eval")
 if not lm_eval_version >= "0.4.2":
     print(
         "You must install the EleutherAI Eval Harness >= v0.4.2 to run this recipe. "
-        "Please install with `pip install lm_eval>=0.4.4`"
+        "Please install with `pip install lm_eval>=0.4.2`"
     )
     sys.exit(1)
 
@@ -76,7 +76,7 @@ class _VLMEvalWrapper(HFMultimodalLM):
         transform (Transform): The transform (tokenizer) to use for preprocessing.
         device (torch.device): The device to use.
         max_seq_length (int): The maximum sequence length.
-        batch_size (int): The batch size per GPU.
+        batch_size (int): The batch size.
         dtype (torch.dtype): dtype for the model caches during generation.
         enable_kv_cache (bool): Whether to enable KV cache for generation.
         image_tag (str): The string to use for the image token. Default is "<image>", which
@@ -163,10 +163,8 @@ class _VLMEvalWrapper(HFMultimodalLM):
         return True
 
     def tok_encode(self, string, **kwargs) -> List[int]:
-        # Note on add_bos flag: setting to False as this gives better results, for example
-        # +1% on truthfulqa_mc2 with a LoRA finetune. lit-gpt also sets this to False,
-        # see https://github.com/Lightning-AI/lit-gpt/blob/main/eval/lm_eval_harness.py#
-        # L66, though notably fast-gpt does the opposite
+        # This is only used to get a number of tokens for use in sorting samples in dataset
+        # These values will not actually be used for eval
         return self._transform.tokenizer.encode(string, add_bos=False, add_eos=False)
 
     def tok_decode(self, tokens, skip_special_tokens=True) -> str:

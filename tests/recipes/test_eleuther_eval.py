@@ -36,7 +36,7 @@ class TestEleutherEval:
         ckpt_dir = ckpt_path.parent
 
         # explicitly setting limit to an odd number here to ensure generation tasks
-        # work with KV-cacheing + bsz > 1 - we'll recieve batches of size 4, 4, 3
+        # work with KV-cacheing + bsz > 1 - we'll receive batches of size 4, 4, 3
         cmd = f"""
         tune run eleuther_eval \
             --config eleuther_evaluation \
