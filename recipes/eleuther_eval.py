@@ -106,7 +106,8 @@ class _VLMEvalWrapper(HFMultimodalLM):
         self._max_seq_length = max_seq_length
         self._batch_size = batch_size
         self._dtype = dtype
-        self._enable_kv_cache = enable_kv_cache
+        # Defaulting KV cache to True for multimodal
+        self._enable_kv_cache = True
         self._image_tag = image_tag
         self._max_images_per_sample = max_images_per_sample
 
@@ -491,6 +492,9 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         if quantization_mode is not None:
             model = quantizer.quantize(model)
             model = model.to(device=self.device, dtype=self.dtype)
+            for k, v in model_state_dict.items():
+                model_state_dict[k] = v.to(self._device)
+            model.load_state_dict(model_state_dict, assign=True)
 
         # Load model weights into initialized model
         model.load_state_dict(ckpt_dict[training.MODEL_KEY])
