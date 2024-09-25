@@ -11,6 +11,7 @@ from torch import nn
 
 from torchtune.models.llama3._model_utils import scale_hidden_dim_for_mlp
 from torchtune.models.llama3_1._position_embeddings import Llama3ScaledRoPE
+from torchtune.modules import TiedLinear
 from torchtune.modules import (
     MultiHeadAttention,
     FeedForward,
@@ -25,7 +26,7 @@ from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_pos
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 
 """
-Component builders for the Llama3.1 model and popular variants such as LoRA.
+Component builders for the Llama3.2 model and popular variants such as LoRA.
 
 torchtune provides composable building blocks. Builder functions help
 stitch these building blocks into higher-level components. This design has
@@ -37,9 +38,9 @@ the building blocks simple.
 """
 
 
-# ------------------ Vanilla Llama3.1 ------------------
+# ------------------ Vanilla Llama3.2 ------------------
 
-def llama3_1(
+def llama3_2(
     vocab_size: int,
     num_layers: int,
     num_heads: int,
@@ -50,10 +51,10 @@ def llama3_1(
     rope_base: int = 500_000,
     intermediate_dim: Optional[int] = None,
     norm_eps: float = 1e-5,
-    scale_factor: int = 8,
+    scale_factor: int = 32,
 ) -> TransformerDecoder:
     """
-    Build the decoder associated with the Llama3.1 model. This includes:
+    Build the decoder associated with the Llama3.2 model. This includes:
     - Token embeddings
     - num_layers number of TransformerSelfAttentionLayer blocks
     - RMS Norm layer applied to the output of the transformer
@@ -76,10 +77,10 @@ def llama3_1(
         intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
             this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`
         norm_eps (float): epsilon in RMS norms.
-        scale_factor (int): scaling factor for RoPE. Default: 8
+        scale_factor (int): scaling factor for RoPE. Default: 32
 
     Returns:
-        TransformerDecoder: Instantiation of Llama3.1 model.
+        TransformerDecoder: Instantiation of Llama3.2 model.
     """
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
@@ -111,7 +112,7 @@ def llama3_1(
     layers = nn.ModuleList(layers)
 
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
-    output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
+    output_proj = TiedLinear(tok_embeddings)
     return TransformerDecoder(
         tok_embeddings=tok_embeddings,
         layers=layers,
@@ -133,15 +134,15 @@ def llama3_mlp(dim: int, hidden_dim: int, quantize_base: bool = False) -> FeedFo
 
 
 
-# ------------------ LoRA Llama3.1 ------------------
+# ------------------ LoRA Llama3.2 ------------------
 
 
-def lora_llama3_1(
+def lora_llama3_2(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
     *,
-    # llama3.1 args
+    # llama3.2 args
     vocab_size: int,
     num_layers: int,
     num_heads: int,
@@ -152,7 +153,7 @@ def lora_llama3_1(
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-5,
     rope_base: int = 500_000,
-    scale_factor: int = 8,
+    scale_factor: int = 32,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,
@@ -162,7 +163,7 @@ def lora_llama3_1(
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
-    Return a version of Llama3.1 (an instance of :func:`~torchtune.modules.TransformerDecoder`)
+    Return a version of Llama3.2 (an instance of :func:`~torchtune.modules.TransformerDecoder`)
     with LoRA applied based on the passed in configuration.
 
     Args:
@@ -189,17 +190,16 @@ def lora_llama3_1(
             this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`
         norm_eps (float): epsilon in RMS norms.
         rope_base (int): base for the rotary positional embeddings. Default: 500_000
-        scale_factor (int): scaling factor for RoPE. Default: 8
+        scale_factor (int): scaling factor for RoPE. Default: 32
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
-        use_dora (bool): Whether to use DoRA layers instead of LoRA layers. Default is ``False``.
         quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
 
     Returns:
-        TransformerDecoder: Instantiation of Llama3.1 model with LoRA applied to
+        TransformerDecoder: Instantiation of Llama3.2 model with LoRA applied to
         a subset of the attention projections in each layer.
 
     """
@@ -209,7 +209,7 @@ def lora_llama3_1(
     rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base, scale_factor=scale_factor)
     layers = []
     for _ in range(num_layers):
-        self_attn = lora_llama3_attention(
+        self_attn = lora_llama3_2_self_attention(
             lora_modules=lora_attn_modules,
             pos_embeddings=rope,
             head_dim=head_dim,
@@ -248,13 +248,12 @@ def lora_llama3_1(
     layers = nn.ModuleList(layers)
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
-    # TODO: quantize_base is not applied to final output_proj currently.
-    adapter_cls = DoRALinear if use_dora else LoRALinear
-    output_proj = (
-        adapter_cls(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout)
-        if apply_lora_to_output
-        else nn.Linear(embed_dim, vocab_size, bias=False)
-    )
+    if apply_lora_to_output:
+        raise ValueError(
+            "apply_lora_to_output is currently not supporting in llama3.2 1b and 3b,"
+            "as the projection layer weights are tied to the embeddings"
+        )
+    output_proj = TiedLinear(tok_embeddings)
     model = TransformerDecoder(
         tok_embeddings=tok_embeddings,
         layers=layers,
@@ -275,7 +274,7 @@ def lora_llama3_1(
     return model
 
 
-def lora_llama3_attention(
+def lora_llama3_2_self_attention(
     lora_modules: List[LORA_ATTN_MODULES],
     pos_embeddings: nn.Module,
     *,
@@ -284,10 +283,7 @@ def lora_llama3_attention(
     embed_dim: int,
     num_heads: int,
     num_kv_heads: int,
-    q_norm: Optional[nn.Module] = None,
-    k_norm: Optional[nn.Module] = None,
     max_seq_len: int,
-    is_causal: bool = True,
     attn_dropout: float = 0.0,
     # LoRA args
     lora_rank: int,
@@ -314,17 +310,13 @@ def lora_llama3_attention(
         num_kv_heads (int): number of key and value heads. User should ensure
             `num_heads` % `num_kv_heads` == 0. For standard MHA set `num_kv_heads` == `num_heads`,
             for GQA `num_kv_heads` < `num_heads`, and for MQA set `num_kv_heads` == 1.
-        q_norm (Optional[nn.Module]): normalization applied to query. Default: None
-        k_norm (Optional[nn.Module]): normalization applied to key. Default: None
         max_seq_len (int): maximum sequence length the model will be run with, as used
             by :func:`~torchtune.modules.KVCache`
-        is_causal (bool): whether to apply causal attention mask. Default: True
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
-        use_dora (bool): Whether to use DoRA layers instead of LoRA layers. Default is ``False``.
         quantize_base (bool): Whether to quantize base model parameters for linear layers
             LoRA is being applied to. Default is ``False``.
 
@@ -416,11 +408,8 @@ def lora_llama3_attention(
         k_proj=k_proj,
         v_proj=v_proj,
         output_proj=output_proj,
-        q_norm=q_norm,
-        k_norm=k_norm,
         pos_embeddings=pos_embeddings,
         max_seq_len=max_seq_len,
-        is_causal=is_causal,
         attn_dropout=attn_dropout,
     )
     return self_attn
