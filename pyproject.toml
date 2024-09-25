@@ -27,6 +27,9 @@ dependencies = [
     "omegaconf",
     "psutil",
 
+    # Multimodal
+    "Pillow>=9.4.0",
+
 ]
 dynamic = ["version"]
 
