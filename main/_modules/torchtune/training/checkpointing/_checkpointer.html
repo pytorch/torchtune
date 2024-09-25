@@ -443,10 +443,6 @@
 <span class="kn">from</span> <span class="nn">torchtune</span> <span class="kn">import</span> <span class="n">training</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.models</span> <span class="kn">import</span> <span class="n">convert_weights</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision._convert_weights</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">llama3_vision_meta_to_tune</span><span class="p">,</span>
-    <span class="n">llama3_vision_tune_to_meta</span><span class="p">,</span>
-<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">torchtune.models.phi3._convert_weights</span> <span class="kn">import</span> <span class="n">phi3_hf_to_tune</span><span class="p">,</span> <span class="n">phi3_tune_to_hf</span>
 <span class="kn">from</span> <span class="nn">torchtune.models.qwen2._convert_weights</span> <span class="kn">import</span> <span class="n">qwen2_hf_to_tune</span><span class="p">,</span> <span class="n">qwen2_tune_to_hf</span>
 <span class="kn">from</span> <span class="nn">torchtune.rlhf.utils</span> <span class="kn">import</span> <span class="n">reward_hf_to_tune</span><span class="p">,</span> <span class="n">reward_tune_to_hf</span>
@@ -1167,6 +1163,10 @@
         <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">:</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_path</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">LLAMA3_VISION</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision._convert_weights</span> <span class="kn">import</span> <span class="p">(</span>
+                <span class="n">llama3_vision_meta_to_tune</span><span class="p">,</span>
+            <span class="p">)</span>
+
             <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">llama3_vision_meta_to_tune</span><span class="p">(</span>
                 <span class="n">model_state_dict</span>
             <span class="p">)</span>
@@ -1211,6 +1211,10 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">adapter_only</span><span class="p">:</span>
             <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">LLAMA3_VISION</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision._convert_weights</span> <span class="kn">import</span> <span class="p">(</span>
+                    <span class="n">llama3_vision_tune_to_meta</span><span class="p">,</span>
+                <span class="p">)</span>
+
                 <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">llama3_vision_tune_to_meta</span><span class="p">(</span>
                     <span class="n">model_state_dict</span>
                 <span class="p">)</span>
