@@ -1,7 +1,7 @@
 Welcome to the torchtune Documentation
 =======================================
 
-**torchtune** is a Native-PyTorch library for LLM fine-tuning.
+**torchtune** is a Native-PyTorch library for LLM and VLM fine-tuning.
 
 Getting Started
 ~~~~~~~~~~~~~~~
@@ -11,9 +11,9 @@ Topics in this section will help you get started with torchtune.
 .. grid:: 3
 
      .. grid-item-card:: :octicon:`file-code;1em`
-        What is torchtune?
+        Finetune your first VLM
         :img-top: _static/img/card-background.svg
-        :link: overview.html
+        :link: tutorials/first_vlm_tutorial.html
         :link-type: url
 
         A gentle introduction to torchtune and how you can
@@ -28,7 +28,7 @@ Topics in this section will help you get started with torchtune.
         A step-by-step tutorial on how to install torchtune.
 
      .. grid-item-card:: :octicon:`file-code;1em`
-         Finetune your first model
+         Finetune your first LLM
          :img-top: _static/img/card-background.svg
          :link: tutorials/first_finetune_tutorial.html
          :link-type: url
@@ -42,6 +42,13 @@ Ready to experiment? Check out some of the interactive
 torchtune tutorials.
 
 .. customcardstart::
+
+.. customcarditem::
+   :header: Llama3.2-Vision in torchtune
+   :card_description:
+   :image: _static/img/generic-pytorch-logo.png
+   :link: tutorials/first_vlm_tutorial.html
+   :tags: finetuning,llama3
 
 .. customcarditem::
    :header: Llama3 in torchtune
