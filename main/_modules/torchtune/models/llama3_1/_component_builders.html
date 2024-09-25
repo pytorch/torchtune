@@ -438,7 +438,6 @@
 
 <span class="kn">from</span> <span class="nn">torchtune.models.llama3._model_utils</span> <span class="kn">import</span> <span class="n">scale_hidden_dim_for_mlp</span>
 <span class="kn">from</span> <span class="nn">torchtune.models.llama3_1._position_embeddings</span> <span class="kn">import</span> <span class="n">Llama3ScaledRoPE</span>
-
 <span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">MultiHeadAttention</span><span class="p">,</span>
     <span class="n">FeedForward</span><span class="p">,</span>
@@ -475,7 +474,7 @@
     <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">attn_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
-    <span class="n">rope_base</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mf">500000.0</span><span class="p">,</span>
+    <span class="n">rope_base</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500_000</span><span class="p">,</span>
     <span class="n">intermediate_dim</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">norm_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
     <span class="n">scale_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
@@ -498,6 +497,7 @@
 <span class="sd">        embed_dim (int): embedding dimension for self-attention</span>
 <span class="sd">        max_seq_len (int): maximum sequence length the model will be run with, as used</span>
 <span class="sd">            by :func:`~torchtune.modules.KVCache`</span>
+<span class="sd">        rope_base (int): base for the rotary positional embeddings. Default: 500_000</span>
 <span class="sd">        attn_dropout (float): dropout value passed onto scaled_dot_product_attention.</span>
 <span class="sd">            Default: 0.0</span>
 <span class="sd">        intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,</span>
@@ -578,7 +578,8 @@
     <span class="n">intermediate_dim</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">attn_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">norm_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
-    <span class="n">rope_base</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">500000.0</span><span class="p">,</span>
+    <span class="n">rope_base</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500_000</span><span class="p">,</span>
+    <span class="n">scale_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
     <span class="c1"># LoRA args</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -614,6 +615,8 @@
 <span class="sd">        intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,</span>
 <span class="sd">            this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`</span>
 <span class="sd">        norm_eps (float): epsilon in RMS norms.</span>
+<span class="sd">        rope_base (int): base for the rotary positional embeddings. Default: 500_000</span>
+<span class="sd">        scale_factor (int): scaling factor for RoPE. Default: 8</span>
 <span class="sd">        lora_rank (int): rank of each low-rank approximation</span>
 <span class="sd">        lora_alpha (float): scaling factor for the low-rank approximation</span>
 <span class="sd">        lora_dropout (float): LoRA dropout probability. Default: 0.0</span>
@@ -630,7 +633,7 @@
 
     <span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">intermediate_dim</span> <span class="k">if</span> <span class="n">intermediate_dim</span> <span class="k">else</span> <span class="n">scale_hidden_dim_for_mlp</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">)</span>
     <span class="n">head_dim</span> <span class="o">=</span> <span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads</span>
-    <span class="n">rope</span> <span class="o">=</span> <span class="n">Llama3ScaledRoPE</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="n">rope_base</span><span class="p">)</span>
+    <span class="n">rope</span> <span class="o">=</span> <span class="n">Llama3ScaledRoPE</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="n">rope_base</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="n">scale_factor</span><span class="p">)</span>
     <span class="n">layers</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
         <span class="n">self_attn</span> <span class="o">=</span> <span class="n">lora_llama3_attention</span><span class="p">(</span>

@@ -435,8 +435,8 @@
 objects to be input into the model. torchtune currently supports text + image model transforms.
 These are intended to be drop-in replacements for tokenizers in multimodal datasets and support the standard
 <code class="docutils literal notranslate"><span class="pre">encode</span></code>, <code class="docutils literal notranslate"><span class="pre">decode</span></code>, and <code class="docutils literal notranslate"><span class="pre">tokenize_messages</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># torchtune.models.flamingo.FlamingoTransform</span>
-<span class="k">class</span> <span class="nc">FlamingoTransform</span><span class="p">(</span><span class="n">ModelTokenizer</span><span class="p">,</span> <span class="n">Transform</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># torchtune.models.llama3_2_vision.Llama3VisionTransform</span>
+<span class="k">class</span> <span class="nc">Llama3VisionTransform</span><span class="p">(</span><span class="n">ModelTokenizer</span><span class="p">,</span> <span class="n">Transform</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
         <span class="c1"># Text transform - standard tokenization</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">llama3_tokenizer</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
@@ -445,7 +445,7 @@ These are intended to be drop-in replacements for tokenizers in multimodal datas
         <span class="bp">self</span><span class="o">.</span><span class="n">xattn_mask</span> <span class="o">=</span> <span class="n">VisionCrossAttentionMask</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.flamingo</span> <span class="kn">import</span> <span class="n">FlamingoTransform</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision</span> <span class="kn">import</span> <span class="n">Llama3VisionTransform</span>
 <span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span>
 <span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
 
@@ -465,7 +465,7 @@ These are intended to be drop-in replacements for tokenizers in multimodal datas
         <span class="p">),</span>
     <span class="p">],</span>
 <span class="p">}</span>
-<span class="n">transform</span> <span class="o">=</span> <span class="n">FlamingoTransform</span><span class="p">(</span>
+<span class="n">transform</span> <span class="o">=</span> <span class="n">Llama3VisionTransform</span><span class="p">(</span>
     <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model&quot;</span><span class="p">,</span>
     <span class="n">tile_size</span><span class="o">=</span><span class="mi">224</span><span class="p">,</span>
     <span class="n">patch_size</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
@@ -481,9 +481,9 @@ These are intended to be drop-in replacements for tokenizers in multimodal datas
 <h2>Using model transforms<a class="headerlink" href="#using-model-transforms" title="Permalink to this heading">¶</a></h2>
 <p>You can pass them into any multimodal dataset builder just as you would a model tokenizer.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.datasets.multimodal</span> <span class="kn">import</span> <span class="n">the_cauldron_dataset</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.flamingo</span> <span class="kn">import</span> <span class="n">FlamingoTransform</span>
+<span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision</span> <span class="kn">import</span> <span class="n">Llama3VisionTransform</span>
 
-<span class="n">transform</span> <span class="o">=</span> <span class="n">FlamingoTransform</span><span class="p">(</span>
+<span class="n">transform</span> <span class="o">=</span> <span class="n">Llama3VisionTransform</span><span class="p">(</span>
     <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model&quot;</span><span class="p">,</span>
     <span class="n">tile_size</span><span class="o">=</span><span class="mi">224</span><span class="p">,</span>
     <span class="n">patch_size</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
@@ -587,8 +587,8 @@ Both should be contained in the <code class="docutils literal notranslate"><span
 <h2>Example model transforms<a class="headerlink" href="#example-model-transforms" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><dl class="simple">
-<dt>Flamingo</dt><dd><ul>
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">FlamingoTransform</span></code></p></li>
+<dt>Llama 3.2 Vision</dt><dd><ul>
+<li><p><a class="reference internal" href="../generated/torchtune.models.llama3_2_vision.Llama3VisionTransform.html#torchtune.models.llama3_2_vision.Llama3VisionTransform" title="torchtune.models.llama3_2_vision.Llama3VisionTransform"><code class="xref py py-class docutils literal notranslate"><span class="pre">Llama3VisionTransform</span></code></a></p></li>
 </ul>
 </dd>
 </dl>

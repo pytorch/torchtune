@@ -41,7 +41,7 @@
   <link rel="stylesheet" href="_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="llama3" href="generated/torchtune.models.llama3.llama3.html" />
+    <link rel="next" title="llama3_2_1b" href="generated/torchtune.models.llama3_2.llama3_2_1b.html" />
     <link rel="prev" title="get_position_ids_from_padding_mask" href="generated/torchtune.generation.get_position_ids_from_padding_mask.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -431,9 +431,98 @@
               
   <section id="torchtune-models">
 <span id="models"></span><h1>torchtune.models<a class="headerlink" href="#torchtune-models" title="Permalink to this heading">¶</a></h1>
+<section id="llama3-2">
+<h2>llama3.2<a class="headerlink" href="#llama3-2" title="Permalink to this heading">¶</a></h2>
+<p>Text-only models from the 3.2 version of <a class="reference external" href="https://llama.meta.com/llama3/">Llama3 family</a>.</p>
+<p>Important: You need to request access on <a class="reference external" href="https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct">Hugging Face</a> before downloading it.</p>
+<p>To download the Llama-3.2-1B-Instruct model:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Llama-3.2-1B-Instruct<span class="w"> </span>--output-dir<span class="w"> </span>/tmp/Llama-3.2-1B-Instruct<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;original/consolidated.00.pth&quot;</span><span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
+</pre></div>
+</div>
+<p>To download the Llama-3.2-3B-Instruct model:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Llama-3.2-3B-Instruct<span class="w"> </span>--output-dir<span class="w"> </span>/tmp/Llama-3.2-3B-Instruct<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;original/consolidated*&quot;</span><span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
+</pre></div>
+</div>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_2.llama3_2_1b.html#torchtune.models.llama3_2.llama3_2_1b" title="torchtune.models.llama3_2.llama3_2_1b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_2.llama3_2_1b</span></code></a></p></td>
+<td><p>Builder for creating a Llama3.2 model initialized w/ the default 1b parameter values.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_2.llama3_2_3b.html#torchtune.models.llama3_2.llama3_2_3b" title="torchtune.models.llama3_2.llama3_2_3b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_2.llama3_2_3b</span></code></a></p></td>
+<td><p>Builder for creating a Llama3.2 model initialized w/ the default 3b parameter values.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_2.lora_llama3_2_1b.html#torchtune.models.llama3_2.lora_llama3_2_1b" title="torchtune.models.llama3_2.lora_llama3_2_1b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_2.lora_llama3_2_1b</span></code></a></p></td>
+<td><p>Builder for creating a Llama3.2 1B model with LoRA enabled.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_2.lora_llama3_2_3b.html#torchtune.models.llama3_2.lora_llama3_2_3b" title="torchtune.models.llama3_2.lora_llama3_2_3b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_2.lora_llama3_2_3b</span></code></a></p></td>
+<td><p>Builder for creating a Llama3.2 3B model with LoRA enabled.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_2.qlora_llama3_2_1b.html#torchtune.models.llama3_2.qlora_llama3_2_1b" title="torchtune.models.llama3_2.qlora_llama3_2_1b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_2.qlora_llama3_2_1b</span></code></a></p></td>
+<td><p>Builder for creating a Llama3.2 1B model with QLoRA enabled.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_2.qlora_llama3_2_3b.html#torchtune.models.llama3_2.qlora_llama3_2_3b" title="torchtune.models.llama3_2.qlora_llama3_2_3b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_2.qlora_llama3_2_3b</span></code></a></p></td>
+<td><p>Builder for creating a Llama3.2 3B model with QLoRA enabled.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The Llama3.2 tokenizer reuses the <a class="reference internal" href="generated/torchtune.models.llama3.llama3_tokenizer.html#torchtune.models.llama3.llama3_tokenizer" title="torchtune.models.llama3.llama3_tokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">llama3_tokenizer</span></code></a> class.</p>
+</div>
+</section>
+<section id="llama3-2-vision">
+<h2>llama3.2 Vision<a class="headerlink" href="#llama3-2-vision" title="Permalink to this heading">¶</a></h2>
+<p>Vision-Language Models from the 3.2 version of <a class="reference external" href="https://llama.meta.com/llama3/">Llama3 family</a>.</p>
+<p>Important: You need to request access on <a class="reference external" href="https://huggingface.co/meta-llama/Llama-3.2-11B-Vision-Instruct">Hugging Face</a> before downloading it.</p>
+<p>To download the Llama-3.2-11B-Instruct model:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Llama-3.2-11B-Vision-Instruct<span class="w"> </span>--output-dir<span class="w"> </span>/tmp/Llama-3.2-11B-Vision-Instruct<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
+</pre></div>
+</div>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_2_vision.llama3_2_vision_11b.html#torchtune.models.llama3_2_vision.llama3_2_vision_11b" title="torchtune.models.llama3_2_vision.llama3_2_vision_11b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_2_vision.llama3_2_vision_11b</span></code></a></p></td>
+<td><p>Llama 3.2 Vision 11B model</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_2_vision.llama3_2_vision_transform.html#torchtune.models.llama3_2_vision.llama3_2_vision_transform" title="torchtune.models.llama3_2_vision.llama3_2_vision_transform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_2_vision.llama3_2_vision_transform</span></code></a></p></td>
+<td><p>Data Transforms (including Tokenizer) for Llama3 Vision.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_2_vision.lora_llama3_2_vision_11b.html#torchtune.models.llama3_2_vision.lora_llama3_2_vision_11b" title="torchtune.models.llama3_2_vision.lora_llama3_2_vision_11b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_2_vision.lora_llama3_2_vision_11b</span></code></a></p></td>
+<td><p>Return a version of Llama3.2 vision (an instance of <a class="reference internal" href="generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel" title="torchtune.modules.model_fusion.DeepFusionModel"><code class="xref py py-func docutils literal notranslate"><span class="pre">DeepFusionModel()</span></code></a>) with LoRA applied based on the passed in configuration.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_2_vision.qlora_llama3_2_vision_11b.html#torchtune.models.llama3_2_vision.qlora_llama3_2_vision_11b" title="torchtune.models.llama3_2_vision.qlora_llama3_2_vision_11b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_2_vision.qlora_llama3_2_vision_11b</span></code></a></p></td>
+<td><p>Builder for creating a Llama3.2 vision 11B model with QLoRA enabled.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_2_vision.llama3_2_vision_decoder.html#torchtune.models.llama3_2_vision.llama3_2_vision_decoder" title="torchtune.models.llama3_2_vision.llama3_2_vision_decoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_2_vision.llama3_2_vision_decoder</span></code></a></p></td>
+<td><p>Build the decoder associated with the Llama3 model with additional fused cross attention layers.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_2_vision.llama3_2_vision_encoder.html#torchtune.models.llama3_2_vision.llama3_2_vision_encoder" title="torchtune.models.llama3_2_vision.llama3_2_vision_encoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_2_vision.llama3_2_vision_encoder</span></code></a></p></td>
+<td><p>Build the Llama 3.2 vision encoder by combining the CLIP image model with an additional projection head fusion module.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_2_vision.lora_llama3_2_vision_decoder.html#torchtune.models.llama3_2_vision.lora_llama3_2_vision_decoder" title="torchtune.models.llama3_2_vision.lora_llama3_2_vision_decoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_2_vision.lora_llama3_2_vision_decoder</span></code></a></p></td>
+<td><p>Build the decoder associated with the Llama3 model with additional fused cross attention layers.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_2_vision.lora_llama3_2_vision_encoder.html#torchtune.models.llama3_2_vision.lora_llama3_2_vision_encoder" title="torchtune.models.llama3_2_vision.lora_llama3_2_vision_encoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_2_vision.lora_llama3_2_vision_encoder</span></code></a></p></td>
+<td><p>Build the Llama 3.2 vision encoder by combining the CLIP image model with an additional projection head fusion module.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_2_vision.Llama3VisionEncoder.html#torchtune.models.llama3_2_vision.Llama3VisionEncoder" title="torchtune.models.llama3_2_vision.Llama3VisionEncoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_2_vision.Llama3VisionEncoder</span></code></a></p></td>
+<td><p>Vision encoder model for Llama 3.2 Vision.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_2_vision.Llama3VisionProjectionHead.html#torchtune.models.llama3_2_vision.Llama3VisionProjectionHead" title="torchtune.models.llama3_2_vision.Llama3VisionProjectionHead"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_2_vision.Llama3VisionProjectionHead</span></code></a></p></td>
+<td><p>Projection transformer to adapt the output of a pretrained frozen encoder (CLIP) to a pretrained decoder model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_2_vision.Llama3VisionTransform.html#torchtune.models.llama3_2_vision.Llama3VisionTransform" title="torchtune.models.llama3_2_vision.Llama3VisionTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_2_vision.Llama3VisionTransform</span></code></a></p></td>
+<td><p>This transform combines the transforms for the different modalities of Llama 3.2 Vision.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The Llama3.2 tokenizer reuses the <a class="reference internal" href="generated/torchtune.models.llama3.llama3_tokenizer.html#torchtune.models.llama3.llama3_tokenizer" title="torchtune.models.llama3.llama3_tokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">llama3_tokenizer</span></code></a> class.</p>
+</div>
+</section>
 <section id="llama3-llama3-1">
 <h2>llama3 &amp; llama3.1<a class="headerlink" href="#llama3-llama3-1" title="Permalink to this heading">¶</a></h2>
-<p>All models from the <a class="reference external" href="https://llama.meta.com/llama3/">Llama3 family</a>.</p>
+<p>Models 3 and 3.1 from the <a class="reference external" href="https://llama.meta.com/llama3/">Llama3 family</a>.</p>
 <p>Important: You need to request access on <a class="reference external" href="https://huggingface.co/meta-llama/Meta-Llama-3.1-8B-Instruct">Hugging Face</a> before downloading it.</p>
 <p>To download the Llama3.1-8B-Instruct model:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Meta-Llama-3.1-8B-Instruct<span class="w"> </span>--output-dir<span class="w"> </span>/tmp/Meta-Llama-3.1-8B-Instruct<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;original/consolidated.00.pth&quot;</span><span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
@@ -804,7 +893,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="generated/torchtune.models.llama3.llama3.html" class="btn btn-neutral float-right" title="llama3" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="generated/torchtune.models.llama3_2.llama3_2_1b.html" class="btn btn-neutral float-right" title="llama3_2_1b" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="generated/torchtune.generation.get_position_ids_from_padding_mask.html" class="btn btn-neutral" title="get_position_ids_from_padding_mask" accesskey="p" rel="prev"><img src="_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
@@ -840,6 +929,8 @@
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
 <li><a class="reference internal" href="#">torchtune.models</a><ul>
+<li><a class="reference internal" href="#llama3-2">llama3.2</a></li>
+<li><a class="reference internal" href="#llama3-2-vision">llama3.2 Vision</a></li>
 <li><a class="reference internal" href="#llama3-llama3-1">llama3 &amp; llama3.1</a></li>
 <li><a class="reference internal" href="#llama2">llama2</a></li>
 <li><a class="reference internal" href="#code-llama">code llama</a></li>

@@ -7,10 +7,11 @@
 <head>
   <meta name="robots" content="noindex">
   <meta charset="utf-8">
-  
+  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Overview: module code &mdash; torchtune main documentation</title>
+  <title>qlora_llama3_2_1b &mdash; torchtune main documentation</title>
   
 
   
@@ -40,6 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="qlora_llama3_2_3b" href="torchtune.models.llama3_2.qlora_llama3_2_3b.html" />
+    <link rel="prev" title="lora_llama3_2_3b" href="torchtune.models.llama3_2.lora_llama3_2_3b.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -340,12 +343,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_generation.html">torchtune.generation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
@@ -390,10 +393,16 @@
       </li>
 
         
-      <li>Overview: module code</li>
+          <li><a href="../api_ref_models.html">torchtune.models</a> &gt;</li>
+        
+      <li>qlora_llama3_2_1b</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/generated/torchtune.models.llama3_2.qlora_llama3_2_1b.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+          
         
       </li>
     
@@ -422,105 +431,32 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>All modules for which code is available</h1>
-<ul><li><a href="functools.html">functools</a></li>
-<li><a href="torchtune/config/_instantiate.html">torchtune.config._instantiate</a></li>
-<li><a href="torchtune/config/_parse.html">torchtune.config._parse</a></li>
-<li><a href="torchtune/config/_utils.html">torchtune.config._utils</a></li>
-<li><a href="torchtune/config/_validate.html">torchtune.config._validate</a></li>
-<li><a href="torchtune/data/_chat_formats.html">torchtune.data._chat_formats</a></li>
-<li><a href="torchtune/data/_collate.html">torchtune.data._collate</a></li>
-<li><a href="torchtune/data/_converters.html">torchtune.data._converters</a></li>
-<li><a href="torchtune/data/_instruct_templates.html">torchtune.data._instruct_templates</a></li>
-<li><a href="torchtune/data/_messages.html">torchtune.data._messages</a></li>
-<li><a href="torchtune/data/_prompt_templates.html">torchtune.data._prompt_templates</a></li>
-<li><a href="torchtune/data/_utils.html">torchtune.data._utils</a></li>
-<li><a href="torchtune/datasets/_alpaca.html">torchtune.datasets._alpaca</a></li>
-<li><a href="torchtune/datasets/_chat.html">torchtune.datasets._chat</a></li>
-<li><a href="torchtune/datasets/_cnn_dailymail.html">torchtune.datasets._cnn_dailymail</a></li>
-<li><a href="torchtune/datasets/_concat.html">torchtune.datasets._concat</a></li>
-<li><a href="torchtune/datasets/_grammar.html">torchtune.datasets._grammar</a></li>
-<li><a href="torchtune/datasets/_hh_rlhf_helpful.html">torchtune.datasets._hh_rlhf_helpful</a></li>
-<li><a href="torchtune/datasets/_instruct.html">torchtune.datasets._instruct</a></li>
-<li><a href="torchtune/datasets/_packed.html">torchtune.datasets._packed</a></li>
-<li><a href="torchtune/datasets/_preference.html">torchtune.datasets._preference</a></li>
-<li><a href="torchtune/datasets/_samsum.html">torchtune.datasets._samsum</a></li>
-<li><a href="torchtune/datasets/_sft.html">torchtune.datasets._sft</a></li>
-<li><a href="torchtune/datasets/_slimorca.html">torchtune.datasets._slimorca</a></li>
-<li><a href="torchtune/datasets/_stack_exchange_paired.html">torchtune.datasets._stack_exchange_paired</a></li>
-<li><a href="torchtune/datasets/_text_completion.html">torchtune.datasets._text_completion</a></li>
-<li><a href="torchtune/datasets/_wikitext.html">torchtune.datasets._wikitext</a></li>
-<li><a href="torchtune/datasets/multimodal/_llava_instruct.html">torchtune.datasets.multimodal._llava_instruct</a></li>
-<li><a href="torchtune/datasets/multimodal/_the_cauldron.html">torchtune.datasets.multimodal._the_cauldron</a></li>
-<li><a href="torchtune/generation/_generation.html">torchtune.generation._generation</a></li>
-<li><a href="torchtune/models/code_llama2/_model_builders.html">torchtune.models.code_llama2._model_builders</a></li>
-<li><a href="torchtune/models/gemma/_component_builders.html">torchtune.models.gemma._component_builders</a></li>
-<li><a href="torchtune/models/gemma/_model_builders.html">torchtune.models.gemma._model_builders</a></li>
-<li><a href="torchtune/models/llama2/_component_builders.html">torchtune.models.llama2._component_builders</a></li>
-<li><a href="torchtune/models/llama2/_model_builders.html">torchtune.models.llama2._model_builders</a></li>
-<li><a href="torchtune/models/llama2/_prompt_template.html">torchtune.models.llama2._prompt_template</a></li>
-<li><a href="torchtune/models/llama3/_component_builders.html">torchtune.models.llama3._component_builders</a></li>
-<li><a href="torchtune/models/llama3/_model_builders.html">torchtune.models.llama3._model_builders</a></li>
-<li><a href="torchtune/models/llama3_1/_component_builders.html">torchtune.models.llama3_1._component_builders</a></li>
-<li><a href="torchtune/models/llama3_1/_model_builders.html">torchtune.models.llama3_1._model_builders</a></li>
-<li><a href="torchtune/models/llama3_2/_model_builders.html">torchtune.models.llama3_2._model_builders</a></li>
-<li><a href="torchtune/models/llama3_2_vision/_component_builders.html">torchtune.models.llama3_2_vision._component_builders</a></li>
-<li><a href="torchtune/models/llama3_2_vision/_encoder.html">torchtune.models.llama3_2_vision._encoder</a></li>
-<li><a href="torchtune/models/llama3_2_vision/_model_builders.html">torchtune.models.llama3_2_vision._model_builders</a></li>
-<li><a href="torchtune/models/llama3_2_vision/_transform.html">torchtune.models.llama3_2_vision._transform</a></li>
-<li><a href="torchtune/models/mistral/_component_builders.html">torchtune.models.mistral._component_builders</a></li>
-<li><a href="torchtune/models/mistral/_model_builders.html">torchtune.models.mistral._model_builders</a></li>
-<li><a href="torchtune/models/mistral/_prompt_template.html">torchtune.models.mistral._prompt_template</a></li>
-<li><a href="torchtune/models/phi3/_component_builders.html">torchtune.models.phi3._component_builders</a></li>
-<li><a href="torchtune/models/phi3/_model_builders.html">torchtune.models.phi3._model_builders</a></li>
-<li><a href="torchtune/models/qwen2/_component_builders.html">torchtune.models.qwen2._component_builders</a></li>
-<li><a href="torchtune/models/qwen2/_model_builders.html">torchtune.models.qwen2._model_builders</a></li>
-<li><a href="torchtune/modules/attention.html">torchtune.modules.attention</a></li>
-<li><a href="torchtune/modules/common_utils.html">torchtune.modules.common_utils</a></li>
-<li><a href="torchtune/modules/feed_forward.html">torchtune.modules.feed_forward</a></li>
-<li><a href="torchtune/modules/kv_cache.html">torchtune.modules.kv_cache</a></li>
-<li><a href="torchtune/modules/layer_norm.html">torchtune.modules.layer_norm</a></li>
-<li><a href="torchtune/modules/loss/ce_chunked_output_loss.html">torchtune.modules.loss.ce_chunked_output_loss</a></li>
-<li><a href="torchtune/modules/lr_schedulers.html">torchtune.modules.lr_schedulers</a></li>
-<li><a href="torchtune/modules/model_fusion/_fusion.html">torchtune.modules.model_fusion._fusion</a></li>
-<li><a href="torchtune/modules/model_fusion/_fusion_utils.html">torchtune.modules.model_fusion._fusion_utils</a></li>
-<li><a href="torchtune/modules/peft/_utils.html">torchtune.modules.peft._utils</a></li>
-<li><a href="torchtune/modules/peft/lora.html">torchtune.modules.peft.lora</a></li>
-<li><a href="torchtune/modules/position_embeddings.html">torchtune.modules.position_embeddings</a></li>
-<li><a href="torchtune/modules/rms_norm.html">torchtune.modules.rms_norm</a></li>
-<li><a href="torchtune/modules/tanh_gate.html">torchtune.modules.tanh_gate</a></li>
-<li><a href="torchtune/modules/tied_linear.html">torchtune.modules.tied_linear</a></li>
-<li><a href="torchtune/modules/tokenizers/_sentencepiece.html">torchtune.modules.tokenizers._sentencepiece</a></li>
-<li><a href="torchtune/modules/tokenizers/_tiktoken.html">torchtune.modules.tokenizers._tiktoken</a></li>
-<li><a href="torchtune/modules/tokenizers/_utils.html">torchtune.modules.tokenizers._utils</a></li>
-<li><a href="torchtune/modules/transformer.html">torchtune.modules.transformer</a></li>
-<li><a href="torchtune/modules/transforms/_transforms.html">torchtune.modules.transforms._transforms</a></li>
-<li><a href="torchtune/modules/vision_transformer.html">torchtune.modules.vision_transformer</a></li>
-<li><a href="torchtune/rlhf/loss/dpo.html">torchtune.rlhf.loss.dpo</a></li>
-<li><a href="torchtune/rlhf/loss/ppo.html">torchtune.rlhf.loss.ppo</a></li>
-<li><a href="torchtune/rlhf/rewards.html">torchtune.rlhf.rewards</a></li>
-<li><a href="torchtune/rlhf/sequence_processing.html">torchtune.rlhf.sequence_processing</a></li>
-<li><a href="torchtune/training/_distributed.html">torchtune.training._distributed</a></li>
-<li><a href="torchtune/training/_profiler.html">torchtune.training._profiler</a></li>
-<li><a href="torchtune/training/activations.html">torchtune.training.activations</a></li>
-<li><a href="torchtune/training/checkpointing/_checkpointer.html">torchtune.training.checkpointing._checkpointer</a></li>
-<li><a href="torchtune/training/checkpointing/_utils.html">torchtune.training.checkpointing._utils</a></li>
-<li><a href="torchtune/training/memory.html">torchtune.training.memory</a></li>
-<li><a href="torchtune/training/metric_logging.html">torchtune.training.metric_logging</a></li>
-<li><a href="torchtune/training/pooling.html">torchtune.training.pooling</a></li>
-<li><a href="torchtune/training/precision.html">torchtune.training.precision</a></li>
-<li><a href="torchtune/training/quantization.html">torchtune.training.quantization</a></li>
-<li><a href="torchtune/training/seed.html">torchtune.training.seed</a></li>
-<li><a href="torchtune/utils/_device.html">torchtune.utils._device</a></li>
-<li><a href="torchtune/utils/_logging.html">torchtune.utils._logging</a></li>
-<li><a href="torchtune/utils/_version.html">torchtune.utils._version</a></li>
-<li><a href="typing.html">typing</a></li>
-</ul>
+  <section id="qlora-llama3-2-1b">
+<h1>qlora_llama3_2_1b<a class="headerlink" href="#qlora-llama3-2-1b" title="Permalink to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="torchtune.models.llama3_2.qlora_llama3_2_1b">
+<span class="sig-prename descclassname"><span class="pre">torchtune.models.llama3_2.</span></span><span class="sig-name descname"><span class="pre">qlora_llama3_2_1b</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lora_attn_modules</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.12)"><span class="pre">Literal</span></a><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'q_proj'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'k_proj'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'v_proj'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'output_proj'</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apply_lora_to_mlp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apply_lora_to_output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lora_rank</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lora_alpha</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">16</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lora_dropout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_dora</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantize_base</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.transformer.TransformerDecoder"><span class="pre">TransformerDecoder</span></a></span></span><a class="headerlink" href="#torchtune.models.llama3_2.qlora_llama3_2_1b" title="Permalink to this definition">¶</a></dt>
+<dd><p>Builder for creating a Llama3.2 1B model with QLoRA enabled. Base model weights in linear layers
+that LoRA is applied to are quantized per the QLoRA paper: <a class="reference external" href="https://arxiv.org/abs/2305.14314">https://arxiv.org/abs/2305.14314</a>.
+Please see <cite>lora_llama3_2_1b</cite> for full API arguments.</p>
+</dd></dl>
+
+</section>
+
 
              </article>
              
             </div>
             <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="torchtune.models.llama3_2.qlora_llama3_2_3b.html" class="btn btn-neutral float-right" title="qlora_llama3_2_3b" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+      
+      
+        <a href="torchtune.models.llama3_2.lora_llama3_2_3b.html" class="btn btn-neutral" title="lora_llama3_2_3b" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+      
+    </div>
   
 
   
@@ -549,7 +485,10 @@
         <div class="pytorch-content-right" id="pytorch-content-right">
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
-              
+              <ul>
+<li><a class="reference internal" href="#">qlora_llama3_2_1b</a></li>
+</ul>
+
             </div>
           </div>
         </div>
@@ -570,7 +509,6 @@
          <script src="../_static/doctools.js"></script>
          <script src="../_static/clipboard.min.js"></script>
          <script src="../_static/copybutton.js"></script>
-         <script src="../_static/tabs.js"></script>
          <script src="../_static/design-tabs.js"></script>
      
 
