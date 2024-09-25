@@ -6,10 +6,77 @@ torchtune.models
 
 .. currentmodule:: torchtune.models
 
+llama3.2
+--------
+
+Text-only models from the 3.2 version of `Llama3 family <https://llama.meta.com/llama3/>`_.
+
+Important: You need to request access on `Hugging Face <https://huggingface.co/meta-llama/Meta-Llama-3.2-1B-Instruct>`__ before downloading it.
+
+To download the Llama-3.2-1B-Instruct model:
+
+.. code-block:: bash
+
+    tune download meta-llama/Meta-Llama-3.2-1B-Instruct --output-dir /tmp/Meta-Llama-3.2-1B-Instruct --ignore-patterns "original/consolidated.00.pth" --hf-token <HF_TOKEN>
+
+To download the Llama-3.2-3B-Instruct model:
+
+.. code-block:: bash
+
+    tune download meta-llama/Meta-Llama-3.2-3B-Instruct --output-dir /tmp/Meta-Llama-3.2-3B-Instruct --ignore-patterns "original/consolidated*" --hf-token <HF_TOKEN>
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    llama3_2.llama3_2_1b
+    llama3_2.llama3_2_3b
+    llama3_2.lora_llama3_2_1b
+    llama3_2.lora_llama3_2_3b
+    llama3_2.qlora_llama3_2_1b
+    llama3_2.qlora_llama3_2_3b
+
+.. note::
+
+    The Llama3.2 tokenizer reuses the :class:`~torchtune.models.llama3.llama3_tokenizer` class.
+
+llama3.2 Vision
+---------------
+
+Vision-Language Models from the 3.2 version of `Llama3 family <https://llama.meta.com/llama3/>`_.
+
+Important: You need to request access on `Hugging Face <https://huggingface.co/meta-llama/Meta-Llama-3.2-11B-Vision-Instruct>`__ before downloading it.
+
+To download the Llama-3.2-11B-Instruct model:
+
+.. code-block:: bash
+
+    tune download meta-llama/Meta-Llama-3.2-11B-Vision-Instruct --output-dir /tmp/Meta-Llama-3.2-11B-Vision-Instruct --hf-token <HF_TOKEN>
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    llama3_2_vision.llama3_2_vision_11b
+    llama3_2_vision.llama3_2_vision_transform
+    llama3_2_vision.lora_llama3_2_vision_11b
+    llama3_2_vision.qlora_llama3_2_vision_11b
+    llama3_2_vision.llama3_2_vision_decoder
+    llama3_2_vision.llama3_2_vision_encoder
+    llama3_2_vision.lora_llama3_2_vision_decoder
+    llama3_2_vision.lora_llama3_2_vision_encoder
+    llama3_2_vision.Llama3VisionEncoder
+    llama3_2_vision.Llama3VisionProjectionHead
+    llama3_2_vision.Llama3VisionTransform
+
+.. note::
+
+    The Llama3.2 tokenizer reuses the :class:`~torchtune.models.llama3.llama3_tokenizer` class.
+
 llama3 & llama3.1
 -----------------
 
-All models from the `Llama3 family <https://llama.meta.com/llama3/>`_.
+Models 3 and 3.1 from the `Llama3 family <https://llama.meta.com/llama3/>`_.
 
 Important: You need to request access on `Hugging Face <https://huggingface.co/meta-llama/Meta-Llama-3.1-8B-Instruct>`__ before downloading it.
 

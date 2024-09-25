@@ -11,7 +11,6 @@ from torch import nn
 
 from torchtune.models.llama3._model_utils import scale_hidden_dim_for_mlp
 from torchtune.models.llama3_1._position_embeddings import Llama3ScaledRoPE
-
 from torchtune.modules import (
     MultiHeadAttention,
     FeedForward,
@@ -48,7 +47,7 @@ def llama3_1(
     embed_dim: int,
     max_seq_len: int,
     attn_dropout: float = 0.0,
-    rope_base: int = 500000.0,
+    rope_base: int = 500_000,
     intermediate_dim: Optional[int] = None,
     norm_eps: float = 1e-5,
     scale_factor: int = 8,
@@ -71,6 +70,7 @@ def llama3_1(
         embed_dim (int): embedding dimension for self-attention
         max_seq_len (int): maximum sequence length the model will be run with, as used
             by :func:`~torchtune.modules.KVCache`
+        rope_base (int): base for the rotary positional embeddings. Default: 500_000
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
         intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
@@ -151,7 +151,8 @@ def lora_llama3_1(
     intermediate_dim: Optional[int] = None,
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-5,
-    rope_base: float = 500000.0,
+    rope_base: int = 500_000,
+    scale_factor: int = 8,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,
@@ -187,6 +188,8 @@ def lora_llama3_1(
         intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
             this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`
         norm_eps (float): epsilon in RMS norms.
+        rope_base (int): base for the rotary positional embeddings. Default: 500_000
+        scale_factor (int): scaling factor for RoPE. Default: 8
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
@@ -203,7 +206,7 @@ def lora_llama3_1(
 
     hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
     head_dim = embed_dim // num_heads
-    rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+    rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base, scale_factor=scale_factor)
     layers = []
     for _ in range(num_layers):
         self_attn = lora_llama3_attention(

@@ -65,6 +65,7 @@ class ModelType(Enum):
     GEMMA: str = "gemma"
     LLAMA2: str = "llama2"
     LLAMA3: str = "llama3"
+    LLAMA3_VISION: str = "llama3_vision"
     MISTRAL: str = "mistral"
     PHI3_MINI: str = "phi3_mini"
     REWARD: str = "reward"
