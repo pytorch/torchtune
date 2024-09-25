@@ -47,6 +47,7 @@ class ModelType(Enum):
         GEMMA (str): Gemma family of models. See :func:`~torchtune.models.gemma.gemma`
         LLAMA2 (str): Llama2 family of models. See :func:`~torchtune.models.llama2.llama2`
         LLAMA3 (str): Llama3 family of models. See :func:`~torchtune.models.llama3.llama3`
+        LLAMA3_VISION (str): LLama3 vision family of models. See :func:`~torchtune.models.llama3_2_vision.llama3_2_vision`
         MISTRAL (str): Mistral family of models. See :func:`~torchtune.models.mistral.mistral`
         PHI3_MINI (str): Phi-3 family of models. See :func:`~torchtune.models.phi3.phi3`
         REWARD (str): A Llama2, Llama3, or Mistral model with a classification head projecting
