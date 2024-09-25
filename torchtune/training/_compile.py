@@ -11,12 +11,12 @@ import torch
 from torch import nn
 
 from torchtune.modules import (
-    DeepFusionModel,
     TransformerCrossAttentionLayer,
     TransformerDecoder,
     TransformerSelfAttentionLayer,
 )
 from torchtune.modules.loss import CEWithChunkedOutputLoss
+from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.utils import get_logger, torch_version_ge
 
 log = get_logger("INFO")
