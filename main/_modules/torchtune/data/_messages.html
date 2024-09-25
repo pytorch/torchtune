@@ -316,6 +316,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../basics/tokenizers.html">Tokenizers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../basics/prompt_templates.html">Prompt Templates</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../basics/model_transforms.html">Multimodal Transforms</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -429,9 +430,10 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data._utils</span> <span class="kn">import</span> <span class="n">load_image</span>
+<span class="kn">from</span> <span class="nn">torchtune.data._utils</span> <span class="kn">import</span> <span class="n">format_content_with_images</span><span class="p">,</span> <span class="n">load_image</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
 
@@ -760,7 +762,8 @@
 <span class="sd">        ]</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        train_on_input (bool): whether the prompt should remain unmasked. Default: False</span>
+<span class="sd">        train_on_input (bool): whether the prompt should remain unmasked. For multimodal datasets, ``train_on_input``</span>
+<span class="sd">            is always False and this value is ignored. Default: False</span>
 <span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected columns (&quot;conversations&quot;)</span>
 <span class="sd">            to the new column names in the dataset. Key should be &quot;conversations&quot; and value should</span>
 <span class="sd">            be the new column name. If None, keep the default &quot;conversations&quot;.</span>
@@ -768,6 +771,14 @@
 <span class="sd">        new_system_prompt (Optional[str]): if specified, prepend a system message. This can</span>
 <span class="sd">            serve as instructions to guide the model response. Setting this will OVERRIDE any system</span>
 <span class="sd">            messages already present in the dataset. Default is None.</span>
+<span class="sd">        image_dir (Optional[Path]): path to the directory containing the images that is prepended to all image</span>
+<span class="sd">            paths in the dataset. For example, if ``image_dir=&quot;/home/user/dataset/&quot;` and the sample image path</span>
+<span class="sd">            was ``&quot;images/1.jpg&quot;``, the final image path that will be loaded is ``&quot;/home/user/dataset/images/1.jpg&quot;``.</span>
+<span class="sd">            If None, assume images are available in current working directory or are located</span>
+<span class="sd">            on a remote url. For text-only, leave as None. Default is None.</span>
+<span class="sd">        image_tag (Optional[str]): placeholder tags in the text content of each message to be replaced by image</span>
+<span class="sd">            special tokens. If images are present and this is None, then will prepend image tokens to the first</span>
+<span class="sd">            user message in the sample by default. If text-only, this field is ignored. Default is ``&quot;&lt;image&gt;&quot;``.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If ``column_map`` is provided and ``conversations`` not in ``column_map``.</span>
@@ -778,6 +789,8 @@
         <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">image_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">image_tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&lt;image&gt;&quot;</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="o">=</span> <span class="n">train_on_input</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span> <span class="o">=</span> <span class="n">new_system_prompt</span>
@@ -788,7 +801,9 @@
                 <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="n">column_map</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;conversations&quot;</span><span class="p">:</span> <span class="s2">&quot;conversations&quot;</span><span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;conversations&quot;</span><span class="p">:</span> <span class="s2">&quot;conversations&quot;</span><span class="p">,</span> <span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="s2">&quot;image&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image_dir</span> <span class="o">=</span> <span class="n">image_dir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image_tag</span> <span class="o">=</span> <span class="n">image_tag</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -809,12 +824,43 @@
                     <span class="n">role</span><span class="o">=</span><span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eot</span><span class="o">=</span><span class="kc">True</span>
                 <span class="p">)</span>
             <span class="p">)</span>
+
+        <span class="n">is_multimodal</span> <span class="o">=</span> <span class="s2">&quot;image&quot;</span> <span class="ow">in</span> <span class="n">sample</span> <span class="ow">or</span> <span class="p">(</span>
+            <span class="s2">&quot;image&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">sample</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Gate variable to ensure that we only prepend image tokens to the first user message</span>
+        <span class="n">image_loaded</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;conversations&quot;</span><span class="p">]]:</span>
             <span class="n">role</span> <span class="o">=</span> <span class="n">role_map</span><span class="p">[</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;from&quot;</span><span class="p">]]</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;system&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">continue</span>
-            <span class="n">content</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span>
-            <span class="n">masked</span> <span class="o">=</span> <span class="p">(</span><span class="n">role</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;user&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">is_multimodal</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">image_loaded</span><span class="p">:</span>
+                    <span class="n">image_path</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]]</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">image_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_dir</span> <span class="o">/</span> <span class="n">image_path</span>
+                    <span class="n">pil_image</span> <span class="o">=</span> <span class="n">load_image</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
+                    <span class="c1"># If image tag is not specified, prepend by default</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_tag</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">content</span> <span class="o">=</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">pil_image</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">content</span><span class="p">},</span>
+                        <span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">content</span> <span class="o">=</span> <span class="n">format_content_with_images</span><span class="p">(</span>
+                            <span class="n">content</span><span class="p">,</span>
+                            <span class="n">image_tag</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">image_tag</span><span class="p">,</span>
+                            <span class="n">images</span><span class="o">=</span><span class="p">[</span><span class="n">pil_image</span><span class="p">],</span>
+                        <span class="p">)</span>
+                    <span class="n">image_loaded</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="c1"># If multimodal and user message, always mask</span>
+            <span class="c1"># Otherwise, if user message, mask if train_on_input is False</span>
+            <span class="n">masked</span> <span class="o">=</span> <span class="p">(</span><span class="n">role</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+                <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="ow">or</span> <span class="n">is_multimodal</span>
+            <span class="p">)</span>
             <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="n">role</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="n">masked</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">messages</span><span class="p">}</span></div>

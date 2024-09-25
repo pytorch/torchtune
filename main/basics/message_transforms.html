@@ -319,6 +319,7 @@
 <li class="toctree-l1"><a class="reference internal" href="tokenizers.html">Tokenizers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="prompt_templates.html">Prompt Templates</a></li>
 <li class="toctree-l1"><a class="reference internal" href="preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multimodal_datasets.html">Multimodal Datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="model_transforms.html">Multimodal Transforms</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -441,7 +442,7 @@ so you don’t have to worry about the message transform itself and can configur
 You can see <a class="reference internal" href="instruct_datasets.html#example-instruct"><span class="std std-ref">Example instruct dataset</span></a> or <a class="reference internal" href="chat_datasets.html#example-chat"><span class="std std-ref">Example chat dataset</span></a> for more details.</p>
 </section>
 <section id="custom-message-transforms">
-<h2>Custom message transforms<a class="headerlink" href="#custom-message-transforms" title="Permalink to this heading">¶</a></h2>
+<span id="custom-message-transform"></span><h2>Custom message transforms<a class="headerlink" href="#custom-message-transforms" title="Permalink to this heading">¶</a></h2>
 <p>If our built-in message transforms do not configure for your particular dataset well,
 you can create your own class with full flexibility. Simply inherit from the <a class="reference internal" href="../generated/torchtune.modules.transforms.Transform.html#torchtune.modules.transforms.Transform" title="torchtune.modules.transforms.Transform"><code class="xref py py-class docutils literal notranslate"><span class="pre">Transform</span></code></a>
 class and add your code in the <code class="docutils literal notranslate"><span class="pre">__call__</span></code> method.</p>
