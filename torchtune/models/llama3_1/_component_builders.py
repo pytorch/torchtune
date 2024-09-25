@@ -190,6 +190,7 @@ def lora_llama3_1(
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
+        use_dora (bool): Whether to use DoRA layers instead of LoRA layers. Default is ``False``.
         quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
@@ -205,7 +206,7 @@ def lora_llama3_1(
     rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
     layers = []
     for _ in range(num_layers):
-        self_attn = lora_llama3_1_self_attention(
+        self_attn = lora_llama3_attention(
             lora_modules=lora_attn_modules,
             pos_embeddings=rope,
             head_dim=head_dim,
@@ -271,7 +272,7 @@ def lora_llama3_1(
     return model
 
 
-def lora_llama3_1_self_attention(
+def lora_llama3_attention(
     lora_modules: List[LORA_ATTN_MODULES],
     pos_embeddings: nn.Module,
     *,
@@ -280,7 +281,10 @@ def lora_llama3_1_self_attention(
     embed_dim: int,
     num_heads: int,
     num_kv_heads: int,
+    q_norm: Optional[nn.Module] = None,
+    k_norm: Optional[nn.Module] = None,
     max_seq_len: int,
+    is_causal: bool = True,
     attn_dropout: float = 0.0,
     # LoRA args
     lora_rank: int,
@@ -307,13 +311,17 @@ def lora_llama3_1_self_attention(
         num_kv_heads (int): number of key and value heads. User should ensure
             `num_heads` % `num_kv_heads` == 0. For standard MHA set `num_kv_heads` == `num_heads`,
             for GQA `num_kv_heads` < `num_heads`, and for MQA set `num_kv_heads` == 1.
+        q_norm (Optional[nn.Module]): normalization applied to query. Default: None
+        k_norm (Optional[nn.Module]): normalization applied to key. Default: None
         max_seq_len (int): maximum sequence length the model will be run with, as used
             by :func:`~torchtune.modules.KVCache`
+        is_causal (bool): whether to apply causal attention mask. Default: True
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
+        use_dora (bool): Whether to use DoRA layers instead of LoRA layers. Default is ``False``.
         quantize_base (bool): Whether to quantize base model parameters for linear layers
             LoRA is being applied to. Default is ``False``.
 
@@ -405,8 +413,11 @@ def lora_llama3_1_self_attention(
         k_proj=k_proj,
         v_proj=v_proj,
         output_proj=output_proj,
+        q_norm=q_norm,
+        k_norm=k_norm,
         pos_embeddings=pos_embeddings,
         max_seq_len=max_seq_len,
+        is_causal=is_causal,
         attn_dropout=attn_dropout,
     )
     return self_attn
