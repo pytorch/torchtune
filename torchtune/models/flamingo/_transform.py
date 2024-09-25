@@ -27,7 +27,7 @@ class FlamingoTransform(ModelTokenizer, Transform):
 
     Args:
         path (str): Path to pretrained tiktoken tokenizer file.
-        tile_size (int): Size of the tiles to divide the image into. Default 224.
+        tile_size (int): Size of the tiles to divide the image into.
         patch_size (int): Size of the patches used in the CLIP vision tranformer model. This is
             used to calculate the number of image embeddings per image.
         max_num_tiles (int): Only used if possible_resolutions is NOT given.
@@ -99,6 +99,7 @@ class FlamingoTransform(ModelTokenizer, Transform):
 
         self.stop_tokens = self.tokenizer.stop_tokens
         self.max_seq_len = max_seq_len
+        self.image_seq_len = max_num_tiles * (self.xattn_mask.patches_per_tile + 1)
         self.prompt_template = prompt_template
         self.pad_id = self.tokenizer.pad_id
 

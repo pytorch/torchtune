@@ -20,7 +20,8 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
-from torchtune.data import padded_collate_packed, padded_collate_sft
+from torchtune.config._utils import _get_component_from_path
+from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     get_adapter_params,
@@ -72,7 +73,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             most cases this should halve the memory footprint of full precision (fp32) training, without
             loss in model quality (will depend on the model, training data and other settings). For
             GPUs which do not support bfloat16, we fall back to fp32. Mixed precision training and fp16
-            precision are currently not supported.g
+            precision are currently not supported.
 
         - Gradient Accumulation. You can simulate larger batch sizes by accumulating gradients. This is
             controlled using the ``gradient_accumulation_steps`` flag.
@@ -119,6 +120,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         ValueError: If ``dtype`` is set to fp16.
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
         RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
+        RuntimeError: If ``left_pad_sequence`` is set as the data collator
 
     """
 
@@ -282,10 +284,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # Dataloader depends on the tokenizer and loss_fn and should be
         # setup after all of these are setup
+        collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
         self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
+            collate_fn=collate_name,
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -502,6 +506,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         cfg_dataset: DictConfig,
         shuffle: bool,
         batch_size: int,
+        collate_fn: str,
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here. Currently this recipe only supports
@@ -519,6 +524,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             ds = config.instantiate(cfg_dataset, self._tokenizer)
             packed = cfg_dataset.get("packed", False)
 
+        # Instantiate collate_fn
+        if "left_pad_sequence" in collate_fn:
+            raise RuntimeError("left_pad_sequence collator is only for inference.")
+        collate_fn = _get_component_from_path(collate_fn)
+
         sampler = DistributedSampler(
             ds,
             num_replicas=1,
@@ -532,17 +542,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             batch_size=batch_size,
             # dropping last avoids shape issues with compile + flex attention
             drop_last=cfg_dataset.get("drop_last", True),
-            collate_fn=(
-                partial(
-                    padded_collate_sft,
-                    padding_idx=self._tokenizer.pad_id,
-                    ignore_idx=self._loss_fn.ignore_index,
-                )
-                if not packed
-                else partial(
-                    padded_collate_packed,
-                )
-            ),
+            collate_fn=partial(
+                collate_fn,
+                padding_idx=self._tokenizer.pad_id,
+                ignore_idx=self._loss_fn.ignore_index,
+            )
+            if not packed
+            else padded_collate_packed,
         )
 
         log.info("Dataset and Sampler are initialized.")
@@ -623,17 +629,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
     def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
-        # Both are shape [b, s]
-        tokens, labels = batch["tokens"], batch["labels"]
-
-        # Get the attention mask and position ids from the dataset if they
-        # exist. Currently, only sample packing in PackedDataset returns these
-        mask = batch.get("mask", None)  # shape [b, s, s]
-        input_pos = batch.get("input_pos", None)  # shape [b, s]
+        # Shape [b, s], needed for the loss not the model
+        labels = batch.pop("labels")
 
         # run model
         with self.activations_handling_ctx:
-            logits = self._model(tokens, mask=mask, input_pos=input_pos)
+            logits = self._model(**batch)
 
         # Shift labels to compute loss
         # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
@@ -692,7 +693,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     ):
                         torch.cuda.memory._record_memory_history()
 
-                    batch = {k: v.to(self._device) for k, v in batch.items()}
+                    utils.batch_to_device(batch, self._device)
                     num_tokens += batch["tokens"].numel()
 
                     loss = self._loss_step(batch)
