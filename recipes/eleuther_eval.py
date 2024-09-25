@@ -79,7 +79,7 @@ class _VLMEvalWrapper(HFMultimodalLM):
         batch_size (int): The batch size per GPU.
         dtype (torch.dtype): dtype for the model caches during generation.
         enable_kv_cache (bool): Whether to enable KV cache for generation.
-        image_str (str): The string to use for the image token. Default is "<image>", which
+        image_tag (str): The string to use for the image token. Default is "<image>", which
             is the default used by the MMMU dataset.
         max_images_per_sample (int): The maximum number of images per sample. Defaults to
             the max number of images in MMMU.
@@ -95,7 +95,7 @@ class _VLMEvalWrapper(HFMultimodalLM):
         batch_size: int = 8,
         dtype: torch.dtype = torch.bfloat16,
         enable_kv_cache: bool = True,
-        image_str: str = "<image>",
+        image_tag: str = "<image>",
         max_images_per_sample: int = 7,
     ):
         self._model = model
@@ -105,11 +105,13 @@ class _VLMEvalWrapper(HFMultimodalLM):
         self._batch_size = batch_size
         self._dtype = dtype
         self._enable_kv_cache = enable_kv_cache
-        self._image_str = image_str
+        self._image_tag = image_tag
         self._max_images_per_sample = max_images_per_sample
 
     @property
     def model(self):
+        # Not actually changing the dtype here, just adding it as a
+        # property on the model
         self._model.dtype = self._dtype
         return self._model
 
@@ -123,6 +125,7 @@ class _VLMEvalWrapper(HFMultimodalLM):
 
     @property
     def cache_hook(self):
+        # Dummy class to appease the Harness
         class DummyCacheHook:
             def __init__(self):
                 self.add_partial = lambda x, y, z: True
@@ -195,7 +198,7 @@ class _VLMEvalWrapper(HFMultimodalLM):
             # Construct the messages
             messages = []
             content = format_content_with_images(
-                text, image_tag=self._image_str, images=proper_images
+                text, image_tag=self._image_tag, images=proper_images
             )
             messages.append(Message(role="user", content=content))
             messages.append(Message(role="assistant", content=""))
@@ -236,8 +239,8 @@ class _VLMEvalWrapper(HFMultimodalLM):
 
         if bsz > 1:
             raise ValueError(
-                f"Got a batch size of '{bsz}'. Batch size > 1 is not supported for "
-                "generation. See https://github.com/pytorch/torchtune/issues/1250 for more info."
+                f"Got a batch size of '{bsz}'. Batch size > 1 is not yet supported for "
+                "multimodal generation."
             )
 
         # 1. Setup caches for a given batch size
