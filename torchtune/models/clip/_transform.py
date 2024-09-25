@@ -163,6 +163,8 @@ class CLIPImageTransform:
         assert isinstance(image, Image.Image), "Input image must be a PIL image."
 
         # Make image torch.tensor((3, H, W), dtype=dtype), 0<=values<=1
+        if hasattr(image, "mode") and image.mode == "RGBA":
+            image = image.convert("RGB")
         image = F.to_image(image)
         image = F.grayscale_to_rgb_image(image)
         image = F.to_dtype(image, dtype=self.dtype, scale=True)
