@@ -17,7 +17,10 @@ multimodal dataset in torchtune.
     .. grid-item-card:: :octicon:`list-unordered;1em;` Prerequisites
 
       * Install torchtune nightly build
-      * Download the Llama3.2 model from Hugging Face
+      * Download the Llama3.2-Vision-Instruct model from Hugging Face
+
+Running a fine-tuning recipe
+----------------------------
 
 After you've downloaded the Llama3.2 model, you can start fine-tuning it right away with ``tune run``. Let's
 launching a single device training job with the default dataset, the OCR-VQA subset of The Cauldron.
@@ -53,10 +56,39 @@ built-in datasets in torchtune. Let's use the :func:`~torchtune.datasets.multimo
 You can also use :func:`~torchtune.datasets.multimodal.multimodal_chat_dataset` to define your custom multimodal dataset.
 See :ref:`example_multimodal` for more details.
 
-|
+Inference 
+---------
+After fine-tuning, you can run inference on the model to check its output on sample data. 
+In the generation config ``llama3_2_vision/generation_v2.yaml``, you can specify the input text
+and input image path (local or remote url).
 
-Next steps
+.. code-block:: yaml
+
+    prompt:
+      system: You are a helpful assistant who responds like the author Shakespeare.
+      user:
+        image: https://cdn.britannica.com/61/93061-050-99147DCE/Statue-of-Liberty-Island-New-York-Bay.jpg
+        text: What is in this image?
+
+Make sure you've updated the checkpoint files to point to your fine-tuned checkpoint. Then, you can run generation
+using ``tune run``.
+
+.. code-block:: bash
+
+    tune cp llama3_2_vision/generation_v2 ./my_generation_config.yaml
+    # Make changes to my_generation_config.yaml
+    tune run dev/generate_v2 --config my_generation_config.yaml
+
+Evaluation
 ----------
+torchtune integrates with
+`EleutherAI's evaluation harness <https://github.com/EleutherAI/lm-evaluation-harness>`_ to run eval on MMMU for VLMs.
+You can update the config to point to your fine-tuned model, then run the eval recipe.
 
-Now that you have trained your model and set up your environment, let's take a look at what we can do with our
-new model by checking out the ":ref:`E2E Workflow Tutorial<e2e_flow>`".
+.. code-block:: bash
+
+    tune cp llama3_2_vision/evaluation ./my_evaluation_config.yaml
+    # Make changes to my_evaluation_config.yaml
+    tune run eleuther_eval --config my_evaluation_config.yaml
+
+
