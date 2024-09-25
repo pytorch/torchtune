@@ -16,6 +16,10 @@ from safetensors.torch import save_file
 from torchtune import training
 
 from torchtune.models import convert_weights
+from torchtune.models.llama3_2_vision._convert_weights import (
+    llama3_vision_meta_to_tune,
+    llama3_vision_tune_to_meta,
+)
 from torchtune.models.phi3._convert_weights import phi3_hf_to_tune, phi3_tune_to_hf
 from torchtune.models.qwen2._convert_weights import qwen2_hf_to_tune, qwen2_tune_to_hf
 from torchtune.rlhf.utils import reward_hf_to_tune, reward_tune_to_hf
@@ -466,6 +470,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 dim=self._config["hidden_size"],
                 tie_word_embeddings=self._config["tie_word_embeddings"],
             )
+        elif self._model_type == ModelType.LLAMA3_VISION:
+            raise NotImplementedError(
+                "Safe tensors support for LLaMA3 Vision will be added soon. Pleaee use the FullModelMetaCheckpointer for now."
+            )
         else:
             converted_state_dict[training.MODEL_KEY] = convert_weights.hf_to_tune(
                 merged_state_dict,
@@ -531,6 +539,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     num_kv_heads=self._config["num_key_value_heads"],
                     dim=self._config["hidden_size"],
                     tie_word_embeddings=self._config["tie_word_embeddings"],
+                )
+            elif self._model_type == ModelType.LLAMA3_VISION:
+                raise NotImplementedError(
+                    "Safe tensors support for LLaMA3 Vision will be added soon. Pleaee use the FullModelMetaCheckpointer for now."
                 )
             else:
                 state_dict[training.MODEL_KEY] = convert_weights.tune_to_hf(
@@ -708,7 +720,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         )
 
         self._resume_from_checkpoint = resume_from_checkpoint
-        self._model_type = model_type
+        self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
 
         # recipe_checkpoint contains the recipe state. This should be available if
@@ -727,7 +739,14 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         """
         state_dict: Dict[str:Any] = {}
         model_state_dict = safe_torch_load(self._checkpoint_path)
-        state_dict[training.MODEL_KEY] = convert_weights.meta_to_tune(model_state_dict)
+        if self._model_type == ModelType.LLAMA3_VISION:
+            state_dict[training.MODEL_KEY] = llama3_vision_meta_to_tune(
+                model_state_dict
+            )
+        else:
+            state_dict[training.MODEL_KEY] = convert_weights.meta_to_tune(
+                model_state_dict
+            )
 
         if self._adapter_checkpoint:
             adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
@@ -764,9 +783,14 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
 
         if not adapter_only:
             model_state_dict = state_dict[training.MODEL_KEY]
-            state_dict[training.MODEL_KEY] = convert_weights.tune_to_meta(
-                model_state_dict
-            )
+            if self._model_type == ModelType.LLAMA3_VISION:
+                state_dict[training.MODEL_KEY] = llama3_vision_tune_to_meta(
+                    model_state_dict
+                )
+            else:
+                state_dict[training.MODEL_KEY] = convert_weights.tune_to_meta(
+                    model_state_dict
+                )
 
             # Output file is always a .pt file with the epoch number in the name
             checkpoint_file = Path.joinpath(
