@@ -445,7 +445,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
     Features:
         - Single GPU evaluation. Multi-GPU evaluation is currently not supported.
-        - Quantization and torch.compile (for text-only models) is supported.
+        - Quantization (for text-only models) is supported.
         - Any task from the EleutherAI eval harness
 
     We recommend launching evaluation using the tune CLI::
@@ -464,7 +464,6 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         # Eval specific variables
         self.limit = cfg.limit
         self.tasks = list(cfg.tasks)
-        self.max_seq_length = cfg.max_seq_length
         self.batch_size = cfg.batch_size
         self.enable_kv_cache = cfg.get("enable_kv_cache", True)
         self.include_path = cfg.get("include_path", None)
@@ -509,14 +508,20 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         model_transform = config.instantiate(cfg.tokenizer)
 
         # Finally, we setup the actual EvalWrapper class
-        eleuther_model_wrapper = (
-            _VLMEvalWrapper if isinstance(model, DeepFusionModel) else _LLMEvalWrapper
-        )
+        if isinstance(model, DeepFusionModel):
+            eleuther_model_wrapper = _VLMEvalWrapper
+            if not self.enable_kv_cache:
+                self.logger.debug(
+                    "Received enable_kv_cache=False, but KV cache is required for running "
+                    "multimodal generation in a timely manner. Setting enable_kv_cache=True."
+                )
+        elif isinstance(model, TransformerDecoder):
+            eleuther_model_wrapper = _LLMEvalWrapper
         self.eleuther_model_wrapper = eleuther_model_wrapper(
             model,
             model_transform,
             device=self.device,
-            max_seq_length=self.max_seq_length,
+            max_seq_length=model_transform.max_seq_len,
             batch_size=self.batch_size,
             dtype=self.dtype,
             enable_kv_cache=self.enable_kv_cache,
