@@ -15,6 +15,7 @@ defaults:
 
 jobs:
   lint:
+    if: github.repository_owner == 'pytorch'
     runs-on: ubuntu-latest
     strategy:
       matrix:
