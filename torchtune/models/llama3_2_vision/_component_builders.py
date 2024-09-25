@@ -14,7 +14,7 @@ from torchtune.models.llama3._model_utils import scale_hidden_dim_for_mlp
 from torchtune.models.llama3_1._component_builders import llama3_mlp, lora_llama3_mlp, lora_llama3_attention
 from torchtune.models.llama3_1._position_embeddings import Llama3ScaledRoPE
 from torchtune.models.clip._component_builders import clip_vision_encoder, clip_mlp, lora_clip_attention, lora_clip_mlp, lora_clip_vision_encoder
-from torchtune.models.flamingo._encoder import FlamingoProjectionHead, FlamingoEncoder
+from torchtune.models.llama3_2_vision._encoder import Llama3VisionProjectionHead, Llama3VisionEncoder
 
 from torchtune.modules.model_fusion import FusionEmbedding, FusionLayer
 from torchtune.modules import (
@@ -33,7 +33,7 @@ from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 
 
 """
-Component builders for the Flamingo model and its constituent models.
+Component builders for the Llama 3.2 Vision model and its constituent models.
 torchtune provides composable building blocks. Builder functions help
 stitch these building blocks into higher-level components. This design has
 two benefits:
@@ -44,7 +44,7 @@ the building blocks simple.
 """
 
 
-def flamingo_vision_encoder(
+def llama3_2_vision_encoder(
     # clip encoder parameters
     *,
     patch_size: int,
@@ -59,9 +59,9 @@ def flamingo_vision_encoder(
     tile_size: int,
     max_num_tiles: int = 4,
     in_channels: int = 3,
-    ) -> FlamingoEncoder:
+    ) -> Llama3VisionEncoder:
     """
-    Build the Flamingo encoder by combining the CLIP image model with an additional
+    Build the Llama 3.2 vision encoder by combining the CLIP image model with an additional
     projection head fusion module. This includes:
     - Spatial positional encodings
     - CLIP model backbone
@@ -89,7 +89,7 @@ def flamingo_vision_encoder(
         in_channels (int): The number of image input channels.
 
     Returns:
-        FlamingoEncoder: Instantiation of Flamingo encoder.
+        Llama3VisionEncoder: Instantiation of Llama 3.2 vision encoder.
     """
 
     # clip encoder
@@ -108,7 +108,7 @@ def flamingo_vision_encoder(
     )
 
     # Projection head
-    projection_head = flamingo_projection_head(
+    projection_head = llama3_2_vision_projection_head(
         num_layers=num_layers_projection,
         num_heads=num_heads,
         decoder_embed_dim=decoder_embed_dim,
@@ -116,10 +116,10 @@ def flamingo_vision_encoder(
         num_hidden_inputs=len(clip_hidden_states or [])
     )
 
-    return FlamingoEncoder(clip=clip, projection_head=projection_head)
+    return Llama3VisionEncoder(clip=clip, projection_head=projection_head)
 
 
-def flamingo_decoder(
+def llama3_2_vision_decoder(
     *,
     vocab_size: int,
     num_layers: int,
@@ -161,7 +161,7 @@ def flamingo_decoder(
             this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`.
 
     Returns:
-        TransformerDecoder: Instantiation of Flamingo decoder.
+        TransformerDecoder: Instantiation of Llama 3.2 vision decoder.
     """
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
@@ -239,16 +239,16 @@ def flamingo_decoder(
         output=output_proj,
     )
 
-def flamingo_projection_head(
+def llama3_2_vision_projection_head(
     *,
     num_layers: int,
     num_heads: int,
     decoder_embed_dim: int,
     clip_embed_dim: int,
     num_hidden_inputs: int,
-) -> FlamingoProjectionHead:
+) -> Llama3VisionProjectionHead:
     """
-    Build the Flamingo Projection Head that maps the output of the CLIP encoder
+    Build the Llama 3.2 Vision Projection Head that maps the output of the CLIP encoder
     to the decoder cross attention input.
 
     Args:
@@ -259,7 +259,7 @@ def flamingo_projection_head(
         num_hidden_inputs (int): number of hidden inputs to the projection head.
 
     Returns:
-        FlamingoProjectionHead: Instantiation of Flamingo projection head.
+        Llama3VisionProjectionHead: Instantiation of Llama 3.2 vision projection head.
     """
     mlp_ratio = 4
     hidden_dim = int(mlp_ratio * clip_embed_dim)
@@ -303,13 +303,13 @@ def flamingo_projection_head(
     # and project it to embed_dim_out, which will be used for the
     # cross encoding
     proj_in = clip_embed_dim * (num_hidden_inputs + 1)
-    return FlamingoProjectionHead(
+    return Llama3VisionProjectionHead(
         layers=layers,
         output=nn.Linear(proj_in, decoder_embed_dim),
         num_hidden_inputs=num_hidden_inputs
     )
 
-# ------------------ LoRA Flamingo ------------------
+# ------------------ LoRA Llama 3.2 Vision ------------------
 
 
 class LoRATrainable(Enum):
@@ -318,7 +318,7 @@ class LoRATrainable(Enum):
     FROZEN = "frozen"
 
 
-def lora_flamingo_vision_encoder(
+def lora_llama3_2_vision_encoder(
     encoder_lora: bool,
     fusion_lora: bool,
     lora_attn_modules: List[LORA_ATTN_MODULES],
@@ -344,9 +344,9 @@ def lora_flamingo_vision_encoder(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
-    ) -> FlamingoEncoder:
+    ) -> Llama3VisionEncoder:
     """
-    Build the Flamingo encoder by combining the CLIP image model with an additional
+    Build the Llama 3.2 vision encoder by combining the CLIP image model with an additional
     projection head fusion module. This includes:
     - Spatial positional encodings
     - CLIP model backbone
@@ -391,7 +391,7 @@ def lora_flamingo_vision_encoder(
         
 
     Returns:
-        FlamingoEncoder: Instantiation of Flamingo encoder.
+        Llama3VisionEncoder: Instantiation of Llama 3.2 vision encoder.
     """
     lora_options = {
         "lora_modules": lora_attn_modules,
@@ -432,14 +432,14 @@ def lora_flamingo_vision_encoder(
         "num_hidden_inputs": len(clip_hidden_states or []),
     }
     if fusion_lora:
-        projection_head = lora_flamingo_projection_head(**projection_options, **lora_options)
+        projection_head = lora_llama3_2_vision_projection_head(**projection_options, **lora_options)
     else:
-        projection_head = flamingo_projection_head(**projection_options)
+        projection_head = lora_llama3_2_vision_projection_head(**projection_options)
 
-    return FlamingoEncoder(clip=clip, projection_head=projection_head)
+    return Llama3VisionEncoder(clip=clip, projection_head=projection_head)
 
 
-def lora_flamingo_decoder(
+def lora_llama3_2_vision_decoder(
     decoder_lora: bool,
     fusion_lora: bool,
     lora_attn_modules: List[LORA_ATTN_MODULES],
@@ -509,7 +509,7 @@ def lora_flamingo_decoder(
             supported for quantization currently.
 
     Returns:
-        TransformerDecoder: Instantiation of Flamingo decoder.
+        TransformerDecoder: Instantiation of Llama 3.2 vision decoder.
     """
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
@@ -630,7 +630,7 @@ def lora_flamingo_decoder(
     return model
 
 
-def lora_flamingo_projection_head(
+def lora_llama3_2_vision_projection_head(
     lora_modules: List[LORA_ATTN_MODULES],
     *,
     # projection head parameters
@@ -647,9 +647,9 @@ def lora_flamingo_projection_head(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
-) -> FlamingoProjectionHead:
+) -> Llama3VisionProjectionHead:
     """
-    Build the Flamingo Projection Head with LoRA applied to a subset of the layers.
+    Build the Llama 3.2 Vision Projection Head with LoRA applied to a subset of the layers.
 
     Args:
         lora_modules (List[LORA_ATTN_MODULES]): list of which linear layers
@@ -672,7 +672,7 @@ def lora_flamingo_projection_head(
             LoRA is being applied to. Default is ``False``.
 
     Returns:
-        FlamingoProjectionHead: Instantiation of Flamingo projection head.
+        Llama3VisionProjectionHead: Instantiation of Llama 3.2 vision projection head.
     """
     mlp_ratio = 4
     hidden_dim = int(mlp_ratio * clip_embed_dim)
@@ -737,7 +737,7 @@ def lora_flamingo_projection_head(
         if apply_lora_to_output
         else nn.Linear(proj_in, decoder_embed_dim)
     )
-    return FlamingoProjectionHead(
+    return Llama3VisionProjectionHead(
         layers=layers,
         output=output_proj,
         num_hidden_inputs=num_hidden_inputs,
