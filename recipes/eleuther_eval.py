@@ -40,7 +40,13 @@ if not lm_eval_version >= "0.4.2":
     )
 
 from lm_eval.evaluator import evaluate, get_task_list
-from lm_eval.models.hf_vlms import HFMultimodalLM
+
+# User doesn't have to have nightlies installed, they just won't be able
+# to use the multimodal model
+try:
+    from lm_eval.models.hf_vlms import HFMultimodalLM
+except ImportError as e:
+    pass
 from lm_eval.models.huggingface import HFLM
 from lm_eval.tasks import get_task_dict, TaskManager
 from lm_eval.utils import make_table
@@ -190,7 +196,7 @@ class _VLMEvalWrapper(HFMultimodalLM):
         tok_batch = padded_collate_tiled_images_and_mask(
             all_encoded_messages,
             pad_direction="left",
-            pad_max_images=7,
+            pad_max_images=self._max_images_per_sample,
         )
         utils.batch_to_device(tok_batch, self.device)
 
@@ -230,7 +236,8 @@ class _VLMEvalWrapper(HFMultimodalLM):
                 self.model.setup_caches(
                     batch_size=1,
                     dtype=self._dtype,
-                    encoder_max_seq_len=6404 * self._max_images_per_sample,
+                    encoder_max_seq_len=self.model_transform.image_seq_len
+                    * self._max_images_per_sample,
                     decoder_max_seq_len=self.max_length,
                 )
             causal_mask = torch.tril(
