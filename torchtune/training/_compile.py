@@ -5,19 +5,25 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
+from typing import Union
 
 import torch
 from torch import nn
 
-from torchtune.modules import TransformerDecoder, TransformerSelfAttentionLayer
+from torchtune.modules import (
+    TransformerCrossAttentionLayer,
+    TransformerDecoder,
+    TransformerSelfAttentionLayer,
+)
 from torchtune.modules.loss import CEWithChunkedOutputLoss
+from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.utils import get_logger, torch_version_ge
 
 log = get_logger("INFO")
 
 
 def compile_model(
-    model: TransformerDecoder,
+    model: Union[TransformerDecoder, DeepFusionModel],
     verbose: bool = True,
 ) -> None:
     """
@@ -25,18 +31,24 @@ def compile_model(
     to reduce compile times. Otherwise we compile the full model, which takes longer.
 
     Args:
-        model (TransformerDecoder): A transformer model to compile.
+        model (Union[TransformerDecoder, DeepFusionModel]): A model to compile.
+            Can be a TransformerDecoder or DeepFusionModel; in the latter case only
+            the model's decoder will be compiled.
         verbose (bool): Whether to log compile info. Default: True
     Returns:
         None
 
     """
     backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+    if isinstance(model, DeepFusionModel):
+        model = model.decoder
     if torch_version_ge("2.5.0"):
         if verbose:
             log.info("Compiling model layers with torch.compile...")
         for m in reversed(list(model.modules())):
-            if isinstance(m, TransformerSelfAttentionLayer):
+            if isinstance(m, TransformerSelfAttentionLayer) or isinstance(
+                m, TransformerCrossAttentionLayer
+            ):
                 m.compile(backend=backend)
     else:
         if verbose:
