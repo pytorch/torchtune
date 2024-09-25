@@ -506,6 +506,11 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
         # Initialize tokenizer/transform
         model_transform = config.instantiate(cfg.tokenizer)
+        max_seq_len = (
+            model_transform.max_seq_len
+            if model_transform.max_seq_len is not None
+            else 4096  # default max_seq_len to 4096
+        )
 
         # Finally, we setup the actual EvalWrapper class
         if isinstance(model, DeepFusionModel):
@@ -521,7 +526,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
             model,
             model_transform,
             device=self.device,
-            max_seq_length=model_transform.max_seq_len,
+            max_seq_length=max_seq_len,
             batch_size=self.batch_size,
             dtype=self.dtype,
             enable_kv_cache=self.enable_kv_cache,
