@@ -113,6 +113,7 @@ torchtune tutorials.
    :caption: Basics
    :hidden:
 
+   basics/datasets_overview
    basics/messages
    basics/message_transforms
    basics/instruct_datasets
@@ -120,6 +121,8 @@ torchtune tutorials.
    basics/tokenizers
    basics/prompt_templates
    basics/preference_datasets
+   basics/multimodal_datasets
+   basics/model_transforms
 
 .. toctree::
    :glob:

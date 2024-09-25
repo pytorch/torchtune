@@ -284,6 +284,26 @@ class TestShareGPTToMessages:
                 column_map={"bananas": "maybe_conversations"},
             )
 
+    @mock.patch("torchtune.data._messages.load_image")
+    def test_image_only_in_first_user_message(self, mock_load_image):
+        mock_load_image.return_value = Image.new(mode="RGB", size=(4, 4))
+        sample = {
+            "conversations": [
+                {"from": "human", "value": "<image>\nFirst message."},
+                {"from": "gpt", "value": "First response."},
+                {"from": "human", "value": "Second message."},
+                {"from": "gpt", "value": "Second response."},
+            ],
+            "image": "test_image.jpg",
+        }
+        transform = ShareGPTToMessages(image_tag="<image>")
+        messages = transform(sample)
+        for idx, message in enumerate(messages["messages"]):
+            if idx == 0:
+                assert message.contains_media
+            else:
+                assert not message.contains_media
+
 
 class TestOpenAIToMessages:
     samples = {
