@@ -42,3 +42,138 @@ student is trained to imitate the token-level probability distributions of the t
 is a simplified representation of how KD works.
 
 .. image:: /_static/img/kd-simplified.png
+
+The total loss can be configured in many ways. The default KD config in torchtune combines CE loss with
+forward `Kullback-Leibler (KL) divergence <https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence>`_ loss,
+which is used in standard KD approaches.Forward KL divergence aims to minimize the difference by forcing the student
+distribution to align with all of the teacher's distributions. However, aligning the student distribution to the whole
+teacher distribution may not be effective and there are multiple papers, such as `MiniLLM <https://arxiv.org/pdf/2306.08543>`_,
+`DistiLLM <https://arxiv.org/pdf/2402.03898>`_, and `Generalized KD <https://arxiv.org/pdf/2306.13649>`_,
+that introduce new KD losses to address the limitations. For this tutorial, let's take a look at the implementation of
+the forward KL divergence loss.
+
+.. code-block:: python
+
+  import torch
+  import torch.nn.functional as F
+
+  class ForwardKLLoss(torch.nn.Module):
+    def __init__(self, ignore_index: int = -100)
+      super().__init__()
+      self.ignore_index = ignore_index
+
+    def forward(self, student_logits, teacher_logits, labels) -> torch.Tensor:
+      # Implementation from https://github.com/jongwooko/distillm
+      # Computes the softmax of the teacher logits
+      teacher_prob = F.softmax(teacher_logits, dim=-1, dtype=torch.float32)
+      # Computes the student log softmax probabilities
+      student_logprob = F.log_softmax(student_logits, dim=-1, dtype=torch.float32)
+      # Computes the forward KL divergence
+      prod_probs = teacher_prob * student_logprob
+      # Compute the sum
+      x = torch.sum(prod_probs, dim=-1).view(-1)
+      # We don't want to include the ignore labels in the average
+      mask = (labels != self.ignore_index).int()
+      # Loss is averaged over non-ignored targets
+      return -torch.sum(x * mask.view(-1), dim=0) / torch.sum(mask.view(-1), dim=0)
+
+There are some details omitted to simplify the computation, but if you'd like to know more,
+you can see the implementation in `ForwardKLLoss <https://github.com/pytorch/torchtune/blob/4234b78b914af23384ce0348f564e2119d107a96/torchtune/modules/loss/kd_losses.py>`_.
+The current implementation only supports student and teacher models that have the same output
+logit shape and same tokenizer.
+
+KD recipe in torchtune
+----------------------
+
+With torchtune, we can easily apply knowledge distillation to Llama3, as well as other LLM model families.
+Let's take a look at how you could distill a model using torchtune's `KD recipe <https://github.com/pytorch/torchtune/blob/4234b78b914af23384ce0348f564e2119d107a96/recipes/knowledge_distillation_single_device.py>`_.
+
+First, make sure that you have downloaded the Llama3 weights. For this example, we'll use the Llama3.1-8B as teacher and Llama3.2-1B as student.
+
+.. code-block:: bash
+
+    tune download meta-llama/Meta-Llama-3.1-8B-Instruct --output-dir /tmp/Meta-Llama-3.1-8B-Instruct --ignore-patterns "original/consolidated.00.pth" --hf_token <HF_TOKEN>
+
+    tune download meta-llama/Llama-3.2-1B-Instruct --output-dir /tmp/Llama-3.2-1B-Instruct --ignore-patterns "original/consolidated.00.pth" --hf_token <HF_TOKEN>
+
+Then, we will fine-tune the teacher model with using LoRA. Based on our experiments and previous work,
+we've found that KD performs better when the teacher model is already fine-tuned on the target dataset.
+
+.. code-block:: bash
+
+    tune run lora_finetune_single_device --config llama3_1/8B_lora_single_device
+
+Finally, we can run the following command to distill the fine-tuned 8B model into the 1B model on a single GPU.
+
+.. code-block:: bash
+
+    tune run knowledge_distillation_single_device --config llama3_1/knowledge_distillation_single_device
+
+Ablation studies
+----------------
+
+In the previous example, we used the LoRA fine-tuned 8B teacher model and baseline 1B student model,
+but we may want to experiment a bit with different configurations and hyperparameters.
+For this tutorial, we are going to fine-tune on the :class:`~torchtune.datasets.alpaca_cleaned_dataset`
+and evaluate the models on `truthfulqa_mc2 <https://github.com/EleutherAI/lm-evaluation-harness/tree/feff1b55c57993c4d42c8f913a22eeec395cd690/lm_eval/tasks/truthfulqa>`_,
+`hellaswag <https://github.com/EleutherAI/lm-evaluation-harness/tree/517aadc/lm_eval/tasks/hellaswagd>`_
+and `commonsense_qa <https://github.com/EleutherAI/lm-evaluation-harness/tree/b62b9bd/lm_eval/tasks/commonsense_qa>`_
+through `EleutherEval <https://github.com/EleutherAI/lm-evaluation-harness/tree/main>`_.
+Let's take a look at the effects of:
+
+#. Using a fine-tuned teacher model
+#. Using a fine-tuned student model
+#. Hyperparameter tuning of kd_ratio and learning rate
+#. Teacher and student models with closer number of parameters
+
+Using a fine-tuned teacher model
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The default settings in the config uses the fine-tuned teacher model. Now, let’s take a look at the
+effects of not fine-tuning the teacher model first. To change the teacher model, you can modify the
+teacher_checkpointer in the config:
+
+.. code-block:: yaml
+
+  # Model Arguments
+  teacher_checkpoint:
+    _component_: torchtune.training.FullModelHFCheckpointer
+    checkpoint_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
+    checkpoint_files: [
+        model-00001-of-00004.safetensors,
+        model-00002-of-00004.safetensors,
+        model-00003-of-00004.safetensors,
+        model-00004-of-00004.safetensors
+    ]
+
+In the table below, we can see that standard fine-tuning of the 1B model achieves better accuracy
+than the baseline 1B model. By using the fine-tuned 8B teacher model, we see comparable results
+for truthfulqa and improvement for hellaswag and commonsense. When using the baseline 8B as a
+teacher, we see improvement across all metrics, but lower than the other configurations.
+
+.. image:: /_static/img/kd-finetune-teacher.png
+
+Taking a look at the losses, using the baseline 8B as teacher results in a higher loss than
+using the fine-tuned teacher model. The KD loss also remains relatively constant, suggesting
+that the teacher model should have the same distributions as the transfer dataset.
+
+Using a fine-tuned student model
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. image:: /_static/img/kd-finetune-student.png
+
+Hyperparameter tuning: learning rate
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. image:: /_static/img/kd-hyperparam-lr.png
+
+Hyperparameter tuning: KD ratio
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. image:: /_static/img/kd-hyperparam-kd-ratio.png
+
+Qwen2 1.5B to 0.5B
+^^^^^^^^^^^^^^^^^^
+
+`qwen2/knowledge_distillation_single_device <https://github.com/pytorch/torchtune/blob/4234b78b914af23384ce0348f564e2119d107a96/recipes/configs/qwen2/knowledge_distillation_single_device.yaml>`_
+
+.. image:: /_static/img/kd-qwen2-res.png
