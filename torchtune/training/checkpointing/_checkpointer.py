@@ -16,10 +16,6 @@ from safetensors.torch import save_file
 from torchtune import training
 
 from torchtune.models import convert_weights
-from torchtune.models.llama3_2_vision._convert_weights import (
-    llama3_vision_meta_to_tune,
-    llama3_vision_tune_to_meta,
-)
 from torchtune.models.phi3._convert_weights import phi3_hf_to_tune, phi3_tune_to_hf
 from torchtune.models.qwen2._convert_weights import qwen2_hf_to_tune, qwen2_tune_to_hf
 from torchtune.rlhf.utils import reward_hf_to_tune, reward_tune_to_hf
@@ -740,6 +736,10 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         state_dict: Dict[str:Any] = {}
         model_state_dict = safe_torch_load(self._checkpoint_path)
         if self._model_type == ModelType.LLAMA3_VISION:
+            from torchtune.models.llama3_2_vision._convert_weights import (
+                llama3_vision_meta_to_tune,
+            )
+
             state_dict[training.MODEL_KEY] = llama3_vision_meta_to_tune(
                 model_state_dict
             )
@@ -747,6 +747,15 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             state_dict[training.MODEL_KEY] = convert_weights.meta_to_tune(
                 model_state_dict
             )
+
+        # llama3_2 has tied weights, so we need to remove the output.weight key
+        if self._model_type == ModelType.LLAMA3_2:
+            logger.info(
+                "Identified model_type = Llama3_2. Ignoring output.weight in"
+                " checkpoint in favor of the tok_embedding.weight"
+                " tied weights."
+            )
+            state_dict[training.MODEL_KEY].pop("output.weight")
 
         if self._adapter_checkpoint:
             adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
@@ -784,10 +793,23 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         if not adapter_only:
             model_state_dict = state_dict[training.MODEL_KEY]
             if self._model_type == ModelType.LLAMA3_VISION:
+                from torchtune.models.llama3_2_vision._convert_weights import (
+                    llama3_vision_tune_to_meta,
+                )
+
                 state_dict[training.MODEL_KEY] = llama3_vision_tune_to_meta(
                     model_state_dict
                 )
             else:
+                # llama3_2 has tied weights, so we need to add the output.weight key
+                if (
+                    self._model_type == ModelType.LLAMA3_2
+                    and "output.weight" not in model_state_dict
+                ):
+                    model_state_dict["output.weight"] = model_state_dict[
+                        "tok_embeddings.weight"
+                    ]
+
                 state_dict[training.MODEL_KEY] = convert_weights.tune_to_meta(
                     model_state_dict
                 )
