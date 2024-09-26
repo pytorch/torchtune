@@ -1175,6 +1175,15 @@
                 <span class="n">model_state_dict</span>
             <span class="p">)</span>
 
+        <span class="c1"># llama3_2 has tied weights, so we need to remove the output.weight key</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">LLAMA3_2</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Identified model_type = Llama3_2. Ignoring output.weight in&quot;</span>
+                <span class="s2">&quot; checkpoint in favor of the tok_embedding.weight&quot;</span>
+                <span class="s2">&quot; tied weights.&quot;</span>
+            <span class="p">)</span>
+            <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;output.weight&quot;</span><span class="p">)</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="p">:</span>
             <span class="n">adapter_state_dict</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="p">)</span>
             <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">adapter_state_dict</span>
@@ -1219,6 +1228,15 @@
                     <span class="n">model_state_dict</span>
                 <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># llama3_2 has tied weights, so we need to add the output.weight key</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">LLAMA3_2</span>
+                    <span class="ow">and</span> <span class="s2">&quot;output.weight&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">model_state_dict</span>
+                <span class="p">):</span>
+                    <span class="n">model_state_dict</span><span class="p">[</span><span class="s2">&quot;output.weight&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">model_state_dict</span><span class="p">[</span>
+                        <span class="s2">&quot;tok_embeddings.weight&quot;</span>
+                    <span class="p">]</span>
+
                 <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_weights</span><span class="o">.</span><span class="n">tune_to_meta</span><span class="p">(</span>
                     <span class="n">model_state_dict</span>
                 <span class="p">)</span>
