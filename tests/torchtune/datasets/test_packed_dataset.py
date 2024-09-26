@@ -151,9 +151,7 @@ class TestPackedDataset:
     @pytest.mark.parametrize("sample_size", [27, 40])
     @pytest.mark.parametrize("max_packs", [5, 200, 3000])
     @pytest.mark.parametrize("split_across_pack", [True])
-    def test_chuncked_case(
-        self, max_seq_len, sample_size, max_packs, split_across_pack
-    ):
+    def test_chunked_case(self, max_seq_len, sample_size, max_packs, split_across_pack):
         dataset = DummyDataset(sample_size)
         packed = PackedDataset(
             dataset,
