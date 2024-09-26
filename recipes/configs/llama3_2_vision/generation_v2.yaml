@@ -1,0 +1,43 @@
+# Config for running the InferenceRecipe in dev/generate_v2.py to generate output
+# from a Llama3.2 11B Vision Instruct model
+#
+# This config assumes that you've run the following command before launching:
+#   tune download meta-llama/Llama-3.2-11B-Vision-Instruct --output-dir /tmp/Llama-3.2-11B-Vision-Instruct
+#
+# To launch, run the following command from root torchtune directory:
+#    tune run dev/generate_v2 --config llama3_2_vision/generation_v2
+
+# Model arguments
+model:
+  _component_: torchtune.models.llama3_2_vision.llama3_2_vision_11b
+
+# Transform arguments
+tokenizer:
+  _component_: torchtune.models.llama3_2_vision.llama3_2_vision_transform
+  path: /tmp/Llama-3.2-11B-Vision-Instruct/original/tokenizer.model
+  prompt_template: null
+  max_seq_len: 8192
+
+# Checkpointer
+checkpointer:
+  _component_: torchtune.training.FullModelMetaCheckpointer
+  checkpoint_dir: /tmp/Llama-3.2-11B-Vision-Instruct/original
+  checkpoint_files: [consolidated.pth]
+  output_dir: ./
+  model_type: LLAMA3_VISION
+
+# Device
+device: cuda
+dtype: bf16
+seed: 1234
+log_level: INFO
+
+# Generation arguments
+prompt:
+  system: You are a helpful assistant who responds like the author Shakespeare.
+  user:
+    image: https://cdn.britannica.com/61/93061-050-99147DCE/Statue-of-Liberty-Island-New-York-Bay.jpg
+    text: What is in this image?
+max_new_tokens: 200
+temperature: 0.6 # 0.8 and 0.6 are popular values to try
+top_k: 300

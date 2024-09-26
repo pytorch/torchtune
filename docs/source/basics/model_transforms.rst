@@ -11,8 +11,8 @@ These are intended to be drop-in replacements for tokenizers in multimodal datas
 
 .. code-block:: python
 
-    # torchtune.models.flamingo.FlamingoTransform
-    class FlamingoTransform(ModelTokenizer, Transform):
+    # torchtune.models.llama3_2_vision.Llama3VisionTransform
+    class Llama3VisionTransform(ModelTokenizer, Transform):
         def __init__(...):
             # Text transform - standard tokenization
             self.tokenizer = llama3_tokenizer(...)
@@ -23,7 +23,7 @@ These are intended to be drop-in replacements for tokenizers in multimodal datas
 
 .. code-block:: python
 
-    from torchtune.models.flamingo import FlamingoTransform
+    from torchtune.models.llama3_2_vision import Llama3VisionTransform
     from torchtune.data import Message
     from PIL import Image
 
@@ -43,7 +43,7 @@ These are intended to be drop-in replacements for tokenizers in multimodal datas
             ),
         ],
     }
-    transform = FlamingoTransform(
+    transform = Llama3VisionTransform(
         path="/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model",
         tile_size=224,
         patch_size=14,
@@ -62,9 +62,9 @@ You can pass them into any multimodal dataset builder just as you would a model 
 .. code-block:: python
 
     from torchtune.datasets.multimodal import the_cauldron_dataset
-    from torchtune.models.flamingo import FlamingoTransform
+    from torchtune.models.llama3_2_vision import Llama3VisionTransform
 
-    transform = FlamingoTransform(
+    transform = Llama3VisionTransform(
         path="/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model",
         tile_size=224,
         patch_size=14,
@@ -166,5 +166,5 @@ The following methods are required on the model transform:
 
 Example model transforms
 ------------------------
-- Flamingo
-    - :class:`~torchtune.models.flamingo.FlamingoTransform`
+- Llama 3.2 Vision
+    - :class:`~torchtune.models.llama3_2_vision.Llama3VisionTransform`

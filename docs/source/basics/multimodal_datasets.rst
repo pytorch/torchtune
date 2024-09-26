@@ -42,15 +42,14 @@ in the text, ``"<image>"`` for where to place the image tokens. This will get re
 
 .. code-block:: python
 
-    from torchtune.models.flamingo import FlamingoTransform
+    from torchtune.models.llama3_2_vision import llama3_2_vision_transform
     from torchtune.datasets.multimodal import multimodal_chat_dataset
 
-    transform = FlamingoTransform(
+    transform = Llama3VisionTransform(
         path="/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model",
         prompt_template="torchtune.data.QuestionAnswerTemplate",
         max_seq_len=8192,
-        tile_size=224,
-        patch_size=14,
+        image_size=560,
     )
     ds = multimodal_chat_dataset(
         model_transform=model_transform,
@@ -74,7 +73,7 @@ in the text, ``"<image>"`` for where to place the image tokens. This will get re
 
     # In config - model_transforms takes the place of the tokenizer
     model_transform:
-      _component_: torchtune.models.flamingo
+      _component_: torchtune.models.llama3_2_vision_transform
       path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
       prompt_template: torchtune.data.QuestionAnswerTemplate
       max_seq_len: 8192
@@ -118,14 +117,13 @@ For most datasets, you will also need to specify the ``split`` and/or the subset
 .. code-block:: python
 
     # In code
-    from torchtune.models.flamingo import FlamingoTransform
+    from torchtune.models.llama3_2_vision import llama3_2_vision_transform
     from torchtune.datasets.multimodal import multimodal_chat_dataset
 
-    transform = FlamingoTransform(
+    transform = llama3_2_vision_transform(
         path="/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model",
         max_seq_len=8192,
-        tile_size=224,
-        patch_size=14,
+        image_size=560,
     )
     ds = multimodal_chat_dataset(
         model_transform=model_transform,
@@ -140,11 +138,10 @@ For most datasets, you will also need to specify the ``split`` and/or the subset
 
     # In config
     model_transform:
-      _component_: torchtune.models.flamingo.FlamingoTransform
+      _component_: torchtune.models.llama3_2_vision.llama3_2_vision_transform
       path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
       max_seq_len: 8192
-      tile_size: 224
-      patch_size: 14
+      image_size: 560
 
     # Tokenizer is passed into the dataset in the recipe
     dataset:

@@ -14,9 +14,9 @@ from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform, VisionCrossAttentionMask
 
 
-class FlamingoTransform(ModelTokenizer, Transform):
+class Llama3VisionTransform(ModelTokenizer, Transform):
     """
-    This transform combines the transforms for the different modalities of Flamingo. It
+    This transform combines the transforms for the different modalities of Llama 3.2 Vision. It
     is made up of the following transforms:
     - :class:`torchtune.models.llama3.Llama3Tokenizer`
     - :class:`torchtune.models.clip.CLIPImageTransform`
@@ -53,7 +53,7 @@ class FlamingoTransform(ModelTokenizer, Transform):
             The extra text will still get tokenized as normal text, not as special tokens. Default is None.
 
     Examples:
-        >>> model_transform = FlamingoTransform("/path/to/tokenizer.model", tile_size=224, patch_size=14)
+        >>> model_transform = Llama3VisionTransform("/path/to/tokenizer.model", tile_size=224, patch_size=14)
         >>> transformed_data = model_transform({"messages": user_message, "images": [img1, img2]})
         >>> print(transformed_data["tokens"])
         [1, 31587, 29644, 102, 2]
