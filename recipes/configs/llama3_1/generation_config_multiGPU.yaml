@@ -1,0 +1,41 @@
+# Config for running the InferenceRecipe in generate.py to generate output from an LLM
+#
+# To launch, run the following command from root torchtune directory:
+# cp torchtune/recipes/configs/llama3_1/generation_config_multiGPU.yaml .
+# tune run generate --config generation_config_multiGPU.yaml prompt="Hello, my name is"
+# Model arguments
+model:
+  _component_: torchtune.models.llama3.llama3_8b
+
+
+checkpointer:
+  _component_: torchtune.training.FullModelMetaCheckpointer
+  checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/
+  checkpoint_files: [
+    consolidated.00.pth
+  ]
+  output_dir: /tmp/Meta-Llama-3-8B-Instruct/
+  model_type: LLAMA3
+
+device: cuda
+dtype: bf16
+
+seed: 1234
+
+# Tokenizer arguments
+tokenizer:
+  _component_: torchtune.models.llama3.llama3_tokenizer
+  path: /tmp/Meta-Llama-3.1-8B-Instruct/original/tokenizer.model
+  max_seq_len: null
+
+# Generation arguments; defaults taken from gpt-fast
+prompt: "Tell me a joke?"
+instruct_template: null
+chat_format: null
+max_new_tokens: 300
+temperature: 0.6 # 0.8 and 0.6 are popular values to try
+top_k: 300
+# It is recommended to set enable_kv_cache=False for long-context models like Llama3.1
+enable_kv_cache: True
+
+quantizer: null
