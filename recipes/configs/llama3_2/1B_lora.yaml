@@ -41,7 +41,7 @@ checkpointer:
   ]
   recipe_checkpoint: null
   output_dir: /tmp/Llama-3.2-1B-Instruct/
-  model_type: LLAMA3
+  model_type: LLAMA3_2
 resume_from_checkpoint: False
 save_adapter_weights_only: False
 
