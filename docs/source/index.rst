@@ -78,6 +78,13 @@ torchtune tutorials.
    :link: tutorials/e2e_flow.html
    :tags: finetuning,quantization,inference,evals,llama2
 
+.. customcarditem::
+   :header: Distilling Llama3 8B into 1B
+   :card_description: Distilling Llama3 8B into 1B using Knowledge Distillation
+   :image: _static/img/generic-pytorch-logo.png
+   :link: tutorials/llama_kd_tutorial.html
+   :tags: finetuning,llama3,kd
+
 .. customcardend::
 
 
@@ -138,6 +145,7 @@ torchtune tutorials.
    tutorials/e2e_flow
    tutorials/datasets
    tutorials/memory_optimizations
+   tutorials/llama_kd_tutorial
 
 .. toctree::
    :glob:
