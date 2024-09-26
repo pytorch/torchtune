@@ -47,6 +47,7 @@ class ModelType(Enum):
         GEMMA (str): Gemma family of models. See :func:`~torchtune.models.gemma.gemma`
         LLAMA2 (str): Llama2 family of models. See :func:`~torchtune.models.llama2.llama2`
         LLAMA3 (str): Llama3 family of models. See :func:`~torchtune.models.llama3.llama3`
+        LLAMA3_2 (str): Llama3.2 family of models. See :func:`~torchtune.models.llama3_2.llama3_2`
         LLAMA3_VISION (str): LLama3 vision family of models. See :func:`~torchtune.models.llama3_2_vision.llama3_2_vision_decoder`
         MISTRAL (str): Mistral family of models. See :func:`~torchtune.models.mistral.mistral`
         PHI3_MINI (str): Phi-3 family of models. See :func:`~torchtune.models.phi3.phi3`
@@ -66,6 +67,7 @@ class ModelType(Enum):
     GEMMA: str = "gemma"
     LLAMA2: str = "llama2"
     LLAMA3: str = "llama3"
+    LLAMA3_2: str = "llama3_2"
     LLAMA3_VISION: str = "llama3_vision"
     MISTRAL: str = "mistral"
     PHI3_MINI: str = "phi3_mini"
