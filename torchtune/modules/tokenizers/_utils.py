@@ -144,10 +144,12 @@ def tokenize_messages_no_special_tokens(
         tokens = []
         for item in message.content:
             if item["type"] == "text":
+                tokenizer.add_bos = False
+                tokenizer.add_eos = False
                 tokens = tokens + tokenizer.encode(
                     item["content"].rstrip(" "),
-                    add_bos=False, # We add BOS at the start of each turn
-                    add_eos=False, # We add EOS at the end of each turn
+                    add_bos =  tokenizer.add_bos, # We add BOS at the start of each turn
+                    add_eos = tokenizer.add_eos, # We add EOS at the end of each turn
                     trim_leading_whitespace=trim_leading_whitespace,
                 )
             else:
