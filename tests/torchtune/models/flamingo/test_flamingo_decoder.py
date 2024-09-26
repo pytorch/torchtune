@@ -7,7 +7,7 @@
 import pytest
 import torch
 from tests.test_utils import assert_expected, fixed_init_model, fixed_init_tensor
-from torchtune.models.flamingo._component_builders import flamingo_decoder
+from torchtune.models.llama3_2_vision._component_builders import llama3_2_vision_decoder
 
 
 @pytest.fixture
@@ -27,7 +27,7 @@ def decoder_config():
     }
 
 
-class TestFlamingoVisionDecoder:
+class TestLlama3VisionDecoder:
     @pytest.fixture(autouse=True)
     def setup_class(self, decoder_config):
         self.batch_size = 1
@@ -43,11 +43,11 @@ class TestFlamingoVisionDecoder:
             ),
             "encoder_mask": None,
         }
-        self.decoder = flamingo_decoder(**decoder_config)
+        self.decoder = llama3_2_vision_decoder(**decoder_config)
         fixed_init_model(self.decoder, min_val=-1, max_val=1)
 
     @torch.no_grad()
-    def test_flamingo_decoder(self):
+    def test_llama3_2_vision_decoder(self):
         # call model
         output = self.decoder(**self.input)
 

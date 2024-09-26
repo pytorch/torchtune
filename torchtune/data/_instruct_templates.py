@@ -10,7 +10,7 @@ from typing import Any, Dict, Mapping, Optional
 
 class InstructTemplate(ABC):
     """
-    Note:
+    Warning:
         This class is deprecated and will be removed in a future release. Please use
         :class:`~torchtune.data.PromptTemplate` for custom instruct templates.
 

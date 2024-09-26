@@ -10,6 +10,7 @@ from unittest import mock
 
 import pytest
 import torch
+import torch.nn.functional as F
 from tests.test_utils import gpu_test
 from torchtune.data import (
     left_pad_sequence,
@@ -120,15 +121,20 @@ class TestPaddedCollateTiledImagesAndMask:
 
     def test_left_pad_sequence(self, batch):
         actual = padded_collate_tiled_images_and_mask(
-            batch=batch, padding_idx=0, ignore_idx=-100, pad_direction="left"
+            batch=batch,
+            padding_idx=0,
+            ignore_idx=-100,
+            pad_direction="left",
+            pad_max_images=4,
         )
 
         mask_1 = torch.concat([torch.ones(4, 5 * 2), torch.zeros(4, 10)], dim=1)
         mask_2 = torch.concat([torch.ones(4, 5 * 3), torch.zeros(4, 5)], dim=1)
-        mask_3 = torch.concat([torch.ones(2, 5 * 4), torch.zeros(2, 20)], dim=0)
+        mask_3 = torch.concat([torch.zeros(2, 20), torch.ones(2, 5 * 4)], dim=0)
         sample_1 = torch.stack([mask_1, mask_2])
         sample_2 = torch.stack([mask_3, torch.zeros(4, 20)])
         expected_mask = torch.stack([sample_1, sample_2]).view(2, 4, -1)
+        expected_mask = F.pad(expected_mask, (0, 40), value=0)
 
         expected = {
             "tokens": torch.tensor([[1, 2, 1, 3], [0, 0, 1, 4]]),

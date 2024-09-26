@@ -12,7 +12,7 @@ from torchtune.data._messages import Message, Role
 
 class ChatFormat(ABC):
     """
-    Note:
+    Warning:
         This class is deprecated and will be removed in a future release. Please use
         :class:`~torchtune.data.PromptTemplate` for custom chat formats.
 

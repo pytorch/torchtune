@@ -152,8 +152,11 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
 
+    @pytest.mark.parametrize("save_adapter_weights_only", [False, True])
     @pytest.mark.integration_test
-    def test_training_state_on_resume(self, tmpdir, monkeypatch):
+    def test_training_state_on_resume(
+        self, tmpdir, monkeypatch, save_adapter_weights_only
+    ):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
         consists of three stages:
@@ -184,6 +187,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
+            save_adapter_weights_only={save_adapter_weights_only} \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]

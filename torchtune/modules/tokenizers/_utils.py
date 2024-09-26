@@ -14,6 +14,8 @@ from torchtune.data._utils import truncate
 class BaseTokenizer(Protocol):
     """
     Abstract token encoding model that implements ``encode`` and ``decode`` methods.
+    See :class:`~torchtune.modules.tokenizers.SentencePieceBaseTokenizer` and
+    :class:`~torchtune.modules.tokenizers.TikTokenBaseTokenizer` for example implementations of this protocol.
     """
 
     def encode(self, text: str, **kwargs: Dict[str, Any]) -> List[int]:
@@ -45,14 +47,19 @@ class BaseTokenizer(Protocol):
 
 class ModelTokenizer(Protocol):
     """
-    Abstract tokenizer that implements model specific special token logic in
-    the ``tokenize_messages`` method.
+    Abstract tokenizer that implements model-specific special token logic in
+    the ``tokenize_messages`` method. See :class:`~torchtune.models.llama3.Llama3Tokenizer`
+    for an example implementation of this protocol.
     """
 
     special_tokens: Dict[str, int]
     max_seq_len: Optional[int]
-    add_bos: bool = True # add_bos attribute to reference in tokenize_messages_no_special_tokens
-    add_eos: bool = True # add_eos attribute to reference in tokenize_messages_no_special_tokens
+    add_bos: bool = (
+        True  # add_bos attribute to reference in tokenize_messages_no_special_tokens
+    )
+    add_eos: bool = (
+        True  # add_eos attribute to reference in tokenize_messages_no_special_tokens
+    )
 
     def tokenize_messages(
         self, messages: List[Message], **kwargs: Dict[str, Any]
@@ -74,13 +81,13 @@ class ModelTokenizer(Protocol):
 def tokenize_messages_no_special_tokens(
     tokenizer: ModelTokenizer,
     messages: List[Message],
-    bos_id: int,
-    eos_id: int,
-    max_seq_len: Optional[int] = None,
+    *,
+    bos_id: Optional[int] = None,
+    eos_id: Optional[int] = None,
 ) -> Tuple[List[int], List[bool]]:
     r"""Tokenize a list of messages one at a time then concatenate them,
     returning a list of tokens and a list of masks. Does not add any special
-    tokens except for BOS and EOS. This serves as a common starting point for
+    tokens except for BOS and EOS (if provided). This serves as a common starting point for
     model tokenizers that do not rely heavily on special tokens.
 
     Examples:
@@ -93,9 +100,8 @@ def tokenize_messages_no_special_tokens(
         >>> tokens = tokenize_messages_no_special_tokens(
         ...     tokenizer,
         ...     messages,
-        ...     tokenizer.bos_id,
-        ...     tokenizer.eos_id,
-        ...     max_seq_len
+        ...     bos_id=tokenizer.bos_id,
+        ...     eos_id=tokenizer.eos_id,
         ... )[0]
         >>> print(tokens)
         [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]
@@ -108,10 +114,9 @@ def tokenize_messages_no_special_tokens(
         tokenizer (ModelTokenizer): Tokenizer to encode messages with.
         messages (List[Message]): A list of messages, each containing role, content,
             and masked attributes.
-        bos_id (int): Beggining-of-sequence token id.
-        eos_id (int): End-of-sequence token id.
-        max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
-            Default: None
+        bos_id (Optional[int]): Beginning-of-sequence token id. If None, no BOS token will
+            be added. Default None.
+        eos_id (Optional[int]): End-of-sequence token id. If None, no EOS token will be added. Default None.
 
     Returns:
         Tuple[List[int], List[bool]]: The tokenized messages.
@@ -122,6 +127,7 @@ def tokenize_messages_no_special_tokens(
     start_of_turn = True
     end_of_turn = False
     prev_ends_with_space = False
+    max_seq_len = tokenizer.max_seq_len  # We define this on ModelTokenizer
     tokenized_messages = []
     mask = []
     for message in messages:
@@ -129,7 +135,7 @@ def tokenize_messages_no_special_tokens(
         end_of_turn = message.role == "assistant"
 
         # Prepend BOS on start of new turns
-        if start_of_turn:
+        if start_of_turn and bos_id is not None:
             tokenized_messages.append(bos_id)
             mask.append(message.masked)
 
@@ -144,10 +150,12 @@ def tokenize_messages_no_special_tokens(
         tokens = []
         for item in message.content:
             if item["type"] == "text":
+                tokenizer.add_bos = False
+                tokenizer.add_eos = False
                 tokens = tokens + tokenizer.encode(
                     item["content"].rstrip(" "),
-                    add_bos=False, # We add BOS at the start of each turn
-                    add_eos=False, # We add EOS at the end of each turn
+                    add_bos=tokenizer.add_bos,  # We add BOS at the start of each turn
+                    add_eos=tokenizer.add_eos,  # We add EOS at the end of each turn
                     trim_leading_whitespace=trim_leading_whitespace,
                 )
             else:
@@ -158,23 +166,22 @@ def tokenize_messages_no_special_tokens(
 
         # If assistant message, append EOS at end
         if end_of_turn:
-            tokenized_messages.append(eos_id)
-            mask.append(message.masked)
+            if eos_id is not None:
+                tokenized_messages.append(eos_id)
+                mask.append(message.masked)
             end_of_turn = False
             start_of_turn = True
         else:
             start_of_turn = False
 
         # Break out early if we reach max_seq_len
-        if max_seq_len and len(tokenized_messages) >= max_seq_len:
+        if max_seq_len is not None and len(tokenized_messages) >= max_seq_len:
             break
 
     # Finally, truncate if necessary
     if max_seq_len:
-        # Only truncate the token with the EOS if one was added
-        tokenized_messages = truncate(tokenized_messages, max_seq_len, eos_id if tokenizer.add_eos else None) # Mark True if add_eos else None
-        # Mark True if add_eos else None
-        mask = truncate(mask, max_seq_len, message.masked if tokenizer.add_eos else None) # Mark True if add_eos else None
+        tokenized_messages = truncate(tokenized_messages, max_seq_len, eos_id)
+        mask = truncate(mask, max_seq_len, message.masked)
 
     return tokenized_messages, mask
 

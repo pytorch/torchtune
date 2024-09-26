@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download google/gemma-2b --ignore-patterns None --hf-token <HF_TOKEN>
+#   tune download google/gemma-2b --ignore-patterns "gemma-2b.gguf" --hf-token <HF_TOKEN>
 #
 # To launch on 4 devices, run the following command from root:
 #   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config gemma/2B_full
@@ -48,6 +48,7 @@ batch_size: 2
 epochs: 3
 optimizer:
   _component_: torch.optim.AdamW
+  fused: True
   lr: 2e-5
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss

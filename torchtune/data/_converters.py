@@ -7,7 +7,7 @@
 from typing import Any, List, Mapping
 
 from torchtune.data._messages import Message
-from torchtune.utils.logging import deprecated
+from torchtune.utils._logging import deprecated
 
 
 @deprecated(
@@ -18,7 +18,7 @@ def get_sharegpt_messages(
     sample: Mapping[str, Any], train_on_input: bool = False
 ) -> List[Message]:
     """
-    Note:
+    Warning:
         This class is deprecated and will be removed in a future release. Please use
         :class:`~torchtune.data.ShareGPTToMessages` instead. The following are equivalent:
 
@@ -80,7 +80,7 @@ def get_sharegpt_messages(
 
 
 @deprecated(
-    msg="Please use an instance of `torchtune.data.JSONToMessages` as the "
+    msg="Please use an instance of `torchtune.data.OpenAIToMessages` as the "
     "`message_transform` argument for `torchtune.datasets.SFTDataset` instead."
 )
 def get_openai_messages(
@@ -88,9 +88,9 @@ def get_openai_messages(
     train_on_input: bool = False,
 ) -> List[Message]:
     """
-    Note:
+    Warning:
         This class is deprecated and will be removed in a future release. Please use
-        :class:`~torchtune.data.JSONToMessages` instead. The following are equivalent:
+        :class:`~torchtune.data.OpenAIToMessages` instead. The following are equivalent:
 
         .. code-block:: python
 
@@ -98,7 +98,7 @@ def get_openai_messages(
             transformed_sample = get_openai_messages(sample, train_on_input=True)
 
             # New
-            transformed_sample = JSONToMessages(train_on_input=True)(sample)
+            transformed_sample = OpenAIToMessages(train_on_input=True)(sample)
 
     Convert a chat sample adhering to the OpenAI API json structure to torchtune's :class:`~torchtune.data.Message`
     structure.

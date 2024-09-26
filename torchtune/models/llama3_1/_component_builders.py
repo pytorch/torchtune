@@ -11,7 +11,6 @@ from torch import nn
 
 from torchtune.models.llama3._model_utils import scale_hidden_dim_for_mlp
 from torchtune.models.llama3_1._position_embeddings import Llama3ScaledRoPE
-
 from torchtune.modules import (
     MultiHeadAttention,
     FeedForward,
@@ -48,7 +47,7 @@ def llama3_1(
     embed_dim: int,
     max_seq_len: int,
     attn_dropout: float = 0.0,
-    rope_base: int = 500000.0,
+    rope_base: int = 500_000,
     intermediate_dim: Optional[int] = None,
     norm_eps: float = 1e-5,
     scale_factor: int = 8,
@@ -71,6 +70,7 @@ def llama3_1(
         embed_dim (int): embedding dimension for self-attention
         max_seq_len (int): maximum sequence length the model will be run with, as used
             by :func:`~torchtune.modules.KVCache`
+        rope_base (int): base for the rotary positional embeddings. Default: 500_000
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
         intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
@@ -133,8 +133,7 @@ def llama3_mlp(dim: int, hidden_dim: int, quantize_base: bool = False) -> FeedFo
 
 
 
-
-# ------------------ LoRA Llama3 ------------------
+# ------------------ LoRA Llama3.1 ------------------
 
 
 def lora_llama3_1(
@@ -142,7 +141,7 @@ def lora_llama3_1(
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
     *,
-    # llama3 args
+    # llama3.1 args
     vocab_size: int,
     num_layers: int,
     num_heads: int,
@@ -152,7 +151,8 @@ def lora_llama3_1(
     intermediate_dim: Optional[int] = None,
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-5,
-    rope_base: float = 500000.0,
+    rope_base: int = 500_000,
+    scale_factor: int = 8,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,
@@ -188,9 +188,12 @@ def lora_llama3_1(
         intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
             this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`
         norm_eps (float): epsilon in RMS norms.
+        rope_base (int): base for the rotary positional embeddings. Default: 500_000
+        scale_factor (int): scaling factor for RoPE. Default: 8
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
+        use_dora (bool): Whether to use DoRA layers instead of LoRA layers. Default is ``False``.
         quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
@@ -203,10 +206,10 @@ def lora_llama3_1(
 
     hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
     head_dim = embed_dim // num_heads
-    rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+    rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base, scale_factor=scale_factor)
     layers = []
     for _ in range(num_layers):
-        self_attn = lora_llama3_1_self_attention(
+        self_attn = lora_llama3_attention(
             lora_modules=lora_attn_modules,
             pos_embeddings=rope,
             head_dim=head_dim,
@@ -272,7 +275,7 @@ def lora_llama3_1(
     return model
 
 
-def lora_llama3_1_self_attention(
+def lora_llama3_attention(
     lora_modules: List[LORA_ATTN_MODULES],
     pos_embeddings: nn.Module,
     *,
@@ -281,7 +284,10 @@ def lora_llama3_1_self_attention(
     embed_dim: int,
     num_heads: int,
     num_kv_heads: int,
+    q_norm: Optional[nn.Module] = None,
+    k_norm: Optional[nn.Module] = None,
     max_seq_len: int,
+    is_causal: bool = True,
     attn_dropout: float = 0.0,
     # LoRA args
     lora_rank: int,
@@ -308,13 +314,17 @@ def lora_llama3_1_self_attention(
         num_kv_heads (int): number of key and value heads. User should ensure
             `num_heads` % `num_kv_heads` == 0. For standard MHA set `num_kv_heads` == `num_heads`,
             for GQA `num_kv_heads` < `num_heads`, and for MQA set `num_kv_heads` == 1.
+        q_norm (Optional[nn.Module]): normalization applied to query. Default: None
+        k_norm (Optional[nn.Module]): normalization applied to key. Default: None
         max_seq_len (int): maximum sequence length the model will be run with, as used
             by :func:`~torchtune.modules.KVCache`
+        is_causal (bool): whether to apply causal attention mask. Default: True
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
+        use_dora (bool): Whether to use DoRA layers instead of LoRA layers. Default is ``False``.
         quantize_base (bool): Whether to quantize base model parameters for linear layers
             LoRA is being applied to. Default is ``False``.
 
@@ -406,8 +416,11 @@ def lora_llama3_1_self_attention(
         k_proj=k_proj,
         v_proj=v_proj,
         output_proj=output_proj,
+        q_norm=q_norm,
+        k_norm=k_norm,
         pos_embeddings=pos_embeddings,
         max_seq_len=max_seq_len,
+        is_causal=is_causal,
         attn_dropout=attn_dropout,
     )
     return self_attn

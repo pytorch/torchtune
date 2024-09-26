@@ -113,8 +113,16 @@ torchtune tutorials.
    :caption: Basics
    :hidden:
 
+   basics/datasets_overview
+   basics/messages
+   basics/message_transforms
+   basics/instruct_datasets
+   basics/chat_datasets
    basics/tokenizers
    basics/prompt_templates
+   basics/preference_datasets
+   basics/multimodal_datasets
+   basics/model_transforms
 
 .. toctree::
    :glob:
@@ -123,12 +131,12 @@ torchtune tutorials.
    :hidden:
 
    tutorials/llama3
+   tutorials/chat
    tutorials/lora_finetune
    tutorials/qlora_finetune
    tutorials/qat_finetune
    tutorials/e2e_flow
    tutorials/datasets
-   tutorials/chat
    tutorials/memory_optimizations
 
 .. toctree::
@@ -138,9 +146,9 @@ torchtune tutorials.
    :hidden:
 
    deep_dives/checkpointer
-   deep_dives/comet_logging
    deep_dives/configs
    deep_dives/recipe_deepdive
+   deep_dives/comet_logging
    deep_dives/wandb_logging
 
 .. toctree::
@@ -155,5 +163,6 @@ torchtune tutorials.
    api_ref_generation
    api_ref_models
    api_ref_modules
+   api_ref_rlhf
    api_ref_training
    api_ref_utilities

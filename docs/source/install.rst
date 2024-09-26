@@ -9,7 +9,7 @@ Pre-requisites
 --------------
 
 torchtune requires PyTorch, so please install for your proper host and environment
-using the `Start Locally <https://pytorch.org/get-started/locally/>`_ page. You should also install
+using the `"Start Locally" <https://pytorch.org/get-started/locally/>`_ page. You should also install
 torchvision (for multimodal LLMs) and torchao (for quantization APIs). You can install either stable or
 nightly versions with the following commands:
 
@@ -18,8 +18,8 @@ nightly versions with the following commands:
     # Install stable version of PyTorch libraries using pip
     pip install torch torchvision torchao
 
-    # Nightly install for latest features
-    pip install --pre torch torchvision torchao --index-url https://download.pytorch.org/whl/nightly/cu121
+    # Or nightly install for latest features
+    pip install --pre torch torchvision torchao --index-url https://download.pytorch.org/whl/nightly/cu121 # full options are cpu/cu118/cu121/cu124
 
 
 Install via PyPI
@@ -64,6 +64,9 @@ you can also install the package locally with the following command.
     git clone https://github.com/pytorch/torchtune.git
     cd torchtune
     pip install -e .
+
+    # or for a developer installation
+    pip install -e .["dev"]
 
 |
 
