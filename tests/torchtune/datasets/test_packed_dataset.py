@@ -167,6 +167,11 @@ class TestPackedDataset:
             len(dataset), max_seq_len, sample_size, split_across_pack, max_packs
         )
         assert len(packed) == correct_num_packs
+        assert (
+            len(packed[-1]["tokens"])
+            == len(packed[-1]["labels"])
+            == len(packed[-1]["input_pos"])
+        )
 
     def test_packed_dataset_real_data(self):
         expected_tokenized_prompts = [
