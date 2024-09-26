@@ -4,7 +4,7 @@
 # This config assumes that you've ran the following commands before launching KD:
 # First download the student and teacher models
 #   tune download meta-llama/Llama-3.2-1B-Instruct --output-dir /tmp/Llama-3.2-1B-Instruct --ignore-patterns "original/consolidated.00.pth"
-#   tune download meta-llama/Meta-Llama-3-8B-Instruct --output-dir /tmp/Meta-Llama-3-8B-Instruct
+#   tune download meta-llama/Meta-Llama-3.1-8B-Instruct --output-dir /tmp/Meta-Llama-3.1-8B-Instruct --ignore-patterns "original/consolidated.00.pth"
 #
 # You get better results using KD if the teacher model has already been fine-tuned on the target dataset:
 #   tune run lora_finetune_single_device --config llama3_1/8B_lora_single_device
@@ -48,10 +48,13 @@ save_adapter_weights_only: False
 
 # Teacher checkpoint
 teacher_checkpointer:
-  _component_: torchtune.training.FullModelMetaCheckpointer
-  checkpoint_dir: /home/lindawang/llama/Meta-Llama-3.1-8B-Instruct/lora_finetuned_single_device_epoch_1
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
   checkpoint_files: [
-    meta_model_0.pt
+    hf_model_0001_0.pt,
+    hf_model_0002_0.pt,
+    hf_model_0003_0.pt,
+    hf_model_0004_0.pt
   ]
   recipe_checkpoint: null
   output_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
@@ -84,14 +87,14 @@ kd_ratio: 0.5
 # Training
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 4
+gradient_accumulation_steps: 32
 compile: False
 
 # Logging
 output_dir: /tmp/kd_output
 metric_logger:
-  _component_: torchtune.training.metric_logging.WandBLogger
-  project: torchtune-kd
+  _component_: torchtune.training.metric_logging.DiskLogger
+  log_dir: ${output_dir}
 log_every_n_steps: 1
 log_peak_memory_stats: False
 
