@@ -134,8 +134,7 @@ teacher_checkpointer in the config:
 
 .. code-block:: yaml
 
-  # Model Arguments
-  teacher_checkpoint:
+  teacher_checkpointer:
     _component_: torchtune.training.FullModelHFCheckpointer
     checkpoint_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
     checkpoint_files: [
@@ -159,15 +158,61 @@ that the teacher model should have the same distributions as the transfer datase
 Using a fine-tuned student model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+For these experiments, let's take a look at the effects of KD when the student model is already
+fine-tuned. In these experiments, we look at different combinations of baseline and fine-tuned 8B
+and 1B models. To change the student model, you can first fine-tune the 1B model then modify the
+student model checkpointer in the config:
+
+.. code-block:: yaml
+
+ checkpointer:
+    _component_: torchtune.training.FullModelHFCheckpointer
+    checkpoint_dir: /tmp/Llama-3.2-1B-Instruct/
+    checkpoint_files: [
+      hf_model_0001_0.pt
+    ]
+
+Using the fine-tuned student model boosts accuracy even further for truthfulqa, but the accuracy
+drops for hellaswag and commonsense. Using a fine-tuned teacher model and baseline student
+model achieved the best results on hellaswag and commonsense dataset. Based on these findings,
+the best configuration will change depending on which evaluation dataset and metric you are optimizing for.
+
 .. image:: /_static/img/kd-finetune-student.png
+
+Based on the loss graphs, using a fine-tuned teacher model results in a lower loss irrespective of
+whether the student model is fine-tuned or not. It's also interesting to note that the class loss
+starts to increase when using a fine-tuned student model.
 
 Hyperparameter tuning: learning rate
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+By default, the config has the learning rate as 3e-4, same as LoRA configs. For these experiments,
+we changed the learning rate from as high as 1e-3 to as low as 1e-5. To change the learning rate,
+you can simply override the learning rate parameter using:
+
+.. code-block:: bash
+
+    tune run knowledge_distillation_single_device --config llama3_1/knowledge_distillation_single_device optimizer.lr=[LR]
+
+Based on the results, the optimal learning rate changes depending on which metric you are optimizing for.
+
 .. image:: /_static/img/kd-hyperparam-lr.png
+
+Based on the loss graphs, all learning rates result in similar losses except for 1e-5, which has a higher KD and class loss.
 
 Hyperparameter tuning: KD ratio
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In the config, we have the kd_ratio as 0.5, which gives even weightings to both the class and KD loss. In these experiments,
+we look at the effects of different KD ratios, where 0 only uses the class loss and 1 only uses the KD loss.
+Similar to changing the learning rate, the KD ratio can be adjusted using:
+
+.. code-block:: bash
+
+    tune run knowledge_distillation_single_device --config llama3_1/knowledge_distillation_single_device kd_ratio=[KD_RATIO]
+
+
+Overall, the evaluation results are slightly better for higher KD ratios.
 
 .. image:: /_static/img/kd-hyperparam-kd-ratio.png
 
