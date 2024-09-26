@@ -147,6 +147,27 @@ class TestPackedDataset:
         torch.testing.assert_close(packed[0]["seq_lens"], expected_seq_lens)
         torch.testing.assert_close(packed[0]["input_pos"], expected_input_pos)
 
+    @pytest.mark.parametrize("max_seq_len", [13])
+    @pytest.mark.parametrize("sample_size", [27, 40])
+    @pytest.mark.parametrize("max_packs", [5, 200, 3000])
+    @pytest.mark.parametrize("split_across_pack", [True])
+    def test_chuncked_case(
+        self, max_seq_len, sample_size, max_packs, split_across_pack
+    ):
+        dataset = DummyDataset(sample_size)
+        packed = PackedDataset(
+            dataset,
+            max_seq_len=max_seq_len,
+            max_packs=max_packs,
+            split_across_pack=split_across_pack,
+        )
+
+        # Check we get right number of packs
+        correct_num_packs = self._calculate_num_packs(
+            len(dataset), max_seq_len, sample_size, split_across_pack, max_packs
+        )
+        assert len(packed) == correct_num_packs
+
     def test_packed_dataset_real_data(self):
         expected_tokenized_prompts = [
             torch.tensor([0, 4, 2, 1, 7, 4, -1, 0, 1, 9]),
