@@ -8,7 +8,7 @@ Text-completion Datasets
 Text-completion datasets are typically used for continued pre-training paradigms which involve
 fine-tuning a base model on an unstructured, unlabelled dataset in a self-supervised manner.
 
-The primary entry point for fine-tuning with preference datasets in torchtune :func:`~torchtune.datasets.text_completion`.
+The primary entry point for fine-tuning with text completion datasets in torchtune :func:`~torchtune.datasets.text_completion`.
 Text completion datasets are simply expected to contain a column, "text", which contains the text for each sample.
 
 
@@ -150,6 +150,6 @@ To load in a text completion dataset from Hugging Face you'll need to pass in th
       split: train
 
 
-Built-in preference datasets
-----------------------------
+Built-in text completion datasets
+---------------------------------
 - :func:`~torchtune.datasets.cnn_dailymail_articles_dataset`
