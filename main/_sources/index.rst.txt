@@ -114,15 +114,16 @@ torchtune tutorials.
    :hidden:
 
    basics/datasets_overview
+   basics/chat_datasets
+   basics/instruct_datasets
+   basics/multimodal_datasets
+   basics/preference_datasets
+   basics/text_completion_datasets
+   basics/model_transforms
    basics/messages
    basics/message_transforms
-   basics/instruct_datasets
-   basics/chat_datasets
    basics/tokenizers
    basics/prompt_templates
-   basics/preference_datasets
-   basics/multimodal_datasets
-   basics/model_transforms
 
 .. toctree::
    :glob:
