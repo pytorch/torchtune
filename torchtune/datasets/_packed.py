@@ -136,7 +136,7 @@ class PackedDataset(Dataset):
             # Update the current pack
             current_pack["tokens"] += tokens
             current_pack["labels"] += labels
-            current_pack["input_pos"] += list(range(seq_len))
+            current_pack["input_pos"] += [x % self.max_seq_len for x in range(seq_len)]
             current_pack["seq_lens"] += [seq_len]
 
             # If the current pack is over the max_seq_len, add it to self.packs and
