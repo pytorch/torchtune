@@ -127,7 +127,7 @@ Similarly, this can also be accomplished via the yaml config:
 Loading text completion datasets from Hugging Face
 --------------------------------------------------
 
-To load in preference datasets from Hugging Face you'll need to pass in the dataset repo name to ``source``. For most HF datasets, you will also need to specify the ``split``.
+To load in a text completion dataset from Hugging Face you'll need to pass in the dataset repo name to ``source``. For most HF datasets, you will also need to specify the ``split``.
 
 .. code-block:: python
 
