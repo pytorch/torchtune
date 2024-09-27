@@ -55,6 +55,33 @@ Whenever running tests in torchtune, favor using the command line flags as much 
 
 Note that the above flags can be combined with other pytest flags, so e.g. `pytest tests -m integration_test -k 'test_loss'` will run only recipe tests matching the substring `test_loss`.
 
+> [!NOTE]
+> For contributors who are developing on MPS, you may find that several of our tests fail due to precision differences falling outside of numerical tolerances on our tests. As of 27/09/2024 the following tests will fail for this reason:
+<details>
+  <summary>Failed Tests</summary>
+  ```bash
+  FAILED tests/torchtune/generation/test_generation.py::TestGenerate::test_stop_tokens_batched[prompt_tokens_batched-generation_model_no_kv_cache] - assert False
+  FAILED tests/torchtune/generation/test_generation.py::TestGenerate::test_stop_tokens_batched[prompt_tokens_batched-generation_model_kv_cache_batched] - assert False
+  FAILED tests/torchtune/generation/test_generation.py::TestGenerate::test_stop_tokens_batched[prompt_tokens_batched_left_padded-generation_model_no_kv_cache] - assert False
+  FAILED tests/torchtune/generation/test_generation.py::TestGenerate::test_stop_tokens_batched[prompt_tokens_batched_left_padded-generation_model_kv_cache_batched] - assert False
+  FAILED tests/torchtune/generation/test_generation.py::TestGenerate::test_stop_tokens[generation_model_no_kv_cache] - assert False
+  FAILED tests/torchtune/generation/test_generation.py::TestGenerate::test_stop_tokens[generation_model_kv_cache] - assert False
+  FAILED tests/torchtune/generation/test_generation.py::TestGenerate::test_stop_tokens_batched_uneven_stopping[generation_model_no_kv_cache] - assert False
+  FAILED tests/torchtune/generation/test_generation.py::TestGenerate::test_stop_tokens_batched_uneven_stopping[generation_model_kv_cache_batched] - assert False
+  FAILED tests/torchtune/generation/test_generation.py::TestGenerate::test_stop_tokens_batched_uneven_stopping_left_padded[generation_model_no_kv_cache] - assert False
+  FAILED tests/torchtune/generation/test_generation.py::TestGenerate::test_stop_tokens_batched_uneven_stopping_left_padded[generation_model_kv_cache_batched] - assert False
+  FAILED tests/torchtune/models/llama3_1/test_position_embeddings.py::TestLlama3ScaledRoPE::test_forward - AssertionError: actual: -83.30372619628906, expected: -83.15229797363281
+  FAILED tests/torchtune/models/llama3_1/test_position_embeddings.py::TestLlama3ScaledRoPE::test_forward_with_curr_pos - AssertionError: actual: -83.30372619628906, expected: -83.15229797363281
+  FAILED tests/torchtune/models/llama3_1/test_position_embeddings.py::TestLlama3ScaledRoPE::test_forward_with_2d_pos_ids - AssertionError: actual: -83.30372619628906, expected: -83.15229797363281
+  FAILED tests/torchtune/modules/test_position_embeddings.py::TestRotaryPositionEmbedding::test_forward - AssertionError: actual: 2165.59619140625, expected: 2165.705322265625
+  FAILED tests/torchtune/modules/test_position_embeddings.py::TestRotaryPositionEmbedding::test_forward_with_curr_pos - AssertionError: actual: 2165.59619140625, expected: 2165.705322265625
+  FAILED tests/torchtune/modules/test_position_embeddings.py::TestRotaryPositionEmbedding::test_forward_with_packed_pos - AssertionError: actual: 2165.59619140625, expected: 2165.705322265625
+  FAILED tests/torchtune/modules/test_position_embeddings.py::TestPhi3RotaryPositionalEmbeddings::test_forward - AssertionError: actual: -381.06915283203125, expected: -381.06201171875
+  FAILED tests/torchtune/modules/test_transformer_decoder.py::TestTransformerCrossAttentionLayer::test_forward - AssertionError: actual: 1.7740381956100464, expected: 1.7762000560760498
+  FAILED tests/torchtune/modules/test_transformer_decoder.py::TestTransformerDecoder::test_forward - AssertionError: actual: 20.48008918762207, expected: 20.479999542236328
+  ```
+</details>
+
 &nbsp;
 
 ## Updating documentation
