@@ -1,4 +1,4 @@
-# Config for single device knowledge distillation in kd_single_device.py
+# Config for single device knowledge distillation (KD) in knowledge_distillation_single_device.py
 # using a LLAMA3 teacher and student model
 #
 # This config assumes that you've ran the following commands before launching KD:
