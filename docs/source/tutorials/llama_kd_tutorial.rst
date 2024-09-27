@@ -78,8 +78,8 @@ the forward KL divergence loss.
       return -torch.sum(x * mask.view(-1), dim=0) / torch.sum(mask.view(-1), dim=0)
 
 There are some details omitted to simplify the computation, but if you'd like to know more,
-you can see the implementation in :class:`torchtune.modules.loss.ForwardKLLoss`.
-By default, the KD configs use :class:`torchtune.modules.loss.ForwardKLWithChunkedOutputLoss` to reduce memory.
+you can see the implementation in :class:`~torchtune.modules.loss.ForwardKLLoss`.
+By default, the KD configs use :class:`~torchtune.modules.loss.ForwardKLWithChunkedOutputLoss` to reduce memory.
 The current implementation only supports student and teacher models that have the same output
 logit shape and same tokenizer.
 
@@ -131,7 +131,7 @@ Using a fine-tuned teacher model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The default settings in the config uses the fine-tuned teacher model. Now, let's take a look at the
 effects of not fine-tuning the teacher model first. To change the teacher model, you can modify the
-teacher_checkpointer in the config:
+``teacher_checkpointer`` in the config:
 
 .. code-block:: yaml
 
