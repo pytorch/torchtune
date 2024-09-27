@@ -59,6 +59,7 @@ Note that the above flags can be combined with other pytest flags, so e.g. `pyte
 > For contributors who are developing on MPS, you may find that several of our tests fail due to precision differences falling outside of numerical tolerances on our tests. As of 27/09/2024 the following tests will fail for this reason:
 <details>
   <summary>Failed Tests</summary>
+
   ```bash
   FAILED tests/torchtune/generation/test_generation.py::TestGenerate::test_stop_tokens_batched[prompt_tokens_batched-generation_model_no_kv_cache] - assert False
   FAILED tests/torchtune/generation/test_generation.py::TestGenerate::test_stop_tokens_batched[prompt_tokens_batched-generation_model_kv_cache_batched] - assert False
