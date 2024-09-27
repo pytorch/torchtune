@@ -49,7 +49,7 @@ def verify_bf16_support() -> bool:
             - CUDA version >= 11
             - CUDA compute capability >= 8
         - NCCL is available and version >= 2.10
-        - MPS is available and the torch was built with MPS
+        - MPS is available and torch was built with MPS
 
     Returns:
         bool: True if bf16 is available, False otherwise.
