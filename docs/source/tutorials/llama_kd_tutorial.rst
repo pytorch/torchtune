@@ -1,8 +1,8 @@
 .. _llama_kd_label:
 
-=========================================================
-Llama3.1 8B into Llama3.2 1B using Knowledge Distillation
-=========================================================
+====================================================================
+Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation
+====================================================================
 
 This guide will teach you about knowledge distillation (KD) and show you how you can use torchtune to distill a Llama3.1 8B model into Llama3.2 1B.
 If you already know what knowledge distillation is and want to get straight to running your own distillation in torchtune,
