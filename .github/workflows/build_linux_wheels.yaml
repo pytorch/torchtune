@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   generate-matrix:
+    if: github.repository_owner == 'pytorch'
     uses: pytorch/test-infra/.github/workflows/generate_binary_build_matrix.yml@main
     with:
       package-type: wheel

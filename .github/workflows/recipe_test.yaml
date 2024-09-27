@@ -21,6 +21,7 @@ defaults:
 
 jobs:
   recipe_test:
+    if: github.repository_owner == 'pytorch'
     runs-on: ubuntu-latest
     strategy:
       matrix:

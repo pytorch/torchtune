@@ -748,6 +748,15 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
                 model_state_dict
             )
 
+        # llama3_2 has tied weights, so we need to remove the output.weight key
+        if self._model_type == ModelType.LLAMA3_2:
+            logger.info(
+                "Identified model_type = Llama3_2. Ignoring output.weight in"
+                " checkpoint in favor of the tok_embedding.weight"
+                " tied weights."
+            )
+            state_dict[training.MODEL_KEY].pop("output.weight")
+
         if self._adapter_checkpoint:
             adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
             state_dict[training.ADAPTER_KEY] = adapter_state_dict
@@ -792,6 +801,15 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
                     model_state_dict
                 )
             else:
+                # llama3_2 has tied weights, so we need to add the output.weight key
+                if (
+                    self._model_type == ModelType.LLAMA3_2
+                    and "output.weight" not in model_state_dict
+                ):
+                    model_state_dict["output.weight"] = model_state_dict[
+                        "tok_embeddings.weight"
+                    ]
+
                 state_dict[training.MODEL_KEY] = convert_weights.tune_to_meta(
                     model_state_dict
                 )
