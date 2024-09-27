@@ -49,7 +49,7 @@ class KVCache(nn.Module):
         """Reset the cache to zero."""
         self.k_cache.zero_()
         self.v_cache.zero_()
-        self.cache_pos = torch.arange(0, self.k_cache.shape[2])
+        self.cache_pos -= self.size
 
     @property
     def size(self) -> int:
@@ -101,8 +101,8 @@ class KVCache(nn.Module):
         k_out = self.k_cache
         v_out = self.v_cache
 
-        k_out.index_copy_(2, self.cache_pos[:seq_len], k_val)
-        v_out.index_copy_(2, self.cache_pos[:seq_len], v_val)
+        k_out[:, :, self.cache_pos[:seq_len]] = k_val
+        v_out[:, :, self.cache_pos[:seq_len]] = v_val
 
         # forward cache_pos seq_len positions along
         self.cache_pos += seq_len
