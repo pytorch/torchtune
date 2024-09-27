@@ -105,6 +105,12 @@ class KVCache(nn.Module):
         v_out[:, :, self.cache_pos[:seq_len]] = v_val
 
         # forward cache_pos seq_len positions along
+        # cache_pos starts at (0, 1, 2, 3, 4, 5, ...)
+        # an update of seq_len = 5 tokens brings it to
+        # (5, 6, 7, 8, 9, ...)
+        # this allows us to track the current position in the cache
+        # after the last update in a compile-friendly way without any dynamism
+        # e.g. relying on an int size tracker, or re-creating cache_pos every time
         self.cache_pos += seq_len
 
         return k_out, v_out
