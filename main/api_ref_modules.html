@@ -334,6 +334,7 @@
 <li class="toctree-l1"><a class="reference internal" href="tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
@@ -484,6 +485,12 @@
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html#torchtune.modules.loss.CEWithChunkedOutputLoss" title="torchtune.modules.loss.CEWithChunkedOutputLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss.CEWithChunkedOutputLoss</span></code></a></p></td>
 <td><p>Cross-entropy with chunked outputs that saves memory by only upcasting one chunk at a time.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.loss.ForwardKLLoss.html#torchtune.modules.loss.ForwardKLLoss" title="torchtune.modules.loss.ForwardKLLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss.ForwardKLLoss</span></code></a></p></td>
+<td><p>The Kullback-Leibler divergence loss for valid indexes.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.html#torchtune.modules.loss.ForwardKLWithChunkedOutputLoss" title="torchtune.modules.loss.ForwardKLWithChunkedOutputLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss.ForwardKLWithChunkedOutputLoss</span></code></a></p></td>
+<td><p>Forward KL with chunked outputs that saves memory by only upcasting one chunk at a time.</p></td>
 </tr>
 </tbody>
 </table>
