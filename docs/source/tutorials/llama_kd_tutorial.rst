@@ -27,7 +27,7 @@ you can jump to the `KD recipe in torchtune`_ tutorial.
 What is Knowledge Distillation?
 -------------------------------
 
-`Knowledge Distillation <https://arxiv.org/pdf/1503.02531>`_ is is a widely used compression technique
+`Knowledge Distillation <https://arxiv.org/pdf/1503.02531>`_ is a widely used compression technique
 that transfers knowledge from a larger (teacher) model to a smaller (student) model. Larger models have
 more parameters and capacity for knowledge, however, this larger capacity is also more computationally
 expensive to deploy. Knowledge distillation can be used to compress the knowledge of a larger model into
@@ -37,7 +37,7 @@ model's outputs.
 How does Knowledge Distillation work?
 -------------------------------------
 
-Knowledge is transferred from the teacher to student model by training it on a transfer set and where the
+Knowledge is transferred from the teacher to student model by training it on a transfer set where the
 student is trained to imitate the token-level probability distributions of the teacher. The diagram below
 is a simplified representation of how KD works.
 
