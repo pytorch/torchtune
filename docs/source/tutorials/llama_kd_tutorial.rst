@@ -107,7 +107,7 @@ Finally, we can run the following command to distill the fine-tuned 8B model int
 
 .. code-block:: bash
 
-    tune run knowledge_distillation_single_device --config llama3_1/knowledge_distillation_single_device
+    tune run knowledge_distillation_single_device --config llama3_2/knowledge_distillation_single_device
 
 Ablation studies
 ----------------
@@ -192,7 +192,7 @@ you can simply override the learning rate parameter using:
 
 .. code-block:: bash
 
-    tune run knowledge_distillation_single_device --config llama3_1/knowledge_distillation_single_device optimizer.lr=[LR]
+    tune run knowledge_distillation_single_device --config llama3_2/knowledge_distillation_single_device optimizer.lr=[LR]
 
 Based on the results, the optimal learning rate changes depending on which metric you are optimizing for.
 
@@ -209,7 +209,7 @@ Similar to changing the learning rate, the KD ratio can be adjusted using:
 
 .. code-block:: bash
 
-    tune run knowledge_distillation_single_device --config llama3_1/knowledge_distillation_single_device kd_ratio=[KD_RATIO]
+    tune run knowledge_distillation_single_device --config llama3_2/knowledge_distillation_single_device kd_ratio=[KD_RATIO]
 
 
 Overall, the evaluation results are slightly better for higher KD ratios.
