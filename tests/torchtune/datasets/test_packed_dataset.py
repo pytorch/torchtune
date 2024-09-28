@@ -148,8 +148,8 @@ class TestPackedDataset:
         torch.testing.assert_close(packed[0]["input_pos"], expected_input_pos)
 
     @pytest.mark.parametrize("max_seq_len", [13])
-    @pytest.mark.parametrize("sample_size", [27, 40])
-    @pytest.mark.parametrize("max_packs", [5, 200, 3000])
+    @pytest.mark.parametrize("sample_size", [14, 27, 40])
+    @pytest.mark.parametrize("max_packs", [5, 200, 3100])
     @pytest.mark.parametrize("split_across_pack", [True])
     def test_chunked_case(self, max_seq_len, sample_size, max_packs, split_across_pack):
         dataset = DummyDataset(sample_size)
@@ -165,11 +165,15 @@ class TestPackedDataset:
             len(dataset), max_seq_len, sample_size, split_across_pack, max_packs
         )
         assert len(packed) == correct_num_packs
-        assert (
-            len(packed[-1]["tokens"])
-            == len(packed[-1]["labels"])
-            == len(packed[-1]["input_pos"])
+
+        # Check all fields are same length
+        assert all(
+            len(pack["tokens"]) == len(pack["labels"]) == len(pack["input_pos"])
+            for pack in packed
         )
+
+        # Check that all sum(seq_lens) are equal to max_seq_len
+        assert all(pack["seq_lens"].sum().item() == max_seq_len for pack in packed)
 
     def test_packed_dataset_real_data(self):
         expected_tokenized_prompts = [
