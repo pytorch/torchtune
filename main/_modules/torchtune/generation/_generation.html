@@ -674,10 +674,6 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">prompt</span> <span class="o">=</span> <span class="n">prompt</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">prompt</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">prompt</span>
 
-    <span class="n">stop_tokens</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">stop_tokens</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">prompt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">if</span> <span class="n">stop_tokens</span> <span class="k">else</span> <span class="kc">None</span>
-    <span class="p">)</span>
-
     <span class="k">if</span> <span class="n">custom_generate_next_token</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">custom_generate_next_token</span> <span class="o">=</span> <span class="n">generate_next_token</span>
 
@@ -754,6 +750,11 @@
 
     <span class="c1"># keeps track at a high level if we&#39;ve already hit a stop token in a sequence so we can early stop</span>
     <span class="n">stop_token_reached</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">bsz</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">prompt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">stop_tokens</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">stop_tokens</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">prompt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tokens</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">stop_tokens</span>
+        <span class="k">else</span> <span class="kc">None</span>
+    <span class="p">)</span>
 
     <span class="c1"># everything in stop_token_mask starts as 1s, and we&#39;ll set them to 0 for sequences</span>
     <span class="c1"># that already hit a stop token</span>

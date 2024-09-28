@@ -531,8 +531,8 @@
         <span class="n">k_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_cache</span>
         <span class="n">v_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">v_cache</span>
 
-        <span class="n">k_out</span><span class="o">.</span><span class="n">index_copy_</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">cache_pos</span><span class="p">,</span> <span class="n">k_val</span><span class="p">)</span>
-        <span class="n">v_out</span><span class="o">.</span><span class="n">index_copy_</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">cache_pos</span><span class="p">,</span> <span class="n">v_val</span><span class="p">)</span>
+        <span class="n">k_out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">cache_pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">k_val</span>
+        <span class="n">v_out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">cache_pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">v_val</span>
 
         <span class="k">return</span> <span class="n">k_out</span><span class="p">,</span> <span class="n">v_out</span></div></div>
 </pre></div>

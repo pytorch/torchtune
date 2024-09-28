@@ -478,17 +478,20 @@
 <span class="sd">            - CUDA version &gt;= 11</span>
 <span class="sd">            - CUDA compute capability &gt;= 8</span>
 <span class="sd">        - NCCL is available and version &gt;= 2.10</span>
+<span class="sd">        - MPS is available and torch was built with MPS</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        bool: True if bf16 is available, False otherwise.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="p">(</span>
+    <span class="n">cuda_support</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span>
         <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_bf16_supported</span><span class="p">()</span>
         <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">is_nccl_available</span><span class="p">()</span>
         <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">nccl</span><span class="o">.</span><span class="n">version</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
     <span class="p">)</span>
+    <span class="n">mps_support</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">is_built</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">cuda_support</span> <span class="ow">or</span> <span class="n">mps_support</span>
 
 
 <div class="viewcode-block" id="get_dtype"><a class="viewcode-back" href="../../../generated/torchtune.training.get_dtype.html#torchtune.training.get_dtype">[docs]</a><span class="k">def</span> <span class="nf">get_dtype</span><span class="p">(</span>
