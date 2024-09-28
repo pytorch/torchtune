@@ -9,7 +9,7 @@ from typing import Tuple
 import pytest
 
 import torch
-from tests.test_utils import assert_expected
+from tests.test_utils import assert_expected, mps_ignored_test
 
 from torch import nn
 
@@ -98,6 +98,7 @@ class TestTransformerSelfAttentionLayer:
         transformer_layer.eval()
         return transformer_layer
 
+    @mps_ignored_test()
     def test_forward(
         self, input: torch.Tensor, transformer_layer: TransformerSelfAttentionLayer
     ) -> None:
@@ -182,6 +183,7 @@ class TestTransformerCrossAttentionLayer:
         transformer_layer.eval()
         return transformer_layer
 
+    @mps_ignored_test()
     def test_forward(
         self,
         input: Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
@@ -317,6 +319,7 @@ class TestTransformerDecoder:
         decoder.setup_caches(batch_size=4, dtype=torch.float32)
         return decoder
 
+    @mps_ignored_test()
     def test_forward(
         self,
         input: torch.Tensor,
