@@ -102,7 +102,7 @@ class KVCache(nn.Module):
         k_out = self.k_cache
         v_out = self.v_cache
 
-        k_out.index_copy_(2, cache_pos, k_val)
-        v_out.index_copy_(2, cache_pos, v_val)
+        k_out[:, :, cache_pos] = k_val
+        v_out[:, :, cache_pos] = v_val
 
         return k_out, v_out
