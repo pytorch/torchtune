@@ -352,6 +352,10 @@ _ALL_RECIPES = [
                 name="qwen2/knowledge_distillation_single_device",
                 file_path="qwen2/knowledge_distillation_single_device.yaml",
             ),
+            Config(
+                name="llama3_2/knowledge_distillation_single_device",
+                file_path="llama3_2/knowledge_distillation_single_device.yaml",
+            ),
         ],
         supports_distributed=False,
     ),

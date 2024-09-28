@@ -57,7 +57,7 @@ Example local preference dataset
        "chosen": "chosen_conversations",
        "rejected": "rejected_conversations"
    }
-   dataset = preference_dataset(
+   ds = preference_dataset(
        tokenizer=tokenizer,
        source="json",
        column_map=column_map,
