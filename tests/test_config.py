@@ -135,16 +135,7 @@ class TestRecipeConfigs:
             if "lora" in cfg.model._component_:
                 model_module = ".".join(cfg.model._component_.split(".")[:3])
                 try:
-<<<<<<< Updated upstream
                     with patch(model_module + "._component_builders._register_reparametrize_state_dict_hooks", return_value=None):
-=======
-                    # this will go away if we deprecate _register_reparametrize_state_dict_hooks
-                    with patch(
-                        model_module
-                        + "._component_builders._register_reparametrize_state_dict_hooks",
-                        return_value=None,
-                    ):
->>>>>>> Stashed changes
                         model = config.instantiate(cfg.model)
                         state_dict = {
                             k: v
