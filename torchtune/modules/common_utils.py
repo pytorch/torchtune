@@ -15,6 +15,7 @@ import torch
 import torch.nn as nn
 from torch._subclasses.fake_tensor import FakeTensorConverter, FakeTensorMode
 from torchao.dtypes.nf4tensor import NF4Tensor
+from torchtune.utils._logging import deprecated
 
 _use_low_cpu_ram: bool = False
 
@@ -127,6 +128,16 @@ def _low_ram_reparametrize_as_dtype_state_dict_post_hook(
         state_dict[k] = dest_state_dict[k]
 
 
+@deprecated(
+    msg="""Please use
+    ```
+    model._register_state_dict_hook(
+            partial(reparametrize_as_dtype_state_dict_post_hook, offload_to_cpu=True)
+        )
+    ```
+    To register a hook on `model.state_dict` instead.
+"""
+)
 def _register_reparametrize_state_dict_hooks(
     module: nn.Module,
     dtype: torch.dtype = torch.bfloat16,
