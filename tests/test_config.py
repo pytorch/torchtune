@@ -88,7 +88,7 @@ class TestRecipeConfigs:
             else:
                 config.instantiate(checkpointer_cfg)
 
-    # @pytest.mark.integration_test
+    @pytest.mark.integration_test
     @gpu_test(gpu_count=1)
     @pytest.mark.parametrize(
         "recipe_file_path, config_file_path",
