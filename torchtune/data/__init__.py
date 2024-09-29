@@ -16,6 +16,7 @@ from torchtune.data._collate import (
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._converters import get_openai_messages, get_sharegpt_messages
 from torchtune.data._instruct_templates import InstructTemplate
+from torchtune.data._label_transforms import StringToIntLabelTransform
 from torchtune.data._messages import (
     ChosenRejectedToMessages,
     InputOutputToMessages,
