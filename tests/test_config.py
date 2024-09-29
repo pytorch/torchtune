@@ -135,17 +135,6 @@ class TestRecipeConfigs:
 
         with torch.device("meta"):
             if "lora" in cfg.model._component_:
-                model_module = ".".join(cfg.model._component_.split(".")[:3])
-                try:
-                    with patch(model_module + "._component_builders._register_reparametrize_state_dict_hooks", return_value=None):
-                        model = config.instantiate(cfg.model)
-                        state_dict = {
-                            k: v
-                            for k, v in model.state_dict().items()
-                            if "lora" not in k
-                        }
-                except AttributeError:
-                    pass
                 with patch.object(
                     torchtune.modules.TransformerDecoder,
                     "_register_state_dict_hook",
