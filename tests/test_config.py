@@ -88,8 +88,7 @@ class TestRecipeConfigs:
             else:
                 config.instantiate(checkpointer_cfg)
 
-    @pytest.mark.integration_test
-    @gpu_test(gpu_count=1)
+    # @pytest.mark.integration_test
     @pytest.mark.parametrize(
         "recipe_file_path, config_file_path",
         _get_all_configs(["full_finetune_single_device", "lora_finetune_single_device"]),
@@ -103,7 +102,7 @@ class TestRecipeConfigs:
         module = load_module_from_path("recipe_module", recipe_file_path)
         recipe_class = None
         for name, obj in inspect.getmembers(module, inspect.isclass):
-            if "Recipe" in name and "Interface" not in name:  # Adjust this condition based on your naming convention
+            if "Recipe" in name and "Interface" not in name: 
                 recipe_class = obj
                 break
 
