@@ -124,6 +124,8 @@ class TestRecipeConfigs:
         cfg.output_dir = str(tmpdir)
         self.validate_checkpointer(cfg.checkpointer)
         self.validate_tokenizer(cfg.tokenizer)
+        if "fused" in cfg.optimizer:
+            cfg.optimizer.pop("fused")
         cfg.tokenizer = OmegaConf.create(
             {
                 "_component_": "torchtune.models.llama3.llama3_tokenizer",
