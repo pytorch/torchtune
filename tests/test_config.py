@@ -89,12 +89,13 @@ class TestRecipeConfigs:
                 config.instantiate(checkpointer_cfg)
 
     # @pytest.mark.integration_test
+    @gpu_test(gpu_count=1)
     @pytest.mark.parametrize(
         "recipe_file_path, config_file_path",
         _get_all_configs(["full_finetune_single_device", "lora_finetune_single_device"]),
     )
     @patch("torchtune.datasets._sft.load_dataset")
-    def test_single_device_full_finetune_recipe_config_setup(
+    def test_single_device_recipe_config_setup(
         self, load_dataset, recipe_file_path, config_file_path, tmpdir, monkeypatch
     ):
         recipe_file_path = RECIPE_ROOT / recipe_file_path
