@@ -5,27 +5,25 @@
 # LICENSE file in the root directory of this source tree.
 import argparse
 import functools
-import sys
-from argparse import Namespace
-from typing import Any, Callable, List, Tuple
-
-from omegaconf import DictConfig, OmegaConf
-from torchtune import training
-from torchtune.config._utils import _merge_yaml_and_cli_args
+import inspect
 
 import os
-from unittest.mock import patch
 import runpy
 
 import sys
+from argparse import Namespace
 from pathlib import Path
+from typing import Any, Callable, List, Tuple
+from unittest.mock import patch
 
 import numpy as np
-import torchtune
 
 import pytest
 
 import torch
+import torchtune
+
+from omegaconf import DictConfig, OmegaConf
 from tests.common import TUNE_PATH
 
 from tests.recipes.utils import (
@@ -38,12 +36,12 @@ from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
     get_loss_values_from_metric_logger,
+    gpu_test,
     TOKENIZER_PATHS,
-    gpu_test
 )
+from torchtune import config, training
 from torchtune._recipe_registry import Config, get_all_recipes, Recipe
-from torchtune import config
-import inspect
+from torchtune.config._utils import _merge_yaml_and_cli_args
 
 ROOT = Path(torchtune.__file__).parent.parent
 
@@ -74,14 +72,18 @@ def load_module_from_path(module_name, path):
 
 
 class TestRecipeConfigs:
-
     def validate_tokenizer(self, tokenizer_cfg):
         with pytest.raises(OSError, match="No such file or directory"):
             config.instantiate(tokenizer_cfg)
 
     def validate_checkpointer(self, checkpointer_cfg):
-        checkpointer_class = torchtune.config._utils._get_component_from_path(checkpointer_cfg["_component_"])
-        with patch("torchtune.training.checkpointing._checkpointer.get_path", return_value="boo"):
+        checkpointer_class = torchtune.config._utils._get_component_from_path(
+            checkpointer_cfg["_component_"]
+        )
+        with patch(
+            "torchtune.training.checkpointing._checkpointer.get_path",
+            return_value="boo",
+        ):
             if checkpointer_class.__name__ == "FullModelHFCheckpointer":
                 with pytest.raises(OSError, match="No such file or directory"):
                     config.instantiate(checkpointer_cfg)
@@ -92,7 +94,9 @@ class TestRecipeConfigs:
     @gpu_test(gpu_count=1)
     @pytest.mark.parametrize(
         "recipe_file_path, config_file_path",
-        _get_all_configs(["full_finetune_single_device", "lora_finetune_single_device"]),
+        _get_all_configs(
+            ["full_finetune_single_device", "lora_finetune_single_device"]
+        ),
     )
     @patch("torchtune.datasets._sft.load_dataset")
     def test_single_device_recipe_config_setup(
@@ -103,7 +107,7 @@ class TestRecipeConfigs:
         module = load_module_from_path("recipe_module", recipe_file_path)
         recipe_class = None
         for name, obj in inspect.getmembers(module, inspect.isclass):
-            if "Recipe" in name and "Interface" not in name: 
+            if "Recipe" in name and "Interface" not in name:
                 recipe_class = obj
                 break
 
@@ -113,32 +117,60 @@ class TestRecipeConfigs:
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
         # Get user-specified args from config and CLI and create params for recipe
-        yaml_args, cli_args = parser.parse_known_args(args=["--config"] + [str(config_file_path)] + ["device=meta"])
+        yaml_args, cli_args = parser.parse_known_args(
+            args=["--config"] + [str(config_file_path)] + ["device=meta"]
+        )
         cfg = _merge_yaml_and_cli_args(yaml_args, cli_args)
         cfg.output_dir = str(tmpdir)
         self.validate_checkpointer(cfg.checkpointer)
         self.validate_tokenizer(cfg.tokenizer)
         cfg.tokenizer = OmegaConf.create(
-            {"_component_": "torchtune.models.llama3.llama3_tokenizer", "path": TOKENIZER_PATHS["llama3"]}
+            {
+                "_component_": "torchtune.models.llama3.llama3_tokenizer",
+                "path": TOKENIZER_PATHS["llama3"],
+            }
         )
 
         with torch.device("meta"):
             if "lora" in cfg.model._component_:
                 model_module = ".".join(cfg.model._component_.split(".")[:3])
                 try:
+<<<<<<< Updated upstream
                     with patch(model_module + "._component_builders._register_reparametrize_state_dict_hooks", return_value=None):
+=======
+                    # this will go away if we deprecate _register_reparametrize_state_dict_hooks
+                    with patch(
+                        model_module
+                        + "._component_builders._register_reparametrize_state_dict_hooks",
+                        return_value=None,
+                    ):
+>>>>>>> Stashed changes
                         model = config.instantiate(cfg.model)
-                        state_dict = {k: v for k, v in model.state_dict().items() if "lora" not in k}
+                        state_dict = {
+                            k: v
+                            for k, v in model.state_dict().items()
+                            if "lora" not in k
+                        }
                 except AttributeError:
                     pass
-                with patch.object(torchtune.modules.TransformerDecoder, "_register_state_dict_hook", return_value=None):
+                with patch.object(
+                    torchtune.modules.TransformerDecoder,
+                    "_register_state_dict_hook",
+                    return_value=None,
+                ):
                     model = config.instantiate(cfg.model)
-                    state_dict = {k: v for k, v in model.state_dict().items() if "lora" not in k}
+                    state_dict = {
+                        k: v for k, v in model.state_dict().items() if "lora" not in k
+                    }
             else:
                 state_dict = config.instantiate(cfg.model).state_dict()
 
         load_dataset.return_value = [0]
-        with patch.object(recipe_class, "load_checkpoint", return_value={training.MODEL_KEY: state_dict}):
+        with patch.object(
+            recipe_class,
+            "load_checkpoint",
+            return_value={training.MODEL_KEY: state_dict},
+        ):
             recipe = recipe_class(cfg=cfg)
             recipe.setup(cfg)
 
