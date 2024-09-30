@@ -130,43 +130,58 @@ class TiledTokenPositionalEmbedding(nn.Module):
             ValueError: if after interpolation, the shape of the loaded global embedding
                  is not compatible with the current embedding.
         """
-        if hasattr(self, "gated_positional_embedding"):
-            inpt_pos_embed = state_dict.get(prefix + "local_token_positional_embedding")
+        inpt_pos_embed = state_dict.get(prefix + "local_token_positional_embedding")
+        if inpt_pos_embed is not None:
+
+            # ckpt pos emb
+            inpt_n_tokens_per_tile, inpt_embed_dim = inpt_pos_embed.shape
+
+            # instantiated pos emb
             (
                 tgt_n_tokens_per_tile,
                 tgt_embed_dim,
             ) = self.local_token_positional_embedding.shape
-            inpt_n_tokens_per_tile, inpt_embed_dim = inpt_pos_embed.shape
+
+            # resize ckpt to match instantiated shape
             inpt_pos_embed = self._resize_local_position_embedding(
                 inpt_pos_embed,
                 tgt_n_tokens_per_tile=tgt_n_tokens_per_tile,
                 inpt_n_tokens_per_tile=inpt_n_tokens_per_tile,
             )
-            state_dict[prefix + "local_token_positional_embedding"] = inpt_pos_embed
 
+            # update state dict
+            state_dict[prefix + "local_token_positional_embedding"] = inpt_pos_embed
             if inpt_pos_embed.shape != self.local_token_positional_embedding.shape:
                 raise ValueError(
                     f"Loaded local positional embedding has shape {inpt_pos_embed.shape}, "
                     f"after interpolation. Expected shape {self.local_token_positional_embedding.shape}."
                 )
 
-        if hasattr(self, "gated_positional_embedding"):
-            inpt_global_pos_embed = state_dict.get(
-                prefix + "local_token_positional_embedding"
-            )
+        # ckpt pos emb
+        inpt_global_pos_embed = state_dict.get(
+            prefix + "global_token_positional_embedding"
+        )
+
+        if inpt_global_pos_embed is not None:
+            # instantiated pos emb
             (
                 tgt_max_num_tiles_x,
                 tgt_max_num_tiles_y,
                 tgt_n_tokens_per_tile,
                 tgt_embed_dim,
-            ) = self.global_token
+            ) = self.global_token_positional_embedding.shape
+
+            # resize ckpt to match instantiated shape
             inpt_global_pos_embed = self._resize_global_position_embedding(
                 global_pos_embed=inpt_global_pos_embed,
                 tgt_max_num_tiles=tgt_max_num_tiles_x,
-                tgt_patch_grid_size=math.sqrt(tgt_n_tokens_per_tile - 1),
+                tgt_patch_grid_size=int(math.sqrt(tgt_n_tokens_per_tile - 1)),
             )
-            state_dict[prefix + "gated_positional_embedding"] = inpt_global_pos_embed
 
+            # update state dict
+            state_dict[
+                prefix + "global_token_positional_embedding"
+            ] = inpt_global_pos_embed
             if (
                 inpt_global_pos_embed.shape
                 != self.global_token_positional_embedding.shape
@@ -187,14 +202,14 @@ class TiledTokenPositionalEmbedding(nn.Module):
         Original position embedding is [n_tiles * n_tiles + 1, dim]
         New position embedding will be [grid_size[0] * grid_size[1] + 1, dim]
         """
-        # check __init__ for details
-        inpt_patch_grid_size = int(math.sqrt(len(tgt_n_tokens_per_tile) - 1))
-        inpt_patch_grid_size = int(math.sqrt(len(inpt_n_tokens_per_tile) - 1))
+        # inverse n_tokens_per_tile = patch_grid_size**2 + 1, where +1 is the cls token
+        tgt_patch_grid_size = int(math.sqrt(tgt_n_tokens_per_tile - 1))
+        inpt_patch_grid_size = int(math.sqrt(inpt_n_tokens_per_tile - 1))
 
         # split tokens between cls and img tokens.
         # we don't want to interpolate cls token.
-        cls_token, inpt_pos_emb = (
-            inpt_pos_embed[0],  # cls token
+        cls_token, inpt_pos_embed = (
+            inpt_pos_embed[[0]],  # cls token
             inpt_pos_embed[1:],  # image tokens
         )
 
@@ -206,26 +221,26 @@ class TiledTokenPositionalEmbedding(nn.Module):
         # to [1, embed_dim, grig_patch_grid_size, inpt_patch_grid_size]
         # because only the last 2 dims get interpolated by F.interpolate
         # yielding the output shape [1, embed_dim, inpt_patch_grid_size, inpt_patch_grid_size]
-        inpt_pos_emb = inpt_pos_emb.reshape(
+        inpt_pos_embed = inpt_pos_embed.reshape(
             1, inpt_patch_grid_size, inpt_patch_grid_size, -1
         ).permute(0, 3, 1, 2)
 
-        inpt_pos_emb = F.interpolate(
-            inpt_pos_emb,
-            size=[inpt_patch_grid_size, inpt_patch_grid_size],
+        inpt_pos_embed = F.interpolate(
+            inpt_pos_embed,
+            size=[tgt_patch_grid_size, tgt_patch_grid_size],
             mode="bilinear",
             align_corners=True,
         )
 
         # reshape back to [1, inpt_n_tokens_per_tile, embed_dim]
-        inpt_pos_emb = inpt_pos_emb.permute(0, 2, 3, 1).reshape(
-            1, inpt_n_tokens_per_tile - 1, -1
+        inpt_pos_embed = inpt_pos_embed.permute(0, 2, 3, 1).reshape(
+            1, tgt_n_tokens_per_tile - 1, -1
         )
 
         # remove batch dim added previously
-        inpt_pos_emb = inpt_pos_emb[0]
+        inpt_pos_embed = inpt_pos_embed[0]
 
-        inpt_pos_embed = torch.cat([cls_token, inpt_pos_emb], dim=0)
+        inpt_pos_embed = torch.cat([cls_token, inpt_pos_embed], dim=0)
         return inpt_pos_embed
 
     def _resize_global_position_embedding(
@@ -240,9 +255,10 @@ class TiledTokenPositionalEmbedding(nn.Module):
         Returns: global position embedding of shape [x_scale, y_scale, grid_size[0] * grid_size[1] + 1, dim]
         Here x_scale and y_scale are the number of tiles along x-axis and y-axis respectively.
         """
+
         # remove cls token to interpolate it separately
-        pos_embed = global_pos_embed[:, :, 1:]
-        cls_embed = global_pos_embed[:, :, 0].unsqueeze(2)
+        pos_embed = global_pos_embed[:, :, 1:, :]
+        cls_embed = global_pos_embed[:, :, [0], :]
 
         (
             max_num_tiles_x,
@@ -250,11 +266,11 @@ class TiledTokenPositionalEmbedding(nn.Module):
             n_tokens_per_tile,
             embed_dim,
         ) = pos_embed.shape
-        inpt_patch_grid_size = int(math.sqrt(n_tokens_per_tile))
 
         # tokens_per_tile == inpt_patch_grid_size**2
         # we reshape n_tokens_per_tile --> (inpt_patch_grid_size, inpt_patch_grid_size)
-        pos_embed = pos_embed.view(
+        inpt_patch_grid_size = int(math.sqrt(n_tokens_per_tile))
+        pos_embed = pos_embed.reshape(
             max_num_tiles_x,
             max_num_tiles_y,
             inpt_patch_grid_size,
@@ -262,7 +278,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
             embed_dim,
         )
         pos_embed = pos_embed.permute(0, 2, 1, 3, 4).contiguous()
-        pos_embed = pos_embed.view(
+        pos_embed = pos_embed.reshape(
             max_num_tiles_x * inpt_patch_grid_size,
             max_num_tiles_y * inpt_patch_grid_size,
             embed_dim,
@@ -271,8 +287,8 @@ class TiledTokenPositionalEmbedding(nn.Module):
 
         # interpolate
         tgt_size = (
-            tgt_max_num_tiles * tgt_patch_grid_size,
-            tgt_max_num_tiles * tgt_patch_grid_size,
+            int(tgt_max_num_tiles * tgt_patch_grid_size),
+            int(tgt_max_num_tiles * tgt_patch_grid_size),
         )
         pos_embed = pos_embed.permute(0, 3, 1, 2)
         pos_embed = F.interpolate(
@@ -285,15 +301,18 @@ class TiledTokenPositionalEmbedding(nn.Module):
 
         # move it back in place
         pos_embed = pos_embed.view(
-            max_num_tiles_x,
-            inpt_patch_grid_size,
-            max_num_tiles_y,
-            inpt_patch_grid_size,
+            tgt_max_num_tiles,
+            tgt_patch_grid_size,
+            tgt_max_num_tiles,
+            tgt_patch_grid_size,
             embed_dim,
         )
         pos_embed = pos_embed.permute(0, 2, 1, 3, 4).contiguous()
         pos_embed = pos_embed.view(
-            max_num_tiles_x, max_num_tiles_y, n_tokens_per_tile, embed_dim
+            tgt_max_num_tiles,
+            tgt_max_num_tiles,
+            int(tgt_patch_grid_size**2),
+            embed_dim,
         )
 
         # interpolate cls token
@@ -404,49 +423,53 @@ class TilePositionalEmbedding(nn.Module):
             ValueError: if after interpolation, the shape of the loaded embedding is not compatible with the current embedding.
         """
 
-        if hasattr(self, "embedding"):
-            embedding = state_dict.get(prefix + "embedding")
+        embedding = state_dict.get(prefix + "embedding")
 
-            # Error if shape is not compatible
+        if embedding is not None:
+
+            # ckpt pos emb
             (
                 tgt_max_num_tiles_x,
                 tgt_max_num_tiles_y,
                 tgt_num_tokens,
                 tgt_emb,
             ) = self.embedding.shape
+
+            # instantiated pos emb
             (
                 inpt_max_num_tiles_x,
                 inpt_max_num_tiles_y,
                 inpt_num_tokens,
                 inpt_emb,
             ) = state_dict[prefix + "embedding"].shape
+
+            # Error if shape is not compatible
+            # Only the first two dimension can be different
             if inpt_num_tokens != tgt_num_tokens or inpt_emb != tgt_emb:
                 raise ValueError(
                     "Expected embedding shape to be (..., num_tokens, tgt_emb) to match"
                     f" but found shapes {self.embedding.shape} and {state_dict[prefix+'embedding'].shape}"
                 )
 
-            # Error if shape is not compatible
+            # input must be a square
             if inpt_max_num_tiles_x != inpt_max_num_tiles_y:
                 raise ValueError(
                     "Expected max_num_tiles_x, max_num_tiles_y to be equal but found, but found"
                     f"(max_num_tiles_x, max_num_tiles_y, 1, embed_dim) = {self.embedding.shape}"
                 )
 
-            # interpolate
+            # resize ckpt to match instantiated shape
             embedding_new = self._dynamic_resize(
                 embedding, tgt_num_tiles=tgt_max_num_tiles_x
             )
 
-            # Error if shape after interpolation is not the same
+            # update state dict
+            state_dict[prefix + "embedding"] = embedding_new
             if embedding_new.shape != self.embedding.shape:
                 raise ValueError(
                     "Expected embedding shape and embedding_new.shape to match"
                     f" but found shapes {self.embedding.shape} and {embedding_new.shape}"
                 )
-
-            # assign
-            state_dict[prefix + "embedding"] = embedding_new
 
     @staticmethod
     def _dynamic_resize(embedding: torch.Tensor, tgt_num_tiles: int) -> torch.Tensor:
