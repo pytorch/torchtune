@@ -98,8 +98,8 @@ class TestRecipeConfigs:
         cfg = _merge_yaml_and_cli_args(yaml_args, cli_args)
 
         assert cfg.device == "cuda"
-        if cfg.get("_enable_activation_offloading", False):
-            cfg.pop("_enable_activation_offloading")
+        if cfg.get("enable_activation_offloading", False):
+            cfg.pop("enable_activation_offloading")
 
         cfg.device = "meta"
         cfg.output_dir = str(tmpdir)
