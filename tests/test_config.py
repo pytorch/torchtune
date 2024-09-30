@@ -93,10 +93,18 @@ class TestRecipeConfigs:
         )
 
         yaml_args, cli_args = parser.parse_known_args(
-            args=["--config"] + [str(config_file_path)] + ["device=meta"]
+            args=["--config"] + [str(config_file_path)]
         )
         cfg = _merge_yaml_and_cli_args(yaml_args, cli_args)
 
+        assert cfg.device == "cuda"
+        if cfg.get("_enable_activation_offloading", False):
+            assert (
+                cfg.device == "cuda"
+            ), "enable_activation_offloading should only be enabled for training on CUDA"
+            cfg.pop("_enable_activation_offloading")
+
+        cfg.device = "meta"
         cfg.output_dir = str(tmpdir)
         self.validate_checkpointer(cfg.checkpointer)
         self.validate_tokenizer(cfg.tokenizer)
