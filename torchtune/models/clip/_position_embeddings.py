@@ -133,9 +133,6 @@ class TiledTokenPositionalEmbedding(nn.Module):
         inpt_pos_embed = state_dict.get(prefix + "local_token_positional_embedding")
         if inpt_pos_embed is not None:
 
-            # ckpt pos emb
-            inpt_n_tokens_per_tile, inpt_embed_dim = inpt_pos_embed.shape
-
             # instantiated pos emb
             (
                 tgt_n_tokens_per_tile,
@@ -144,9 +141,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
 
             # resize ckpt to match instantiated shape
             inpt_pos_embed = self._resize_local_position_embedding(
-                inpt_pos_embed,
-                tgt_n_tokens_per_tile=tgt_n_tokens_per_tile,
-                inpt_n_tokens_per_tile=inpt_n_tokens_per_tile,
+                inpt_pos_embed, tgt_n_tokens_per_tile=tgt_n_tokens_per_tile
             )
 
             # update state dict
@@ -191,20 +186,38 @@ class TiledTokenPositionalEmbedding(nn.Module):
                     f"after interpolation. Expected shape {self.global_token_positional_embedding.shape}."
                 )
 
+    @staticmethod
     def _resize_local_position_embedding(
-        self,
-        inpt_pos_embed: torch.Tensor,
-        tgt_n_tokens_per_tile: int,
-        inpt_n_tokens_per_tile: int,
+        inpt_pos_embed: torch.Tensor, tgt_n_tokens_per_tile: int
     ) -> torch.Tensor:
         """
-        Resize position embedding for vision encoder.
-        Original position embedding is [n_tiles * n_tiles + 1, dim]
-        New position embedding will be [grid_size[0] * grid_size[1] + 1, dim]
+        Interpolates the local position embedding for a vision encoder to accommodate
+        a different number of tokens per tile. This is the only dimension that
+        changes during interpolation.
+
+        Args:
+            inpt_pos_embed (torch.Tensor): The position embeddings tensor to be resized. It
+                has shape [n_tiles * n_tiles + 1, dim], where the first token is the CLS token.
+            tgt_n_tokens_per_tile (int): The target number of tokens per tile.
+
+        Returns:
+            torch.Tensor: The resized position embeddings tensor of shape
+                [tgt_n_tokens_per_tile * tgt_n_tokens_per_tile + 1, dim].
+
+        Example:
+            >>> import torch
+            >>> import math
+            >>> inpt_pos_embed = torch.randn((10*10+1, 64))  # Example input tensor
+            >>> tgt_n_tokens_per_tile = 20  # Target number of tokens per tile
+            >>> resized_pos_embed = _resize_local_position_embedding(inpt_pos_embed, tgt_n_tokens_per_tile)
+            >>> print(resized_pos_embed.shape)
+            torch.Size([20*20+1, 64])
         """
         # inverse n_tokens_per_tile = patch_grid_size**2 + 1, where +1 is the cls token
-        tgt_patch_grid_size = int(math.sqrt(tgt_n_tokens_per_tile - 1))
+        inpt_n_tokens_per_tile, inpt_embed_dim = inpt_pos_embed.shape
         inpt_patch_grid_size = int(math.sqrt(inpt_n_tokens_per_tile - 1))
+
+        tgt_patch_grid_size = int(math.sqrt(tgt_n_tokens_per_tile - 1))
 
         # split tokens between cls and img tokens.
         # we don't want to interpolate cls token.
@@ -213,14 +226,9 @@ class TiledTokenPositionalEmbedding(nn.Module):
             inpt_pos_embed[1:],  # image tokens
         )
 
-        # local_pos_emb has shape [self.n_tokens_per_tile, embed_dim]
-        # we reshape tokens_per_tile to be [inpt_patch_grid_size, inpt_patch_grid_size, -1]
-        # since tokens_per_tile == inpt_patch_grid_size**2 + 1 (cls token)
-        # we add 1 to the first dim because interpolate sees it as batch size.
-        # Finally we permute from [1, inpt_patch_grid_size, inpt_patch_grid_size, embed_dim]
-        # to [1, embed_dim, grig_patch_grid_size, inpt_patch_grid_size]
-        # because only the last 2 dims get interpolated by F.interpolate
-        # yielding the output shape [1, embed_dim, inpt_patch_grid_size, inpt_patch_grid_size]
+        # we reshape n_tokens_per_tile --> (inpt_patch_grid_size, inpt_patch_grid_size)
+        # and permute to have inpt_patch_grid_size as the last two dimensions
+        # we also add a batch dim to the tensor, so that we can use F.interpolate
         inpt_pos_embed = inpt_pos_embed.reshape(
             1, inpt_patch_grid_size, inpt_patch_grid_size, -1
         ).permute(0, 3, 1, 2)
@@ -232,7 +240,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
             align_corners=True,
         )
 
-        # reshape back to [1, inpt_n_tokens_per_tile, embed_dim]
+        # reshape back to [1, tokens_per_tile, embed_dim]
         inpt_pos_embed = inpt_pos_embed.permute(0, 2, 3, 1).reshape(
             1, tgt_n_tokens_per_tile - 1, -1
         )
@@ -243,17 +251,38 @@ class TiledTokenPositionalEmbedding(nn.Module):
         inpt_pos_embed = torch.cat([cls_token, inpt_pos_embed], dim=0)
         return inpt_pos_embed
 
+    @staticmethod
     def _resize_global_position_embedding(
-        self,
         global_pos_embed: torch.Tensor,
         tgt_max_num_tiles: int,
         tgt_patch_grid_size: int,
     ) -> torch.Tensor:
         """
-        Takes a global position embedding for vision encoder and resizes it to new size.
-        Input: global position embedding of shape [x_old, y_old, old_grid_size[0] * old_grid_size[1] + 1, dim]
-        Returns: global position embedding of shape [x_scale, y_scale, grid_size[0] * grid_size[1] + 1, dim]
-        Here x_scale and y_scale are the number of tiles along x-axis and y-axis respectively.
+        Interpolates the global position embedding for a vision encoder to accommodate new grid dimensions.
+        The embedding dimension is not changed during interpolation, only max_num_tiles and num_tokens_per_tile.
+
+        Args:
+            global_pos_embed (torch.Tensor): The input global position embeddings tensor of shape
+                [max_num_tiles_x, max_num_tiles_y, num_tokens_per_tile, embed_dim],
+                where num_tokens_per_tile = inpt_patch_grid_size * inpt_patch_grid_size + 1, and
+                the first token is the CLS token.
+            tgt_max_num_tiles (int): The target maximum number of tiles along one dimension (assumed square grid).
+            tgt_patch_grid_size (int): The target size of each patch grid, i.e., the square root of the number of tokens
+                per tile, excluding the class token.
+
+        Returns:
+            torch.Tensor: The resized global position embeddings tensor of shape
+                [tgt_max_num_tiles, tgt_max_num_tiles, tgt_patch_grid_size * tgt_patch_grid_size + 1, embed_dim].
+
+        Example:
+            >>> import torch
+            >>> global_pos_embed = torch.arange(3*3*(2*2+1)*4).reshape((3, 3, 2*2+1, 4))  # Example input tensor
+            >>> tgt_max_num_tiles = 2  # Target maximum number of tiles
+            >>> tgt_patch_grid_size = 3  # Target patch grid size
+            >>> resized_global_pos_embed = (
+            >>> _resize_global_position_embedding(global_pos_embed, tgt_max_num_tiles, tgt_patch_grid_size))
+            >>> print(resized_global_pos_embed.shape)
+            torch.Size([2, 2, 3*3+1, 4])
         """
 
         # remove cls token to interpolate it separately
@@ -474,12 +503,11 @@ class TilePositionalEmbedding(nn.Module):
     @staticmethod
     def _dynamic_resize(embedding: torch.Tensor, tgt_num_tiles: int) -> torch.Tensor:
         """
-        Interpolates positional embeddings to accomodate different number of tiles.
+        Interpolates positional embeddings to accomodate a different max_num_tiles.
 
-        self.embedding is of shape [max_num_tiles, max_num_tiles, 1, embed_dim].
-
-        This resize expects (..., 1, embed_dim) to remain unchanged, so it will only interpolate
-        the first two dimensions of self.embedding, i.e. [max_num_tiles, max_num_tiles].
+        self.embedding is of shape [max_num_tiles, max_num_tiles, 1, embed_dim]. This resize
+        will only interpolate the first two dimensions of self.embedding,
+        i.e. [max_num_tiles, max_num_tiles].
 
         Args:
             embedding (torch.Tensor): torch.Tensor with shape (max_num_tiles, max_num_tiles, 1, embed_dim
@@ -490,6 +518,7 @@ class TilePositionalEmbedding(nn.Module):
 
         Example:
             >>> import torch
+            >>> # create dummy embedding
             >>> embedding = torch.arange(2*2*2*2).reshape(2, 2, 2, 2).float()
             >>> resized_embed = _dynamic_resize(embedding, tgt_num_tiles=1)
             >>> print(resized_embed.shape)
