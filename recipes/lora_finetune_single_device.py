@@ -155,8 +155,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._enable_activation_offloading = cfg.get(
             "enable_activation_offloading", False
         )
-
-        if self._enable_activation_offloading and self._device.type != "CUDA":
+        if self._enable_activation_offloading and self._device.type != "cuda":
             raise RuntimeError(
                 "enable_activation_offloading should only be enabled for training on CUDA"
             )
