@@ -106,10 +106,8 @@ def llama3_vision_meta_to_tune(
 
     # Calculate fusion_interval: layer interval where cross attention layers are fused
     num_layers = max(_layer_num(k) for k in state_dict if "layers" in k) + 1
-    # Get the number of unique fusion layers.
-    # Keys have the form decoder.fusion_layer.i. ... where i is the layer number
-    num_fusion_layers = len(
-        set([k.split(".")[2] for k in state_dict if "fusion_layer" in k])
+    num_fusion_layers = (
+        max(_layer_num(k) for k in state_dict if "cross_attention_layers" in k) + 1
     )
     assert (
         num_layers % num_fusion_layers == 0
@@ -150,6 +148,8 @@ def llama3_vision_tune_to_meta(
 
     # Calculate fusion_interval: layer interval where cross attention layers are fused
     num_layers = max(_layer_num(k) for k in state_dict if "layers" in k) + 1
+    # Get the number of unique fusion layers.
+    # Keys have the form decoder.fusion_layer.i. ... where i is the layer number
     num_fusion_layers = len(
         set([k.split(".")[2] for k in state_dict if "fusion_layer" in k])
     )
