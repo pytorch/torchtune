@@ -11,10 +11,6 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-# TODO (@Felipe): add load hooks + interpolation on positional encodings,
-# so max_num_tiles can be variable and a trained model can be adapted to a
-# new value.
-
 
 class TokenPositionalEmbedding(nn.Module):
     """
@@ -56,7 +52,9 @@ class TokenPositionalEmbedding(nn.Module):
 class TiledTokenPositionalEmbedding(nn.Module):
     """
 
-    Token positional embedding for tiled images. There are two positional embeddings in this module:
+    Token positional embedding for tiled images, different for every tile, different for every token.
+
+    There are two positional embeddings in this module:
 
     * local_token_positional_embedding: same for every tile, different for every token. Equivalent \
         to :class:`torchtune.models.clip._position_embeddings.TokenPositionalEmbedding`, but gated.
@@ -113,9 +111,11 @@ class TiledTokenPositionalEmbedding(nn.Module):
     ) -> None:
         """
         Interpolates positional embeddings to accomodate different number of tiles
-        and tokens per tile.
+        and tokens per tile, in case the model was instantiated with different
+        settings than the one you are loading the state dict from.
 
-        For more info, check self._dynamic_resize function.
+        For more info, please check self._resize_local_position_embedding and
+        self._resize_global_position_embedding functions.
 
         Args:
             state_dict (Dict[str, Any]): The state dict to load.
@@ -124,13 +124,24 @@ class TiledTokenPositionalEmbedding(nn.Module):
             **kwargs (Dict[str, Any]): Additional keyword arguments.
 
         Raises:
+            ValueError: if loaded local or global embedding n_tokens_per_tile is not derived
+                from a squared grid.
             ValueError: if after interpolation, the shape of the loaded local embedding
-                 is not compatible with the current embedding.
+                is not compatible with the current embedding.
             ValueError: if after interpolation, the shape of the loaded global embedding
-                 is not compatible with the current embedding.
+                is not compatible with the current embedding.
         """
+        # local
         inpt_pos_embed = state_dict.get(prefix + "local_token_positional_embedding")
         if inpt_pos_embed is not None:
+
+            # sanity check
+            inpt_n_tokens_per_tile, inpt_embed_dim = inpt_pos_embed.shape
+            if math.sqrt(inpt_n_tokens_per_tile - 1) % 1 != 0:
+                raise ValueError(
+                    f"Loaded local positional embedding has shape {inpt_n_tokens_per_tile=}, "
+                    f"which indicates a grid_size that is not squared. This is currently not supported."
+                )
 
             # instantiated pos emb
             (
@@ -152,12 +163,22 @@ class TiledTokenPositionalEmbedding(nn.Module):
                     f"after interpolation. Expected shape {self.local_token_positional_embedding.shape}."
                 )
 
-        # ckpt pos emb
+        # global
         inpt_global_pos_embed = state_dict.get(
             prefix + "global_token_positional_embedding"
         )
 
         if inpt_global_pos_embed is not None:
+
+            _, _, inpt_n_tokens_per_tile, _ = inpt_global_pos_embed.shape
+
+            # sanity check
+            if math.sqrt(inpt_n_tokens_per_tile - 1) % 1 != 0:
+                raise ValueError(
+                    f"Loaded local positional embedding has shape {inpt_n_tokens_per_tile=}, "
+                    f"which indicates a grid_size that is not squared. This is currently not supported."
+                )
+
             # instantiated pos emb
             (
                 tgt_max_num_tiles_x,
@@ -197,8 +218,8 @@ class TiledTokenPositionalEmbedding(nn.Module):
 
         Args:
             inpt_pos_embed (torch.Tensor): The position embeddings tensor to be resized. It
-                has shape [inpt_n_tokens_per_tile, emb_dim], where the first token is the CLS token
-                and inpt_n_tokens_per_tile = inpt_patch_grid_size**2 + 1.
+                has shape [n_tokens_per_tile, emb_dim], where the first token is the CLS token
+                and n_tokens_per_tile = patch_grid_size**2 + 1.
             tgt_patch_grid_size (int): The target size of each patch grid, i.e.,
                 the square root of the number of tokens per tile, excluding the class token.
 
@@ -226,9 +247,9 @@ class TiledTokenPositionalEmbedding(nn.Module):
             inpt_pos_embed[1:],  # image tokens
         )
 
-        # we reshape n_tokens_per_tile --> (inpt_patch_grid_size, inpt_patch_grid_size)
+        # we reshape n_tokens_per_tile - 1 --> (inpt_patch_grid_size, inpt_patch_grid_size)
         # and permute to have inpt_patch_grid_size as the last two dimensions
-        # we also add a batch dim to the tensor, so that we can use F.interpolate
+        # we also add a batch dim to the tensor, since F.interpolate expects it
         inpt_pos_embed = inpt_pos_embed.reshape(
             1, inpt_patch_grid_size, inpt_patch_grid_size, -1
         ).permute(0, 3, 1, 2)
@@ -246,9 +267,11 @@ class TiledTokenPositionalEmbedding(nn.Module):
         )
 
         # remove batch dim added previously
-        inpt_pos_embed = inpt_pos_embed[0]
+        inpt_pos_embed = inpt_pos_embed.squeeze(0)
 
+        # add cls token back in
         inpt_pos_embed = torch.cat([cls_token, inpt_pos_embed], dim=0)
+
         return inpt_pos_embed
 
     @staticmethod
@@ -307,19 +330,24 @@ class TiledTokenPositionalEmbedding(nn.Module):
             inpt_patch_grid_size,
             embed_dim,
         )
+
+        # combine max_num_tiles and patch_grid_size into one dimension
         pos_embed = pos_embed.permute(0, 2, 1, 3, 4).contiguous()
         pos_embed = pos_embed.reshape(
             max_num_tiles_x * inpt_patch_grid_size,
             max_num_tiles_y * inpt_patch_grid_size,
             embed_dim,
         )
-        pos_embed = pos_embed.unsqueeze(0)  # add batch dim for interpolation
 
-        # interpolate
+        # add batch dim for interpolation
+        pos_embed = pos_embed.unsqueeze(0)
+
         tgt_size = (
             int(tgt_max_num_tiles * tgt_patch_grid_size),
             int(tgt_max_num_tiles * tgt_patch_grid_size),
         )
+
+        # move to the last two dim for interpolation
         pos_embed = pos_embed.permute(0, 3, 1, 2)
         pos_embed = F.interpolate(
             pos_embed,
@@ -327,7 +355,9 @@ class TiledTokenPositionalEmbedding(nn.Module):
             mode="bilinear",
             align_corners=True,
         )
-        pos_embed = pos_embed.permute(0, 2, 3, 1)[0]
+
+        # return to original shape and remove batch dim
+        pos_embed = pos_embed.permute(0, 2, 3, 1).squeeze(0)
 
         # move it back in place
         pos_embed = pos_embed.view(
@@ -437,7 +467,9 @@ class TilePositionalEmbedding(nn.Module):
         **kwargs: Dict[str, Any],
     ):
         """
-        Interpolates positional embeddings to accomodate different number of tiles.
+        Interpolates positional embeddings to accomodate different number of tiles,
+        in case the model was instantiated with different
+        settings than the one you are loading the state dict from.
 
         For more info, check self._dynamic_resize function.
 
@@ -473,15 +505,13 @@ class TilePositionalEmbedding(nn.Module):
                 inpt_emb,
             ) = state_dict[prefix + "embedding"].shape
 
-            # Error if shape is not compatible
-            # Only the first two dimension can be different
+            # sanity check
             if inpt_num_tokens != tgt_num_tokens or inpt_emb != tgt_emb:
                 raise ValueError(
                     "Expected embedding shape to be (..., num_tokens, tgt_emb) to match"
                     f" but found shapes {self.embedding.shape} and {state_dict[prefix+'embedding'].shape}"
                 )
 
-            # input must be a square
             if inpt_max_num_tiles_x != inpt_max_num_tiles_y:
                 raise ValueError(
                     "Expected max_num_tiles_x, max_num_tiles_y to be equal but found, but found"
@@ -506,11 +536,8 @@ class TilePositionalEmbedding(nn.Module):
         embedding: torch.Tensor, tgt_num_tiles: int
     ) -> torch.Tensor:
         """
-        Interpolates positional embeddings to accomodate a different max_num_tiles.
-
-        self.embedding is of shape [max_num_tiles, max_num_tiles, 1, embed_dim]. This resize
-        will only interpolate the first two dimensions of self.embedding,
-        i.e. [max_num_tiles, max_num_tiles].
+        Interpolates positional embeddings to accomodate a different max_num_tiles. These
+        are the only dimensions that changes during interpolation.
 
         Args:
             embedding (torch.Tensor): torch.Tensor with shape (max_num_tiles, max_num_tiles, 1, embed_dim
@@ -527,6 +554,7 @@ class TilePositionalEmbedding(nn.Module):
             >>> print(resized_embed.shape)
             >>> torch.Size([1, 1, 2, 2])
         """
+        # set max_num_tiles to the last dimension
         embedding = embedding.permute(2, 3, 0, 1)
 
         embedding = F.interpolate(
@@ -535,7 +563,7 @@ class TilePositionalEmbedding(nn.Module):
             mode="bilinear",
             align_corners=True,
         )
-        # reshape the weights to the correct shape
+        # permute to the original shape
         embedding = embedding.permute(2, 3, 0, 1)
         return embedding
 
