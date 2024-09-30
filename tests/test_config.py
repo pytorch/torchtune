@@ -99,9 +99,6 @@ class TestRecipeConfigs:
 
         assert cfg.device == "cuda"
         if cfg.get("_enable_activation_offloading", False):
-            assert (
-                cfg.device == "cuda"
-            ), "enable_activation_offloading should only be enabled for training on CUDA"
             cfg.pop("_enable_activation_offloading")
 
         cfg.device = "meta"
