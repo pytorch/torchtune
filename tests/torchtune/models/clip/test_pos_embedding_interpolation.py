@@ -18,7 +18,7 @@ from torchtune.models.clip._position_embeddings import (
 tile_pos_emb_test_cases = [
     {
         "tgt_num_tiles": 1,
-        # [max_num_tiles, max_num_tiles, 1, embed_dim] -> (2, 2, 2, 3)
+        # [max_num_tiles, max_num_tiles, -1, embed_dim] -> (2, 2, 2, 3)
         "input_tensor": torch.tensor(
             [
                 [
@@ -35,7 +35,7 @@ tile_pos_emb_test_cases = [
     },
     {
         "tgt_num_tiles": 3,
-        # [max_num_tiles, max_num_tiles, 1, embed_dim] -> (2, 2, 1, 2)
+        # [max_num_tiles, max_num_tiles, -1, embed_dim] -> (2, 2, 1, 2)
         "input_tensor": torch.tensor(
             [[[[0.0, 1.0]], [[2.0, 3.0]]], [[[4.0, 5.0]], [[6.0, 7.0]]]]
         ),

@@ -79,7 +79,6 @@ class TiledTokenPositionalEmbedding(nn.Module):
         self, max_num_tiles: int, embed_dim: int, tile_size: int, patch_size: int
     ) -> None:
         super().__init__()
-        self.max_num_tiles = max_num_tiles
 
         patch_grid_size = tile_size // patch_size
         self.n_tokens_per_tile = patch_grid_size**2 + 1  # +1 for cls token
