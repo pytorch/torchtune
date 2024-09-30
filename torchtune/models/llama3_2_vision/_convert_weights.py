@@ -149,7 +149,7 @@ def llama3_vision_tune_to_meta(
     # Calculate fusion_interval: layer interval where cross attention layers are fused
     num_layers = max(_layer_num(k) for k in state_dict if "layers" in k) + 1
     num_fusion_layers = (
-        max(_layer_num(k) for k in state_dict if "cross_attention_layers" in k) + 1
+        max(_layer_num(k) for k in state_dict if "fusion_layer" in k) + 1
     )
     assert (
         num_layers % num_fusion_layers == 0
