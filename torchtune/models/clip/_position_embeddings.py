@@ -198,13 +198,14 @@ class TiledTokenPositionalEmbedding(nn.Module):
 
         Args:
             inpt_pos_embed (torch.Tensor): The position embeddings tensor to be resized. It
-                has shape [n_tiles * n_tiles + 1, dim], where the first token is the CLS token.
+                has shape [inpt_n_tokens_per_tile, emb_dim], where the first token is the CLS token
+                and inpt_n_tokens_per_tile = inpt_patch_grid_size**2 + 1.
             tgt_patch_grid_size (int): The target size of each patch grid, i.e.,
                 the square root of the number of tokens per tile, excluding the class token.
 
         Returns:
             torch.Tensor: The resized position embeddings tensor of shape
-                [tgt_n_tokens_per_tile * tgt_n_tokens_per_tile + 1, dim].
+                [tgt_patch_grid_size, dim].
 
         Example:
             >>> import torch
@@ -489,7 +490,7 @@ class TilePositionalEmbedding(nn.Module):
                 )
 
             # resize ckpt to match instantiated shape
-            embedding_new = self._dynamic_resize(
+            embedding_new = self._resize_position_embedding(
                 embedding, tgt_num_tiles=tgt_max_num_tiles_x
             )
 
@@ -502,7 +503,9 @@ class TilePositionalEmbedding(nn.Module):
                 )
 
     @staticmethod
-    def _dynamic_resize(embedding: torch.Tensor, tgt_num_tiles: int) -> torch.Tensor:
+    def _resize_position_embedding(
+        embedding: torch.Tensor, tgt_num_tiles: int
+    ) -> torch.Tensor:
         """
         Interpolates positional embeddings to accomodate a different max_num_tiles.
 

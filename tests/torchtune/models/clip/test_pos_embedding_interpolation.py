@@ -17,7 +17,8 @@ from torchtune.models.clip._position_embeddings import (
 # generated comparing vs fairinternal/internal-llama-models
 tile_pos_emb_test_cases = [
     {
-        "target_size": 1,
+        "tgt_num_tiles": 1,
+        # [max_num_tiles, max_num_tiles, 1, embed_dim] -> (2, 2, 2, 3)
         "input_tensor": torch.tensor(
             [
                 [
@@ -33,7 +34,8 @@ tile_pos_emb_test_cases = [
         "expected_output": torch.tensor([[[[0.0, 1.0, 2.0], [3.0, 4.0, 5.0]]]]),
     },
     {
-        "target_size": 3,
+        "tgt_num_tiles": 3,
+        # [max_num_tiles, max_num_tiles, 1, embed_dim] -> (2, 2, 1, 2)
         "input_tensor": torch.tensor(
             [[[[0.0, 1.0]], [[2.0, 3.0]]], [[[4.0, 5.0]], [[6.0, 7.0]]]]
         ),
@@ -50,6 +52,7 @@ tile_pos_emb_test_cases = [
 local_pos_emb_test_cases = [
     {
         "target_n_tokens_per_tile": 1,
+        # [inpt_n_tokens_per_tile, emb_dim] -> (5, 2)
         "input_tensor": torch.tensor(
             [[0.0, 1.0], [2.0, 3.0], [4.0, 5.0], [6.0, 7.0], [8.0, 9.0]]
         ),
@@ -57,6 +60,7 @@ local_pos_emb_test_cases = [
     },
     {
         "target_n_tokens_per_tile": 3,
+        # [inpt_n_tokens_per_tile, emb_dim] -> (5, 11)
         "input_tensor": torch.tensor([[0.0], [1.0], [2.0], [3.0], [4.0]]),
         "expected_output": torch.tensor(
             [
@@ -79,6 +83,7 @@ global_pos_emb_test_cases = [
     {
         "tgt_max_num_tiles": 2,
         "tgt_patch_grid_size": 2,
+        # [max_num_tiles, max_num_tiles, num_tokens_per_tile, embed_dim] -> (3, 3, 2, 1)
         "input_tensor": torch.tensor(
             [
                 [[[0.0], [1.0]], [[2.0], [3.0]], [[4.0], [5.0]]],
@@ -102,6 +107,7 @@ global_pos_emb_test_cases = [
     {
         "tgt_max_num_tiles": 1,
         "tgt_patch_grid_size": 1,
+        # [max_num_tiles, max_num_tiles, num_tokens_per_tile, embed_dim] -> (1, 1, 5, 2)
         "input_tensor": torch.tensor(
             [[[[0.0, 1.0], [2.0, 3.0], [4.0, 5.0], [6.0, 7.0], [8.0, 9.0]]]]
         ),
@@ -113,12 +119,12 @@ global_pos_emb_test_cases = [
 class TestPositionalEmbeddingsInterpolation:
     @pytest.mark.parametrize("params", tile_pos_emb_test_cases)
     def test_dynamic_resize(self, params):
-        target_size = params["target_size"]
+        tgt_num_tiles = params["tgt_num_tiles"]
         expected_output = params["expected_output"]
         embedding = params["input_tensor"]
 
-        resized_pos_embed = TilePositionalEmbedding._dynamic_resize(
-            embedding, target_size
+        resized_pos_embed = TilePositionalEmbedding._resize_position_embedding(
+            embedding, tgt_num_tiles
         )
 
         assert_expected(resized_pos_embed, expected_output, atol=1e-3, rtol=1e-4)
