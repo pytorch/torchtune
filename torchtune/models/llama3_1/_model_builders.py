@@ -35,7 +35,7 @@ def llama3_1_8b() -> TransformerDecoder:
         intermediate_dim=14336,
         attn_dropout=0.0,
         norm_eps=1e-5,
-        rope_base=500000.0,
+        rope_base=500_000,
     )
 
 
@@ -56,7 +56,7 @@ def llama3_1_70b() -> TransformerDecoder:
         intermediate_dim=28672,
         attn_dropout=0.0,
         norm_eps=1e-5,
-        rope_base=500000.0,
+        rope_base=500_000,
     )
 
 
@@ -77,7 +77,7 @@ def llama3_1_405b() -> TransformerDecoder:
         intermediate_dim=53248,
         attn_dropout=0.0,
         norm_eps=1e-5,
-        rope_base=500000.0,
+        rope_base=500_000,
     )
 
 
@@ -129,7 +129,7 @@ def lora_llama3_1_8b(
         intermediate_dim=14336,
         attn_dropout=0.0,
         norm_eps=1e-5,
-        rope_base=500000.0,
+        rope_base=500_000,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
@@ -186,7 +186,7 @@ def lora_llama3_1_70b(
         intermediate_dim=28672,
         attn_dropout=0.0,
         norm_eps=1e-5,
-        rope_base=500000.0,
+        rope_base=500_000,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
@@ -240,7 +240,7 @@ def lora_llama3_1_405b(
         intermediate_dim=53248,
         attn_dropout=0.0,
         norm_eps=1e-5,
-        rope_base=500000.0,
+        rope_base=500_000,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,

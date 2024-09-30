@@ -7,7 +7,7 @@
 import pytest
 import torch
 from tests.test_utils import assert_expected, fixed_init_model, fixed_init_tensor
-from torchtune.models.flamingo._component_builders import flamingo_vision_encoder
+from torchtune.models.llama3_2_vision._component_builders import llama3_2_vision_encoder
 
 
 @pytest.fixture
@@ -28,12 +28,12 @@ def transformer_config():
 
 @pytest.fixture
 def vision_transformer(transformer_config):
-    vision_transformer = flamingo_vision_encoder(**transformer_config).eval()
+    vision_transformer = llama3_2_vision_encoder(**transformer_config).eval()
     fixed_init_model(vision_transformer, min_val=-1, max_val=1)
     return vision_transformer
 
 
-class TestFlamingoVisionEncoder:
+class TestLlama3VisionEncoder:
     @pytest.fixture(autouse=True)
     def setup_class(self, transformer_config):
         self.batch_size = 1
@@ -54,7 +54,7 @@ class TestFlamingoVisionEncoder:
         )
         self.image = fixed_init_tensor(image.shape, min_val=-1, max_val=1)
 
-    def test_flamingo_vision_encoder(self, vision_transformer, transformer_config):
+    def test_llama3_2_vision_encoder(self, vision_transformer, transformer_config):
         # call model
         output = vision_transformer(self.image, self.aspect_ratio)
 
@@ -82,12 +82,12 @@ class TestFlamingoVisionEncoder:
         except ValueError:
             pass  # If ValueError is raised, the test passes
 
-    def test_flamingo_vision_encoder_single_tile(self, transformer_config):
+    def test_llama3_2_vision_encoder_single_tile(self, transformer_config):
         transformer_config = transformer_config.copy()
         transformer_config["max_num_tiles"] = 1
         images = self.image[:, :, [0], :, :, :]
 
-        model_with_multiple_tiles = flamingo_vision_encoder(**transformer_config).eval()
+        model_with_multiple_tiles = llama3_2_vision_encoder(**transformer_config).eval()
         fixed_init_model(model_with_multiple_tiles, min_val=-1, max_val=1)
 
         output = model_with_multiple_tiles(images, aspect_ratio=None)
@@ -103,13 +103,13 @@ class TestFlamingoVisionEncoder:
 
         assert_expected(output.mean(), torch.tensor(5.38046), atol=1e-3, rtol=1e-3)
 
-    def test_flamingo_no_hidden_layers(self, vision_transformer, transformer_config):
+    def test_llama3_2_no_hidden_layers(self, vision_transformer, transformer_config):
         # Modify the transformer_config for this specific test
         transformer_config = transformer_config.copy()
         transformer_config["clip_hidden_states"] = None
 
         # Reinitialize the model with the updated configuration
-        model_with_no_hidden = flamingo_vision_encoder(**transformer_config).eval()
+        model_with_no_hidden = llama3_2_vision_encoder(**transformer_config).eval()
         fixed_init_model(model_with_no_hidden, min_val=-1, max_val=1)
 
         # Call model

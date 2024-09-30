@@ -18,7 +18,7 @@ The following tasks are supported:
 - RLHF
     - :ref:`preference_dataset_usage_label`
 - Continued pre-training
-    - Text Completion Datasets
+    - :ref:`text_completion_dataset_usage_label`
 
 Data pipeline
 -------------
