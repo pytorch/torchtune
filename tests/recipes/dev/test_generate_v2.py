@@ -12,13 +12,14 @@ import pytest
 
 from tests.common import TUNE_PATH
 from tests.recipes.utils import MODEL_TEST_CONFIGS, write_hf_ckpt_config
-from tests.test_utils import CKPT_MODEL_PATHS, TOKENIZER_PATHS
+from tests.test_utils import CKPT_MODEL_PATHS, mps_ignored_test, TOKENIZER_PATHS
 
 
 class TestGenerateV2:
     """Recipe test suite for the generate_v2 recipe."""
 
     @pytest.mark.integration_test
+    @mps_ignored_test()
     def test_llama2_generate_results(self, caplog, monkeypatch, tmpdir):
         ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])

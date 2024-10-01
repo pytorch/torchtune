@@ -7,7 +7,7 @@
 import pytest
 
 import torch
-from tests.test_utils import fixed_init_model
+from tests.test_utils import fixed_init_model, mps_ignored_test
 
 from torchtune.generation._generation import (
     generate,
@@ -331,6 +331,7 @@ class TestGenerate:
     @pytest.mark.parametrize(
         "prompt", ["prompt_tokens_batched", "prompt_tokens_batched_left_padded"]
     )
+    @mps_ignored_test()
     def test_stop_tokens_batched(self, request, model, prompt, expected_tokens_batched):
         """
         Test to check if the `generate` function produces the right output when stop tokens are
@@ -362,6 +363,7 @@ class TestGenerate:
         "model",
         ["generation_model_no_kv_cache", "generation_model_kv_cache"],
     )
+    @mps_ignored_test()
     def test_stop_tokens(self, request, model, prompt_tokens, expected_tokens):
         """
         Test to check if the `generate` function produces the right output when stop tokens are
@@ -392,6 +394,7 @@ class TestGenerate:
         "model",
         ["generation_model_no_kv_cache", "generation_model_kv_cache_batched"],
     )
+    @mps_ignored_test()
     def test_stop_tokens_batched_uneven_stopping(
         self, request, model, prompt_tokens_batched
     ):
@@ -430,6 +433,7 @@ class TestGenerate:
         "model",
         ["generation_model_no_kv_cache", "generation_model_kv_cache_batched"],
     )
+    @mps_ignored_test()
     def test_stop_tokens_batched_uneven_stopping_left_padded(
         self, request, model, prompt_tokens_batched_left_padded
     ):
