@@ -282,6 +282,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
 
         return local_pos_embed
 
+    # TODO: Switchswitch to public method after 2.5 is stable
     @staticmethod
     def _resize_global_position_embedding(
         global_pos_embed: torch.Tensor,
@@ -467,6 +468,7 @@ class TilePositionalEmbedding(nn.Module):
         # Register load hook to interpolate positional embeddings
         self._register_load_state_dict_pre_hook(self._load_state_dict_hook)
 
+    # TODO: Switchswitch to public method after 2.5 is stable
     @torch.no_grad()
     def _load_state_dict_hook(
         self,
