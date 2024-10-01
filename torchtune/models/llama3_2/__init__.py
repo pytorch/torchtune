@@ -8,6 +8,7 @@ from ._component_builders import llama3_2, lora_llama3_2
 
 from ._model_builders import (  # noqa
     llama3_2_1b,
+    llama3_2_1b_pruned_12layers_80pMLP,
     llama3_2_3b,
     lora_llama3_2_1b,
     lora_llama3_2_3b,
@@ -18,6 +19,7 @@ from ._model_builders import (  # noqa
 __all__ = [
     "llama3_2",
     "llama3_2_1b",
+    "llama3_2_1b_pruned_12layers_80pMLP",
     "llama3_2_3b",
     "lora_llama3_2",
     "lora_llama3_2_1b",
