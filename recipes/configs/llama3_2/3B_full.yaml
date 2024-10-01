@@ -59,12 +59,12 @@ loss:
 max_steps_per_epoch: null
 gradient_accumulation_steps: 4
 
-
 # Training env
 device: cuda
 
 # Memory management
 enable_activation_checkpointing: True
+compile: False # set it to True for better memory and performance
 
 # Reduced precision
 dtype: bf16
