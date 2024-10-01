@@ -57,10 +57,26 @@ def load_module_from_path(module_name, path):
 
 class TestRecipeConfigs:
     def validate_tokenizer(self, tokenizer_cfg):
+        """
+        Tokenizers rely on availability of a pre-trained tokenizer file to
+        be correctly instantiate. Therefore the only valid exception which
+        should be raised when trying to instantiate the tokenizer should be
+        *inside* the constructor, after the init has accepted the configured args,
+        and we try load the configured tokenizer file.
+        """
         with pytest.raises(OSError, match="No such file or directory"):
             config.instantiate(tokenizer_cfg)
 
     def validate_checkpointer(self, checkpointer_cfg):
+        """
+        As above, checkpointers are dependent on availability of model weights.
+        However, for Meta and torchtune format checkpointers we can do better and mock
+        the function which attempts to load from disk.
+
+        HF checkpointers explicitly rely on loading and saving a `config.json` file from
+        checkpoint directories, so we can expect the only valid error to be raised here is
+        when this file isn't found.
+        """
         checkpointer_class = torchtune.config._utils._get_component_from_path(
             checkpointer_cfg["_component_"]
         )
