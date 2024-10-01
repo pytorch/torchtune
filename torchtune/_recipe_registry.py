@@ -86,7 +86,6 @@ _ALL_RECIPES = [
             Config(name="llama2/13B_full", file_path="llama2/13B_full.yaml"),
             Config(name="llama3/8B_full", file_path="llama3/8B_full.yaml"),
             Config(name="llama3_1/8B_full", file_path="llama3_1/8B_full.yaml"),
-            Config(name="llama3_2/1B_full", file_path="llama3_2/1B_full.yaml"),
             Config(name="llama3_2/3B_full", file_path="llama3_2/3B_full.yaml"),
             Config(name="llama3/70B_full", file_path="llama3/70B_full.yaml"),
             Config(name="llama3_1/70B_full", file_path="llama3_1/70B_full.yaml"),
@@ -272,7 +271,6 @@ _ALL_RECIPES = [
             Config(name="llama3_1/70B_lora", file_path="llama3_1/70B_lora.yaml"),
             Config(name="llama3/8B_lora", file_path="llama3/8B_lora.yaml"),
             Config(name="llama3_1/8B_lora", file_path="llama3_1/8B_lora.yaml"),
-            Config(name="llama3_2/1B_lora", file_path="llama3_2/1B_lora.yaml"),
             Config(name="llama3_2/3B_lora", file_path="llama3_2/3B_lora.yaml"),
             Config(
                 name="llama3_1/405B_qlora",
