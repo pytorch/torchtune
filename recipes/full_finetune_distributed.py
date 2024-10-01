@@ -129,6 +129,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        self._optimizer_in_bwd = cfg.optimizer_in_bwd
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -222,6 +223,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
+            optimizer_in_bwd=self._optimizer_in_bwd,
             opt_state_dict=checkpoint_dict[training.OPT_KEY]
             if self._resume_from_checkpoint
             else None,
@@ -456,19 +458,57 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         return model
 
     def _setup_optimizer(
-        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
+        self,
+        cfg_optimizer: DictConfig,
+        optimizer_in_bwd: bool = False,
+        opt_state_dict: Optional[Dict[str, Any]] = None,
     ) -> Optimizer:
-        optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
-        if opt_state_dict:
-            training.load_from_full_optimizer_state_dict(
-                optimizer,
-                opt_state_dict,
-                self._device,
-            )
+        if not optimizer_in_bwd:
+            optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
+            if opt_state_dict:
+                training.load_from_full_optimizer_state_dict(
+                    optimizer,
+                    opt_state_dict,
+                    self._device,
+                )
 
-        if self._is_rank_zero:
-            log.info("Optimizer is initialized.")
-        return optimizer
+            if self._is_rank_zero:
+                log.info("Optimizer is initialized.")
+            return optimizer
+        else:
+            optim_dict = {
+                param: config.instantiate(cfg_optimizer, [param])
+                for param in self._model.parameters()
+            }
+
+            def optim_hook(param) -> None:
+                optim_dict[param].step()
+                optim_dict[param].zero_grad()
+
+            for param in self._model.parameters():
+                param.register_post_accumulate_grad_hook(optim_hook)
+
+            self._optim_ckpt_wrapper = {
+                name: optim_dict[param]
+                for name, param in self._model.named_parameters()
+            }
+
+            optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
+            if opt_state_dict is not None:
+                for param in opt_state_dict.keys():
+                    if param not in self._optim_ckpt_wrapper:
+                        raise RuntimeError(
+                            f"Trying to load optimizer state for unexpected param {param}"
+                        )
+                    training.load_from_full_optimizer_state_dict(
+                        self._optim_ckpt_wrapper[param],
+                        opt_state_dict[param],
+                        self._device,
+                    )
+
+            if self._is_rank_zero:
+                log.info("In-backward optimizers are set up.")
+            return None
 
     def _setup_data(
         self,
@@ -549,19 +589,25 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             device=self._device,
         )
 
-        if intermediate_checkpoint:
+        if intermediate_checkpoint and not self._optimizer_in_bwd:
             opt_state_dict = training.get_full_optimizer_state_dict(
                 self._optimizer,
                 self._is_rank_zero,
                 device=self._device,
             )
+        elif intermediate_checkpoint and self._optimizer_in_bwd:
+            opt_state_dict = {
+                param: training.get_full_optimizer_state_dict(
+                    opt, self._is_rank_zero, device=self._device
+                )
+                for param, opt in self._optim_ckpt_wrapper.items()
+            }
         else:
             opt_state_dict = None
 
         # Now that we have the model and opt state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file
         if self._is_rank_zero:
-
             checkpoint_dict.update({training.MODEL_KEY: cpu_state_dict})
 
             # if training is in-progress, checkpoint the optimizer state and recipe state
@@ -576,7 +622,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         training.MAX_STEPS_KEY: self.max_steps_per_epoch,
                     }
                 )
-
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
                 epoch=epoch,
@@ -593,7 +638,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         _, rank = training.get_world_size_and_rank()
 
         # zero out the gradients before starting training
-        self._optimizer.zero_grad()
+        if not self._optimizer_in_bwd:
+            self._optimizer.zero_grad()
 
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
@@ -603,7 +649,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
@@ -661,8 +706,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                             self._model.parameters(),
                             max_norm=float(self._clip_grad_norm),
                         )
-                    self._optimizer.step()
-                    self._optimizer.zero_grad(set_to_none=True)
+                    if not self._optimizer_in_bwd:
+                        self._optimizer.step()
+                        self._optimizer.zero_grad(set_to_none=True)
 
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
@@ -681,7 +727,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
                             "loss": loss_to_log,
-                            "lr": self._optimizer.param_groups[0]["lr"],
+                            "lr": (
+                                list(self._optim_ckpt_wrapper.values())[0].param_groups[
+                                    0
+                                ]["lr"]
+                                if self._optimizer_in_bwd
+                                else self._optimizer.param_groups[0]["lr"]
+                            ),
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._log_peak_memory_stats:
