@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download meta-llama/Meta-Llama-3-70B-Instruct --hf-token <TOKEN> --output-dir /tmp/Meta-Llama-3-70B-Instruct --ignore-patterns "original/consolidated*"
+#   tune download meta-llama/Meta-Llama-3-70B-Instruct --output-dir /tmp/Meta-Llama-3-70B-Instruct --ignore-patterns "original/consolidated*"  --hf-token <TOKEN>
 #
 # This config needs 8 GPUs to run
 #   # tune run --nproc_per_node 8 lora_finetune_distributed --config llama3/70B_lora
@@ -89,6 +89,7 @@ loss:
 epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
+compile: False # set it to True for better memory and performance
 
 # Logging
 output_dir: /tmp/lora_finetune_output

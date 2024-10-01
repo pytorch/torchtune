@@ -51,10 +51,10 @@ teacher_checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
   checkpoint_files: [
-    hf_model_0001_0.pt,
-    hf_model_0002_0.pt,
-    hf_model_0003_0.pt,
-    hf_model_0004_0.pt
+    model-00001-of-00004.safetensors,
+    model-00002-of-00004.safetensors,
+    model-00003-of-00004.safetensors,
+    model-00004-of-00004.safetensors
   ]
   recipe_checkpoint: null
   output_dir: /tmp/Meta-Llama-3.1-8B-Instruct/

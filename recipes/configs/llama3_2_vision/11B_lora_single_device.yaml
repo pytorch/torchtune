@@ -68,7 +68,7 @@ lr_scheduler:
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 clip_grad_norm: 1.0
-compile: False
+compile: False # set it to True for better memory and performance
 
 # Training env
 device: cuda
