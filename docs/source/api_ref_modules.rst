@@ -33,6 +33,8 @@ Losses
     :nosignatures:
 
     loss.CEWithChunkedOutputLoss
+    loss.ForwardKLLoss
+    loss.ForwardKLWithChunkedOutputLoss
 
 Base Tokenizers
 ---------------
