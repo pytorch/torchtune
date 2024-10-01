@@ -5,6 +5,8 @@
 # LICENSE file in the root directory of this source tree.
 
 import copy
+import os
+import sys
 from typing import Any, Callable, Dict, Tuple
 
 from omegaconf import DictConfig, OmegaConf
@@ -88,6 +90,10 @@ def instantiate(
         return None
     if not OmegaConf.is_dict(config):
         raise ValueError(f"instantiate only supports DictConfigs, got {type(config)}")
+
+    # Ensure local imports are able to be instantiated
+    if os.getcwd() not in sys.path:
+        sys.path.append(os.getcwd())
 
     config_copy = copy.deepcopy(config)
     config_copy._set_flag(
