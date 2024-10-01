@@ -1,4 +1,4 @@
-# Config for single device LoRA finetuning in lora_finetune_single_device.py
+# Config for single device QLoRA finetuning in lora_finetune_single_device.py
 # using a Llama3.2 11B Vision Instruct model
 #
 # This config assumes that you've run the following command before launching:

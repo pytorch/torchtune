@@ -1,4 +1,4 @@
-# Config for multi-device LoRA finetuning in lora_finetune_distributed.py
+# Config for multi-device QLoRA finetuning in lora_finetune_distributed.py
 # using a Llama3.2 11B Vision Instruct model
 #
 # This config assumes that you've run the following command before launching:
