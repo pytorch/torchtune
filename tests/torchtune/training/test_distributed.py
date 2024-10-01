@@ -523,3 +523,223 @@ class TestFullyShardState(FSDPTest):
             result.append(None)
         torch.distributed.broadcast_object_list(result, src=0)
         return result[0]
+
+    @gpu_test(gpu_count=2)
+    @pytest.mark.skipif(
+        version.parse(torch.__version__).base_version < "2.4.0",
+        reason="torch >= 2.4 required",
+    )
+    def test_optimizer_in_backward(self):
+        """
+        Test optimizer_in_backward for distributed:
+        1. test the performance compared with the case without optimizer_in_backward
+        2. test the performance after state dict saving and loading
+        """
+        rank = self.rank
+        is_rank_zero = rank == 0
+        mlp_dim = 4
+        epochs = 5
+        torch.manual_seed(42)
+        # base_model is simple DDP
+        with torch.device("cuda"):
+            base_model = nn.Sequential(
+                MLP(mlp_dim),
+                nn.Sequential(MLP(mlp_dim), nn.Linear(mlp_dim, mlp_dim)),
+                MLP(mlp_dim),
+            )
+            base_optim = torch.optim.Adam(
+                base_model.parameters(), weight_decay=0.01, lr=0.01
+            )
+
+        non_backward_model = copy.deepcopy(base_model)
+        for module in non_backward_model:
+            fully_shard(module)
+        fully_shard(non_backward_model)
+        non_backward_optim = torch.optim.Adam(
+            non_backward_model.parameters(), weight_decay=0.01, lr=0.01
+        )
+
+        bwd_model_to_save = copy.deepcopy(base_model)
+        for module in bwd_model_to_save:
+            fully_shard(module)
+        fully_shard(bwd_model_to_save)
+
+        optim_dict = {
+            param: torch.optim.Adam([param], weight_decay=0.01, lr=0.01)
+            for param in bwd_model_to_save.parameters()
+        }
+
+        def optim_hook(param) -> None:
+            optim_dict[param].step()
+            optim_dict[param].zero_grad()
+
+        handles = []
+        for param in bwd_model_to_save.parameters():
+            handle = param.register_post_accumulate_grad_hook(optim_hook)
+            handles.append(handle)
+
+        optim_ckpt_wrapper = {
+            name: optim_dict[param]
+            for name, param in bwd_model_to_save.named_parameters()
+        }
+
+        # inp is different for each rank
+        torch.manual_seed(42 + rank)
+
+        # test get full state dict
+        for _ in range(epochs):
+            inp = torch.randn((2, mlp_dim), device="cuda")
+            base_loss = non_backward_model(inp).sum()
+            base_loss.backward()
+            non_backward_optim.step()
+            non_backward_optim.zero_grad()
+            bwd_loss = bwd_model_to_save(inp).sum()
+            bwd_model_to_save(inp).sum().backward()
+            self.assertEqual(base_loss, bwd_loss)
+
+        expected_model_sd = training.get_full_model_state_dict(
+            non_backward_model, is_rank_zero
+        )
+        expected_optim_sd = training.get_full_optimizer_state_dict(
+            non_backward_optim, is_rank_zero
+        )
+        model_full_sd = training.get_full_model_state_dict(
+            bwd_model_to_save, is_rank_zero
+        )
+        optim_full_sd = {
+            param: training.get_full_optimizer_state_dict(opt, is_rank_zero)
+            for param, opt in optim_ckpt_wrapper.items()
+        }
+
+        if is_rank_zero:
+            self.assertEqual(set(model_full_sd.keys()), set(expected_model_sd.keys()))
+            for key, value in model_full_sd.items():
+                self.assertEqual(value, expected_model_sd[key])
+            for index, optim_in_bwd in enumerate(optim_full_sd.values()):
+                self.assertEqual(len(optim_in_bwd["param_groups"]), 1)
+                self.assertEqual(
+                    len(optim_in_bwd["param_groups"]),
+                    len(expected_optim_sd["param_groups"]),
+                )
+                self.assertEqual(
+                    len(optim_in_bwd["param_groups"][0].keys()),
+                    len(expected_optim_sd["param_groups"][0].keys()),
+                )
+                for key, value in optim_in_bwd["param_groups"][0].items():
+                    if key == "params":
+                        self.assertEqual(
+                            len(optim_full_sd),
+                            len(expected_optim_sd["param_groups"][0][key]),
+                        )
+                    else:
+                        self.assertEqual(
+                            value, expected_optim_sd["param_groups"][0][key]
+                        )
+                # param info are sotred at ['state']
+                self.assertEqual(
+                    optim_in_bwd["state"][0], expected_optim_sd["state"][index]
+                )
+        else:
+            self.assertEqual(len(model_full_sd), 0)
+
+        # Remove hooks registered in the saved model
+        for handle in handles:
+            handle.remove()
+
+        # test model to load
+        with torch.device("meta"):
+            bwd_model_to_load = nn.Sequential(
+                MLP(mlp_dim),
+                nn.Sequential(MLP(mlp_dim), nn.Linear(mlp_dim, mlp_dim)),
+                MLP(mlp_dim),
+            )
+
+        for module in bwd_model_to_load:
+            fully_shard(module)
+        fully_shard(bwd_model_to_load)
+
+        training.load_from_full_model_state_dict(
+            bwd_model_to_load,
+            copy.deepcopy(bwd_model_to_save.state_dict()),
+            torch.device("cuda"),
+            is_rank_zero,
+        )
+
+        optim_dict_load = {
+            param: torch.optim.Adam([param], weight_decay=0.01, lr=0.01)
+            for param in bwd_model_to_load.parameters()
+        }
+
+        def optim_hook_load(param) -> None:
+            optim_dict_load[param].step()
+            optim_dict_load[param].zero_grad()
+
+        # register hooks for both save/load models for omparison
+        for param in bwd_model_to_load.parameters():
+            param.register_post_accumulate_grad_hook(optim_hook_load)
+        for param in bwd_model_to_save.parameters():
+            param.register_post_accumulate_grad_hook(optim_hook)
+
+        optim_ckpt_wrapper_to_load = {
+            name: optim_dict_load[param]
+            for name, param in bwd_model_to_load.named_parameters()
+        }
+        for name in optim_ckpt_wrapper_to_load.keys():
+            training.load_from_full_optimizer_state_dict(
+                optim_ckpt_wrapper_to_load[name],
+                copy.deepcopy(optim_ckpt_wrapper[name].state_dict()),
+                torch.device("cuda"),
+            )
+
+        for _ in range(epochs):
+            inp = torch.randn((2, mlp_dim), device="cuda")
+            base_loss = non_backward_model(inp).sum()
+            base_loss.backward()
+            non_backward_optim.step()
+            non_backward_optim.zero_grad()
+            bwd_loss = bwd_model_to_load(inp).sum()
+            bwd_loss.backward()
+            saved_loass = bwd_model_to_save(inp).sum()
+            saved_loass.backward()
+            self.assertEqual(base_loss, bwd_loss)
+            self.assertEqual(saved_loass, bwd_loss)
+
+        expected_model_sd = training.get_full_model_state_dict(
+            bwd_model_to_save, is_rank_zero
+        )
+        expected_optim_sd = {
+            param: training.get_full_optimizer_state_dict(opt, is_rank_zero)
+            for param, opt in optim_ckpt_wrapper.items()
+        }
+        model_full_sd = training.get_full_model_state_dict(
+            bwd_model_to_load, is_rank_zero
+        )
+        optim_full_sd = {
+            param: training.get_full_optimizer_state_dict(opt, is_rank_zero)
+            for param, opt in optim_ckpt_wrapper_to_load.items()
+        }
+
+        if is_rank_zero:
+            self.assertEqual(set(model_full_sd.keys()), set(expected_model_sd.keys()))
+            for key, value in model_full_sd.items():
+                self.assertEqual(value, expected_model_sd[key])
+            for param, optim_in_bwd in optim_full_sd.items():
+                self.assertEqual(len(optim_in_bwd["param_groups"]), 1)
+                self.assertEqual(
+                    len(optim_in_bwd["param_groups"]),
+                    len(expected_optim_sd[param]["param_groups"]),
+                )
+                self.assertEqual(
+                    len(optim_in_bwd["param_groups"][0].keys()),
+                    len(expected_optim_sd[param]["param_groups"][0].keys()),
+                )
+                for key, value in optim_in_bwd["param_groups"][0].items():
+                    self.assertEqual(
+                        value, expected_optim_sd[param]["param_groups"][0][key]
+                    )
+                # param info are sotred at ['state']
+                self.assertEqual(
+                    optim_in_bwd["state"][0], expected_optim_sd[param]["state"][0]
+                )
+        else:
+            self.assertEqual(len(model_full_sd), 0)
