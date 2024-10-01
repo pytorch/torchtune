@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download meta-llama/Meta-Llama-3-70B-Instruct --output-dir /tmp/Meta-Llama-3-70B-Instruct --hf-token <HF_TOKEN> --ignore-patterns "original/consolidated*"
+#   tune download meta-llama/Meta-Llama-3-70B-Instruct --output-dir /tmp/Meta-Llama-3-70B-Instruct  --ignore-patterns "original/consolidated*" --hf-token <HF_TOKEN>
 #
 # To launch on 8 devices, run the following command from root:
 #   tune run --nproc_per_node 8 full_finetune_distributed --config llama3/70B_full
@@ -79,15 +79,12 @@ epochs: 3
 optimizer:
   _component_: torch.optim.AdamW
   lr: 2e-5
-  fused: True  # Note: highly recommended to use fused=True optimizer flag
-  # with CPU offload for faster optimizer step.
   fused: True
 
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
-
 
 # Training env
 device: cuda
