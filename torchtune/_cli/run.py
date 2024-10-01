@@ -15,6 +15,7 @@ from typing import Optional
 
 import torchtune
 
+from torch.distributed.elastic.multiprocessing.errors import record
 from torch.distributed.run import get_args_parser as get_torchrun_args_parser, run
 from torchtune._cli.subcommand import Subcommand
 from torchtune._recipe_registry import Config, get_all_recipes, Recipe
@@ -78,6 +79,7 @@ For a list of all possible recipes, run `tune ls`."""
                 continue
             self._parser._add_action(action)
 
+    @record
     def _run_distributed(self, args: argparse.Namespace):
         """Run a recipe with torchrun."""
         # TODO (rohan-varma): Add check that nproc_per_node <= cuda device count. Currently,
