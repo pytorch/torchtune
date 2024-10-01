@@ -376,7 +376,7 @@ def llama3_vision_tune_to_hf(
 
     def _permute(t, n_heads):
         return (
-            t.view(n_heads, 2, head_dim // 2, dim)
+            t.view(n_heads, head_dim // 2, 2, dim)
             .transpose(1, 2)
             .reshape((head_dim * n_heads), dim)
         )
@@ -393,9 +393,9 @@ def llama3_vision_tune_to_hf(
                     new_layer += 1  # hf treats the fusion_layer as an additional layer
                 key_lst[3] = str(new_layer)
                 new_key = ".".join(key_lst)
-            if "q_proj" in key and "cross_attn" not in key:
+            if "q_proj" in key and "cross_attn" not in new_key:
                 value = _permute(value, num_heads)
-            elif "k_proj" in key and "cross_attn" not in key:
+            elif "k_proj" in key and "cross_attn" not in new_key:
                 value = _permute(value, num_kv_heads)
             elif key == "decoder.tok_embeddings.weight":
                 learned_embedding = state_dict[
@@ -423,7 +423,7 @@ def llama3_vision_tune_to_hf(
                     pos_embedding[i + 1, : h * w] = value[:h, :w].reshape(
                         h * w, num_embeds, encoder_dim
                     )
-                value = pos_embedding
+                value = pos_embedding.flatten(1)
 
         converted_state_dict[new_key] = value
     return converted_state_dict
