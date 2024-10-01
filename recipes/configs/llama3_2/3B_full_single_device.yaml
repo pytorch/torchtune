@@ -59,7 +59,7 @@ loss:
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
 optimizer_in_bwd: True
-compile: False
+compile: False # set it to True for better memory and performance
 
 # Training environment
 device: cuda
