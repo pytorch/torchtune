@@ -457,14 +457,14 @@ This token can be used to represent the whole input, instead of using a pooling 
 <p>To help the model “see” the whole image, we use positional embeddings. If your image
 was tile-cropped, then you need to use tile positional embeddings:</p>
 <ul class="simple">
-<li><p>token_pos_embedding (tiled): <code class="xref py py-class docutils literal notranslate"><span class="pre">torchtune.models.clip._position_embeddings.TiledTokenPositionalEmbedding</span></code></p></li>
-<li><p>pre_tile_pos_embed: <code class="xref py py-class docutils literal notranslate"><span class="pre">torchtune.models.clip._position_embeddings.TilePositionalEmbedding</span></code></p></li>
-<li><p>post_tile_pos_embed: <code class="xref py py-class docutils literal notranslate"><span class="pre">torchtune.models.clip._position_embeddings.TilePositionalEmbedding</span></code></p></li>
+<li><p>token_pos_embedding (tiled): <a class="reference internal" href="torchtune.models.clip.TiledTokenPositionalEmbedding.html#torchtune.models.clip.TiledTokenPositionalEmbedding" title="torchtune.models.clip._position_embeddings.TiledTokenPositionalEmbedding"><code class="xref py py-class docutils literal notranslate"><span class="pre">torchtune.models.clip._position_embeddings.TiledTokenPositionalEmbedding</span></code></a></p></li>
+<li><p>pre_tile_pos_embed: <a class="reference internal" href="torchtune.models.clip.TilePositionalEmbedding.html#torchtune.models.clip.TilePositionalEmbedding" title="torchtune.models.clip._position_embeddings.TilePositionalEmbedding"><code class="xref py py-class docutils literal notranslate"><span class="pre">torchtune.models.clip._position_embeddings.TilePositionalEmbedding</span></code></a></p></li>
+<li><p>post_tile_pos_embed: <a class="reference internal" href="torchtune.models.clip.TilePositionalEmbedding.html#torchtune.models.clip.TilePositionalEmbedding" title="torchtune.models.clip._position_embeddings.TilePositionalEmbedding"><code class="xref py py-class docutils literal notranslate"><span class="pre">torchtune.models.clip._position_embeddings.TilePositionalEmbedding</span></code></a></p></li>
 </ul>
 <p>Otherwise, pre and post tile_pos_embed should be None and all you need is a simple
 token positional embedding:</p>
 <ul class="simple">
-<li><p>token_pos_embedding (not tiled): <code class="xref py py-class docutils literal notranslate"><span class="pre">torchtune.models.clip._position_embeddings.TokenPositionalEmbedding</span></code></p></li>
+<li><p>token_pos_embedding (not tiled): <a class="reference internal" href="torchtune.models.clip.TokenPositionalEmbedding.html#torchtune.models.clip.TokenPositionalEmbedding" title="torchtune.models.clip._position_embeddings.TokenPositionalEmbedding"><code class="xref py py-class docutils literal notranslate"><span class="pre">torchtune.models.clip._position_embeddings.TokenPositionalEmbedding</span></code></a></p></li>
 </ul>
 <p>All images will be considered as a stack of tiles, even if your image was not tile-cropped. In such cases,
 your image would be composed of a single tile.</p>
@@ -521,8 +521,8 @@ your image would be composed of a single tile.</p>
 <p>For the positional embeddings:</p>
 <p>Same for every tile, different for every token.</p>
 <ul class="simple">
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">torchtune.models.clip._position_embeddings.TokenPositionalEmbedding</span></code></p></li>
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">torchtune.models.clip._position_embeddings.TiledTokenPositionalEmbedding</span></code></p></li>
+<li><p><a class="reference internal" href="torchtune.models.clip.TokenPositionalEmbedding.html#torchtune.models.clip.TokenPositionalEmbedding" title="torchtune.models.clip._position_embeddings.TokenPositionalEmbedding"><code class="xref py py-class docutils literal notranslate"><span class="pre">torchtune.models.clip._position_embeddings.TokenPositionalEmbedding</span></code></a></p></li>
+<li><p><a class="reference internal" href="torchtune.models.clip.TiledTokenPositionalEmbedding.html#torchtune.models.clip.TiledTokenPositionalEmbedding" title="torchtune.models.clip._position_embeddings.TiledTokenPositionalEmbedding"><code class="xref py py-class docutils literal notranslate"><span class="pre">torchtune.models.clip._position_embeddings.TiledTokenPositionalEmbedding</span></code></a></p></li>
 </ul>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>|  1 |  2 |  3 |  4 |    |  1 |  2 |  3 |  4 |
 |  9 | 10 | 11 | 12 |    |  9 | 10 | 11 | 12 |
@@ -537,7 +537,7 @@ your image would be composed of a single tile.</p>
 </div>
 <p>Different for every tile, different for every token.</p>
 <ul class="simple">
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">torchtune.models.clip._position_embeddings.TiledTokenPositionalEmbedding</span></code></p></li>
+<li><p><a class="reference internal" href="torchtune.models.clip.TiledTokenPositionalEmbedding.html#torchtune.models.clip.TiledTokenPositionalEmbedding" title="torchtune.models.clip._position_embeddings.TiledTokenPositionalEmbedding"><code class="xref py py-class docutils literal notranslate"><span class="pre">torchtune.models.clip._position_embeddings.TiledTokenPositionalEmbedding</span></code></a></p></li>
 </ul>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>|  1 |  2 |    |  3 |  4 |    |  5 |  6 |    |  7 |  8 |
 |  9 | 10 |    | 11 | 12 |    | 13 | 14 |    | 15 | 16 |
@@ -554,7 +554,7 @@ your image would be composed of a single tile.</p>
 </div>
 <p>different for every tile, same for every token within a tile.</p>
 <ul class="simple">
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">torchtune.models.clip._position_embeddings.TilePositionalEmbedding</span></code></p></li>
+<li><p><a class="reference internal" href="torchtune.models.clip.TilePositionalEmbedding.html#torchtune.models.clip.TilePositionalEmbedding" title="torchtune.models.clip._position_embeddings.TilePositionalEmbedding"><code class="xref py py-class docutils literal notranslate"><span class="pre">torchtune.models.clip._position_embeddings.TilePositionalEmbedding</span></code></a></p></li>
 </ul>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>|  1 |  1 |  1 |  1 |    |  2 |  2 |  2 |  3 |
 |  1 |  1 |  1 |  1 |    |  2 |  2 |  2 |  3 |

@@ -885,6 +885,26 @@
 </tbody>
 </table>
 </section>
+<section id="clip">
+<h2>clip<a class="headerlink" href="#clip" title="Permalink to this heading">¶</a></h2>
+<p>Vision components to support multimodality using <a class="reference external" href="https://arxiv.org/abs/2103.00020">CLIP encoder</a>.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.clip.clip_vision_encoder.html#torchtune.models.clip.clip_vision_encoder" title="torchtune.models.clip.clip_vision_encoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clip.clip_vision_encoder</span></code></a></p></td>
+<td><p>Builds the vision encoder associated with the clip model.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.clip.TokenPositionalEmbedding.html#torchtune.models.clip.TokenPositionalEmbedding" title="torchtune.models.clip.TokenPositionalEmbedding"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clip.TokenPositionalEmbedding</span></code></a></p></td>
+<td><p>Token positional embedding for images, different for every token in an image.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.clip.TiledTokenPositionalEmbedding.html#torchtune.models.clip.TiledTokenPositionalEmbedding" title="torchtune.models.clip.TiledTokenPositionalEmbedding"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clip.TiledTokenPositionalEmbedding</span></code></a></p></td>
+<td><p>Token positional embedding for tiled images, different for every tile, different for every token.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.clip.TilePositionalEmbedding.html#torchtune.models.clip.TilePositionalEmbedding" title="torchtune.models.clip.TilePositionalEmbedding"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clip.TilePositionalEmbedding</span></code></a></p></td>
+<td><p>Positional embedding for tiles, different for every tile, same for every token within a tile.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
 </section>
 
 
@@ -940,6 +960,7 @@
 <li><a class="reference internal" href="#phi-3">phi-3</a></li>
 <li><a class="reference internal" href="#mistral">mistral</a></li>
 <li><a class="reference internal" href="#gemma">gemma</a></li>
+<li><a class="reference internal" href="#clip">clip</a></li>
 </ul>
 </li>
 </ul>
