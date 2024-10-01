@@ -102,6 +102,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
 
         self._register_load_state_dict_pre_hook(self._load_state_dict_hook)
 
+    @torch.no_grad()
     def _load_state_dict_hook(
         self,
         state_dict: Dict[str, Any],
@@ -131,12 +132,15 @@ class TiledTokenPositionalEmbedding(nn.Module):
             ValueError: if after interpolation, the shape of the loaded global embedding
                 is not compatible with the current embedding.
         """
-        # local
-        inpt_pos_embed = state_dict.get(prefix + "local_token_positional_embedding")
-        if inpt_pos_embed is not None:
+
+        # process local_token_positional_embedding
+        inpt_local_pos_embed = state_dict.get(
+            prefix + "local_token_positional_embedding"
+        )
+        if inpt_local_pos_embed is not None:
 
             # sanity check
-            inpt_n_tokens_per_tile, inpt_embed_dim = inpt_pos_embed.shape
+            inpt_n_tokens_per_tile, inpt_embed_dim = inpt_local_pos_embed.shape
             if math.sqrt(inpt_n_tokens_per_tile - 1) % 1 != 0:
                 raise ValueError(
                     f"Loaded local positional embedding has shape {inpt_n_tokens_per_tile=}, "
@@ -150,24 +154,28 @@ class TiledTokenPositionalEmbedding(nn.Module):
             ) = self.local_token_positional_embedding.shape
 
             # resize ckpt to match instantiated shape
-            inpt_pos_embed = self._resize_local_position_embedding(
-                inpt_pos_embed,
+            inpt_local_pos_embed = self._resize_local_position_embedding(
+                local_pos_embed=inpt_local_pos_embed,
                 tgt_patch_grid_size=int(math.sqrt(tgt_n_tokens_per_tile - 1)),
             )
 
             # update state dict
-            state_dict[prefix + "local_token_positional_embedding"] = inpt_pos_embed
-            if inpt_pos_embed.shape != self.local_token_positional_embedding.shape:
+            state_dict[
+                prefix + "local_token_positional_embedding"
+            ] = inpt_local_pos_embed
+            if (
+                inpt_local_pos_embed.shape
+                != self.local_token_positional_embedding.shape
+            ):
                 raise ValueError(
-                    f"Loaded local positional embedding has shape {inpt_pos_embed.shape}, "
+                    f"Loaded local positional embedding has shape {inpt_local_pos_embed.shape}, "
                     f"after interpolation. Expected shape {self.local_token_positional_embedding.shape}."
                 )
 
-        # global
+        # process global_token_positional_embedding
         inpt_global_pos_embed = state_dict.get(
             prefix + "global_token_positional_embedding"
         )
-
         if inpt_global_pos_embed is not None:
 
             _, _, inpt_n_tokens_per_tile, _ = inpt_global_pos_embed.shape
@@ -182,7 +190,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
             # instantiated pos emb
             (
                 tgt_max_num_tiles_x,
-                tgt_max_num_tiles_y,
+                tgt_max_num_tiles_y,  # not used, same as tgt_max_num_tiles_x
                 tgt_n_tokens_per_tile,
                 tgt_embed_dim,
             ) = self.global_token_positional_embedding.shape
@@ -209,7 +217,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
 
     @staticmethod
     def _resize_local_position_embedding(
-        inpt_pos_embed: torch.Tensor, tgt_patch_grid_size: int
+        local_pos_embed: torch.Tensor, tgt_patch_grid_size: int
     ) -> torch.Tensor:
         """
         Interpolates the local position embedding for a vision encoder to accommodate
@@ -217,7 +225,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
         changes during interpolation.
 
         Args:
-            inpt_pos_embed (torch.Tensor): The position embeddings tensor to be resized. It
+            local_pos_embed (torch.Tensor): The position embeddings tensor to be resized. It
                 has shape [n_tokens_per_tile, emb_dim], where the first token is the CLS token
                 and n_tokens_per_tile = patch_grid_size**2 + 1.
             tgt_patch_grid_size (int): The target size of each patch grid, i.e.,
@@ -225,54 +233,54 @@ class TiledTokenPositionalEmbedding(nn.Module):
 
         Returns:
             torch.Tensor: The resized position embeddings tensor of shape
-                [tgt_patch_grid_size, dim].
+                [tgt_n_tokens_per_tile, dim], where tgt_n_tokens_per_tile = tgt_patch_grid_size**2 + 1.
 
         Example:
             >>> import torch
             >>> import math
-            >>> inpt_pos_embed = torch.randn((10*10+1, 64))  # Example input tensor
+            >>> local_pos_embed = torch.randn((10*10+1, 64))  # Example input tensor
             >>> tgt_patch_grid_size = 20  # Target number of tokens per tile
-            >>> resized_pos_embed = _resize_local_position_embedding(inpt_pos_embed, tgt_patch_grid_size)
+            >>> resized_pos_embed = _resize_local_position_embedding(local_pos_embed, tgt_patch_grid_size)
             >>> print(resized_pos_embed.shape)
             torch.Size([20*20+1, 64])
         """
         # inverse n_tokens_per_tile = patch_grid_size**2 + 1, where +1 is the cls token
-        inpt_n_tokens_per_tile, inpt_embed_dim = inpt_pos_embed.shape
+        inpt_n_tokens_per_tile, inpt_embed_dim = local_pos_embed.shape
         inpt_patch_grid_size = int(math.sqrt(inpt_n_tokens_per_tile - 1))
 
         # split tokens between cls and img tokens.
         # we don't want to interpolate cls token.
-        cls_token, inpt_pos_embed = (
-            inpt_pos_embed[[0]],  # cls token
-            inpt_pos_embed[1:],  # image tokens
+        cls_token, local_pos_embed = (
+            local_pos_embed[[0]],  # cls token
+            local_pos_embed[1:],  # image tokens
         )
 
         # we reshape n_tokens_per_tile - 1 --> (inpt_patch_grid_size, inpt_patch_grid_size)
         # and permute to have inpt_patch_grid_size as the last two dimensions
         # we also add a batch dim to the tensor, since F.interpolate expects it
-        inpt_pos_embed = inpt_pos_embed.reshape(
+        local_pos_embed = local_pos_embed.reshape(
             1, inpt_patch_grid_size, inpt_patch_grid_size, -1
         ).permute(0, 3, 1, 2)
 
-        inpt_pos_embed = F.interpolate(
-            inpt_pos_embed,
+        local_pos_embed = F.interpolate(
+            local_pos_embed,
             size=[tgt_patch_grid_size, tgt_patch_grid_size],
             mode="bilinear",
-            align_corners=True,
+            align_corners=True,  # defaults from internal-llama-models
         )
 
         # reshape back to [1, tokens_per_tile, embed_dim]
-        inpt_pos_embed = inpt_pos_embed.permute(0, 2, 3, 1).reshape(
+        local_pos_embed = local_pos_embed.permute(0, 2, 3, 1).reshape(
             1, -1, inpt_embed_dim
         )
 
         # remove batch dim added previously
-        inpt_pos_embed = inpt_pos_embed.squeeze(0)
+        local_pos_embed = local_pos_embed.squeeze(0)
 
         # add cls token back in
-        inpt_pos_embed = torch.cat([cls_token, inpt_pos_embed], dim=0)
+        local_pos_embed = torch.cat([cls_token, local_pos_embed], dim=0)
 
-        return inpt_pos_embed
+        return local_pos_embed
 
     @staticmethod
     def _resize_global_position_embedding(
@@ -353,7 +361,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
             pos_embed,
             size=tgt_size,
             mode="bilinear",
-            align_corners=True,
+            align_corners=True,  # defaults from internal-llama-models
         )
 
         # return to original shape and remove batch dim
@@ -381,7 +389,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
             cls_embed,
             size=(tgt_max_num_tiles, tgt_max_num_tiles),
             mode="bilinear",
-            align_corners=True,
+            align_corners=True,  # defaults from internal-llama-models
         )
         cls_embed = cls_embed_resized.permute(2, 3, 0, 1)
 
@@ -459,6 +467,7 @@ class TilePositionalEmbedding(nn.Module):
         # Register load hook to interpolate positional embeddings
         self._register_load_state_dict_pre_hook(self._load_state_dict_hook)
 
+    @torch.no_grad()
     def _load_state_dict_hook(
         self,
         state_dict: Dict[str, Any],
@@ -520,7 +529,7 @@ class TilePositionalEmbedding(nn.Module):
 
             # resize ckpt to match instantiated shape
             embedding_new = self._resize_position_embedding(
-                embedding, tgt_num_tiles=tgt_max_num_tiles_x
+                embedding, tgt_max_num_tiles=tgt_max_num_tiles_x
             )
 
             # update state dict
@@ -533,7 +542,7 @@ class TilePositionalEmbedding(nn.Module):
 
     @staticmethod
     def _resize_position_embedding(
-        embedding: torch.Tensor, tgt_num_tiles: int
+        embedding: torch.Tensor, tgt_max_num_tiles: int
     ) -> torch.Tensor:
         """
         Interpolates positional embeddings to accomodate a different max_num_tiles. These
@@ -541,7 +550,7 @@ class TilePositionalEmbedding(nn.Module):
 
         Args:
             embedding (torch.Tensor): torch.Tensor with shape (max_num_tiles, max_num_tiles, 1, embed_dim
-            tgt_num_tiles (int): The number of tiles to resize to.
+            tgt_max_num_tiles (int): The number of tiles to resize to.
 
         Returns:
             torch.Tensor: The resized embedding.
@@ -550,7 +559,7 @@ class TilePositionalEmbedding(nn.Module):
             >>> import torch
             >>> # create dummy embedding
             >>> embedding = torch.arange(2*2*2*2).reshape(2, 2, 2, 2).float()
-            >>> resized_embed = _dynamic_resize(embedding, tgt_num_tiles=1)
+            >>> resized_embed = _dynamic_resize(embedding, tgt_max_num_tiles=1)
             >>> print(resized_embed.shape)
             >>> torch.Size([1, 1, 2, 2])
         """
@@ -559,7 +568,7 @@ class TilePositionalEmbedding(nn.Module):
 
         embedding = F.interpolate(
             embedding,
-            size=(tgt_num_tiles, tgt_num_tiles),
+            size=(tgt_max_num_tiles, tgt_max_num_tiles),
             mode="bilinear",
             align_corners=True,
         )
