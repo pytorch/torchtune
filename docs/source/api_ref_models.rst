@@ -320,16 +320,16 @@ To download the Gemma 7B model:
     gemma.gemma_tokenizer
 
 
-.. clip
-.. -----
+clip
+-----
 
-.. Vision components to support multimodality using `CLIP encoder <https://arxiv.org/abs/2103.00020>`_.
+Vision components to support multimodality using `CLIP encoder <https://arxiv.org/abs/2103.00020>`_.
 
-.. .. autosummary::
-..     :toctree: generated/
-..     :nosignatures:
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
 
-..     clip.clip_vision_encoder
-..     clip.TokenPositionalEmbedding
-..     clip.TiledTokenPositionalEmbedding
-..     clip.TilePositionalEmbedding
+    clip.clip_vision_encoder
+    clip.TokenPositionalEmbedding
+    clip.TiledTokenPositionalEmbedding
+    clip.TilePositionalEmbedding
