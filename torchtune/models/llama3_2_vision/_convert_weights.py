@@ -255,7 +255,7 @@ def llama3_vision_hf_to_tune(
 ) -> Dict[str, torch.Tensor]:
     """
     Convertor from HF state dict to torchtune state dict. This handles:
-    - Updateing the cross attention layer numbers
+    - Updating the cross attention layer numbers
     - skip loading the rope embeddings
     - reshaping q, k projections
     - reversing the precomputed vision positional embeddings
@@ -296,6 +296,7 @@ def llama3_vision_hf_to_tune(
             elif "k_proj" in key and "cross_attn" not in key:
                 value = _permute(value, num_kv_heads)
             elif new_key == "decoder.tok_embeddings.weight":
+                # Split embedding between learnable embeddings and original text embedding
                 learned_embedding = "decoder.tok_embeddings.fusion_embedding.weight"
                 converted_state_dict[learned_embedding] = value[vocab_size:]
                 value = value[:vocab_size]
@@ -304,7 +305,11 @@ def llama3_vision_hf_to_tune(
                 "tile_pos_embed.embedding" in new_key
                 or "global_token_positional_embedding" in new_key
             ):
-                # WARNING
+                # WARNING: META format postional embeddings contain embeddings that
+                # the model can never use (4 tiles -> 4 x 4 embeddings -> a 4 x 4 image would be 16 tiles).
+                # HF removes these extra embeddings, for us to convert to the META format we set those
+                # unused embeddings as 0 instead of the original random (untrained) values in the original
+                # META checkpoing
                 num_embeds = value.shape[-1] // encoder_dim // num_tiles
                 pos_embedding = torch.zeros(
                     num_tiles,
