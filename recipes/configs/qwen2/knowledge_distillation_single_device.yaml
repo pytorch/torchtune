@@ -39,7 +39,7 @@ checkpointer:
     model.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Qwen2-0.5B-Instruct-kd
+  output_dir: /tmp/Qwen2-0.5B-Instruct
   model_type: QWEN2
 
 teacher_checkpointer:
@@ -49,7 +49,7 @@ teacher_checkpointer:
     model.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Qwen2-1.5B-Instruct-lora-finetune
+  output_dir: /tmp/Qwen2-1.5B-Instruct
   model_type: QWEN2
 
 resume_from_checkpoint: False
