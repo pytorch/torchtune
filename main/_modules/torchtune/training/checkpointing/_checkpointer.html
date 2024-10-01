@@ -896,8 +896,26 @@
                 <span class="n">tie_word_embeddings</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;tie_word_embeddings&quot;</span><span class="p">],</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">LLAMA3_VISION</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-                <span class="s2">&quot;Safe tensors support for LLaMA3 Vision will be added soon. Pleaee use the FullModelMetaCheckpointer for now.&quot;</span>
+            <span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision._convert_weights</span> <span class="kn">import</span> <span class="p">(</span>
+                <span class="n">llama3_vision_hf_to_tune</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">text_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text_config&quot;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="n">vision_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;vision_config&quot;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">llama3_vision_hf_to_tune</span><span class="p">(</span>
+                <span class="n">merged_state_dict</span><span class="p">,</span>
+                <span class="n">num_heads</span><span class="o">=</span><span class="n">text_config</span><span class="p">[</span><span class="s2">&quot;num_attention_heads&quot;</span><span class="p">],</span>
+                <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">text_config</span><span class="p">[</span><span class="s2">&quot;num_key_value_heads&quot;</span><span class="p">],</span>
+                <span class="n">dim</span><span class="o">=</span><span class="n">text_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
+                <span class="n">head_dim</span><span class="o">=</span><span class="n">text_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;head_dim&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                <span class="n">vocab_size</span><span class="o">=</span><span class="n">text_config</span><span class="p">[</span><span class="s2">&quot;vocab_size&quot;</span><span class="p">],</span>
+                <span class="n">cross_attention_layers</span><span class="o">=</span><span class="n">text_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cross_attention_layers&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                <span class="n">encoder_dim</span><span class="o">=</span><span class="n">vision_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
+                <span class="n">tile_size</span><span class="o">=</span><span class="n">vision_config</span><span class="p">[</span><span class="s2">&quot;image_size&quot;</span><span class="p">],</span>
+                <span class="n">num_tiles</span><span class="o">=</span><span class="n">vision_config</span><span class="p">[</span><span class="s2">&quot;max_num_tiles&quot;</span><span class="p">],</span>
+                <span class="n">supported_aspect_ratios</span><span class="o">=</span><span class="n">vision_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                    <span class="s2">&quot;supported_aspect_ratios&quot;</span><span class="p">,</span> <span class="kc">None</span>
+                <span class="p">),</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_weights</span><span class="o">.</span><span class="n">hf_to_tune</span><span class="p">(</span>
@@ -966,8 +984,28 @@
                     <span class="n">tie_word_embeddings</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;tie_word_embeddings&quot;</span><span class="p">],</span>
                 <span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">LLAMA3_VISION</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-                    <span class="s2">&quot;Safe tensors support for LLaMA3 Vision will be added soon. Pleaee use the FullModelMetaCheckpointer for now.&quot;</span>
+                <span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision._convert_weights</span> <span class="kn">import</span> <span class="p">(</span>
+                    <span class="n">llama3_vision_tune_to_hf</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="n">text_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text_config&quot;</span><span class="p">,</span> <span class="p">{})</span>
+                <span class="n">vision_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;vision_config&quot;</span><span class="p">,</span> <span class="p">{})</span>
+                <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">llama3_vision_tune_to_hf</span><span class="p">(</span>
+                    <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">],</span>
+                    <span class="n">num_heads</span><span class="o">=</span><span class="n">text_config</span><span class="p">[</span><span class="s2">&quot;num_attention_heads&quot;</span><span class="p">],</span>
+                    <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">text_config</span><span class="p">[</span><span class="s2">&quot;num_key_value_heads&quot;</span><span class="p">],</span>
+                    <span class="n">dim</span><span class="o">=</span><span class="n">text_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
+                    <span class="n">head_dim</span><span class="o">=</span><span class="n">text_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;head_dim&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                    <span class="n">vocab_size</span><span class="o">=</span><span class="n">text_config</span><span class="p">[</span><span class="s2">&quot;vocab_size&quot;</span><span class="p">],</span>
+                    <span class="n">cross_attention_layers</span><span class="o">=</span><span class="n">text_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                        <span class="s2">&quot;cross_attention_layers&quot;</span><span class="p">,</span> <span class="kc">None</span>
+                    <span class="p">),</span>
+                    <span class="n">encoder_dim</span><span class="o">=</span><span class="n">vision_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
+                    <span class="n">tile_size</span><span class="o">=</span><span class="n">vision_config</span><span class="p">[</span><span class="s2">&quot;image_size&quot;</span><span class="p">],</span>
+                    <span class="n">num_tiles</span><span class="o">=</span><span class="n">vision_config</span><span class="p">[</span><span class="s2">&quot;max_num_tiles&quot;</span><span class="p">],</span>
+                    <span class="n">supported_aspect_ratios</span><span class="o">=</span><span class="n">vision_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                        <span class="s2">&quot;supported_aspect_ratios&quot;</span><span class="p">,</span> <span class="kc">None</span>
+                    <span class="p">),</span>
                 <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_weights</span><span class="o">.</span><span class="n">tune_to_hf</span><span class="p">(</span>
