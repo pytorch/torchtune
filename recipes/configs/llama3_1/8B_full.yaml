@@ -68,6 +68,7 @@ device: cuda
 # Memory management
 enable_activation_checkpointing: True
 custom_sharded_layers: ['tok_embeddings', 'output']
+compile: False # set it to True for better memory and performance
 
 # Reduced precision
 dtype: bf16
