@@ -30,6 +30,9 @@ CONFIG_ROOT = ROOT / "recipes" / "configs"
 
 
 def _get_all_configs(recipe_types):
+    """
+    Flattens all recipes and configs.
+    """
     recipes = get_all_recipes()
     return [
         (recipe.file_path, config.file_path)
@@ -40,6 +43,12 @@ def _get_all_configs(recipe_types):
 
 
 def load_module_from_path(module_name, path):
+    """
+    The recipes/ module is not importable, so this is a
+    bit of a hack so we can actually get the relevant recipe
+    class from the file. This means we can directly instantiate
+    the recipe rather than dispatch through runpy.
+    """
     spec = importlib.util.spec_from_file_location(module_name, path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -79,15 +88,25 @@ class TestRecipeConfigs:
     ):
         recipe_file_path = RECIPE_ROOT / recipe_file_path
         config_file_path = CONFIG_ROOT / config_file_path
+
+        # We need to find the recipe object from the .py file, e.g. FullFinetuneRecipeSingleDevice
+        # from full_finetune_single_device.py
+
+        # First, let's directly load the recipe .py
         module = load_module_from_path("recipe_module", recipe_file_path)
+
         recipe_class = None
+        # inspect is used here to find all of the available members in the module
         for name, obj in inspect.getmembers(module, inspect.isclass):
             if "Recipe" in name and "Interface" not in name:
+                # We now have a reference to the recipe class itself!
                 recipe_class = obj
                 break
 
         assert recipe_class is not None
 
+        # We're pulling out a lot of the config parsing logic we use to run recipes
+        # from the CLI here
         parser = config._parse.TuneRecipeArgumentParser(
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
@@ -103,10 +122,18 @@ class TestRecipeConfigs:
 
         cfg.device = "meta"
         cfg.output_dir = str(tmpdir)
+
+        # We need to validate disk-state dependent components separately and mock
+        # them in the recipe itself
         self.validate_checkpointer(cfg.checkpointer)
         self.validate_tokenizer(cfg.tokenizer)
+
+        # Slight hack since `optimizer.fused` will complain with meta device
         if "fused" in cfg.optimizer:
             cfg.optimizer.pop("fused")
+
+        # Now let's mock the tokenizer with an arbitrary tokenizer we use for other
+        # integration tests and is available when we download test artefacts
         cfg.tokenizer = OmegaConf.create(
             {
                 "_component_": "torchtune.models.llama3.llama3_tokenizer",
@@ -114,7 +141,17 @@ class TestRecipeConfigs:
             }
         )
 
+        # Let's grab the model state dict so we can mock the `load_checkpoint`
+        # function in the recipe. We do this by instantiating the configured model
+        # on meta device, pulling out the state dict, and mocking the recipe function return
+        # value to use this state dict.
         with torch.device("meta"):
+            # If we're using a model with LoRA/QLoRA enabled
+            # we need to prune any LoRA weights from the state dict
+            # (because we're always loading base model weights).
+            # We also need to mock `_register_state_dict_hook` for QLoRA models
+            # as this hook will attempt to copy model weights, which don't actually
+            # exist on meta device.
             if "lora" in cfg.model._component_:
                 with patch.object(
                     torchtune.modules.TransformerDecoder,
@@ -128,6 +165,8 @@ class TestRecipeConfigs:
             else:
                 state_dict = config.instantiate(cfg.model).state_dict()
 
+        # mock any calls to `datasets.load_dataset` since we don't actually want to
+        # load any datasets in - this is expensive!
         load_dataset.return_value = [0]
         with patch.object(
             recipe_class,
