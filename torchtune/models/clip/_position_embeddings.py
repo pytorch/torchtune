@@ -162,7 +162,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
             # update state dict
             state_dict[
                 prefix + "local_token_positional_embedding"
-            ] = inpt_local_pos_embed
+            ] = inpt_local_pos_embed.contiguous()
             if (
                 inpt_local_pos_embed.shape
                 != self.local_token_positional_embedding.shape
@@ -205,7 +205,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
             # update state dict
             state_dict[
                 prefix + "global_token_positional_embedding"
-            ] = inpt_global_pos_embed
+            ] = inpt_global_pos_embed.contiguous()
             if (
                 inpt_global_pos_embed.shape
                 != self.global_token_positional_embedding.shape
@@ -262,11 +262,15 @@ class TiledTokenPositionalEmbedding(nn.Module):
             1, inpt_patch_grid_size, inpt_patch_grid_size, -1
         ).permute(0, 3, 1, 2)
 
-        local_pos_embed = F.interpolate(
-            local_pos_embed,
+        tensor_embedding = local_pos_embed.to_local()
+        tensor_embedding = F.interpolate(
+            tensor_embedding,
             size=[tgt_patch_grid_size, tgt_patch_grid_size],
             mode="bilinear",
             align_corners=True,  # defaults from internal-llama-models
+        )
+        local_pos_embed = tensor2dtensor(
+            inpt_tensor=tensor_embedding, inpt_dtensor=local_pos_embed
         )
 
         # reshape back to [1, tokens_per_tile, embed_dim]
@@ -358,12 +362,15 @@ class TiledTokenPositionalEmbedding(nn.Module):
 
         # move to the last two dim for interpolation
         pos_embed = pos_embed.permute(0, 3, 1, 2)
-        pos_embed = F.interpolate(
-            pos_embed,
+
+        tensor_embedding = pos_embed.to_local()
+        tensor_embedding = F.interpolate(
+            tensor_embedding,
             size=tgt_size,
             mode="bilinear",
             align_corners=True,  # defaults from internal-llama-models
         )
+        pos_embed = tensor2dtensor(inpt_tensor=tensor_embedding, inpt_dtensor=pos_embed)
 
         # return to original shape and remove batch dim
         pos_embed = pos_embed.permute(0, 2, 3, 1).squeeze(0)
@@ -386,13 +393,16 @@ class TiledTokenPositionalEmbedding(nn.Module):
 
         # interpolate cls token
         cls_embed = cls_embed.permute(2, 3, 0, 1)
-        cls_embed_resized = F.interpolate(
-            cls_embed,
+        tensor_embedding = cls_embed.to_local()
+        tensor_embedding = F.interpolate(
+            tensor_embedding,
             size=(tgt_max_num_tiles, tgt_max_num_tiles),
             mode="bilinear",
             align_corners=True,  # defaults from internal-llama-models
         )
-        cls_embed = cls_embed_resized.permute(2, 3, 0, 1)
+        cls_embed = tensor2dtensor(inpt_tensor=tensor_embedding, inpt_dtensor=cls_embed)
+
+        cls_embed = cls_embed.permute(2, 3, 0, 1)
 
         # add cls token back in
         global_pos_embed = torch.cat([cls_embed, pos_embed], dim=2)
@@ -535,7 +545,7 @@ class TilePositionalEmbedding(nn.Module):
             )
 
             # update state dict
-            state_dict[prefix + "embedding"] = embedding_new
+            state_dict[prefix + "embedding"] = embedding_new.contiguous()
             if embedding_new.shape != self.embedding.shape:
                 raise ValueError(
                     "Expected embedding shape and embedding_new.shape to match"
@@ -568,12 +578,20 @@ class TilePositionalEmbedding(nn.Module):
         # set max_num_tiles to the last dimension
         embedding = embedding.permute(2, 3, 0, 1)
 
-        embedding = F.interpolate(
-            embedding,
+        # tensor_embedding = embedding.full_tensor()
+        tensor_embedding = embedding.to_local()
+        print("tensor_embedding.shape 1", tensor_embedding.shape)
+        print("embedding.shape 1", embedding.shape)
+        tensor_embedding = F.interpolate(
+            tensor_embedding,
             size=(tgt_max_num_tiles, tgt_max_num_tiles),
             mode="bilinear",
             align_corners=True,
         )
+
+        embedding = tensor2dtensor(inpt_tensor=tensor_embedding, inpt_dtensor=embedding)
+        print("tensor_embedding.shape 2", tensor_embedding.shape)
+        print("embedding.shape 2", embedding.shape)
         # permute to the original shape
         embedding = embedding.permute(2, 3, 0, 1)
         return embedding
@@ -603,3 +621,20 @@ class TilePositionalEmbedding(nn.Module):
             x[batch_idx, :n_non_padded_tiles, :, :] += pos_embed * self.gate.tanh()
 
         return x
+
+
+def tensor2dtensor(inpt_tensor, inpt_dtensor):
+    device_mesh = inpt_dtensor.device_mesh
+    placements = inpt_dtensor.placements
+    new_dtensor = torch.distributed.tensor.distribute_tensor(
+        inpt_tensor, device_mesh=device_mesh, placements=placements
+    )
+    # new_dtensor = torch.distributed.tensor.DTensor.from_local(
+    #     inpt_tensor.contiguous(),
+    #     device_mesh=device_mesh,
+    #     placements=placements
+    # )
+
+    print("device_mesh", device_mesh)
+    print("placements", placements)
+    return new_dtensor
