@@ -10,6 +10,7 @@ from typing import Any, Dict, Tuple
 import torch
 import torch.nn.functional as F
 from torch import nn
+from torch.distributed._tensor import distribute_tensor, DTensor
 
 
 class TokenPositionalEmbedding(nn.Module):
@@ -137,6 +138,11 @@ class TiledTokenPositionalEmbedding(nn.Module):
         inpt_local_pos_embed = state_dict.get(
             prefix + "local_token_positional_embedding"
         )
+        local_device = inpt_local_pos_embed.device
+        self.to_empty(device=local_device)
+        if isinstance(self.local_token_positional_embedding, DTensor):
+            inpt_local_pos_embed = self.local_token_positional_embedding.full_tensor()
+
         if inpt_local_pos_embed is not None:
 
             # sanity check
@@ -160,9 +166,16 @@ class TiledTokenPositionalEmbedding(nn.Module):
             )
 
             # update state dict
+            embedding_new_local = distribute_tensor(
+                inpt_local_pos_embed,
+                device_mesh=self.local_token_positional_embedding.device_mesh,
+                placements=self.local_token_positional_embedding.placements,
+            )
+
+            # update state dict
             state_dict[
                 prefix + "local_token_positional_embedding"
-            ] = inpt_local_pos_embed
+            ] = embedding_new_local
             if (
                 inpt_local_pos_embed.shape
                 != self.local_token_positional_embedding.shape
@@ -176,6 +189,10 @@ class TiledTokenPositionalEmbedding(nn.Module):
         inpt_global_pos_embed = state_dict.get(
             prefix + "global_token_positional_embedding"
         )
+        global_device = inpt_global_pos_embed.device
+        if isinstance(self.global_token_positional_embedding, DTensor):
+            inpt_global_pos_embed = self.global_token_positional_embedding.full_tensor()
+
         if inpt_global_pos_embed is not None:
 
             _, _, inpt_n_tokens_per_tile, _ = inpt_global_pos_embed.shape
@@ -203,9 +220,16 @@ class TiledTokenPositionalEmbedding(nn.Module):
             )
 
             # update state dict
+            embedding_new_global = distribute_tensor(
+                inpt_global_pos_embed,
+                device_mesh=self.global_token_positional_embedding.device_mesh,
+                placements=self.global_token_positional_embedding.placements,
+            )
+
+            # update state dict
             state_dict[
                 prefix + "global_token_positional_embedding"
-            ] = inpt_global_pos_embed
+            ] = embedding_new_global
             if (
                 inpt_global_pos_embed.shape
                 != self.global_token_positional_embedding.shape
@@ -497,7 +521,10 @@ class TilePositionalEmbedding(nn.Module):
         """
 
         embedding = state_dict.get(prefix + "embedding")
-
+        device = embedding.device
+        self.to_empty(device=device)
+        if isinstance(self.embedding, DTensor):
+            embedding = self.embedding.full_tensor()
         if embedding is not None:
 
             # ckpt pos emb
@@ -535,6 +562,12 @@ class TilePositionalEmbedding(nn.Module):
             )
 
             # update state dict
+            embedding_new = distribute_tensor(
+                embedding_new,
+                device_mesh=self.embedding.device_mesh,
+                placements=self.embedding.placements,
+            )
+
             state_dict[prefix + "embedding"] = embedding_new
             if embedding_new.shape != self.embedding.shape:
                 raise ValueError(
