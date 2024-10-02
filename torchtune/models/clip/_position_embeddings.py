@@ -140,7 +140,10 @@ class TiledTokenPositionalEmbedding(nn.Module):
         )
         local_device = inpt_local_pos_embed.device
         if isinstance(inpt_local_pos_embed, DTensor):
+            local_embed_is_sharded = True
             inpt_local_pos_embed = inpt_local_pos_embed.full_tensor()
+        else:
+            local_embed_is_sharded = False
 
         if inpt_local_pos_embed is not None:
 
@@ -164,7 +167,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
                 tgt_patch_grid_size=int(math.sqrt(tgt_n_tokens_per_tile - 1)),
             )
 
-            if isinstance(inpt_local_pos_embed, DTensor):
+            if local_embed_is_sharded:
                 inpt_local_pos_embed = distribute_tensor(
                     inpt_local_pos_embed,
                     device_mesh=self.local_token_positional_embedding.device_mesh,
@@ -190,7 +193,10 @@ class TiledTokenPositionalEmbedding(nn.Module):
         )
         global_device = inpt_global_pos_embed.device
         if isinstance(inpt_global_pos_embed, DTensor):
+            global_embed_is_sharded = True
             inpt_global_pos_embed = inpt_global_pos_embed.full_tensor()
+        else:
+            global_embed_is_sharded = False
 
         if inpt_global_pos_embed is not None:
 
@@ -218,7 +224,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
                 tgt_patch_grid_size=int(math.sqrt(tgt_n_tokens_per_tile - 1)),
             )
 
-            if isinstance(inpt_global_pos_embed, DTensor):
+            if global_embed_is_sharded:
                 inpt_global_pos_embed = distribute_tensor(
                     inpt_global_pos_embed,
                     device_mesh=self.global_token_positional_embedding.device_mesh,
@@ -522,7 +528,11 @@ class TilePositionalEmbedding(nn.Module):
         embedding = state_dict.get(prefix + "embedding")
         device = embedding.device
         if isinstance(embedding, DTensor):
+            embedding_is_sharded = True
             embedding = embedding.full_tensor()
+        else:
+            embedding_is_sharded = False
+
         if embedding is not None:
 
             # ckpt pos emb
@@ -559,7 +569,7 @@ class TilePositionalEmbedding(nn.Module):
                 embedding, tgt_max_num_tiles=tgt_max_num_tiles_x
             )
 
-            if isinstance(embedding_new, DTensor):
+            if embedding_is_sharded:
                 embedding_new = distribute_tensor(
                     embedding_new,
                     device_mesh=self.embedding.device_mesh,
