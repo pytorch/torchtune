@@ -431,7 +431,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
     def _setup_lr_scheduler(
         self,
-        cfg_lr_scheduler: DictConfig,
+        cfg_lr_scheduler: Optional[DictConfig],
         num_training_steps: int,
         last_epoch: int,
     ) -> Optional[Optimizer]:
@@ -441,13 +441,19 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         schedulers from both torchtune.modules and torch.optim.
 
         Args:
-            cfg_lr_scheduler (DictConfig): The learning rate scheduler configuration.
+            cfg_lr_scheduler (Optional[DictConfig]): The learning rate scheduler configuration.
             num_training_steps (int): The total number of training steps.
             last_epoch (int): The index of the last epoch.
 
         Returns:
             lr_scheduler (Optional[Optimizer]): The learning rate scheduler.
         """
+        if cfg_lr_scheduler is None:
+            log.info(
+                "No learning rate scheduler configured. Using constant learning rate."
+            )
+            return None
+
         if self._optimizer_in_bwd:
             # Use the first optimizer from the wrapper to represent the learning rate
             optimizer = next(iter(self._optim_ckpt_wrapper.optim_map.values()))
@@ -455,24 +461,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             # Standard case: use the single optimizer
             optimizer = self._optimizer
 
-        # Check if the lr_scheduler component is from torchtune.modules or torch.optim
-        component = cfg_lr_scheduler.get("_component_", None)
-
-        # Conditionally instantiate the scheduler based on the component to support torch.optim
-        if "torchtune.modules" in component:
-            # Instantiate the learning rate scheduler
-            lr_scheduler = config.instantiate(
-                cfg_lr_scheduler,
-                optimizer,
-                num_training_steps=num_training_steps,
-                last_epoch=last_epoch,
-            )
-        else:
-            lr_scheduler = config.instantiate(
-                cfg_lr_scheduler,
-                optimizer,
-                last_epoch=last_epoch,
-            )
+        # Instantiate the learning rate scheduler
+        lr_scheduler = config.instantiate(
+            cfg_lr_scheduler,
+            optimizer,
+            num_training_steps=num_training_steps,
+            last_epoch=last_epoch,
+        )
 
         if self._optimizer_in_bwd:
             # Modify the scheduler for optimizer_in_bwd case
@@ -646,7 +641,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         self._optimizer.zero_grad(set_to_none=True)
 
                     # Need to fix `lr_scheduler.step()` before `optimizer.step()` warning
-                    self._lr_scheduler.step()
+                    if self._lr_scheduler is not None:
+                        self._lr_scheduler.step()
                     self.global_step += 1
 
                     loss_to_log = running_loss.item()
