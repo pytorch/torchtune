@@ -22,7 +22,7 @@ dependencies = [
     "blobfile>=2",
 
     # Miscellaneous
-    "numpy<=1.26.4", # Pin here until https://github.com/tensorflow/tensorboard/issues/6869 is addressed
+    "numpy",
     "tqdm",
     "omegaconf",
     "psutil",
@@ -51,6 +51,8 @@ dev = [
     "pytest-mock",
     "pytest-integration",
     "tensorboard",
+    # Pin urllib3 to avoid transient error from https://github.com/psf/requests/issues/6443
+    "urllib3<2.0.0",
     "wandb",
     "expecttest",
 ]

@@ -467,8 +467,26 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 tie_word_embeddings=self._config["tie_word_embeddings"],
             )
         elif self._model_type == ModelType.LLAMA3_VISION:
-            raise NotImplementedError(
-                "Safe tensors support for LLaMA3 Vision will be added soon. Pleaee use the FullModelMetaCheckpointer for now."
+            from torchtune.models.llama3_2_vision._convert_weights import (
+                llama3_vision_hf_to_tune,
+            )
+
+            text_config = self._config.get("text_config", {})
+            vision_config = self._config.get("vision_config", {})
+            converted_state_dict[training.MODEL_KEY] = llama3_vision_hf_to_tune(
+                merged_state_dict,
+                num_heads=text_config["num_attention_heads"],
+                num_kv_heads=text_config["num_key_value_heads"],
+                dim=text_config["hidden_size"],
+                head_dim=text_config.get("head_dim", None),
+                vocab_size=text_config["vocab_size"],
+                cross_attention_layers=text_config.get("cross_attention_layers", None),
+                encoder_dim=vision_config["hidden_size"],
+                tile_size=vision_config["image_size"],
+                num_tiles=vision_config["max_num_tiles"],
+                supported_aspect_ratios=vision_config.get(
+                    "supported_aspect_ratios", None
+                ),
             )
         else:
             converted_state_dict[training.MODEL_KEY] = convert_weights.hf_to_tune(
@@ -537,8 +555,28 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     tie_word_embeddings=self._config["tie_word_embeddings"],
                 )
             elif self._model_type == ModelType.LLAMA3_VISION:
-                raise NotImplementedError(
-                    "Safe tensors support for LLaMA3 Vision will be added soon. Pleaee use the FullModelMetaCheckpointer for now."
+                from torchtune.models.llama3_2_vision._convert_weights import (
+                    llama3_vision_tune_to_hf,
+                )
+
+                text_config = self._config.get("text_config", {})
+                vision_config = self._config.get("vision_config", {})
+                state_dict[training.MODEL_KEY] = llama3_vision_tune_to_hf(
+                    state_dict[training.MODEL_KEY],
+                    num_heads=text_config["num_attention_heads"],
+                    num_kv_heads=text_config["num_key_value_heads"],
+                    dim=text_config["hidden_size"],
+                    head_dim=text_config.get("head_dim", None),
+                    vocab_size=text_config["vocab_size"],
+                    cross_attention_layers=text_config.get(
+                        "cross_attention_layers", None
+                    ),
+                    encoder_dim=vision_config["hidden_size"],
+                    tile_size=vision_config["image_size"],
+                    num_tiles=vision_config["max_num_tiles"],
+                    supported_aspect_ratios=vision_config.get(
+                        "supported_aspect_ratios", None
+                    ),
                 )
             else:
                 state_dict[training.MODEL_KEY] = convert_weights.tune_to_hf(
