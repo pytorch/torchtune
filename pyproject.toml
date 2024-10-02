@@ -51,8 +51,6 @@ dev = [
     "pytest-mock",
     "pytest-integration",
     "tensorboard",
-    # Pin urllib3 to avoid transient error from https://github.com/psf/requests/issues/6443
-    "urllib3<2.0.0",
     "wandb",
     "expecttest",
 ]
