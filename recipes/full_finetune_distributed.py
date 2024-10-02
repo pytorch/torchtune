@@ -493,7 +493,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 for name, param in self._model.named_parameters()
             }
 
-            optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
             if opt_state_dict is not None:
                 for param in opt_state_dict.keys():
                     if param not in self._optim_ckpt_wrapper:
@@ -622,6 +621,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         training.MAX_STEPS_KEY: self.max_steps_per_epoch,
                     }
                 )
+
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
                 epoch=epoch,

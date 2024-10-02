@@ -42,6 +42,7 @@ class TestFullFinetuneDistributedRecipe:
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
             "clip_grad_norm=100",
+            "optimizer_in_bwd=False",
         ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self, model_type):
