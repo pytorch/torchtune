@@ -139,9 +139,8 @@ class TiledTokenPositionalEmbedding(nn.Module):
             prefix + "local_token_positional_embedding"
         )
         local_device = inpt_local_pos_embed.device
-        self.to_empty(device=local_device)
         if isinstance(self.local_token_positional_embedding, DTensor):
-            inpt_local_pos_embed = self.local_token_positional_embedding.full_tensor()
+            inpt_local_pos_embed = inpt_local_pos_embed.full_tensor()
 
         if inpt_local_pos_embed is not None:
 
@@ -191,7 +190,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
         )
         global_device = inpt_global_pos_embed.device
         if isinstance(self.global_token_positional_embedding, DTensor):
-            inpt_global_pos_embed = self.global_token_positional_embedding.full_tensor()
+            inpt_global_pos_embed = inpt_global_pos_embed.full_tensor()
 
         if inpt_global_pos_embed is not None:
 
@@ -522,9 +521,8 @@ class TilePositionalEmbedding(nn.Module):
 
         embedding = state_dict.get(prefix + "embedding")
         device = embedding.device
-        self.to_empty(device=device)
         if isinstance(self.embedding, DTensor):
-            embedding = self.embedding.full_tensor()
+            embedding = embedding.full_tensor()
         if embedding is not None:
 
             # ckpt pos emb
