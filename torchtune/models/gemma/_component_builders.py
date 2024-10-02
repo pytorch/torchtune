@@ -6,8 +6,7 @@
 
 from torch import nn
 from typing import List
-from functools import partial
-from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
+from torchtune.modules.common_utils import _register_reparametrize_state_dict_hooks
 
 from torchtune.modules import (
     MultiHeadAttention,
@@ -16,9 +15,10 @@ from torchtune.modules import (
     RotaryPositionalEmbeddings,
     TransformerSelfAttentionLayer,
 )
-from torchtune.models.gemma.rms_norm import GemmaRMSNorm
-from torchtune.models.gemma.transformer import GemmaTransformerDecoder
 
+from torchtune.models.gemma.rms_norm import GemmaRMSNorm
+from torchtune.modules import TransformerDecoder, TiedLinear
+from torchtune.models.gemma.gemma_norm_embedding import GemmaNormEmbeddings
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 
 """
@@ -47,7 +47,7 @@ def gemma(
     norm_eps: float = 1e-6,
     rope_base: int = 10_000,
     norm_embeddings: bool = True,
-) -> GemmaTransformerDecoder:
+) -> TransformerDecoder:
     """
     Build the decoder associated with the gemma model. This includes:
     - Token embeddings
@@ -76,7 +76,7 @@ def gemma(
             and mlp layers. Default: True
 
     Returns:
-        GemmaTransformerDecoder: Instantiation of gemma model.
+        TransformerDecoder: Instantiation of gemma model.
     """
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
     self_att = MultiHeadAttention(
@@ -100,16 +100,17 @@ def gemma(
         sa_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
         mlp_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
     )
-    tok_embeddings = nn.Embedding(vocab_size, embed_dim)
-    model = GemmaTransformerDecoder(
+    tok_embeddings = GemmaNormEmbeddings(vocab_size, embed_dim)
+    output_proj = TiedLinear(tok_embeddings)
+    model = TransformerDecoder(
         tok_embeddings=tok_embeddings,
-        layer=layer,
+        layers=layer,
         num_layers=num_layers,
         max_seq_len=max_seq_len,
         num_heads=num_heads,
+        output=output_proj,
         head_dim=head_dim,
-        norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
-        norm_embeddings=norm_embeddings,
+        norm=GemmaRMSNorm(embed_dim, eps=norm_eps)
     )
     return model
 
@@ -152,7 +153,7 @@ def lora_gemma(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
-) -> GemmaTransformerDecoder:
+) -> TransformerDecoder:
     """
     Return a version of Gemma with LoRA applied based on the passed in configuration.
     Note: output projection lora is not supported because it is tied to token embeddings
@@ -188,7 +189,7 @@ def lora_gemma(
             supported for quantization currently.
 
     Returns:
-        GemmaTransformerDecoder: Instantiation of Gemma model with LoRA applied to
+        TransformerDecoder: Instantiation of Gemma model with LoRA applied to
         a subset of the attention projections in each layer.
     """
     self_attn = lora_gemma_self_attention(
@@ -226,31 +227,25 @@ def lora_gemma(
         sa_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
         mlp_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
     )
-    tok_embeddings = nn.Embedding(vocab_size, embed_dim)
-
-    model = GemmaTransformerDecoder(
+    tok_embeddings = GemmaNormEmbeddings(vocab_size, embed_dim)
+    output_proj = TiedLinear(tok_embeddings)
+    model = TransformerDecoder(
         tok_embeddings=tok_embeddings,
-        layer=layer,
+        layers=layer,
         num_layers=num_layers,
         max_seq_len=max_seq_len,
         num_heads=num_heads,
+        output=output_proj,
         head_dim=head_dim,
-        norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
-        norm_embeddings=norm_embeddings,
+        norm=GemmaRMSNorm(embed_dim, eps=norm_eps)
     )
 
     if quantize_base:
         # For QLoRA, we reparametrize 4-bit tensors to higher precision, and offload to CPU on the fly
         # so as to not increase peak memory
-        model._register_state_dict_hook(
-            partial(
-                reparametrize_as_dtype_state_dict_post_hook,
-                # TODO this is clowny, figure out a better way to get what precision the rest
-                # of the model is in
-                dtype=tok_embeddings.weight.dtype,
-                offload_to_cpu=True,
-            )
-        )
+        # TODO this is clowny, figure out a better way to get what precision the rest
+        # of the model is in
+        _register_reparametrize_state_dict_hooks(model, dtype=tok_embeddings.weight.dtype)
 
     return model
 

@@ -32,7 +32,7 @@ tokenizer:
   path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
 
 checkpointer:
-  _component_: torchtune.utils.FullModelMetaCheckpointer
+  _component_: torchtune.training.FullModelMetaCheckpointer
   checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/original/
   checkpoint_files: [
     consolidated.00.pth
@@ -52,6 +52,7 @@ batch_size: 2
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
+  fused: True
   weight_decay: 0.01
   lr: 3e-4
 lr_scheduler:
@@ -83,7 +84,7 @@ enable_activation_checkpointing: True
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training
 profiler:
-  _component_: torchtune.utils.setup_torch_profiler
+  _component_: torchtune.training.setup_torch_profiler
   enabled: False
 
   #Output directory of trace artifacts

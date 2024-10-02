@@ -6,12 +6,12 @@
 from typing import List, Optional
 
 from torchtune.models.gemma._component_builders import gemma, lora_gemma
-from torchtune.models.gemma.transformer import GemmaTransformerDecoder
+from torchtune.modules import TransformerDecoder
 
 from torchtune.models.gemma._tokenizer import GemmaTokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from torchtune.data._prompt_templates import _TemplateType
-from torchtune.data._utils import _get_prompt_template
+from torchtune.data._prompt_templates import _get_prompt_template
 
 from functools import partial
 
@@ -21,13 +21,13 @@ the ``gemma_2b`` model builder uses the ``gemma`` component builder.
 """
 
 
-def gemma_2b() -> GemmaTransformerDecoder:
+def gemma_2b() -> TransformerDecoder:
     """
     Builder for creating a Gemma 2B model initialized w/ the default 2b parameter values
     from: https://blog.google/technology/developers/gemma-open-models/
 
     Returns:
-        GemmaTransformerDecoder: Instantiation of Gemma 2B model
+        TransformerDecoder: Instantiation of Gemma 2B model
     """
     return gemma(
         vocab_size=256_000,
@@ -71,7 +71,7 @@ def lora_gemma_2b(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
-) -> GemmaTransformerDecoder:
+) -> TransformerDecoder:
     """
     Builder for creating a Gemma 2B model with LoRA enabled.
 
@@ -93,7 +93,7 @@ def lora_gemma_2b(
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        GemmaTransformerDecoder: Instantiation of Gemma 2B model with LoRA applied
+        TransformerDecoder: Instantiation of Gemma 2B model with LoRA applied
     """
     return lora_gemma(
         lora_attn_modules=lora_attn_modules,
@@ -125,13 +125,13 @@ Please see `lora_gemma_2b` for full API arguments.
 
 
 
-def gemma_7b() -> GemmaTransformerDecoder:
+def gemma_7b() -> TransformerDecoder:
     """
     Builder for creating a Gemma 7B model initialized w/ the default 7b parameter values
     from: https://blog.google/technology/developers/gemma-open-models/
 
     Returns:
-        GemmaTransformerDecoder: Instantiation of Gemma 7B model
+        TransformerDecoder: Instantiation of Gemma 7B model
     """
     return gemma(
         vocab_size=256_000,
@@ -155,7 +155,7 @@ def lora_gemma_7b(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
-) -> GemmaTransformerDecoder:
+) -> TransformerDecoder:
     """
     Builder for creating a Gemma 7B model with LoRA enabled.
 
@@ -177,7 +177,7 @@ def lora_gemma_7b(
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        GemmaTransformerDecoder: Instantiation of Gemma 7B model with LoRA applied
+        TransformerDecoder: Instantiation of Gemma 7B model with LoRA applied
     """
     return lora_gemma(
         lora_attn_modules=lora_attn_modules,

@@ -28,9 +28,9 @@ from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import DoRALinear, LoRALinear
 from torchtune.modules.peft.lora import _lora_a_init_params, _lora_b_init_params
+from torchtune.utils import get_logger
 
 from torchtune.utils._device import get_device
-from torchtune.utils.logging import get_logger
 
 _log: logging.Logger = get_logger()
 
@@ -350,11 +350,25 @@ def get_full_model_state_dict(
     model: "FSDPModule",  # noqa
     is_rank_zero: bool,
     device: Optional[torch.device] = None,
+    trainable_only: bool = False,
 ) -> Dict[str, Any]:
     """
-    Converting sharded state dict into a full state dict on cpu
-    Returning non-empty result on rank0 to avoid peaking cpu memory
+    Converting sharded state dict into a full state dict on CPU
+    Returning non-empty result on rank0 to avoid peaking CPU memory
+
+    Args:
+        model (FSDPModule): wrapped module
+        is_rank_zero (bool): flag to check if the process is on rank 0
+        device (Optional[torch.device]): device to use for sharded tensors. Default: None
+        trainable_only (bool): flag to check if only trainable parameters should be returned. Default: False
+
+    Raises:
+        AssertionError: if the model contains NF4Tensor and the model is not wrapped with FSDP
+
+    Returns:
+        Dict[str, Any]: State dict on CPU
     """
+    # [Warning] FSDPModel.state_dict converts all Parameter Tensors to DTensors
     sharded_sd = model.state_dict()
     cpu_state_dict = {}
     has_nf4 = any(
@@ -377,6 +391,9 @@ def get_full_model_state_dict(
                         full_fqn = module_name + "." + local_fqn
                     else:
                         full_fqn = local_fqn
+                    if trainable_only and not param.requires_grad:
+                        # skip trainable params when trainable_only is True
+                        continue
                     if full_fqn in cpu_state_dict:
                         # Iterate over every param in every module bottoms-up
                         # When lower TransformerBlock gets unsharded,

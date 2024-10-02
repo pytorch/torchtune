@@ -25,7 +25,6 @@ model:
   lora_rank: 8
   lora_alpha: 16
   lora_dropout: 0.0
-  lora_dropout: 0.0
 
 # Tokenizer
 tokenizer:
@@ -55,6 +54,7 @@ batch_size: 4
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
+  fused: True
   weight_decay: 0.05
   lr: 5e-4
 lr_scheduler:
@@ -62,7 +62,7 @@ lr_scheduler:
   num_warmup_steps: 100
 
 loss:
-  _component_: torchtune.modules.rlhf.loss.DPOLoss
+  _component_: torchtune.rlhf.loss.DPOLoss
   beta: 0.1
   label_smoothing: 0
 

@@ -56,6 +56,7 @@ batch_size: 2
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
+  fused: True
   weight_decay: 0.01
   lr: 3e-4
 lr_scheduler:
@@ -69,7 +70,7 @@ loss:
 epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 16
-compile: False
+compile: False # set it to True for better memory and performance
 
 # Logging
 output_dir: /tmp/qlora_finetune_output/
@@ -82,7 +83,10 @@ log_peak_memory_stats: False
 # Environment
 device: cuda
 dtype: bf16
+
+# Activations Offloading
 enable_activation_checkpointing: True
+enable_activation_offloading: False
 
 # Profiler (disabled)
 profiler:
@@ -108,3 +112,6 @@ profiler:
   warmup_steps: 5
   active_steps: 2
   num_cycles: 1
+
+# For colab use True
+low_cpu_ram: False

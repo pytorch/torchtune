@@ -20,6 +20,7 @@ checkpointing, please see the :ref:`checkpointing deep-dive <understand_checkpoi
     FullModelMetaCheckpointer
     FullModelTorchTuneCheckpointer
     ModelType
+    FormattedCheckpointFiles
     update_state_dict_for_classifier
 
 .. _mp_label:

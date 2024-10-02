@@ -55,7 +55,6 @@ class InferenceRecipe:
         self._model = self._setup_model(
             model_cfg=cfg.model,
             model_state_dict=ckpt_dict[training.MODEL_KEY],
-            enable_kv_cache=cfg.enable_kv_cache,
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
@@ -63,7 +62,6 @@ class InferenceRecipe:
         self,
         model_cfg: DictConfig,
         model_state_dict: Dict[str, Any],
-        enable_kv_cache: bool = True,
     ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
@@ -79,11 +77,6 @@ class InferenceRecipe:
             model.named_parameters(), dtype=self._dtype
         )
         logger.info(f"Model is initialized with precision {self._dtype}.")
-
-        # Ensure the cache is setup on the right device
-        if enable_kv_cache:
-            with self._device:
-                model.setup_caches(batch_size=1, dtype=self._dtype)
 
         return model
 
@@ -133,7 +126,7 @@ class InferenceRecipe:
                 messages = chat_format.format(messages)
             return self._tokenizer.tokenize_messages(messages)[0]
 
-    @torch.no_grad()
+    @torch.inference_mode()
     def generate(self, cfg: DictConfig):
         tokens = self.convert_prompt_to_tokens(
             cfg.prompt, cfg.get("chat_format", None), cfg.get("instruct_template", None)
@@ -141,6 +134,15 @@ class InferenceRecipe:
         prompt = torch.tensor(tokens, dtype=torch.int, device=self._device)
 
         custom_generate_next_token = None
+
+        # Ensure the cache is setup on the right device, with only as many tokens as we need
+        if cfg.enable_kv_cache:
+            with self._device:
+                self._model.setup_caches(
+                    batch_size=1,
+                    dtype=self._dtype,
+                    decoder_max_seq_len=prompt.numel() + cfg.max_new_tokens,
+                )
 
         # since quantized model uses torch.compile to get speedup, it needs a warm up / prefill run
         # to get the accurate performance measurement
@@ -161,17 +163,20 @@ class InferenceRecipe:
             )
             t = time.perf_counter() - t0
             logger.info(f"Warmup run for quantized model takes: {t:.02f} sec")
+            self._model.reset_caches()
 
         t0 = time.perf_counter()
-        generated_tokens = generation.generate(
+        generated_tokens, _ = generation.generate(
             model=self._model,
             prompt=prompt,
             max_generated_tokens=cfg.max_new_tokens,
+            pad_id=self._tokenizer.pad_id,
             temperature=cfg.temperature,
             top_k=cfg.top_k,
             stop_tokens=self._tokenizer.stop_tokens,
             custom_generate_next_token=custom_generate_next_token,
         )
+        generated_tokens = generated_tokens.tolist()
         t = time.perf_counter() - t0
 
         logger.info(self._tokenizer.decode(generated_tokens[0]))

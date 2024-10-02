@@ -16,7 +16,7 @@ from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
 )
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim.lr_scheduler import LRScheduler
-from torchtune.utils.logging import get_logger
+from torchtune.utils import get_logger
 
 _log: logging.Logger = get_logger()
 

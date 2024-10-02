@@ -4,7 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from pathlib import Path
 from typing import Any, Dict, List, Literal, Mapping, Optional, Union
+
+from torchtune.data._utils import format_content_with_images, load_image
 
 from torchtune.modules.transforms import Transform
 
@@ -304,7 +307,7 @@ class ChosenRejectedToMessages(Transform):
 
 class ShareGPTToMessages(Transform):
     """
-    Convert a single chat sample adhering to the ShareGPT json structure to torchtune's :class:`~torchtune.data.Message`
+    Convert a single chat sample adhering to the ShareGPT JSON structure to torchtune's :class:`~torchtune.data.Message`
     structure.
 
     A single sample typically consists of a single optional system prompt and one or multiple
@@ -333,7 +336,8 @@ class ShareGPTToMessages(Transform):
         ]
 
     Args:
-        train_on_input (bool): whether the prompt should remain unmasked. Default: False
+        train_on_input (bool): whether the prompt should remain unmasked. For multimodal datasets, ``train_on_input``
+            is always False and this value is ignored. Default: False
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("conversations")
             to the new column names in the dataset. Key should be "conversations" and value should
             be the new column name. If None, keep the default "conversations".
@@ -341,6 +345,14 @@ class ShareGPTToMessages(Transform):
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
+        image_dir (Optional[Path]): path to the directory containing the images that is prepended to all image
+            paths in the dataset. For example, if ``image_dir="/home/user/dataset/"` and the sample image path
+            was ``"images/1.jpg"``, the final image path that will be loaded is ``"/home/user/dataset/images/1.jpg"``.
+            If None, assume images are available in current working directory or are located
+            on a remote url. For text-only, leave as None. Default is None.
+        image_tag (Optional[str]): placeholder tags in the text content of each message to be replaced by image
+            special tokens. If images are present and this is None, then will prepend image tokens to the first
+            user message in the sample by default. If text-only, this field is ignored. Default is ``"<image>"``.
 
     Raises:
         ValueError: If ``column_map`` is provided and ``conversations`` not in ``column_map``.
@@ -351,6 +363,8 @@ class ShareGPTToMessages(Transform):
         train_on_input: bool = False,
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
+        image_dir: Optional[Path] = None,
+        image_tag: Optional[str] = "<image>",
     ):
         self.train_on_input = train_on_input
         self.new_system_prompt = new_system_prompt
@@ -361,7 +375,9 @@ class ShareGPTToMessages(Transform):
                 )
             self._column_map = column_map
         else:
-            self._column_map = {"conversations": "conversations"}
+            self._column_map = {"conversations": "conversations", "image": "image"}
+        self.image_dir = image_dir
+        self.image_tag = image_tag
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         """
@@ -382,21 +398,53 @@ class ShareGPTToMessages(Transform):
                     role="system", content=self.new_system_prompt, masked=True, eot=True
                 )
             )
+
+        is_multimodal = "image" in sample or (
+            "image" in self._column_map and self._column_map["image"] in sample
+        )
+
+        # Gate variable to ensure that we only prepend image tokens to the first user message
+        image_loaded = False
         for message in sample[self._column_map["conversations"]]:
             role = role_map[message["from"]]
+            content = message["value"]
             if role == "system" and self.new_system_prompt is not None:
                 continue
-            content = message["value"]
-            masked = (role != "assistant") and (not self.train_on_input)
+            if role == "user":
+                if is_multimodal and not image_loaded:
+                    image_path = sample[self._column_map["image"]]
+                    if self.image_dir is not None:
+                        image_path = self.image_dir / image_path
+                    pil_image = load_image(image_path)
+                    # If image tag is not specified, prepend by default
+                    if self.image_tag is None:
+                        content = [
+                            {"type": "image", "content": pil_image},
+                            {"type": "text", "content": content},
+                        ]
+                    else:
+                        content = format_content_with_images(
+                            content,
+                            image_tag=self.image_tag,
+                            images=[pil_image],
+                        )
+                    image_loaded = True
+
+            # If multimodal and user message, always mask
+            # Otherwise, if user message, mask if train_on_input is False
+            masked = (role != "assistant") and (
+                not self.train_on_input or is_multimodal
+            )
             messages.append(Message(role=role, content=content, masked=masked))
 
         return {"messages": messages}
 
 
-class JSONToMessages(Transform):
+class OpenAIToMessages(Transform):
     """
-    Convert a single chat sample with identical json structure to torchtune's :class:`~torchtune.data.Message`
-    structure. This transform simply creates Message dataclasses from the provided jsons.
+    Convert a single chat sample adhering to the `OpenAI chat completion <https://platform.openai.com/docs/api-reference/chat>`_
+    JSON structure to torchtune's :class:`~torchtune.data.Message` structure. This supports both
+    text and image messages.
 
     A single sample typically consists of a single optional system prompt and one or multiple
     turns of user and assistant messages.
@@ -407,7 +455,17 @@ class JSONToMessages(Transform):
             "messages": [
                 {
                     "role": <system|user|assistant>,
-                    "content": <message>,
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "What'\''s in this image?",
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": <url>,
+                            },
+                        },
                 },
                 ...
             ]
@@ -418,7 +476,16 @@ class JSONToMessages(Transform):
         [
             {
                 "role": <system|user|assistant>,
-                "content": <message>,
+                "content": [
+                    {
+                        "type": "text",
+                        "content": "What'\''s in this image?",
+                    },
+                    {
+                        "type": "image",
+                        "content": <PIL.Image.Image>,
+                    },
+                ],
             },
             ...
         ]
@@ -454,6 +521,25 @@ class JSONToMessages(Transform):
         else:
             self._column_map = {"messages": "messages"}
 
+    def _convert_from_openai_content(
+        self, content: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Converts a list of content dicts from the OpenAI format to the torchtune format."""
+        converted_content = []
+        for content_dict in content:
+            if content_dict["type"] == "text":
+                converted_content.append(
+                    {"type": "text", "content": content_dict["text"]}
+                )
+            elif content_dict["type"] == "image_url":
+                converted_content.append(
+                    {
+                        "type": "image",
+                        "content": load_image(content_dict["image_url"]["url"]),
+                    }
+                )
+        return converted_content
+
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         """
         Return a list of Message objects from the provided sample dict.
@@ -475,10 +561,18 @@ class JSONToMessages(Transform):
         for message in sample[self._column_map["messages"]]:
             if message["role"] == "system" and self.new_system_prompt is not None:
                 continue
-            message["masked"] = (message["role"] != "assistant") and (
-                not self.train_on_input
+            masked = (message["role"] != "assistant") and (not self.train_on_input)
+            if isinstance(message["content"], list):
+                content = self._convert_from_openai_content(message["content"])
+            elif isinstance(message["content"], str):
+                content = message["content"]
+            updated_messages.append(
+                Message(
+                    role=message["role"],
+                    content=content,
+                    masked=masked,
+                ),
             )
-            updated_messages.append(Message.from_dict(message))
 
         return {"messages": updated_messages}
 

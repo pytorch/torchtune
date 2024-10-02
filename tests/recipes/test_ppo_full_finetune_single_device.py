@@ -24,6 +24,7 @@ from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
     get_loss_values_from_metric_logger,
+    mps_ignored_test,
 )
 
 
@@ -48,9 +49,11 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
+            "compile=False",
         ] + dummy_text_completion_alpaca_dataset_config()
 
     @pytest.mark.integration_test
+    @mps_ignored_test()
     def test_loss(self, tmpdir, monkeypatch):
 
         reward_ckpt = "llama2_reward_hf"

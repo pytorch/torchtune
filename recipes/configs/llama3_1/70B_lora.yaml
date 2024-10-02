@@ -74,6 +74,7 @@ batch_size: 2
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
+  fused: True
   weight_decay: 0.01
   lr: 3e-4
 lr_scheduler:
@@ -87,6 +88,7 @@ loss:
 epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
+compile: False # set it to True for better memory and performance
 
 # Logging
 output_dir: /tmp/lora-llama3_1-finetune-output

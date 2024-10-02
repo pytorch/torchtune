@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
+import os
 import runpy
 import sys
 import textwrap
@@ -14,6 +15,7 @@ from typing import Optional
 
 import torchtune
 
+from torch.distributed.elastic.multiprocessing.errors import record
 from torch.distributed.run import get_args_parser as get_torchrun_args_parser, run
 from torchtune._cli.subcommand import Subcommand
 from torchtune._recipe_registry import Config, get_all_recipes, Recipe
@@ -77,7 +79,8 @@ For a list of all possible recipes, run `tune ls`."""
                 continue
             self._parser._add_action(action)
 
-    def _run_distributed(self, args: argparse.Namespace):
+    @record
+    def _run_distributed(self, args: argparse.Namespace, is_builtin: bool):
         """Run a recipe with torchrun."""
         # TODO (rohan-varma): Add check that nproc_per_node <= cuda device count. Currently,
         # we don't do this since we test on CPUs for distributed. Will update once multi GPU CI is supported.
@@ -85,12 +88,21 @@ For a list of all possible recipes, run `tune ls`."""
         # Have to reset the argv so that the recipe can be run with the correct arguments
         args.training_script = args.recipe
         args.training_script_args = args.recipe_args
+        # torchtune built-in recipes are specified with an absolute posix path, but
+        # custom recipes are specified as a relative module dot path and need to be
+        # run with python -m
+        args.module = not is_builtin
         run(args)
 
-    def _run_single_device(self, args: argparse.Namespace):
+    def _run_single_device(self, args: argparse.Namespace, is_builtin: bool):
         """Run a recipe on a single device."""
         sys.argv = [str(args.recipe)] + args.recipe_args
-        runpy.run_path(str(args.recipe), run_name="__main__")
+        if is_builtin:
+            # torchtune built-in recipes are specified with an absolute posix path
+            runpy.run_path(str(args.recipe), run_name="__main__")
+        else:
+            # custom recipes are specified as a relative module dot path
+            runpy.run_module(str(args.recipe), run_name="__main__")
 
     def _is_distributed_args(self, args: argparse.Namespace):
         """Check if the user is trying to run a distributed recipe."""
@@ -152,9 +164,11 @@ For a list of all possible recipes, run `tune ls`."""
         recipe = self._get_recipe(args.recipe)
         if recipe is None:
             recipe_path = args.recipe
+            is_builtin = False
         else:
             recipe_path = str(ROOT / "recipes" / recipe.file_path)
             supports_distributed = recipe.supports_distributed
+            is_builtin = True
 
         # Get config path
         config = self._get_config(config_str, recipe)
@@ -167,6 +181,9 @@ For a list of all possible recipes, run `tune ls`."""
         args.recipe = recipe_path
         args.recipe_args[config_idx] = config_path
 
+        # Make sure user code in current directory is importable
+        sys.path.append(os.getcwd())
+
         # Execute recipe
         if self._is_distributed_args(args):
             if not supports_distributed:
@@ -174,6 +191,6 @@ For a list of all possible recipes, run `tune ls`."""
                     f"Recipe {recipe.name} does not support distributed training."
                     "Please run without torchrun commands."
                 )
-            self._run_distributed(args)
+            self._run_distributed(args, is_builtin=is_builtin)
         else:
-            self._run_single_device(args)
+            self._run_single_device(args, is_builtin=is_builtin)

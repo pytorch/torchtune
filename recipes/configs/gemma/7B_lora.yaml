@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download google/gemma-7b --hf-token <HF_TOKEN> --ignore-patterns "gemma-7b.gguf"
+#   tune download google/gemma-7b --ignore-patterns "gemma-7b.gguf" --hf-token <HF_TOKEN>
 #
 # To launch on 4 devices, run the following command from root:
 #   tune run --nnodes 1 --nproc_per_node 4 lora_finetune_distributed --config gemma/7B_lora
@@ -33,7 +33,7 @@ model:
   lora_attn_modules: ['q_proj', 'k_proj', 'v_proj']
   apply_lora_to_mlp: True
   lora_rank: 64
-  lora_alpha: 16
+  lora_alpha: 128
   lora_dropout: 0.0
 
 checkpointer:
@@ -53,11 +53,12 @@ save_adapter_weights_only: False
 
 optimizer:
   _component_: torch.optim.AdamW
+  fused: True
   lr: 2e-5
 
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
-  num_warmup_steps: 100
+  num_warmup_steps: 10
 
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss

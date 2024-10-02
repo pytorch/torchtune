@@ -9,7 +9,7 @@ import json
 import os
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Dict, List, Optional, Protocol, Union
 
 import torch
 from safetensors.torch import save_file
@@ -18,14 +18,15 @@ from torchtune import training
 from torchtune.models import convert_weights
 from torchtune.models.phi3._convert_weights import phi3_hf_to_tune, phi3_tune_to_hf
 from torchtune.models.qwen2._convert_weights import qwen2_hf_to_tune, qwen2_tune_to_hf
-from torchtune.modules.rlhf.utils import reward_hf_to_tune, reward_tune_to_hf
+from torchtune.rlhf.utils import reward_hf_to_tune, reward_tune_to_hf
 from torchtune.training.checkpointing._utils import (
+    FormattedCheckpointFiles,
     get_path,
     ModelType,
     safe_torch_load,
     save_config,
 )
-from torchtune.utils.logging import get_logger
+from torchtune.utils._logging import get_logger, log_rank_zero
 
 logger = get_logger("DEBUG")
 
@@ -319,8 +320,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
     Args:
         checkpoint_dir (str): Directory containing the checkpoint files
-        checkpoint_files (List[str]): List of checkpoint files to load. Since the checkpointer takes care
-            of sorting by file ID, the order in this list does not matter
+        checkpoint_files (Union[List[str], Dict[str, str]]): List of checkpoint files to load. Since the checkpointer takes care
+            of sorting by file ID, the order in this list does not matter. TODO: update this
         model_type (ModelType): Model type of the model for which the checkpointer is being loaded
         output_dir (str): Directory to save the checkpoint files
         adapter_checkpoint (Optional[str]): Path to the adapter weights. Default is None
@@ -336,7 +337,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
     def __init__(
         self,
         checkpoint_dir: str,
-        checkpoint_files: List[str],
+        checkpoint_files: Union[List[str], Dict[str, str]],
         model_type: ModelType,
         output_dir: str,
         adapter_checkpoint: Optional[str] = None,
@@ -345,6 +346,12 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         safe_serialization: bool = False,
     ) -> None:
         self._checkpoint_dir = Path(checkpoint_dir)
+
+        if not isinstance(checkpoint_files, List):
+            formatted_checkpoint_files = FormattedCheckpointFiles.from_dict(
+                checkpoint_files
+            )
+            checkpoint_files = formatted_checkpoint_files.build_checkpoint_filenames()
         self._checkpoint_paths = self._validate_hf_checkpoint_files(checkpoint_files)
         self._adapter_checkpoint = (
             get_path(self._checkpoint_dir, adapter_checkpoint)
@@ -436,9 +443,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             del state_dict
             gc.collect()
         if self._model_type == ModelType.PHI3_MINI:
-            logger.warning(
-                "Converting Phi-3 Mini weights from HF format."
-                "Note that conversion of adapter weights into PEFT format is not supported."
+            log_rank_zero(
+                logger=logger,
+                msg="Converting Phi-3 Mini weights from HF format."
+                "Note that conversion of adapter weights into PEFT format is not supported.",
             )
             converted_state_dict[training.MODEL_KEY] = phi3_hf_to_tune(
                 merged_state_dict
@@ -457,6 +465,28 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 num_kv_heads=self._config["num_key_value_heads"],
                 dim=self._config["hidden_size"],
                 tie_word_embeddings=self._config["tie_word_embeddings"],
+            )
+        elif self._model_type == ModelType.LLAMA3_VISION:
+            from torchtune.models.llama3_2_vision._convert_weights import (
+                llama3_vision_hf_to_tune,
+            )
+
+            text_config = self._config.get("text_config", {})
+            vision_config = self._config.get("vision_config", {})
+            converted_state_dict[training.MODEL_KEY] = llama3_vision_hf_to_tune(
+                merged_state_dict,
+                num_heads=text_config["num_attention_heads"],
+                num_kv_heads=text_config["num_key_value_heads"],
+                dim=text_config["hidden_size"],
+                head_dim=text_config.get("head_dim", None),
+                vocab_size=text_config["vocab_size"],
+                cross_attention_layers=text_config.get("cross_attention_layers", None),
+                encoder_dim=vision_config["hidden_size"],
+                tile_size=vision_config["image_size"],
+                num_tiles=vision_config["max_num_tiles"],
+                supported_aspect_ratios=vision_config.get(
+                    "supported_aspect_ratios", None
+                ),
             )
         else:
             converted_state_dict[training.MODEL_KEY] = convert_weights.hf_to_tune(
@@ -523,6 +553,30 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     num_kv_heads=self._config["num_key_value_heads"],
                     dim=self._config["hidden_size"],
                     tie_word_embeddings=self._config["tie_word_embeddings"],
+                )
+            elif self._model_type == ModelType.LLAMA3_VISION:
+                from torchtune.models.llama3_2_vision._convert_weights import (
+                    llama3_vision_tune_to_hf,
+                )
+
+                text_config = self._config.get("text_config", {})
+                vision_config = self._config.get("vision_config", {})
+                state_dict[training.MODEL_KEY] = llama3_vision_tune_to_hf(
+                    state_dict[training.MODEL_KEY],
+                    num_heads=text_config["num_attention_heads"],
+                    num_kv_heads=text_config["num_key_value_heads"],
+                    dim=text_config["hidden_size"],
+                    head_dim=text_config.get("head_dim", None),
+                    vocab_size=text_config["vocab_size"],
+                    cross_attention_layers=text_config.get(
+                        "cross_attention_layers", None
+                    ),
+                    encoder_dim=vision_config["hidden_size"],
+                    tile_size=vision_config["image_size"],
+                    num_tiles=vision_config["max_num_tiles"],
+                    supported_aspect_ratios=vision_config.get(
+                        "supported_aspect_ratios", None
+                    ),
                 )
             else:
                 state_dict[training.MODEL_KEY] = convert_weights.tune_to_hf(
@@ -700,7 +754,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         )
 
         self._resume_from_checkpoint = resume_from_checkpoint
-        self._model_type = model_type
+        self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
 
         # recipe_checkpoint contains the recipe state. This should be available if
@@ -719,7 +773,27 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         """
         state_dict: Dict[str:Any] = {}
         model_state_dict = safe_torch_load(self._checkpoint_path)
-        state_dict[training.MODEL_KEY] = convert_weights.meta_to_tune(model_state_dict)
+        if self._model_type == ModelType.LLAMA3_VISION:
+            from torchtune.models.llama3_2_vision._convert_weights import (
+                llama3_vision_meta_to_tune,
+            )
+
+            state_dict[training.MODEL_KEY] = llama3_vision_meta_to_tune(
+                model_state_dict
+            )
+        else:
+            state_dict[training.MODEL_KEY] = convert_weights.meta_to_tune(
+                model_state_dict
+            )
+
+        # llama3_2 has tied weights, so we need to remove the output.weight key
+        if self._model_type == ModelType.LLAMA3_2:
+            logger.info(
+                "Identified model_type = Llama3_2. Ignoring output.weight in"
+                " checkpoint in favor of the tok_embedding.weight"
+                " tied weights."
+            )
+            state_dict[training.MODEL_KEY].pop("output.weight")
 
         if self._adapter_checkpoint:
             adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
@@ -756,9 +830,27 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
 
         if not adapter_only:
             model_state_dict = state_dict[training.MODEL_KEY]
-            state_dict[training.MODEL_KEY] = convert_weights.tune_to_meta(
-                model_state_dict
-            )
+            if self._model_type == ModelType.LLAMA3_VISION:
+                from torchtune.models.llama3_2_vision._convert_weights import (
+                    llama3_vision_tune_to_meta,
+                )
+
+                state_dict[training.MODEL_KEY] = llama3_vision_tune_to_meta(
+                    model_state_dict
+                )
+            else:
+                # llama3_2 has tied weights, so we need to add the output.weight key
+                if (
+                    self._model_type == ModelType.LLAMA3_2
+                    and "output.weight" not in model_state_dict
+                ):
+                    model_state_dict["output.weight"] = model_state_dict[
+                        "tok_embeddings.weight"
+                    ]
+
+                state_dict[training.MODEL_KEY] = convert_weights.tune_to_meta(
+                    model_state_dict
+                )
 
             # Output file is always a .pt file with the epoch number in the name
             checkpoint_file = Path.joinpath(

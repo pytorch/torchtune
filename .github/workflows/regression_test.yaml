@@ -19,6 +19,7 @@ defaults:
 
 jobs:
   regression_test:
+    if: github.repository_owner == 'pytorch'
     runs-on: linux.g5.12xlarge.nvidia.gpu
     strategy:
       matrix:

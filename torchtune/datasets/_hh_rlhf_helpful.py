@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from torchtune.data import ChosenRejectedToMessages
 from torchtune.datasets._preference import PreferenceDataset
@@ -19,6 +19,7 @@ def hh_rlhf_helpful_dataset(
     train_on_input: bool = False,
     new_system_prompt: Optional[str] = None,
     split: str = "train",
+    **load_dataset_kwargs: Dict[str, Any],
 ) -> PreferenceDataset:
     """
     Constructs preference datasets similar to `Anthropic's helpful/harmless RLHF
@@ -43,6 +44,7 @@ def hh_rlhf_helpful_dataset(
             any system messages already present in the dataset. Default is None.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
     Returns:
         PreferenceDataset: The preference dataset built from source paired data.
@@ -59,4 +61,5 @@ def hh_rlhf_helpful_dataset(
         message_transform=message_transform,
         tokenizer=tokenizer,
         split=split,
+        **load_dataset_kwargs,
     )

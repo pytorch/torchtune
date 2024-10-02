@@ -1,7 +1,7 @@
 .. _qlora_finetune_label:
 
 =============================
-Finetuning Llama2 with QLoRA
+Fine-Tuning Llama2 with QLoRA
 =============================
 
 In this tutorial, we'll learn about `QLoRA <https://arxiv.org/abs/2305.14314>`_, an enhancement on top of
