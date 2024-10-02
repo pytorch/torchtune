@@ -306,23 +306,38 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/prompt_templates.html">Prompt Templates</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/configs.html">All About Configs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
@@ -333,6 +348,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_training.html">torchtune.training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
@@ -417,6 +433,7 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">string</span>
 <span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Tuple</span>
@@ -458,6 +475,8 @@
 <span class="sd">        GEMMA (str): Gemma family of models. See :func:`~torchtune.models.gemma.gemma`</span>
 <span class="sd">        LLAMA2 (str): Llama2 family of models. See :func:`~torchtune.models.llama2.llama2`</span>
 <span class="sd">        LLAMA3 (str): Llama3 family of models. See :func:`~torchtune.models.llama3.llama3`</span>
+<span class="sd">        LLAMA3_2 (str): Llama3.2 family of models. See :func:`~torchtune.models.llama3_2.llama3_2`</span>
+<span class="sd">        LLAMA3_VISION (str): LLama3 vision family of models. See :func:`~torchtune.models.llama3_2_vision.llama3_2_vision_decoder`</span>
 <span class="sd">        MISTRAL (str): Mistral family of models. See :func:`~torchtune.models.mistral.mistral`</span>
 <span class="sd">        PHI3_MINI (str): Phi-3 family of models. See :func:`~torchtune.models.phi3.phi3`</span>
 <span class="sd">        REWARD (str): A Llama2, Llama3, or Mistral model with a classification head projecting</span>
@@ -476,10 +495,77 @@
     <span class="n">GEMMA</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;gemma&quot;</span>
     <span class="n">LLAMA2</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;llama2&quot;</span>
     <span class="n">LLAMA3</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;llama3&quot;</span>
+    <span class="n">LLAMA3_2</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;llama3_2&quot;</span>
+    <span class="n">LLAMA3_VISION</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;llama3_vision&quot;</span>
     <span class="n">MISTRAL</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mistral&quot;</span>
     <span class="n">PHI3_MINI</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;phi3_mini&quot;</span>
     <span class="n">REWARD</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;reward&quot;</span>
     <span class="n">QWEN2</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;qwen2&quot;</span></div>
+
+
+<div class="viewcode-block" id="FormattedCheckpointFiles"><a class="viewcode-back" href="../../../../generated/torchtune.training.FormattedCheckpointFiles.html#torchtune.training.FormattedCheckpointFiles">[docs]</a><span class="k">class</span> <span class="nc">FormattedCheckpointFiles</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class gives a more concise way to represent a list of filenames of the format ``file_{i}_of_{n_files}.pth``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        filename_format (str): Format string for the filename. Must have exactly two placeholders, e.g.</span>
+<span class="sd">            ``file_{}_of_{}.pth``.</span>
+<span class="sd">        max_filename (str): Maximum filename in the list. Should be a string representation of an integer,</span>
+<span class="sd">            possibly with leading zeroes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">filename_format</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">max_filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename_format</span> <span class="o">=</span> <span class="n">filename_format</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_filename</span> <span class="o">=</span> <span class="n">max_filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_filename_format</span><span class="p">()</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;FormattedCheckpointFiles&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;filename_format&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">d</span> <span class="ow">or</span> <span class="s2">&quot;max_filename&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Must pass &#39;filename_format&#39; and &#39;max_filename&#39; keys to generate checkpoint filenames&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">filename_format</span><span class="o">=</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;filename_format&quot;</span><span class="p">],</span>
+            <span class="n">max_filename</span><span class="o">=</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;max_filename&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validate_filename_format</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">n_format_placeholders</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">string</span><span class="o">.</span><span class="n">Formatter</span><span class="p">()</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename_format</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">n_format_placeholders</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Filename format string must have exactly two placeholders, e.g. &#39;file_</span><span class="si">{i}</span><span class="s2">_of_</span><span class="si">{n_files}</span><span class="s2">.pth&#39;&quot;</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="FormattedCheckpointFiles.build_checkpoint_filenames"><a class="viewcode-back" href="../../../../generated/torchtune.training.FormattedCheckpointFiles.html#torchtune.training.FormattedCheckpointFiles.build_checkpoint_filenames">[docs]</a>    <span class="k">def</span> <span class="nf">build_checkpoint_filenames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Builds a list of checkpoint filenames from the filename format and max filename.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List[str]: List of checkpoint filenames.</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; # Example usage</span>
+<span class="sd">            &gt;&gt;&gt; f = FormattedCheckpointFiles(filename_format=&quot;file_{}_of_{}.safetensors&quot;, max_filename=&quot;00003&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; f.build_checkpoint_filenames()</span>
+<span class="sd">            &gt;&gt;&gt; [&#39;file_00001_of_00003.safetensors&#39;, &#39;file_00002_of_00003.safetensors&#39;, &#39;file_00003_of_00003.safetensors&#39;]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">num_files</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_filename</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename_format</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_filename</span><span class="p">)),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">max_filename</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_files</span><span class="p">)</span>
+        <span class="p">]</span></div></div>
 
 
 <span class="k">def</span> <span class="nf">get_path</span><span class="p">(</span><span class="n">input_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">missing_ok</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>

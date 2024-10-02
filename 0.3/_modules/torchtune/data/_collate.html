@@ -306,23 +306,38 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/prompt_templates.html">Prompt Templates</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/configs.html">All About Configs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
@@ -333,6 +348,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_training.html">torchtune.training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
@@ -415,13 +431,12 @@
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 <span class="kn">from</span> <span class="nn">torch.nn.utils.rnn</span> <span class="kn">import</span> <span class="n">pad_sequence</span>
-<span class="kn">from</span> <span class="nn">torchtune.data._common</span> <span class="kn">import</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets._packed</span> <span class="kn">import</span> <span class="n">PACK_TYPE</span>
+<span class="kn">from</span> <span class="nn">torchtune.data._common</span> <span class="kn">import</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">PACK_TYPE</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.attention_utils</span> <span class="kn">import</span> <span class="n">packed_block_causal_mask</span>
 
 
@@ -635,6 +650,7 @@
     <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">ignore_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
     <span class="n">pad_direction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;right&quot;</span><span class="p">,</span>
+    <span class="n">pad_max_images</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Pad a batch of text sequences, tiled image tensors, aspect ratios,</span>
 <span class="sd">    and cross attention masks. This can be used for both training and inference.</span>
@@ -671,6 +687,8 @@
 <span class="sd">            :func:`torch.nn.utils.rnn.pad_sequence`, otherwise if ``pad_direction=&quot;left&quot;``,</span>
 <span class="sd">            we use :func:`torchtune.data.left_pad_sequence`. For training, we typically want to pad from the right.</span>
 <span class="sd">            For inference, we typically want to pad from the left. Defaults to &quot;right&quot;.</span>
+<span class="sd">        pad_max_images (Optional[int]): Maximum number of images to pad to. If None, will pad to the largest number of images</span>
+<span class="sd">            in the batch. Defaults to None.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Dict[str, Tensor]: Collated tokens, labels, images, encoder_mask, aspect_ratio tensors.</span>
@@ -782,14 +800,28 @@
             <span class="n">text_seq_len</span><span class="p">,</span> <span class="n">image_seq_len</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">shape</span>
             <span class="n">tokens_per_tile</span> <span class="o">=</span> <span class="n">image_seq_len</span> <span class="o">//</span> <span class="n">n_tiles</span>
             <span class="n">padding_tiles</span> <span class="o">=</span> <span class="n">max_num_tiles</span> <span class="o">-</span> <span class="n">n_tiles</span>
-            <span class="n">padding_text</span> <span class="o">=</span> <span class="n">max_seq_len</span> <span class="o">-</span> <span class="n">text_seq_len</span>
+            <span class="n">right_padding_text</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">max_seq_len</span> <span class="o">-</span> <span class="n">text_seq_len</span> <span class="k">if</span> <span class="n">pad_direction</span> <span class="o">==</span> <span class="s2">&quot;right&quot;</span> <span class="k">else</span> <span class="mi">0</span>
+            <span class="p">)</span>
+            <span class="n">left_padding_text</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">max_seq_len</span> <span class="o">-</span> <span class="n">text_seq_len</span> <span class="k">if</span> <span class="n">pad_direction</span> <span class="o">==</span> <span class="s2">&quot;left&quot;</span> <span class="k">else</span> <span class="mi">0</span>
+            <span class="p">)</span>
+
             <span class="c1"># Image should now have shape (max_num_tiles, c, h, w)</span>
             <span class="n">padded_image</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">padding_tiles</span><span class="p">),</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
             <span class="c1"># Mask should now have shape (max_seq_len, max_image_seq_len), where</span>
             <span class="c1"># max_image_seq_len = max_num_tiles * tokens_per_tile</span>
             <span class="n">padded_mask</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
-                <span class="n">mask</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">padding_tiles</span> <span class="o">*</span> <span class="n">tokens_per_tile</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">padding_text</span><span class="p">),</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span>
+                <span class="n">mask</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="mi">0</span><span class="p">,</span>
+                    <span class="n">padding_tiles</span> <span class="o">*</span> <span class="n">tokens_per_tile</span><span class="p">,</span>
+                    <span class="n">left_padding_text</span><span class="p">,</span>
+                    <span class="n">right_padding_text</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
             <span class="p">)</span>
+
             <span class="n">sample_images</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">padded_image</span><span class="p">)</span>
             <span class="n">sample_masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">padded_mask</span><span class="p">)</span>
         <span class="c1"># Stack multiple images and masks per sample in num_images dimension</span>
@@ -808,6 +840,11 @@
 
     <span class="c1"># Concatenate masks for multiple images across image_seq_len dimension</span>
     <span class="n">concat_masks</span> <span class="o">=</span> <span class="n">collated_masks</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">bsz</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">pad_max_images</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">img_seq</span> <span class="o">=</span> <span class="n">concat_masks</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">concat_masks</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+            <span class="n">concat_masks</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pad_max_images</span> <span class="o">*</span> <span class="n">image_seq_len</span> <span class="o">-</span> <span class="n">img_seq</span><span class="p">)</span>
+        <span class="p">)</span>
 
     <span class="n">batch_dict</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">collated_text</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">],</span>

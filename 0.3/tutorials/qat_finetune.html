@@ -10,7 +10,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Finetuning Llama3 with QAT &mdash; torchtune 0.3 documentation</title>
+  <title>Fine-Tuning Llama3 with QAT &mdash; torchtune 0.3 documentation</title>
   
 
   
@@ -41,7 +41,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="End-to-End Workflow with torchtune" href="e2e_flow.html" />
-    <link rel="prev" title="Finetuning Llama2 with QLoRA" href="qlora_finetune.html" />
+    <link rel="prev" title="Fine-Tuning Llama2 with QLoRA" href="qlora_finetune.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -309,23 +309,38 @@
 <li class="toctree-l1"><a class="reference internal" href="../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/prompt_templates.html">Prompt Templates</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Fine-Tuning Llama3 with QAT</a></li>
 <li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All About Configs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
@@ -336,6 +351,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
@@ -378,7 +394,7 @@
       </li>
 
         
-      <li>Finetuning Llama3 with QAT</li>
+      <li>Fine-Tuning Llama3 with QAT</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -414,8 +430,8 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="finetuning-llama3-with-qat">
-<span id="qat-finetune-label"></span><h1>Finetuning Llama3 with QAT<a class="headerlink" href="#finetuning-llama3-with-qat" title="Permalink to this heading">¶</a></h1>
+  <section id="fine-tuning-llama3-with-qat">
+<span id="qat-finetune-label"></span><h1>Fine-Tuning Llama3 with QAT<a class="headerlink" href="#fine-tuning-llama3-with-qat" title="Permalink to this heading">¶</a></h1>
 <p>Quantization-Aware Training (QAT) is a common technique for users to quantize their
 models without incurring significant degradations in accuracy or perplexity. In this
 tutorial, we’ll walk through how to apply QAT during fine-tuning, quantize the
@@ -799,7 +815,7 @@ For example, the following command lowers the model to the XNNPACK backend:</p>
         <a href="e2e_flow.html" class="btn btn-neutral float-right" title="End-to-End Workflow with torchtune" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="qlora_finetune.html" class="btn btn-neutral" title="Finetuning Llama2 with QLoRA" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="qlora_finetune.html" class="btn btn-neutral" title="Fine-Tuning Llama2 with QLoRA" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -831,7 +847,7 @@ For example, the following command lowers the model to the XNNPACK backend:</p>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">Finetuning Llama3 with QAT</a><ul>
+<li><a class="reference internal" href="#">Fine-Tuning Llama3 with QAT</a><ul>
 <li><a class="reference internal" href="#what-is-qat">What is QAT?</a></li>
 <li><a class="reference internal" href="#applying-qat-to-llama3-models">Applying QAT to Llama3 models</a></li>
 <li><a class="reference internal" href="#qat-finetuning-recipe-in-torchtune">QAT finetuning recipe in torchtune</a></li>

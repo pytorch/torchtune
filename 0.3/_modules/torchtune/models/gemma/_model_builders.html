@@ -306,23 +306,38 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/prompt_templates.html">Prompt Templates</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/configs.html">All About Configs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
@@ -333,6 +348,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_training.html">torchtune.training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
@@ -418,12 +434,12 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.models.gemma._component_builders</span> <span class="kn">import</span> <span class="n">gemma</span><span class="p">,</span> <span class="n">lora_gemma</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.gemma.transformer</span> <span class="kn">import</span> <span class="n">GemmaTransformerDecoder</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">TransformerDecoder</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.models.gemma._tokenizer</span> <span class="kn">import</span> <span class="n">GemmaTokenizer</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span>
 <span class="kn">from</span> <span class="nn">torchtune.data._prompt_templates</span> <span class="kn">import</span> <span class="n">_TemplateType</span>
-<span class="kn">from</span> <span class="nn">torchtune.data._utils</span> <span class="kn">import</span> <span class="n">_get_prompt_template</span>
+<span class="kn">from</span> <span class="nn">torchtune.data._prompt_templates</span> <span class="kn">import</span> <span class="n">_get_prompt_template</span>
 
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 
@@ -433,13 +449,13 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 
-<div class="viewcode-block" id="gemma_2b"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma.gemma_2b.html#torchtune.models.gemma.gemma_2b">[docs]</a><span class="k">def</span> <span class="nf">gemma_2b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">GemmaTransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="gemma_2b"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma.gemma_2b.html#torchtune.models.gemma.gemma_2b">[docs]</a><span class="k">def</span> <span class="nf">gemma_2b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Gemma 2B model initialized w/ the default 2b parameter values</span>
 <span class="sd">    from: https://blog.google/technology/developers/gemma-open-models/</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        GemmaTransformerDecoder: Instantiation of Gemma 2B model</span>
+<span class="sd">        TransformerDecoder: Instantiation of Gemma 2B model</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">gemma</span><span class="p">(</span>
         <span class="n">vocab_size</span><span class="o">=</span><span class="mi">256_000</span><span class="p">,</span>
@@ -483,7 +499,7 @@
     <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">use_dora</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GemmaTransformerDecoder</span><span class="p">:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Gemma 2B model with LoRA enabled.</span>
 
@@ -505,7 +521,7 @@
 <span class="sd">        quantize_base (bool): Whether to quantize base model weights</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        GemmaTransformerDecoder: Instantiation of Gemma 2B model with LoRA applied</span>
+<span class="sd">        TransformerDecoder: Instantiation of Gemma 2B model with LoRA applied</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">lora_gemma</span><span class="p">(</span>
         <span class="n">lora_attn_modules</span><span class="o">=</span><span class="n">lora_attn_modules</span><span class="p">,</span>
@@ -537,13 +553,13 @@
 
 
 
-<div class="viewcode-block" id="gemma_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma.gemma_7b.html#torchtune.models.gemma.gemma_7b">[docs]</a><span class="k">def</span> <span class="nf">gemma_7b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">GemmaTransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="gemma_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma.gemma_7b.html#torchtune.models.gemma.gemma_7b">[docs]</a><span class="k">def</span> <span class="nf">gemma_7b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Gemma 7B model initialized w/ the default 7b parameter values</span>
 <span class="sd">    from: https://blog.google/technology/developers/gemma-open-models/</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        GemmaTransformerDecoder: Instantiation of Gemma 7B model</span>
+<span class="sd">        TransformerDecoder: Instantiation of Gemma 7B model</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">gemma</span><span class="p">(</span>
         <span class="n">vocab_size</span><span class="o">=</span><span class="mi">256_000</span><span class="p">,</span>
@@ -567,7 +583,7 @@
     <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">use_dora</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GemmaTransformerDecoder</span><span class="p">:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Gemma 7B model with LoRA enabled.</span>
 
@@ -589,7 +605,7 @@
 <span class="sd">        quantize_base (bool): Whether to quantize base model weights</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        GemmaTransformerDecoder: Instantiation of Gemma 7B model with LoRA applied</span>
+<span class="sd">        TransformerDecoder: Instantiation of Gemma 7B model with LoRA applied</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">lora_gemma</span><span class="p">(</span>
         <span class="n">lora_attn_modules</span><span class="o">=</span><span class="n">lora_attn_modules</span><span class="p">,</span>

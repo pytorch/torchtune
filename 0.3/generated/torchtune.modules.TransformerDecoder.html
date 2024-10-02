@@ -309,23 +309,38 @@
 <li class="toctree-l1"><a class="reference internal" href="../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/prompt_templates.html">Prompt Templates</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All About Configs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
@@ -336,6 +351,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
@@ -420,14 +436,15 @@
 <h1>TransformerDecoder<a class="headerlink" href="#transformerdecoder" title="Permalink to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="torchtune.modules.TransformerDecoder">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.</span></span><span class="sig-name descname"><span class="pre">TransformerDecoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tok_embeddings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Embedding.html#torch.nn.Embedding" title="(in PyTorch v2.4)"><span class="pre">Embedding</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">layers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.12)"><span class="pre">Union</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_heads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">head_dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.12)"><span class="pre">Union</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Linear.html#torch.nn.Linear" title="(in PyTorch v2.4)"><span class="pre">Linear</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.12)"><span class="pre">Callable</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_layers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_hidden_states</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/transformer.html#TransformerDecoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.TransformerDecoder" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.</span></span><span class="sig-name descname"><span class="pre">TransformerDecoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tok_embeddings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Embedding.html#torch.nn.Embedding" title="(in PyTorch v2.4)"><span class="pre">Embedding</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">layers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.12)"><span class="pre">Union</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.ModuleList.html#torch.nn.ModuleList" title="(in PyTorch v2.4)"><span class="pre">ModuleList</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_heads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">head_dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.4)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.12)"><span class="pre">Union</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Linear.html#torch.nn.Linear" title="(in PyTorch v2.4)"><span class="pre">Linear</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.12)"><span class="pre">Callable</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_layers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_hidden_states</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/transformer.html#TransformerDecoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.TransformerDecoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer Decoder derived from the Llama2 architecture.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>tok_embeddings</strong> (<em>nn.Embedding</em>) – PyTorch embedding layer, to be used to move
 tokens to an embedding space.</p></li>
-<li><p><strong>layers</strong> (<em>Union</em><em>[</em><em>nn.Module</em><em>, </em><em>List</em><em>[</em><em>nn.Module</em><em>]</em><em>]</em>) – Transformer Decoder layer or a list of layers.</p></li>
+<li><p><strong>layers</strong> (<em>Union</em><em>[</em><em>nn.Module</em><em>, </em><em>List</em><em>[</em><em>nn.Module</em><em>]</em><em>, </em><em>nn.ModuleList</em><em>]</em>) – A single transformer Decoder layer, an
+nn.ModuleList of layers or a list of layers. It is recommended to use an nn.ModuleList.</p></li>
 <li><p><strong>max_seq_len</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – maximum sequence length the model will be run with, as used
 by <a class="reference internal" href="torchtune.modules.KVCache.html#torchtune.modules.KVCache" title="torchtune.modules.KVCache"><code class="xref py py-func docutils literal notranslate"><span class="pre">KVCache()</span></code></a></p></li>
 <li><p><strong>num_heads</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – number of query heads. For MHA this is also the
@@ -460,7 +477,7 @@ statements in code and improves readability.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="torchtune.modules.TransformerDecoder.caches_are_enabled">
 <span class="sig-name descname"><span class="pre">caches_are_enabled</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/transformer.html#TransformerDecoder.caches_are_enabled"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.TransformerDecoder.caches_are_enabled" title="Permalink to this definition">¶</a></dt>
-<dd><p>Check if the key value caches are setup.</p>
+<dd><p>Check if the key value caches are setup. This is useful to efficient inference.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -494,53 +511,60 @@ statements in code and improves readability.</p>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>tokens</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – input tensor with shape [b x s]</p></li>
-<li><p><strong>mask</strong> (<em>Optional</em><em>[</em><em>_MaskType</em><em>]</em>) – Used to mask the scores after the query-key multiplication
-and before the softmax. Either a boolean tensor with shape [b x s x s] or a
-<code class="xref py py-class docutils literal notranslate"><span class="pre">BlockMask</span></code>. If a boolean tensor, a value
-of True in row i and column j means token i attends to token j. A value of False means
-token i does not attend to token j. If no mask is specified, a causal mask
-is used by default. If a <code class="xref py py-class docutils literal notranslate"><span class="pre">BlockMask</span></code> is passed
-for document masking in a packed sequence via <a class="reference external" href="https://pytorch.org/blog/flexattention/#mask-mods">create_block_mask</a>, we use
-<code class="xref py py-func docutils literal notranslate"><span class="pre">flex_attention()</span></code> when computing attention.
-Default is None.</p></li>
-<li><p><strong>encoder_input</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – Optional input embeds from the encoder. Shape [b x s_e x d_e]</p></li>
+<li><p><strong>tokens</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a>) – input tensor with shape <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s]</span></code></p></li>
+<li><p><strong>mask</strong> (<em>Optional</em><em>[</em><em>_MaskType</em><em>]</em>) – <p>Used to mask the scores after the query-key multiplication
+and before the softmax. This parameter is required during inference if caches have been setup.
+Either:</p>
+<p>A boolean tensor with shape <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s</span> <span class="pre">x</span> <span class="pre">s]</span></code>, <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s</span> <span class="pre">x</span> <span class="pre">self.encoder_max_cache_seq_len]</span></code>,
+or <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s</span> <span class="pre">x</span> <span class="pre">self.encoder_max_cache_seq_len]</span></code> if using KV-cacheing with encoder/decoder layers.
+A value of True in row <code class="docutils literal notranslate"><span class="pre">i</span></code> and column <code class="docutils literal notranslate"><span class="pre">j</span></code> means token <code class="docutils literal notranslate"><span class="pre">i</span></code> attends to token <code class="docutils literal notranslate"><span class="pre">j</span></code>. A value of False means
+token <code class="docutils literal notranslate"><span class="pre">i</span></code> does not attend to token <code class="docutils literal notranslate"><span class="pre">j</span></code>. If no mask is specified, a causal mask
+is used by default.</p>
+<p>A <code class="xref py py-class docutils literal notranslate"><span class="pre">BlockMask</span></code> for document masking in a packed sequence
+created via <a class="reference external" href="https://pytorch.org/blog/flexattention/#mask-mods">create_block_mask</a>. We  use
+<code class="xref py py-func docutils literal notranslate"><span class="pre">flex_attention()</span></code> when computing attention with block masks.
+Default is None.</p>
+</p></li>
+<li><p><strong>encoder_input</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – Optional input embeds from the encoder. Shape <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s_e</span> <span class="pre">x</span> <span class="pre">d_e]</span></code></p></li>
 <li><p><strong>encoder_mask</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – Boolean tensor defining a relational matrix between
-tokens and encoder embeddings. A True value at position i,j means token i can attend
-to embedding j in the decoder. Mask has shape [b x s x s_e]. Default is None.</p></li>
+tokens and encoder embeddings. A True value at position <code class="docutils literal notranslate"><span class="pre">i,j</span></code> means token <code class="docutils literal notranslate"><span class="pre">i</span></code> can attend
+to embedding <code class="docutils literal notranslate"><span class="pre">j</span></code> in the decoder. Mask has shape <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s</span> <span class="pre">x</span> <span class="pre">s_e]</span></code>. Default is None,
+but this is required during inference if the model has been setup with any layers
+which use encoder embeddings and caches have been setup.</p></li>
 <li><p><strong>input_pos</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)"><em>torch.Tensor</em></a><em>]</em>) – Optional tensor which contains the position ids
 of each token. During training, this is used to indicate the positions
-of each token relative to its sample when packed, shape [b x s].
+of each token relative to its sample when packed, shape <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s]</span></code>.
 During inference, this indicates the position of the current token.
-If none, assume the index of the token is its position id. Default is None.</p></li>
+This parameter is required during inference if caches have been setup. Default is None.</p></li>
 </ul>
 </dd>
-</dl>
-<p>Note: At the very first step of inference, when the model is provided with a prompt,
-<code class="docutils literal notranslate"><span class="pre">input_pos</span></code> would contain the positions of all of the tokens in the prompt
-(eg: <code class="docutils literal notranslate"><span class="pre">torch.arange(prompt_length)</span></code>). This is because we will need to compute the
-KV values for each position.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p><dl class="simple">
-<dt>output tensor with shape [b x s x v] or a list of layer</dt><dd><p>output tensors defined by <code class="docutils literal notranslate"><span class="pre">output_hidden_states</span></code> with the
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>output tensor with shape <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s</span> <span class="pre">x</span> <span class="pre">v]</span></code> or a list of layer</dt><dd><p>output tensors defined by <code class="docutils literal notranslate"><span class="pre">output_hidden_states</span></code> with the
 final output tensor appended to the list.</p>
 </dd>
 </dl>
 </p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>Union[<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)">torch.Tensor</a>, List[<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)">torch.Tensor</a>]]</p>
-</dd>
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – if seq_len of x is bigger than max_seq_len</p></li>
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – if a mask is provided and the model is in inference mode</p></li>
-</ul>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)">torch.Tensor</a>, List[<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.4)">torch.Tensor</a>]]</p>
 </dd>
 </dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>At the very first step of inference, when the model is provided with a prompt,
+<code class="docutils literal notranslate"><span class="pre">input_pos</span></code> should contain the positions of all of the tokens in the prompt.
+For a single-batch prompt, or a batch of prompts with identical lengths, this
+will be <code class="docutils literal notranslate"><span class="pre">torch.arange(prompt_length)</span></code>. For a batch of varying-length prompts,
+shorter prompts are left-padded and position ids are correspondingly right-shifted,
+thus positional ids should be of shape <code class="docutils literal notranslate"><span class="pre">[b,</span> <span class="pre">padded_prompt_length]</span></code>.
+This is because we will need to retrieve the positional embeddings for each input id.
+In the subsequent steps, if the model has been setup with KV-caches, <code class="docutils literal notranslate"><span class="pre">input_pos</span></code> will contain
+the position(s) of the current token(s) <code class="docutils literal notranslate"><span class="pre">torch.tensor([padded_prompt_length])</span></code>. Otherwise,
+<code class="docutils literal notranslate"><span class="pre">input_pos</span></code> will contain all the position ids up to the current token.</p>
+</div>
 <dl class="simple">
-<dt>Notation used for tensor shapes:</dt><dd><ul class="simple">
+<dt>Shape notation:</dt><dd><ul class="simple">
 <li><p>b: batch size</p></li>
 <li><p>s: token sequence length</p></li>
 <li><p>s_e: encoder sequence length</p></li>
@@ -568,13 +592,18 @@ This should be called before the first forward pass, in the recipe.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="torchtune.modules.TransformerDecoder.setup_caches">
-<span class="sig-name descname"><span class="pre">setup_caches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="(in PyTorch v2.4)"><span class="pre">dtype</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/transformer.html#TransformerDecoder.setup_caches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.TransformerDecoder.setup_caches" title="Permalink to this definition">¶</a></dt>
-<dd><p>Setup key value caches for attention calculation.</p>
+<span class="sig-name descname"><span class="pre">setup_caches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="(in PyTorch v2.4)"><span class="pre">dtype</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decoder_max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/transformer.html#TransformerDecoder.setup_caches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.TransformerDecoder.setup_caches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets up key-value attention caches for inference. For each layer in <code class="docutils literal notranslate"><span class="pre">self.layers</span></code>:
+- <a class="reference internal" href="torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer" title="torchtune.modules.TransformerSelfAttentionLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TransformerSelfAttentionLayer</span></code></a> will use <code class="docutils literal notranslate"><span class="pre">decoder_max_seq_len</span></code>.
+- <a class="reference internal" href="torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer" title="torchtune.modules.TransformerCrossAttentionLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TransformerCrossAttentionLayer</span></code></a> will use <code class="docutils literal notranslate"><span class="pre">encoder_max_seq_len</span></code>.
+- <code class="xref py py-class docutils literal notranslate"><span class="pre">FusionLayer</span></code> will use both <code class="docutils literal notranslate"><span class="pre">decoder_max_seq_len</span></code> and <code class="docutils literal notranslate"><span class="pre">encoder_max_seq_len</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – batch size for the caches.</p></li>
 <li><p><strong>dtype</strong> (<em>torch.dpython:type</em>) – dtype for the caches.</p></li>
+<li><p><strong>encoder_max_seq_len</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – maximum encoder cache sequence length.</p></li>
+<li><p><strong>decoder_max_seq_len</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – maximum decoder cache sequence length.</p></li>
 </ul>
 </dd>
 </dl>

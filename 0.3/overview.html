@@ -309,23 +309,38 @@
 <li class="toctree-l1"><a class="reference internal" href="recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/prompt_templates.html">Prompt Templates</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deep_dives/configs.html">All About Configs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
@@ -336,6 +351,7 @@
 <li class="toctree-l1"><a class="reference internal" href="api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_ref_training.html">torchtune.training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
@@ -432,16 +448,16 @@
 <li><p>Interoperability with popular model zoos through checkpoint-conversion utilities</p></li>
 <li><p>Training recipes for a variety of fine-tuning techniques</p></li>
 <li><p>Integration with <a class="reference external" href="https://huggingface.co/docs/datasets/en/index">Hugging Face Datasets</a> for training and <a class="reference external" href="https://github.com/EleutherAI/lm-evaluation-harness">EleutherAI’s Eval Harness</a> for evaluation</p></li>
-<li><p>Support for distributed training using <a class="reference external" href="https://pytorch.org/docs/stable/fsdp.html">FSDP</a></p></li>
+<li><p>Support for distributed training using <a class="reference external" href="https://github.com/pytorch/torchtitan/blob/main/docs/fsdp.md">FSDP2</a></p></li>
 <li><p>YAML configs for easily configuring training runs</p></li>
 </ul>
 <p>Excited? To get started, checkout some of our tutorials, including:</p>
 <ul class="simple">
-<li><p>our <a class="reference internal" href="tutorials/first_finetune_tutorial.html#finetune-llama-label"><span class="std std-ref">quickstart guide</span></a> to finetune your first LLM using torchtune.</p></li>
-<li><p>our <a class="reference internal" href="tutorials/lora_finetune.html#lora-finetune-label"><span class="std std-ref">LoRA tutorial</span></a> to learn about parameter-efficient finetuning with torchtune.</p></li>
-<li><p>our <a class="reference internal" href="tutorials/qlora_finetune.html#qlora-finetune-label"><span class="std std-ref">QLoRA tutorial</span></a> to attain maximal memory efficiency with torchtune.</p></li>
+<li><p>Our <a class="reference internal" href="tutorials/first_finetune_tutorial.html#finetune-llama-label"><span class="std std-ref">quickstart guide</span></a> to finetune your first LLM using torchtune.</p></li>
+<li><p>Our <a class="reference internal" href="tutorials/lora_finetune.html#lora-finetune-label"><span class="std std-ref">LoRA tutorial</span></a> to learn about parameter-efficient finetuning with torchtune.</p></li>
+<li><p>Our <a class="reference internal" href="tutorials/qlora_finetune.html#qlora-finetune-label"><span class="std std-ref">QLoRA tutorial</span></a> to attain maximal memory efficiency with torchtune.</p></li>
 </ul>
-<p>Eager for more? Check out our <a class="reference internal" href="recipes/recipes_overview.html#recipes-overview-label"><span class="std std-ref">recipes index</span></a> to see all the fine-tuning techniques we support.</p>
+<p>You can check out our <a class="reference internal" href="recipes/recipes_overview.html#recipes-overview-label"><span class="std std-ref">recipes overview</span></a> to see all the fine-tuning techniques we support.</p>
 </section>
 <section id="key-concepts">
 <h2>Key Concepts<a class="headerlink" href="#key-concepts" title="Permalink to this heading">¶</a></h2>
@@ -452,11 +468,8 @@ See the “<a class="reference internal" href="deep_dives/configs.html#config-tu
 <p><strong>Recipes.</strong> Recipes can be thought of
 as targeted end-to-end pipelines for training and optionally evaluating LLMs.
 Each recipe implements a training method (eg: full fine-tuning) with a set of meaningful
-features (eg: FSDP + Activation Checkpointing + Gradient Accumulation + Reduced Precision training)
-applied to a given model family (eg: Llama2). See the “<a class="reference internal" href="deep_dives/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">What Are Recipes?</span></a>” deep-dive for more information.</p>
-<div class="line-block">
-<div class="line"><br /></div>
-</div>
+features (eg: FSDP2 + Activation Checkpointing + Gradient Accumulation + Reduced Precision training)
+applied to a given model family (eg: Llama3.1). See the “<a class="reference internal" href="deep_dives/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">What Are Recipes?</span></a>” deep-dive for more information.</p>
 </section>
 <section id="design-principles">
 <span id="design-principles-label"></span><h2>Design Principles<a class="headerlink" href="#design-principles" title="Permalink to this heading">¶</a></h2>

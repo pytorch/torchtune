@@ -40,8 +40,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Checkpointing in torchtune" href="../deep_dives/checkpointer.html" />
-    <link rel="prev" title="Fine-tuning Llama3 with Chat Data" href="chat.html" />
+    <link rel="next" title="Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation" href="llama_kd_tutorial.html" />
+    <link rel="prev" title="Configuring Datasets for Fine-Tuning" href="datasets.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -309,23 +309,38 @@
 <li class="toctree-l1"><a class="reference internal" href="../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/prompt_templates.html">Prompt Templates</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="qat_finetune.html">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
 <li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All About Configs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
@@ -336,6 +351,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
@@ -498,6 +514,27 @@ and in most cases training can slow down quite a bit as a result of this activat
 <p><em>Sounds great! How do I use it?</em></p>
 <p>To enable activation checkpointing, use the <code class="docutils literal notranslate"><span class="pre">enable_activation_checkpointing</span></code> config entry or flag
 in any of our recipes, e.g. <code class="docutils literal notranslate"><span class="pre">enable_activation_checkpointing=True</span></code>.</p>
+</section>
+<section id="activation-offloading">
+<span id="glossary-act-off"></span><h2>Activation Offloading<a class="headerlink" href="#activation-offloading" title="Permalink to this heading">¶</a></h2>
+<p><em>What’s going on here?</em></p>
+<p>You may have just read about activation checkpointing! Similar to checkpointing, offloading is a memory
+efficiency technique that allows saving GPU VRAM by temporarily moving activations to CPU and bringing
+them back when needed in the backward pass.</p>
+<p>See <a class="reference external" href="https://pytorch.org/tutorials/intermediate/autograd_saved_tensors_hooks_tutorial.html#saving-tensors-to-cpu">PyTorch autograd hook tutorial</a>
+for more details about how this is implemented through saved_tensors_hooks.</p>
+<p>This setting is especially helpful for larger batch sizes, or longer context lengths when you’re memory constrained.
+However, these savings in memory can come at the cost of training speed (i.e. tokens per-second), as it takes runtime
+and resources to move Tensors from GPU to CPU and back. The implementation in torchtune has the <code class="docutils literal notranslate"><span class="pre">offload_with_streams</span></code>
+option to use multiple CUDA streams in order to overlap the extra communication with the computation to hide the extra
+runtime. As the communication workload is variable depending on the number and size of tensors being offloaded, it is
+common to not offload every single activation. In fact, once can use offloading in conjunction with activations
+checkpointing, where all activations will either be recomputed later in the backward or brought back from the CPU.</p>
+<p><em>Sounds great! How do I use it?</em></p>
+<p>To enable activation offloading, use the <code class="docutils literal notranslate"><span class="pre">enable_activation_offloading</span></code> config entry or flag
+in our lora finetuning single device recipe, e.g. <code class="docutils literal notranslate"><span class="pre">enable_activation_offloading=True</span></code>. To allow
+usage of streams, make sure you are on a torch version later than PyTorch 2.5.0.dev20240907 and
+specify <code class="docutils literal notranslate"><span class="pre">offload_with_streams=True</span></code>.</p>
 </section>
 <section id="gradient-accumulation">
 <span id="glossary-grad-accm"></span><h2>Gradient Accumulation<a class="headerlink" href="#gradient-accumulation" title="Permalink to this heading">¶</a></h2>
@@ -679,10 +716,10 @@ to see how to configure.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../deep_dives/checkpointer.html" class="btn btn-neutral float-right" title="Checkpointing in torchtune" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="llama_kd_tutorial.html" class="btn btn-neutral float-right" title="Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="chat.html" class="btn btn-neutral" title="Fine-tuning Llama3 with Chat Data" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="datasets.html" class="btn btn-neutral" title="Configuring Datasets for Fine-Tuning" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -717,6 +754,7 @@ to see how to configure.</p>
 <li><a class="reference internal" href="#">Memory Optimization Overview</a><ul>
 <li><a class="reference internal" href="#model-precision">Model Precision</a></li>
 <li><a class="reference internal" href="#activation-checkpointing">Activation Checkpointing</a></li>
+<li><a class="reference internal" href="#activation-offloading">Activation Offloading</a></li>
 <li><a class="reference internal" href="#gradient-accumulation">Gradient Accumulation</a></li>
 <li><a class="reference internal" href="#lower-precision-optimizers">Lower Precision Optimizers</a></li>
 <li><a class="reference internal" href="#fusing-optimizer-step-into-backward-pass">Fusing Optimizer Step into Backward Pass</a></li>

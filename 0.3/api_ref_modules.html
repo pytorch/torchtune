@@ -41,7 +41,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="MultiHeadAttention" href="generated/torchtune.modules.MultiHeadAttention.html" />
-    <link rel="prev" title="gemma_tokenizer" href="generated/torchtune.models.gemma.gemma_tokenizer.html" />
+    <link rel="prev" title="TilePositionalEmbedding" href="generated/torchtune.models.clip.TilePositionalEmbedding.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -309,23 +309,38 @@
 <li class="toctree-l1"><a class="reference internal" href="recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/prompt_templates.html">Prompt Templates</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deep_dives/configs.html">All About Configs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
@@ -336,6 +351,7 @@
 <li class="toctree-l1"><a class="reference internal" href="api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_ref_training.html">torchtune.training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
@@ -469,6 +485,12 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html#torchtune.modules.loss.CEWithChunkedOutputLoss" title="torchtune.modules.loss.CEWithChunkedOutputLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss.CEWithChunkedOutputLoss</span></code></a></p></td>
 <td><p>Cross-entropy with chunked outputs that saves memory by only upcasting one chunk at a time.</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.loss.ForwardKLLoss.html#torchtune.modules.loss.ForwardKLLoss" title="torchtune.modules.loss.ForwardKLLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss.ForwardKLLoss</span></code></a></p></td>
+<td><p>The Kullback-Leibler divergence loss for valid indexes.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.html#torchtune.modules.loss.ForwardKLWithChunkedOutputLoss" title="torchtune.modules.loss.ForwardKLWithChunkedOutputLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss.ForwardKLWithChunkedOutputLoss</span></code></a></p></td>
+<td><p>Forward KL with chunked outputs that saves memory by only upcasting one chunk at a time.</p></td>
+</tr>
 </tbody>
 </table>
 </section>
@@ -554,6 +576,9 @@ model specific tokenizers.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.model_fusion.register_fusion_module.html#torchtune.modules.model_fusion.register_fusion_module" title="torchtune.modules.model_fusion.register_fusion_module"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_fusion.register_fusion_module</span></code></a></p></td>
 <td><p>Add the method fusion_params to an nn.Module that marks all of the Modules parameters as fusion params.</p></td>
 </tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.model_fusion.get_fusion_params.html#torchtune.modules.model_fusion.get_fusion_params" title="torchtune.modules.model_fusion.get_fusion_params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_fusion.get_fusion_params</span></code></a></p></td>
+<td><p>Return the subset of parameters from a model that correspond to fused modules.</p></td>
+</tr>
 </tbody>
 </table>
 </section>
@@ -582,35 +607,6 @@ model specific tokenizers.</p>
 </tbody>
 </table>
 </section>
-<section id="reinforcement-learning-from-human-feedback-rlhf">
-<h2>Reinforcement Learning From Human Feedback (RLHF)<a class="headerlink" href="#reinforcement-learning-from-human-feedback-rlhf" title="Permalink to this heading">¶</a></h2>
-<p>Components and losses for RLHF algorithms like PPO and DPO:</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.estimate_advantages.html#torchtune.modules.rlhf.estimate_advantages" title="torchtune.modules.rlhf.estimate_advantages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.estimate_advantages</span></code></a></p></td>
-<td><p>Estimates the advantages and returns for the PPO algorithm using Generalized Advantage Estimation <a class="reference external" href="https://arxiv.org/pdf/1506.02438.pdf">https://arxiv.org/pdf/1506.02438.pdf</a></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.get_rewards_ppo.html#torchtune.modules.rlhf.get_rewards_ppo" title="torchtune.modules.rlhf.get_rewards_ppo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.get_rewards_ppo</span></code></a></p></td>
-<td><p>Calculates PPO rewards for the given scores, logprobs, and reference logprobs.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.truncate_sequence_at_first_stop_token.html#torchtune.modules.rlhf.truncate_sequence_at_first_stop_token" title="torchtune.modules.rlhf.truncate_sequence_at_first_stop_token"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.truncate_sequence_at_first_stop_token</span></code></a></p></td>
-<td><p>Truncates sequence(s) after the first stop token and pads with <code class="docutils literal notranslate"><span class="pre">fill_value</span></code>.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.loss.PPOLoss.html#torchtune.modules.rlhf.loss.PPOLoss" title="torchtune.modules.rlhf.loss.PPOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.loss.PPOLoss</span></code></a></p></td>
-<td><p>Proximal Policy Optimization (PPO) Loss module.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.loss.DPOLoss.html#torchtune.modules.rlhf.loss.DPOLoss" title="torchtune.modules.rlhf.loss.DPOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.loss.DPOLoss</span></code></a></p></td>
-<td><p>Direct Preference Optimization (DPO) Loss module: <a class="reference external" href="https://arxiv.org/abs/2305.18290">https://arxiv.org/abs/2305.18290</a> Simply stated from the paper:</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.loss.RSOLoss.html#torchtune.modules.rlhf.loss.RSOLoss" title="torchtune.modules.rlhf.loss.RSOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.loss.RSOLoss</span></code></a></p></td>
-<td><p>Statistical Rejection Sampling Optimization (RSO) or &quot;hinge&quot; loss module: <a class="reference external" href="https://arxiv.org/abs/2309.06657">https://arxiv.org/abs/2309.06657</a>.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.rlhf.loss.SimPOLoss.html#torchtune.modules.rlhf.loss.SimPOLoss" title="torchtune.modules.rlhf.loss.SimPOLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rlhf.loss.SimPOLoss</span></code></a></p></td>
-<td><p>SimPO: Simple Preference Optimization with a Reference-Free Reward: <a class="reference external" href="https://arxiv.org/abs/2405.14734">https://arxiv.org/abs/2405.14734</a>.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
 </section>
 
 
@@ -624,7 +620,7 @@ model specific tokenizers.</p>
         <a href="generated/torchtune.modules.MultiHeadAttention.html" class="btn btn-neutral float-right" title="MultiHeadAttention" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="generated/torchtune.models.gemma.gemma_tokenizer.html" class="btn btn-neutral" title="gemma_tokenizer" accesskey="p" rel="prev"><img src="_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="generated/torchtune.models.clip.TilePositionalEmbedding.html" class="btn btn-neutral" title="TilePositionalEmbedding" accesskey="p" rel="prev"><img src="_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -665,7 +661,6 @@ model specific tokenizers.</p>
 <li><a class="reference internal" href="#fusion-components">Fusion Components</a></li>
 <li><a class="reference internal" href="#module-utilities">Module Utilities</a></li>
 <li><a class="reference internal" href="#vision-transforms">Vision Transforms</a></li>
-<li><a class="reference internal" href="#reinforcement-learning-from-human-feedback-rlhf">Reinforcement Learning From Human Feedback (RLHF)</a></li>
 </ul>
 </li>
 </ul>

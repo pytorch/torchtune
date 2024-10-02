@@ -306,23 +306,38 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/prompt_templates.html">Prompt Templates</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/configs.html">All About Configs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
@@ -333,6 +348,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_training.html">torchtune.training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
@@ -421,7 +437,7 @@
 <span class="kn">import</span> <span class="nn">os</span>
 
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Protocol</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">safetensors.torch</span> <span class="kn">import</span> <span class="n">save_file</span>
@@ -430,8 +446,9 @@
 <span class="kn">from</span> <span class="nn">torchtune.models</span> <span class="kn">import</span> <span class="n">convert_weights</span>
 <span class="kn">from</span> <span class="nn">torchtune.models.phi3._convert_weights</span> <span class="kn">import</span> <span class="n">phi3_hf_to_tune</span><span class="p">,</span> <span class="n">phi3_tune_to_hf</span>
 <span class="kn">from</span> <span class="nn">torchtune.models.qwen2._convert_weights</span> <span class="kn">import</span> <span class="n">qwen2_hf_to_tune</span><span class="p">,</span> <span class="n">qwen2_tune_to_hf</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.rlhf.utils</span> <span class="kn">import</span> <span class="n">reward_hf_to_tune</span><span class="p">,</span> <span class="n">reward_tune_to_hf</span>
+<span class="kn">from</span> <span class="nn">torchtune.rlhf.utils</span> <span class="kn">import</span> <span class="n">reward_hf_to_tune</span><span class="p">,</span> <span class="n">reward_tune_to_hf</span>
 <span class="kn">from</span> <span class="nn">torchtune.training.checkpointing._utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">FormattedCheckpointFiles</span><span class="p">,</span>
     <span class="n">get_path</span><span class="p">,</span>
     <span class="n">ModelType</span><span class="p">,</span>
     <span class="n">safe_torch_load</span><span class="p">,</span>
@@ -731,8 +748,8 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        checkpoint_dir (str): Directory containing the checkpoint files</span>
-<span class="sd">        checkpoint_files (List[str]): List of checkpoint files to load. Since the checkpointer takes care</span>
-<span class="sd">            of sorting by file ID, the order in this list does not matter</span>
+<span class="sd">        checkpoint_files (Union[List[str], Dict[str, str]]): List of checkpoint files to load. Since the checkpointer takes care</span>
+<span class="sd">            of sorting by file ID, the order in this list does not matter. TODO: update this</span>
 <span class="sd">        model_type (ModelType): Model type of the model for which the checkpointer is being loaded</span>
 <span class="sd">        output_dir (str): Directory to save the checkpoint files</span>
 <span class="sd">        adapter_checkpoint (Optional[str]): Path to the adapter weights. Default is None</span>
@@ -748,7 +765,7 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">checkpoint_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
         <span class="n">model_type</span><span class="p">:</span> <span class="n">ModelType</span><span class="p">,</span>
         <span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">adapter_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -757,6 +774,12 @@
         <span class="n">safe_serialization</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">checkpoint_files</span><span class="p">,</span> <span class="n">List</span><span class="p">):</span>
+            <span class="n">formatted_checkpoint_files</span> <span class="o">=</span> <span class="n">FormattedCheckpointFiles</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+                <span class="n">checkpoint_files</span>
+            <span class="p">)</span>
+            <span class="n">checkpoint_files</span> <span class="o">=</span> <span class="n">formatted_checkpoint_files</span><span class="o">.</span><span class="n">build_checkpoint_filenames</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_hf_checkpoint_files</span><span class="p">(</span><span class="n">checkpoint_files</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">get_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span> <span class="n">adapter_checkpoint</span><span class="p">)</span>
@@ -871,6 +894,28 @@
                 <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
                 <span class="n">tie_word_embeddings</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;tie_word_embeddings&quot;</span><span class="p">],</span>
             <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">LLAMA3_VISION</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision._convert_weights</span> <span class="kn">import</span> <span class="p">(</span>
+                <span class="n">llama3_vision_hf_to_tune</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">text_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text_config&quot;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="n">vision_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;vision_config&quot;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">llama3_vision_hf_to_tune</span><span class="p">(</span>
+                <span class="n">merged_state_dict</span><span class="p">,</span>
+                <span class="n">num_heads</span><span class="o">=</span><span class="n">text_config</span><span class="p">[</span><span class="s2">&quot;num_attention_heads&quot;</span><span class="p">],</span>
+                <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">text_config</span><span class="p">[</span><span class="s2">&quot;num_key_value_heads&quot;</span><span class="p">],</span>
+                <span class="n">dim</span><span class="o">=</span><span class="n">text_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
+                <span class="n">head_dim</span><span class="o">=</span><span class="n">text_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;head_dim&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                <span class="n">vocab_size</span><span class="o">=</span><span class="n">text_config</span><span class="p">[</span><span class="s2">&quot;vocab_size&quot;</span><span class="p">],</span>
+                <span class="n">cross_attention_layers</span><span class="o">=</span><span class="n">text_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cross_attention_layers&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                <span class="n">encoder_dim</span><span class="o">=</span><span class="n">vision_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
+                <span class="n">tile_size</span><span class="o">=</span><span class="n">vision_config</span><span class="p">[</span><span class="s2">&quot;image_size&quot;</span><span class="p">],</span>
+                <span class="n">num_tiles</span><span class="o">=</span><span class="n">vision_config</span><span class="p">[</span><span class="s2">&quot;max_num_tiles&quot;</span><span class="p">],</span>
+                <span class="n">supported_aspect_ratios</span><span class="o">=</span><span class="n">vision_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                    <span class="s2">&quot;supported_aspect_ratios&quot;</span><span class="p">,</span> <span class="kc">None</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_weights</span><span class="o">.</span><span class="n">hf_to_tune</span><span class="p">(</span>
                 <span class="n">merged_state_dict</span><span class="p">,</span>
@@ -936,6 +981,30 @@
                     <span class="n">num_kv_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_key_value_heads&quot;</span><span class="p">],</span>
                     <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
                     <span class="n">tie_word_embeddings</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;tie_word_embeddings&quot;</span><span class="p">],</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">LLAMA3_VISION</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision._convert_weights</span> <span class="kn">import</span> <span class="p">(</span>
+                    <span class="n">llama3_vision_tune_to_hf</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="n">text_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text_config&quot;</span><span class="p">,</span> <span class="p">{})</span>
+                <span class="n">vision_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;vision_config&quot;</span><span class="p">,</span> <span class="p">{})</span>
+                <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">llama3_vision_tune_to_hf</span><span class="p">(</span>
+                    <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">],</span>
+                    <span class="n">num_heads</span><span class="o">=</span><span class="n">text_config</span><span class="p">[</span><span class="s2">&quot;num_attention_heads&quot;</span><span class="p">],</span>
+                    <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">text_config</span><span class="p">[</span><span class="s2">&quot;num_key_value_heads&quot;</span><span class="p">],</span>
+                    <span class="n">dim</span><span class="o">=</span><span class="n">text_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
+                    <span class="n">head_dim</span><span class="o">=</span><span class="n">text_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;head_dim&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                    <span class="n">vocab_size</span><span class="o">=</span><span class="n">text_config</span><span class="p">[</span><span class="s2">&quot;vocab_size&quot;</span><span class="p">],</span>
+                    <span class="n">cross_attention_layers</span><span class="o">=</span><span class="n">text_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                        <span class="s2">&quot;cross_attention_layers&quot;</span><span class="p">,</span> <span class="kc">None</span>
+                    <span class="p">),</span>
+                    <span class="n">encoder_dim</span><span class="o">=</span><span class="n">vision_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
+                    <span class="n">tile_size</span><span class="o">=</span><span class="n">vision_config</span><span class="p">[</span><span class="s2">&quot;image_size&quot;</span><span class="p">],</span>
+                    <span class="n">num_tiles</span><span class="o">=</span><span class="n">vision_config</span><span class="p">[</span><span class="s2">&quot;max_num_tiles&quot;</span><span class="p">],</span>
+                    <span class="n">supported_aspect_ratios</span><span class="o">=</span><span class="n">vision_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                        <span class="s2">&quot;supported_aspect_ratios&quot;</span><span class="p">,</span> <span class="kc">None</span>
+                    <span class="p">),</span>
                 <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_weights</span><span class="o">.</span><span class="n">tune_to_hf</span><span class="p">(</span>
@@ -1113,7 +1182,7 @@
         <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span> <span class="o">=</span> <span class="n">resume_from_checkpoint</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">=</span> <span class="n">model_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">=</span> <span class="n">ModelType</span><span class="p">[</span><span class="n">model_type</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
 
         <span class="c1"># recipe_checkpoint contains the recipe state. This should be available if</span>
@@ -1132,7 +1201,27 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">:</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_path</span><span class="p">)</span>
-        <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_weights</span><span class="o">.</span><span class="n">meta_to_tune</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">LLAMA3_VISION</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision._convert_weights</span> <span class="kn">import</span> <span class="p">(</span>
+                <span class="n">llama3_vision_meta_to_tune</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">llama3_vision_meta_to_tune</span><span class="p">(</span>
+                <span class="n">model_state_dict</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_weights</span><span class="o">.</span><span class="n">meta_to_tune</span><span class="p">(</span>
+                <span class="n">model_state_dict</span>
+            <span class="p">)</span>
+
+        <span class="c1"># llama3_2 has tied weights, so we need to remove the output.weight key</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">LLAMA3_2</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Identified model_type = Llama3_2. Ignoring output.weight in&quot;</span>
+                <span class="s2">&quot; checkpoint in favor of the tok_embedding.weight&quot;</span>
+                <span class="s2">&quot; tied weights.&quot;</span>
+            <span class="p">)</span>
+            <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;output.weight&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="p">:</span>
             <span class="n">adapter_state_dict</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="p">)</span>
@@ -1169,9 +1258,27 @@
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">adapter_only</span><span class="p">:</span>
             <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span>
-            <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_weights</span><span class="o">.</span><span class="n">tune_to_meta</span><span class="p">(</span>
-                <span class="n">model_state_dict</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">LLAMA3_VISION</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision._convert_weights</span> <span class="kn">import</span> <span class="p">(</span>
+                    <span class="n">llama3_vision_tune_to_meta</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">llama3_vision_tune_to_meta</span><span class="p">(</span>
+                    <span class="n">model_state_dict</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># llama3_2 has tied weights, so we need to add the output.weight key</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">LLAMA3_2</span>
+                    <span class="ow">and</span> <span class="s2">&quot;output.weight&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">model_state_dict</span>
+                <span class="p">):</span>
+                    <span class="n">model_state_dict</span><span class="p">[</span><span class="s2">&quot;output.weight&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">model_state_dict</span><span class="p">[</span>
+                        <span class="s2">&quot;tok_embeddings.weight&quot;</span>
+                    <span class="p">]</span>
+
+                <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_weights</span><span class="o">.</span><span class="n">tune_to_meta</span><span class="p">(</span>
+                    <span class="n">model_state_dict</span>
+                <span class="p">)</span>
 
             <span class="c1"># Output file is always a .pt file with the epoch number in the name</span>
             <span class="n">checkpoint_file</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>

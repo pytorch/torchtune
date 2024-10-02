@@ -1,9 +1,0 @@
-﻿.. role:: hidden
-    :class: hidden-section
-.. currentmodule:: torchtune.datasets
-
-
-llava_instruct_dataset
-======================
-
-.. autofunction:: llava_instruct_dataset

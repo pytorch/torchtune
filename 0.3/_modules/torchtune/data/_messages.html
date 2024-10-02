@@ -306,23 +306,38 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/prompt_templates.html">Prompt Templates</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/configs.html">All About Configs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
@@ -333,6 +348,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_training.html">torchtune.training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
@@ -416,7 +432,10 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">from</span> <span class="nn">torchtune.data._utils</span> <span class="kn">import</span> <span class="n">format_content_with_images</span><span class="p">,</span> <span class="n">load_image</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
 
@@ -716,7 +735,7 @@
 
 <div class="viewcode-block" id="ShareGPTToMessages"><a class="viewcode-back" href="../../../generated/torchtune.data.ShareGPTToMessages.html#torchtune.data.ShareGPTToMessages">[docs]</a><span class="k">class</span> <span class="nc">ShareGPTToMessages</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Convert a single chat sample adhering to the ShareGPT json structure to torchtune&#39;s :class:`~torchtune.data.Message`</span>
+<span class="sd">    Convert a single chat sample adhering to the ShareGPT JSON structure to torchtune&#39;s :class:`~torchtune.data.Message`</span>
 <span class="sd">    structure.</span>
 
 <span class="sd">    A single sample typically consists of a single optional system prompt and one or multiple</span>
@@ -745,7 +764,8 @@
 <span class="sd">        ]</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        train_on_input (bool): whether the prompt should remain unmasked. Default: False</span>
+<span class="sd">        train_on_input (bool): whether the prompt should remain unmasked. For multimodal datasets, ``train_on_input``</span>
+<span class="sd">            is always False and this value is ignored. Default: False</span>
 <span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected columns (&quot;conversations&quot;)</span>
 <span class="sd">            to the new column names in the dataset. Key should be &quot;conversations&quot; and value should</span>
 <span class="sd">            be the new column name. If None, keep the default &quot;conversations&quot;.</span>
@@ -753,6 +773,14 @@
 <span class="sd">        new_system_prompt (Optional[str]): if specified, prepend a system message. This can</span>
 <span class="sd">            serve as instructions to guide the model response. Setting this will OVERRIDE any system</span>
 <span class="sd">            messages already present in the dataset. Default is None.</span>
+<span class="sd">        image_dir (Optional[Path]): path to the directory containing the images that is prepended to all image</span>
+<span class="sd">            paths in the dataset. For example, if ``image_dir=&quot;/home/user/dataset/&quot;` and the sample image path</span>
+<span class="sd">            was ``&quot;images/1.jpg&quot;``, the final image path that will be loaded is ``&quot;/home/user/dataset/images/1.jpg&quot;``.</span>
+<span class="sd">            If None, assume images are available in current working directory or are located</span>
+<span class="sd">            on a remote url. For text-only, leave as None. Default is None.</span>
+<span class="sd">        image_tag (Optional[str]): placeholder tags in the text content of each message to be replaced by image</span>
+<span class="sd">            special tokens. If images are present and this is None, then will prepend image tokens to the first</span>
+<span class="sd">            user message in the sample by default. If text-only, this field is ignored. Default is ``&quot;&lt;image&gt;&quot;``.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If ``column_map`` is provided and ``conversations`` not in ``column_map``.</span>
@@ -763,6 +791,8 @@
         <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">image_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">image_tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&lt;image&gt;&quot;</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="o">=</span> <span class="n">train_on_input</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span> <span class="o">=</span> <span class="n">new_system_prompt</span>
@@ -773,7 +803,9 @@
                 <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="n">column_map</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;conversations&quot;</span><span class="p">:</span> <span class="s2">&quot;conversations&quot;</span><span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;conversations&quot;</span><span class="p">:</span> <span class="s2">&quot;conversations&quot;</span><span class="p">,</span> <span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="s2">&quot;image&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image_dir</span> <span class="o">=</span> <span class="n">image_dir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image_tag</span> <span class="o">=</span> <span class="n">image_tag</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -794,21 +826,53 @@
                     <span class="n">role</span><span class="o">=</span><span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eot</span><span class="o">=</span><span class="kc">True</span>
                 <span class="p">)</span>
             <span class="p">)</span>
+
+        <span class="n">is_multimodal</span> <span class="o">=</span> <span class="s2">&quot;image&quot;</span> <span class="ow">in</span> <span class="n">sample</span> <span class="ow">or</span> <span class="p">(</span>
+            <span class="s2">&quot;image&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">sample</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Gate variable to ensure that we only prepend image tokens to the first user message</span>
+        <span class="n">image_loaded</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;conversations&quot;</span><span class="p">]]:</span>
             <span class="n">role</span> <span class="o">=</span> <span class="n">role_map</span><span class="p">[</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;from&quot;</span><span class="p">]]</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;system&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">continue</span>
-            <span class="n">content</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span>
-            <span class="n">masked</span> <span class="o">=</span> <span class="p">(</span><span class="n">role</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;user&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">is_multimodal</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">image_loaded</span><span class="p">:</span>
+                    <span class="n">image_path</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]]</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">image_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_dir</span> <span class="o">/</span> <span class="n">image_path</span>
+                    <span class="n">pil_image</span> <span class="o">=</span> <span class="n">load_image</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
+                    <span class="c1"># If image tag is not specified, prepend by default</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_tag</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">content</span> <span class="o">=</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">pil_image</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">content</span><span class="p">},</span>
+                        <span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">content</span> <span class="o">=</span> <span class="n">format_content_with_images</span><span class="p">(</span>
+                            <span class="n">content</span><span class="p">,</span>
+                            <span class="n">image_tag</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">image_tag</span><span class="p">,</span>
+                            <span class="n">images</span><span class="o">=</span><span class="p">[</span><span class="n">pil_image</span><span class="p">],</span>
+                        <span class="p">)</span>
+                    <span class="n">image_loaded</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="c1"># If multimodal and user message, always mask</span>
+            <span class="c1"># Otherwise, if user message, mask if train_on_input is False</span>
+            <span class="n">masked</span> <span class="o">=</span> <span class="p">(</span><span class="n">role</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+                <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="ow">or</span> <span class="n">is_multimodal</span>
+            <span class="p">)</span>
             <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="n">role</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="n">masked</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">messages</span><span class="p">}</span></div>
 
 
-<div class="viewcode-block" id="JSONToMessages"><a class="viewcode-back" href="../../../generated/torchtune.data.JSONToMessages.html#torchtune.data.JSONToMessages">[docs]</a><span class="k">class</span> <span class="nc">JSONToMessages</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
+<div class="viewcode-block" id="OpenAIToMessages"><a class="viewcode-back" href="../../../generated/torchtune.data.OpenAIToMessages.html#torchtune.data.OpenAIToMessages">[docs]</a><span class="k">class</span> <span class="nc">OpenAIToMessages</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Convert a single chat sample with identical json structure to torchtune&#39;s :class:`~torchtune.data.Message`</span>
-<span class="sd">    structure. This transform simply creates Message dataclasses from the provided jsons.</span>
+<span class="sd">    Convert a single chat sample adhering to the `OpenAI chat completion &lt;https://platform.openai.com/docs/api-reference/chat&gt;`_</span>
+<span class="sd">    JSON structure to torchtune&#39;s :class:`~torchtune.data.Message` structure. This supports both</span>
+<span class="sd">    text and image messages.</span>
 
 <span class="sd">    A single sample typically consists of a single optional system prompt and one or multiple</span>
 <span class="sd">    turns of user and assistant messages.</span>
@@ -819,7 +883,17 @@
 <span class="sd">            &quot;messages&quot;: [</span>
 <span class="sd">                {</span>
 <span class="sd">                    &quot;role&quot;: &lt;system|user|assistant&gt;,</span>
-<span class="sd">                    &quot;content&quot;: &lt;message&gt;,</span>
+<span class="sd">                    &quot;content&quot;: [</span>
+<span class="sd">                        {</span>
+<span class="sd">                            &quot;type&quot;: &quot;text&quot;,</span>
+<span class="sd">                            &quot;text&quot;: &quot;What&#39;\&#39;&#39;s in this image?&quot;,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            &quot;type&quot;: &quot;image_url&quot;,</span>
+<span class="sd">                            &quot;image_url&quot;: {</span>
+<span class="sd">                                &quot;url&quot;: &lt;url&gt;,</span>
+<span class="sd">                            },</span>
+<span class="sd">                        },</span>
 <span class="sd">                },</span>
 <span class="sd">                ...</span>
 <span class="sd">            ]</span>
@@ -830,7 +904,16 @@
 <span class="sd">        [</span>
 <span class="sd">            {</span>
 <span class="sd">                &quot;role&quot;: &lt;system|user|assistant&gt;,</span>
-<span class="sd">                &quot;content&quot;: &lt;message&gt;,</span>
+<span class="sd">                &quot;content&quot;: [</span>
+<span class="sd">                    {</span>
+<span class="sd">                        &quot;type&quot;: &quot;text&quot;,</span>
+<span class="sd">                        &quot;content&quot;: &quot;What&#39;\&#39;&#39;s in this image?&quot;,</span>
+<span class="sd">                    },</span>
+<span class="sd">                    {</span>
+<span class="sd">                        &quot;type&quot;: &quot;image&quot;,</span>
+<span class="sd">                        &quot;content&quot;: &lt;PIL.Image.Image&gt;,</span>
+<span class="sd">                    },</span>
+<span class="sd">                ],</span>
 <span class="sd">            },</span>
 <span class="sd">            ...</span>
 <span class="sd">        ]</span>
@@ -866,6 +949,25 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="s2">&quot;messages&quot;</span><span class="p">}</span>
 
+    <span class="k">def</span> <span class="nf">_convert_from_openai_content</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">content</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Converts a list of content dicts from the OpenAI format to the torchtune format.&quot;&quot;&quot;</span>
+        <span class="n">converted_content</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">content_dict</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">content_dict</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span>
+                <span class="n">converted_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">content_dict</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]}</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">content_dict</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;image_url&quot;</span><span class="p">:</span>
+                <span class="n">converted_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;image&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">load_image</span><span class="p">(</span><span class="n">content_dict</span><span class="p">[</span><span class="s2">&quot;image_url&quot;</span><span class="p">][</span><span class="s2">&quot;url&quot;</span><span class="p">]),</span>
+                    <span class="p">}</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="n">converted_content</span>
+
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return a list of Message objects from the provided sample dict.</span>
@@ -887,10 +989,18 @@
         <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;messages&quot;</span><span class="p">]]:</span>
             <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;system&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">continue</span>
-            <span class="n">message</span><span class="p">[</span><span class="s2">&quot;masked&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
-                <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span>
+            <span class="n">masked</span> <span class="o">=</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_from_openai_content</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">]</span>
+            <span class="n">updated_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">Message</span><span class="p">(</span>
+                    <span class="n">role</span><span class="o">=</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">],</span>
+                    <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
+                    <span class="n">masked</span><span class="o">=</span><span class="n">masked</span><span class="p">,</span>
+                <span class="p">),</span>
             <span class="p">)</span>
-            <span class="n">updated_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Message</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">message</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">updated_messages</span><span class="p">}</span></div>
 

@@ -1,9 +1,0 @@
-﻿.. role:: hidden
-    :class: hidden-section
-.. currentmodule:: torchtune.datasets
-
-
-the_cauldron_dataset
-====================
-
-.. autofunction:: the_cauldron_dataset

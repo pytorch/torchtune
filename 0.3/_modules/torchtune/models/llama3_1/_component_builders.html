@@ -306,23 +306,38 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/prompt_templates.html">Prompt Templates</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/configs.html">All About Configs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
@@ -333,6 +348,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_training.html">torchtune.training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
@@ -416,25 +432,22 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.models.llama3._model_utils</span> <span class="kn">import</span> <span class="n">scale_hidden_dim_for_mlp</span>
 <span class="kn">from</span> <span class="nn">torchtune.models.llama3_1._position_embeddings</span> <span class="kn">import</span> <span class="n">Llama3ScaledRoPE</span>
-
 <span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">MultiHeadAttention</span><span class="p">,</span>
     <span class="n">FeedForward</span><span class="p">,</span>
     <span class="n">FrozenNF4Linear</span><span class="p">,</span>
-    <span class="n">KVCache</span><span class="p">,</span>
     <span class="n">RMSNorm</span><span class="p">,</span>
     <span class="n">TransformerDecoder</span><span class="p">,</span>
     <span class="n">TransformerSelfAttentionLayer</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.modules.common_utils</span> <span class="kn">import</span> <span class="n">reparametrize_as_dtype_state_dict_post_hook</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules.common_utils</span> <span class="kn">import</span> <span class="n">_register_reparametrize_state_dict_hooks</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">DoRALinear</span><span class="p">,</span> <span class="n">LORA_ATTN_MODULES</span><span class="p">,</span> <span class="n">LoRALinear</span>
 
@@ -461,7 +474,7 @@
     <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">attn_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
-    <span class="n">rope_base</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mf">500000.0</span><span class="p">,</span>
+    <span class="n">rope_base</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500_000</span><span class="p">,</span>
     <span class="n">intermediate_dim</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">norm_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
     <span class="n">scale_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
@@ -484,6 +497,7 @@
 <span class="sd">        embed_dim (int): embedding dimension for self-attention</span>
 <span class="sd">        max_seq_len (int): maximum sequence length the model will be run with, as used</span>
 <span class="sd">            by :func:`~torchtune.modules.KVCache`</span>
+<span class="sd">        rope_base (int): base for the rotary positional embeddings. Default: 500_000</span>
 <span class="sd">        attn_dropout (float): dropout value passed onto scaled_dot_product_attention.</span>
 <span class="sd">            Default: 0.0</span>
 <span class="sd">        intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,</span>
@@ -497,33 +511,37 @@
     <span class="n">head_dim</span> <span class="o">=</span> <span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads</span>
     <span class="n">num_kv_heads</span> <span class="o">=</span> <span class="n">num_kv_heads</span> <span class="k">if</span> <span class="n">num_kv_heads</span> <span class="k">else</span> <span class="n">num_heads</span>
     <span class="n">rope</span> <span class="o">=</span> <span class="n">Llama3ScaledRoPE</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="n">rope_base</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="n">scale_factor</span><span class="p">)</span>
-    <span class="n">self_attn</span> <span class="o">=</span> <span class="n">MultiHeadAttention</span><span class="p">(</span>
-        <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
-        <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
-        <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_kv_heads</span><span class="p">,</span>
-        <span class="n">head_dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span>
-        <span class="n">q_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
-        <span class="n">k_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
-        <span class="n">v_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
-        <span class="n">output_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
-        <span class="n">pos_embeddings</span><span class="o">=</span><span class="n">rope</span><span class="p">,</span>
-        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
-        <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">intermediate_dim</span> <span class="k">if</span> <span class="n">intermediate_dim</span> <span class="k">else</span> <span class="n">scale_hidden_dim_for_mlp</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">)</span>
-    <span class="n">mlp</span> <span class="o">=</span> <span class="n">llama3_mlp</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">)</span>
-    <span class="n">layer</span> <span class="o">=</span> <span class="n">TransformerSelfAttentionLayer</span><span class="p">(</span>
-        <span class="n">attn</span><span class="o">=</span><span class="n">self_attn</span><span class="p">,</span>
-        <span class="n">mlp</span><span class="o">=</span><span class="n">mlp</span><span class="p">,</span>
-        <span class="n">sa_norm</span><span class="o">=</span><span class="n">RMSNorm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
-        <span class="n">mlp_norm</span><span class="o">=</span><span class="n">RMSNorm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
-    <span class="p">)</span>
+    <span class="n">layers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
+        <span class="n">self_attn</span> <span class="o">=</span> <span class="n">MultiHeadAttention</span><span class="p">(</span>
+            <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+            <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+            <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_kv_heads</span><span class="p">,</span>
+            <span class="n">head_dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span>
+            <span class="n">q_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">k_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">v_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">output_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">pos_embeddings</span><span class="o">=</span><span class="n">rope</span><span class="p">,</span>
+            <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+            <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">intermediate_dim</span> <span class="k">if</span> <span class="n">intermediate_dim</span> <span class="k">else</span> <span class="n">scale_hidden_dim_for_mlp</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">)</span>
+        <span class="n">mlp</span> <span class="o">=</span> <span class="n">llama3_mlp</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">)</span>
+        <span class="n">layer</span> <span class="o">=</span> <span class="n">TransformerSelfAttentionLayer</span><span class="p">(</span>
+            <span class="n">attn</span><span class="o">=</span><span class="n">self_attn</span><span class="p">,</span>
+            <span class="n">mlp</span><span class="o">=</span><span class="n">mlp</span><span class="p">,</span>
+            <span class="n">sa_norm</span><span class="o">=</span><span class="n">RMSNorm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
+            <span class="n">mlp_norm</span><span class="o">=</span><span class="n">RMSNorm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
+    <span class="n">layers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span><span class="n">layers</span><span class="p">)</span>
+
     <span class="n">tok_embeddings</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
     <span class="n">output_proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">TransformerDecoder</span><span class="p">(</span>
         <span class="n">tok_embeddings</span><span class="o">=</span><span class="n">tok_embeddings</span><span class="p">,</span>
-        <span class="n">layers</span><span class="o">=</span><span class="n">layer</span><span class="p">,</span>
-        <span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span>
+        <span class="n">layers</span><span class="o">=</span><span class="n">layers</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
         <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
         <span class="n">head_dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span>
@@ -542,8 +560,7 @@
 
 
 
-
-<span class="c1"># ------------------ LoRA Llama3 ------------------</span>
+<span class="c1"># ------------------ LoRA Llama3.1 ------------------</span>
 
 
 <div class="viewcode-block" id="lora_llama3_1"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_1.lora_llama3_1.html#torchtune.models.llama3_1.lora_llama3_1">[docs]</a><span class="k">def</span> <span class="nf">lora_llama3_1</span><span class="p">(</span>
@@ -551,7 +568,7 @@
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="c1"># llama3 args</span>
+    <span class="c1"># llama3.1 args</span>
     <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -561,7 +578,8 @@
     <span class="n">intermediate_dim</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">attn_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">norm_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
-    <span class="n">rope_base</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">500000.0</span><span class="p">,</span>
+    <span class="n">rope_base</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500_000</span><span class="p">,</span>
+    <span class="n">scale_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
     <span class="c1"># LoRA args</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -597,9 +615,12 @@
 <span class="sd">        intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,</span>
 <span class="sd">            this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`</span>
 <span class="sd">        norm_eps (float): epsilon in RMS norms.</span>
+<span class="sd">        rope_base (int): base for the rotary positional embeddings. Default: 500_000</span>
+<span class="sd">        scale_factor (int): scaling factor for RoPE. Default: 8</span>
 <span class="sd">        lora_rank (int): rank of each low-rank approximation</span>
 <span class="sd">        lora_alpha (float): scaling factor for the low-rank approximation</span>
 <span class="sd">        lora_dropout (float): LoRA dropout probability. Default: 0.0</span>
+<span class="sd">        use_dora (bool): Whether to use DoRA layers instead of LoRA layers. Default is ``False``.</span>
 <span class="sd">        quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base</span>
 <span class="sd">            weights within linear layers LoRA is applied to. The final output linear projection is not</span>
 <span class="sd">            supported for quantization currently.</span>
@@ -610,42 +631,48 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">self_attn</span> <span class="o">=</span> <span class="n">lora_llama3_1_self_attention</span><span class="p">(</span>
-        <span class="n">lora_modules</span><span class="o">=</span><span class="n">lora_attn_modules</span><span class="p">,</span>
-        <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
-        <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
-        <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_kv_heads</span><span class="p">,</span>
-        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
-        <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
-        <span class="n">rope_base</span><span class="o">=</span><span class="n">rope_base</span><span class="p">,</span>
-        <span class="n">lora_rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
-        <span class="n">lora_alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
-        <span class="n">lora_dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
-        <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
-        <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
-    <span class="p">)</span>
-
     <span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">intermediate_dim</span> <span class="k">if</span> <span class="n">intermediate_dim</span> <span class="k">else</span> <span class="n">scale_hidden_dim_for_mlp</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">apply_lora_to_mlp</span><span class="p">:</span>
-        <span class="n">mlp</span> <span class="o">=</span> <span class="n">lora_llama3_mlp</span><span class="p">(</span>
-            <span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
-            <span class="n">hidden_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
+    <span class="n">head_dim</span> <span class="o">=</span> <span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads</span>
+    <span class="n">rope</span> <span class="o">=</span> <span class="n">Llama3ScaledRoPE</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="n">rope_base</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="n">scale_factor</span><span class="p">)</span>
+    <span class="n">layers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
+        <span class="n">self_attn</span> <span class="o">=</span> <span class="n">lora_llama3_attention</span><span class="p">(</span>
+            <span class="n">lora_modules</span><span class="o">=</span><span class="n">lora_attn_modules</span><span class="p">,</span>
+            <span class="n">pos_embeddings</span><span class="o">=</span><span class="n">rope</span><span class="p">,</span>
+            <span class="n">head_dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span>
+            <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+            <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+            <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_kv_heads</span><span class="p">,</span>
+            <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+            <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
             <span class="n">lora_rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
             <span class="n">lora_alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
-            <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
             <span class="n">lora_dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
             <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
+            <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
         <span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">mlp</span> <span class="o">=</span> <span class="n">llama3_mlp</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">)</span>
 
-    <span class="n">layer</span> <span class="o">=</span> <span class="n">TransformerSelfAttentionLayer</span><span class="p">(</span>
-        <span class="n">attn</span><span class="o">=</span><span class="n">self_attn</span><span class="p">,</span>
-        <span class="n">mlp</span><span class="o">=</span><span class="n">mlp</span><span class="p">,</span>
-        <span class="n">sa_norm</span><span class="o">=</span><span class="n">RMSNorm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
-        <span class="n">mlp_norm</span><span class="o">=</span><span class="n">RMSNorm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
-    <span class="p">)</span>
+        <span class="k">if</span> <span class="n">apply_lora_to_mlp</span><span class="p">:</span>
+            <span class="n">mlp</span> <span class="o">=</span> <span class="n">lora_llama3_mlp</span><span class="p">(</span>
+                <span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+                <span class="n">hidden_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
+                <span class="n">lora_rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
+                <span class="n">lora_alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
+                <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
+                <span class="n">lora_dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
+                <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mlp</span> <span class="o">=</span> <span class="n">llama3_mlp</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">)</span>
 
+        <span class="n">layer</span> <span class="o">=</span> <span class="n">TransformerSelfAttentionLayer</span><span class="p">(</span>
+            <span class="n">attn</span><span class="o">=</span><span class="n">self_attn</span><span class="p">,</span>
+            <span class="n">mlp</span><span class="o">=</span><span class="n">mlp</span><span class="p">,</span>
+            <span class="n">sa_norm</span><span class="o">=</span><span class="n">RMSNorm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
+            <span class="n">mlp_norm</span><span class="o">=</span><span class="n">RMSNorm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
+    <span class="n">layers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span><span class="n">layers</span><span class="p">)</span>
     <span class="n">tok_embeddings</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
 
     <span class="c1"># TODO: quantize_base is not applied to final output_proj currently.</span>
@@ -657,8 +684,7 @@
     <span class="p">)</span>
     <span class="n">model</span> <span class="o">=</span> <span class="n">TransformerDecoder</span><span class="p">(</span>
         <span class="n">tok_embeddings</span><span class="o">=</span><span class="n">tok_embeddings</span><span class="p">,</span>
-        <span class="n">layers</span><span class="o">=</span><span class="n">layer</span><span class="p">,</span>
-        <span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span>
+        <span class="n">layers</span><span class="o">=</span><span class="n">layers</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
         <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
         <span class="n">head_dim</span><span class="o">=</span><span class="p">(</span><span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads</span><span class="p">),</span>
@@ -669,23 +695,25 @@
     <span class="k">if</span> <span class="n">quantize_base</span><span class="p">:</span>
         <span class="c1"># For QLoRA, we reparametrize 4-bit tensors to bf16, and offload to CPU on the fly</span>
         <span class="c1"># so as to not increase peak memory</span>
-        <span class="n">model</span><span class="o">.</span><span class="n">_register_state_dict_hook</span><span class="p">(</span>
-            <span class="n">partial</span><span class="p">(</span><span class="n">reparametrize_as_dtype_state_dict_post_hook</span><span class="p">,</span> <span class="n">offload_to_cpu</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="p">)</span>
+        <span class="n">_register_reparametrize_state_dict_hooks</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">model</span></div>
 
 
-<span class="k">def</span> <span class="nf">lora_llama3_1_self_attention</span><span class="p">(</span>
+<span class="k">def</span> <span class="nf">lora_llama3_attention</span><span class="p">(</span>
     <span class="n">lora_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
+    <span class="n">pos_embeddings</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="c1"># MultiHeadAttention args</span>
+    <span class="n">head_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_kv_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">q_norm</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">k_norm</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">is_causal</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">attn_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
-    <span class="n">rope_base</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">500000.0</span><span class="p">,</span>
     <span class="c1"># LoRA args</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -701,19 +729,27 @@
 <span class="sd">        lora_modules (List[LORA_ATTN_MODULES]): list of which linear layers</span>
 <span class="sd">            LoRA should be applied to. Options are ``{&quot;q_proj&quot;, &quot;k_proj&quot;, &quot;v_proj&quot;,</span>
 <span class="sd">            &quot;output_proj&quot;}``.</span>
+<span class="sd">        pos_embeddings (nn.Module): positional embeddings module to be passed to</span>
+<span class="sd">            MultiHeadAttention.</span>
+<span class="sd">        head_dim (int): dimension of each head in the multihead attention. Usually</span>
+<span class="sd">            computed as ``embed_dim // num_heads``.</span>
 <span class="sd">        embed_dim (int): embedding dimension for self-attention</span>
 <span class="sd">        num_heads (int): number of query heads. For MHA this is also the</span>
 <span class="sd">            number of heads for key and value</span>
 <span class="sd">        num_kv_heads (int): number of key and value heads. User should ensure</span>
 <span class="sd">            `num_heads` % `num_kv_heads` == 0. For standard MHA set `num_kv_heads` == `num_heads`,</span>
 <span class="sd">            for GQA `num_kv_heads` &lt; `num_heads`, and for MQA set `num_kv_heads` == 1.</span>
+<span class="sd">        q_norm (Optional[nn.Module]): normalization applied to query. Default: None</span>
+<span class="sd">        k_norm (Optional[nn.Module]): normalization applied to key. Default: None</span>
 <span class="sd">        max_seq_len (int): maximum sequence length the model will be run with, as used</span>
 <span class="sd">            by :func:`~torchtune.modules.KVCache`</span>
+<span class="sd">        is_causal (bool): whether to apply causal attention mask. Default: True</span>
 <span class="sd">        attn_dropout (float): dropout value passed onto scaled_dot_product_attention.</span>
 <span class="sd">            Default: 0.0</span>
 <span class="sd">        lora_rank (int): rank of each low-rank approximation</span>
 <span class="sd">        lora_alpha (float): scaling factor for the low-rank approximation</span>
 <span class="sd">        lora_dropout (float): LoRA dropout probability. Default: 0.0</span>
+<span class="sd">        use_dora (bool): Whether to use DoRA layers instead of LoRA layers. Default is ``False``.</span>
 <span class="sd">        quantize_base (bool): Whether to quantize base model parameters for linear layers</span>
 <span class="sd">            LoRA is being applied to. Default is ``False``.</span>
 
@@ -729,7 +765,6 @@
             <span class="sa">f</span><span class="s2">&quot;Must pass one or more of </span><span class="si">{</span><span class="n">LORA_ATTN_MODULES</span><span class="si">}</span><span class="s2"> as lora_modules&quot;</span>
         <span class="p">)</span>
 
-    <span class="n">head_dim</span> <span class="o">=</span> <span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads</span>
     <span class="n">num_kv_heads</span> <span class="o">=</span> <span class="n">num_kv_heads</span> <span class="k">if</span> <span class="n">num_kv_heads</span> <span class="k">else</span> <span class="n">num_heads</span>
     <span class="n">adapter_cls</span> <span class="o">=</span> <span class="n">DoRALinear</span> <span class="k">if</span> <span class="n">use_dora</span> <span class="k">else</span> <span class="n">LoRALinear</span>
     <span class="n">q_proj</span> <span class="o">=</span> <span class="p">(</span>
@@ -796,7 +831,7 @@
             <span class="k">else</span> <span class="n">FrozenNF4Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="p">)</span>
     <span class="p">)</span>
-    <span class="n">rope</span> <span class="o">=</span> <span class="n">Llama3ScaledRoPE</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="n">rope_base</span><span class="p">)</span>
+
     <span class="n">self_attn</span> <span class="o">=</span> <span class="n">MultiHeadAttention</span><span class="p">(</span>
         <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
         <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
@@ -806,8 +841,11 @@
         <span class="n">k_proj</span><span class="o">=</span><span class="n">k_proj</span><span class="p">,</span>
         <span class="n">v_proj</span><span class="o">=</span><span class="n">v_proj</span><span class="p">,</span>
         <span class="n">output_proj</span><span class="o">=</span><span class="n">output_proj</span><span class="p">,</span>
-        <span class="n">pos_embeddings</span><span class="o">=</span><span class="n">rope</span><span class="p">,</span>
+        <span class="n">q_norm</span><span class="o">=</span><span class="n">q_norm</span><span class="p">,</span>
+        <span class="n">k_norm</span><span class="o">=</span><span class="n">k_norm</span><span class="p">,</span>
+        <span class="n">pos_embeddings</span><span class="o">=</span><span class="n">pos_embeddings</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+        <span class="n">is_causal</span><span class="o">=</span><span class="n">is_causal</span><span class="p">,</span>
         <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">self_attn</span>

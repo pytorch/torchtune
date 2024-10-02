@@ -306,23 +306,38 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/prompt_templates.html">Prompt Templates</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/configs.html">All About Configs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
@@ -333,6 +348,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_training.html">torchtune.training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
@@ -422,11 +438,11 @@
 
 <span class="kn">from</span> <span class="nn">datasets</span> <span class="kn">import</span> <span class="n">load_dataset</span>
 <span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span>
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">ChatFormat</span><span class="p">,</span>
-    <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
-    <span class="n">JSONToMessages</span><span class="p">,</span>
+<span class="kn">from</span> <span class="nn">torchtune.data._chat_formats</span> <span class="kn">import</span> <span class="n">ChatFormat</span>
+<span class="kn">from</span> <span class="nn">torchtune.data._common</span> <span class="kn">import</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span>
+<span class="kn">from</span> <span class="nn">torchtune.data._messages</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">Message</span><span class="p">,</span>
+    <span class="n">OpenAIToMessages</span><span class="p">,</span>
     <span class="n">ShareGPTToMessages</span><span class="p">,</span>
     <span class="n">validate_messages</span><span class="p">,</span>
 <span class="p">)</span>
@@ -530,6 +546,7 @@
     <span class="n">conversation_column</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">conversation_style</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">packed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">SFTDataset</span><span class="p">,</span> <span class="n">PackedDataset</span><span class="p">]:</span>
@@ -562,7 +579,7 @@
 <span class="sd">    You may have a different structure for your conversations, such as different role names or</span>
 <span class="sd">    different keys in the json structure. You can use the ``conversation_style`` parameter</span>
 <span class="sd">    to choose from standard formats such as &quot;sharegpt&quot; (see :class:`~torchtune.data.ShareGPTToMessages`)</span>
-<span class="sd">    or &quot;json&quot; (see :class:`~torchtune.data.JSONToMessages`). If your dataset is not in one of these</span>
+<span class="sd">    or &quot;openai&quot; (see :class:`~torchtune.data.OpenAIToMessages`). If your dataset is not in one of these</span>
 <span class="sd">    formats, we recommend creating a custom message transform and using it in a custom dataset</span>
 <span class="sd">    builder function similar to :class:`~torchtune.datasets.chat_dataset`.</span>
 
@@ -570,10 +587,11 @@
 <span class="sd">    towards the column with the conversations.</span>
 
 <span class="sd">    Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is</span>
-<span class="sd">    set to ``False`` by default</span>
+<span class="sd">    set to ``False`` by default.</span>
+
 <span class="sd">    - If ``train_on_input`` is True, the prompt is used during training and</span>
-<span class="sd">    contributes to the loss.</span>
-<span class="sd">    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)</span>
+<span class="sd">      contributes to the loss.</span>
+<span class="sd">    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100).</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.</span>
@@ -585,8 +603,10 @@
 <span class="sd">        conversation_column (str): name of column containing the conversations.</span>
 <span class="sd">        conversation_style (str): string specifying expected style of conversations in the dataset</span>
 <span class="sd">            for automatic conversion to the :class:`~torchtune.data.Message` structure.</span>
-<span class="sd">            Supported styles are: &quot;sharegpt&quot;, &quot;json&quot;</span>
+<span class="sd">            Supported styles are: &quot;sharegpt&quot;, &quot;openai&quot;</span>
 <span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
+<span class="sd">        new_system_prompt (Optional[str]): if specified, prepend a system message. This can</span>
+<span class="sd">            serve as instructions to guide the model response. Default is None.</span>
 <span class="sd">        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.</span>
 <span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,</span>
 <span class="sd">            such as ``data_files`` or ``split``.</span>
@@ -659,10 +679,13 @@
         <span class="n">message_transform</span> <span class="o">=</span> <span class="n">ShareGPTToMessages</span><span class="p">(</span>
             <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
             <span class="n">column_map</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;conversations&quot;</span><span class="p">:</span> <span class="n">conversation_column</span><span class="p">},</span>
+            <span class="n">new_system_prompt</span><span class="o">=</span><span class="n">new_system_prompt</span><span class="p">,</span>
         <span class="p">)</span>
-    <span class="k">elif</span> <span class="n">conversation_style</span> <span class="o">==</span> <span class="s2">&quot;json&quot;</span><span class="p">:</span>
-        <span class="n">message_transform</span> <span class="o">=</span> <span class="n">JSONToMessages</span><span class="p">(</span>
-            <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span> <span class="n">column_map</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">conversation_column</span><span class="p">}</span>
+    <span class="k">elif</span> <span class="n">conversation_style</span> <span class="o">==</span> <span class="s2">&quot;openai&quot;</span><span class="p">:</span>
+        <span class="n">message_transform</span> <span class="o">=</span> <span class="n">OpenAIToMessages</span><span class="p">(</span>
+            <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
+            <span class="n">column_map</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">conversation_column</span><span class="p">},</span>
+            <span class="n">new_system_prompt</span><span class="o">=</span><span class="n">new_system_prompt</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported conversation style: </span><span class="si">{</span><span class="n">conversation_style</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>

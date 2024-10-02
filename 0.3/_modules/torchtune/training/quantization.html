@@ -306,23 +306,38 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/prompt_templates.html">Prompt Templates</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/configs.html">All About Configs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
@@ -333,6 +348,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_training.html">torchtune.training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
@@ -418,8 +434,38 @@
 
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span>
 
+<span class="kn">from</span> <span class="nn">torchao.dtypes</span> <span class="kn">import</span> <span class="n">TensorCoreTiledLayoutType</span>
+<span class="kn">from</span> <span class="nn">torchao.quantization</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">int4_weight_only</span><span class="p">,</span>
+    <span class="n">int8_dynamic_activation_int4_weight</span><span class="p">,</span>
+    <span class="n">quantize_</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">torchao.quantization.prototype.qat</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">disable_4w_fake_quant</span><span class="p">,</span>
+    <span class="n">disable_8da4w_fake_quant</span><span class="p">,</span>
+    <span class="n">enable_4w_fake_quant</span><span class="p">,</span>
+    <span class="n">enable_8da4w_fake_quant</span><span class="p">,</span>
+    <span class="n">Int4WeightOnlyQATQuantizer</span><span class="p">,</span>
+    <span class="n">Int8DynActInt4WeightQATQuantizer</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">torchao.quantization.prototype.qat._module_swap_api</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">disable_4w_fake_quant_module_swap</span><span class="p">,</span>
+    <span class="n">disable_8da4w_fake_quant_module_swap</span><span class="p">,</span>
+    <span class="n">enable_4w_fake_quant_module_swap</span><span class="p">,</span>
+    <span class="n">enable_8da4w_fake_quant_module_swap</span><span class="p">,</span>
+    <span class="n">Int4WeightOnlyQATQuantizerModuleSwap</span><span class="p">,</span>
+    <span class="n">Int8DynActInt4WeightQATQuantizerModuleSwap</span><span class="p">,</span>
+<span class="p">)</span>
+
+
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s2">&quot;get_quantizer_mode&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Int4WeightOnlyQuantizer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Int4WeightOnlyQATQuantizer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Int4WeightOnlyQATQuantizerModuleSwap&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Int8DynActInt4WeightQuantizer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Int8DynActInt4WeightQATQuantizer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Int8DynActInt4WeightQATQuantizerModuleSwap&quot;</span><span class="p">,</span>
 <span class="p">]</span>
 
 
@@ -428,47 +474,85 @@
 <span class="n">_quantizer_mode_to_enable_fake_quant</span> <span class="o">=</span> <span class="p">{}</span>
 
 
-<span class="kn">from</span> <span class="nn">torchao.quantization.quant_api</span> <span class="kn">import</span> <span class="n">Int8DynActInt4WeightQuantizer</span>
+<span class="c1"># ========================================================</span>
+<span class="c1"># int8 dynamic activations + int4 weight tensor subclass |</span>
+<span class="c1"># ========================================================</span>
 
-<span class="n">__all__</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Int8DynActInt4WeightQuantizer&quot;</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">Int8DynActInt4WeightQuantizer</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Quantizer for applying int8 per token dynamic activation + int4</span>
+<span class="sd">    per group weight quantization to linear layers in the model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">groupsize</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">groupsize</span> <span class="o">=</span> <span class="n">groupsize</span>
+
+    <span class="k">def</span> <span class="nf">quantize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="n">quantize_fn</span> <span class="o">=</span> <span class="n">int8_dynamic_activation_int4_weight</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">groupsize</span><span class="p">)</span>
+        <span class="n">quantize_</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">quantize_fn</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">model</span>
+
+
 <span class="n">_quantizer_to_mode</span><span class="p">[</span><span class="n">Int8DynActInt4WeightQuantizer</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;8da4w&quot;</span>
-
-
-<span class="kn">from</span> <span class="nn">torchao.quantization.prototype.qat</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">disable_8da4w_fake_quant</span><span class="p">,</span>
-    <span class="n">enable_8da4w_fake_quant</span><span class="p">,</span>
-    <span class="n">Int8DynActInt4WeightQATQuantizer</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="n">__all__</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Int8DynActInt4WeightQATQuantizer&quot;</span><span class="p">)</span>
 <span class="n">_quantizer_to_mode</span><span class="p">[</span><span class="n">Int8DynActInt4WeightQATQuantizer</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;8da4w-qat&quot;</span>
 <span class="n">_quantizer_mode_to_disable_fake_quant</span><span class="p">[</span><span class="s2">&quot;8da4w-qat&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">disable_8da4w_fake_quant</span>
 <span class="n">_quantizer_mode_to_enable_fake_quant</span><span class="p">[</span><span class="s2">&quot;8da4w-qat&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">enable_8da4w_fake_quant</span>
 
-<span class="k">try</span><span class="p">:</span>
-    <span class="c1"># Note: QAT tensor subclass implementation in torchao only works</span>
-    <span class="c1"># with FSDP2 today. For other distribution strategies like DDP and</span>
-    <span class="c1"># FSDP1, users will need to fall back to the old module swap flow.</span>
-    <span class="c1"># TODO: remove this try catch once we upgrade to torchao 0.5.0</span>
 
-    <span class="kn">from</span> <span class="nn">torchao.quantization.prototype.qat._module_swap_api</span> <span class="kn">import</span> <span class="p">(</span>
-        <span class="n">disable_8da4w_fake_quant_module_swap</span><span class="p">,</span>
-        <span class="n">enable_8da4w_fake_quant_module_swap</span><span class="p">,</span>
-        <span class="n">Int8DynActInt4WeightQATQuantizerModuleSwap</span><span class="p">,</span>
-    <span class="p">)</span>
+<span class="c1"># ==================</span>
+<span class="c1"># int4 weight only |</span>
+<span class="c1"># ==================</span>
 
-    <span class="n">__all__</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Int8DynActInt4WeightQATQuantizerModuleSwap&quot;</span><span class="p">)</span>
-    <span class="n">_quantizer_to_mode</span><span class="p">[</span>
-        <span class="n">Int8DynActInt4WeightQATQuantizerModuleSwap</span>
-    <span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;8da4w-qat-module-swap&quot;</span>
-    <span class="n">_quantizer_mode_to_disable_fake_quant</span><span class="p">[</span>
-        <span class="s2">&quot;8da4w-qat-module-swap&quot;</span>
-    <span class="p">]</span> <span class="o">=</span> <span class="n">disable_8da4w_fake_quant_module_swap</span>
-    <span class="n">_quantizer_mode_to_enable_fake_quant</span><span class="p">[</span>
-        <span class="s2">&quot;8da4w-qat-module-swap&quot;</span>
-    <span class="p">]</span> <span class="o">=</span> <span class="n">enable_8da4w_fake_quant_module_swap</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="k">pass</span>
+
+<span class="k">class</span> <span class="nc">Int4WeightOnlyQuantizer</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Quantizer for applying int4 per group weight only quantization</span>
+<span class="sd">    to linear layers in the model using the efficient tinygemm kernel.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">groupsize</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">128</span><span class="p">,</span> <span class="n">inner_k_tiles</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">groupsize</span> <span class="o">=</span> <span class="n">groupsize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inner_k_tiles</span> <span class="o">=</span> <span class="n">inner_k_tiles</span>
+
+    <span class="k">def</span> <span class="nf">quantize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="n">layout_type</span> <span class="o">=</span> <span class="n">TensorCoreTiledLayoutType</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inner_k_tiles</span><span class="p">)</span>
+        <span class="n">quantize_fn</span> <span class="o">=</span> <span class="n">int4_weight_only</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">groupsize</span><span class="p">,</span> <span class="n">layout_type</span><span class="p">)</span>
+        <span class="n">quantize_</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">quantize_fn</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">model</span>
+
+
+<span class="n">_quantizer_to_mode</span><span class="p">[</span><span class="n">Int4WeightOnlyQuantizer</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;4w&quot;</span>
+<span class="n">_quantizer_to_mode</span><span class="p">[</span><span class="n">Int4WeightOnlyQATQuantizer</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;4w-qat&quot;</span>
+<span class="n">_quantizer_mode_to_disable_fake_quant</span><span class="p">[</span><span class="s2">&quot;4w-qat&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">disable_4w_fake_quant</span>
+<span class="n">_quantizer_mode_to_enable_fake_quant</span><span class="p">[</span><span class="s2">&quot;4w-qat&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">enable_4w_fake_quant</span>
+
+
+<span class="c1"># =============</span>
+<span class="c1"># module swap |</span>
+<span class="c1"># =============</span>
+
+<span class="c1"># Note: QAT tensor subclass implementation in torchao only works</span>
+<span class="c1"># with FSDP2 today. For other distribution strategies like DDP and</span>
+<span class="c1"># FSDP1, users will need to fall back to the old module swap flow.</span>
+
+<span class="c1"># int4 weight-only</span>
+<span class="n">_quantizer_to_mode</span><span class="p">[</span><span class="n">Int4WeightOnlyQATQuantizerModuleSwap</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;4w-qat-module-swap&quot;</span>
+<span class="n">_quantizer_mode_to_disable_fake_quant</span><span class="p">[</span>
+    <span class="s2">&quot;4w-qat-module-swap&quot;</span>
+<span class="p">]</span> <span class="o">=</span> <span class="n">disable_4w_fake_quant_module_swap</span>
+<span class="n">_quantizer_mode_to_enable_fake_quant</span><span class="p">[</span>
+    <span class="s2">&quot;4w-qat-module-swap&quot;</span>
+<span class="p">]</span> <span class="o">=</span> <span class="n">enable_4w_fake_quant_module_swap</span>
+
+<span class="c1"># int8 dynamic activations + int4 weight</span>
+<span class="n">_quantizer_to_mode</span><span class="p">[</span><span class="n">Int8DynActInt4WeightQATQuantizerModuleSwap</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;8da4w-qat-module-swap&quot;</span>
+<span class="n">_quantizer_mode_to_disable_fake_quant</span><span class="p">[</span>
+    <span class="s2">&quot;8da4w-qat-module-swap&quot;</span>
+<span class="p">]</span> <span class="o">=</span> <span class="n">disable_8da4w_fake_quant_module_swap</span>
+<span class="n">_quantizer_mode_to_enable_fake_quant</span><span class="p">[</span>
+    <span class="s2">&quot;8da4w-qat-module-swap&quot;</span>
+<span class="p">]</span> <span class="o">=</span> <span class="n">enable_8da4w_fake_quant_module_swap</span>
 
 
 <div class="viewcode-block" id="get_quantizer_mode"><a class="viewcode-back" href="../../../generated/torchtune.training.get_quantizer_mode.html#torchtune.training.get_quantizer_mode">[docs]</a><span class="k">def</span> <span class="nf">get_quantizer_mode</span><span class="p">(</span><span class="n">quantizer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>

@@ -309,23 +309,38 @@
 <li class="toctree-l1"><a class="reference internal" href="recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/prompt_templates.html">Prompt Templates</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deep_dives/configs.html">All About Configs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/comet_logging.html">Logging to Comet</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
@@ -336,6 +351,7 @@
 <li class="toctree-l1"><a class="reference internal" href="api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_ref_training.html">torchtune.training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
@@ -417,8 +433,8 @@
   <section id="torchtune-datasets">
 <span id="datasets"></span><h1>torchtune.datasets<a class="headerlink" href="#torchtune-datasets" title="Permalink to this heading">¶</a></h1>
 <p>For a detailed general usage guide, please see our <a class="reference internal" href="tutorials/datasets.html#dataset-tutorial-label"><span class="std std-ref">datasets tutorial</span></a>.</p>
-<section id="text-only-datasets">
-<h2>Text-only datasets<a class="headerlink" href="#text-only-datasets" title="Permalink to this heading">¶</a></h2>
+<section id="text-datasets">
+<h2>Text datasets<a class="headerlink" href="#text-datasets" title="Permalink to this heading">¶</a></h2>
 <p>torchtune supports several widely used text-only datasets to help quickly bootstrap your fine-tuning.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
@@ -431,32 +447,35 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.grammar_dataset.html#torchtune.datasets.grammar_dataset" title="torchtune.datasets.grammar_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">grammar_dataset</span></code></a></p></td>
 <td><p>Support for grammar correction datasets and their variants from Hugging Face Datasets.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.samsum_dataset.html#torchtune.datasets.samsum_dataset" title="torchtune.datasets.samsum_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">samsum_dataset</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.hh_rlhf_helpful_dataset.html#torchtune.datasets.hh_rlhf_helpful_dataset" title="torchtune.datasets.hh_rlhf_helpful_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hh_rlhf_helpful_dataset</span></code></a></p></td>
+<td><p>Constructs preference datasets similar to <a class="reference external" href="https://huggingface.co/datasets/RLHFlow/HH-RLHF-Helpful-standard">Anthropic's helpful/harmless RLHF data</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.samsum_dataset.html#torchtune.datasets.samsum_dataset" title="torchtune.datasets.samsum_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">samsum_dataset</span></code></a></p></td>
 <td><p>Support for summarization datasets and their variants from Hugging Face Datasets.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.slimorca_dataset.html#torchtune.datasets.slimorca_dataset" title="torchtune.datasets.slimorca_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">slimorca_dataset</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.slimorca_dataset.html#torchtune.datasets.slimorca_dataset" title="torchtune.datasets.slimorca_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">slimorca_dataset</span></code></a></p></td>
 <td><p>Support for <a class="reference external" href="https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup">SlimOrca-style</a> family of conversational datasets.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.stack_exchange_paired_dataset.html#torchtune.datasets.stack_exchange_paired_dataset" title="torchtune.datasets.stack_exchange_paired_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stack_exchange_paired_dataset</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.stack_exchange_paired_dataset.html#torchtune.datasets.stack_exchange_paired_dataset" title="torchtune.datasets.stack_exchange_paired_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stack_exchange_paired_dataset</span></code></a></p></td>
 <td><p>Family of preference datasets similar to the <a class="reference external" href="https://huggingface.co/datasets/lvwerra/stack-exchange-paired">Stack Exchange Paired dataset</a>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.cnn_dailymail_articles_dataset.html#torchtune.datasets.cnn_dailymail_articles_dataset" title="torchtune.datasets.cnn_dailymail_articles_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cnn_dailymail_articles_dataset</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.cnn_dailymail_articles_dataset.html#torchtune.datasets.cnn_dailymail_articles_dataset" title="torchtune.datasets.cnn_dailymail_articles_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cnn_dailymail_articles_dataset</span></code></a></p></td>
 <td><p>Support for family of datasets similar to <a class="reference external" href="https://huggingface.co/datasets/ccdv/cnn_dailymail">CNN / DailyMail</a>, a corpus of news articles.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.wikitext_dataset.html#torchtune.datasets.wikitext_dataset" title="torchtune.datasets.wikitext_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">wikitext_dataset</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.wikitext_dataset.html#torchtune.datasets.wikitext_dataset" title="torchtune.datasets.wikitext_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">wikitext_dataset</span></code></a></p></td>
 <td><p>Support for family of datasets similar to <a class="reference external" href="https://huggingface.co/datasets/EleutherAI/wikitext_document_level">wikitext</a>, an unstructured text corpus consisting of fulls articles from Wikipedia.</p></td>
 </tr>
 </tbody>
 </table>
 </section>
-<section id="multimodal-datasets">
-<h2>Multimodal datasets<a class="headerlink" href="#multimodal-datasets" title="Permalink to this heading">¶</a></h2>
+<section id="image-text-datasets">
+<h2>Image + Text datasets<a class="headerlink" href="#image-text-datasets" title="Permalink to this heading">¶</a></h2>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.llava_instruct_dataset.html#torchtune.datasets.llava_instruct_dataset" title="torchtune.datasets.llava_instruct_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llava_instruct_dataset</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.multimodal.llava_instruct_dataset.html#torchtune.datasets.multimodal.llava_instruct_dataset" title="torchtune.datasets.multimodal.llava_instruct_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">multimodal.llava_instruct_dataset</span></code></a></p></td>
 <td><p>Support for family of image + text datasets similar to <a class="reference external" href="https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K">LLaVA-Instruct-150K</a> from Hugging Face Datasets.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.the_cauldron_dataset.html#torchtune.datasets.the_cauldron_dataset" title="torchtune.datasets.the_cauldron_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">the_cauldron_dataset</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.multimodal.the_cauldron_dataset.html#torchtune.datasets.multimodal.the_cauldron_dataset" title="torchtune.datasets.multimodal.the_cauldron_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">multimodal.the_cauldron_dataset</span></code></a></p></td>
 <td><p>Support for family of image + text datasets similar to <a class="reference external" href="https://huggingface.co/datasets/HuggingFaceM4/the_cauldron">The Cauldron</a> from Hugging Face Datasets.</p></td>
 </tr>
 </tbody>
@@ -474,7 +493,10 @@ These are especially useful for specifying from a YAML config.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.chat_dataset.html#torchtune.datasets.chat_dataset" title="torchtune.datasets.chat_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">chat_dataset</span></code></a></p></td>
 <td><p>Configure a custom dataset with conversations between user and model assistant.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.text_completion_dataset.html#torchtune.datasets.text_completion_dataset" title="torchtune.datasets.text_completion_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">text_completion_dataset</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.preference_dataset.html#torchtune.datasets.preference_dataset" title="torchtune.datasets.preference_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">preference_dataset</span></code></a></p></td>
+<td><p>Configures a custom preference dataset comprising interactions between user and model assistant.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.text_completion_dataset.html#torchtune.datasets.text_completion_dataset" title="torchtune.datasets.text_completion_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">text_completion_dataset</span></code></a></p></td>
 <td><p>Build a configurable dataset from a freeform, unstructured text corpus similar to datasets used in pre-training.</p></td>
 </tr>
 </tbody>
@@ -555,8 +577,8 @@ These are especially useful for specifying from a YAML config.</p>
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
 <li><a class="reference internal" href="#">torchtune.datasets</a><ul>
-<li><a class="reference internal" href="#text-only-datasets">Text-only datasets</a></li>
-<li><a class="reference internal" href="#multimodal-datasets">Multimodal datasets</a></li>
+<li><a class="reference internal" href="#text-datasets">Text datasets</a></li>
+<li><a class="reference internal" href="#image-text-datasets">Image + Text datasets</a></li>
 <li><a class="reference internal" href="#generic-dataset-builders">Generic dataset builders</a></li>
 <li><a class="reference internal" href="#generic-dataset-classes">Generic dataset classes</a></li>
 </ul>
