@@ -164,17 +164,17 @@ class TiledTokenPositionalEmbedding(nn.Module):
                 tgt_patch_grid_size=int(math.sqrt(tgt_n_tokens_per_tile - 1)),
             )
 
-            # update state dict
-            embedding_new_local = distribute_tensor(
-                inpt_local_pos_embed,
-                device_mesh=self.local_token_positional_embedding.device_mesh,
-                placements=self.local_token_positional_embedding.placements,
-            )
+            if isinstance(inpt_local_pos_embed, DTensor):
+                inpt_local_pos_embed = distribute_tensor(
+                    inpt_local_pos_embed,
+                    device_mesh=self.local_token_positional_embedding.device_mesh,
+                    placements=self.local_token_positional_embedding.placements,
+                )
 
             # update state dict
             state_dict[
                 prefix + "local_token_positional_embedding"
-            ] = embedding_new_local
+            ] = inpt_local_pos_embed
             if (
                 inpt_local_pos_embed.shape
                 != self.local_token_positional_embedding.shape
@@ -218,17 +218,17 @@ class TiledTokenPositionalEmbedding(nn.Module):
                 tgt_patch_grid_size=int(math.sqrt(tgt_n_tokens_per_tile - 1)),
             )
 
-            # update state dict
-            embedding_new_global = distribute_tensor(
-                inpt_global_pos_embed,
-                device_mesh=self.global_token_positional_embedding.device_mesh,
-                placements=self.global_token_positional_embedding.placements,
-            )
+            if isinstance(inpt_global_pos_embed, DTensor):
+                inpt_global_pos_embed = distribute_tensor(
+                    inpt_global_pos_embed,
+                    device_mesh=self.global_token_positional_embedding.device_mesh,
+                    placements=self.global_token_positional_embedding.placements,
+                )
 
             # update state dict
             state_dict[
                 prefix + "global_token_positional_embedding"
-            ] = embedding_new_global
+            ] = inpt_global_pos_embed
             if (
                 inpt_global_pos_embed.shape
                 != self.global_token_positional_embedding.shape
@@ -559,13 +559,14 @@ class TilePositionalEmbedding(nn.Module):
                 embedding, tgt_max_num_tiles=tgt_max_num_tiles_x
             )
 
-            # update state dict
-            embedding_new = distribute_tensor(
-                embedding_new,
-                device_mesh=self.embedding.device_mesh,
-                placements=self.embedding.placements,
-            )
+            if isinstance(embedding_new, DTensor):
+                embedding_new = distribute_tensor(
+                    embedding_new,
+                    device_mesh=self.embedding.device_mesh,
+                    placements=self.embedding.placements,
+                )
 
+            # update state dict
             state_dict[prefix + "embedding"] = embedding_new
             if embedding_new.shape != self.embedding.shape:
                 raise ValueError(
