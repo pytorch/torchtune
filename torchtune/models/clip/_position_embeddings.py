@@ -141,6 +141,8 @@ class TiledTokenPositionalEmbedding(nn.Module):
         local_device = inpt_local_pos_embed.device
         if isinstance(inpt_local_pos_embed, DTensor):
             local_embed_is_sharded = True
+            local_embed_device_mesh = inpt_local_pos_embed.device_mesh
+            local_embed_placements = inpt_local_pos_embed.placements
             inpt_local_pos_embed = inpt_local_pos_embed.full_tensor()
         else:
             local_embed_is_sharded = False
@@ -170,8 +172,8 @@ class TiledTokenPositionalEmbedding(nn.Module):
             if local_embed_is_sharded:
                 inpt_local_pos_embed = distribute_tensor(
                     inpt_local_pos_embed,
-                    device_mesh=self.local_token_positional_embedding.device_mesh,
-                    placements=self.local_token_positional_embedding.placements,
+                    device_mesh=local_embed_device_mesh,
+                    placements=local_embed_placements,
                 )
 
             # update state dict
@@ -194,6 +196,8 @@ class TiledTokenPositionalEmbedding(nn.Module):
         global_device = inpt_global_pos_embed.device
         if isinstance(inpt_global_pos_embed, DTensor):
             global_embed_is_sharded = True
+            global_embed_device_mesh = inpt_global_pos_embed.device_mesh
+            global_embed_placements = inpt_global_pos_embed.placements
             inpt_global_pos_embed = inpt_global_pos_embed.full_tensor()
         else:
             global_embed_is_sharded = False
@@ -227,8 +231,8 @@ class TiledTokenPositionalEmbedding(nn.Module):
             if global_embed_is_sharded:
                 inpt_global_pos_embed = distribute_tensor(
                     inpt_global_pos_embed,
-                    device_mesh=self.global_token_positional_embedding.device_mesh,
-                    placements=self.global_token_positional_embedding.placements,
+                    device_mesh=global_embed_device_mesh,
+                    placements=global_embed_placements,
                 )
 
             # update state dict
@@ -529,6 +533,8 @@ class TilePositionalEmbedding(nn.Module):
         device = embedding.device
         if isinstance(embedding, DTensor):
             embedding_is_sharded = True
+            device_mesh = embedding.device_mesh
+            placements = embedding.placements
             embedding = embedding.full_tensor()
         else:
             embedding_is_sharded = False
@@ -572,8 +578,8 @@ class TilePositionalEmbedding(nn.Module):
             if embedding_is_sharded:
                 embedding_new = distribute_tensor(
                     embedding_new,
-                    device_mesh=self.embedding.device_mesh,
-                    placements=self.embedding.placements,
+                    device_mesh=device_mesh,
+                    placements=placements,
                 )
 
             # update state dict
