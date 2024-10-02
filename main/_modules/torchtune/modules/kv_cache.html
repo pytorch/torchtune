@@ -469,14 +469,20 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span>
             <span class="s2">&quot;v_cache&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">cache_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span> <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span>
+            <span class="s2">&quot;cache_pos&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">cache_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
 
 <div class="viewcode-block" id="KVCache.reset"><a class="viewcode-back" href="../../../generated/torchtune.modules.KVCache.html#torchtune.modules.KVCache.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the cache to zero.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">k_cache</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">v_cache</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="mi">0</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_pos</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
 
 <div class="viewcode-block" id="KVCache.update"><a class="viewcode-back" href="../../../generated/torchtune.modules.KVCache.html#torchtune.modules.KVCache.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">k_val</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">v_val</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
@@ -509,7 +515,7 @@
 <span class="sd">            Tuple[torch.Tensor, torch.Tensor]: Updated key and value cache tensors, respectively.</span>
 
 <span class="sd">        Raises:</span>
-<span class="sd">            ValueError: if the sequence length of ``k_val`` is longer than the maximum cache sequence length.</span>
+<span class="sd">            AssertionError: if the sequence length of ``k_val`` is longer than the maximum cache sequence length.</span>
 <span class="sd">            ValueError: if the batch size of the new key (or value) tensor is greater than the batch size</span>
 <span class="sd">                used during cache setup.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -520,19 +526,21 @@
                 <span class="sa">f</span><span class="s2">&quot;, but found new key tensors with batch size </span><span class="si">{</span><span class="n">k_val</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">!&quot;</span>
             <span class="p">)</span>
 
-        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="n">seq_len</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_cache</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;The current cache has been setup with a sequence length of </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">k_cache</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;, but the cache has reached a sequence length of </span><span class="si">{</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">seq_len</span><span class="p">)</span><span class="si">}</span><span class="s2">!&quot;</span>
-            <span class="p">)</span>
-        <span class="n">cache_pos</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="n">seq_len</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">k_val</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">+=</span> <span class="n">seq_len</span>
-
+        <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">seq_len</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_cache</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
         <span class="n">k_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_cache</span>
         <span class="n">v_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">v_cache</span>
 
-        <span class="n">k_out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">cache_pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">k_val</span>
-        <span class="n">v_out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">cache_pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">v_val</span>
+        <span class="n">k_out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_pos</span><span class="p">[:</span><span class="n">seq_len</span><span class="p">]]</span> <span class="o">=</span> <span class="n">k_val</span>
+        <span class="n">v_out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_pos</span><span class="p">[:</span><span class="n">seq_len</span><span class="p">]]</span> <span class="o">=</span> <span class="n">v_val</span>
+
+        <span class="c1"># forward cache_pos seq_len positions along</span>
+        <span class="c1"># cache_pos starts at (0, 1, 2, 3, 4, 5, ...)</span>
+        <span class="c1"># an update of seq_len = 5 tokens brings it to</span>
+        <span class="c1"># (5, 6, 7, 8, 9, ...)</span>
+        <span class="c1"># this allows us to track the current position in the cache</span>
+        <span class="c1"># after the last update in a compile-friendly way without any dynamism</span>
+        <span class="c1"># e.g. relying on an int size tracker, or re-creating cache_pos every time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_pos</span> <span class="o">+=</span> <span class="n">seq_len</span>
 
         <span class="k">return</span> <span class="n">k_out</span><span class="p">,</span> <span class="n">v_out</span></div></div>
 </pre></div>
