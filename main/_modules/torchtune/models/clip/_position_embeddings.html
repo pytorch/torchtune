@@ -439,6 +439,7 @@
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">from</span> <span class="nn">torch.distributed._tensor</span> <span class="kn">import</span> <span class="n">distribute_tensor</span><span class="p">,</span> <span class="n">DTensor</span>
 
 
 <div class="viewcode-block" id="TokenPositionalEmbedding"><a class="viewcode-back" href="../../../../generated/torchtune.models.clip.TokenPositionalEmbedding.html#torchtune.models.clip.TokenPositionalEmbedding">[docs]</a><span class="k">class</span> <span class="nc">TokenPositionalEmbedding</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
@@ -566,7 +567,19 @@
         <span class="n">inpt_local_pos_embed</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
             <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;local_token_positional_embedding&quot;</span>
         <span class="p">)</span>
+
         <span class="k">if</span> <span class="n">inpt_local_pos_embed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+
+            <span class="c1"># We can only apply F.interpolate to vanilla tensors, not DTensors</span>
+            <span class="c1"># If pos embeds are a DTensor, we gather the full tensor, apply</span>
+            <span class="c1"># interpolate, and then reshard after</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inpt_local_pos_embed</span><span class="p">,</span> <span class="n">DTensor</span><span class="p">):</span>
+                <span class="n">local_embed_is_sharded</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">local_embed_device_mesh</span> <span class="o">=</span> <span class="n">inpt_local_pos_embed</span><span class="o">.</span><span class="n">device_mesh</span>
+                <span class="n">local_embed_placements</span> <span class="o">=</span> <span class="n">inpt_local_pos_embed</span><span class="o">.</span><span class="n">placements</span>
+                <span class="n">inpt_local_pos_embed</span> <span class="o">=</span> <span class="n">inpt_local_pos_embed</span><span class="o">.</span><span class="n">full_tensor</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">local_embed_is_sharded</span> <span class="o">=</span> <span class="kc">False</span>
 
             <span class="c1"># sanity check</span>
             <span class="n">inpt_n_tokens_per_tile</span><span class="p">,</span> <span class="n">inpt_embed_dim</span> <span class="o">=</span> <span class="n">inpt_local_pos_embed</span><span class="o">.</span><span class="n">shape</span>
@@ -588,6 +601,13 @@
                 <span class="n">tgt_patch_grid_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">tgt_n_tokens_per_tile</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)),</span>
             <span class="p">)</span>
 
+            <span class="k">if</span> <span class="n">local_embed_is_sharded</span><span class="p">:</span>
+                <span class="n">inpt_local_pos_embed</span> <span class="o">=</span> <span class="n">distribute_tensor</span><span class="p">(</span>
+                    <span class="n">inpt_local_pos_embed</span><span class="p">,</span>
+                    <span class="n">device_mesh</span><span class="o">=</span><span class="n">local_embed_device_mesh</span><span class="p">,</span>
+                    <span class="n">placements</span><span class="o">=</span><span class="n">local_embed_placements</span><span class="p">,</span>
+                <span class="p">)</span>
+
             <span class="c1"># update state dict</span>
             <span class="n">state_dict</span><span class="p">[</span>
                 <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;local_token_positional_embedding&quot;</span>
@@ -605,7 +625,19 @@
         <span class="n">inpt_global_pos_embed</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
             <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;global_token_positional_embedding&quot;</span>
         <span class="p">)</span>
+
         <span class="k">if</span> <span class="n">inpt_global_pos_embed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+
+            <span class="c1"># We can only apply F.interpolate to vanilla tensors, not DTensors</span>
+            <span class="c1"># If pos embeds are a DTensor, we gather the full tensor, apply</span>
+            <span class="c1"># interpolate, and then reshard after</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inpt_global_pos_embed</span><span class="p">,</span> <span class="n">DTensor</span><span class="p">):</span>
+                <span class="n">global_embed_is_sharded</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">global_embed_device_mesh</span> <span class="o">=</span> <span class="n">inpt_global_pos_embed</span><span class="o">.</span><span class="n">device_mesh</span>
+                <span class="n">global_embed_placements</span> <span class="o">=</span> <span class="n">inpt_global_pos_embed</span><span class="o">.</span><span class="n">placements</span>
+                <span class="n">inpt_global_pos_embed</span> <span class="o">=</span> <span class="n">inpt_global_pos_embed</span><span class="o">.</span><span class="n">full_tensor</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">global_embed_is_sharded</span> <span class="o">=</span> <span class="kc">False</span>
 
             <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">inpt_n_tokens_per_tile</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">inpt_global_pos_embed</span><span class="o">.</span><span class="n">shape</span>
 
@@ -630,6 +662,13 @@
                 <span class="n">tgt_max_num_tiles</span><span class="o">=</span><span class="n">tgt_max_num_tiles_x</span><span class="p">,</span>
                 <span class="n">tgt_patch_grid_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">tgt_n_tokens_per_tile</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)),</span>
             <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">global_embed_is_sharded</span><span class="p">:</span>
+                <span class="n">inpt_global_pos_embed</span> <span class="o">=</span> <span class="n">distribute_tensor</span><span class="p">(</span>
+                    <span class="n">inpt_global_pos_embed</span><span class="p">,</span>
+                    <span class="n">device_mesh</span><span class="o">=</span><span class="n">global_embed_device_mesh</span><span class="p">,</span>
+                    <span class="n">placements</span><span class="o">=</span><span class="n">global_embed_placements</span><span class="p">,</span>
+                <span class="p">)</span>
 
             <span class="c1"># update state dict</span>
             <span class="n">state_dict</span><span class="p">[</span>
@@ -929,6 +968,17 @@
 
         <span class="k">if</span> <span class="n">embedding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
 
+            <span class="c1"># We can only apply F.interpolate to vanilla tensors, not DTensors</span>
+            <span class="c1"># If pos embeds are a DTensor, we gather the full tensor, apply</span>
+            <span class="c1"># interpolate, and then reshard after</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">embedding</span><span class="p">,</span> <span class="n">DTensor</span><span class="p">):</span>
+                <span class="n">embedding_is_sharded</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">device_mesh</span> <span class="o">=</span> <span class="n">embedding</span><span class="o">.</span><span class="n">device_mesh</span>
+                <span class="n">placements</span> <span class="o">=</span> <span class="n">embedding</span><span class="o">.</span><span class="n">placements</span>
+                <span class="n">embedding</span> <span class="o">=</span> <span class="n">embedding</span><span class="o">.</span><span class="n">full_tensor</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">embedding_is_sharded</span> <span class="o">=</span> <span class="kc">False</span>
+
             <span class="c1"># ckpt pos emb</span>
             <span class="p">(</span>
                 <span class="n">tgt_max_num_tiles_x</span><span class="p">,</span>
@@ -962,6 +1012,13 @@
             <span class="n">embedding_new</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resize_position_embedding</span><span class="p">(</span>
                 <span class="n">embedding</span><span class="p">,</span> <span class="n">tgt_max_num_tiles</span><span class="o">=</span><span class="n">tgt_max_num_tiles_x</span>
             <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">embedding_is_sharded</span><span class="p">:</span>
+                <span class="n">embedding_new</span> <span class="o">=</span> <span class="n">distribute_tensor</span><span class="p">(</span>
+                    <span class="n">embedding_new</span><span class="p">,</span>
+                    <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">,</span>
+                    <span class="n">placements</span><span class="o">=</span><span class="n">placements</span><span class="p">,</span>
+                <span class="p">)</span>
 
             <span class="c1"># update state dict</span>
             <span class="n">state_dict</span><span class="p">[</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;embedding&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">embedding_new</span>
