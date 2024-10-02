@@ -537,7 +537,7 @@ class TestFullyShardState(FSDPTest):
         """
         rank = self.rank
         is_rank_zero = rank == 0
-        mlp_dim = 4
+        mlp_dim = 64
         epochs = 5
         torch.manual_seed(42)
         # base_model is simple DDP
@@ -697,12 +697,12 @@ class TestFullyShardState(FSDPTest):
             base_loss.backward()
             non_backward_optim.step()
             non_backward_optim.zero_grad()
-            bwd_loss = bwd_model_to_load(inp).sum()
-            bwd_loss.backward()
-            saved_loass = bwd_model_to_save(inp).sum()
-            saved_loass.backward()
-            self.assertEqual(base_loss, bwd_loss)
-            self.assertEqual(saved_loass, bwd_loss)
+            load_loss = bwd_model_to_load(inp).sum()
+            load_loss.backward()
+            save_loss = bwd_model_to_save(inp).sum()
+            save_loss.backward()
+            self.assertEqual(base_loss, load_loss)
+            self.assertEqual(save_loss, load_loss)
 
         expected_model_sd = training.get_full_model_state_dict(
             bwd_model_to_save, is_rank_zero
