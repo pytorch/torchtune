@@ -10,6 +10,7 @@ from typing import Any, Dict, Tuple
 import torch
 import torch.nn.functional as F
 from torch import nn
+from torch.distributed._tensor import distribute_tensor, DTensor
 
 
 class TokenPositionalEmbedding(nn.Module):
@@ -137,7 +138,19 @@ class TiledTokenPositionalEmbedding(nn.Module):
         inpt_local_pos_embed = state_dict.get(
             prefix + "local_token_positional_embedding"
         )
+
         if inpt_local_pos_embed is not None:
+
+            # We can only apply F.interpolate to vanilla tensors, not DTensors
+            # If pos embeds are a DTensor, we gather the full tensor, apply
+            # interpolate, and then reshard after
+            if isinstance(inpt_local_pos_embed, DTensor):
+                local_embed_is_sharded = True
+                local_embed_device_mesh = inpt_local_pos_embed.device_mesh
+                local_embed_placements = inpt_local_pos_embed.placements
+                inpt_local_pos_embed = inpt_local_pos_embed.full_tensor()
+            else:
+                local_embed_is_sharded = False
 
             # sanity check
             inpt_n_tokens_per_tile, inpt_embed_dim = inpt_local_pos_embed.shape
@@ -159,6 +172,13 @@ class TiledTokenPositionalEmbedding(nn.Module):
                 tgt_patch_grid_size=int(math.sqrt(tgt_n_tokens_per_tile - 1)),
             )
 
+            if local_embed_is_sharded:
+                inpt_local_pos_embed = distribute_tensor(
+                    inpt_local_pos_embed,
+                    device_mesh=local_embed_device_mesh,
+                    placements=local_embed_placements,
+                )
+
             # update state dict
             state_dict[
                 prefix + "local_token_positional_embedding"
@@ -176,7 +196,19 @@ class TiledTokenPositionalEmbedding(nn.Module):
         inpt_global_pos_embed = state_dict.get(
             prefix + "global_token_positional_embedding"
         )
+
         if inpt_global_pos_embed is not None:
+
+            # We can only apply F.interpolate to vanilla tensors, not DTensors
+            # If pos embeds are a DTensor, we gather the full tensor, apply
+            # interpolate, and then reshard after
+            if isinstance(inpt_global_pos_embed, DTensor):
+                global_embed_is_sharded = True
+                global_embed_device_mesh = inpt_global_pos_embed.device_mesh
+                global_embed_placements = inpt_global_pos_embed.placements
+                inpt_global_pos_embed = inpt_global_pos_embed.full_tensor()
+            else:
+                global_embed_is_sharded = False
 
             _, _, inpt_n_tokens_per_tile, _ = inpt_global_pos_embed.shape
 
@@ -201,6 +233,13 @@ class TiledTokenPositionalEmbedding(nn.Module):
                 tgt_max_num_tiles=tgt_max_num_tiles_x,
                 tgt_patch_grid_size=int(math.sqrt(tgt_n_tokens_per_tile - 1)),
             )
+
+            if global_embed_is_sharded:
+                inpt_global_pos_embed = distribute_tensor(
+                    inpt_global_pos_embed,
+                    device_mesh=global_embed_device_mesh,
+                    placements=global_embed_placements,
+                )
 
             # update state dict
             state_dict[
@@ -500,6 +539,17 @@ class TilePositionalEmbedding(nn.Module):
 
         if embedding is not None:
 
+            # We can only apply F.interpolate to vanilla tensors, not DTensors
+            # If pos embeds are a DTensor, we gather the full tensor, apply
+            # interpolate, and then reshard after
+            if isinstance(embedding, DTensor):
+                embedding_is_sharded = True
+                device_mesh = embedding.device_mesh
+                placements = embedding.placements
+                embedding = embedding.full_tensor()
+            else:
+                embedding_is_sharded = False
+
             # ckpt pos emb
             (
                 tgt_max_num_tiles_x,
@@ -533,6 +583,13 @@ class TilePositionalEmbedding(nn.Module):
             embedding_new = self._resize_position_embedding(
                 embedding, tgt_max_num_tiles=tgt_max_num_tiles_x
             )
+
+            if embedding_is_sharded:
+                embedding_new = distribute_tensor(
+                    embedding_new,
+                    device_mesh=device_mesh,
+                    placements=placements,
+                )
 
             # update state dict
             state_dict[prefix + "embedding"] = embedding_new

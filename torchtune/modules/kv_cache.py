@@ -40,14 +40,20 @@ class KVCache(nn.Module):
         self.register_buffer(
             "v_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False
         )
-        self.size = 0
+        self.register_buffer(
+            "cache_pos", torch.arange(0, cache_shape[2]), persistent=False
+        )
         self.batch_size = batch_size
 
     def reset(self) -> None:
         """Reset the cache to zero."""
         self.k_cache.zero_()
         self.v_cache.zero_()
-        self.size = 0
+        self.cache_pos -= self.size
+
+    @property
+    def size(self) -> int:
+        return self.cache_pos[0].item()
 
     def update(
         self, k_val: torch.Tensor, v_val: torch.Tensor
@@ -80,7 +86,7 @@ class KVCache(nn.Module):
             Tuple[torch.Tensor, torch.Tensor]: Updated key and value cache tensors, respectively.
 
         Raises:
-            ValueError: if the sequence length of ``k_val`` is longer than the maximum cache sequence length.
+            AssertionError: if the sequence length of ``k_val`` is longer than the maximum cache sequence length.
             ValueError: if the batch size of the new key (or value) tensor is greater than the batch size
                 used during cache setup.
         """
@@ -91,18 +97,20 @@ class KVCache(nn.Module):
                 f", but found new key tensors with batch size {k_val.shape[0]}!"
             )
 
-        if (self.size + seq_len) > self.k_cache.shape[2]:
-            raise ValueError(
-                f"The current cache has been setup with a sequence length of {self.k_cache.shape[2]}"
-                f", but the cache has reached a sequence length of {(self.size + seq_len)}!"
-            )
-        cache_pos = torch.arange(self.size, self.size + seq_len, device=k_val.device)
-        self.size += seq_len
-
+        assert (self.cache_pos[0] + seq_len) <= self.k_cache.shape[2]
         k_out = self.k_cache
         v_out = self.v_cache
 
-        k_out[:, :, cache_pos] = k_val
-        v_out[:, :, cache_pos] = v_val
+        k_out[:, :, self.cache_pos[:seq_len]] = k_val
+        v_out[:, :, self.cache_pos[:seq_len]] = v_val
+
+        # forward cache_pos seq_len positions along
+        # cache_pos starts at (0, 1, 2, 3, 4, 5, ...)
+        # an update of seq_len = 5 tokens brings it to
+        # (5, 6, 7, 8, 9, ...)
+        # this allows us to track the current position in the cache
+        # after the last update in a compile-friendly way without any dynamism
+        # e.g. relying on an int size tracker, or re-creating cache_pos every time
+        self.cache_pos += seq_len
 
         return k_out, v_out
