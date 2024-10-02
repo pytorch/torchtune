@@ -138,16 +138,19 @@ class TiledTokenPositionalEmbedding(nn.Module):
         inpt_local_pos_embed = state_dict.get(
             prefix + "local_token_positional_embedding"
         )
-        local_device = inpt_local_pos_embed.device
-        if isinstance(inpt_local_pos_embed, DTensor):
-            local_embed_is_sharded = True
-            local_embed_device_mesh = inpt_local_pos_embed.device_mesh
-            local_embed_placements = inpt_local_pos_embed.placements
-            inpt_local_pos_embed = inpt_local_pos_embed.full_tensor()
-        else:
-            local_embed_is_sharded = False
 
         if inpt_local_pos_embed is not None:
+
+            # We can only apply F.interpolate to vanilla tensors, not DTensors
+            # If pos embeds are a DTensor, we gather the full tensor, apply
+            # interpolate, and then reshard after
+            if isinstance(inpt_local_pos_embed, DTensor):
+                local_embed_is_sharded = True
+                local_embed_device_mesh = inpt_local_pos_embed.device_mesh
+                local_embed_placements = inpt_local_pos_embed.placements
+                inpt_local_pos_embed = inpt_local_pos_embed.full_tensor()
+            else:
+                local_embed_is_sharded = False
 
             # sanity check
             inpt_n_tokens_per_tile, inpt_embed_dim = inpt_local_pos_embed.shape
@@ -193,16 +196,19 @@ class TiledTokenPositionalEmbedding(nn.Module):
         inpt_global_pos_embed = state_dict.get(
             prefix + "global_token_positional_embedding"
         )
-        global_device = inpt_global_pos_embed.device
-        if isinstance(inpt_global_pos_embed, DTensor):
-            global_embed_is_sharded = True
-            global_embed_device_mesh = inpt_global_pos_embed.device_mesh
-            global_embed_placements = inpt_global_pos_embed.placements
-            inpt_global_pos_embed = inpt_global_pos_embed.full_tensor()
-        else:
-            global_embed_is_sharded = False
 
         if inpt_global_pos_embed is not None:
+
+            # We can only apply F.interpolate to vanilla tensors, not DTensors
+            # If pos embeds are a DTensor, we gather the full tensor, apply
+            # interpolate, and then reshard after
+            if isinstance(inpt_global_pos_embed, DTensor):
+                global_embed_is_sharded = True
+                global_embed_device_mesh = inpt_global_pos_embed.device_mesh
+                global_embed_placements = inpt_global_pos_embed.placements
+                inpt_global_pos_embed = inpt_global_pos_embed.full_tensor()
+            else:
+                global_embed_is_sharded = False
 
             _, _, inpt_n_tokens_per_tile, _ = inpt_global_pos_embed.shape
 
@@ -530,16 +536,19 @@ class TilePositionalEmbedding(nn.Module):
         """
 
         embedding = state_dict.get(prefix + "embedding")
-        device = embedding.device
-        if isinstance(embedding, DTensor):
-            embedding_is_sharded = True
-            device_mesh = embedding.device_mesh
-            placements = embedding.placements
-            embedding = embedding.full_tensor()
-        else:
-            embedding_is_sharded = False
 
         if embedding is not None:
+
+            # We can only apply F.interpolate to vanilla tensors, not DTensors
+            # If pos embeds are a DTensor, we gather the full tensor, apply
+            # interpolate, and then reshard after
+            if isinstance(embedding, DTensor):
+                embedding_is_sharded = True
+                device_mesh = embedding.device_mesh
+                placements = embedding.placements
+                embedding = embedding.full_tensor()
+            else:
+                embedding_is_sharded = False
 
             # ckpt pos emb
             (
