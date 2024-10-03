@@ -108,9 +108,7 @@ class Int4WeightOnlyQuantizer:
     to linear layers in the model using the efficient tinygemm kernel.
     """
 
-    def __init__(self, groupsize: int = 128, i
-                 
-                 er_k_tiles: int = 8):
+    def __init__(self, groupsize: int = 128, inner_k_tiles: int = 8):
         self.groupsize = groupsize
         self.inner_k_tiles = inner_k_tiles
 
