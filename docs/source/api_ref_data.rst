@@ -49,6 +49,8 @@ Converts data from common JSON formats into a torchtune :class:`Message`.
     get_sharegpt_messages
     get_openai_messages
 
+.. _message_transforms_ref:
+
 Message transforms
 ------------------
 
@@ -60,7 +62,7 @@ Converts data from common schema and conversation JSON formats into a list of to
 
     InputOutputToMessages
     ShareGPTToMessages
-    JSONToMessages
+    OpenAIToMessages
     ChosenRejectedToMessages
 
 Collaters

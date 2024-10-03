@@ -61,9 +61,7 @@ lr_scheduler:
   num_warmup_steps: 100
 
 loss:
-  _component_: torchtune.modules.rlhf.loss.DPOLoss
-  beta: 0.1
-  label_smoothing: 0
+  _component_: torchtune.rlhf.loss.DPOLoss
 
 # Training
 epochs: 1

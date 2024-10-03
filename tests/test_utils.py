@@ -362,3 +362,11 @@ def assert_dialogue_equal(actual, expected):
     for i in range(len(actual)):
         assert actual[i].role == expected[i].role
         assert actual[i].text_content == expected[i].text_content
+
+
+def mps_ignored_test() -> bool:
+    return pytest.mark.skipif(
+        torch.backends.mps.is_available() and torch.backends.mps.is_built(),
+        reason="Test skipped due to torch being compiled with MPS"
+        "see https://github.com/pytorch/torchtune/issues/1707 for more information",
+    )

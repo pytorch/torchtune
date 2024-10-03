@@ -17,14 +17,12 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import config, modules, training, utils
+from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
-from torchtune.modules import rlhf
-from torchtune.modules.rlhf import PPOStats, Trajectory
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.rlhf import PPOStats, Trajectory
 from tqdm import tqdm
-
 
 log = utils.get_logger("DEBUG")
 
@@ -581,13 +579,14 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             dataset=ds,
             sampler=sampler,
             batch_size=batch_size,
+            # dropping last avoids shape issues with compile + flex attention
+            drop_last=cfg_dataset.get("drop_last", True),
             collate_fn=partial(
                 padded_collate,
                 pad_direction="left",
                 keys_to_pad=["tokens", "labels"],
                 padding_idx=self._tokenizer.pad_id,
             ),
-            drop_last=True,
         )
 
         return sampler, dataloader
@@ -680,13 +679,13 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
 
         Returns:
-            Trajectory: An instance of :class:`~torchtune.modules.rlhf.Trajectory` comprising
+            Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory` comprising
                 the current trajectory.
         """
         batch_size, context_length = input_ids.shape
 
         # step 1: generate responses, and logits corresponding to the responses using the current policy
-        query_responses, logits = rlhf.generate_with_logits(
+        query_responses, logits = generation.generate(
             model=self._policy_model,
             prompt=input_ids,
             max_generated_tokens=self._max_generated_tokens,
@@ -697,14 +696,15 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
         responses = query_responses[:, context_length:].clone()
-        query_response_padding_masks = query_responses == self._tokenizer.pad_id
+        query_response_padding_masks = query_responses != self._tokenizer.pad_id
 
         # step 1.1 create attention masks and position IDs for any padding tokens in inputs, used for future forward passes
-        masks = rlhf.get_causal_mask(~(query_response_padding_masks))
-        position_ids = (~query_response_padding_masks).cumsum(-1) - (
-            ~query_response_padding_masks
-        ).long()
-        position_ids = position_ids.type(torch.int)
+        masks = generation.get_causal_mask_from_padding_mask(
+            query_response_padding_masks
+        )
+        position_ids = generation.get_position_ids_from_padding_mask(
+            query_response_padding_masks
+        )
 
         del query_response_padding_masks
 
@@ -799,7 +799,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
 
         Returns:
-            Trajectory: An instance of :class:`~torchtune.modules.rlhf.Trajectory`, comprising
+            Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory`, comprising
                 the current trajectory.
         """
         trajectories: List[Trajectory] = []
@@ -947,7 +947,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             context_length (int): input ids sequence length
 
         Returns:
-            PPOStats: An instance of :class:`~torchtune.modules.rlhf.PPOStats`, a NamedTuple containing:
+            PPOStats: An instance of :class:`~torchtune.rlhf.PPOStats`, a NamedTuple containing:
                - loss (torch.Tensor): The total PPO loss.
                - policy_loss (torch.Tensor): The policy function loss.
                - value_loss (torch.Tensor): The value function loss.

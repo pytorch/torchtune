@@ -185,3 +185,7 @@ article.pytorch-article .sphx-glr-thumbnails .sphx-glr-thumbcontainer {
 article.pytorch-article div.section div.wy-table-responsive tbody td {
     width: 50%;
 }
+
+.MathJax {
+    font-size: 0.95em !important;
+}

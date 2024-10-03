@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Union
 from omegaconf import DictConfig, OmegaConf
 
 from torchtune.config._errors import InstantiationError
-from torchtune.utils.logging import get_logger, log_rank_zero
+from torchtune.utils._logging import get_logger, log_rank_zero
 
 
 def log_config(recipe_name: str, cfg: DictConfig) -> None:
@@ -173,6 +173,11 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictC
         # key string to reflect this
         if k in yaml_kwargs and _has_component(yaml_kwargs[k]):
             k += "._component_"
+        # TODO: this is a hack but otherwise we can't pass strings with leading zeroes
+        # to define the checkpoint file format. We manually override OmegaConf behavior
+        # by prepending the value with !!str to force a string type
+        if "max_filename" in k:
+            v = "!!str " + v
         cli_dotlist.append(f"{k}={v}")
 
     # Merge the args

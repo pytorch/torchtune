@@ -15,6 +15,7 @@ import torch
 from torchtune.utils._device import (
     _get_device_type_from_env,
     _setup_cuda_device,
+    batch_to_device,
     get_device,
 )
 
@@ -35,6 +36,24 @@ class TestDevice:
             device = get_device(device)
             assert device == expected_device
             assert device.index is None
+
+    def test_batch_to_device(self):
+        batch = {
+            "a": torch.ones(1),
+            "b": {
+                "c": torch.ones(1),
+                "d": torch.ones(1),
+            },
+        }
+        device = torch.device("meta")
+        batch_to_device(batch, device)
+        assert batch["a"].device == device
+        assert batch["b"]["c"].device == device
+        assert batch["b"]["d"].device == device
+
+        batch["e"] = 0
+        with pytest.raises(ValueError):
+            batch_to_device(batch, device)
 
     @pytest.mark.skipif(not cuda_available, reason="The test requires GPUs to run.")
     def test_get_gpu_device(self) -> None:

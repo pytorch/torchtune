@@ -73,6 +73,9 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True
+enable_activation_offloading: False
+
+# Reduced precision
 dtype: bf16
 
 # Logging
@@ -108,3 +111,6 @@ profiler:
   warmup_steps: 5
   active_steps: 2
   num_cycles: 1
+
+# For colab use True
+low_cpu_ram: False

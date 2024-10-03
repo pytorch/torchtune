@@ -71,7 +71,7 @@ loss:
 epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 64
-compile: False
+compile: False # set it to True for better memory and performance
 
 # Logging
 output_dir: /tmp/lora_finetune_output
@@ -84,7 +84,10 @@ log_peak_memory_stats: False
 # Environment
 device: cuda
 dtype: bf16
+
+# Activations Memory
 enable_activation_checkpointing: True
+enable_activation_offloading: False
 
 # Profiler (disabled)
 profiler:

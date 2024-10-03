@@ -10,17 +10,10 @@ from typing import Callable, List, Optional, Union
 import torch
 
 from torch import nn
-from torchtune.utils._version import torch_version_ge
-from torchtune.utils.logging import get_logger, log_once
+from torchtune.utils._import_guard import _SUPPORTS_FLEX_ATTENTION
+from torchtune.utils._logging import get_logger, log_once
 
 _log: logging.Logger = get_logger()
-
-# We can only use flex attention / BlockMask if torch version >= 2.5.0 and GPU is Turing / SM75 and above
-_SUPPORTS_FLEX_ATTENTION = (
-    torch_version_ge("2.5.0")
-    and torch.cuda.is_available()
-    and torch.cuda.get_device_capability() >= (7, 5)
-)
 
 if _SUPPORTS_FLEX_ATTENTION:
     from torch.nn.attention.flex_attention import (

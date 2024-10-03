@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
 import sys
 import time
 
@@ -18,10 +17,9 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import config, modules, training, utils
+from torchtune import config, modules, rlhf, training, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo
 from torchtune.datasets import ConcatDataset
-from torchtune.modules import rlhf
 from torchtune.modules.peft import (
     disable_adapter,
     get_adapter_params,
@@ -30,9 +28,9 @@ from torchtune.modules.peft import (
     validate_missing_and_unexpected_for_lora,
     validate_state_dict_for_lora,
 )
-
-from torchtune.modules.rlhf.loss import SimPOLoss
 from torchtune.recipe_interfaces import FTRecipeInterface
+
+from torchtune.rlhf.loss import SimPOLoss
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -56,10 +54,9 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
 
     The following losses are supported in this recipe:
-        - :class:`~torchtune.modules.rlhf.loss.DPOLoss`: Direct Preference Optimization (DPO).
-        - :class:`~torchtune.modules.rlhf.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
-        - :class:`~torchtune.modules.rlhf.loss.IPOLoss`: Identity Preference Optimization (IPO).
-        - :class:`~torchtune.modules.rlhf.loss.SimPOLoss`: Simple Preference Optimization (SimPO).
+        - :class:`~torchtune.rlhf.loss.DPOLoss`: Direct Preference Optimization (DPO).
+        - :class:`~torchtune.rlhf.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
+        - :class:`~torchtune.rlhf.loss.SimPOLoss`: Simple Preference Optimization (SimPO).
 
     Assumptions:
         - Checkpoints are ONLY saved at epoch boundaries. In case of failure, work done
@@ -92,13 +89,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             raise ValueError(
                 "fp16 precision is not supported in this recipe. Please use fp32 or bf16."
             )
-        # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
-        if (
-            self._dtype == torch.bfloat16
-            and self._device != torch.device("cpu")
-            and not torch.cuda.is_bf16_supported()
-        ):
-            raise RuntimeError("Full bf16 training is not supported on this hardware.")
+
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
@@ -309,9 +300,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
         # Compile model, if enabled.
         if compile_model:
-            log.info("Compiling model with torch.compile...")
-            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-            model.compile(backend=backend)
+            training.compile_model(model)
         if self._device == torch.device("cuda"):
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
@@ -374,6 +363,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             dataset=ds,
             sampler=sampler,
             batch_size=batch_size,
+            # dropping last avoids shape issues with compile + flex attention
+            drop_last=cfg_dataset.get("drop_last", True),
             collate_fn=partial(
                 padded_collate_dpo,
                 padding_idx=self._tokenizer.pad_id,
@@ -410,22 +401,33 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 }
             )
 
-        # Move to CPU to avoid a copy on GPU
-        state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
-
-        # Construct the full state dict with LoRA weights merged into base LLM weights
-        merged_state_dict = get_merged_lora_ckpt(
-            state_dict,
-            rank=self._lora_rank,
-            alpha=self._lora_alpha,
-        )
-        ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
-
-        # Construct the adapter weights
         adapter_key_filter = lambda x: x in self.adapter_params
-        adapter_state_dict = {
-            k: v for k, v in self._model.state_dict().items() if adapter_key_filter(k)
-        }
+        if not self._save_adapter_weights_only:
+            # Construct the full state dict with LoRA weights merged into base LLM weights
+
+            # Move to CPU to avoid a copy on GPU
+            state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
+
+            # Construct the adapter weights
+            # Do this using the state_dict to avoid running upcast and H2D in state_dict post hook twice
+            # Must be before get_merged_lora_ckpt because get_merged_lora_ckpt will remove lora keys
+            adapter_state_dict = {
+                k: v for k, v in state_dict.items() if adapter_key_filter(k)
+            }
+
+            merged_state_dict = get_merged_lora_ckpt(
+                state_dict,
+                rank=self._lora_rank,
+                alpha=self._lora_alpha,
+            )
+
+            ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
+        else:
+            # No need to merge state dict if we're only saving adapter weights
+            adapter_state_dict = {
+                k: v.cpu() for k, v in get_adapter_params(self._model).items()
+            }
+
         ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
 
         self._checkpointer.save_checkpoint(
@@ -460,7 +462,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         all_log_probs = rlhf.get_batch_log_probs(
             all_logits,
             concatenated_labels,
-            # see :class:`~torchtune.modules.rlhf.loss.dpo.SimPOLoss`
+            # see :class:`~torchtune.rlhf.loss.dpo.SimPOLoss`
             return_average_logprobs=isinstance(self._loss_fn, SimPOLoss),
         )
 

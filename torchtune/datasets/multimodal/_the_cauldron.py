@@ -4,10 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Dict, Mapping, Optional
 
-from torchtune.data import Message
-from torchtune.datasets._packed import PackedDataset
+from torchtune.data._messages import Message
 from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.transforms import Transform
 
@@ -26,33 +25,37 @@ class TheCauldronToMessages(Transform):
         {
             "texts": [
                 {
-                    "user": Q,
-                    "assistant": A,
+                    "user": "What are in these images.",
+                    "assistant": "They are images of dogs.",
                 },
                 ...
             ],
             "images": [
-                [PIL.Image.Image],
+                [PIL.Image.Image, PIL.Image.Image],
             ],
         }
 
     will be converted to::
 
         [
-            {
-                "role": "system" | "user" | "assistant",
-                "content":
-                    [
-                        {"type": "image", "content": <PIL.Image.Image>},
-                        {"type": "text", "content": "This is a sample image."},
-                    ],
-            },
+            Message(
+                role = "user",
+                content = [
+                    {"type": "image", "content": <PIL.Image.Image>},
+                    {"type": "image", "content": <PIL.Image.Image>},
+                    {"type": "text", "content": "What are in these images."},
+                ],
+            ),
+            Message(
+                role = "assistant",
+                content = [
+                    {"type": "text", "content": "They are images of dogs."},
+                ],
+            ),
             ...
         ]
 
     Args:
-        train_on_input (bool): Whether the model is trained on the user prompt or not.
-            Default is True.
         column_map (Optional[Dict[str, str]]): a mapping to change the expected "texts"
             column names to the actual column names in the dataset. Default is None,
             keeping the default column names.
@@ -65,11 +68,9 @@ class TheCauldronToMessages(Transform):
 
     def __init__(
         self,
-        train_on_input: bool = True,
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
     ):
-        self.train_on_input = train_on_input
         self.new_system_prompt = new_system_prompt
         if column_map is not None:
             if "images" not in column_map:
@@ -85,19 +86,22 @@ class TheCauldronToMessages(Transform):
             self._column_map = {"texts": "texts", "images": "images"}
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        # Dataset images to be prepended to the first user message
+        img_content = []
+        for img in sample[self._column_map["images"]]:
+            img_content.append({"type": "image", "content": img})
+
+        # Convert to messages
         messages = []
-        for message in sample[self._column_map["texts"]]:
+        for i, message in enumerate(sample[self._column_map["texts"]]):
+            user_content = [{"type": "text", "content": message["user"]}]
+            if i == 0:
+                user_content = img_content + user_content
             messages.append(
                 Message(
                     role="user",
-                    content=[
-                        {
-                            "type": "image",
-                            "content": sample[self._column_map["images"]],
-                        },
-                        {"type": "text", "content": message["user"]},
-                    ],
-                    masked=not self.train_on_input,
+                    content=user_content,
+                    masked=True,
                 )
             )
             messages.append(
@@ -125,11 +129,10 @@ def the_cauldron_dataset(
     source: str = "HuggingFaceM4/the_cauldron",
     column_map: Optional[Dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
-    train_on_input: bool = True,
     packed: bool = False,
     split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],
-) -> Union[SFTDataset, PackedDataset]:
+) -> SFTDataset:
     """
     Support for family of image + text datasets similar to
     `The Cauldron <https://huggingface.co/datasets/HuggingFaceM4/the_cauldron>`_
@@ -191,7 +194,6 @@ def the_cauldron_dataset(
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
-        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
@@ -200,10 +202,10 @@ def the_cauldron_dataset(
             for more details.
 
     Returns:
-        Union[SFTDataset, PackedDataset]: dataset configured with source data and transform
+        SFTDataset: dataset configured with source data and transform
 
     Raises:
-        ValueError: If ``packed`` is True and ``max_seq_len`` is not set on the model_transform.
+        ValueError: If ``packed`` is True, they are not supported for multimodal datasets yet.
 
     Example:
         >>> cauldron_ds = the_cauldron_dataset(model_transform=model_transform, subset="ai2d")
@@ -213,7 +215,6 @@ def the_cauldron_dataset(
     """
 
     message_transform = TheCauldronToMessages(
-        train_on_input=train_on_input,
         column_map=column_map,
         new_system_prompt=new_system_prompt,
     )
@@ -227,9 +228,5 @@ def the_cauldron_dataset(
         **load_dataset_kwargs,
     )
     if packed:
-        if model_transform.max_seq_len is None:
-            raise ValueError(
-                "PackedDataset requires a max_seq_len to be set on the model_transform."
-            )
-        return PackedDataset(ds, max_seq_len=model_transform.max_seq_len)
+        raise ValueError("Multimodal datasets don't support packing yet.")
     return ds

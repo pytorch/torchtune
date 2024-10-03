@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import contextlib
 import sys
 import time
 
@@ -19,7 +20,8 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
-from torchtune.data import padded_collate_packed, padded_collate_sft
+from torchtune.config._utils import _get_component_from_path
+from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     get_adapter_params,
@@ -30,8 +32,12 @@ from torchtune.modules.peft import (
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.training import DummyProfiler, PROFILER_KEY
-
+from torchtune.training import (
+    DummyProfiler,
+    NoOpManager,
+    OffloadActivations,
+    PROFILER_KEY,
+)
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -43,19 +49,31 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     for single GPU training. Training on CPU is not supported.
 
     Features:
-        - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
+        - Activation Checkpointing. This can be controlled using the ``enable_activation_checkpointing``
             flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
             activations in memory and instead recompute them during the backward pass. This is especially
             helpful for larger batch sizes when you're memory constrained. But these savings in memory
             come at the cost of training performance. In most cases training can slow-down quite a bit as
             a result of this activation recomputation.
 
+        - Activation Offloading. This can be controlled using the ``enable_activation_offloading``
+            flag. Activation offloading is a technique similar to activations checkpointing that helps
+            reduce the memory footprint to prevent OOMs on CUDA and enable bigger batches. Where activations
+            checkpointing drops the activation in the forward to recompute it later in the backward,
+            activations offloading will drop the activation in the forward to the CPU and bring it
+            back during the backward pass. As always, there is a tradeoff--these savings in memory can
+            come at the cost of training performance and CPU resources. To recover some runtime cost,
+            we've added an option to enable offloading on a different stream to permit overlapping with
+            the computation. This option is currently only available on PyTorch nightly 2.5.0.dev20240907
+            or later and will be enabled by default if an acceptable torch version is found. Activation
+            offloading can be used in conjunction with activation checkpointing.
+
         - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
             flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
             most cases this should halve the memory footprint of full precision (fp32) training, without
             loss in model quality (will depend on the model, training data and other settings). For
             GPUs which do not support bfloat16, we fall back to fp32. Mixed precision training and fp16
-            precision are currently not supported.g
+            precision are currently not supported.
 
         - Gradient Accumulation. You can simulate larger batch sizes by accumulating gradients. This is
             controlled using the ``gradient_accumulation_steps`` flag.
@@ -101,6 +119,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     Raises:
         ValueError: If ``dtype`` is set to fp16.
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
+        RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
+        RuntimeError: If ``left_pad_sequence`` is set as the data collator
 
     """
 
@@ -115,13 +135,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             raise ValueError(
                 "fp16 precision is not supported in this recipe. Please use fp32 or bf16."
             )
-        # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
-        if (
-            self._dtype == torch.bfloat16
-            and self._device != torch.device("cpu")
-            and not torch.cuda.is_bf16_supported()
-        ):
-            raise RuntimeError("Full bf16 training is not supported on this hardware.")
+
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
@@ -138,6 +152,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
+        self._enable_activation_offloading = cfg.get(
+            "enable_activation_offloading", False
+        )
+        if self._enable_activation_offloading and self._device.type != "cuda":
+            raise RuntimeError(
+                "enable_activation_offloading should only be enabled for training on CUDA"
+            )
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -222,6 +243,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            enable_activation_offloading=self._enable_activation_offloading,
             compile_model=cfg.compile,
             base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
             lora_weights_state_dict=(
@@ -257,10 +279,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # Dataloader depends on the tokenizer and loss_fn and should be
         # setup after all of these are setup
+        collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
         self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
+            collate_fn=collate_name,
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -368,6 +392,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
+        enable_activation_offloading: bool,
         compile_model: bool,
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
@@ -427,6 +452,23 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             self.adapter_params.items(), dtype=self._dtype
         )
 
+        self.activations_handling_ctx = contextlib.nullcontext()
+        if enable_activation_offloading:
+            self.activations_handling_ctx = OffloadActivations()
+
+            # Below is our hack to disable offloading the last output Linear in every
+            # step, as the cost for offloading the activation and then soon after bringing
+            # it back is expensive. Moreover, due to heuristics in our streaming API,
+            # we actually use more memory if we offload it as it interferes with chunkedCE.
+            if hasattr(model, "output") and isinstance(model.output, nn.Module):
+                noop_ctx = NoOpManager()
+                model.output.register_forward_pre_hook(
+                    lambda *args: noop_ctx.__enter__()
+                )
+                model.output.register_forward_hook(
+                    lambda *args: noop_ctx.__exit__(), always_call=True
+                )
+
         log.info(f"Model is initialized with precision {self._dtype}.")
 
         if self._device.type == "cuda":
@@ -465,6 +507,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         cfg_dataset: DictConfig,
         shuffle: bool,
         batch_size: int,
+        collate_fn: str,
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here. Currently this recipe only supports
@@ -482,6 +525,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             ds = config.instantiate(cfg_dataset, self._tokenizer)
             packed = cfg_dataset.get("packed", False)
 
+        # Instantiate collate_fn
+        if "left_pad_sequence" in collate_fn:
+            raise RuntimeError("left_pad_sequence collator is only for inference.")
+        collate_fn = _get_component_from_path(collate_fn)
+
         sampler = DistributedSampler(
             ds,
             num_replicas=1,
@@ -493,14 +541,16 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             dataset=ds,
             sampler=sampler,
             batch_size=batch_size,
-            collate_fn=partial(
-                padded_collate_sft,
-                padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
-            )
-            if not packed
-            else partial(
-                padded_collate_packed,
+            # dropping last avoids shape issues with compile + flex attention
+            drop_last=cfg_dataset.get("drop_last", True),
+            collate_fn=(
+                partial(
+                    collate_fn,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else padded_collate_packed
             ),
         )
 
@@ -534,24 +584,32 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 }
             )
 
-        # Move to CPU to avoid a copy on GPU
-        state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
+        if not self._save_adapter_weights_only:
+            # Construct the full state dict with LoRA weights merged into base LLM weights
 
-        # Construct the adapter weights
-        # Do this using the state_dict to avoid running upcast and H2D in state_dict post hook twice
-        # Must be before get_merged_lora_ckpt because get_merged_lora_ckpt will remove lora keys
-        adapter_key_filter = lambda x: x in self.adapter_params
-        adapter_state_dict = {
-            k: v for k, v in state_dict.items() if adapter_key_filter(k)
-        }
+            # Move to CPU to avoid a copy on GPU
+            state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
 
-        # Construct the full state dict with LoRA weights merged into base LLM weights
-        merged_state_dict = get_merged_lora_ckpt(
-            state_dict,
-            rank=self._lora_rank,
-            alpha=self._lora_alpha,
-        )
-        ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
+            # Construct the adapter weights
+            # Do this using the state_dict to avoid running upcast and H2D in state_dict post hook twice
+            # Must be before get_merged_lora_ckpt because get_merged_lora_ckpt will remove lora keys
+            adapter_key_filter = lambda x: x in self.adapter_params
+            adapter_state_dict = {
+                k: v for k, v in state_dict.items() if adapter_key_filter(k)
+            }
+
+            merged_state_dict = get_merged_lora_ckpt(
+                state_dict,
+                rank=self._lora_rank,
+                alpha=self._lora_alpha,
+            )
+
+            ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
+        else:
+            # No need to merge state dict if we're only saving adapter weights
+            adapter_state_dict = {
+                k: v.cpu() for k, v in get_adapter_params(self._model).items()
+            }
 
         ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
         adapter_config = {
@@ -574,16 +632,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
     def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
-        # Both are shape [b, s]
-        tokens, labels = batch["tokens"], batch["labels"]
-
-        # Get the attention mask and position ids from the dataset if they
-        # exist. Currently, only sample packing in PackedDataset returns these
-        mask = batch.get("mask", None)  # shape [b, s, s]
-        input_pos = batch.get("input_pos", None)  # shape [b, s]
+        # Shape [b, s], needed for the loss not the model
+        labels = batch.pop("labels")
 
         # run model
-        logits = self._model(tokens, mask=mask, input_pos=input_pos)
+        with self.activations_handling_ctx:
+            logits = self._model(**batch)
 
         # Shift labels to compute loss
         # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
@@ -642,7 +696,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     ):
                         torch.cuda.memory._record_memory_history()
 
-                    batch = {k: v.to(self._device) for k, v in batch.items()}
+                    utils.batch_to_device(batch, self._device)
                     num_tokens += batch["tokens"].numel()
 
                     loss = self._loss_step(batch)

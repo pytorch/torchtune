@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import json
+import string
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Iterable, Tuple
@@ -46,6 +47,8 @@ class ModelType(Enum):
         GEMMA (str): Gemma family of models. See :func:`~torchtune.models.gemma.gemma`
         LLAMA2 (str): Llama2 family of models. See :func:`~torchtune.models.llama2.llama2`
         LLAMA3 (str): Llama3 family of models. See :func:`~torchtune.models.llama3.llama3`
+        LLAMA3_2 (str): Llama3.2 family of models. See :func:`~torchtune.models.llama3_2.llama3_2`
+        LLAMA3_VISION (str): LLama3 vision family of models. See :func:`~torchtune.models.llama3_2_vision.llama3_2_vision_decoder`
         MISTRAL (str): Mistral family of models. See :func:`~torchtune.models.mistral.mistral`
         PHI3_MINI (str): Phi-3 family of models. See :func:`~torchtune.models.phi3.phi3`
         REWARD (str): A Llama2, Llama3, or Mistral model with a classification head projecting
@@ -64,10 +67,77 @@ class ModelType(Enum):
     GEMMA: str = "gemma"
     LLAMA2: str = "llama2"
     LLAMA3: str = "llama3"
+    LLAMA3_2: str = "llama3_2"
+    LLAMA3_VISION: str = "llama3_vision"
     MISTRAL: str = "mistral"
     PHI3_MINI: str = "phi3_mini"
     REWARD: str = "reward"
     QWEN2: str = "qwen2"
+
+
+class FormattedCheckpointFiles:
+    """
+    This class gives a more concise way to represent a list of filenames of the format ``file_{i}_of_{n_files}.pth``.
+
+    Args:
+        filename_format (str): Format string for the filename. Must have exactly two placeholders, e.g.
+            ``file_{}_of_{}.pth``.
+        max_filename (str): Maximum filename in the list. Should be a string representation of an integer,
+            possibly with leading zeroes.
+    """
+
+    def __init__(
+        self,
+        filename_format: str,
+        max_filename: str,
+    ):
+        self.filename_format = filename_format
+        self.max_filename = max_filename
+        self._validate_filename_format()
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "FormattedCheckpointFiles":
+        if "filename_format" not in d or "max_filename" not in d:
+            raise ValueError(
+                "Must pass 'filename_format' and 'max_filename' keys to generate checkpoint filenames"
+            )
+        return cls(
+            filename_format=d["filename_format"],
+            max_filename=d["max_filename"],
+        )
+
+    def _validate_filename_format(self):
+        n_format_placeholders = [
+            x[1]
+            for x in string.Formatter().parse(self.filename_format)
+            if x[1] is not None
+        ]
+        if len(n_format_placeholders) != 2:
+            raise ValueError(
+                "Filename format string must have exactly two placeholders, e.g. 'file_{i}_of_{n_files}.pth'"
+            )
+
+    def build_checkpoint_filenames(self):
+        """
+        Builds a list of checkpoint filenames from the filename format and max filename.
+
+        Returns:
+            List[str]: List of checkpoint filenames.
+
+        Example:
+            >>> # Example usage
+            >>> f = FormattedCheckpointFiles(filename_format="file_{}_of_{}.safetensors", max_filename="00003")
+            >>> f.build_checkpoint_filenames()
+            >>> ['file_00001_of_00003.safetensors', 'file_00002_of_00003.safetensors', 'file_00003_of_00003.safetensors']
+        """
+        num_files = int(self.max_filename)
+        return [
+            self.filename_format.format(
+                str(i + 1).zfill(len(self.max_filename)),
+                self.max_filename,
+            )
+            for i in range(num_files)
+        ]
 
 
 def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
