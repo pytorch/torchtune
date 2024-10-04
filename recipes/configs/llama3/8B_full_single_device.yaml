@@ -52,7 +52,10 @@ batch_size: 2
 epochs: 3
 optimizer:
   _component_: bitsandbytes.optim.PagedAdamW8bit
-  lr: 2e-5
+  lr: 1e-5
+lr_scheduler:
+  _component_: torchtune.modules.get_cosine_schedule_with_warmup
+  num_warmup_steps: 100
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null

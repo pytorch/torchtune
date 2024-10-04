@@ -10,12 +10,12 @@ import logging
 from typing import Any, Callable, Dict, Set, Type, Union
 
 import torch
-
 from torch import nn
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     apply_activation_checkpointing,
 )
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+from torch.optim.lr_scheduler import LRScheduler
 from torchtune.utils import get_logger
 
 _log: logging.Logger = get_logger()
@@ -91,6 +91,7 @@ class OptimizerInBackwardWrapper:
 
     def __init__(self, optim_map: Dict[str, torch.optim.Optimizer]):
         self.optim_map = optim_map
+        self.lr_scheduler = None
 
     def state_dict(self) -> Dict[str, Any]:
         """
@@ -135,6 +136,62 @@ class OptimizerInBackwardWrapper:
         are initialized with the same hyperparameters.
         """
         return list(self.optim_map.values())[0].param_groups[0][key]
+
+    def set_lr_scheduler(self, lr_scheduler: LRScheduler) -> None:
+        """
+        Sets the learning rate scheduler and modifies its step method to update all optimizers.
+
+        Args:
+            lr_scheduler (LRScheduler): The learning rate scheduler to use.
+        """
+        self.lr_scheduler = lr_scheduler
+        original_step = self.lr_scheduler.step
+
+        def custom_step(epoch=None):
+            if epoch is None:
+                original_step()
+            else:
+                original_step(epoch)
+            new_lr = self.lr_scheduler.get_last_lr()[0]
+            for opt in self.optim_map.values():
+                for param_group in opt.param_groups:
+                    param_group["lr"] = new_lr
+
+        self.lr_scheduler.step = custom_step
+
+    def step_lr_scheduler(self, epoch: int = None):
+        """
+        Steps the learning rate scheduler if it exists.
+
+        Args:
+            epoch (int, optional): The current epoch number. Defaults to None.
+
+        Raises:
+            RuntimeError: If the LR scheduler has not been set.
+        """
+        if self.lr_scheduler:
+            self.lr_scheduler.step(epoch)
+        else:
+            raise RuntimeError(
+                "LR scheduler has not been set. Call set_lr_scheduler first."
+            )
+
+    def get_last_lr(self) -> float:
+        """
+        Gets the last learning rate from the scheduler if it exists.
+
+        Returns:
+            float: The last learning rate.
+
+        Raises:
+            RuntimeError: If the LR scheduler has not been set.
+        """
+        if self.lr_scheduler:
+            return self.lr_scheduler.get_last_lr()[0]
+        else:
+            raise RuntimeError(
+                "LR scheduler has not been set. Call set_lr_scheduler first."
+            )
 
 
 def create_optim_in_bwd_wrapper(
