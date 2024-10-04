@@ -224,7 +224,7 @@ class MultiHeadAttention(nn.Module):
         # y has shape [b, s_y, d]
         b, s_x, _ = x.shape
         s_y = y.shape[1] if y is not None else 0
-
+        
         # q has shape [b, s_x, num_heads * head_dim]
         q = self.q_proj(x)
 
@@ -243,14 +243,20 @@ class MultiHeadAttention(nn.Module):
         if self.q_norm is not None:
             q = self.q_norm(q)
 
-        if y is None:
-            if self.kv_cache is None:
-                raise ValueError(
-                    "Must provide y input or use kv_cache to enable streaming decoding"
-                )
-            k = self.kv_cache.k_cache
-            v = self.kv_cache.v_cache
-        else:
+        def true_fn(y):
+            # if self.kv_cache is None:
+            #     raise ValueError(
+            #         "Must provide y input or use kv_cache to enable streaming decoding"
+            #     )
+            if self.kv_cache is not None:
+                k = self.kv_cache.k_cache
+                v = self.kv_cache.v_cache
+            else:
+                k = torch.zeros(b, s_y, self.num_heads, self.head_dim).transpose(1, 2)
+                v = torch.zeros(b, s_y, self.num_heads, self.head_dim).transpose(1, 2)
+            return k, v
+
+        def false_fn(y):
             # Update k and v shape, positional embeddings, and normalization
 
             # k has shape [b, s_y, num_kv_heads * head_dim]
@@ -293,6 +299,9 @@ class MultiHeadAttention(nn.Module):
             # Update key-value cache
             if self.kv_cache is not None:
                 k, v = self.kv_cache.update(k, v)
+            return k, v
+
+        k, v = torch.cond(torch.isnan(y).all(), true_fn, false_fn, (y, ))
 
         output = self._attention_call(
             q,

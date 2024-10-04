@@ -57,8 +57,8 @@ class FusionLayer(nn.Module):
         self.fusion_first = fusion_first
 
         # Keep FusionLayer wrappings out of the state_dict
-        self._register_state_dict_hook(FusionLayer._state_dict_hook)
-        self._register_load_state_dict_pre_hook(
+        self.state_dict_handle = self._register_state_dict_hook(FusionLayer._state_dict_hook)
+        self.load_state_dict_handle = self._register_load_state_dict_pre_hook(
             FusionLayer._load_state_dict_hook, with_module=True
         )
         # TODO: Switch to register_load_state_dict_pre_hook and
@@ -200,8 +200,8 @@ class FusionEmbedding(nn.Module):
         # TODO: Support merging the embeddings after finetuning
 
         # Keep FusionLayer wrappings out of the state_dict
-        self._register_state_dict_hook(FusionEmbedding._state_dict_hook)
-        self._register_load_state_dict_pre_hook(
+        self.state_dict_handle = self._register_state_dict_hook(FusionEmbedding._state_dict_hook)
+        self.load_state_dict_handle = self._register_load_state_dict_pre_hook(
             FusionEmbedding._load_state_dict_hook, with_module=True
         )
         # TODO: Switch to register_load_state_dict_pre_hook and
@@ -444,6 +444,8 @@ class DeepFusionModel(nn.Module):
         encoder_embed = None
         if encoder_input is not None:
             encoder_embed = self.encoder(**encoder_input)
+        else:
+            encoder_embed = torch.tensor(torch.nan)
 
         output = self.decoder(
             tokens=tokens,

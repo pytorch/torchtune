@@ -248,11 +248,15 @@ def flamingo_decoder(
                 mlp_scale=TanhGate(),
             )
             fusion_layer = FusionLayer(layer=decoder_layer, fusion_layer=xattn_layer)
+            # fusion_layer.state_dict_handle.remove()
+            # fusion_layer.load_state_dict_handle.remove()
             layers.append(fusion_layer)
         else:
             layers.append(decoder_layer)
 
     tok_embeddings = FusionEmbedding(vocab_size, num_special_tokens, embed_dim)
+    # tok_embeddings.state_dict_handle.remove()
+    # tok_embeddings.load_state_dict_handle.remove()
     output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
 
     return TransformerDecoder(
