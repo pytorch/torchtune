@@ -269,7 +269,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # Setup lr scheduler
         self._lr_scheduler = self._setup_lr_scheduler(
-            cfg_lr_scheduler=cfg.lr_scheduler,
+            cfg_lr_scheduler=cfg.get("lr_scheduler", None),
             num_training_steps=self.total_epochs * self._steps_per_epoch,
             last_epoch=self.global_step - 1,
         )
