@@ -439,12 +439,12 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
 <span class="kn">from</span> <span class="nn">torch.distributed.algorithms._checkpoint.checkpoint_wrapper</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">apply_activation_checkpointing</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">torch.distributed.fsdp.wrap</span> <span class="kn">import</span> <span class="n">ModuleWrapPolicy</span>
+<span class="kn">from</span> <span class="nn">torch.optim.lr_scheduler</span> <span class="kn">import</span> <span class="n">LRScheduler</span>
 <span class="kn">from</span> <span class="nn">torchtune.utils</span> <span class="kn">import</span> <span class="n">get_logger</span>
 
 <span class="n">_log</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">()</span>
@@ -520,6 +520,7 @@
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">optim_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">]):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">optim_map</span> <span class="o">=</span> <span class="n">optim_map</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lr_scheduler</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="OptimizerInBackwardWrapper.state_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper.state_dict">[docs]</a>    <span class="k">def</span> <span class="nf">state_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -563,7 +564,63 @@
 <span class="sd">        this assumes all optimizer in backwards have the same value for the key, i.e.,</span>
 <span class="sd">        are initialized with the same hyperparameters.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optim_map</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">key</span><span class="p">]</span></div></div>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optim_map</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">key</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="OptimizerInBackwardWrapper.set_lr_scheduler"><a class="viewcode-back" href="../../../generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper.set_lr_scheduler">[docs]</a>    <span class="k">def</span> <span class="nf">set_lr_scheduler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr_scheduler</span><span class="p">:</span> <span class="n">LRScheduler</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the learning rate scheduler and modifies its step method to update all optimizers.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            lr_scheduler (LRScheduler): The learning rate scheduler to use.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lr_scheduler</span> <span class="o">=</span> <span class="n">lr_scheduler</span>
+        <span class="n">original_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">step</span>
+
+        <span class="k">def</span> <span class="nf">custom_step</span><span class="p">(</span><span class="n">epoch</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">epoch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">original_step</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">original_step</span><span class="p">(</span><span class="n">epoch</span><span class="p">)</span>
+            <span class="n">new_lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">get_last_lr</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">opt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">optim_map</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">param_group</span> <span class="ow">in</span> <span class="n">opt</span><span class="o">.</span><span class="n">param_groups</span><span class="p">:</span>
+                    <span class="n">param_group</span><span class="p">[</span><span class="s2">&quot;lr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_lr</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">step</span> <span class="o">=</span> <span class="n">custom_step</span></div>
+
+<div class="viewcode-block" id="OptimizerInBackwardWrapper.step_lr_scheduler"><a class="viewcode-back" href="../../../generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper.step_lr_scheduler">[docs]</a>    <span class="k">def</span> <span class="nf">step_lr_scheduler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Steps the learning rate scheduler if it exists.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            epoch (int, optional): The current epoch number. Defaults to None.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            RuntimeError: If the LR scheduler has not been set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">epoch</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;LR scheduler has not been set. Call set_lr_scheduler first.&quot;</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="OptimizerInBackwardWrapper.get_last_lr"><a class="viewcode-back" href="../../../generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper.get_last_lr">[docs]</a>    <span class="k">def</span> <span class="nf">get_last_lr</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets the last learning rate from the scheduler if it exists.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            float: The last learning rate.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            RuntimeError: If the LR scheduler has not been set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">get_last_lr</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;LR scheduler has not been set. Call set_lr_scheduler first.&quot;</span>
+            <span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="create_optim_in_bwd_wrapper"><a class="viewcode-back" href="../../../generated/torchtune.training.create_optim_in_bwd_wrapper.html#torchtune.training.create_optim_in_bwd_wrapper">[docs]</a><span class="k">def</span> <span class="nf">create_optim_in_bwd_wrapper</span><span class="p">(</span>
