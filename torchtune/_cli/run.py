@@ -102,7 +102,7 @@ For a list of all possible recipes, run `tune ls`."""
             runpy.run_path(str(args.recipe), run_name="__main__")
         else:
             # custom recipes are specified as a relative module dot path
-            runpy.run_module(str(args.recipe), run_name="__main__")
+            runpy.run_path(str(args.recipe), run_name="__main__")
 
     def _is_distributed_args(self, args: argparse.Namespace):
         """Check if the user is trying to run a distributed recipe."""
