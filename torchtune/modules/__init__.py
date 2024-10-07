@@ -8,8 +8,8 @@ from .attention import MultiHeadAttention  # noqa
 from .attention_utils import create_block_causal_mask, packed_block_causal_mask
 from .common_utils import (
     reparametrize_as_dtype_state_dict_post_hook,
-    use_kv_cache_local,
-    use_kv_cache_persistent,
+    setup_use_local_kv_cache,
+    use_persistent_kv_cache,
 )
 from .feed_forward import FeedForward  # noqa
 from .kv_cache import KVCache  # noqa
@@ -47,6 +47,6 @@ __all__ = [
     "reparametrize_as_dtype_state_dict_post_hook",
     "create_block_causal_mask",
     "packed_block_causal_mask",
-    "use_kv_cache_local",
-    "use_kv_cache_persistent",
+    "setup_use_local_kv_cache",
+    "use_persistent_kv_cache",
 ]

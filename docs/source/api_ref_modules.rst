@@ -104,6 +104,8 @@ These are utilities that are common to and can be used by all modules.
    :nosignatures:
 
    common_utils.reparametrize_as_dtype_state_dict_post_hook
+   common_utils.use_kv_cache_local
+   common_utils.use_kv_cache_persistent
 
 
 Vision Transforms

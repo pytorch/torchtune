@@ -252,7 +252,7 @@ def generate(
     total_response_length = prompt_length + max_generated_tokens
 
     generated_tokens = prompt.clone()
-    incremental_decoding = model.caches_are_enabled()
+    incremental_decoding = model.caches_are_setup()
 
     # grab the correct max_seq_len to generate full causal masks/position ids
     # this is the model's max cache len if incremental decoding, or the sequence

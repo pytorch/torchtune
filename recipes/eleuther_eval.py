@@ -24,7 +24,7 @@ from torchtune.data import (
 )
 from torchtune.generation import generate, sample
 from torchtune.modules import TransformerDecoder
-from torchtune.modules.common_utils import use_kv_cache_local
+from torchtune.modules.common_utils import setup_use_local_kv_cache
 from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
@@ -47,7 +47,7 @@ if not lm_eval_version >= "0.4.2":
     )
     sys.exit(1)
 
-from lm_eval.evaluator import evaluate, get_task_list
+from lm_eval.evaluator import evaluate
 
 # User doesn't have to have nightlies installed, they just won't be able
 # to use the multimodal model
@@ -249,18 +249,8 @@ class _VLMEvalWrapper(HFMultimodalLM):
         encoder_max_seq_len = (
             self.model_transform.image_seq_len * self._max_images_per_sample,
         )
-        # 2. Setup KV cache and masks for bsz 1
+        # Setup masks for bsz 1
         with self.device:
-            # if self.model.caches_are_enabled():
-            #     self.model.reset_caches()
-            # else:
-            # self.model.setup_caches(
-            #     batch_size=1,
-            #     dtype=self._dtype,
-            #     encoder_max_seq_len=self.model_transform.image_seq_len
-            #     * self._max_images_per_sample,
-            #     decoder_max_seq_len=self.max_length,
-            # )
             causal_mask = torch.tril(
                 torch.ones(
                     size=(self.max_length, self.max_length),
@@ -272,7 +262,8 @@ class _VLMEvalWrapper(HFMultimodalLM):
         batch["input_pos"] = input_pos[None, :seq_len]
         batch["mask"] = causal_mask[None, :seq_len]
 
-        with use_kv_cache_local(
+        # 2. Setup KV cache
+        with setup_use_local_kv_cache(
             self.model,
             batch_size=self.batch_size,
             dtype=self._dtype,
@@ -424,7 +415,7 @@ class _LLMEvalWrapper(HFLM):
             (0, 0, 0, self._batch_size - bsz),
             value=self._tokenizer.eos_id,  # pad with one of the tokenizer's stop tokens so generation can stop early
         )
-        with use_kv_cache_local(
+        with setup_use_local_kv_cache(
             self.model,
             batch_size=self.batch_size,
             dtype=self._dtype,
@@ -495,9 +486,9 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         if quantization_mode is not None:
             model = quantizer.quantize(model)
             model = model.to(device=self.device, dtype=self.dtype)
-            for k, v in model_state_dict.items():
-                model_state_dict[k] = v.to(self._device)
-            model.load_state_dict(model_state_dict, assign=True)
+            for k, v in ckpt_dict.items():
+                ckpt_dict[k] = v.to(self._device)
+            model.load_state_dict(ckpt_dict, assign=True)
 
         # Load model weights into initialized model
         model.load_state_dict(ckpt_dict[training.MODEL_KEY])
@@ -540,13 +531,6 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         # Initialize tasks for the harness
         task_manager = TaskManager(include_path=self.include_path)
         task_dict = get_task_dict(self.tasks, task_manager)
-        task_types = set([t.task.OUTPUT_TYPE for t in get_task_list(task_dict)])
-        if len(task_types) > 1 and "generate_until" in task_types:
-            raise RuntimeError(
-                "Evaluating on multiple task types where any one task involves "
-                "generation is currently not supported. See the issue below for more info: "
-                "https://github.com/pytorch/torchtune/issues/1621"
-            )
 
         # Run evaluation
         t0 = time.time()

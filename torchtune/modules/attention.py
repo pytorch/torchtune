@@ -143,7 +143,7 @@ class MultiHeadAttention(nn.Module):
         # this flag indicates whether to update the kv-cache during forward
         # passes. when disabled, we can have the cache setup but still
         # perform normal forward passes
-        self.use_kv_cache = False
+        self.cache_enabled = False
 
     def setup_cache(
         self, batch_size: int, dtype: torch.dtype, max_seq_len: int
@@ -169,6 +169,7 @@ class MultiHeadAttention(nn.Module):
                 head_dim=self.head_dim,
                 dtype=dtype,
             )
+            self.cache_enabled = True
 
     def reset_cache(self):
         """Reset the key value caches."""
@@ -296,7 +297,7 @@ class MultiHeadAttention(nn.Module):
                 k = self.k_norm(k)
 
             # Update key-value cache
-            if self.kv_cache is not None and self.use_kv_cache:
+            if self.kv_cache is not None and self.cache_enabled:
                 k, v = self.kv_cache.update(k, v)
 
         output = self._attention_call(
