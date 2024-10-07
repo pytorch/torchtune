@@ -6,7 +6,11 @@
 
 from .attention import MultiHeadAttention  # noqa
 from .attention_utils import create_block_causal_mask, packed_block_causal_mask
-from .common_utils import reparametrize_as_dtype_state_dict_post_hook
+from .common_utils import (
+    reparametrize_as_dtype_state_dict_post_hook,
+    use_kv_cache_local,
+    use_kv_cache_persistent,
+)
 from .feed_forward import FeedForward  # noqa
 from .kv_cache import KVCache  # noqa
 from .layer_norm import Fp32LayerNorm  # noqa
@@ -43,4 +47,6 @@ __all__ = [
     "reparametrize_as_dtype_state_dict_post_hook",
     "create_block_causal_mask",
     "packed_block_causal_mask",
+    "use_kv_cache_local",
+    "use_kv_cache_persistent",
 ]

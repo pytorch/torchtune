@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import contextlib
 import mmap
 import sys
 from collections import OrderedDict
@@ -163,3 +164,51 @@ def _register_reparametrize_state_dict_hooks(
     module._register_state_dict_hook(
         partial(hook, dtype=dtype, offload_to_cpu=offload_to_cpu)
     )
+
+
+@contextlib.contextmanager
+def use_kv_cache_persistent(model: nn.Module):
+    if not model.caches_are_enabled():
+        raise ValueError(
+            "Model caches must be setup before calling persistent_kv_cache! "
+            "Please use model.setup_caches() to setup model caches."
+        )
+    for layer in model.layers:
+        layer.attn.use_kv_cache = True
+    try:
+        yield
+    finally:
+        for layer in model.layers:
+            layer.attn.use_kv_cache = False
+        model.reset_caches()
+
+
+@contextlib.contextmanager
+def use_kv_cache_local(
+    model: nn.Module,
+    *,
+    batch_size: int,
+    dtype: torch.dtype,
+    decoder_max_seq_len: int = None,
+    encoder_max_seq_len: int = None,
+):
+    if model.caches_are_enabled():
+        raise ValueError(
+            "Model caches must be not setup before calling local_kv_cache! "
+            "Please use delete_kv_caches(model) to delete model caches."
+        )
+    model.setup_caches(batch_size, dtype, decoder_max_seq_len, encoder_max_seq_len)
+    for layer in model.layers:
+        layer.attn.use_kv_cache = True
+    try:
+        yield
+    finally:
+        for layer in model.layers:
+            layer.attn.use_kv_cache = False
+        delete_kv_caches(model)
+
+
+def delete_kv_caches(model: nn.Module):
+    for layer in model.layer:
+        if hasattr(layer, "kv_cache") and callable(layer.kv_cache):
+            layer.kv_cache = None

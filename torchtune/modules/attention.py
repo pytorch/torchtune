@@ -140,6 +140,11 @@ class MultiHeadAttention(nn.Module):
         # Use flex attention if supported and we are sample packing
         self._attention_call = _sdpa_or_flex_attention()
 
+        # this flag indicates whether to update the kv-cache during forward
+        # passes. when disabled, we can have the cache setup but still
+        # perform normal forward passes
+        self.use_kv_cache = False
+
     def setup_cache(
         self, batch_size: int, dtype: torch.dtype, max_seq_len: int
     ) -> None:
@@ -291,7 +296,7 @@ class MultiHeadAttention(nn.Module):
                 k = self.k_norm(k)
 
             # Update key-value cache
-            if self.kv_cache is not None:
+            if self.kv_cache is not None and self.use_kv_cache:
                 k, v = self.kv_cache.update(k, v)
 
         output = self._attention_call(
