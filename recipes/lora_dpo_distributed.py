@@ -474,6 +474,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
+            # dropping last avoids shape issues with compile + flex attention
+            drop_last=True,
             collate_fn=partial(
                 padded_collate_dpo,
                 padding_idx=self._tokenizer.pad_id,

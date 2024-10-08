@@ -39,17 +39,17 @@ checkpointer:
     model.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Qwen2-0.5B-Instruct-kd
+  output_dir: /tmp/Qwen2-0.5B-Instruct
   model_type: QWEN2
 
 teacher_checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Qwen2-1.5B-Instruct-lora-finetune
+  checkpoint_dir: /tmp/Qwen2-1.5B-Instruct
   checkpoint_files: [
-    hf_model_0001_0.pt
+    model.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Qwen2-1.5B-Instruct-lora-finetune
+  output_dir: /tmp/Qwen2-1.5B-Instruct
   model_type: QWEN2
 
 resume_from_checkpoint: False

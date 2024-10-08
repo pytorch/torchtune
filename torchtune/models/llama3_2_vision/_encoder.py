@@ -10,17 +10,15 @@ import torch
 
 from torch import nn
 from torchtune.modules.model_fusion import register_fusion_module
-from torchtune.modules.transformer import _get_clones
 
 
-class FlamingoProjectionHead(nn.Module):
+class Llama3VisionProjectionHead(nn.Module):
     """Projection transformer to adapt the output of a
     pretrained frozen encoder (CLIP) to a pretrained decoder model.
-    For example, nn.Sequential(CLIP(), FlamingoProjectionHead()).
+    For example, nn.Sequential(CLIP(), Llama3VisionProjectionHead()).
 
     Args:
-        layer (nn.Module): Transformer Decoder layer
-        num_layers (int): Number of Transformer Decoder layers
+        layers (nn.Module): Transformer Decoder layers
         output (nn.Module): Output linear layer. Input dim is
             (num_hidden + 1) * encoder_dim and output is decoder_dim.
         num_hidden_inputs (int): Number of expected hidden state inputs
@@ -28,13 +26,12 @@ class FlamingoProjectionHead(nn.Module):
 
     def __init__(
         self,
-        layer: nn.Module,
-        num_layers: int,
+        layers: nn.Module,
         output: nn.Module,
         num_hidden_inputs: int = 0,
     ) -> None:
         super().__init__()
-        self.layers = _get_clones(layer, num_layers)
+        self.layers = nn.ModuleList(layers)
         self.output = output
         self.num_hidden = num_hidden_inputs
 
@@ -81,8 +78,8 @@ class FlamingoProjectionHead(nn.Module):
         return x
 
 
-class FlamingoEncoder(nn.Module):
-    """Vision encoder model for Flamingo. This combines a pretrained
+class Llama3VisionEncoder(nn.Module):
+    """Vision encoder model for Llama 3.2 Vision. This combines a pretrained
     vision encoder with a learnable projection head. The projection head
     is converted to a fusion module and supports fusion utils.
 

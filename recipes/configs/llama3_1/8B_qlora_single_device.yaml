@@ -70,7 +70,7 @@ loss:
 epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 16
-compile: False
+compile: False # set it to True for better memory and performance
 
 # Logging
 output_dir: /tmp/qlora_finetune_output/
@@ -112,3 +112,6 @@ profiler:
   warmup_steps: 5
   active_steps: 2
   num_cycles: 1
+
+# For colab use True
+low_cpu_ram: False

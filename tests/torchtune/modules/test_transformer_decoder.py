@@ -9,7 +9,7 @@ from typing import Tuple
 import pytest
 
 import torch
-from tests.test_utils import assert_expected
+from tests.test_utils import assert_expected, mps_ignored_test
 
 from torch import nn
 
@@ -98,6 +98,7 @@ class TestTransformerSelfAttentionLayer:
         transformer_layer.eval()
         return transformer_layer
 
+    @mps_ignored_test()
     def test_forward(
         self, input: torch.Tensor, transformer_layer: TransformerSelfAttentionLayer
     ) -> None:
@@ -182,6 +183,7 @@ class TestTransformerCrossAttentionLayer:
         transformer_layer.eval()
         return transformer_layer
 
+    @mps_ignored_test()
     def test_forward(
         self,
         input: Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
@@ -317,6 +319,7 @@ class TestTransformerDecoder:
         decoder.setup_caches(batch_size=4, dtype=torch.float32)
         return decoder
 
+    @mps_ignored_test()
     def test_forward(
         self,
         input: torch.Tensor,
@@ -422,6 +425,21 @@ class TestTransformerDecoder:
 
         with pytest.raises(ValueError, match="input positions must be provided!"):
             decoder_with_kv_cache_enabled(input, mask=causal_mask)
+
+    def test_kv_cache_setup_encoder_input_no_encoder_mask_in_forward(
+        self,
+        input: torch.Tensor,
+        causal_mask: torch.Tensor,
+        input_pos: torch.Tensor,
+        decoder_with_kv_cache_enabled: TransformerDecoder,
+    ) -> None:
+
+        with pytest.raises(
+            ValueError, match="Use the `encoder_mask` arg to provide a causal mask"
+        ):
+            decoder_with_kv_cache_enabled(
+                input, mask=causal_mask, input_pos=input_pos, encoder_input=input
+            )
 
     def test_rms_norm_propagation(
         self, decoder_params: Tuple[int, int, int, int, int, int]

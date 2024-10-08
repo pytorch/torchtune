@@ -6,6 +6,7 @@
 
 import pytest
 import torch
+import torch._dynamo.testing
 from torchtune.modules import KVCache
 
 BSZ = 2
@@ -52,6 +53,7 @@ class TestKVCache:
     def test_kv_cache_reset(self, kv_cache, k_vals_full, v_vals_full):
         kv_cache.update(k_vals_full, v_vals_full)
         kv_cache.reset()
+
         assert (kv_cache.k_cache == 0).all() and (kv_cache.v_cache == 0).all()
         assert kv_cache.size == 0
 
@@ -62,7 +64,7 @@ class TestKVCache:
     def test_kv_cache_error_when_seq_len_exceeded(
         self, kv_cache, k_vals_full, v_vals_full
     ):
-        with pytest.raises(ValueError):
+        with pytest.raises(AssertionError):
             kv_cache.update(k_vals_full.repeat(1, 1, 4, 1), v_vals_full)
 
     def test_kv_cache_error_when_seq_len_exceeded_after_update(
@@ -75,8 +77,7 @@ class TestKVCache:
             v_vals_full[:, :, : (MAX_SEQ_LEN // 2)],
         )
         with pytest.raises(
-            ValueError,
-            match=f"cache has reached a sequence length of {MAX_SEQ_LEN + MAX_SEQ_LEN // 2}",
+            AssertionError,
         ):
             # now an invalid update exceeding the cache
             kv_cache.update(k_vals_full, v_vals_full)
@@ -151,3 +152,28 @@ class TestKVCache:
 
         assert torch.equal(expected_k_out, k_out)
         assert torch.equal(expected_v_out, v_out)
+
+    def test_kv_cache_no_recompiles(self, kv_cache, k_vals_full, v_vals_full):
+        def fn(k_val, v_val):
+            return kv_cache.update(k_val, v_val)
+
+        cnts = torch._dynamo.testing.CompileCounter()
+        # this effectively does torch.compile(fn)
+        fn = torch._dynamo.optimize(cnts, nopython=True)(fn)
+
+        # make an update filling half the cache - like a prefill
+        # fills position 0 through to (MAX_SEQ_LEN // 2) - 1
+        kv_cache.update(
+            k_vals_full[:, :, : (MAX_SEQ_LEN // 2)],
+            v_vals_full[:, :, : (MAX_SEQ_LEN // 2)],
+        )
+
+        # now make successive updates for one token position at a time
+        # and ensure there are no recompiles
+        for i in range(MAX_SEQ_LEN // 2):
+            fn(
+                k_vals_full[:, :, (MAX_SEQ_LEN // 2) + i].unsqueeze(2),
+                v_vals_full[:, :, (MAX_SEQ_LEN // 2) + i].unsqueeze(2),
+            )
+
+        assert cnts.frame_count == 1

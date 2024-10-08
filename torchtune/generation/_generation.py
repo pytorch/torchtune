@@ -245,10 +245,6 @@ def generate(
     """
     prompt = prompt.view(1, -1) if prompt.ndim == 1 else prompt
 
-    stop_tokens = (
-        torch.tensor(stop_tokens, device=prompt.device) if stop_tokens else None
-    )
-
     if custom_generate_next_token is None:
         custom_generate_next_token = generate_next_token
 
@@ -256,7 +252,7 @@ def generate(
     total_response_length = prompt_length + max_generated_tokens
 
     generated_tokens = prompt.clone()
-    incremental_decoding = model.decoder_caches_are_enabled()
+    incremental_decoding = model.caches_are_enabled()
 
     # grab the correct max_seq_len to generate full causal masks/position ids
     # this is the model's max cache len if incremental decoding, or the sequence
@@ -325,6 +321,11 @@ def generate(
 
     # keeps track at a high level if we've already hit a stop token in a sequence so we can early stop
     stop_token_reached = torch.zeros(bsz, dtype=torch.bool, device=prompt.device)
+    stop_tokens = (
+        torch.tensor(stop_tokens, device=prompt.device, dtype=tokens.dtype)
+        if stop_tokens
+        else None
+    )
 
     # everything in stop_token_mask starts as 1s, and we'll set them to 0 for sequences
     # that already hit a stop token

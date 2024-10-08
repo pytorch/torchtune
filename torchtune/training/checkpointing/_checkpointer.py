@@ -466,6 +466,28 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 dim=self._config["hidden_size"],
                 tie_word_embeddings=self._config["tie_word_embeddings"],
             )
+        elif self._model_type == ModelType.LLAMA3_VISION:
+            from torchtune.models.llama3_2_vision._convert_weights import (
+                llama3_vision_hf_to_tune,
+            )
+
+            text_config = self._config.get("text_config", {})
+            vision_config = self._config.get("vision_config", {})
+            converted_state_dict[training.MODEL_KEY] = llama3_vision_hf_to_tune(
+                merged_state_dict,
+                num_heads=text_config["num_attention_heads"],
+                num_kv_heads=text_config["num_key_value_heads"],
+                dim=text_config["hidden_size"],
+                head_dim=text_config.get("head_dim", None),
+                vocab_size=text_config["vocab_size"],
+                cross_attention_layers=text_config.get("cross_attention_layers", None),
+                encoder_dim=vision_config["hidden_size"],
+                tile_size=vision_config["image_size"],
+                num_tiles=vision_config["max_num_tiles"],
+                supported_aspect_ratios=vision_config.get(
+                    "supported_aspect_ratios", None
+                ),
+            )
         else:
             converted_state_dict[training.MODEL_KEY] = convert_weights.hf_to_tune(
                 merged_state_dict,
@@ -531,6 +553,30 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     num_kv_heads=self._config["num_key_value_heads"],
                     dim=self._config["hidden_size"],
                     tie_word_embeddings=self._config["tie_word_embeddings"],
+                )
+            elif self._model_type == ModelType.LLAMA3_VISION:
+                from torchtune.models.llama3_2_vision._convert_weights import (
+                    llama3_vision_tune_to_hf,
+                )
+
+                text_config = self._config.get("text_config", {})
+                vision_config = self._config.get("vision_config", {})
+                state_dict[training.MODEL_KEY] = llama3_vision_tune_to_hf(
+                    state_dict[training.MODEL_KEY],
+                    num_heads=text_config["num_attention_heads"],
+                    num_kv_heads=text_config["num_key_value_heads"],
+                    dim=text_config["hidden_size"],
+                    head_dim=text_config.get("head_dim", None),
+                    vocab_size=text_config["vocab_size"],
+                    cross_attention_layers=text_config.get(
+                        "cross_attention_layers", None
+                    ),
+                    encoder_dim=vision_config["hidden_size"],
+                    tile_size=vision_config["image_size"],
+                    num_tiles=vision_config["max_num_tiles"],
+                    supported_aspect_ratios=vision_config.get(
+                        "supported_aspect_ratios", None
+                    ),
                 )
             else:
                 state_dict[training.MODEL_KEY] = convert_weights.tune_to_hf(
@@ -708,7 +754,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         )
 
         self._resume_from_checkpoint = resume_from_checkpoint
-        self._model_type = model_type
+        self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
 
         # recipe_checkpoint contains the recipe state. This should be available if
@@ -727,7 +773,27 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         """
         state_dict: Dict[str:Any] = {}
         model_state_dict = safe_torch_load(self._checkpoint_path)
-        state_dict[training.MODEL_KEY] = convert_weights.meta_to_tune(model_state_dict)
+        if self._model_type == ModelType.LLAMA3_VISION:
+            from torchtune.models.llama3_2_vision._convert_weights import (
+                llama3_vision_meta_to_tune,
+            )
+
+            state_dict[training.MODEL_KEY] = llama3_vision_meta_to_tune(
+                model_state_dict
+            )
+        else:
+            state_dict[training.MODEL_KEY] = convert_weights.meta_to_tune(
+                model_state_dict
+            )
+
+        # llama3_2 has tied weights, so we need to remove the output.weight key
+        if self._model_type == ModelType.LLAMA3_2:
+            logger.info(
+                "Identified model_type = Llama3_2. Ignoring output.weight in"
+                " checkpoint in favor of the tok_embedding.weight"
+                " tied weights."
+            )
+            state_dict[training.MODEL_KEY].pop("output.weight")
 
         if self._adapter_checkpoint:
             adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
@@ -764,9 +830,27 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
 
         if not adapter_only:
             model_state_dict = state_dict[training.MODEL_KEY]
-            state_dict[training.MODEL_KEY] = convert_weights.tune_to_meta(
-                model_state_dict
-            )
+            if self._model_type == ModelType.LLAMA3_VISION:
+                from torchtune.models.llama3_2_vision._convert_weights import (
+                    llama3_vision_tune_to_meta,
+                )
+
+                state_dict[training.MODEL_KEY] = llama3_vision_tune_to_meta(
+                    model_state_dict
+                )
+            else:
+                # llama3_2 has tied weights, so we need to add the output.weight key
+                if (
+                    self._model_type == ModelType.LLAMA3_2
+                    and "output.weight" not in model_state_dict
+                ):
+                    model_state_dict["output.weight"] = model_state_dict[
+                        "tok_embeddings.weight"
+                    ]
+
+                state_dict[training.MODEL_KEY] = convert_weights.tune_to_meta(
+                    model_state_dict
+                )
 
             # Output file is always a .pt file with the epoch number in the name
             checkpoint_file = Path.joinpath(
