@@ -366,7 +366,7 @@ def generate(
         tokens, logits = custom_generate_next_token(
             model,
             input_pos=curr_input_pos,
-            x=tokens,
+            x=tokens.clone(),
             mask=curr_masks,
             temperature=temperature,
             top_k=top_k,

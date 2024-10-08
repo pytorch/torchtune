@@ -242,12 +242,15 @@ def setup_use_local_kv_cache(
             "Model caches must be not setup prior to entering this context manager! "
             "Please use delete_kv_caches(model) to delete model caches."
         )
-    model.setup_caches(
-        batch_size,
-        dtype,
-        encoder_max_seq_len=encoder_max_seq_len,
-        decoder_max_seq_len=decoder_max_seq_len,
-    )
+
+    # ensure caches are setup on the same device as the model
+    with model.tok_embeddings.weight.device:
+        model.setup_caches(
+            batch_size,
+            dtype,
+            encoder_max_seq_len=encoder_max_seq_len,
+            decoder_max_seq_len=decoder_max_seq_len,
+        )
     for layer in model.layers:
         if hasattr(layer.attn, "kv_cache") and callable(layer.attn.kv_cache):
             layer.attn.cache_enabled = True
