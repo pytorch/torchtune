@@ -284,8 +284,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
             collate_fn=collate_name,
-            # dropping last avoids shape issues with compile + flex attention
-            drop_last=cfg.get("drop_last", True),
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -503,7 +501,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
-        drop_last: bool,
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here. Currently this recipe only supports
@@ -537,7 +534,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             dataset=ds,
             sampler=sampler,
             batch_size=batch_size,
-            drop_last=drop_last,
+            # dropping last avoids shape issues with compile + flex attention
+            drop_last=True,
             collate_fn=(
                 partial(
                     collate_fn,

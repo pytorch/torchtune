@@ -297,8 +297,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
             collate_fn=collate_name,
-            # dropping last avoids shape issues with compile + flex attention
-            drop_last=cfg.get("drop_last", True),
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -592,7 +590,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
-        drop_last: bool,
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here. Currently this recipe only supports the
@@ -625,7 +622,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
-            drop_last=drop_last,
+            # dropping last avoids shape issues with compile + flex attention
+            drop_last=True,
             collate_fn=partial(
                 collate_fn,
                 padding_idx=self._tokenizer.pad_id,

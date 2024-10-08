@@ -256,8 +256,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
-            # dropping last avoids shape issues with compile + flex attention
-            drop_last=cfg.get("drop_last", True),
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -451,7 +449,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         cfg_dataset: DictConfig,
         shuffle: bool,
         batch_size: int,
-        drop_last: bool,
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here. Currently this recipe only supports the
@@ -477,7 +474,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
-            drop_last=drop_last,
+            # dropping last avoids shape issues with compile + flex attention
+            drop_last=True,
             collate_fn=partial(
                 padded_collate_dpo,
                 padding_idx=self._tokenizer.pad_id,

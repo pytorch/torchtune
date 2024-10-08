@@ -212,8 +212,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
-            # dropping last avoids shape issues with compile + flex attention
-            drop_last=cfg.get("drop_last", True),
         )
 
         self._setup_training_parameters(cfg)
@@ -556,7 +554,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             return optimizer
 
     def _setup_data(
-        self, cfg_dataset: DictConfig, shuffle: bool, batch_size: int, drop_last: bool
+        self, cfg_dataset: DictConfig, shuffle: bool, batch_size: int
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here.
@@ -581,7 +579,8 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             dataset=ds,
             sampler=sampler,
             batch_size=batch_size,
-            drop_last=drop_last,
+            # dropping last avoids shape issues with compile + flex attention
+            drop_last=True,
             collate_fn=partial(
                 padded_collate,
                 pad_direction="left",
