@@ -437,14 +437,14 @@
 <h1>FormattedCheckpointFiles<a class="headerlink" href="#formattedcheckpointfiles" title="Permalink to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="torchtune.training.FormattedCheckpointFiles">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.training.</span></span><span class="sig-name descname"><span class="pre">FormattedCheckpointFiles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename_format</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/training/checkpointing/_utils.html#FormattedCheckpointFiles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.training.FormattedCheckpointFiles" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.training.</span></span><span class="sig-name descname"><span class="pre">FormattedCheckpointFiles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename_format</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/training/checkpointing/_utils.html#FormattedCheckpointFiles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.training.FormattedCheckpointFiles" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class gives a more concise way to represent a list of filenames of the format <code class="docutils literal notranslate"><span class="pre">file_{i}_of_{n_files}.pth</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>filename_format</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Format string for the filename. Must have exactly two placeholders, e.g.
+<li><p><strong>filename_format</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Format string for the filename. Must have exactly two placeholders, e.g.
 <code class="docutils literal notranslate"><span class="pre">file_{}_of_{}.pth</span></code>.</p></li>
-<li><p><strong>max_filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Maximum filename in the list. Should be a string representation of an integer,
+<li><p><strong>max_filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Maximum filename in the list. Should be a string representation of an integer,
 possibly with leading zeroes.</p></li>
 </ul>
 </dd>
@@ -458,7 +458,7 @@ possibly with leading zeroes.</p></li>
 <dd class="field-odd"><p>List of checkpoint filenames.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>List[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a>]</p>
+<dd class="field-even"><p>List[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>]</p>
 </dd>
 </dl>
 <p class="rubric">Example</p>
