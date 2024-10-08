@@ -86,6 +86,17 @@ class TestMessage:
         assert text_message.text_content == "hello world"
         assert image_message.text_content == "hello world"
 
+    def test_repr_text(self, text_message):
+        expected_repr = "Message(role='user', content=['hello world'])"
+        assert str(text_message) == expected_repr
+        assert repr(text_message) == expected_repr
+
+    def test_repr_image(self, image_message, test_image):
+        img_repr = str(test_image)
+        expected_repr = f"Message(role='user', content=['hello', {img_repr}, ' world'])"
+        assert str(image_message) == expected_repr
+        assert repr(image_message) == expected_repr
+
 
 class TestInputOutputToMessages:
     @pytest.fixture
