@@ -138,7 +138,7 @@ class Message:
 
     def __repr__(self) -> str:
         content_only = [content["content"] for content in self.content]
-        return f"Message(role={self.role!r}, content={content_only!r})"
+        return f"Message(role='{self.role}', content={content_only!r})"
 
 
 class InputOutputToMessages(Transform):
