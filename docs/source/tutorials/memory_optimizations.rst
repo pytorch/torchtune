@@ -156,10 +156,13 @@ All of our finetuning recipes support simulating larger batch sizes by accumulat
 
   Gradient accumulation should always be set to 1 when :ref:`fusing the optimizer step into the backward pass <glossary_opt_in_bwd>`.
 
+Optimizers
+----------
+
 .. _glossary_low_precision_opt:
 
 Lower Precision Optimizers
---------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *What's going on here?*
 
@@ -188,7 +191,7 @@ or by directly :ref:`modifying a config file<config_tutorial_label>`:
 .. _glossary_opt_in_bwd:
 
 Fusing Optimizer Step into Backward Pass
-----------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *What's going on here?*
 
@@ -213,6 +216,18 @@ In torchtune, you can enable this feature using the ``optimizer_in_bwd`` flag, w
 single-device full finetune recipe. This feature works best when gradient memory is particularly large;
 e.g. when using a stateful optimizer with a model with a lot of parameters, and when you don't need to use
 :ref:`gradient accumulation <glossary_grad_accm>`.
+
+.. _glossary_cpu_offload:
+
+Offloading Optimizer/Gradient states to CPU
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*What's going on here?*
+
+We've mentioned above the concept of optimizer state - memory used by the stateful optimizers to maintain a state of gradient statistics. 
+
+
+
 
 .. _glossary_peft:
 

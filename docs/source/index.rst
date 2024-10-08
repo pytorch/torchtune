@@ -144,9 +144,9 @@ torchtune tutorials.
    tutorials/qlora_finetune
    tutorials/qat_finetune
    tutorials/e2e_flow
+   tutorials/llama_kd_tutorial
    tutorials/datasets
    tutorials/memory_optimizations
-   tutorials/llama_kd_tutorial
 
 .. toctree::
    :glob:
