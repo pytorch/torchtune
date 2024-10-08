@@ -170,7 +170,7 @@ def _register_reparametrize_state_dict_hooks(
 def use_persistent_kv_cache(model: nn.Module) -> Generator[None, None, None]:
     """
     This context manager temporarily enables KV-cacheing on a given model, which must already
-    already have KV-caches setup. All forward using the model within this context manager
+    already have KV-caches setup. All forward passes using the model within this context manager
     will use KV-caches.
 
     KV-caches will be enabled when entering the context manager, and will be reset and disabled upon exit,
