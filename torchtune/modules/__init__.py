@@ -7,6 +7,7 @@
 from .attention import MultiHeadAttention  # noqa
 from .attention_utils import create_block_causal_mask, packed_block_causal_mask
 from .common_utils import (
+    delete_kv_caches,
     reparametrize_as_dtype_state_dict_post_hook,
     setup_use_local_kv_cache,
     use_persistent_kv_cache,
@@ -48,5 +49,6 @@ __all__ = [
     "create_block_causal_mask",
     "packed_block_causal_mask",
     "setup_use_local_kv_cache",
+    "delete_kv_caches",
     "use_persistent_kv_cache",
 ]
