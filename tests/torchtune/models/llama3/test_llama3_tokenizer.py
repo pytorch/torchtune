@@ -438,6 +438,7 @@ class TestLlama3Tokenizer:
         user_text_b,
         assistant_text,
     ):
+        # This should satisfy text = decode(encode(text))
         tokens = user_text_message[1] + assistant_text_message[1]
         text = tokenizer.decode(tokens, skip_special_tokens=True)
-        assert text == "\n\n" + user_text_a + user_text_b + "\n\n" + assistant_text
+        assert text == user_text_a + user_text_b + assistant_text
