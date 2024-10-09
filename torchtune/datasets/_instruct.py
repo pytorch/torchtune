@@ -66,6 +66,8 @@ class InstructDataset(Dataset):
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
+        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
+            of a given split, e.g. ``split="train[:10%]"``. Default is "train".
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
             such as ``data_files`` or ``split``.
     Raises:
@@ -138,6 +140,7 @@ def instruct_dataset(
     train_on_input: bool = False,
     new_system_prompt: Optional[str] = None,
     packed: bool = False,
+    split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],
 ) -> Union[SFTDataset, PackedDataset]:
     """
@@ -252,6 +255,7 @@ def instruct_dataset(
         source=source,
         message_transform=message_transform,
         model_transform=tokenizer,
+        split=split,
         **load_dataset_kwargs,
     )
     if packed:
