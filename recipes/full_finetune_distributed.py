@@ -129,7 +129,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
-        self._optimizer_in_bwd = cfg.optimizer_in_bwd
+        self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -476,31 +476,30 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 log.info("Optimizer is initialized.")
             return optimizer
         else:
+            # Maintain a dict of optims for every parameter.
             optim_dict = {
                 param: config.instantiate(cfg_optimizer, [param])
                 for param in self._model.parameters()
             }
 
-            def optim_hook(param) -> None:
-                optim_dict[param].step()
-                optim_dict[param].zero_grad()
-
-            for param in self._model.parameters():
-                param.register_post_accumulate_grad_hook(optim_hook)
-
-            self._optim_ckpt_wrapper = {
-                name: optim_dict[param]
-                for name, param in self._model.named_parameters()
-            }
-
+            # Register optimizer step hooks on the model to run optimizer in backward.
+            training.register_optim_in_bwd_hooks(
+                model=self._model, optim_dict=optim_dict
+            )
+            # Create a wrapper for checkpoint save/load of optimizer states when running in backward.
+            self._optim_ckpt_wrapper = training.create_optim_in_bwd_wrapper(
+                model=self._model, optim_dict=optim_dict
+            )
+            # Load optimizer states for each param.
             if opt_state_dict is not None:
                 for param in opt_state_dict.keys():
-                    if param not in self._optim_ckpt_wrapper:
+                    torch.distributed.breakpoint()
+                    if param not in self._optim_ckpt_wrapper.state_dict():
                         raise RuntimeError(
                             f"Trying to load optimizer state for unexpected param {param}"
                         )
                     training.load_from_full_optimizer_state_dict(
-                        self._optim_ckpt_wrapper[param],
+                        self._optim_ckpt_wrapper.state_dict()[param],
                         opt_state_dict[param],
                         self._device,
                     )
@@ -588,19 +587,19 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             device=self._device,
         )
 
-        if intermediate_checkpoint and not self._optimizer_in_bwd:
-            opt_state_dict = training.get_full_optimizer_state_dict(
-                self._optimizer,
-                self._is_rank_zero,
-                device=self._device,
-            )
-        elif intermediate_checkpoint and self._optimizer_in_bwd:
-            opt_state_dict = {
-                param: training.get_full_optimizer_state_dict(
-                    opt, self._is_rank_zero, device=self._device
+        if intermediate_checkpoint:
+            if self._optimizer_in_bwd:
+                opt_state_dict = {}
+                for param, opt in self._optim_ckpt_wrapper.optim_map.items():
+                    opt_state_dict[param] = training.get_full_optimizer_state_dict(
+                        opt, self._is_rank_zero, device=self._device
+                    )
+            else:
+                opt_state_dict = training.get_full_optimizer_state_dict(
+                    self._optimizer,
+                    self._is_rank_zero,
+                    device=self._device,
                 )
-                for param, opt in self._optim_ckpt_wrapper.items()
-            }
         else:
             opt_state_dict = None
 
@@ -727,13 +726,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
                             "loss": loss_to_log,
-                            "lr": (
-                                list(self._optim_ckpt_wrapper.values())[0].param_groups[
-                                    0
-                                ]["lr"]
-                                if self._optimizer_in_bwd
-                                else self._optimizer.param_groups[0]["lr"]
-                            ),
+                            "lr": self.get_lr_scheduler(),
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._log_peak_memory_stats:
@@ -773,6 +766,27 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self.save_checkpoint(epoch=curr_epoch)
 
         self._profiler.stop()
+
+    def get_lr_scheduler(self) -> float:
+        if self._optimizer_in_bwd:
+            param_groups = []
+            for param in self._optim_ckpt_wrapper.state_dict().values():
+                param_groups.append(param["param_groups"][0])
+        else:
+            param_groups = self._optimizer.param_groups
+        if len(param_groups) < 1:
+            raise RuntimeError(
+                f"Invalid optimizer param groups with len of: {len(param_groups)}"
+            )
+
+        # LR Schedulers are the same across all param groups for full_finetune right now
+        lr_scheduler = param_groups[0]["lr"]
+        for group in param_groups:
+            if group["lr"] != lr_scheduler:
+                raise RuntimeError(
+                    "LR Schedulers are dfferent across all param groups "
+                )
+        return lr_scheduler
 
     def cleanup(self) -> None:
         if self._is_rank_zero:
