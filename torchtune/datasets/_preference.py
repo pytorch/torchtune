@@ -86,6 +86,9 @@ class PreferenceDataset(Dataset):
             Since PreferenceDataset only supports text data, it requires a
             :class:`~torchtune.modules.tokenizers.ModelTokenizer` instead of the ``model_transform`` in
             :class:`~torchtune.datasets.SFTDataset`.
+        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
+            the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
+            details.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
             Face's `API ref <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset>`_
             for more details.
