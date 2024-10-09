@@ -495,10 +495,6 @@ that :class:`~torchtune.datasets.SFTDataset` and :class:`~torchtune.datasets.Tex
 you to create your own dataset class for more flexibility. Let's walk through the :class:`~torchtune.datasets.PreferenceDataset`,
 which has custom functionality for RLHF preference data, as an example to understand what you'll need to do.
 
-If you take a look at the code for the :class:`~torchtune.datasets.PreferenceDataset` class,
-you'll notice it's quite similar to :class:`~torchtune.datasets.InstructDataset` with a few
-adjustments for chosen and rejected samples in preference data.
-
 .. code-block:: python
 
     chosen_message = [
