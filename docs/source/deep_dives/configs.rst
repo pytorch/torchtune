@@ -119,7 +119,7 @@ keyword arguments not specified in the config if we'd like:
         tokenizer: ModelTokenizer,
         train_on_input: bool = True,
         max_seq_len: int = 512,
-    ) -> InstructDataset:
+    ) -> SFTDataset:
 
     from torchtune import config
 

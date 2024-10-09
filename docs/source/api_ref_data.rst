@@ -64,6 +64,7 @@ Converts data from common schema and conversation JSON formats into a list of to
     ShareGPTToMessages
     OpenAIToMessages
     ChosenRejectedToMessages
+    AlpacaToMessages
 
 Collaters
 ---------
