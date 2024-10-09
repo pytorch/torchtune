@@ -86,9 +86,6 @@ class PreferenceDataset(Dataset):
             Since PreferenceDataset only supports text data, it requires a
             :class:`~torchtune.modules.tokenizers.ModelTokenizer` instead of the ``model_transform`` in
             :class:`~torchtune.datasets.SFTDataset`.
-        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
-            the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
-            details.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
             Face's `API ref <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset>`_
             for more details.
@@ -222,6 +219,9 @@ def preference_dataset(
         new_system_prompt (Optional[str]): if specified, prepend a system message to every sample for both chosen
             and rejected. This can serve as instructions to guide the model response. Setting this will OVERRIDE
             any system messages already present in the dataset. Default is None.
+        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
+            the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
+            details.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
