@@ -8,10 +8,12 @@ from functools import partial
 
 from typing import Any, Dict, Optional, Union
 
+from torchtune.data._messages import AlpacaToMessages
+
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.tokenizers import ModelTokenizer
-from torchtune.data._messages import AlpacaToMessages
+
 
 def alpaca_dataset(
     tokenizer: ModelTokenizer,

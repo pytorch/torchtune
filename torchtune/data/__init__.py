@@ -17,13 +17,13 @@ from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._converters import get_openai_messages, get_sharegpt_messages
 from torchtune.data._instruct_templates import InstructTemplate
 from torchtune.data._messages import (
+    AlpacaToMessages,
     ChosenRejectedToMessages,
     InputOutputToMessages,
     Message,
     OpenAIToMessages,
     Role,
     ShareGPTToMessages,
-    AlpacaToMessages,
     validate_messages,
 )
 from torchtune.data._prompt_templates import (
