@@ -68,8 +68,6 @@ class InferenceRecipe:
             ckpt_dict = checkpointer.load_checkpoint(weights_only=False)[
                 training.MODEL_KEY
             ]
-            for k, v in ckpt_dict.items():
-                ckpt_dict[k] = v.to(self._device)
 
         self._model = self._setup_model(
             model_cfg=cfg.model,
@@ -88,6 +86,8 @@ class InferenceRecipe:
         if self._quantization_mode is not None:
             model = self._quantizer.quantize(model)
             model = model.to(device=self._device, dtype=self._dtype)
+            for k, v in model_state_dict.items():
+                model_state_dict[k] = v.to(self._device)
             model.load_state_dict(model_state_dict, assign=True)
         else:
             model.load_state_dict(model_state_dict)
