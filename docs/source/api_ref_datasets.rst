@@ -64,8 +64,6 @@ Class representations for the above dataset builders.
     :toctree: generated/
     :nosignatures:
 
-    InstructDataset
-    ChatDataset
     TextCompletionDataset
     ConcatDataset
     PackedDataset
