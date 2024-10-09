@@ -125,7 +125,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
         messages: List[Message],
         *,
         add_eos: bool = False,
-        ignore_system_prompts: bool = True,
+        ignore_system_prompt: bool = False,
     ) -> Tuple[List[int], List[bool]]:
         r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
@@ -151,7 +151,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
             messages (List[Message]): A list of messages, each containing role, content,
                 and masked attributes.
             add_eos (bool): Whether to append EOS after assistant message, default to False
-            ignore_system_prompts (bool): Whether to ignore system prompts. This matches the HF implementation, default to True.
+            ignore_system_prompt (bool): Whether to ignore system prompt, defaults to False.
 
         Raises:
             ValueError: If the role is not "user", "assistant", or "system".
@@ -175,7 +175,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
 
         for message in templated_messages:
             # Skip system prompt
-            if ignore_system_prompts and message.role == "system":
+            if ignore_system_prompt and message.role == "system":
                 continue
 
             # Prepend BOS on start of new turns
