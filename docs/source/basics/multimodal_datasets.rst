@@ -64,7 +64,7 @@ in the text, ``"<image>"`` for where to place the image tokens. This will get re
         split="train",
     )
     tokenized_dict = ds[0]
-    print(transform.decode(tokenized_dict["tokens"], skip_special_tokens=False))
+    print(model_transform.decode(tokenized_dict["tokens"], skip_special_tokens=False))
     # '<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\nQuestion:<|image|>What time is it on the clock?Answer:<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nIt is 10:00AM.<|eot_id|>'
     print(tokenized_dict["encoder_input"]["images"][0].shape)  # (num_tiles, num_channels, tile_height, tile_width)
     # torch.Size([4, 3, 224, 224])
