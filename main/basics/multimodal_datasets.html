@@ -464,7 +464,7 @@ in the text, <code class="docutils literal notranslate"><span class="pre">&quot;
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision</span> <span class="kn">import</span> <span class="n">llama3_2_vision_transform</span>
 <span class="kn">from</span> <span class="nn">torchtune.datasets.multimodal</span> <span class="kn">import</span> <span class="n">multimodal_chat_dataset</span>
 
-<span class="n">transform</span> <span class="o">=</span> <span class="n">Llama3VisionTransform</span><span class="p">(</span>
+<span class="n">model_transform</span> <span class="o">=</span> <span class="n">Llama3VisionTransform</span><span class="p">(</span>
     <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model&quot;</span><span class="p">,</span>
     <span class="n">prompt_template</span><span class="o">=</span><span class="s2">&quot;torchtune.data.QuestionAnswerTemplate&quot;</span><span class="p">,</span>
     <span class="n">max_seq_len</span><span class="o">=</span><span class="mi">8192</span><span class="p">,</span>
@@ -483,7 +483,7 @@ in the text, <code class="docutils literal notranslate"><span class="pre">&quot;
     <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="n">tokenized_dict</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">transform</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">tokenized_dict</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">model_transform</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">tokenized_dict</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
 <span class="c1"># &#39;&lt;|begin_of_text|&gt;&lt;|start_header_id|&gt;user&lt;|end_header_id|&gt;\n\nQuestion:&lt;|image|&gt;What time is it on the clock?Answer:&lt;|eot_id|&gt;&lt;|start_header_id|&gt;assistant&lt;|end_header_id|&gt;\n\nIt is 10:00AM.&lt;|eot_id|&gt;&#39;</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">tokenized_dict</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">][</span><span class="s2">&quot;images&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># (num_tiles, num_channels, tile_height, tile_width)</span>
 <span class="c1"># torch.Size([4, 3, 224, 224])</span>
@@ -531,7 +531,7 @@ For most datasets, you will also need to specify the <code class="docutils liter
 <span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision</span> <span class="kn">import</span> <span class="n">llama3_2_vision_transform</span>
 <span class="kn">from</span> <span class="nn">torchtune.datasets.multimodal</span> <span class="kn">import</span> <span class="n">multimodal_chat_dataset</span>
 
-<span class="n">transform</span> <span class="o">=</span> <span class="n">llama3_2_vision_transform</span><span class="p">(</span>
+<span class="n">model_transform</span> <span class="o">=</span> <span class="n">llama3_2_vision_transform</span><span class="p">(</span>
     <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model&quot;</span><span class="p">,</span>
     <span class="n">max_seq_len</span><span class="o">=</span><span class="mi">8192</span><span class="p">,</span>
     <span class="n">image_size</span><span class="o">=</span><span class="mi">560</span><span class="p">,</span>
