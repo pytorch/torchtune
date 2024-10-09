@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 from tests.common import TUNE_PATH
-from tests.recipes.utils import llama2_test_config
+from tests.recipes.utils import llama2_test_config, write_hf_ckpt_config
 from tests.test_utils import CKPT_MODEL_PATHS
 
 
@@ -123,6 +123,79 @@ class TestEleutherEval:
         printed_err = capsys.readouterr().out
         assert (
             "You must install the EleutherAI Eval Harness to run this recipe"
+            in printed_err
+        )
+
+    @pytest.mark.integration_test
+    def test_eval_recipe_errors_with_quantization_hf_checkpointer(
+        self, capsys, monkeypatch, tmpdir
+    ):
+        ckpt = "llama2_hf"
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        ckpt_dir = ckpt_path.parent
+
+        # Config file needed for model conversion.
+        write_hf_ckpt_config(ckpt_dir)
+
+        cmd = f"""
+        tune run eleuther_eval \
+            --config eleuther_evaluation \
+            output_dir={tmpdir} \
+            checkpointer=torchtune.training.FullModelHFCheckpointer \
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir} \
+            checkpointer.model_type=LLAMA2 \
+            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
+            limit=1 \
+            dtype=fp32 \
+            device=cpu \
+            quantizer._component_=torchtune.training.quantization.Int8DynActInt4WeightQuantizer \
+            quantizer.groupsize=32 \
+        """.split()
+
+        monkeypatch.setattr(sys, "argv", cmd)
+        with pytest.raises(SystemExit, match="1"):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        printed_err = capsys.readouterr().out
+        assert (
+            "Quantization is only supported for models quantized and saved with the FullModelTorchTuneCheckpointer"
+            in printed_err
+        )
+
+    @pytest.mark.integration_test
+    def test_eval_recipe_errors_with_qat_quantizer(self, capsys, monkeypatch, tmpdir):
+        ckpt = "llama2_tune"
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        ckpt_dir = ckpt_path.parent
+
+        cmd = f"""
+        tune run eleuther_eval \
+            --config eleuther_evaluation \
+            output_dir={tmpdir} \
+            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir} \
+            checkpointer.model_type=LLAMA2 \
+            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
+            limit=1 \
+            dtype=fp32 \
+            device=cpu \
+            quantizer._component_=torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer \
+            quantizer.groupsize=256 \
+        """.split()
+
+        monkeypatch.setattr(sys, "argv", cmd)
+        with pytest.raises(SystemExit, match="1"):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        printed_err = capsys.readouterr().out
+        assert (
+            "QAT quantizers should only be used during quantization aware training"
             in printed_err
         )
 
