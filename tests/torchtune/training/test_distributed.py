@@ -526,8 +526,8 @@ class TestFullyShardState(FSDPTest):
 
     @gpu_test(gpu_count=2)
     @pytest.mark.skipif(
-        version.parse(torch.__version__).base_version < "2.4.0",
-        reason="torch >= 2.4 required",
+        version.parse(torch.__version__).base_version < "2.5.0",
+        reason="torch >= 2.5 required",
     )
     def test_optimizer_in_backward(self):
         """
