@@ -130,6 +130,7 @@ def the_cauldron_dataset(
     column_map: Optional[Dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
     packed: bool = False,
+    filter_fn: Optional[Callable] = None,
     split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],
 ) -> SFTDataset:
@@ -195,6 +196,9 @@ def the_cauldron_dataset(
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
+        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
+            the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
+            details.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
@@ -224,6 +228,7 @@ def the_cauldron_dataset(
         source=source,
         message_transform=message_transform,
         name=subset,
+        filter_fn=filter_fn,
         split=split,
         **load_dataset_kwargs,
     )
