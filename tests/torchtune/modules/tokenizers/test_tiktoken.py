@@ -38,7 +38,6 @@ class TestTikTokenBaseTokenizer:
     @pytest.fixture
     def token_ids(self):
         return [
-            0,
             73,
             503,
             654,
@@ -64,17 +63,18 @@ class TestTikTokenBaseTokenizer:
             511,
             115,
             46,
-            -1,
         ]
 
     def test_encode(self, tokenizer, texts, token_ids):
-        assert tokenizer.encode(texts[0]) == token_ids
+        assert tokenizer.encode(texts[0], add_bos=True, add_eos=True) == [
+            0
+        ] + token_ids + [-1]
 
     def test_decode(self, tokenizer, texts, token_ids):
         assert tokenizer.decode(token_ids) == texts[0]
 
     def test_encode_and_decode(self, tokenizer, texts):
-        token_ids = tokenizer.encode(texts[0])
+        token_ids = tokenizer.encode(texts[0], add_bos=False, add_eos=False)
         decoded_text = tokenizer.decode(token_ids)
         assert texts[0] == decoded_text
 
