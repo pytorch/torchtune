@@ -175,7 +175,7 @@ class InferenceRecipe:
             _ = generation.generate(
                 model=self._model,
                 prompt=prompt,
-                max_generated_tokens=2,
+                max_generated_tokens=8,
                 temperature=cfg.temperature,
                 top_k=cfg.top_k,
                 stop_tokens=self._tokenizer.stop_tokens,
