@@ -432,111 +432,12 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-
-<span class="kn">from</span> <span class="nn">datasets</span> <span class="kn">import</span> <span class="n">load_dataset</span>
-<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span>
-<span class="kn">from</span> <span class="nn">torchtune.data._chat_formats</span> <span class="kn">import</span> <span class="n">ChatFormat</span>
-<span class="kn">from</span> <span class="nn">torchtune.data._common</span> <span class="kn">import</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span>
-<span class="kn">from</span> <span class="nn">torchtune.data._messages</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">Message</span><span class="p">,</span>
-    <span class="n">OpenAIToMessages</span><span class="p">,</span>
-    <span class="n">ShareGPTToMessages</span><span class="p">,</span>
-    <span class="n">validate_messages</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">torchtune.data._messages</span> <span class="kn">import</span> <span class="n">OpenAIToMessages</span><span class="p">,</span> <span class="n">ShareGPTToMessages</span>
 <span class="kn">from</span> <span class="nn">torchtune.datasets._packed</span> <span class="kn">import</span> <span class="n">PackedDataset</span>
 <span class="kn">from</span> <span class="nn">torchtune.datasets._sft</span> <span class="kn">import</span> <span class="n">SFTDataset</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">ModelTokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.utils._logging</span> <span class="kn">import</span> <span class="n">deprecated</span>
-
-
-<div class="viewcode-block" id="ChatDataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.ChatDataset.html#torchtune.datasets.ChatDataset">[docs]</a><span class="nd">@deprecated</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Please use `torchtune.datasets.SFTDataset` for custom chat data.&quot;</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">ChatDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Note:</span>
-<span class="sd">        This class is deprecated and will be removed in a future release. Please use</span>
-<span class="sd">        :class:`~torchtune.datasets.SFTDataset` or :func:`~torchtune.datasets.chat_dataset`</span>
-<span class="sd">        for custom chat data.</span>
-
-<span class="sd">    Class that supports any custom dataset with multiturn conversations.</span>
-
-<span class="sd">    The general flow from loading a sample to tokenized prompt is:</span>
-<span class="sd">    load sample -&gt; apply transform -&gt; foreach turn{format into template -&gt; tokenize}</span>
-
-<span class="sd">    Use ``convert_to_messages`` to prepare your dataset into the Llama2 chat format</span>
-<span class="sd">    and roles::</span>
-
-<span class="sd">        [</span>
-<span class="sd">            Message(</span>
-<span class="sd">                role=&lt;system|user|assistant&gt;,</span>
-<span class="sd">                content=&lt;message&gt;,</span>
-<span class="sd">            ),</span>
-<span class="sd">            ...</span>
-<span class="sd">        ]</span>
-
-<span class="sd">    This class supports multi-turn conversations. If a tokenizer sample with multiple</span>
-<span class="sd">    turns does not fit within ``max_seq_len`` then it is truncated.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.</span>
-<span class="sd">        source (str): path to dataset repository on Hugging Face. For local datasets,</span>
-<span class="sd">            define source as the data file type (e.g. &quot;json&quot;, &quot;csv&quot;, &quot;text&quot;) and pass</span>
-<span class="sd">            in the filepath in ``data_files``. See Hugging Face&#39;s ``load_dataset``</span>
-<span class="sd">            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)</span>
-<span class="sd">            for more details.</span>
-<span class="sd">        convert_to_messages (Callable[[Mapping[str, Any]], List[Message]]): function that keys into the desired field in the sample</span>
-<span class="sd">            and converts to a list of :class:`~torchtune.data.Message` that follows the Llama format with the expected keys</span>
-<span class="sd">        chat_format (Optional[ChatFormat]): template used to format the chat. This is used to add structured text around the actual</span>
-<span class="sd">            messages, such as the [INST] tags in Llama2 and in Mistral. The extra text will still get tokenized as normal text, not</span>
-<span class="sd">            as special tokens. In models like Llama3 where the tokenizer adds tags as special tokens, ``chat_format`` is not needed,</span>
-<span class="sd">            unless you want to structure messages in a particular way for inference.</span>
-<span class="sd">        max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.</span>
-<span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
-<span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,</span>
-<span class="sd">            such as ``data_files`` or ``split``.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
-        <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">convert_to_messages</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]],</span>
-        <span class="n">chat_format</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ChatFormat</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span> <span class="o">=</span> <span class="n">tokenizer</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">load_dataset</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_convert_to_messages</span> <span class="o">=</span> <span class="n">convert_to_messages</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">chat_format</span> <span class="o">=</span> <span class="n">chat_format</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">max_seq_len</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="o">=</span> <span class="n">train_on_input</span>
-
-    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
-        <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_sample</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">_prepare_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
-        <span class="n">messages</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_to_messages</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">chat_format</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">messages</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chat_format</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
-        <span class="n">validate_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
-        <span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span>
-            <span class="n">messages</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="c1"># Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens</span>
-        <span class="n">labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">tokens</span><span class="p">))</span>
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">tokens</span><span class="p">,</span> <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="p">}</span></div>
 
 
 <div class="viewcode-block" id="chat_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.chat_dataset.html#torchtune.datasets.chat_dataset">[docs]</a><span class="k">def</span> <span class="nf">chat_dataset</span><span class="p">(</span>
