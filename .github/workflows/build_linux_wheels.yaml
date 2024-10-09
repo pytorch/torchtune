@@ -25,7 +25,7 @@ jobs:
       test-infra-repository: pytorch/test-infra
       test-infra-ref: main
       with-cuda: enable
-      with-rocm: disable
+      with-rocm: enable
       build-python-only: enable
   build:
     needs: generate-matrix

@@ -364,7 +364,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             sampler=sampler,
             batch_size=batch_size,
             # dropping last avoids shape issues with compile + flex attention
-            drop_last=cfg_dataset.get("drop_last", True),
+            drop_last=True,
             collate_fn=partial(
                 padded_collate_dpo,
                 padding_idx=self._tokenizer.pad_id,
@@ -401,19 +401,13 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 }
             )
 
-        adapter_key_filter = lambda x: x in self.adapter_params
+        adapter_state_dict = {k: v.cpu() for k, v in self.adapter_params.items()}
+        ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
         if not self._save_adapter_weights_only:
             # Construct the full state dict with LoRA weights merged into base LLM weights
 
             # Move to CPU to avoid a copy on GPU
             state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
-
-            # Construct the adapter weights
-            # Do this using the state_dict to avoid running upcast and H2D in state_dict post hook twice
-            # Must be before get_merged_lora_ckpt because get_merged_lora_ckpt will remove lora keys
-            adapter_state_dict = {
-                k: v for k, v in state_dict.items() if adapter_key_filter(k)
-            }
 
             merged_state_dict = get_merged_lora_ckpt(
                 state_dict,
@@ -422,13 +416,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             )
 
             ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
-        else:
-            # No need to merge state dict if we're only saving adapter weights
-            adapter_state_dict = {
-                k: v.cpu() for k, v in get_adapter_params(self._model).items()
-            }
-
-        ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
 
         self._checkpointer.save_checkpoint(
             ckpt_dict,

@@ -35,7 +35,6 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             "batch_size=8",
             "device=cpu",
             f"dtype={dtype_str}",
-            "enable_activation_checkpointing=False",
             "dataset.train_on_input=False",
             "seed=9",
             f"epochs={epochs}",
@@ -133,6 +132,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
             compile={compile} \
+            enable_activation_checkpointing=False \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2_qlora"]
@@ -188,6 +188,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
             save_adapter_weights_only={save_adapter_weights_only} \
+            enable_activation_checkpointing=True \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
@@ -213,6 +214,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             metric_logger.filename={log_file} \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
+            enable_activation_checkpointing=True \
         """.split()
         cmd_2 = cmd_2 + self._get_test_config_overrides(epochs=3) + model_config
         monkeypatch.setattr(sys, "argv", cmd_2)
@@ -244,6 +246,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
+            enable_activation_checkpointing=True \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
