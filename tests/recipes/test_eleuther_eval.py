@@ -152,18 +152,19 @@ class TestEleutherEval:
             dtype=fp32 \
             device=cpu \
             quantizer._component_=torchtune.training.quantization.Int8DynActInt4WeightQuantizer \
-            quantizer.groupsize=32 \
+            quantizer.groupsize=256 \
         """.split()
 
-        monkeypatch.setattr(sys, "argv", cmd)
-        with pytest.raises(SystemExit, match="1"):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
+        model_config = llama2_test_config()
+        cmd = cmd + model_config
 
-        printed_err = capsys.readouterr().out
-        assert (
-            "Quantization is only supported for models quantized and saved with the FullModelTorchTuneCheckpointer"
-            in printed_err
-        )
+        monkeypatch.setattr(sys, "argv", cmd)
+        with pytest.raises(
+            ValueError,
+            match="Quantization is only supported for models quantized and saved with the "
+            "FullModelTorchTuneCheckpointer",
+        ):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
 
     @pytest.mark.integration_test
     def test_eval_recipe_errors_with_qat_quantizer(self, capsys, monkeypatch, tmpdir):
@@ -186,18 +187,24 @@ class TestEleutherEval:
             dtype=fp32 \
             device=cpu \
             quantizer._component_=torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer \
-            quantizer.groupsize=256 \
+            quantizer.groupsize=32\
         """.split()
 
+        model_config = llama2_test_config()
+        cmd = cmd + model_config
+
         monkeypatch.setattr(sys, "argv", cmd)
-        with pytest.raises(SystemExit, match="1"):
+        with pytest.raises(
+            ValueError,
+            match="QAT quantizers should only be used during quantization aware training",
+        ):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        printed_err = capsys.readouterr().out
-        assert (
-            "QAT quantizers should only be used during quantization aware training"
-            in printed_err
-        )
+        # printed_err = capsys.readouterr().out
+        # assert (
+        #     "QAT quantizers should only be used during quantization aware training"
+        #     in printed_err
+        # )
 
     @pytest.mark.integration_test
     def test_eval_recipe_errors_with_generate_until_and_mc_tasks(
