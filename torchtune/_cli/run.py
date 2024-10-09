@@ -123,6 +123,18 @@ For a list of all possible recipes, run `tune ls`."""
             if recipe.name == recipe_str:
                 return recipe
 
+    def _convert_to_dotpath(self, recipe_path: str) -> str:
+        """Convert a custom recipe path to a dot path that can be run as a module.
+
+        Args:
+            recipe_path (str): The path of the recipe.
+
+        Returns:
+            The dot path of the recipe.
+        """
+        filepath, _ = os.path.splitext(recipe_path)
+        return filepath.replace("/", ".")
+
     def _get_config(
         self, config_str: str, specific_recipe: Optional[Recipe]
     ) -> Optional[Config]:
@@ -163,7 +175,7 @@ For a list of all possible recipes, run `tune ls`."""
         # Get recipe path
         recipe = self._get_recipe(args.recipe)
         if recipe is None:
-            recipe_path = args.recipe
+            recipe_path = self._convert_to_dotpath(args.recipe)
             is_builtin = False
         else:
             recipe_path = str(ROOT / "recipes" / recipe.file_path)

@@ -195,15 +195,15 @@ def use_persistent_kv_cache(model: nn.Module) -> Generator[None, None, None]:
             "Model caches must be setup before calling persistent_kv_cache! "
             "Please use model.setup_caches() to setup model caches."
         )
-    for layer in model.layers:
-        if hasattr(layer, "kv_cache") and callable(layer.kv_cache):
-            layer.attn.cache_enabled = True
+    for _, module in model.named_modules():
+        if hasattr(module, "kv_cache") and callable(module.kv_cache):
+            module.kv_cache.cache_enabled = True
     try:
         yield
     finally:
-        for layer in model.layers:
-            if hasattr(layer, "kv_cache") and callable(layer.kv_cache):
-                layer.attn.cache_enabled = False
+        for _, module in model.named_modules():
+            if hasattr(module, "kv_cache") and callable(module.kv_cache):
+                module.kv_cache.cache_enabled = True
         model.reset_caches()
 
 
@@ -212,6 +212,7 @@ def setup_use_local_kv_cache(
     model: nn.Module,
     *,
     batch_size: int,
+    device: torch.device,
     dtype: torch.dtype,
     encoder_max_seq_len: Optional[int] = None,
     decoder_max_seq_len: Optional[int] = None,
@@ -227,6 +228,8 @@ def setup_use_local_kv_cache(
     Args:
         model (nn.Module): model to enable KV-cacheing for.
         batch_size (int): batch size for the caches.
+        device (torch.device): device to setup caches on. this should be the same device
+            the model is on.
         dtype (torch.dtype): dtype for the caches.
         encoder_max_seq_len (Optional[int]): maximum encoder cache sequence length.
         decoder_max_seq_len (Optional[int]): maximum decoder cache sequence length.
@@ -244,29 +247,28 @@ def setup_use_local_kv_cache(
         )
 
     # ensure caches are setup on the same device as the model
-    with model.tok_embeddings.weight.device:
+    with device:
         model.setup_caches(
             batch_size,
             dtype,
             encoder_max_seq_len=encoder_max_seq_len,
             decoder_max_seq_len=decoder_max_seq_len,
         )
-    for layer in model.layers:
-        if hasattr(layer.attn, "kv_cache") and callable(layer.attn.kv_cache):
-            layer.attn.cache_enabled = True
+    for _, module in model.named_modules():
+        if hasattr(module, "kv_cache") and callable(module.kv_cache):
+            module.cache_enabled = True
     try:
         yield
     finally:
-        for layer in model.layers:
-            if hasattr(layer.attn, "kv_cache") and callable(layer.attn.kv_cache):
-                layer.attn.cache_enabled = False
         delete_kv_caches(model)
 
 
 def delete_kv_caches(model: nn.Module):
     """
-    Deletes KV caches from all attention layers in a model.
+    Deletes KV caches from all attention layers in a model,
+    and also ensures ``cache_enabled`` is set to False.
     """
-    for layer in model.layers:
-        if hasattr(layer.attn, "kv_cache") and callable(layer.attn.kv_cache):
-            layer.attn.kv_cache = None
+    for _, module in model.named_modules():
+        if hasattr(module, "kv_cache") and callable(module.kv_cache):
+            module.cache_enabled = False
+            module.kv_cache = None

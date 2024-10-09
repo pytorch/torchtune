@@ -29,6 +29,7 @@ from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
 from torchtune.recipe_interfaces import EvalRecipeInterface
+from torchtune.training import FullModelTorchTuneCheckpointer
 
 try:
     import lm_eval
@@ -182,6 +183,7 @@ class _VLMEvalWrapper(HFMultimodalLM):
         self,
         all_texts: List[str],
         all_images: List[List[PIL.Image.Image]],
+        left_truncate_len: int = None,
         *args,
         **kwargs,
     ):
@@ -219,6 +221,12 @@ class _VLMEvalWrapper(HFMultimodalLM):
 
         # Convert the batch to the format expected by the HF
         tok_batch["input_ids"] = tok_batch.pop("tokens")
+
+        # the harness will use left_truncate_len to indicate that the current batch
+        # needs to be truncated to self.max_seq_len - self.max_gen_toks
+        if left_truncate_len is not None:
+            tok_batch["input_ids"] = tok_batch["input_ids"][:, -left_truncate_len:]
+
         return tok_batch
 
     @torch.inference_mode()
@@ -247,7 +255,7 @@ class _VLMEvalWrapper(HFMultimodalLM):
             )
 
         encoder_max_seq_len = (
-            self.model_transform.image_seq_len * self._max_images_per_sample,
+            self.model_transform.image_seq_len * self._max_images_per_sample
         )
         # Setup masks for bsz 1
         with self.device:
@@ -266,6 +274,7 @@ class _VLMEvalWrapper(HFMultimodalLM):
         with setup_use_local_kv_cache(
             self.model,
             batch_size=self.batch_size,
+            device=self.device,
             dtype=self._dtype,
             encoder_max_seq_len=encoder_max_seq_len,
             decoder_max_seq_len=self.max_length,
@@ -372,7 +381,7 @@ class _LLMEvalWrapper(HFLM):
         return self._tokenizer.encode(text=text, add_bos=False, add_eos=False)
 
     def tok_batch_encode(
-        self, text: List[str], **kwargs
+        self, text: List[str], left_truncate_len: int = None, **kwargs
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         tokenized_text = [self.tok_encode(x) for x in text]
 
@@ -382,6 +391,11 @@ class _LLMEvalWrapper(HFLM):
             batch_first=True,
             padding_value=self._tokenizer.pad_id,
         )
+
+        # the harness will use left_truncate_len to indicate that the current batch
+        # needs to be truncated to self.max_seq_len - self.max_gen_toks
+        if left_truncate_len is not None:
+            x = x[:, -left_truncate_len:]
 
         return x, torch.ones_like(x)  # return 'mask' b/c it's expected by the harness
 
@@ -418,6 +432,7 @@ class _LLMEvalWrapper(HFLM):
         with setup_use_local_kv_cache(
             self.model,
             batch_size=self.batch_size,
+            device=self.device,
             dtype=self._dtype,
             decoder_max_seq_len=self.max_length,
         ):
@@ -470,13 +485,6 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
         # Load checkpoint
         checkpointer = config.instantiate(cfg.checkpointer)
-        if quantization_mode is None:
-            ckpt_dict = checkpointer.load_checkpoint()
-        else:
-            # weights_only needs to be False when loading a quantized model
-            # currently loading a quantized model is only supported with the
-            # FullModelTorchTuneCheckpointer
-            ckpt_dict = checkpointer.load_checkpoint(weights_only=False)
 
         # Initialize model
         with training.set_default_dtype(self.dtype), self.device:
@@ -484,14 +492,32 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
         # Quantize model if requested
         if quantization_mode is not None:
+            if not isinstance(checkpointer, FullModelTorchTuneCheckpointer):
+                raise ValueError(
+                    "Quantization is only supported for models quantized and saved with the "
+                    "FullModelTorchTuneCheckpointer - please ensure you have quantized your "
+                    "model and are using the quantized weights!"
+                )
+            if "qat" in quantization_mode:
+                raise ValueError(
+                    "You have specified a quantizer with 'QAT' - "
+                    "QAT quantizers should only be used during quantization aware training "
+                    "and when quantizing models. Please use the corresponding post-training "
+                    "quantizer e.g. Int8DynActInt4WeightQuantizer for Int8DynActInt4WeightQATQuantizer."
+                )
             model = quantizer.quantize(model)
             model = model.to(device=self.device, dtype=self.dtype)
+            ckpt_dict = checkpointer.load_checkpoint(weights_only=False)[
+                training.MODEL_KEY
+            ]
             for k, v in ckpt_dict.items():
-                ckpt_dict[k] = v.to(self._device)
+                ckpt_dict[k] = v.to(self.device)
             model.load_state_dict(ckpt_dict, assign=True)
+        else:
+            ckpt_dict = checkpointer.load_checkpoint()[training.MODEL_KEY]
+            model.load_state_dict(ckpt_dict)
 
         # Load model weights into initialized model
-        model.load_state_dict(ckpt_dict[training.MODEL_KEY])
         self.logger.info(f"Model is initialized with precision {self.dtype}.")
 
         # Put model in eval mode.
@@ -501,11 +527,6 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
         # Initialize tokenizer/transform
         model_transform = config.instantiate(cfg.tokenizer)
-        max_seq_len = (
-            model_transform.max_seq_len
-            if model_transform.max_seq_len is not None
-            else 4096  # default max_seq_len to 4096
-        )
 
         # Finally, we setup the actual EvalWrapper class
         if isinstance(model, DeepFusionModel):
@@ -521,7 +542,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
             model,
             model_transform,
             device=self.device,
-            max_seq_length=max_seq_len,
+            max_seq_length=cfg.max_seq_length,
             batch_size=self.batch_size,
             dtype=self.dtype,
             enable_kv_cache=self.enable_kv_cache,
