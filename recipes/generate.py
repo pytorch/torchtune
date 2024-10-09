@@ -62,16 +62,14 @@ class InferenceRecipe:
                 )
 
         if self._quantization_mode is None:
-            ckpt_dict = checkpointer.load_checkpoint()[training.MODEL_KEY]
+            ckpt_dict = checkpointer.load_checkpoint()
         else:
             # weights_only needs to be False when loading a quantized model
-            ckpt_dict = checkpointer.load_checkpoint(weights_only=False)[
-                training.MODEL_KEY
-            ]
+            ckpt_dict = checkpointer.load_checkpoint(weights_only=False)
 
         self._model = self._setup_model(
             model_cfg=cfg.model,
-            model_state_dict=ckpt_dict,
+            model_state_dict=ckpt_dict[training.MODEL_KEY],
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
