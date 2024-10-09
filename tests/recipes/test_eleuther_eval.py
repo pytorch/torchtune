@@ -200,12 +200,6 @@ class TestEleutherEval:
         ):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        # printed_err = capsys.readouterr().out
-        # assert (
-        #     "QAT quantizers should only be used during quantization aware training"
-        #     in printed_err
-        # )
-
     @pytest.mark.integration_test
     def test_eval_recipe_errors_with_generate_until_and_mc_tasks(
         self, caplog, capsys, monkeypatch, tmpdir
