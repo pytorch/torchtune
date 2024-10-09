@@ -490,7 +490,12 @@ class EleutherEvalRecipe(EvalRecipeInterface):
                     "model and are using the quantized weights!"
                 )
             if "qat" in quantization_mode:
-                model = quantizer.prepare(model)
+                raise ValueError(
+                    "You have specified a quantizer with 'QAT' - "
+                    "QAT quantizers should only be used during quantization aware training "
+                    "and when quantizing models. Please use the corresponding post-training "
+                    "quantizer e.g. Int8DynActInt4WeightQuantizer for Int8DynActInt4WeightQATQuantizer."
+                )
             model = quantizer.quantize(model)
             model = model.to(device=self.device, dtype=self.dtype)
             ckpt_dict = checkpointer.load_checkpoint(weights_only=False)[
