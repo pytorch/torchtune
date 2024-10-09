@@ -15,6 +15,7 @@ from torch import nn
 from torchtune import config, generation, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import ChatFormat, InstructTemplate, Message
+from torchtune.training import FullModelTorchTuneCheckpointer
 
 logger = utils.get_logger("DEBUG")
 
@@ -44,17 +45,35 @@ class InferenceRecipe:
 
     def setup(self, cfg: DictConfig) -> None:
         checkpointer = config.instantiate(cfg.checkpointer)
+
+        if self._quantization_mode is not None:
+            if not isinstance(checkpointer, FullModelTorchTuneCheckpointer):
+                raise ValueError(
+                    "Quantization is only supported for models quantized and saved with the "
+                    "FullModelTorchTuneCheckpointer - please ensure you have quantized your "
+                    "model and are using the quantized weights!"
+                )
+            if "qat" in self._quantization_mode:
+                raise ValueError(
+                    "You have specified a quantizer with 'QAT' - "
+                    "QAT quantizers should only be used during quantization aware training "
+                    "and when quantizing models. Please use the corresponding post-training "
+                    "quantizer e.g. Int8DynActInt4WeightQuantizer for Int8DynActInt4WeightQATQuantizer."
+                )
+
         if self._quantization_mode is None:
-            ckpt_dict = checkpointer.load_checkpoint()
+            ckpt_dict = checkpointer.load_checkpoint()[training.MODEL_KEY]
         else:
             # weights_only needs to be False when loading a quantized model
-            # currently loading a quantized model is only supported with the
-            # FullModelTorchTuneCheckpointer
-            ckpt_dict = checkpointer.load_checkpoint(weights_only=False)
+            ckpt_dict = checkpointer.load_checkpoint(weights_only=False)[
+                training.MODEL_KEY
+            ]
+            for k, v in ckpt_dict.items():
+                ckpt_dict[k] = v.to(self._device)
 
         self._model = self._setup_model(
             model_cfg=cfg.model,
-            model_state_dict=ckpt_dict[training.MODEL_KEY],
+            model_state_dict=ckpt_dict,
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
@@ -69,8 +88,9 @@ class InferenceRecipe:
         if self._quantization_mode is not None:
             model = self._quantizer.quantize(model)
             model = model.to(device=self._device, dtype=self._dtype)
-
-        model.load_state_dict(model_state_dict)
+            model.load_state_dict(model_state_dict, assign=True)
+        else:
+            model.load_state_dict(model_state_dict)
 
         # Validate model was loaded in with the expected dtype.
         training.validate_expected_param_dtype(
