@@ -434,80 +434,13 @@
 
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data._messages</span> <span class="kn">import</span> <span class="n">Message</span>
+<span class="kn">from</span> <span class="nn">torchtune.data._messages</span> <span class="kn">import</span> <span class="n">AlpacaToMessages</span>
+
 <span class="kn">from</span> <span class="nn">torchtune.datasets._packed</span> <span class="kn">import</span> <span class="n">PackedDataset</span>
 <span class="kn">from</span> <span class="nn">torchtune.datasets._sft</span> <span class="kn">import</span> <span class="n">SFTDataset</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">ModelTokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
-
-
-<span class="k">class</span> <span class="nc">AlpacaToMessages</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Message transform class for Alpaca-style datasets with &quot;instruction&quot;, &quot;input&quot;, and &quot;output&quot;</span>
-<span class="sd">    (or equivalent fields specified in column_map) columns. User messages are formed from the</span>
-<span class="sd">    instruction + input columns and assistant messages are formed from the output column. Prompt</span>
-<span class="sd">    templating is conditional on the presence of the &quot;input&quot; column, and thus is handled directly</span>
-<span class="sd">    in this transform class instead of a dedicated :class:`~torchtune.data.PromptTemplate` class</span>
-<span class="sd">    due to this custom logic.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        train_on_input (bool): Whether the model is trained on the user prompt or not.</span>
-<span class="sd">            Default is True.</span>
-<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping to change the expected &quot;instruction&quot;, &quot;input&quot;,</span>
-<span class="sd">            and &quot;output&quot; column names to the actual column names in the dataset. Default is None,</span>
-<span class="sd">            keeping the default column names.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="o">=</span> <span class="n">train_on_input</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">column_map</span> <span class="o">=</span> <span class="n">column_map</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">template</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;prompt_input&quot;</span><span class="p">:</span> <span class="p">(</span>
-                <span class="s2">&quot;Below is an instruction that describes a task, paired with an input that provides further context. &quot;</span>
-                <span class="s2">&quot;Write a response that appropriately completes the request.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
-                <span class="s2">&quot;### Instruction:</span><span class="se">\n</span><span class="si">{instruction}</span><span class="se">\n\n</span><span class="s2">### Input:</span><span class="se">\n</span><span class="si">{input}</span><span class="se">\n\n</span><span class="s2">### Response:</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="p">),</span>
-            <span class="s2">&quot;prompt_no_input&quot;</span><span class="p">:</span> <span class="p">(</span>
-                <span class="s2">&quot;Below is an instruction that describes a task. &quot;</span>
-                <span class="s2">&quot;Write a response that appropriately completes the request.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
-                <span class="s2">&quot;### Instruction:</span><span class="se">\n</span><span class="si">{instruction}</span><span class="se">\n\n</span><span class="s2">### Response:</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="p">),</span>
-        <span class="p">}</span>
-
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="n">column_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_map</span> <span class="ow">or</span> <span class="p">{}</span>
-        <span class="n">key_input</span> <span class="o">=</span> <span class="n">column_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="s2">&quot;input&quot;</span><span class="p">)</span>
-        <span class="n">key_instruction</span> <span class="o">=</span> <span class="n">column_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;instruction&quot;</span><span class="p">,</span> <span class="s2">&quot;instruction&quot;</span><span class="p">)</span>
-        <span class="n">key_output</span> <span class="o">=</span> <span class="n">column_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;output&quot;</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">key_input</span> <span class="ow">in</span> <span class="n">sample</span> <span class="ow">and</span> <span class="n">sample</span><span class="p">[</span><span class="n">key_input</span><span class="p">]:</span>
-            <span class="n">prompt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">[</span><span class="s2">&quot;prompt_input&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="n">instruction</span><span class="o">=</span><span class="n">sample</span><span class="p">[</span><span class="n">key_instruction</span><span class="p">],</span> <span class="nb">input</span><span class="o">=</span><span class="n">sample</span><span class="p">[</span><span class="n">key_input</span><span class="p">]</span>
-            <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">prompt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">[</span><span class="s2">&quot;prompt_no_input&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="n">instruction</span><span class="o">=</span><span class="n">sample</span><span class="p">[</span><span class="n">key_instruction</span><span class="p">]</span>
-            <span class="p">)</span>
-
-        <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">Message</span><span class="p">(</span>
-                <span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
-                <span class="n">content</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span>
-                <span class="n">masked</span><span class="o">=</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span><span class="p">,</span>
-                <span class="n">eot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="p">),</span>
-            <span class="n">Message</span><span class="p">(</span>
-                <span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span>
-                <span class="n">content</span><span class="o">=</span><span class="n">sample</span><span class="p">[</span><span class="n">key_output</span><span class="p">],</span>
-                <span class="n">masked</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="n">eot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="p">),</span>
-        <span class="p">]</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">messages</span><span class="p">}</span>
 
 
 <div class="viewcode-block" id="alpaca_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.alpaca_dataset.html#torchtune.datasets.alpaca_dataset">[docs]</a><span class="k">def</span> <span class="nf">alpaca_dataset</span><span class="p">(</span>
