@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union
 
 from torchtune.datasets._packed import PackedDataset
 
@@ -22,6 +22,7 @@ def wikitext_dataset(
     subset: str = "wikitext-103-v1",
     max_seq_len: Optional[int] = None,
     packed: bool = False,
+    filter_fn: Optional[Callable] = None,
     split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],
 ) -> Union[TextCompletionDataset, PackedDataset]:
@@ -59,6 +60,7 @@ def wikitext_dataset(
         column="page",
         max_seq_len=max_seq_len,
         name=subset,
+        filter_fn=filter_fn,
         split=split,
         **load_dataset_kwargs,
     )
