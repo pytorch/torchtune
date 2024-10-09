@@ -23,6 +23,7 @@ from torchtune.data._messages import (
     OpenAIToMessages,
     Role,
     ShareGPTToMessages,
+    AlpacaToMessages,
     validate_messages,
 )
 from torchtune.data._prompt_templates import (
@@ -43,6 +44,7 @@ __all__ = [
     "SummarizeTemplate",
     "OpenAIToMessages",
     "ShareGPTToMessages",
+    "AlpacaToMessages",
     "truncate",
     "Message",
     "validate_messages",
