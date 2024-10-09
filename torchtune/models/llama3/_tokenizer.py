@@ -189,11 +189,12 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         decoded_string = self.tt_model.decode(
             token_ids=token_ids,
             truncate_at_eos=truncate_at_eos,
-            skip_special_tokens=False,
         )
-        if skip_special_tokens:
-            decoded_string = self._remove_special_tokens(decoded_string)
-        return decoded_string
+        return (
+            self._remove_special_tokens(decoded_string)
+            if skip_special_tokens
+            else decoded_string
+        )
 
     def _tokenize_header(self, message: Message) -> List[int]:
         """
