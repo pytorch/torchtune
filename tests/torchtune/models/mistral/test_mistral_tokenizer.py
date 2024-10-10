@@ -15,7 +15,8 @@ class TestMistralTokenizer:
         # m.model is a pretrained Sentencepiece model using the following command:
         # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
         return mistral_tokenizer(
-            str(ASSETS / "m.model"),
+            path=str(ASSETS / "m.model"),
+            max_seq_len=2048,
             prompt_template="torchtune.models.mistral.MistralChatTemplate"
             if template
             else None,
@@ -472,3 +473,4 @@ class TestMistralTokenizer:
         expected_mask = [True] * 88 + [False] * 125
         assert expected_tokens == tokens
         assert expected_mask == mask
+
