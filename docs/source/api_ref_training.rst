@@ -76,6 +76,20 @@ Utilities to reduce memory consumption during training.
 
 .. _metric_logging_label:
 
+Schedulers
+-----------------
+
+Utilities to control lr during the training process.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    get_cosine_schedule_with_warmup
+
+.. _metric_logging_label:
+
+
 Metric Logging
 --------------
 
