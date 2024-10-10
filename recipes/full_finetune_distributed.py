@@ -463,19 +463,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         optimizer_in_bwd: bool = False,
         opt_state_dict: Optional[Dict[str, Any]] = None,
     ) -> Optimizer:
-        if not optimizer_in_bwd:
-            optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
-            if opt_state_dict:
-                training.load_from_full_optimizer_state_dict(
-                    optimizer,
-                    opt_state_dict,
-                    self._device,
-                )
-
-            if self._is_rank_zero:
-                log.info("Optimizer is initialized.")
-            return optimizer
-        else:
+        if optimizer_in_bwd:
             # Maintain a dict of optims for every parameter.
             optim_dict = {
                 param: config.instantiate(cfg_optimizer, [param])
@@ -493,20 +481,32 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # Load optimizer states for each param.
             if opt_state_dict is not None:
                 for param in opt_state_dict.keys():
-                    torch.distributed.breakpoint()
-                    if param not in self._optim_ckpt_wrapper.state_dict():
-                        raise RuntimeError(
-                            f"Trying to load optimizer state for unexpected param {param}"
+                    try:
+                        training.load_from_full_optimizer_state_dict(
+                            self._optim_ckpt_wrapper.state_dict()[param],
+                            opt_state_dict[param],
+                            self._device,
                         )
-                    training.load_from_full_optimizer_state_dict(
-                        self._optim_ckpt_wrapper.state_dict()[param],
-                        opt_state_dict[param],
-                        self._device,
-                    )
-
+                    except BaseException as e:
+                        raise RuntimeError(
+                            "Failed loading in-backward optimizer checkpoints."
+                            "Please make sure run being restored from was using in-backward optimizer."
+                        ) from e
             if self._is_rank_zero:
                 log.info("In-backward optimizers are set up.")
             return None
+        else:
+            optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
+            if opt_state_dict:
+                training.load_from_full_optimizer_state_dict(
+                    optimizer,
+                    opt_state_dict,
+                    self._device,
+                )
+
+            if self._is_rank_zero:
+                log.info("Optimizer is initialized.")
+            return optimizer
 
     def _setup_data(
         self,
@@ -734,7 +734,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
                             "loss": loss_to_log,
-                            "lr": self.get_lr_scheduler(),
+                            "lr": self.get_lr(),
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._log_peak_memory_stats:
@@ -775,7 +775,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._profiler.stop()
 
-    def get_lr_scheduler(self) -> float:
+    def get_lr(self) -> float:
         if self._optimizer_in_bwd:
             param_groups = []
             for param in self._optim_ckpt_wrapper.state_dict().values():
