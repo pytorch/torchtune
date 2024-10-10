@@ -4,89 +4,92 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import pytest
-from datasets import Dataset
-from torch.utils.data import Dataset as TorchDataset
-from torchtune.datasets._concat import ConcatDataset
+from typing import List, Tuple
+
+from torch.utils.data import Dataset
+
+from torchtune import utils
+
 from torchtune.datasets._packed import PackedDataset
 
-
-class DummyDataset(TorchDataset):
-    def __init__(self, sample_size):
-        self.sample_size = sample_size
-
-    def __getitem__(self, index):
-        if index >= 1000:
-            raise IndexError()
-        return {
-            "tokens": [index] * self.sample_size,
-            "labels": [index] * self.sample_size,
-        }
-
-    def __len__(self):
-        return 1000
+log = utils.get_logger("DEBUG")
 
 
-class TestConcatDataset:
-    @pytest.fixture
-    def datasets(self):
-        ds1 = Dataset.from_list([{"data": f"ds1_{i}"} for i in range(4)])
-        ds2 = Dataset.from_list([{"data": f"ds2_{i}"} for i in range(8)])
-        ds3 = Dataset.from_list([{"data": f"ds3_{i}"} for i in range(15)])
-        ds4 = Dataset.from_list([{"data": f"ds4_{i}"} for i in range(16)])
-        ds5 = Dataset.from_list([{"data": f"ds5_{i}"} for i in range(23)])
-        ds6 = Dataset.from_list([{"data": f"ds6_{i}"} for i in range(42)])
-        return [ds1, ds2, ds3, ds4, ds5, ds6]
+class ConcatDataset(Dataset):
+    """
+    A dataset class for concatenating multiple sub-datasets into a single dataset. This class enables the
+    unified handling of different datasets as if they were a single dataset, simplifying tasks such as
+    training models on multiple sources of data simultaneously.
 
-    @pytest.fixture
-    def torch_datasets(self):
-        ds1 = DummyDataset(4)
-        ds2 = DummyDataset(8)
-        ds3 = DummyDataset(15)
-        ds4 = DummyDataset(16)
-        ds5 = DummyDataset(23)
-        ds6 = DummyDataset(42)
-        return [ds1, ds2, ds3, ds4, ds5, ds6]
+    The class internally manages the aggregation of different datasets and allows transparent indexing across them.
+    However, it requires all constituent datasets to be fully loaded into memory, which might not be optimal for
+    very large datasets.
 
-    def test_length(self, datasets):
-        """Test the correct computation of total length"""
-        multi_dataset = ConcatDataset(datasets)
+    Upon initialization, this class computes the cumulative length of all datasets and maintains an internal mapping
+    of indices to the respective datasets. This approach allows the :class:`~torchtune.datasets.ConcatDataset`
+    to delegate data retrieval to the appropriate sub-dataset transparently when a particular index is accessed.
 
-        # sum of individual datasets lengths
-        expected_length = 4 + 8 + 15 + 16 + 23 + 42  # 108
-        assert len(multi_dataset) == expected_length
+    Note:
+        Using this class with very large datasets can lead to high memory consumption, as it requires all datasets to
+        be loaded into memory. For large-scale scenarios, consider other strategies that might stream data on demand.
 
-    def test_getitem(self, datasets):
-        """Test item retrieval across dataset boundaries"""
-        multi_dataset = ConcatDataset(datasets)
+    Args:
+        datasets (List[Dataset]): A list of datasets to concatenate. Each dataset must be an instance of a class
+            derived from :class:`~torch.utils.data.Dataset`.
+    Raises:
+        ValueError: if instanse of `PackedDataset` is in `datasets`
+        
+    Examples:
+        >>> dataset1 = MyCustomDataset(params1)
+        >>> dataset2 = MyCustomDataset(params2)
+        >>> concat_dataset = ConcatDataset([dataset1, dataset2])
+        >>> print(len(concat_dataset))  # Total length of both datasets
+        >>> data_point = concat_dataset[1500]  # Accesses an element from the appropriate dataset
 
-        # Testing indices across different datasets
-        assert multi_dataset[-1] is None  # Index out of range
-        assert multi_dataset[0] == {"data": "ds1_0"}
-        assert multi_dataset[3] == {"data": "ds1_3"}
-        assert multi_dataset[4] == {"data": "ds2_0"}
-        assert multi_dataset[10] == {"data": "ds2_6"}
-        assert multi_dataset[20] == {"data": "ds3_8"}
-        assert multi_dataset[35] == {"data": "ds4_8"}
-        assert multi_dataset[50] == {"data": "ds5_7"}
-        assert multi_dataset[70] == {"data": "ds6_4"}
-        assert multi_dataset[90] == {"data": "ds6_24"}
-        assert multi_dataset[108] is None  # Index out of range
+    This can also be accomplished by passing in a list of datasets to the YAML config::
 
-    def test_invalid_index_type(self, datasets):
-        """Test handling of invalid index types"""
-        multi_dataset = ConcatDataset(datasets)
+        dataset:
+          - _component_: torchtune.datasets.instruct_dataset
+            source: vicgalle/alpaca-gpt4
+            template: torchtune.data.AlpacaInstructTemplate
+            split: train
+            train_on_input: True
+          - _component_: torchtune.datasets.instruct_dataset
+            source: samsum
+            template: torchtune.data.SummarizeTemplate
+            column_map: {"output": "summary"}
+            output: summary
+            split: train
+            train_on_input: False
 
-        with pytest.raises(TypeError):
-            multi_dataset["invalid_type"]  # Non-integer index
+    This class primarily focuses on providing a unified interface to access elements from multiple datasets,
+    enhancing the flexibility in handling diverse data sources for training machine learning models.
+    """
 
-    def test_packed_dataset(self, torch_datasets):
-        torch_datasets[0] = PackedDataset(
-            torch_datasets[0],
-            max_seq_len=25,
-            max_packs=5,
-            split_across_pack=True,
-        )
+    def __init__(self, datasets: List[Dataset]):
+        self._datasets: List[Dataset] = datasets
 
-        with pytest.raises(ValueError):
-            concated_dataset = ConcatDataset(torch_datasets)
+        for dataset in self._datasets:
+            if isinstance(dataset, PackedDataset):
+                raise ValueError(
+                    "ConcatDataset can't proceed instances of PackedDataset."
+                )
+
+        self._len: int = sum(len(dataset) for dataset in datasets)
+        self._indexes: List[Tuple[int, int, int]] = []
+
+        # Calculate distribution of indexes in all datasets
+        cumulative_index = 0
+        for idx, dataset in enumerate(datasets):
+            next_cumulative_index = cumulative_index + len(dataset)
+            self._indexes.append((cumulative_index, next_cumulative_index, idx))
+            cumulative_index = next_cumulative_index
+
+    def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
+        for start, stop, dataset_index in self._indexes:
+            if start <= index < stop:
+                dataset = self._datasets[dataset_index]
+                return dataset[index - start]
+
+    def __len__(self) -> int:
+        return self._len
