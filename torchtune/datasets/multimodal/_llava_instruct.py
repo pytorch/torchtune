@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from pathlib import Path
-from typing import Any, Dict, Optional, Callable
+from typing import Any, Callable, Dict, Optional
 
 from torchtune.data._messages import ShareGPTToMessages
 from torchtune.datasets._sft import SFTDataset

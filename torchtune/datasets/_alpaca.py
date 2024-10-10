@@ -6,7 +6,7 @@
 
 from functools import partial
 
-from typing import Any, Dict, Optional, Union, Callable 
+from typing import Any, Callable, Dict, Optional, Union
 
 from torchtune.data._messages import AlpacaToMessages
 
