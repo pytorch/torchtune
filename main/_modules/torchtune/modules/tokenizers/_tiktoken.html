@@ -566,7 +566,6 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">token_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
         <span class="n">truncate_at_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="n">skip_special_tokens</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Decode a list of token ids into a string.</span>
@@ -575,8 +574,6 @@
 <span class="sd">            token_ids (List[int]): The list of token ids.</span>
 <span class="sd">            truncate_at_eos (bool): Whether to truncate the string at the end of</span>
 <span class="sd">                sequence token. Default is True.</span>
-<span class="sd">            skip_special_tokens (bool): Whether to show or skip special tokens in the decoded string.</span>
-<span class="sd">                Default is True.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            str: The decoded string.</span>
@@ -588,13 +585,6 @@
                 <span class="n">k</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">if</span> <span class="n">k</span><span class="p">:</span>
                 <span class="n">token_ids</span> <span class="o">=</span> <span class="n">token_ids</span><span class="p">[:</span><span class="n">k</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">skip_special_tokens</span><span class="p">:</span>
-            <span class="n">token_ids</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="n">token_id</span>
-                <span class="k">for</span> <span class="n">token_id</span> <span class="ow">in</span> <span class="n">token_ids</span>
-                <span class="k">if</span> <span class="n">token_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tt_model</span><span class="o">.</span><span class="n">_special_tokens</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
-                <span class="ow">and</span> <span class="n">token_id</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span>
-            <span class="p">]</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tt_model</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">token_ids</span><span class="p">)</span></div></div>
 </pre></div>
 
