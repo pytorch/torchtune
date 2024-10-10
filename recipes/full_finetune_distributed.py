@@ -704,10 +704,15 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     if self._clip_grad_norm is not None:
-                        grad_norm = torch.nn.utils.clip_grad_norm_(
-                            self._model.parameters(),
-                            max_norm=float(self._clip_grad_norm),
-                        )
+                        if self._optimizer_in_bwd:
+                            raise NotImplementedError(
+                                "Gradient clipping is not supported after optimizer-in-the-backward."
+                            )
+                        else:
+                            grad_norm = torch.nn.utils.clip_grad_norm_(
+                                self._model.parameters(),
+                                max_norm=float(self._clip_grad_norm),
+                            )
                     if not self._optimizer_in_bwd:
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
