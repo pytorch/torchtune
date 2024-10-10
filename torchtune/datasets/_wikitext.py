@@ -51,11 +51,28 @@ def wikitext_dataset(
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
-
+    Raises:
+        ValueError: If ``packed=True`` and ``tokenizer.max_seq_len`` is not set.
     Returns:
         Union[TextCompletionDataset, PackedDataset]: the configured :class:`~torchtune.datasets.TextCompletionDataset`
             or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``
     """
+
+    if packed:
+        if tokenizer.max_seq_len is None:
+            raise ValueError(
+                "PackedDataset requires a max_seq_len to be set on the tokenizer."
+            )
+        return text_completion_dataset(
+            tokenizer=tokenizer,
+            source=source,
+            column="page",
+            max_seq_len=max_seq_len,
+            name=subset,
+            packed=True,
+            split=split,
+            **load_dataset_kwargs,
+        )
 
     return text_completion_dataset(
         tokenizer=tokenizer,
