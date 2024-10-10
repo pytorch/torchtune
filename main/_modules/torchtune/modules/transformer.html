@@ -1006,7 +1006,7 @@
 <span class="sd">            - m_s: max seq len</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># input tensor of shape [b, s]</span>
-        <span class="n">bsz</span><span class="p">,</span> <span class="n">seq_len</span> <span class="o">=</span> <span class="n">tokens</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">seq_len</span> <span class="o">=</span> <span class="n">tokens</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_inputs</span><span class="p">(</span>
             <span class="n">seq_len</span><span class="p">,</span>
