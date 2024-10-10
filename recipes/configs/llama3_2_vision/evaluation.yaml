@@ -41,6 +41,7 @@ tasks: ["mmmu_val_science"] # Defaulting to science as a good subset
 limit: null
 batch_size: 1
 enable_kv_cache: True
+max_seq_length: 8192
 
 # Quantization specific args
 # Quantization is not supported in this specific config
