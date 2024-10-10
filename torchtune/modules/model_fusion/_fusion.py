@@ -384,9 +384,9 @@ class DeepFusionModel(nn.Module):
             decoder_max_seq_len=decoder_max_seq_len,
         )
 
-    def caches_are_enabled(self) -> bool:
+    def caches_are_setup(self) -> bool:
         """Check if the key value caches are setup."""
-        return self.decoder.caches_are_enabled()
+        return self.decoder.caches_are_setup()
 
     def reset_caches(self):
         """Reset the key value caches."""

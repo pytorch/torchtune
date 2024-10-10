@@ -141,6 +141,7 @@ class TestMultiHeadAttention:
             kv_cache=kv_cache,
             max_seq_len=max_seq_len,
         )
+        attn.cache_enabled = True
         fixed_init_model(attn)
         attn.eval()
         return attn
@@ -195,6 +196,7 @@ class TestMultiHeadAttention:
             kv_cache=kv_cache,
             max_seq_len=max_seq_len,
         )
+        attn.cache_enabled = True
         fixed_init_model(attn)
         attn.eval()
         return attn
@@ -249,6 +251,7 @@ class TestMultiHeadAttention:
             kv_cache=kv_cache,
             max_seq_len=max_seq_len,
         )
+        attn.cache_enabled = True
         fixed_init_model(attn)
         attn.eval()
         return attn

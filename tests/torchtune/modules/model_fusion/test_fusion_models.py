@@ -32,7 +32,7 @@ class DummyModel(nn.Module):
     def setup_caches(self, batch_size, dtype, *args, **kwargs):
         self.cache_enabled = True
 
-    def caches_are_enabled(self):
+    def caches_are_setup(self):
         return self.cache_enabled
 
     def reset_caches(self):
@@ -144,9 +144,9 @@ class TestDeepFusionModel:
         Test that the cache methods works as expected.
         """
         fused_model.setup_caches(2, torch.float32)
-        assert fused_model.caches_are_enabled()
+        assert fused_model.caches_are_setup()
         fused_model.reset_caches()
-        assert not fused_model.caches_are_enabled()
+        assert not fused_model.caches_are_setup()
 
     def test_set_trainable_params(self, fused_model, encoder, decoder):
         """

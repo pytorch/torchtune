@@ -70,7 +70,7 @@ class GemmaTransformerDecoder(nn.Module):
         self.norm_embeddings = norm_embeddings
         self.num_output_chunks = 0
 
-    def caches_are_enabled(self) -> bool:
+    def caches_are_setup(self) -> bool:
         """Check if the key value caches are setup."""
         return self.layers[0].cache_enabled
 
