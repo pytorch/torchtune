@@ -267,7 +267,19 @@ def delete_kv_caches(model: nn.Module):
     """
     Deletes KV caches from all attention layers in a model,
     and also ensures ``cache_enabled`` is set to False.
+
+    Args:
+        model (nn.Module): model to enable KV-cacheing for.
+
+    Raises:
+        ValueError: if ``delete_kv_caches`` is called on a model which does not have
+            caches setup.
     """
+    if not model.caches_are_setup():
+        raise ValueError(
+            "You have tried to delete model caches, but `model.caches_are_setup()` "
+            "is False!"
+        )
     for _, module in model.named_modules():
         if hasattr(module, "kv_cache") and callable(module.kv_cache):
             module.cache_enabled = False
