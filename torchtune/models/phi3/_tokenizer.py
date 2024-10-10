@@ -101,11 +101,13 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
             trim_leading_whitespace=trim_leading_whitespace,
         )
 
-    def decode(self, ids: List[int]) -> str:
+    def decode(self, ids: List[int], skip_special_tokens: bool = True) -> str:
         """Decode token IDs to strings.
 
         Args:
             ids (List[int]): The input token IDs to be decoded.
+            skip_special_tokens (bool): Whether to show or skip special tokens in the decoded string.
+                Default is True.
 
         Returns:
             str: The decoded text.
@@ -114,7 +116,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
         for token_id in ids:
             # Filter out special tokens and the placeholder tokens added
             # by the Phi3 team
-            if token_id >= 32_000 and token_id <= 32_064:
+            if skip_special_tokens and (token_id >= 32_000 and token_id <= 32_064):
                 continue
             else:
                 ids_for_decode.append(token_id)
