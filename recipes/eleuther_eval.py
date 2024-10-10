@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import importlib.metadata
 import sys
 import time
 
@@ -13,6 +12,11 @@ from typing import Dict, List, Tuple, Union
 import PIL
 
 import torch
+
+from lm_eval.evaluator import evaluate, get_task_list
+from lm_eval.models.hf_vlms import HFMultimodalLM
+from lm_eval.models.huggingface import HFLM
+from lm_eval.tasks import get_task_dict, TaskManager
 from omegaconf import DictConfig
 
 from torchtune import config, training, utils
@@ -29,40 +33,6 @@ from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
 from torchtune.recipe_interfaces import EvalRecipeInterface
 from torchtune.training import FullModelTorchTuneCheckpointer
-
-try:
-    import lm_eval
-except ImportError:
-    print(
-        "You must install the EleutherAI Eval Harness to run this recipe. "
-        "Please install with `pip install lm_eval>=0.4.2`"
-    )
-    sys.exit(1)
-
-lm_eval_version = importlib.metadata.version("lm_eval")
-if not lm_eval_version >= "0.4.2":
-    print(
-        "You must install the EleutherAI Eval Harness >= v0.4.2 to run this recipe. "
-        "Please install with `pip install lm_eval>=0.4.2`"
-    )
-    sys.exit(1)
-
-from lm_eval.evaluator import evaluate, get_task_list
-
-# User doesn't have to have nightlies installed, they just won't be able
-# to use the multimodal model
-try:
-    from lm_eval.models.hf_vlms import HFMultimodalLM
-except ImportError as e:
-    # Create a dummy class to avoid having to import the HF models
-    # TODO (@joecummings): Remove this once v0.4.5 patch is released
-    class HFMultimodalLM:
-        def __init__(self, *args, **kwargs):
-            pass
-
-
-from lm_eval.models.huggingface import HFLM
-from lm_eval.tasks import get_task_dict, TaskManager
 
 
 class _VLMEvalWrapper(HFMultimodalLM):
