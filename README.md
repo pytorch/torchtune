@@ -282,3 +282,19 @@ We also want to acknowledge some awesome libraries and tools from the ecosystem:
 ## License
 
 torchtune is released under the [BSD 3 license](./LICENSE). However you may have other legal obligations that govern your use of other content, such as the terms of service for third-party models.
+
+
+## Citing torchtune
+
+If you find the torchtune library useful, please cite it in your work as below.
+
+```bibtex
+@software{torchtune,
+  title = {torchtune: the PyTorch native finetuning library},
+  author = {torchtune maintainers and contributors},
+  url = {https//github.com/pytorch/torchtune},
+  license = {BSD-3-Clause},
+  month = apr,
+  year = {2024}
+}
+```
