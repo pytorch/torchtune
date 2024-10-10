@@ -28,6 +28,7 @@ from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
 from torchtune.recipe_interfaces import EvalRecipeInterface
+from torchtune.training import FullModelTorchTuneCheckpointer
 
 try:
     import lm_eval
@@ -487,13 +488,6 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
         # Load checkpoint
         checkpointer = config.instantiate(cfg.checkpointer)
-        if quantization_mode is None:
-            ckpt_dict = checkpointer.load_checkpoint()
-        else:
-            # weights_only needs to be False when loading a quantized model
-            # currently loading a quantized model is only supported with the
-            # FullModelTorchTuneCheckpointer
-            ckpt_dict = checkpointer.load_checkpoint(weights_only=False)
 
         # Initialize model
         with training.set_default_dtype(self.dtype), self.device:
@@ -501,14 +495,32 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
         # Quantize model if requested
         if quantization_mode is not None:
+            if not isinstance(checkpointer, FullModelTorchTuneCheckpointer):
+                raise ValueError(
+                    "Quantization is only supported for models quantized and saved with the "
+                    "FullModelTorchTuneCheckpointer - please ensure you have quantized your "
+                    "model and are using the quantized weights!"
+                )
+            if "qat" in quantization_mode:
+                raise ValueError(
+                    "You have specified a quantizer with 'QAT' - "
+                    "QAT quantizers should only be used during quantization aware training "
+                    "and when quantizing models. Please use the corresponding post-training "
+                    "quantizer e.g. Int8DynActInt4WeightQuantizer for Int8DynActInt4WeightQATQuantizer."
+                )
             model = quantizer.quantize(model)
             model = model.to(device=self.device, dtype=self.dtype)
-            for k, v in model_state_dict.items():
-                model_state_dict[k] = v.to(self._device)
-            model.load_state_dict(model_state_dict, assign=True)
+            ckpt_dict = checkpointer.load_checkpoint(weights_only=False)[
+                training.MODEL_KEY
+            ]
+            for k, v in ckpt_dict.items():
+                ckpt_dict[k] = v.to(self.device)
+            model.load_state_dict(ckpt_dict, assign=True)
+        else:
+            ckpt_dict = checkpointer.load_checkpoint()[training.MODEL_KEY]
+            model.load_state_dict(ckpt_dict)
 
         # Load model weights into initialized model
-        model.load_state_dict(ckpt_dict[training.MODEL_KEY])
         self.logger.info(f"Model is initialized with precision {self.dtype}.")
 
         # Put model in eval mode.

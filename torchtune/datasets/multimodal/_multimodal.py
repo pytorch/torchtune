@@ -20,6 +20,7 @@ def multimodal_chat_dataset(
     new_system_prompt: Optional[str] = None,
     image_tag: Optional[str] = None,
     image_dir: Optional[str] = None,
+    split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],
 ) -> SFTDataset:
     """
@@ -67,7 +68,7 @@ def multimodal_chat_dataset(
             minimum ``"tokens"`` and ``"mask"`` keys.
         source (str): path to dataset repository on Hugging Face. For local datasets,
             define source as the data file type (e.g. "json", "csv", "text"), pass
-            in the filepath in ``data_files``, and set ``split="train"``. See `Hugging Face's
+            in the filepath in ``data_files``. See `Hugging Face's
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details.
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("conversations", "image")
@@ -84,6 +85,8 @@ def multimodal_chat_dataset(
         image_dir (Optional[str]): path to the directory containing the images that is prepended to all image
             paths in the dataset. If None, assume images are available in current working directory or are located
             on a remote url. For text-only,leave as None. Default is None.
+        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
+            of a given split, e.g. ``split="train[:10%]"``. Default is "train".
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
             such as ``data_files`` or ``split``.
 
@@ -167,6 +170,7 @@ def multimodal_chat_dataset(
         source=source,
         message_transform=message_transform,
         model_transform=model_transform,
+        split=split,
         **load_dataset_kwargs,
     )
 
