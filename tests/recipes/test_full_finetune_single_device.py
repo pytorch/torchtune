@@ -30,6 +30,7 @@ from tests.test_utils import (
     get_loss_values_from_metric_logger,
     TOKENIZER_PATHS,
 )
+from torchtune.models.llama3 import llama3
 
 
 class TestFullFinetuneSingleDeviceRecipe:
@@ -265,3 +266,71 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
 
         accum_loss = np.mean(get_loss_values_from_metric_logger(grad_accum_log_file))
         torch.testing.assert_close(no_accum_loss, accum_loss, atol=1e-5, rtol=1e-5)
+
+
+class TestFullFinetuneInt8MixedPrecisionTraining:
+    def _get_test_config_overrides(self):
+        return [
+            "seed=9",
+            "epochs=1",
+            "max_steps_per_epoch=5",
+            "optimizer=torch.optim.AdamW",
+            "optimizer_in_bwd=False",
+            "compile=True",
+        ] + dummy_alpaca_dataset_config()
+
+    @pytest.mark.integration_test
+    def test_smoke(self, tmpdir, monkeypatch):
+        model_type = "llama3"
+        ckpt_component = CKPT_COMPONENT_MAP["tune"]
+        tokenizer_path = Path(TOKENIZER_PATHS[model_type])
+        log_file = gen_log_file_name(tmpdir)
+
+        # MODEL_TEST_CONFIGS["llama3"] doesn't work with FlexAttention
+        # because some dims are not multiple of 128
+        # create a dummy model and save state_dict so it works with torchtune
+        model_config = [
+            "model._component_=torchtune.models.llama3.llama3",
+            "model.vocab_size=128_256",
+            "model.num_layers=2",
+            "model.num_heads=2",
+            "model.num_kv_heads=2",
+            "model.embed_dim=256",
+            "model.max_seq_len=1024",
+        ]
+        dummy_model = llama3(
+            vocab_size=128_256,
+            num_layers=2,
+            num_heads=2,
+            num_kv_heads=2,
+            embed_dim=256,
+            max_seq_len=1024,
+        )
+        ckpt_dir = tmpdir / "ckpt_dir"
+        ckpt_dir.mkdir()
+        torch.save(dummy_model.state_dict(), ckpt_dir / "model.pt")
+
+        # set dataset.packed=True to have fixed input seq len
+        cmd = f"""
+        tune run full_finetune_single_device \
+            --config llama3/8B_full_single_device \
+            output_dir={tmpdir} \
+            checkpointer._component_={ckpt_component} \
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[model.pt]\
+            checkpointer.output_dir={tmpdir} \
+            checkpointer.model_type={model_type.upper()} \
+            tokenizer.path='{tokenizer_path}' \
+            tokenizer.prompt_template=null \
+            tokenizer.max_seq_len=256 \
+            dataset.packed=True \
+            metric_logger.filename={log_file} \
+            compile=True \
+            quantizer._component_=torchtune.training.quantization.Int8MixedPrecisionTrainingQuantizer \
+        """.split()
+        cmd = cmd + self._get_test_config_overrides() + model_config
+
+        torch._dynamo.reset()
+        monkeypatch.setattr(sys, "argv", cmd)
+        with pytest.raises(SystemExit, match=""):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
