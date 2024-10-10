@@ -497,9 +497,8 @@
 <span class="sd">        max_seq_len (int): maximum sequence length supported by the model.</span>
 <span class="sd">            This is needed to compute the RoPE Cache. Default: 4096.</span>
 <span class="sd">        is_causal (bool): sets the default mask to causal when no mask is provided</span>
-<span class="sd">        attn_dropout (float): dropout value passed onto the</span>
-<span class="sd">            scaled_dot_product_attention function. This argument is ignored if the</span>
-<span class="sd">            self.training is False. Default value is 0.0.</span>
+<span class="sd">        attn_dropout (float): dropout value passed onto the scaled_dot_product_attention function.</span>
+<span class="sd">            Default value is 0.0.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If ``num_heads % num_kv_heads != 0``</span>

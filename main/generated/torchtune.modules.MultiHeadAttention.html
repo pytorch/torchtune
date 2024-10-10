@@ -486,9 +486,8 @@ batch or sequence wide normalization.</p></li>
 <li><p><strong>max_seq_len</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – maximum sequence length supported by the model.
 This is needed to compute the RoPE Cache. Default: 4096.</p></li>
 <li><p><strong>is_causal</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – sets the default mask to causal when no mask is provided</p></li>
-<li><p><strong>attn_dropout</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – dropout value passed onto the
-scaled_dot_product_attention function. This argument is ignored if the
-self.training is False. Default value is 0.0.</p></li>
+<li><p><strong>attn_dropout</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – dropout value passed onto the scaled_dot_product_attention function.
+Default value is 0.0.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
