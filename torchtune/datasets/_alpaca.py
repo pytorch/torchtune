@@ -6,7 +6,7 @@
 
 from functools import partial
 
-from typing import Any, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union
 
 from torchtune.data._messages import AlpacaToMessages
 
@@ -22,6 +22,7 @@ def alpaca_dataset(
     column_map: Optional[Dict[str, str]] = None,
     train_on_input: bool = True,
     packed: bool = False,
+    filter_fn: Optional[Callable] = None,
     split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],
 ) -> Union[SFTDataset, PackedDataset]:
@@ -52,6 +53,9 @@ def alpaca_dataset(
             the default column names ``"instruction``, ``"input"``, and ``"output"`` in ``tatsu-lab/alpaca``.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
+        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
+            the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
+            details.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
@@ -78,6 +82,7 @@ def alpaca_dataset(
         source=source,
         message_transform=message_transform,
         model_transform=tokenizer,
+        filter_fn=filter_fn,
         split=split,
         **load_dataset_kwargs,
     )

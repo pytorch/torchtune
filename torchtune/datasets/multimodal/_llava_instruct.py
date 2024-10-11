@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from torchtune.data._messages import ShareGPTToMessages
 from torchtune.datasets._sft import SFTDataset
@@ -21,6 +21,7 @@ def llava_instruct_dataset(
     column_map: Optional[Dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
     packed: bool = False,
+    filter_fn: Optional[Callable] = None,
     split: str = "train",
     data_files: str = "llava_instruct_150k.json",
     **load_dataset_kwargs: Dict[str, Any],
@@ -94,6 +95,9 @@ def llava_instruct_dataset(
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
+        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
+            the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
+            details.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
         data_files (str): path to the json file to load as dataset. See the `dataset repo
@@ -128,6 +132,7 @@ def llava_instruct_dataset(
         model_transform=model_transform,
         source=source,
         message_transform=message_transform,
+        filter_fn=filter_fn,
         split=split,
         data_files=data_files,
         **load_dataset_kwargs,

@@ -578,7 +578,7 @@ class TransformerDecoder(nn.Module):
             - m_s: max seq len
         """
         # input tensor of shape [b, s]
-        bsz, seq_len = tokens.shape
+        seq_len = tokens.shape[1]
 
         self._validate_inputs(
             seq_len,

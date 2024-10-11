@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from torchtune.data._messages import ShareGPTToMessages
 from torchtune.datasets._sft import SFTDataset
@@ -20,6 +20,7 @@ def multimodal_chat_dataset(
     new_system_prompt: Optional[str] = None,
     image_tag: Optional[str] = None,
     image_dir: Optional[str] = None,
+    filter_fn: Optional[Callable] = None,
     split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],
 ) -> SFTDataset:
@@ -85,6 +86,9 @@ def multimodal_chat_dataset(
         image_dir (Optional[str]): path to the directory containing the images that is prepended to all image
             paths in the dataset. If None, assume images are available in current working directory or are located
             on a remote url. For text-only,leave as None. Default is None.
+        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
+            the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
+            details.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
@@ -170,6 +174,7 @@ def multimodal_chat_dataset(
         source=source,
         message_transform=message_transform,
         model_transform=model_transform,
+        filter_fn=filter_fn,
         split=split,
         **load_dataset_kwargs,
     )
