@@ -38,7 +38,6 @@ class ConcatDataset(Dataset):
             derived from :class:`~torch.utils.data.Dataset`.
     Raises:
         ValueError: if instanse of `PackedDataset` is in `datasets`
-        
     Examples:
         >>> dataset1 = MyCustomDataset(params1)
         >>> dataset2 = MyCustomDataset(params2)
@@ -72,7 +71,7 @@ class ConcatDataset(Dataset):
         for dataset in self._datasets:
             if isinstance(dataset, PackedDataset):
                 raise ValueError(
-                    "ConcatDataset can't proceed instances of PackedDataset."
+                    "ConcatDataset can't process instances of PackedDataset."
                 )
 
         self._len: int = sum(len(dataset) for dataset in datasets)
