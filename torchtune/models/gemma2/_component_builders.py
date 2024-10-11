@@ -5,24 +5,26 @@
 # LICENSE file in the root directory of this source tree.
 
 from torch import nn
+import torch
 from typing import List
 from torchtune.modules.common_utils import _register_reparametrize_state_dict_hooks
+from typing import List, Optional
 
 from torchtune.modules import (
-    MultiHeadAttention,
-    FeedForward,
     FrozenNF4Linear,
     RotaryPositionalEmbeddings,
     TransformerSelfAttentionLayer,
 )
 
+from torchtune.modules.attention import Gemma2Attention
 from torchtune.models.gemma.rms_norm import GemmaRMSNorm
 from torchtune.modules import TransformerDecoder, TiedLinear
 from torchtune.models.gemma.gemma_norm_embedding import GemmaNormEmbeddings
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
+from torchtune.models.gemma._component_builders import gemma_mlp, lora_gemma_mlp
 
 """
-Component builders for the Gemma 2B models and popular variants such as LoRA.
+Component builders for the Gemma2 2B, 9B models and popular variants such as LoRA.
 
 torchtune provides composable building blocks. Builder functions help
 stitch these building blocks into higher-level components. This design has
@@ -33,8 +35,42 @@ can take either nn.Linear or nn.LoRALinear for ``q_proj``.
 the building blocks simple.
 """
 
+class TanhSotfCapping(nn.Module):
+    def __init__(
+        self,
+        capping_value: float,
+    ) -> None:
+        super().__init__()
+        self.capping_value = capping_value
 
-def gemma(
+    def forward(self, attn_weights):
+        attn_weights = attn_weights / self.capping_value
+        attn_weights = torch.tanh(attn_weights)
+        attn_weights = attn_weights * self.capping_value
+
+
+class Gemma2FinalNorm(nn.Module):
+    """
+    Combines RMSNorm and SoftCapping
+    """
+    def __init__(
+        self,
+        capping_value: float,
+        embed_dim: int,
+        eps: float
+    ) -> None:
+        super().__init__()
+        self.capping_value = capping_value
+        self.rms_norm = GemmaRMSNorm(embed_dim, eps=eps)
+        self.logit_capping = TanhSotfCapping(capping_value)
+        
+    def forward(self, x):
+        x = self.rms_norm(x)
+        x = self.logit_capping(x)
+        return x
+
+
+def gemma2(
     vocab_size: int,
     num_layers: int,
     num_heads: int,
@@ -46,16 +82,18 @@ def gemma(
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-6,
     rope_base: int = 10_000,
+    hidden_capping_value: float = 50.,
+    final_capping_value: float = 30.,
+    sliding_window_size: int = 4096,
+    query_pre_attn_scalar:  Optional[int] = None,
 ) -> TransformerDecoder:
     """
-    Build the decoder associated with the gemma model. This includes:
+    Build the decoder associated with the gemma2 model. This includes:
     - Token embeddings
     - num_layers number of TransformerSelfAttentionLayer blocks
     - RMS Norm layer applied to the output of the transformer
     - Final projection into token space
 
-    This does NOT currently include inference-time optimizations such as
-    sliding-window attention
 
     Args:
         vocab_size (int): number of tokens in vocabulary.
@@ -76,58 +114,56 @@ def gemma(
         TransformerDecoder: Instantiation of gemma model.
     """
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_att = MultiHeadAttention(
-        embed_dim=embed_dim,
-        num_heads=num_heads,
-        num_kv_heads=num_kv_heads,
-        head_dim=head_dim,
-        q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
-        k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
-        v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
-        output_proj=nn.Linear(num_heads * head_dim, embed_dim, bias=False),
-        pos_embeddings=rope,
-        kv_cache=None,
-        max_seq_len=max_seq_len,
-        attn_dropout=attn_dropout,
-    )
+    
     mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
-    layer = TransformerSelfAttentionLayer(
-        attn=self_att,
-        mlp=mlp,
-        sa_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
-        mlp_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
-    )
+    
+    layers = torch.nn.ModuleList()
+    
+    for layer_idx in range(num_layers):
+        self_att = Gemma2Attention(
+            embed_dim=embed_dim,
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            head_dim=head_dim,
+            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            output_proj=nn.Linear(num_heads * head_dim, embed_dim, bias=False),
+            pos_embeddings=rope,
+            kv_cache=None,
+            max_seq_len=max_seq_len,
+            attn_dropout=attn_dropout,
+            # perform sliding window on half of the layers only
+            sliding_window_size=sliding_window_size if (layer_idx % 2)==0 else None,
+            softcapping=hidden_capping_value,
+            query_pre_attn_scalar=query_pre_attn_scalar
+        )
+        
+        layer = TransformerSelfAttentionLayer(
+            attn=self_att,
+            mlp=mlp,
+            sa_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
+            mlp_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
+            sa_scale=GemmaRMSNorm(embed_dim, eps=norm_eps),
+            mlp_scale=GemmaRMSNorm(embed_dim, eps=norm_eps),
+        )
+        layers.append(layer)
     tok_embeddings = GemmaNormEmbeddings(vocab_size, embed_dim)
     output_proj = TiedLinear(tok_embeddings)
     model = TransformerDecoder(
         tok_embeddings=tok_embeddings,
-        layers=layer,
-        num_layers=num_layers,
+        layers=layers,
         max_seq_len=max_seq_len,
         num_heads=num_heads,
         output=output_proj,
         head_dim=head_dim,
-        norm=GemmaRMSNorm(embed_dim, eps=norm_eps)
+        norm=Gemma2FinalNorm(final_capping_value, embed_dim, eps=norm_eps),
     )
     return model
 
 
-def gemma_mlp(dim: int, hidden_dim: int, quantize_base: bool = False) -> FeedForward:
-    """
-    Build the MLP layer associated with the Gemma model.
 
-    Args:
-        dim (int): input dimension to the MLP
-        hidden_dim (int): hidden dimension of the MLP
-    """
-    gate_proj = nn.Linear(dim, hidden_dim, bias=False) if not quantize_base else FrozenNF4Linear(dim, hidden_dim, bias=False)
-    down_proj = nn.Linear(hidden_dim, dim, bias=False) if not quantize_base else FrozenNF4Linear(hidden_dim, dim, bias=False)
-    up_proj = nn.Linear(dim, hidden_dim, bias=False) if not quantize_base else FrozenNF4Linear(dim, hidden_dim, bias=False)
-    activation = nn.GELU(approximate="tanh")
-    return FeedForward(gate_proj=gate_proj, down_proj=down_proj, up_proj=up_proj, activation=activation)
-
-
-def lora_gemma(
+def lora_gemma2(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     *,
@@ -143,6 +179,10 @@ def lora_gemma(
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-6,
     rope_base: int = 10_000,
+    hidden_capping_value: float = 50.,
+    final_capping_value: float = 30.,
+    sliding_window_size: int = 4096,
+    query_pre_attn_scalar:  Optional[int] = None,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,
@@ -186,22 +226,6 @@ def lora_gemma(
         TransformerDecoder: Instantiation of Gemma model with LoRA applied to
         a subset of the attention projections in each layer.
     """
-    self_attn = lora_gemma_self_attention(
-        lora_modules=lora_attn_modules,
-        embed_dim=embed_dim,
-        head_dim=head_dim,
-        num_heads=num_heads,
-        num_kv_heads=num_kv_heads,
-        max_seq_len=max_seq_len,
-        attn_dropout=attn_dropout,
-        rope_base=rope_base,
-        lora_rank=lora_rank,
-        lora_alpha=lora_alpha,
-        lora_dropout=lora_dropout,
-        use_dora=use_dora,
-        quantize_base=quantize_base,
-    )
-
     if apply_lora_to_mlp:
         mlp = lora_gemma_mlp(
             dim=embed_dim,
@@ -215,23 +239,48 @@ def lora_gemma(
     else:
         mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim, quantize_base=quantize_base)
 
-    layer = TransformerSelfAttentionLayer(
-        attn=self_attn,
-        mlp=mlp,
-        sa_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
-        mlp_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
-    )
     tok_embeddings = GemmaNormEmbeddings(vocab_size, embed_dim)
     output_proj = TiedLinear(tok_embeddings)
+    
+    layers = torch.nn.ModuleList()
+    
+    for layer_idx in range(num_layers):
+        self_att = lora_gemma2_self_attention(
+            embed_dim=embed_dim,
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            head_dim=head_dim,
+            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            output_proj=nn.Linear(num_heads * head_dim, embed_dim, bias=False),
+            kv_cache=None,
+            max_seq_len=max_seq_len,
+            attn_dropout=attn_dropout,
+            # perform sliding window on half of the layers only
+            sliding_window_size=sliding_window_size if (layer_idx % 2)==0 else None,
+            softcapping=hidden_capping_value,
+            query_pre_attn_scalar=query_pre_attn_scalar
+        )
+        
+        layer = TransformerSelfAttentionLayer(
+            attn=self_att,
+            mlp=mlp,
+            sa_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
+            mlp_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
+            sa_scale=GemmaRMSNorm(embed_dim, eps=norm_eps),
+            mlp_scale=GemmaRMSNorm(embed_dim, eps=norm_eps),
+        )
+        layers.append(layer)
+        
     model = TransformerDecoder(
         tok_embeddings=tok_embeddings,
-        layers=layer,
-        num_layers=num_layers,
+        layers=layers,
         max_seq_len=max_seq_len,
         num_heads=num_heads,
         output=output_proj,
         head_dim=head_dim,
-        norm=GemmaRMSNorm(embed_dim, eps=norm_eps)
+        norm=Gemma2FinalNorm(final_capping_value, embed_dim, eps=norm_eps)
     )
 
     if quantize_base:
@@ -244,7 +293,7 @@ def lora_gemma(
     return model
 
 
-def lora_gemma_self_attention(
+def lora_gemma2_self_attention(
     lora_modules: List[LORA_ATTN_MODULES],
     *,
     # MultiHeadAttention args
@@ -255,13 +304,17 @@ def lora_gemma_self_attention(
     max_seq_len: int,
     attn_dropout: float = 0.0,
     rope_base: int = 10_000,
+    sliding_window_size: Optional[int] = None,
+    softcapping: Optional[float] = 50.,
+    query_pre_attn_scalar: Optional[int],
     # LoRA args
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
-) -> MultiHeadAttention:
+    
+) -> Gemma2Attention:
     if not lora_modules:
         raise ValueError(
             f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules"
@@ -336,57 +389,22 @@ def lora_gemma_self_attention(
     )
 
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = MultiHeadAttention(
-        embed_dim=embed_dim,
-        num_heads=num_heads,
-        num_kv_heads=num_kv_heads,
-        head_dim=head_dim,
-        q_proj=q_proj,
-        k_proj=k_proj,
-        v_proj=v_proj,
-        output_proj=output_proj,
-        pos_embeddings=rope,
-        max_seq_len=max_seq_len,
-        attn_dropout=attn_dropout,
-    )
-    return self_attn
-
-
-def lora_gemma_mlp(
-    *,
-    dim: int,
-    hidden_dim: int,
-    lora_rank: int,
-    lora_alpha: float,
-    lora_dropout: float = 0.0,
-    use_dora: bool = False,
-    quantize_base: bool = False,
-) -> FeedForward:
-    adapter_cls = DoRALinear if use_dora else LoRALinear
-    gate_proj = adapter_cls(
-        in_dim=dim,
-        out_dim=hidden_dim,
-        rank=lora_rank,
-        alpha=lora_alpha,
-        dropout=lora_dropout,
-        quantize_base=quantize_base,
-    )
-    down_proj = adapter_cls(
-        in_dim=hidden_dim,
-        out_dim=dim,
-        rank=lora_rank,
-        alpha=lora_alpha,
-        dropout=lora_dropout,
-        quantize_base=quantize_base,
-    )
-    up_proj = adapter_cls(
-        in_dim=dim,
-        out_dim=hidden_dim,
-        rank=lora_rank,
-        alpha=lora_alpha,
-        dropout=lora_dropout,
-        quantize_base=quantize_base,
-    )
-    activation = nn.GELU(approximate="tanh")
-
-    return FeedForward(gate_proj=gate_proj, down_proj=down_proj, up_proj=up_proj, activation=activation)
+    
+    self_att = Gemma2Attention(
+            embed_dim=embed_dim,
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            head_dim=head_dim,
+            q_proj=q_proj,
+            k_proj=k_proj,
+            v_proj=v_proj,
+            output_proj=output_proj,
+            pos_embeddings=rope,
+            kv_cache=None,
+            max_seq_len=max_seq_len,
+            attn_dropout=attn_dropout,
+            sliding_window_size=sliding_window_size,
+            softcapping=softcapping,
+            query_pre_attn_scalar=query_pre_attn_scalar
+        )
+    return self_att

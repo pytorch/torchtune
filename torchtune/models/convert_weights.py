@@ -38,8 +38,10 @@ _FROM_HF = {
     "model.layers.{}.mlp.gate_proj.weight": "layers.{}.mlp.w1.weight",
     "model.layers.{}.mlp.up_proj.weight": "layers.{}.mlp.w3.weight",
     "model.layers.{}.mlp.down_proj.weight": "layers.{}.mlp.w2.weight",
-    "model.layers.{}.input_layernorm.weight": "layers.{}.sa_norm.scale",
-    "model.layers.{}.post_attention_layernorm.weight": "layers.{}.mlp_norm.scale",
+    "model.layers.{}.input_layernorm.weight": "layers.{}.sa_norm.scale",  # mlp_norm.scale -> looks like a previous bug here  # noqa
+    "model.layers.{}.post_attention_layernorm.weight": "layers.{}.sa_scale.scale",
+    "model.layers.{}.post_feedforward_layernorm.weight": "layers.{}.mlp_norm.scale",
+    "model.layers.{}.pre_feedforward_layernorm.weight": "layers.{}.mlp_scale.scale",
     "model.norm.weight": "norm.scale",
     "lm_head.weight": "output.weight",
 }
