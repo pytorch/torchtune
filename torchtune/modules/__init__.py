@@ -7,6 +7,7 @@
 from .attention import MultiHeadAttention  # noqa
 from .attention_utils import create_block_causal_mask, packed_block_causal_mask
 from .common_utils import reparametrize_as_dtype_state_dict_post_hook
+from .lr_schedulers import get_cosine_schedule_with_warmup  # noqa
 from .feed_forward import FeedForward  # noqa
 from .kv_cache import KVCache  # noqa
 from .layer_norm import Fp32LayerNorm  # noqa
@@ -41,4 +42,5 @@ __all__ = [
     "reparametrize_as_dtype_state_dict_post_hook",
     "create_block_causal_mask",
     "packed_block_causal_mask",
+    "get_cosine_schedule_with_warmup",
 ]
