@@ -14,6 +14,7 @@ from torchtune.models.llama3_2_vision._component_builders import (
     llama3_2_vision_encoder,
 )
 from torchtune.modules import delete_kv_caches, disable_kv_cache, local_kv_cache
+from torchtune.modules.model_fusion import DeepFusionModel
 
 
 @pytest.fixture
