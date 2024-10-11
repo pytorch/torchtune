@@ -10,6 +10,8 @@ from torch.utils.data import Dataset
 
 from torchtune import utils
 
+from torchtune.datasets._packed import PackedDataset
+
 log = utils.get_logger("DEBUG")
 
 
@@ -34,6 +36,9 @@ class ConcatDataset(Dataset):
     Args:
         datasets (List[Dataset]): A list of datasets to concatenate. Each dataset must be an instance of a class
             derived from :class:`~torch.utils.data.Dataset`.
+
+    Raises:
+        ValueError: if instanse of `PackedDataset` is in `datasets`
 
     Examples:
         >>> dataset1 = MyCustomDataset(params1)
@@ -64,6 +69,13 @@ class ConcatDataset(Dataset):
 
     def __init__(self, datasets: List[Dataset]):
         self._datasets: List[Dataset] = datasets
+
+        for dataset in self._datasets:
+            if isinstance(dataset, PackedDataset):
+                raise ValueError(
+                    "ConcatDataset can't process instances of PackedDataset."
+                )
+
         self._len: int = sum(len(dataset) for dataset in datasets)
         self._indexes: List[Tuple[int, int, int]] = []
 
