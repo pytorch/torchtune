@@ -6,7 +6,7 @@
 
 from typing import Callable, Optional
 
-from torchao.dtypes import TensorCoreTiledLayoutType
+from torchao.dtypes import TensorCoreTiledLayout
 from torchao.quantization import (
     int4_weight_only,
     int8_dynamic_activation_int4_weight,
@@ -88,7 +88,7 @@ class Int4WeightOnlyQuantizer:
         self.inner_k_tiles = inner_k_tiles
 
     def quantize(self, model):
-        layout_type = TensorCoreTiledLayoutType(self.inner_k_tiles)
+        layout_type = TensorCoreTiledLayout(self.inner_k_tiles)
         quantize_fn = int4_weight_only(self.groupsize, layout_type)
         quantize_(model, quantize_fn)
         return model
