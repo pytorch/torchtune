@@ -196,6 +196,10 @@ def _sdpa_or_flex_attention() -> Callable:
                     "Using flex attention for attention computation since a BlockMask was passed in.",
                     level=logging.DEBUG,
                 )
+                if dropout_p > 0.0:
+                    raise ValueError(
+                        "Flex attention does not support dropout. Please set dropout to 0.0."
+                    )
                 return compile_friendly_flex_attention(
                     q,
                     k,
