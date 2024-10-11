@@ -59,4 +59,3 @@ def get_cosine_schedule_with_warmup(
         return max(0.0, cosine_lr_multiple)
 
     return LambdaLR(optimizer, lr_lambda, last_epoch)
-  
