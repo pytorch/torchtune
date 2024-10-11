@@ -412,7 +412,6 @@ class TestTransformerDecoder:
         input_pos: torch.Tensor,
         decoder_with_kv_cache_enabled: TransformerDecoder,
     ) -> None:
-
         with pytest.raises(ValueError, match="masks must be provided"):
             decoder_with_kv_cache_enabled(input, input_pos=input_pos)
 

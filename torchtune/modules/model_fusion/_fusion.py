@@ -388,6 +388,13 @@ class DeepFusionModel(nn.Module):
         """Check if the key value caches are setup."""
         return self.decoder.caches_are_setup()
 
+    def caches_are_enabled(self) -> bool:
+        """
+        Checks if the key value caches are enabled. KV-caches must also have been setup
+        for them to be enabled.
+        """
+        return self.decoder.caches_are_enabled()
+
     def reset_caches(self):
         """Reset the key value caches."""
         self.decoder.reset_caches()

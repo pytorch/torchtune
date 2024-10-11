@@ -24,7 +24,7 @@ from torchtune.data import (
 )
 from torchtune.generation import generate, sample
 from torchtune.modules import TransformerDecoder
-from torchtune.modules.common_utils import setup_use_local_kv_cache
+from torchtune.modules.common_utils import local_kv_cache
 from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
@@ -271,7 +271,7 @@ class _VLMEvalWrapper(HFMultimodalLM):
         batch["mask"] = causal_mask[None, :seq_len]
 
         # 2. Setup KV cache
-        with setup_use_local_kv_cache(
+        with local_kv_cache(
             self.model,
             batch_size=self.batch_size,
             device=self.device,
@@ -429,7 +429,7 @@ class _LLMEvalWrapper(HFLM):
             (0, 0, 0, self._batch_size - bsz),
             value=self._tokenizer.eos_id,  # pad with one of the tokenizer's stop tokens so generation can stop early
         )
-        with setup_use_local_kv_cache(
+        with local_kv_cache(
             self.model,
             batch_size=self.batch_size,
             device=self.device,

@@ -10,6 +10,7 @@ import sys
 from collections import OrderedDict
 from functools import partial
 from typing import Any, Dict, Generator, Optional, Tuple
+from warnings import warn
 
 import torch
 
@@ -167,48 +168,52 @@ def _register_reparametrize_state_dict_hooks(
 
 
 @contextlib.contextmanager
-def use_persistent_kv_cache(model: nn.Module) -> Generator[None, None, None]:
+def disable_kv_cache(model: nn.Module) -> Generator[None, None, None]:
     """
-    This context manager temporarily enables KV-cacheing on a given model, which must already
+    This context manager temporarily disables KV-cacheing on a given model, which must already
     already have KV-caches setup. All forward passes using the model within this context manager
-    will use KV-caches.
+    will not use KV-caches.
 
-    KV-caches will be enabled when entering the context manager, and will be reset and disabled upon exit,
-    without being deleted.
+    KV-caches will be disabled when entering the context manager, and will be enabled upon exit,
+    without being modified.
 
-    This is useful in cases where the maximum cache sequence length(s) is not expected to change,
-    and where we might wish to alternate between model calls which use KV-cacheing, and model calls
-    which do not use KV-cacheing, without the additional overhead of deleting and setting caches up
+    This is useful in cases where we might wish to alternate between model calls which use KV-cacheing,
+    and model calls which do not use KV-cacheing, without the additional overhead of deleting and setting caches up
     every time.
 
     Args:
-        model (nn.Module): model to enable KV-cacheing for.
+        model (nn.Module): model to disable KV-cacheing for.
 
     Yields:
-        None: Returns control to the caller with KV-caches enabled on the given model.
+        None: Returns control to the caller with KV-caches disable on the given model.
 
     Raises:
         ValueError: If the model does not have caches setup.
     """
     if not model.caches_are_setup():
         raise ValueError(
-            "Model caches must be setup before calling persistent_kv_cache! "
+            "Model caches must be setup before calling disable_kv_cache! "
             "Please use model.setup_caches() to setup model caches."
         )
-    for _, module in model.named_modules():
+    if not model.caches_are_enabled():
+        warn(
+            "You are using disable_kv_cache with a model that does not "
+            "have caches enabled. This is a no-op and the expected behaviour "
+            "may not occur."
+        )
+    for module in model.modules():
         if hasattr(module, "kv_cache") and callable(module.kv_cache):
-            module.kv_cache.cache_enabled = True
+            module.cache_enabled = False
     try:
         yield
     finally:
-        for _, module in model.named_modules():
+        for module in model.modules():
             if hasattr(module, "kv_cache") and callable(module.kv_cache):
-                module.kv_cache.cache_enabled = True
-        model.reset_caches()
+                module.cache_enabled = True
 
 
 @contextlib.contextmanager
-def setup_use_local_kv_cache(
+def local_kv_cache(
     model: nn.Module,
     *,
     batch_size: int,
@@ -224,6 +229,10 @@ def setup_use_local_kv_cache(
 
     KV-caches will be set-up with the given ``batch_size``, ``dtype``, and ``max_seq_len`` when
     entering the context manager, and will be deleted on exit.
+
+    Example:
+        >>> x = 1
+        >>> y = 2
 
     Args:
         model (nn.Module): model to enable KV-cacheing for.
@@ -245,7 +254,6 @@ def setup_use_local_kv_cache(
             "Model caches must be not setup prior to entering this context manager! "
             "Please use delete_kv_caches(model) to delete model caches."
         )
-
     # ensure caches are setup on the same device as the model
     with device:
         model.setup_caches(
@@ -254,9 +262,6 @@ def setup_use_local_kv_cache(
             encoder_max_seq_len=encoder_max_seq_len,
             decoder_max_seq_len=decoder_max_seq_len,
         )
-    for _, module in model.named_modules():
-        if hasattr(module, "kv_cache") and callable(module.kv_cache):
-            module.cache_enabled = True
     try:
         yield
     finally:
@@ -280,7 +285,7 @@ def delete_kv_caches(model: nn.Module):
             "You have tried to delete model caches, but `model.caches_are_setup()` "
             "is False!"
         )
-    for _, module in model.named_modules():
+    for module in model.modules():
         if hasattr(module, "kv_cache") and callable(module.kv_cache):
             module.cache_enabled = False
             module.kv_cache = None

@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 import copy
 from typing import Callable, Dict, List, Optional, Union
+from warnings import warn
 
 import torch
 import torch.nn.functional as F
@@ -430,8 +431,8 @@ class TransformerDecoder(nn.Module):
             )
 
     def caches_are_setup(self) -> bool:
-        """Check if the key value caches are setup. This is useful to efficient inference."""
-        return self.layers[0].cache_is_setup
+        """Check if the key value caches have been setup."""
+        return self.layers[0].attn.kv_cache is not None
 
     def reset_caches(self):
         """Reset the key value caches."""
@@ -442,6 +443,20 @@ class TransformerDecoder(nn.Module):
 
         for layer in self.layers:
             layer.reset_cache()
+
+    def caches_are_enabled(self) -> bool:
+        """
+        Checks if the key value caches are enabled. KV-caches must also have been setup
+        for them to be enabled.
+        """
+        if not self.caches_are_setup():
+            warn(
+                "You have called caches_are_enabled but caches have not been setup "
+                "on this model! Call setup_caches() first"
+            )
+            return False
+
+        return self.layers[0].attn.cache_enabled
 
     @torch.compiler.disable
     def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:
@@ -495,7 +510,7 @@ class TransformerDecoder(nn.Module):
                 f"than max_seq_len ({self.max_seq_len})"
             )
 
-        if self.caches_are_setup():
+        if self.caches_are_enabled():
             if mask is None:
                 raise ValueError(
                     "KV-caches for self-attention layers are setup for inference mode, causal masks must be provided!"
@@ -580,13 +595,7 @@ class TransformerDecoder(nn.Module):
         # input tensor of shape [b, s]
         bsz, seq_len = tokens.shape
 
-        self._validate_inputs(
-            seq_len,
-            mask=mask,
-            encoder_input=encoder_input,
-            encoder_mask=encoder_mask,
-            input_pos=input_pos,
-        )
+        self._validate_inputs(seq_len, mask, encoder_input, encoder_mask, input_pos)
 
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
