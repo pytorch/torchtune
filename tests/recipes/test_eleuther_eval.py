@@ -88,7 +88,7 @@ class TestEleutherEval:
 
         def mocked_import(name, *args, **kwargs):
             if name == "lm_eval":
-                raise ImportError()
+                raise ModuleNotFoundError("No module named 'lm_eval'")
             return import_orig(name, *args, **kwargs)
 
         monkeypatch.setattr(builtins, "__import__", mocked_import)
@@ -117,11 +117,8 @@ class TestEleutherEval:
         """.split()
 
         monkeypatch.setattr(sys, "argv", cmd)
-        with pytest.raises(SystemExit, match="1"):
+        with pytest.raises(ModuleNotFoundError, match="No module named 'lm_eval'"):
             runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        printed_err = capsys.readouterr().out
-        assert "ModuleNotFoundError: No module named 'lm_eval'" in printed_err
 
     @pytest.mark.integration_test
     def test_eval_recipe_errors_with_quantization_hf_checkpointer(
