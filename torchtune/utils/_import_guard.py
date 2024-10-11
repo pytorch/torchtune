@@ -22,6 +22,6 @@ _SUPPORTS_FLEX_ATTENTION = (
 torchao_version = _get_torchao_version()
 
 _NEW_TENSOR_CORE_TILED_LAYOUT_API = not _is_fbcode() and (
-    torchao_version >= "0.6.0"
+    ("dev" not in torchao_version and torchao_version >= "0.6.0")
     or ("dev" in torchao_version and _nightly_version_ge(torchao_version, "2024-10-10"))
 )
