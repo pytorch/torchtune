@@ -6,6 +6,8 @@
 
 from typing import Callable, Optional
 
+from torchtune.modules.low_precision._utils import _get_torchao_version
+
 if _get_torchao_version() >= (0, 6, 0):
     from torchao.dtypes import TensorCoreTiledLayout
 else:
