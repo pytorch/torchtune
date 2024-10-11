@@ -5,8 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from datetime import datetime
-from importlib.metadata import PackageNotFoundError, version
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 
@@ -44,33 +43,22 @@ def _nightly_version_ge(ao_version_str: str, date: str) -> bool:
     Returns True if the nightly version is greater than or equal to
         the date, False otherwise
     """
-    ao_datetime = datetime.strptime(ao_version_str.split("+")[0], "%Y.%m.%d")
+    ao_datetime = datetime.strptime(
+        ao_version_str.split("+")[0].split("dev")[1], "%Y%m%d"
+    )
     return ao_datetime >= datetime.strptime(date, "%Y-%m-%d")
 
 
-def _get_torchao_version() -> Tuple[Optional[str], Optional[bool]]:
+def _get_torchao_version() -> Optional[str]:
     """
-    Get torchao version. Returns a tuple of two elements, the first element
-    is the version string, the second element is whether it's a nightly version.
-    For fbcode usage, return None, None.
+    Get torchao version.
 
     Checks:
         1) is_fbcode, then
-        3) torchao.__version__ (only defined for torchao >= 0.3.0), then
-        4) importlib's version(torchao)
-
-
-    If none of these work, raise an error.
+        2) torchao.__version__ (only defined for torchao >= 0.3.0), then
 
     """
     if _is_fbcode():
-        return None, None
-    try:
-        ao_version = torchao.__version__
-    except AttributeError:
-        try:
-            ao_version = version("torchao")
-        except Exception as e:
-            raise PackageNotFoundError("Could not find torchao version") from e
-    is_nightly = "dev" in ao_version
-    return ao_version, is_nightly
+        return None
+    else:
+        return torchao.__version__
