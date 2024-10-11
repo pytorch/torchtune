@@ -456,6 +456,9 @@ be loaded into memory. For large-scale scenarios, consider other strategies that
 <dd class="field-odd"><p><strong>datasets</strong> (<em>List</em><em>[</em><em>Dataset</em><em>]</em>) – A list of datasets to concatenate. Each dataset must be an instance of a class
 derived from <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset" title="(in PyTorch v2.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a>.</p>
 </dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – if instanse of <cite>PackedDataset</cite> is in <cite>datasets</cite></p>
+</dd>
 </dl>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset1</span> <span class="o">=</span> <span class="n">MyCustomDataset</span><span class="p">(</span><span class="n">params1</span><span class="p">)</span>

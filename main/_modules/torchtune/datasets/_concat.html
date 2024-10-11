@@ -438,6 +438,8 @@
 
 <span class="kn">from</span> <span class="nn">torchtune</span> <span class="kn">import</span> <span class="n">utils</span>
 
+<span class="kn">from</span> <span class="nn">torchtune.datasets._packed</span> <span class="kn">import</span> <span class="n">PackedDataset</span>
+
 <span class="n">log</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;DEBUG&quot;</span><span class="p">)</span>
 
 
@@ -462,6 +464,9 @@
 <span class="sd">    Args:</span>
 <span class="sd">        datasets (List[Dataset]): A list of datasets to concatenate. Each dataset must be an instance of a class</span>
 <span class="sd">            derived from :class:`~torch.utils.data.Dataset`.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: if instanse of `PackedDataset` is in `datasets`</span>
 
 <span class="sd">    Examples:</span>
 <span class="sd">        &gt;&gt;&gt; dataset1 = MyCustomDataset(params1)</span>
@@ -492,6 +497,13 @@
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">datasets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dataset</span><span class="p">]):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_datasets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dataset</span><span class="p">]</span> <span class="o">=</span> <span class="n">datasets</span>
+
+        <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datasets</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">PackedDataset</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;ConcatDataset can&#39;t process instances of PackedDataset.&quot;</span>
+                <span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span> <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_indexes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
 
