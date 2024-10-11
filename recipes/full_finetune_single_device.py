@@ -214,6 +214,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             compile_model=self._compile,
             model_state_dict=ckpt_dict[training.MODEL_KEY],
+            quantizer_cfg=cfg.get("quantizer", None),
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
         log.info("Tokenizer is initialized from file.")
@@ -356,6 +357,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         enable_activation_checkpointing: bool,
         compile_model: bool,
         model_state_dict: Dict[str, Any],
+        quantizer_cfg: Optional[DictConfig] = None,
     ) -> nn.Module:
         """
         Set up the model including enabling activation checkpointing.
@@ -370,6 +372,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
+
+        if quantizer_cfg is not None:
+            log.info(f"Preparing model with {quantizer_cfg._component_}")
+            quantizer = config.instantiate(quantizer_cfg)
+            model = quantizer.prepare(model)
 
         model.load_state_dict(model_state_dict)
 

@@ -6,12 +6,15 @@
 
 from typing import Callable, Optional
 
+import torch
+from torch import nn
 from torchao.dtypes import TensorCoreTiledLayoutType
 from torchao.quantization import (
     int4_weight_only,
     int8_dynamic_activation_int4_weight,
     quantize_,
 )
+
 from torchao.quantization.prototype.qat import (
     disable_4w_fake_quant,
     disable_8da4w_fake_quant,
@@ -29,6 +32,27 @@ from torchao.quantization.prototype.qat._module_swap_api import (
     Int8DynActInt4WeightQATQuantizerModuleSwap,
 )
 
+from torchtune.modules import TransformerDecoder
+from torchtune.modules.low_precision._utils import _get_torchao_version
+from torchtune.modules.peft import DoRALinear, LoRALinear
+from torchtune.utils._version import torch_version_ge
+
+
+_TORCHAO_VERSION, _ = _get_torchao_version()
+
+_SUPPORTS_INT8_MIXED_PRECISION_TRAINING = (
+    torch_version_ge("2.4.0")
+    and tuple(_TORCHAO_VERSION.split(".")) >= ("0", "5", "0")
+    and torch.cuda.is_available()
+    and torch.cuda.get_device_capability() >= (8, 0)
+)
+
+if _SUPPORTS_INT8_MIXED_PRECISION_TRAINING:
+    from torchao.prototype.quantized_training import (
+        int8_mixed_precision_training,
+        Int8MixedPrecisionTrainingConfig,
+    )
+
 
 __all__ = [
     "get_quantizer_mode",
@@ -38,6 +62,7 @@ __all__ = [
     "Int8DynActInt4WeightQuantizer",
     "Int8DynActInt4WeightQATQuantizer",
     "Int8DynActInt4WeightQATQuantizerModuleSwap",
+    "Int8MixedPrecisionTrainingQuantizer",
 ]
 
 
@@ -125,6 +150,80 @@ _quantizer_mode_to_disable_fake_quant[
 _quantizer_mode_to_enable_fake_quant[
     "8da4w-qat-module-swap"
 ] = enable_8da4w_fake_quant_module_swap
+
+
+class Int8MixedPrecisionTrainingQuantizer:
+    """Apply INT8 mixed-precision training. This only affects weights of ``nn.Linear``
+    modules. During training, weights and activations are dynamically quantized to INT8
+    to utilize fast matrix multiplication with INT8 tensor cores. This is also done in
+    the backward pass.
+
+    The expected end2end speedup is 40% on a single A100 and 70% on a single 4090, with
+    minimal accuracy loss. If convergence is an issue, please refer to torchao
+    documentation below.
+
+    For more details, as well as details about arguments of this quantizer, please refer to
+    https://github.com/pytorch/ao/tree/main/torchao/prototype/quantized_training#int8-mixed-precision
+
+    Args:
+        output (bool): whether to apply INT8 mixed-precision for calculating output.
+        grad_input (bool): whether to apply INT8 mixed-precision for calculating grad_input.
+        grad_weight (bool): whether to apply INT8 mixed-precision for calculating grad_weight.
+
+    Raises:
+        RuntimeError: If runtime requirements for INT8 mixed-precision training are not met.
+
+    NOTE: Due to the limitations of the current implementation, the following
+    requirements must be satisfied to enjoy the expected speedup:
+
+    1. Must use ``torch.compile()`` (set ``compile=True``).
+    2. Inputs to the model must not be too dynamic. For example, when input tokens
+    length changes for every batch, you won't see the expected speedup.
+
+    To satisfy (2), you can use :class:`~torchtune.datasets.PackedDataset` (set
+    ``dataset.packed=True`` and ``tokenizer.max_seq_len`` to a desired value.), which
+    ensures input tokens always have fixed length.
+    """
+
+    def __init__(
+        self,
+        output: bool = True,
+        grad_input: bool = True,
+        grad_weight: bool = True,
+    ) -> None:
+        if not _SUPPORTS_INT8_MIXED_PRECISION_TRAINING:
+            raise RuntimeError(
+                "INT8 mixed-precision training requires torch>=2.4, torchao>=0.5, and"
+                " a CUDA capable device with compute capability >= 8.0"
+            )
+
+        self._config = Int8MixedPrecisionTrainingConfig(
+            output=output,
+            grad_input=grad_input,
+            grad_weight=grad_weight,
+        )
+
+    def prepare(self, model: nn.Module) -> nn.Module:
+        quantize_fn = int8_mixed_precision_training(self._config)
+
+        # custom filter_fn to work with torchtune's peft
+        def filter_fn(module: nn.Module, name: str) -> bool:
+            if isinstance(module, nn.Linear):
+                return not (name.endswith(".lora_a") or name.endswith(".lora_b"))
+
+            if isinstance(module, (LoRALinear, DoRALinear)):
+                return not module._quantize_base  # doesn't work with NF4 yet
+
+            return False
+
+        # Don't apply INT8 mixed-precision training to LM head since end2end speedup
+        # will be slightly worse. There are also possible issues with tied word
+        # embeddings.
+        if isinstance(model, TransformerDecoder):
+            quantize_(model.layers, quantize_fn, filter_fn=filter_fn)
+        else:
+            quantize_(model, quantize_fn, filter_fn=filter_fn)
+        return model
 
 
 def get_quantizer_mode(quantizer: Optional[Callable]) -> Optional[str]:
