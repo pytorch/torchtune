@@ -297,6 +297,7 @@ _ALL_RECIPES = [
         file_path="generate.py",
         configs=[
             Config(name="generation", file_path="generation.yaml"),
+            Config(name="qwen2/generation", file_path="qwen2/generation.yaml"),
         ],
         supports_distributed=False,
     ),
@@ -323,6 +324,10 @@ _ALL_RECIPES = [
             Config(
                 name="llama3_2_vision/evaluation",
                 file_path="llama3_2_vision/evaluation.yaml",
+            ),
+            Config(
+                name="qwen2/evaluation",
+                file_path="qwen2/evaluation.yaml",
             ),
         ],
         supports_distributed=False,
