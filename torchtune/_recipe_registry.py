@@ -297,7 +297,6 @@ _ALL_RECIPES = [
         file_path="generate.py",
         configs=[
             Config(name="generation", file_path="generation.yaml"),
-            Config(name="qwen2/generation", file_path="qwen2/generation.yaml"),
         ],
         supports_distributed=False,
     ),
