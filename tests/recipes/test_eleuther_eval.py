@@ -121,10 +121,7 @@ class TestEleutherEval:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         printed_err = capsys.readouterr().out
-        assert (
-            "You must install the EleutherAI Eval Harness to run this recipe"
-            in printed_err
-        )
+        assert "ModuleNotFoundError: No module named 'lm_eval'" in printed_err
 
     @pytest.mark.integration_test
     def test_eval_recipe_errors_with_quantization_hf_checkpointer(
