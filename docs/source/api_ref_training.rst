@@ -87,7 +87,7 @@ Utilities to control lr during the training process.
 
     get_cosine_schedule_with_warmup
 
-.. rs_schedulers:
+.. lr_scheduler_label:
 
 
 Metric Logging
