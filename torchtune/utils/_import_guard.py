@@ -5,12 +5,8 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
-from torchtune.utils._version import (
-    _get_torchao_version,
-    _is_fbcode,
-    _nightly_version_ge,
-    torch_version_ge,
-)
+import torchao
+from torchtune.utils._version import _is_fbcode, _nightly_version_ge, torch_version_ge
 
 # We can only use flex attention / BlockMask if torch version >= 2.5.0 and GPU is Turing / SM75 and above
 _SUPPORTS_FLEX_ATTENTION = (
@@ -19,9 +15,9 @@ _SUPPORTS_FLEX_ATTENTION = (
     and torch.cuda.get_device_capability() >= (7, 5)
 )
 
-torchao_version = _get_torchao_version()
+torchao_version = torchao.__version__
 
-_NEW_TENSOR_CORE_TILED_LAYOUT_API = not _is_fbcode() and (
+_USE_NEW_TENSOR_CORE_TILED_LAYOUT_API = not _is_fbcode() and (
     ("dev" not in torchao_version and torchao_version >= "0.6.0")
     or ("dev" in torchao_version and _nightly_version_ge(torchao_version, "2024-10-10"))
 )

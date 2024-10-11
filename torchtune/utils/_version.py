@@ -5,11 +5,8 @@
 # LICENSE file in the root directory of this source tree.
 
 from datetime import datetime
-from typing import Optional
 
 import torch
-
-import torchao
 
 
 def torch_version_ge(version: str) -> bool:
@@ -47,18 +44,3 @@ def _nightly_version_ge(ao_version_str: str, date: str) -> bool:
         ao_version_str.split("+")[0].split("dev")[1], "%Y%m%d"
     )
     return ao_datetime >= datetime.strptime(date, "%Y-%m-%d")
-
-
-def _get_torchao_version() -> Optional[str]:
-    """
-    Get torchao version.
-
-    Checks:
-        1) is_fbcode, then
-        2) torchao.__version__ (only defined for torchao >= 0.3.0), then
-
-    """
-    if _is_fbcode():
-        return None
-    else:
-        return torchao.__version__

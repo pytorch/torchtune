@@ -6,9 +6,9 @@
 
 from typing import Callable, Optional
 
-from torchtune.utils._import_guard import _NEW_TENSOR_CORE_TILED_LAYOUT_API
+from torchtune.utils._import_guard import _USE_NEW_TENSOR_CORE_TILED_LAYOUT_API
 
-if _NEW_TENSOR_CORE_TILED_LAYOUT_API:
+if _USE_NEW_TENSOR_CORE_TILED_LAYOUT_API:
     from torchao.dtypes import TensorCoreTiledLayout
 else:
     from torchao.dtypes import TensorCoreTiledLayoutType as TensorCoreTiledLayout
