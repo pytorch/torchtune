@@ -6,7 +6,11 @@
 
 from typing import Callable, Optional
 
-from torchao.dtypes import TensorCoreTiledLayout
+if _get_torchao_version() >= (0, 6, 0):
+    from torchao.dtypes import TensorCoreTiledLayout
+else:
+    from torchao.dtypes import TensorCoreTiledLayoutType as TensorCoreTiledLayout
+
 from torchao.quantization import (
     int4_weight_only,
     int8_dynamic_activation_int4_weight,
