@@ -17,6 +17,7 @@ from lm_eval.evaluator import evaluate, get_task_list
 from lm_eval.models.hf_vlms import HFMultimodalLM
 from lm_eval.models.huggingface import HFLM
 from lm_eval.tasks import get_task_dict, TaskManager
+from lm_eval.utils import make_table
 from omegaconf import DictConfig
 
 from torchtune import config, training, utils
@@ -548,7 +549,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         self.logger.info(
             f"Max memory allocated: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB"
         )
-        formatted_output = lm_eval.utils.make_table(output)
+        formatted_output = make_table(output)
         self.logger.info(f"\n\n{formatted_output}\n")
 
 
