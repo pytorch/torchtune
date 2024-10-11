@@ -181,6 +181,9 @@ def disable_kv_cache(model: nn.Module) -> Generator[None, None, None]:
     and model calls which do not use KV-cacheing, without the additional overhead of deleting and setting caches up
     every time.
 
+    Examples:
+        TODO
+
     Args:
         model (nn.Module): model to disable KV-cacheing for.
 
@@ -231,8 +234,7 @@ def local_kv_cache(
     entering the context manager, and will be deleted on exit.
 
     Example:
-        >>> x = 1
-        >>> y = 2
+        TODO
 
     Args:
         model (nn.Module): model to enable KV-cacheing for.
