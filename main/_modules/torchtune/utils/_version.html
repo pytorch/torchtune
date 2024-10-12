@@ -431,6 +431,9 @@
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
+
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+
 <span class="kn">import</span> <span class="nn">torch</span>
 
 
@@ -451,6 +454,24 @@
 <span class="sd">        True</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">version</span> <span class="ow">in</span> <span class="n">torch</span><span class="o">.</span><span class="n">__version__</span> <span class="ow">or</span> <span class="n">torch</span><span class="o">.</span><span class="n">__version__</span> <span class="o">&gt;=</span> <span class="n">version</span></div>
+
+
+<span class="k">def</span> <span class="nf">_is_fbcode</span><span class="p">():</span>
+    <span class="k">return</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">version</span><span class="p">,</span> <span class="s2">&quot;git_version&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_nightly_version_ge</span><span class="p">(</span><span class="n">ao_version_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">date</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compare a torchao nightly version to a date of the form</span>
+<span class="sd">    %Y-%m-%d.</span>
+
+<span class="sd">    Returns True if the nightly version is greater than or equal to</span>
+<span class="sd">        the date, False otherwise</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ao_datetime</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span>
+        <span class="n">ao_version_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;+&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;dev&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">&quot;</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">ao_datetime</span> <span class="o">&gt;=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 
              </article>
