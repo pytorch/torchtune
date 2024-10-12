@@ -241,9 +241,9 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
         # Finally, truncate if necessary
         if self.max_seq_len and len(tokenized_messages) >= self.max_seq_len:
             tokenized_messages = truncate(
-                tokenized_messages, self.max_seq_len, self.eos_id
+                tokenized_messages, self.max_seq_len, self.eos_id if add_eos else None
             )
-            mask = truncate(mask, self.max_seq_len, message.masked)
+            mask = truncate(mask, self.max_seq_len, message.masked if add_eos else None)
 
         return tokenized_messages, mask
 

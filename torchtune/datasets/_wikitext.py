@@ -63,6 +63,7 @@ def wikitext_dataset(
         column="page",
         max_seq_len=max_seq_len,
         name=subset,
+        packed=packed,
         filter_fn=filter_fn,
         split=split,
         **load_dataset_kwargs,
