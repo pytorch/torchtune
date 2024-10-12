@@ -3,9 +3,6 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-
-from unittest.mock import patch
-
 import numpy as np
 
 import pytest
@@ -13,7 +10,6 @@ import pytest
 from PIL.PngImagePlugin import PngImageFile
 from tests.common import ASSETS
 from tests.test_utils import DummyTokenizer
-from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
 from torchtune.datasets.multimodal import multimodal_instruct_dataset
 
@@ -76,4 +72,4 @@ class TestMultimodalInstructDataset:
                 )
             else:
                 assert label == expected_labels[i]
-            assert isinstance(image[0], PngImageFile) == True
+            assert isinstance(image[0], PngImageFile) is True
