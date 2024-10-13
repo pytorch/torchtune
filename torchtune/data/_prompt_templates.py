@@ -110,11 +110,22 @@ class PromptTemplate(PromptTemplateInterface):
             if message.role in self.template:
                 prepend_tag = self.template[message.role][0]
                 append_tag = self.template[message.role][1]
-                content = (
-                    [{"type": "text", "content": prepend_tag}]
-                    + message.content
-                    + [{"type": "text", "content": append_tag}]
-                )
+                if isinstance(prepend_tag, str) and isinstance(append_tag, str):
+                    content = (
+                        [{"type": "text", "content": prepend_tag}]
+                        + message.content
+                        + [{"type": "text", "content": append_tag}]
+                    )
+                elif not isinstance(prepend_tag, str) and isinstance(append_tag, str):
+                    content = message.content + [
+                        {"type": "text", "content": append_tag}
+                    ]
+                elif isinstance(prepend_tag, str) and not isinstance(append_tag, str):
+                    content = [
+                        {"type": "text", "content": prepend_tag}
+                    ] + message.content
+                else:
+                    content = {message.content}
             else:
                 content = message.content
             formatted_dialogue.append(
@@ -183,13 +194,30 @@ class ChatMLTemplate(PromptTemplateInterface):
                 and index == len(messages) - 1
                 and len(message.text_content) == 0
             ):
-                content = [{"type": "text", "content": prepend_tag}] + message.content
+                if isinstance(prepend_tag, str):
+                    content = [
+                        {"type": "text", "content": prepend_tag}
+                    ] + message.content
+                else:
+                    content = message.content
             else:
-                content = (
-                    [{"type": "text", "content": prepend_tag}]
-                    + message.content
-                    + [{"type": "text", "content": append_tag}]
-                )
+                if isinstance(prepend_tag, str) and isinstance(append_tag, str):
+                    content = (
+                        [{"type": "text", "content": prepend_tag}]
+                        + message.content
+                        + [{"type": "text", "content": append_tag}]
+                    )
+                elif not isinstance(prepend_tag, str) and isinstance(append_tag, str):
+                    content = message.content + [
+                        {"type": "text", "content": append_tag}
+                    ]
+                elif isinstance(prepend_tag, str) and not isinstance(append_tag, str):
+                    content = [
+                        {"type": "text", "content": prepend_tag}
+                    ] + message.content
+                else:
+                    content = {message.content}
+
             formatted_dialogue.append(
                 Message(
                     role=message.role,
