@@ -25,7 +25,7 @@ def multimodal_instruct_dataset(
     **load_dataset_kwargs: Dict[str, Any],
 ) -> Union[SFTDataset, PackedDataset]:
     """
-    Configure a custom multimodal dataset with user instruction prompts and model responses.
+    Configure a custom text+image dataset with separate columns for user instruction, image, and model response.
 
     This builder function can be used to configure a custom multimodal instruct dataset directly from the yaml config
     as an alternative to :class:`~torchtune.datasets.SFTDataset`, as it is made to be config friendly.
