@@ -53,6 +53,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+torchvenv/
 
 # Flask stuff
 instance/
@@ -187,3 +188,4 @@ cover/
 
 # wandb
 wandb/
+=0.4.2
