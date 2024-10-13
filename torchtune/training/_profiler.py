@@ -6,6 +6,7 @@
 
 
 import os
+import socket
 import time
 from functools import partial
 from pathlib import Path
@@ -98,7 +99,9 @@ def trace_handler(
     # Use tensorboard trace handler rather than directly exporting chrome traces since
     # tensorboard doesn't seem to be able to parse traces with prof.export_chrome_trace
     exporter = tensorboard_trace_handler(
-        curr_trace_dir, worker_name=f"rank{rank}", use_gzip=True
+        curr_trace_dir,
+        worker_name=f"rank{rank}_" + f"{socket.gethostname()}_{os.getpid()}",
+        use_gzip=True,
     )
     exporter(prof)
 
