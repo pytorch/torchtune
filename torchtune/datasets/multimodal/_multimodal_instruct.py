@@ -36,7 +36,7 @@ def multimodal_instruct_dataset(
 
         |  input          |  image          |  output          |
         |-----------------|-----------------|------------------|
-        | "user prompt"   | "user image"    | "model response" |
+        | "user prompt"   | images/1.jpg    | "model response" |
 
     If your column names are different, you can use the ``column_map`` parameter to change
     the expected column names. For example, if your dataset has columns ``"question"``,
