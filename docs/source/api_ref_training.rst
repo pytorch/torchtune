@@ -77,7 +77,7 @@ Utilities to reduce memory consumption during training.
 .. _metric_logging_label:
 
 Schedulers
------------------
+----------
 
 Utilities to control lr during the training process.
 
@@ -87,7 +87,7 @@ Utilities to control lr during the training process.
 
     get_cosine_schedule_with_warmup
 
-.. lr_scheduler_label:
+.. _lr_scheduler_label:
 
 
 Metric Logging
