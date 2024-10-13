@@ -110,7 +110,7 @@ class PromptTemplate(PromptTemplateInterface):
             if message.role in self.template:
                 prepend_tag = self.template[message.role][0]
                 append_tag = self.template[message.role][1]
-                content = {message.content}
+                content = message.content
 
                 if isinstance(prepend_tag, str) and len(prepend_tag) > 0:
                     content = [{"type": "text", "content": prepend_tag}] + content
@@ -192,7 +192,7 @@ class ChatMLTemplate(PromptTemplateInterface):
                 else:
                     content = message.content
             else:
-                content = {message.content}
+                content = message.content
 
                 if isinstance(prepend_tag, str) and len(prepend_tag) > 0:
                     content = [{"type": "text", "content": prepend_tag}] + content
