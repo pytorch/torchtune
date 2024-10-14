@@ -74,7 +74,7 @@ Utilities to reduce memory consumption during training.
     create_optim_in_bwd_wrapper
     register_optim_in_bwd_hooks
 
-.. _metric_logging_label:
+.. _lr_scheduler_label:
 
 Schedulers
 ----------
@@ -87,8 +87,7 @@ Utilities to control lr during the training process.
 
     get_cosine_schedule_with_warmup
 
-.. _lr_scheduler_label:
-
+.. _metric_logging_label:
 
 Metric Logging
 --------------
