@@ -217,7 +217,9 @@ class InputOutputToMessages(Transform):
         else:
             content = [{"type": "text", "content": sample[self._column_map["input"]]}]
 
-        output_content = [{"type": "text", "content": sample[self._column_map["output"]]}]
+        output_content = [
+            {"type": "text", "content": sample[self._column_map["output"]]}
+        ]
 
         messages = [
             Message(
