@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 import copy
 from typing import Callable, Dict, List, Optional, Union
-from warnings import warn
 
 import torch
 import torch.nn.functional as F
@@ -64,8 +63,7 @@ class TransformerSelfAttentionLayer(nn.Module):
         """
         self.attn.setup_cache(batch_size, dtype, max_seq_len=decoder_max_seq_len)
 
-    @property
-    def cache_is_setup(self) -> bool:
+    def caches_are_setup(self) -> bool:
         """Check if the key value caches are setup."""
         return self.attn.kv_cache is not None
 
@@ -184,8 +182,7 @@ class TransformerCrossAttentionLayer(nn.Module):
         """
         self.attn.setup_cache(batch_size, dtype, encoder_max_seq_len)
 
-    @property
-    def cache_is_setup(self) -> bool:
+    def caches_are_setup(self) -> bool:
         """Check if the key value caches are setup."""
         return self.attn.kv_cache is not None
 
@@ -254,7 +251,7 @@ class TransformerCrossAttentionLayer(nn.Module):
         """
         # During decoding, it's possible encoder_input is None because the embeds
         # are already stored in the kv cache.
-        empty_cache = not self.cache_is_setup or self.attn.kv_cache.size == 0
+        empty_cache = not self.caches_are_setup() or self.attn.kv_cache.size == 0
         # Skip cross attention when no secondary input as it's primary purpose
         # is to attend between x and encoder_input.
         if encoder_input is None and empty_cache:
@@ -450,14 +447,7 @@ class TransformerDecoder(nn.Module):
         Checks if the key value caches are enabled. KV-caches must also have been setup
         for them to be enabled.
         """
-        if not self.caches_are_setup():
-            warn(
-                "You have called caches_are_enabled but caches have not been setup "
-                "on this model! Call setup_caches() first"
-            )
-            return False
-
-        return self.layers[0].attn.cache_enabled
+        return self.layers[0].attn.cache_enabled and self.caches_are_setup()
 
     @torch.compiler.disable
     def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:

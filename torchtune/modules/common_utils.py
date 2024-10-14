@@ -181,14 +181,42 @@ def disable_kv_cache(model: nn.Module) -> Generator[None, None, None]:
     and model calls which do not use KV-cacheing, without the additional overhead of deleting and setting caches up
     every time.
 
-    Examples:
-        TODO
+    Example:
+        >>> from torchtune.models.llama3_2 import llama3_2_1b
+        >>> from torchtune.modules import disable_kv_cache
+        >>> import torch
+        >>> model = llama3_2_1b()
+        >>> # setup caches
+        >>> model.setup_caches(batch_size=1,
+        >>>                     dtype=torch.float32,
+        >>>                     decoder_max_seq_len=1024)
+        >>> print(model.caches_are_setup())
+        True
+        >>> print(model.caches_are_enabled())
+        True
+        >>> print(model.layers[0].attn.kv_cache)
+        KVCache()
+        >>> # now temporarily disable caches
+        >>> with disable_kv_cache(model):
+        >>>     print(model.caches_are_setup())
+        >>>     True
+        >>>     print(model.caches_are_enabled())
+        >>>     False
+        >>>     print(model.layers[0].attn.kv_cache)
+        >>>     # KVCache()
+        >>> # caches are now re-enabled, and their state is untouched
+        >>> print(model.caches_are_setup())
+        True
+        >>> print(model.caches_are_enabled())
+        True
+        >>> print(model.layers[0].attn.kv_cache)
+        >>> KVCache()
 
     Args:
         model (nn.Module): model to disable KV-cacheing for.
 
     Yields:
-        None: Returns control to the caller with KV-caches disable on the given model.
+        None: Returns control to the caller with KV-caches disabled on the given model.
 
     Raises:
         ValueError: If the model does not have caches setup.
@@ -234,7 +262,35 @@ def local_kv_cache(
     entering the context manager, and will be deleted on exit.
 
     Example:
-        TODO
+        >>> from torchtune.models.llama3_2 import llama3_2_1b
+        >>> from torchtune.modules import local_kv_cache
+        >>> import torch
+        >>> model = llama3_2_1b()
+        >>> print(model.caches_are_setup())
+        False
+        >>> print(model.caches_are_enabled())
+        False
+        >>> print(model.layers[0].attn.kv_cache)
+        None
+        >>> # entering cacheing mode
+        >>> with local_kv_cache(model,
+        >>>                     batch_size=1,
+        >>>                     device=torch.device("cpu"),
+        >>>                     dtype=torch.float32,
+        >>>                     decoder_max_seq_len=1024):
+        >>>     print(model.caches_are_setup())
+        True
+        >>>     print(model.caches_are_enabled())
+        True
+        >>>     print(model.layers[0].attn.kv_cache)
+        KVCache()
+        >>> # exited cacheing mode
+        >>> print(model.caches_are_setup())
+        False
+        >>> print(model.caches_are_enabled())
+        False
+        >>> print(model.layers[0].attn.kv_cache)
+        None
 
     Args:
         model (nn.Module): model to enable KV-cacheing for.
@@ -275,6 +331,27 @@ def delete_kv_caches(model: nn.Module):
     Deletes KV caches from all attention layers in a model,
     and also ensures ``cache_enabled`` is set to False.
 
+    Example:
+        >>> from torchtune.models.llama3_2 import llama3_2_1b
+        >>> from torchtune.modules import delete_kv_caches
+        >>> import torch
+        >>> model = llama3_2_1b()
+        >>> model.setup_caches(batch_size=1,
+        >>>                     dtype=torch.float32,
+        >>>                     decoder_max_seq_len=1024)
+        >>> print(model.caches_are_setup())
+        >>> True
+        >>> print(model.caches_are_enabled())
+        >>> True
+        >>> print(model.layers[0].attn.kv_cache)
+        >>> KVCache()
+        >>> delete_kv_caches(model)
+        >>> print(model.caches_are_setup())
+        >>> False
+        >>> print(model.caches_are_enabled())
+        >>> False
+        >>> print(model.layers[0].attn.kv_cache)
+        >>> None
     Args:
         model (nn.Module): model to enable KV-cacheing for.
 

@@ -104,7 +104,7 @@ class GemmaTransformerDecoder(nn.Module):
         if decoder_max_seq_len is not None:
             self.decoder_max_seq_len = decoder_max_seq_len
         for layer in self.layers:
-            layer.setup_cache(
+            layer.setup_caches(
                 batch_size,
                 dtype,
                 encoder_max_seq_len=encoder_max_seq_len,
