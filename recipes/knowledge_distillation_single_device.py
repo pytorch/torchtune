@@ -31,10 +31,13 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.utils import is_torch_npu_available
 
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
+
+is_npu_available = is_torch_npu_available()
 
 
 class KDRecipeSingleDevice(FTRecipeInterface):
@@ -439,7 +442,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
 
         log.info(f"Model is initialized with precision {self._dtype}.")
 
-        if self._device.type == "cuda":
+        if self._device.type == "cuda" or self._device.type == "npu":
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
         return model
@@ -678,13 +681,14 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                     ):
                         break
 
-                    # Start tracking CUDA memory for active steps for just the first epoch
+                    # Start tracking CUDA or NPU memory for active steps for just the first epoch
                     if (
                         curr_epoch == 0
                         and self.profiler_profile_memory
                         and idx == self.profiler_wait_steps + self.profiler_warmup_steps
                     ):
-                        torch.cuda.memory._record_memory_history()
+                        backend = "npu" if is_npu_available else "cuda"
+                        getattr(torch, backend).memory._record_memory_history()
 
                     batch = {k: v.to(self._device) for k, v in batch.items()}
                     num_tokens += batch["tokens"].numel()
@@ -731,8 +735,8 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                             }
                             if (
                                 self._device.type == "cuda"
-                                and self._log_peak_memory_stats
-                            ):
+                                or self._device.type == "npu"
+                            ) and self._log_peak_memory_stats:
                                 log_dict.update(
                                     training.get_memory_stats(device=self._device)
                                 )
@@ -749,7 +753,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                         num_tokens = 0
                         t0 = time.perf_counter()
 
-                    # Stop tracking CUDA memory now that active steps are complete
+                    # Stop tracking CUDA or NPU memory now that active steps are complete
                     if (
                         curr_epoch == 0
                         and self.profiler_profile_memory
@@ -758,7 +762,10 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                         + self.profiler_warmup_steps
                         + self.profiler_active_steps
                     ):
-                        torch.cuda.memory._record_memory_history(enabled=None)
+                        backend = "npu" if is_npu_available else "cuda"
+                        getattr(torch, backend).memory._record_memory_history(
+                            enable=None
+                        )
 
                     # Step the profiler
                     # Note we are stepping each batch, which might not include optimizer step in the trace

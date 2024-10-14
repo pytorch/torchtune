@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from ._device import batch_to_device, get_device
+from ._device_support import is_torch_npu_available
 from ._logging import get_logger
 
 from ._version import torch_version_ge
@@ -14,4 +15,5 @@ __all__ = [
     "get_device",
     "get_logger",
     "torch_version_ge",
+    "is_torch_npu_available",
 ]
