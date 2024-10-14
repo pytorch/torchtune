@@ -5,8 +5,9 @@
 # LICENSE file in the root directory of this source tree.
 
 
+import datetime
+import glob
 import os
-import socket
 import time
 from functools import partial
 from pathlib import Path
@@ -100,10 +101,20 @@ def trace_handler(
     # tensorboard doesn't seem to be able to parse traces with prof.export_chrome_trace
     exporter = tensorboard_trace_handler(
         curr_trace_dir,
-        worker_name=f"rank{rank}_" + f"{socket.gethostname()}_{os.getpid()}",
+        worker_name="rank0",
         use_gzip=True,
     )
     exporter(prof)
+
+    latest_trace = max(
+        glob.glob(curr_trace_dir + "/*.pt.trace.json.gz"), key=os.path.getctime
+    )
+
+    now = datetime.datetime.now()
+    os.rename(
+        latest_trace,
+        f"{curr_trace_dir}/r0-{now.year}-{now.month}-{now.day}-{now.hour}-{now.minute}.pt.trace.json.gz",
+    )
 
     if rank == 0:
         log.info(f"Finished dumping traces in {time.monotonic() - begin:.2f} seconds")
