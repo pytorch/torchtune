@@ -161,11 +161,10 @@ class InputOutputToMessages(Transform):
             keeping the default "input" and "output" column names.
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Default is None.
-        if_multimodal (bool): Whether is dataset multimodal or not.
 
     Raises:
         ValueError: If ``column_map`` is provided and ``input`` not in ``column_map``, or
-            ``output`` not in ``column_map`` or ``image`` not in ``column_map``.
+            ``output`` not in ``column_map``.
     """
 
     def __init__(
@@ -173,31 +172,35 @@ class InputOutputToMessages(Transform):
         train_on_input: bool = False,
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
-        is_multimodal: bool = False,
     ):
         self.train_on_input = train_on_input
         self.new_system_prompt = new_system_prompt
-        self.is_multimodal = is_multimodal
-        if column_map:
-            if "input" not in column_map:
+
+        self.column_map = column_map
+
+        if self.column_map:
+            if "input" not in self.column_map:
                 raise ValueError(
-                    f"Expected a key of 'input' in column_map but found {column_map.keys()}."
+                    f"Expected a key of 'input' in column_map but found {self.column_map.keys()}."
                 )
-            if "output" not in column_map:
+            if "output" not in self.column_map:
                 raise ValueError(
-                    f"Expected a key of 'output' in column_map but found {column_map.keys()}."
+                    f"Expected a key of 'output' in column_map but found {self.column_map.keys()}."
                 )
-            if "image" not in column_map:
-                raise ValueError(
-                    f"Expected a key of 'image' in column_map but found {column_map.keys()}."
-                )
-                
+
             self._column_map = column_map
-        else:
-            self._column_map = {"input": "input", "output": "output", "image": "image"}
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
-        if self.is_multimodal:
+        is_multimodal = "image" in sample or (
+            "image" in self._column_map and self._column_map["image"] in sample
+        )
+
+        if not self.column_map and is_multimodal:
+            self._column_map = {"input": "input", "output": "output", "image": "image"}
+        else:
+            self._column_map = {"input": "input", "output": "output"}
+
+        if is_multimodal:
             image_path = sample[self._column_map["image"]]
             pil_image = load_image(image_path)
             content = [
@@ -205,10 +208,8 @@ class InputOutputToMessages(Transform):
                 {"type": "text", "content": sample[self._column_map["input"]]},
             ]
         else:
-            content = [
-                {"type": "text", "content": sample[self._column_map["input"]]}
-            ]
-        
+            content = [{"type": "text", "content": sample[self._column_map["input"]]}]
+
         messages = [
             Message(
                 role="user",

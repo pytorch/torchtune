@@ -9,17 +9,15 @@ from typing import Any, Callable, Dict, Optional, Union
 from torchtune.data import InputOutputToMessages
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
-from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.modules.transforms import Transform
 
 
 def multimodal_instruct_dataset(
-    tokenizer: ModelTokenizer,
+    model_transform: Transform,
     *,
     source: str,
     column_map: Optional[Dict[str, str]] = None,
-    train_on_input: bool = False,
     new_system_prompt: Optional[str] = None,
-    packed: bool = False,
     filter_fn: Optional[Callable] = None,
     split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],
@@ -51,7 +49,9 @@ def multimodal_instruct_dataset(
     - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)
 
     Args:
-        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
+        model_transform (Transform): callable that applies model-specific pre-processing to the sample.
+            This includes tokenization and any modality-specific transforms. It is expected to return at
+            minimum ``"tokens"`` and ``"mask"`` keys.
         source (str): path to dataset repository on Hugging Face. For local datasets,
             define source as the data file type (e.g. "json", "csv", "text"), pass
             in the filepath in ``data_files``, and set ``split="train"``. See `Hugging Face's
@@ -61,11 +61,8 @@ def multimodal_instruct_dataset(
             and "output" column names to the actual column names in the dataset. Keys should be "input" and
             "output" and values should be the actual column names. Default is None, keeping the default "input"
             and "output" column names.
-        train_on_input (bool): Whether the model is trained on the user prompt or not.
-            Default is False.
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Default is None.
-        packed (bool): Whether or not to pack the dataset to tokenizer's ``max_seq_len`` prior to training. Default is False.
         filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
             the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
             details.
@@ -95,7 +92,7 @@ def multimodal_instruct_dataset(
 
         >>> from torchtune.datasets.multimodal import multimodal_instruct_dataset
         >>> dataset = multimodal_instruct_dataset(
-        ...     tokenizer=tokenizer,
+        ...     model_transform=model_transform,
         ...     source="json",
         ...     data_files="my_dataset.json",
         ...     column_map={
@@ -103,12 +100,10 @@ def multimodal_instruct_dataset(
         ...         "output": "answer",
         ...         "image": "picture"
         ...     },
-        ...     train_on_input=False,
-        ...     packed=False,
         ...     split="train",
         ... )
         >>> tokens = dataset[0]["tokens"]
-        >>> tokenizer.decode(tokens)
+        >>> model_transform.decode(tokens)
         "What is presented on the image?PyTorch logo."
 
     This can also be accomplished via the yaml config:
@@ -129,30 +124,17 @@ def multimodal_instruct_dataset(
     Returns:
         Union[SFTDataset, PackedDataset]: the configured :class:`~torchtune.datasets.SFTDataset`
             or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``
-
-    Raises:
-        ValueError: If ``packed=True`` and ``tokenizer.max_seq_len`` is not set.
     """
     message_transform = InputOutputToMessages(
-        train_on_input=train_on_input,
-        column_map=column_map,
-        new_system_prompt=new_system_prompt,
-        is_multimodal=True,
+        column_map=column_map, new_system_prompt=new_system_prompt
     )
 
     ds = SFTDataset(
         source=source,
         message_transform=message_transform,
-        model_transform=tokenizer,
+        model_transform=model_transform,
         filter_fn=filter_fn,
         split=split,
         **load_dataset_kwargs,
     )
-
-    if packed:
-        if tokenizer.max_seq_len is None:
-            raise ValueError(
-                "PackedDataset requires a max_seq_len to be set on the tokenizer."
-            )
-        return PackedDataset(ds, max_seq_len=tokenizer.max_seq_len)
     return ds

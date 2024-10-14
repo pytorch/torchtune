@@ -6,8 +6,8 @@
 
 from ._llava_instruct import llava_instruct_dataset
 from ._multimodal import multimodal_chat_dataset
-from ._the_cauldron import the_cauldron_dataset
 from ._multimodal_instruct import multimodal_instruct_dataset
+from ._the_cauldron import the_cauldron_dataset
 
 __all__ = [
     "the_cauldron_dataset",
