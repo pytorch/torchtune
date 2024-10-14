@@ -332,6 +332,10 @@ _ALL_RECIPES = [
                 name="gemma/evaluation",
                 file_path="gemma/evaluation.yaml",
             ),
+            Config(
+                name="phi3/evaluation",
+                file_path="phi3/evaluation.yaml",
+            ),
         ],
         supports_distributed=False,
     ),
