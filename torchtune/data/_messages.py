@@ -187,28 +187,37 @@ class InputOutputToMessages(Transform):
                 raise ValueError(
                     f"Expected a key of 'output' in column_map but found {self.column_map.keys()}."
                 )
+        else:
+            self.column_map = {"input": "input", "output": "output"}
 
-            self._column_map = column_map
+        self._column_map = column_map
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        print(self._column_map)
         is_multimodal = "image" in sample or (
             "image" in self._column_map and self._column_map["image"] in sample
         )
 
-        if not self.column_map and is_multimodal:
+        if not self._column_map and is_multimodal:
             self._column_map = {"input": "input", "output": "output", "image": "image"}
-        else:
+        elif not self._column_map and not is_multimodal:
             self._column_map = {"input": "input", "output": "output"}
 
         if is_multimodal:
             image_path = sample[self._column_map["image"]]
-            pil_image = load_image(image_path)
+            if isinstance(image_path, str):
+                # Load if not loaded
+                pil_image = load_image(image_path)
+            else:
+                pil_image = image_path
             content = [
                 {"type": "image", "content": pil_image},
                 {"type": "text", "content": sample[self._column_map["input"]]},
             ]
         else:
             content = [{"type": "text", "content": sample[self._column_map["input"]]}]
+
+        output_content = [{"type": "text", "content": sample[self._column_map["output"]]}]
 
         messages = [
             Message(
@@ -219,7 +228,7 @@ class InputOutputToMessages(Transform):
             ),
             Message(
                 role="assistant",
-                content=sample[self._column_map["output"]],
+                content=output_content,
                 masked=False,
                 eot=True,
             ),
