@@ -53,7 +53,6 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-torchvenv/
 
 # Flask stuff
 instance/

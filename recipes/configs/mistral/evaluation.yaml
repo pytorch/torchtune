@@ -15,7 +15,6 @@ checkpointer:
     pytorch_model-00001-of-00002.bin,
     pytorch_model-00002-of-00002.bin
   ]
-  recipe_checkpoint: null
   output_dir: /tmp/Mistral-7B-v0.1/
   model_type: MISTRAL
 resume_from_checkpoint: False
