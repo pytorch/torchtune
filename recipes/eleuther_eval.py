@@ -440,6 +440,16 @@ class EleutherEvalRecipe(EvalRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
+        # Double check we have the right Eval Harness version
+        from importlib.metadata import version
+
+        if version("lm-eval") != "0.4.5":
+            raise RuntimeError(
+                "This recipe requires EleutherAI Eval Harness v0.4.5. "
+                "Please install with `pip install lm-eval==0.4.5`"
+            )
+
+        # General variable initialization
         self.device = utils.get_device(device=cfg.device)
         self.dtype = training.get_dtype(dtype=cfg.dtype, device=self.device)
         self.logger = utils.get_logger(cfg.get("log_level", "info"))
