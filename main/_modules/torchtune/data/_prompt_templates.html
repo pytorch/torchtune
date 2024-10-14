@@ -535,16 +535,17 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">formatted_dialogue</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span>
             <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">:</span>
                 <span class="n">prepend_tag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">[</span><span class="n">message</span><span class="o">.</span><span class="n">role</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
                 <span class="n">append_tag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">[</span><span class="n">message</span><span class="o">.</span><span class="n">role</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
-                <span class="n">content</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="p">[{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">prepend_tag</span><span class="p">}]</span>
-                    <span class="o">+</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span>
-                    <span class="o">+</span> <span class="p">[{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">append_tag</span><span class="p">}]</span>
-                <span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
                 <span class="n">content</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span>
+
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prepend_tag</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">prepend_tag</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">content</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">prepend_tag</span><span class="p">}]</span> <span class="o">+</span> <span class="n">content</span>
+
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">append_tag</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">append_tag</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">content</span> <span class="o">=</span> <span class="n">content</span> <span class="o">+</span> <span class="p">[{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">append_tag</span><span class="p">}]</span>
             <span class="n">formatted_dialogue</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="n">Message</span><span class="p">(</span>
                     <span class="n">role</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">role</span><span class="p">,</span>
@@ -611,13 +612,20 @@
                 <span class="ow">and</span> <span class="n">index</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
                 <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">text_content</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
             <span class="p">):</span>
-                <span class="n">content</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">prepend_tag</span><span class="p">}]</span> <span class="o">+</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prepend_tag</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">prepend_tag</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">content</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">prepend_tag</span><span class="p">}</span>
+                    <span class="p">]</span> <span class="o">+</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">content</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="p">[{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">prepend_tag</span><span class="p">}]</span>
-                    <span class="o">+</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span>
-                    <span class="o">+</span> <span class="p">[{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">append_tag</span><span class="p">}]</span>
-                <span class="p">)</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span>
+
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prepend_tag</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">prepend_tag</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">content</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">prepend_tag</span><span class="p">}]</span> <span class="o">+</span> <span class="n">content</span>
+
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">append_tag</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">append_tag</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">content</span> <span class="o">=</span> <span class="n">content</span> <span class="o">+</span> <span class="p">[{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">append_tag</span><span class="p">}]</span>
+
             <span class="n">formatted_dialogue</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="n">Message</span><span class="p">(</span>
                     <span class="n">role</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">role</span><span class="p">,</span>
