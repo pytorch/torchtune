@@ -335,7 +335,7 @@ _ALL_RECIPES = [
             Config(
                 name="phi3/evaluation",
                 file_path="phi3/evaluation.yaml",
-            )
+            ),
         ],
         supports_distributed=False,
     ),
