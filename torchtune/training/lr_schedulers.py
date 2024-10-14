@@ -54,3 +54,27 @@ def get_cosine_schedule_with_warmup(
         return max(0.0, cosine_lr_multiple)
 
     return LambdaLR(optimizer, lr_lambda, last_epoch)
+
+
+def get_lr(optimizer_in_bwd, optimizer) -> str:
+    """
+    Full_finetune_distributed and full_finetune_single_deivce assume all optimizers have
+    the same LR, here to validate whether all the LR are the same and return if True.
+    """
+    if optimizer_in_bwd:
+        param_groups = []
+        for param in optimizer.values():
+            param_groups.append(param["param_groups"][0])
+    else:
+        param_groups = optimizer.param_groups
+    if len(param_groups) < 1:
+        raise RuntimeError(
+            f"Invalid optimizer param groups with len of: {len(param_groups)}"
+        )
+
+    # LR Schedulers are the same across all param groups for full_finetune right now
+    lr_scheduler = param_groups[0]["lr"]
+    for group in param_groups:
+        if group["lr"] != lr_scheduler:
+            raise RuntimeError("LR Schedulers are dfferent across all param groups ")
+    return lr_scheduler

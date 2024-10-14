@@ -26,6 +26,7 @@ from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.activations import apply_selective_activation_checkpointing
+from torchtune.training.lr_schedulers import get_lr
 
 from tqdm import tqdm
 
@@ -734,7 +735,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
                             "loss": loss_to_log,
-                            "lr": self.get_lr(),
+                            "lr": get_lr(
+                                self._optimizer_in_bwd,
+                                self._optim_ckpt_wrapper.state_dict()
+                                if self._optimizer_in_bwd
+                                else self._optimizer,
+                            ),
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._log_peak_memory_stats:
@@ -774,27 +780,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self.save_checkpoint(epoch=curr_epoch)
 
         self._profiler.stop()
-
-    def get_lr(self) -> float:
-        if self._optimizer_in_bwd:
-            param_groups = []
-            for param in self._optim_ckpt_wrapper.state_dict().values():
-                param_groups.append(param["param_groups"][0])
-        else:
-            param_groups = self._optimizer.param_groups
-        if len(param_groups) < 1:
-            raise RuntimeError(
-                f"Invalid optimizer param groups with len of: {len(param_groups)}"
-            )
-
-        # LR Schedulers are the same across all param groups for full_finetune right now
-        lr_scheduler = param_groups[0]["lr"]
-        for group in param_groups:
-            if group["lr"] != lr_scheduler:
-                raise RuntimeError(
-                    "LR Schedulers are dfferent across all param groups "
-                )
-        return lr_scheduler
 
     def cleanup(self) -> None:
         if self._is_rank_zero:
