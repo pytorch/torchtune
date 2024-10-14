@@ -6,7 +6,6 @@
 
 
 import datetime
-import glob
 import os
 import time
 from functools import partial
@@ -99,22 +98,15 @@ def trace_handler(
 
     # Use tensorboard trace handler rather than directly exporting chrome traces since
     # tensorboard doesn't seem to be able to parse traces with prof.export_chrome_trace
+
+    now = datetime.datetime.now()
+
     exporter = tensorboard_trace_handler(
         curr_trace_dir,
-        worker_name="rank0",
+        worker_name=f"r0-{now.year}-{now.month}-{now.day}-{now.hour}-{now.minute}",
         use_gzip=True,
     )
     exporter(prof)
-
-    latest_trace = max(
-        glob.glob(curr_trace_dir + "/*.pt.trace.json.gz"), key=os.path.getctime
-    )
-
-    now = datetime.datetime.now()
-    os.rename(
-        latest_trace,
-        f"{curr_trace_dir}/r0-{now.year}-{now.month}-{now.day}-{now.hour}-{now.minute}.pt.trace.json.gz",
-    )
 
     if rank == 0:
         log.info(f"Finished dumping traces in {time.monotonic() - begin:.2f} seconds")
