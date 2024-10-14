@@ -337,10 +337,10 @@ _ALL_RECIPES = [
                 file_path="phi3/evaluation.yaml",
 
             ),
-          Config(
+            Config(
                 name="mistral/evaluation",
                 file_path="mistral/evaluation.yaml",
-          ),
+            ),
         ],
         supports_distributed=False,
     ),
