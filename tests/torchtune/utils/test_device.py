@@ -14,7 +14,7 @@ import pytest
 import torch
 from torchtune.utils._device import (
     _get_device_type_from_env,
-    _setup_cuda_device,
+    _setup_device,
     batch_to_device,
     get_device,
 )
@@ -83,7 +83,7 @@ class TestDevice:
 
         # Test that we fall back to 0 if LOCAL_RANK is not specified
         device = torch.device(_get_device_type_from_env())
-        device = _setup_cuda_device(device)
+        device = _setup_device(device)
         assert device.type == "cuda"
         assert device.index == 0
         assert device.index == torch.cuda.current_device()

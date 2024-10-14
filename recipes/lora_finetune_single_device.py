@@ -38,9 +38,13 @@ from torchtune.training import (
     OffloadActivations,
     PROFILER_KEY,
 )
+from torchtune.utils import is_torch_npu_available
+
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
+
+is_npu_available = is_torch_npu_available()
 
 
 class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
@@ -135,6 +139,23 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             raise ValueError(
                 "fp16 precision is not supported in this recipe. Please use fp32 or bf16."
             )
+        if is_npu_available:
+            # For NPU devices, check if the HW supports bf16 if bf16 is specified.
+            if (
+                self._dtype == torch.bfloat16
+                and self._device != torch.device("cpu")
+                and not torch.npu.is_bf16_supported()
+            ):
+                raise RuntimeError(
+                    "Full bf16 training is not supported on this NPU hardware."
+                )
+        elif (
+            # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
+            self._dtype == torch.bfloat16
+            and self._device != torch.device("cpu")
+            and not torch.cuda.is_bf16_supported()
+        ):
+            raise RuntimeError("Full bf16 training is not supported on this hardware.")
 
         # logging attributes
         self._output_dir = cfg.output_dir
@@ -464,7 +485,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         log.info(f"Model is initialized with precision {self._dtype}.")
 
-        if self._device.type == "cuda":
+        if self._device.type == "cuda" or self._device.type == "npu":
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
         return model
@@ -670,13 +691,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     ):
                         break
 
-                    # Start tracking CUDA memory for active steps for just the first epoch
+                    # Start tracking CUDA or NPU memory for active steps for just the first epoch
                     if (
                         curr_epoch == 0
                         and self.profiler_profile_memory
                         and idx == self.profiler_wait_steps + self.profiler_warmup_steps
                     ):
-                        torch.cuda.memory._record_memory_history()
+                        backend = "npu" if is_npu_available else "cuda"
+                        getattr(torch, backend).memory._record_memory_history()
 
                     utils.batch_to_device(batch, self._device)
                     num_tokens += batch["tokens"].numel()
@@ -715,8 +737,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                             }
                             if (
                                 self._device.type == "cuda"
-                                and self._log_peak_memory_stats
-                            ):
+                                or self._device.type == "npu"
+                            ) and self._log_peak_memory_stats:
                                 log_dict.update(
                                     training.get_memory_stats(device=self._device)
                                 )
@@ -732,7 +754,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         num_tokens = 0
                         t0 = time.perf_counter()
 
-                    # Stop tracking CUDA memory now that active steps are complete
+                    # Stop tracking CUDA or NPU memory now that active steps are complete
                     if (
                         curr_epoch == 0
                         and self.profiler_profile_memory
@@ -741,7 +763,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         + self.profiler_warmup_steps
                         + self.profiler_active_steps
                     ):
-                        torch.cuda.memory._record_memory_history(enabled=None)
+                        backend = "npu" if is_npu_available else "cuda"
+                        getattr(torch, backend).memory._record_memory_history(
+                            enable=None
+                        )
 
                     # Step the profiler
                     # Note we are stepping each batch, which might not include optimizer step in the trace

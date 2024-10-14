@@ -26,8 +26,11 @@ from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.activations import apply_selective_activation_checkpointing
+from torchtune.utils import is_torch_npu_available
 
 from tqdm import tqdm
+
+is_npu_available = is_torch_npu_available()
 
 log = utils.get_logger("DEBUG")
 
@@ -633,14 +636,15 @@ class QATRecipeDistributed(FTRecipeInterface):
                 ):
                     break
 
-                # Start tracking CUDA memory for active steps for just the first epoch
+                # Start tracking CUDA or NPU memory for active steps for just the first epoch
                 if (
                     self._is_rank_zero
                     and curr_epoch == 0
                     and self.profiler_profile_memory
                     and idx == self.profiler_wait_steps + self.profiler_warmup_steps
                 ):
-                    torch.cuda.memory._record_memory_history()
+                    backend = "npu" if is_npu_available else "cuda"
+                    getattr(torch, backend).memory._record_memory_history()
 
                 # Both are shape [b, s]
                 tokens, labels = batch["tokens"], batch["labels"]
@@ -738,7 +742,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                     num_tokens = 0
                     t0 = time.perf_counter()
 
-                    # Stop tracking CUDA memory now that active steps are complete
+                    # Stop tracking CUDA or NPU memory now that active steps are complete
                     if (
                         self._is_rank_zero
                         and curr_epoch == 0
@@ -748,7 +752,10 @@ class QATRecipeDistributed(FTRecipeInterface):
                         + self.profiler_warmup_steps
                         + self.profiler_active_steps
                     ):
-                        torch.cuda.memory._record_memory_history(enabled=None)
+                        backend = "npu" if is_npu_available else "cuda"
+                        getattr(torch, backend).memory._record_memory_history(
+                            enable=None
+                        )
 
                     # Step profiler
                     # Note that this is called within gradient accumulation block, hence
