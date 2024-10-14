@@ -45,7 +45,7 @@ class TransformerSelfAttentionLayer(nn.Module):
         self.sa_scale = sa_scale or nn.Identity()
         self.mlp_scale = mlp_scale or nn.Identity()
 
-    def setup_cache(
+    def setup_caches(
         self,
         batch_size: int,
         dtype: torch.dtype,
@@ -62,6 +62,10 @@ class TransformerSelfAttentionLayer(nn.Module):
             decoder_max_seq_len (int): maximum cache sequence length.
         """
         self.attn.setup_cache(batch_size, dtype, max_seq_len=decoder_max_seq_len)
+
+    def caches_are_enabled(self) -> bool:
+        """Check if key value caches are enabled."""
+        return self.attn.cache_enabled
 
     def caches_are_setup(self) -> bool:
         """Check if the key value caches are setup."""
@@ -164,7 +168,7 @@ class TransformerCrossAttentionLayer(nn.Module):
         self.ca_scale = ca_scale or nn.Identity()
         self.mlp_scale = mlp_scale or nn.Identity()
 
-    def setup_cache(
+    def setup_caches(
         self,
         batch_size: int,
         dtype: torch.dtype,
@@ -185,6 +189,10 @@ class TransformerCrossAttentionLayer(nn.Module):
     def caches_are_setup(self) -> bool:
         """Check if the key value caches are setup."""
         return self.attn.kv_cache is not None
+
+    def caches_are_enabled(self) -> bool:
+        """Check if key value caches are enabled."""
+        return self.attn.cache_enabled
 
     def reset_cache(self):
         """Reset the key value caches."""
@@ -421,7 +429,7 @@ class TransformerDecoder(nn.Module):
                 self.decoder_max_cache_seq_len = self.max_seq_len
 
         for layer in self.layers:
-            layer.setup_cache(
+            layer.setup_caches(
                 batch_size,
                 dtype,
                 encoder_max_seq_len=self.encoder_max_cache_seq_len,
@@ -430,7 +438,7 @@ class TransformerDecoder(nn.Module):
 
     def caches_are_setup(self) -> bool:
         """Check if the key value caches have been setup."""
-        return self.layers[0].attn.kv_cache is not None
+        return self.layers[0].caches_are_setup()
 
     def reset_caches(self):
         """Reset the key value caches."""
@@ -447,7 +455,7 @@ class TransformerDecoder(nn.Module):
         Checks if the key value caches are enabled. KV-caches must also have been setup
         for them to be enabled.
         """
-        return self.layers[0].attn.cache_enabled and self.caches_are_setup()
+        return self.layers[0].caches_are_enabled() and self.caches_are_setup()
 
     @torch.compiler.disable
     def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:

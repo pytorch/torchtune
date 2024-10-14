@@ -91,7 +91,7 @@ class FusionLayer(nn.Module):
                 state_dict[new_key] = state_dict[key]
                 del state_dict[key]
 
-    def setup_cache(
+    def setup_caches(
         self,
         batch_size: int,
         dtype: torch.dtype,
@@ -107,24 +107,30 @@ class FusionLayer(nn.Module):
             encoder_max_seq_len (int): maximum cache sequence length for cross-attention layer.
             decoder_max_seq_len (int): maximum cache sequence length for self-attention layer.
         """
-        self.layer.setup_cache(
+        self.layer.setup_caches(
             batch_size,
             dtype,
             encoder_max_seq_len=encoder_max_seq_len,
             decoder_max_seq_len=decoder_max_seq_len,
         )
 
-        self.fusion_layer.setup_cache(
+        self.fusion_layer.setup_caches(
             batch_size,
             dtype,
             encoder_max_seq_len=encoder_max_seq_len,
             decoder_max_seq_len=decoder_max_seq_len,
         )
 
-    @property
-    def cache_enabled(self) -> bool:
-        """Check if the key value caches are setup."""
-        return self.layer.cache_enabled
+    def caches_are_setup(self) -> bool:
+        """Check if the key value caches have been setup."""
+        return self.layer.caches_are_setup()
+
+    def caches_are_enabled(self) -> bool:
+        """
+        Checks if the key value caches are enabled. KV-caches must also have been setup
+        for them to be enabled.
+        """
+        return self.layer.caches_are_enabled()
 
     def reset_cache(self):
         """Reset both layers' key value caches."""
