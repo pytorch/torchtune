@@ -56,17 +56,19 @@ def get_cosine_schedule_with_warmup(
     return LambdaLR(optimizer, lr_lambda, last_epoch)
 
 
-def get_lr(optimizer_in_bwd, optimizer) -> str:
+def get_lr(optimizer_in_bwd, vanilla_optimizer) -> str:
     """
     Full_finetune_distributed and full_finetune_single_deivce assume all optimizers have
     the same LR, here to validate whether all the LR are the same and return if True.
+    Bsed on optimizer_in_bwd, the second input here could be optimizer or optim_wrapper,
+    name it as vanilla_optimizer to be more general.
     """
     if optimizer_in_bwd:
         param_groups = []
-        for param in optimizer.values():
+        for param in vanilla_optimizer.values():
             param_groups.append(param["param_groups"][0])
     else:
-        param_groups = optimizer.param_groups
+        param_groups = vanilla_optimizer.param_groups
     if len(param_groups) < 1:
         raise RuntimeError(
             f"Invalid optimizer param groups with len of: {len(param_groups)}"
