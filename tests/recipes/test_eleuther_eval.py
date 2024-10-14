@@ -110,6 +110,9 @@ class TestEleutherEval:
             device=cpu \
         """.split()
 
+        model_config = llama2_test_config()
+        cmd = cmd + model_config
+
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(
             RuntimeError,
