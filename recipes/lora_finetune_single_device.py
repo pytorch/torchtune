@@ -485,7 +485,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         log.info(f"Model is initialized with precision {self._dtype}.")
 
-        if self._device.type == "cuda" or self._device.type == "npu":
+        if self._device.type in ["cuda", "npu"]:
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
         return model
@@ -736,9 +736,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 "tokens_per_second_per_gpu": num_tokens / time_per_step,
                             }
                             if (
-                                self._device.type == "cuda"
-                                or self._device.type == "npu"
-                            ) and self._log_peak_memory_stats:
+                                self._device.type in ["cuda", "npu"]
+                                and self._log_peak_memory_stats
+                            ):
                                 log_dict.update(
                                     training.get_memory_stats(device=self._device)
                                 )

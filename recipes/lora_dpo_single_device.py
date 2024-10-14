@@ -301,7 +301,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         # Compile model, if enabled.
         if compile_model:
             training.compile_model(model)
-        if self._device == torch.device("cuda") or self._device.type == "npu":
+        if self._device.type in ["cuda", "npu"]:
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
         return model
