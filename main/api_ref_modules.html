@@ -445,34 +445,31 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.KVCache.html#torchtune.modules.KVCache" title="torchtune.modules.KVCache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KVCache</span></code></a></p></td>
 <td><p>Standalone <code class="docutils literal notranslate"><span class="pre">nn.Module</span></code> containing a kv-cache to cache past key and values during inference.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.get_cosine_schedule_with_warmup.html#torchtune.modules.get_cosine_schedule_with_warmup" title="torchtune.modules.get_cosine_schedule_with_warmup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_cosine_schedule_with_warmup</span></code></a></p></td>
-<td><p>Create a learning rate schedule that linearly increases the learning rate from 0.0 to lr over <code class="docutils literal notranslate"><span class="pre">num_warmup_steps</span></code>, then decreases to 0.0 on a cosine schedule over the remaining <code class="docutils literal notranslate"><span class="pre">num_training_steps-num_warmup_steps</span></code> (assuming <code class="docutils literal notranslate"><span class="pre">num_cycles</span></code> = 0.5).</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.RotaryPositionalEmbeddings.html#torchtune.modules.RotaryPositionalEmbeddings" title="torchtune.modules.RotaryPositionalEmbeddings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RotaryPositionalEmbeddings</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.RotaryPositionalEmbeddings.html#torchtune.modules.RotaryPositionalEmbeddings" title="torchtune.modules.RotaryPositionalEmbeddings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RotaryPositionalEmbeddings</span></code></a></p></td>
 <td><p>This class implements Rotary Positional Embeddings (RoPE) proposed in <a class="reference external" href="https://arxiv.org/abs/2104.09864">https://arxiv.org/abs/2104.09864</a>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.RMSNorm.html#torchtune.modules.RMSNorm" title="torchtune.modules.RMSNorm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RMSNorm</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.RMSNorm.html#torchtune.modules.RMSNorm" title="torchtune.modules.RMSNorm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RMSNorm</span></code></a></p></td>
 <td><p>Implements Root Mean Square Normalization introduced in <a class="reference external" href="https://arxiv.org/abs/1910.07467">https://arxiv.org/abs/1910.07467</a>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.Fp32LayerNorm.html#torchtune.modules.Fp32LayerNorm" title="torchtune.modules.Fp32LayerNorm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Fp32LayerNorm</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.Fp32LayerNorm.html#torchtune.modules.Fp32LayerNorm" title="torchtune.modules.Fp32LayerNorm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Fp32LayerNorm</span></code></a></p></td>
 <td><p>Wrapper around <a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.LayerNorm.html#torch.nn.LayerNorm" title="(in PyTorch v2.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">LayerNorm</span></code></a> to support mixed-precision training.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.TanhGate.html#torchtune.modules.TanhGate" title="torchtune.modules.TanhGate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TanhGate</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.TanhGate.html#torchtune.modules.TanhGate" title="torchtune.modules.TanhGate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TanhGate</span></code></a></p></td>
 <td><p>Implements a basic learnable gate to scale layer outputs</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.TiedLinear.html#torchtune.modules.TiedLinear" title="torchtune.modules.TiedLinear"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TiedLinear</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.TiedLinear.html#torchtune.modules.TiedLinear" title="torchtune.modules.TiedLinear"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TiedLinear</span></code></a></p></td>
 <td><p>A tied linear layer, without bias, that shares the same weight as another linear layer.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer" title="torchtune.modules.TransformerSelfAttentionLayer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerSelfAttentionLayer</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer" title="torchtune.modules.TransformerSelfAttentionLayer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerSelfAttentionLayer</span></code></a></p></td>
 <td><p>Transformer layer derived from the Llama2 model.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer" title="torchtune.modules.TransformerCrossAttentionLayer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerCrossAttentionLayer</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer" title="torchtune.modules.TransformerCrossAttentionLayer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerCrossAttentionLayer</span></code></a></p></td>
 <td><p>Cross attention Transformer layer following the same conventions as the TransformerSelfAttentionLayer.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.TransformerDecoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerDecoder</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.TransformerDecoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerDecoder</span></code></a></p></td>
 <td><p>Transformer Decoder derived from the Llama2 architecture.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.VisionTransformer.html#torchtune.modules.VisionTransformer" title="torchtune.modules.VisionTransformer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VisionTransformer</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.VisionTransformer.html#torchtune.modules.VisionTransformer" title="torchtune.modules.VisionTransformer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VisionTransformer</span></code></a></p></td>
 <td><p>Implementation of the ViT architecture (<a class="reference external" href="https://arxiv.org/abs/2010.11929">https://arxiv.org/abs/2010.11929</a>), with support for tile-cropped images, outputting of hidden layers and optional CLS projection.</p></td>
 </tr>
 </tbody>

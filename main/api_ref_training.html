@@ -528,6 +528,17 @@ checkpointing, please see the <a class="reference internal" href="deep_dives/che
 </tbody>
 </table>
 </section>
+<section id="schedulers">
+<span id="lr-scheduler-label"></span><h2>Schedulers<a class="headerlink" href="#schedulers" title="Permalink to this heading">¶</a></h2>
+<p>Utilities to control lr during the training process.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.training.get_cosine_schedule_with_warmup.html#torchtune.training.get_cosine_schedule_with_warmup" title="torchtune.training.get_cosine_schedule_with_warmup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_cosine_schedule_with_warmup</span></code></a></p></td>
+<td><p>Create a learning rate schedule that linearly increases the learning rate from 0.0 to lr over <code class="docutils literal notranslate"><span class="pre">num_warmup_steps</span></code>, then decreases to 0.0 on a cosine schedule over the remaining <code class="docutils literal notranslate"><span class="pre">num_training_steps-num_warmup_steps</span></code> (assuming <code class="docutils literal notranslate"><span class="pre">num_cycles</span></code> = 0.5).</p></td>
+</tr>
+</tbody>
+</table>
+</section>
 <section id="metric-logging">
 <span id="metric-logging-label"></span><h2>Metric Logging<a class="headerlink" href="#metric-logging" title="Permalink to this heading">¶</a></h2>
 <p>Various logging utilities.</p>
@@ -632,6 +643,7 @@ of your finetuning job.</p>
 <li><a class="reference internal" href="#reduced-precision">Reduced Precision</a></li>
 <li><a class="reference internal" href="#distributed">Distributed</a></li>
 <li><a class="reference internal" href="#memory-management">Memory Management</a></li>
+<li><a class="reference internal" href="#schedulers">Schedulers</a></li>
 <li><a class="reference internal" href="#metric-logging">Metric Logging</a></li>
 <li><a class="reference internal" href="#performance-and-profiling">Performance and Profiling</a></li>
 <li><a class="reference internal" href="#miscellaneous">Miscellaneous</a></li>

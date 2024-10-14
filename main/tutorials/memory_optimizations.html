@@ -547,7 +547,7 @@ for a gradient update is when using gradient accumulation is:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>For other components in torchtune which use “steps”, such as <a class="reference internal" href="../api_ref_training.html#metric-logging-label"><span class="std std-ref">metric logging</span></a>, or
-<a class="reference internal" href="../generated/torchtune.modules.get_cosine_schedule_with_warmup.html#torchtune.modules.get_cosine_schedule_with_warmup" title="torchtune.modules.get_cosine_schedule_with_warmup"><code class="xref py py-func docutils literal notranslate"><span class="pre">learning</span> <span class="pre">rate</span> <span class="pre">schedulers</span></code></a>, a “step” is counted as a
+<code class="xref py py-func docutils literal notranslate"><span class="pre">learning</span> <span class="pre">rate</span> <span class="pre">schedulers</span></code>, a “step” is counted as a
 single update to model parameters, rather than a single model forward pass with the data.
 Suppose <code class="docutils literal notranslate"><span class="pre">gradient_accumulation_steps</span> <span class="pre">=</span> <span class="pre">4</span></code> and <code class="docutils literal notranslate"><span class="pre">log_every_n_steps</span> <span class="pre">=</span> <span class="pre">10</span></code>.
 Metrics would be logged every 10 global steps, which translates to every 40 model forward passes.

@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.modules.lr_schedulers &mdash; torchtune main documentation</title>
+  <title>torchtune.training.lr_schedulers &mdash; torchtune main documentation</title>
   
 
   
@@ -393,7 +393,7 @@
         
           <li><a href="../../index.html">Module code</a> &gt;</li>
         
-      <li>torchtune.modules.lr_schedulers</li>
+      <li>torchtune.training.lr_schedulers</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -425,7 +425,7 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>Source code for torchtune.modules.lr_schedulers</h1><div class="highlight"><pre>
+  <h1>Source code for torchtune.training.lr_schedulers</h1><div class="highlight"><pre>
 <span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
 <span class="c1"># All rights reserved.</span>
 <span class="c1">#</span>
@@ -438,7 +438,7 @@
 <span class="kn">from</span> <span class="nn">torch.optim.lr_scheduler</span> <span class="kn">import</span> <span class="n">LambdaLR</span>
 
 
-<div class="viewcode-block" id="get_cosine_schedule_with_warmup"><a class="viewcode-back" href="../../../generated/torchtune.modules.get_cosine_schedule_with_warmup.html#torchtune.modules.get_cosine_schedule_with_warmup">[docs]</a><span class="k">def</span> <span class="nf">get_cosine_schedule_with_warmup</span><span class="p">(</span>
+<div class="viewcode-block" id="get_cosine_schedule_with_warmup"><a class="viewcode-back" href="../../../generated/torchtune.training.get_cosine_schedule_with_warmup.html#torchtune.training.get_cosine_schedule_with_warmup">[docs]</a><span class="k">def</span> <span class="nf">get_cosine_schedule_with_warmup</span><span class="p">(</span>
     <span class="n">optimizer</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">,</span>
     <span class="n">num_warmup_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_training_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>

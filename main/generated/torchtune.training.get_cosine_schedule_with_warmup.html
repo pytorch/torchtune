@@ -40,8 +40,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="RotaryPositionalEmbeddings" href="torchtune.modules.RotaryPositionalEmbeddings.html" />
-    <link rel="prev" title="KVCache" href="torchtune.modules.KVCache.html" />
+    <link rel="next" title="CometLogger" href="torchtune.training.metric_logging.CometLogger.html" />
+    <link rel="prev" title="register_optim_in_bwd_hooks" href="torchtune.training.register_optim_in_bwd_hooks.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -350,9 +350,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_rlhf.html">torchtune.rlhf</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
@@ -394,7 +394,7 @@
       </li>
 
         
-          <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
+          <li><a href="../api_ref_training.html">torchtune.training</a> &gt;</li>
         
       <li>get_cosine_schedule_with_warmup</li>
     
@@ -402,7 +402,7 @@
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.modules.get_cosine_schedule_with_warmup.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.training.get_cosine_schedule_with_warmup.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -435,8 +435,8 @@
   <section id="get-cosine-schedule-with-warmup">
 <h1>get_cosine_schedule_with_warmup<a class="headerlink" href="#get-cosine-schedule-with-warmup" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.modules.get_cosine_schedule_with_warmup">
-<span class="sig-prename descclassname"><span class="pre">torchtune.modules.</span></span><span class="sig-name descname"><span class="pre">get_cosine_schedule_with_warmup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/optim.html#torch.optim.Optimizer" title="(in PyTorch v2.4)"><span class="pre">Optimizer</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_warmup_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_training_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_cycles</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_epoch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.LambdaLR.html#torch.optim.lr_scheduler.LambdaLR" title="(in PyTorch v2.4)"><span class="pre">LambdaLR</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/lr_schedulers.html#get_cosine_schedule_with_warmup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.get_cosine_schedule_with_warmup" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="torchtune.training.get_cosine_schedule_with_warmup">
+<span class="sig-prename descclassname"><span class="pre">torchtune.training.</span></span><span class="sig-name descname"><span class="pre">get_cosine_schedule_with_warmup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/optim.html#torch.optim.Optimizer" title="(in PyTorch v2.4)"><span class="pre">Optimizer</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_warmup_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_training_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_cycles</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_epoch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.LambdaLR.html#torch.optim.lr_scheduler.LambdaLR" title="(in PyTorch v2.4)"><span class="pre">LambdaLR</span></a></span></span><a class="reference internal" href="../_modules/torchtune/training/lr_schedulers.html#get_cosine_schedule_with_warmup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.training.get_cosine_schedule_with_warmup" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a learning rate schedule that linearly increases the learning rate from
 0.0 to lr over <code class="docutils literal notranslate"><span class="pre">num_warmup_steps</span></code>, then decreases to 0.0 on a cosine schedule over
 the remaining <code class="docutils literal notranslate"><span class="pre">num_training_steps-num_warmup_steps</span></code> (assuming <code class="docutils literal notranslate"><span class="pre">num_cycles</span></code> = 0.5).</p>
@@ -470,10 +470,10 @@ schedule the learning rate.</p></li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.modules.RotaryPositionalEmbeddings.html" class="btn btn-neutral float-right" title="RotaryPositionalEmbeddings" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.training.metric_logging.CometLogger.html" class="btn btn-neutral float-right" title="CometLogger" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.modules.KVCache.html" class="btn btn-neutral" title="KVCache" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.training.register_optim_in_bwd_hooks.html" class="btn btn-neutral" title="register_optim_in_bwd_hooks" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
