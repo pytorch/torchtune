@@ -29,7 +29,10 @@ from tests.test_utils import (
 
 
 class TestFullFinetuneDistributedRecipe:
-    def _get_test_config_overrides(self):
+    def _get_test_config_overrides(self, optim_in_bwd):
+        # "optimizer_in_bwd=True" would free gradient info before clip_grad,
+        # causing wrong grad_norm, so we only test one of them each time.
+        # But loss values should be the same.
         return [
             "batch_size=4",
             "dtype=fp32",
@@ -41,7 +44,7 @@ class TestFullFinetuneDistributedRecipe:
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
-            "clip_grad_norm=100",
+            "optimizer_in_bwd=True" if optim_in_bwd else "clip_grad_norm=100",
         ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self, model_type):
@@ -60,9 +63,17 @@ class TestFullFinetuneDistributedRecipe:
             ("llama3/8B_full", "llama3", "tune", "NO_SHARD"),
         ],
     )
+    @pytest.mark.parametrize("optim_in_bwd", [True, False])
     @gpu_test(gpu_count=2)
     def test_loss(
-        self, config, model_type, ckpt_type, fsdp_sharding_strategy, tmpdir, monkeypatch
+        self,
+        config,
+        model_type,
+        ckpt_type,
+        fsdp_sharding_strategy,
+        optim_in_bwd,
+        tmpdir,
+        monkeypatch,
     ):
         ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
         ckpt = model_type + "_" + ckpt_type
@@ -90,7 +101,7 @@ class TestFullFinetuneDistributedRecipe:
         if fsdp_sharding_strategy:
             cmd.append(f"fsdp_sharding_strategy={fsdp_sharding_strategy}")
         model_config = MODEL_TEST_CONFIGS[model_type]
-        cmd = cmd + self._get_test_config_overrides() + model_config
+        cmd = cmd + self._get_test_config_overrides(optim_in_bwd) + model_config
 
         monkeypatch.setattr(sys, "argv", cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")
