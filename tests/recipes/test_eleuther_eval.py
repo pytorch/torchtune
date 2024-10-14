@@ -81,7 +81,7 @@ class TestEleutherEval:
         import_orig = importlib.metadata.version
 
         def mocked_import(name, *args, **kwargs):
-            if name == "lm_eval":
+            if name == "lm-eval":
                 return "0.4.4"  # Hardcode wrong version number
             return import_orig(name, *args, **kwargs)
 
