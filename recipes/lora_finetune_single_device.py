@@ -152,13 +152,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
-        self._enable_activation_offloading = cfg.get(
-            "enable_activation_offloading", False
-        )
-        if self._enable_activation_offloading and self._device.type != "cuda":
-            raise RuntimeError(
-                "enable_activation_offloading should only be enabled for training on CUDA"
-            )
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -242,8 +235,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # set up model
         self._model = self._setup_model(
             cfg_model=cfg.model,
-            enable_activation_checkpointing=cfg.enable_activation_checkpointing,
-            enable_activation_offloading=self._enable_activation_offloading,
+            enable_activation_checkpointing=cfg.get(
+                "enable_activation_checkpointing", False
+            ),
+            enable_activation_offloading=cfg.get("enable_activation_offloading", False),
             compile_model=cfg.compile,
             base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
             lora_weights_state_dict=(
@@ -444,6 +439,18 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         training.validate_expected_param_dtype(
             self.adapter_params.items(), dtype=self._dtype
         )
+
+        # activation checkpointing/offloading
+        if enable_activation_checkpointing and self._device.type != "cuda":
+            raise RuntimeError(
+                "enable_activation_offloading should only be enabled for training on CUDA"
+            )
+
+        if enable_activation_checkpointing and not enable_activation_offloading:
+            log.warning(
+                "enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
+                "Enabling activation offloading should reduce memory further."
+            )
 
         self.activations_handling_ctx = contextlib.nullcontext()
         if enable_activation_offloading:

@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import contextlib
 import sys
 import time
 from functools import partial
@@ -22,7 +23,12 @@ from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training import (
+    DummyProfiler,
+    NoOpManager,
+    OffloadActivations,
+    PROFILER_KEY,
+)
 
 from tqdm import tqdm
 
@@ -36,12 +42,24 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
     for single GPU training. Training on CPU is not supported.
 
     Features:
-        - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
+        - Activation Checkpointing. This can be controlled using the ``enable_activation_checkpointing``
             flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
             activations in memory and instead recompute them during the backward pass. This is especially
             helpful for larger batch sizes when you're memory constrained. But these savings in memory
             come at the cost of training performance. In most cases training can slow-down quite a bit as
             a result of this activation recomputation.
+
+        - Activation Offloading. This can be controlled using the ``enable_activation_offloading``
+            flag. Activation offloading is a technique similar to activations checkpointing that helps
+            reduce the memory footprint to prevent OOMs on CUDA and enable bigger batches. Where activations
+            checkpointing drops the activation in the forward to recompute it later in the backward,
+            activations offloading will drop the activation in the forward to the CPU and bring it
+            back during the backward pass. As always, there is a tradeoff--these savings in memory can
+            come at the cost of training performance and CPU resources. To recover some runtime cost,
+            we've added an option to enable offloading on a different stream to permit overlapping with
+            the computation. This option is currently only available on PyTorch nightly 2.5.0.dev20240907
+            or later and will be enabled by default if an acceptable torch version is found. Activation
+            offloading can be used in conjunction with activation checkpointing.
 
         - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
             flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
@@ -99,6 +117,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
         RuntimeError: If ``gradient_accumulation_steps > 1`` and ``optimizer_in_bwd`` is `True`.
         RuntimeError: If ``left_pad_sequence`` is set as the data collator.
+        RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
     """
 
     def __init__(self, cfg: DictConfig) -> None:
@@ -208,10 +227,14 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # ``_setup_model`` handles initialization and loading the state dict. This method
         # should be called before ``_setup_optimizer`` since transforming the optimizer
         # state dict requires the model
+
         self._compile = cfg.compile
         self._model = self._setup_model(
             cfg_model=cfg.model,
-            enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            enable_activation_checkpointing=cfg.get(
+                "enable_activation_checkpointing", False
+            ),
+            enable_activation_offloading=cfg.get("enable_activation_offloading", False),
             compile_model=self._compile,
             model_state_dict=ckpt_dict[training.MODEL_KEY],
         )
@@ -354,6 +377,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
+        enable_activation_offloading: bool,
         compile_model: bool,
         model_state_dict: Dict[str, Any],
     ) -> nn.Module:
@@ -377,6 +401,35 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         training.validate_expected_param_dtype(
             model.named_parameters(), dtype=self._dtype
         )
+
+        # activation checkpointing/offloading
+        if enable_activation_checkpointing and self._device.type != "cuda":
+            raise RuntimeError(
+                "enable_activation_offloading should only be enabled for training on CUDA"
+            )
+
+        if enable_activation_checkpointing and not enable_activation_offloading:
+            log.warning(
+                "enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
+                "Enabling activation offloading should reduce memory further."
+            )
+        self.activations_handling_ctx = contextlib.nullcontext()
+        if enable_activation_offloading:
+            self.activations_handling_ctx = OffloadActivations()
+
+            # Below is our hack to disable offloading the last output Linear in every
+            # step, as the cost for offloading the activation and then soon after bringing
+            # it back is expensive. Moreover, due to heuristics in our streaming API,
+            # we actually use more memory if we offload it as it interferes with chunkedCE.
+            if hasattr(model, "output") and isinstance(model.output, nn.Module):
+                noop_ctx = NoOpManager()
+                model.output.register_forward_pre_hook(
+                    lambda *args: noop_ctx.__enter__()
+                )
+                model.output.register_forward_hook(
+                    lambda *args: noop_ctx.__exit__(), always_call=True
+                )
+
         log.info(f"Model is initialized with precision {self._dtype}.")
 
         if self._device.type == "cuda":
@@ -560,7 +613,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Shape [b, s], needed for the loss not the model
         labels = batch.pop("labels")
 
-        logits = self._model(**batch)
+        with self.activations_handling_ctx:
+            logits = self._model(**batch)
 
         # Shift labels to compute loss
         # equivalent to doing labels[..., 1:] and logits[..., :-1, :]

@@ -151,16 +151,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
-        # training attributes
-        self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
-        self._enable_activation_offloading = cfg.get(
-            "enable_activation_offloading", False
-        )
-        if self._enable_activation_offloading and self._device.type != "cuda":
-            raise RuntimeError(
-                "enable_activation_offloading should only be enabled for training on CUDA"
-            )
-
         # These attributes constitute the recipe state and are updated by ``load_checkpoint``
         # when ``resume_from_checkpoint`` is ``True``
         self.seed = training.set_seed(seed=cfg.seed)
@@ -255,8 +245,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
-            enable_activation_checkpointing=cfg.enable_activation_checkpointing,
-            enable_activation_offloading=self._enable_activation_offloading,
+            enable_activation_checkpointing=cfg.get(
+                "enable_activation_checkpointing", False
+            ),
+            enable_activation_offloading=cfg.get("enable_activation_offloading", False),
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
             base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
@@ -523,6 +515,18 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         )
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
+
+        # activation checkpointing/offloading
+        if enable_activation_checkpointing and self._device.type != "cuda":
+            raise RuntimeError(
+                "enable_activation_offloading should only be enabled for training on CUDA"
+            )
+
+        if enable_activation_checkpointing and not enable_activation_offloading:
+            log.warning(
+                "enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
+                "Enabling activation offloading should reduce memory further."
+            )
 
         self.activations_handling_ctx = contextlib.nullcontext()
         if enable_activation_offloading:
