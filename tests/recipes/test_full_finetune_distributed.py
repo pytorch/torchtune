@@ -102,10 +102,10 @@ class TestFullFinetuneDistributedRecipe:
         # "optimizer_in_bwd=True" would free gradient info before clip_grad, causing
         # wrong grad_norm, so we only test one of them each time. But loss values
         # should be the same. torch >= 2.5 required to enable optimizer_in_backward.
-        if optim_in_bwd and version.parse(torch.__version__).base_version < "2.5.0":
-            cmd.append("optimizer_in_bwd=True")
-        else:
+        if not optim_in_bwd:
             cmd.append("clip_grad_norm=100")
+        elif optim_in_bwd and version.parse(torch.__version__).base_version < "2.5.0":
+            cmd.append("optimizer_in_bwd=True")
 
         monkeypatch.setattr(sys, "argv", cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")
