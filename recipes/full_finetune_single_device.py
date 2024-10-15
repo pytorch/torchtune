@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import contextlib
 import sys
 import time
 from functools import partial
@@ -23,12 +22,7 @@ from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.training import (
-    DummyProfiler,
-    NoOpManager,
-    OffloadActivations,
-    PROFILER_KEY,
-)
+from torchtune.training import DummyProfiler, PROFILER_KEY
 
 from tqdm import tqdm
 
@@ -407,28 +401,14 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             raise RuntimeError(
                 "enable_activation_offloading should only be enabled for training on CUDA"
             )
-
         if enable_activation_checkpointing and not enable_activation_offloading:
-            log.warning(
-                "enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
+            log.info(
+                "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
                 "Enabling activation offloading should reduce memory further."
             )
-        self.activations_handling_ctx = contextlib.nullcontext()
-        if enable_activation_offloading:
-            self.activations_handling_ctx = OffloadActivations()
-
-            # Below is our hack to disable offloading the last output Linear in every
-            # step, as the cost for offloading the activation and then soon after bringing
-            # it back is expensive. Moreover, due to heuristics in our streaming API,
-            # we actually use more memory if we offload it as it interferes with chunkedCE.
-            if hasattr(model, "output") and isinstance(model.output, nn.Module):
-                noop_ctx = NoOpManager()
-                model.output.register_forward_pre_hook(
-                    lambda *args: noop_ctx.__enter__()
-                )
-                model.output.register_forward_hook(
-                    lambda *args: noop_ctx.__exit__(), always_call=True
-                )
+        self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
+            model, enable_activation_offloading
+        )
 
         log.info(f"Model is initialized with precision {self._dtype}.")
 
@@ -570,13 +550,15 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             sampler=sampler,
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
-            collate_fn=partial(
-                collate_fn,
-                padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
-            )
-            if not packed
-            else padded_collate_packed,
+            collate_fn=(
+                partial(
+                    collate_fn,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else padded_collate_packed
+            ),
         )
 
         log.info("Dataset and Sampler are initialized.")
