@@ -222,6 +222,7 @@ def padded_collate_tiled_images_and_mask(
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
     pad_direction: str = "right",
+    pad_max_tiles: Optional[int] = None,
     pad_max_images: Optional[int] = None,
 ) -> Dict[str, torch.Tensor]:
     """Pad a batch of text sequences, tiled image tensors, aspect ratios,
@@ -259,6 +260,8 @@ def padded_collate_tiled_images_and_mask(
             :func:`torch.nn.utils.rnn.pad_sequence`, otherwise if ``pad_direction="left"``,
             we use :func:`torchtune.data.left_pad_sequence`. For training, we typically want to pad from the right.
             For inference, we typically want to pad from the left. Defaults to "right".
+        pad_max_tiles (Optional[int]): Maximum number of tiles to pad to. If None, will pad to the largest number of tiles
+            in the batch. Defaults to None.
         pad_max_images (Optional[int]): Maximum number of images to pad to. If None, will pad to the largest number of images
             in the batch. Defaults to None.
 
@@ -272,6 +275,7 @@ def padded_collate_tiled_images_and_mask(
 
     Raises:
         ValueError: if ``pad_direction`` is not one of "left" or "right".
+        ValueError: if pad_max_tiles is set to a value less than the largest number of tiles in an image.
 
     Example:
         >>> image_id = 1
@@ -355,6 +359,13 @@ def padded_collate_tiled_images_and_mask(
         for sample in batch
         for image in sample["encoder_input"]["images"]
     )
+    if pad_max_tiles is not None:
+        if pad_max_tiles < max_num_tiles:
+            raise ValueError(
+                f"More tiles in image {max_num_tiles}, than pad_max_tiles {pad_max_tiles}"
+            )
+        max_num_tiles = pad_max_tiles
+
     # Second loop: pad images and masks to max number of tiles, max text seq len in batch
     batch_images = []
     batch_masks = []

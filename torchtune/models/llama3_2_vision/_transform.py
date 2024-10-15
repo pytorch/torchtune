@@ -86,7 +86,6 @@ class Llama3VisionTransform(ModelTokenizer, Transform):
             tile_size=tile_size,
             possible_resolutions=None,
             max_num_tiles=max_num_tiles,
-            pad_max_tiles=True,
             resample="bilinear",
             resize_to_max_canvas=False,
         )
