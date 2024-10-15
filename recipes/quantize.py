@@ -15,10 +15,9 @@ from omegaconf import DictConfig
 from torch import nn
 
 from torchtune import config, training, utils
+from torchtune.utils import get_torch_device
 
 logger = utils.get_logger("DEBUG")
-
-is_npu_available = utils.is_torch_npu_available()
 
 
 class QuantizationRecipe:
@@ -94,7 +93,9 @@ class QuantizationRecipe:
             self._model = self._quantizer.quantize(self._model)
         t = time.perf_counter() - t0
         logger.info(f"Time for quantization: {t:.02f} sec")
-        logger.info(f"Memory used: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
+        logger.info(
+            f"Memory used: {get_torch_device().max_memory_allocated() / 1e9:.02f} GB"
+        )
 
     def save_checkpoint(self, cfg: DictConfig):
         ckpt_dict = self._model.state_dict()

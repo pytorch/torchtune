@@ -12,6 +12,7 @@ import torch
 import torchao
 from torch.autograd.graph import saved_tensors_hooks
 from torchao.dtypes.nf4tensor import NF4Tensor
+from torchtune.utils import get_torch_device
 
 
 class OffloadActivations(saved_tensors_hooks):
@@ -87,7 +88,7 @@ class OffloadActivations(saved_tensors_hooks):
             60  # we should not exceed this percentage of memory
         )
 
-        self.s0 = torch.cuda.default_stream()  # comp stream
+        self.s0 = get_torch_device().default_stream()  # comp stream
 
         # for streaming
         if self.use_streams:
@@ -95,7 +96,7 @@ class OffloadActivations(saved_tensors_hooks):
                 raise RuntimeError(
                     "OffloadActivations with use_streams=True requires PyTorch 2.5.0.dev20240907 or later."
                 )
-            self.s1 = torch.cuda.Stream()  # comms stream
+            self.s1 = get_torch_device().Stream()  # comms stream
             self.fwd_stash = {}  # tensor_id => (activation, ev1)
             if max_fwd_stash_size < 1:
                 raise ValueError(
@@ -167,7 +168,7 @@ class OffloadActivations(saved_tensors_hooks):
                     self.s1.wait_stream(self.s0)
 
                 stream = self.s1 if self.use_streams else self.s0
-                with torch.cuda.stream(stream):
+                with get_torch_device().stream(stream):
                     try:
                         cpu_tensor = torch.empty_like(
                             activation, pin_memory=self.use_pin_memory, device="cpu"
@@ -272,7 +273,7 @@ class OffloadActivations(saved_tensors_hooks):
                     brought_back_from_cpu = False
                 else:
                     # Kick off the process to bring tensors back
-                    with torch.cuda.stream(self.s1):
+                    with get_torch_device().stream(self.s1):
                         gpu_tensor = maybe_gpu_tensor.to("cuda", non_blocking=True)
                         maybe_gpu_tensor = gpu_tensor
 
