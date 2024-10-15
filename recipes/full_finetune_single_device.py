@@ -23,14 +23,12 @@ from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
-from torchtune.utils import is_torch_npu_available
+from torchtune.utils import get_torch_device
 
 from tqdm import tqdm
 
 
 log = utils.get_logger("DEBUG")
-
-is_npu_available = is_torch_npu_available()
 
 
 class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
@@ -622,8 +620,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     and self.profiler_profile_memory
                     and idx == self.profiler_wait_steps + self.profiler_warmup_steps
                 ):
-                    backend = "npu" if is_npu_available else "cuda"
-                    getattr(torch, backend).memory._record_memory_history()
+                    get_torch_device().memory._record_memory_history()
 
                 utils.batch_to_device(batch, self._device)
                 num_tokens += batch["tokens"].numel()
@@ -697,8 +694,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     + self.profiler_warmup_steps
                     + self.profiler_active_steps
                 ):
-                    backend = "npu" if is_npu_available else "cuda"
-                    getattr(torch, backend).memory._record_memory_history(enable=None)
+                    get_torch_device().memory._record_memory_history(enable=None)
 
                 # Step the profiler
                 # Note we are stepping each batch, which might not include optimizer step in the trace

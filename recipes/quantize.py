@@ -95,10 +95,6 @@ class QuantizationRecipe:
         t = time.perf_counter() - t0
         logger.info(f"Time for quantization: {t:.02f} sec")
         logger.info(f"Memory used: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
-        if is_npu_available:
-            logger.info(
-                f"NPU memory used: {torch.npu.max_memory_allocated() / 1e9:.02f} GB"
-            )
 
     def save_checkpoint(self, cfg: DictConfig):
         ckpt_dict = self._model.state_dict()
