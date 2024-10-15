@@ -144,6 +144,28 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
+        # activation checkpointing/offloading
+        self._enable_activation_checkpointing = cfg.get(
+            "enable_activation_checkpointing", False
+        )
+        self._enable_activation_offloading = cfg.get(
+            "enable_activation_offloading", False
+        )
+        if self._enable_activation_offloading:
+            if self._device.type != "cuda":
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when training on CUDA"
+                )
+            if not self._enable_activation_checkpointing:
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
+                )
+        elif self._enable_activation_checkpointing:
+            log.info(
+                "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
+                "Enabling activation offloading should reduce memory further."
+            )
+
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
         self.seed = training.set_seed(seed=cfg.seed)
@@ -224,10 +246,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._compile = cfg.get("compile", False)
         self._model = self._setup_model(
             cfg_model=cfg.model,
-            enable_activation_checkpointing=cfg.get(
-                "enable_activation_checkpointing", False
-            ),
-            enable_activation_offloading=cfg.get("enable_activation_offloading", False),
+            enable_activation_checkpointing=self._enable_activation_checkpointing,
+            enable_activation_offloading=self._enable_activation_offloading,
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
@@ -460,22 +480,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             cpu_offload=fsdp_cpu_offload,
         )
 
-        # activation checkpointing/offloading
-        if enable_activation_offloading:
-            if self._device.type != "cuda":
-                raise RuntimeError(
-                    "enable_activation_offloading should only be True for training on CUDA"
-                )
-            if not enable_activation_checkpointing:
-                raise RuntimeError(
-                    "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
-                )
-        elif enable_activation_checkpointing:
-            log.info(
-                "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
-                "Enabling activation offloading should reduce memory further."
-            )
-
+        # activation offloading
         self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
             model, enable_activation_offloading
         )

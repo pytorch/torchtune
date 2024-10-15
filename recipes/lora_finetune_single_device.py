@@ -148,6 +148,28 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
+        # activation checkpointing/offloading
+        self._enable_activation_checkpointing = cfg.get(
+            "enable_activation_checkpointing", False
+        )
+        self._enable_activation_offloading = cfg.get(
+            "enable_activation_offloading", False
+        )
+        if self._enable_activation_offloading:
+            if self._device.type != "cuda":
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when training on CUDA"
+                )
+            if not self._enable_activation_checkpointing:
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
+                )
+        elif self._enable_activation_checkpointing:
+            log.info(
+                "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
+                "Enabling activation offloading should reduce memory further."
+            )
+
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. This includes the
@@ -230,10 +252,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # set up model
         self._model = self._setup_model(
             cfg_model=cfg.model,
-            enable_activation_checkpointing=cfg.get(
-                "enable_activation_checkpointing", False
-            ),
-            enable_activation_offloading=cfg.get("enable_activation_offloading", False),
+            enable_activation_checkpointing=self._enable_activation_checkpointing,
+            enable_activation_offloading=self._enable_activation_offloading,
             compile_model=cfg.compile,
             base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
             lora_weights_state_dict=(
@@ -435,22 +455,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             self.adapter_params.items(), dtype=self._dtype
         )
 
-        # activation checkpointing/offloading
-        if enable_activation_offloading:
-            if self._device.type != "cuda":
-                raise RuntimeError(
-                    "enable_activation_offloading should only be True for training on CUDA"
-                )
-            if not enable_activation_checkpointing:
-                raise RuntimeError(
-                    "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
-                )
-        elif enable_activation_checkpointing:
-            log.info(
-                "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
-                "Enabling activation offloading should reduce memory further."
-            )
-
+        # activation offloading
         self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
             model, enable_activation_offloading
         )
@@ -744,7 +749,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 self.epochs_run += 1
                 start_save_checkpoint = time.perf_counter()
                 log.info("Starting checkpoint save...")
-                # self.save_checkpoint(epoch=curr_epoch)
+                self.save_checkpoint(epoch=curr_epoch)
                 log.info(
                     "Checkpoint saved in {:.2f} seconds.".format(
                         time.perf_counter() - start_save_checkpoint
