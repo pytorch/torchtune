@@ -63,7 +63,6 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True
-enable_activation_offloading: False
 memory_efficient_fsdp_wrap: True
 
 # Reduced precision
