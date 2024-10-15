@@ -14,7 +14,12 @@
 #   tune run --nproc_per_node 8 full_finetune_distributed --config llama3_1/70B_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config is only tested on an 8xA100 machine.
-
+#
+# !!!!!!!!!!!!!
+# !!!!!!!!!!!!!
+# ATTENTION: It will only work with pytorch>=2.5 (nightlies). For other pytorch versions, it will OOM, even on 8xA100.
+# !!!!!!!!!!!!!
+# !!!!!!!!!!!!!
 
 # Tokenizer
 tokenizer:
@@ -96,6 +101,7 @@ device: cuda
 enable_activation_checkpointing: True
 custom_sharded_layers: ['tok_embeddings', 'output']
 fsdp_cpu_offload: True
+compile: False # set it to True for better memory and performance
 
 # Reduced precision
 dtype: bf16

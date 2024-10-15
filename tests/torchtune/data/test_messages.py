@@ -86,6 +86,17 @@ class TestMessage:
         assert text_message.text_content == "hello world"
         assert image_message.text_content == "hello world"
 
+    def test_repr_text(self, text_message):
+        expected_repr = "Message(role='user', content=['hello world'])"
+        assert str(text_message) == expected_repr
+        assert repr(text_message) == expected_repr
+
+    def test_repr_image(self, image_message, test_image):
+        img_repr = str(test_image)
+        expected_repr = f"Message(role='user', content=['hello', {img_repr}, ' world'])"
+        assert str(image_message) == expected_repr
+        assert repr(image_message) == expected_repr
+
 
 class TestInputOutputToMessages:
     @pytest.fixture
@@ -283,6 +294,26 @@ class TestShareGPTToMessages:
             ShareGPTToMessages(
                 column_map={"bananas": "maybe_conversations"},
             )
+
+    @mock.patch("torchtune.data._messages.load_image")
+    def test_image_only_in_first_user_message(self, mock_load_image):
+        mock_load_image.return_value = Image.new(mode="RGB", size=(4, 4))
+        sample = {
+            "conversations": [
+                {"from": "human", "value": "<image>\nFirst message."},
+                {"from": "gpt", "value": "First response."},
+                {"from": "human", "value": "Second message."},
+                {"from": "gpt", "value": "Second response."},
+            ],
+            "image": "test_image.jpg",
+        }
+        transform = ShareGPTToMessages(image_tag="<image>")
+        messages = transform(sample)
+        for idx, message in enumerate(messages["messages"]):
+            if idx == 0:
+                assert message.contains_media
+            else:
+                assert not message.contains_media
 
 
 class TestOpenAIToMessages:

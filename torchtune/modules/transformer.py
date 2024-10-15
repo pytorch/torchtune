@@ -11,6 +11,7 @@ import torch.nn.functional as F
 from torch import nn
 from torchtune.modules import MultiHeadAttention
 from torchtune.modules.attention_utils import _MaskType
+from torchtune.utils._logging import deprecated
 
 
 class TransformerSelfAttentionLayer(nn.Module):
@@ -578,7 +579,7 @@ class TransformerDecoder(nn.Module):
             - m_s: max seq len
         """
         # input tensor of shape [b, s]
-        bsz, seq_len = tokens.shape
+        seq_len = tokens.shape[1]
 
         self._validate_inputs(
             seq_len,
@@ -619,6 +620,11 @@ class TransformerDecoder(nn.Module):
         return output
 
 
+@deprecated(
+    msg="Please use torchtune.modules.TransformerDecoder instead. \
+If you need an example, see torchtune.models.qwen2._component_builders.py \
+on how to use torch.modules.TiedLinear for the output projection."
+)
 class TiedEmbeddingTransformerDecoder(nn.Module):
     """
     Transformer Decoder with tied embedding weight. A key difference between

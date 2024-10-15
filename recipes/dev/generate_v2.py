@@ -133,9 +133,7 @@ class InferenceRecipe:
                 batch_size=1,
                 dtype=self._dtype,
                 encoder_max_seq_len=(
-                    model_inputs["encoder_mask"][0].size(1)
-                    if is_multimodal_input
-                    else None
+                    self.model_transform.image_seq_len if is_multimodal_input else None
                 ),
                 decoder_max_seq_len=total_response_length,
             )

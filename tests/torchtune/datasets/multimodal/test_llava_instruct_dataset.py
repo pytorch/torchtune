@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 from collections import Counter
-from unittest import mock
 from unittest.mock import patch
 
 import PIL
@@ -17,7 +16,6 @@ from tests.test_utils import DummyTokenizer
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
 from torchtune.datasets.multimodal import llava_instruct_dataset
-from torchtune.datasets.multimodal._llava_instruct import LlavaInstructToMessages
 
 
 class TestLLaVAInstructDataset:
@@ -30,7 +28,7 @@ class TestLLaVAInstructDataset:
         return PIL.Image.new(mode="RGB", size=(4, 4))
 
     @patch("torchtune.datasets._sft.load_dataset")
-    @patch("torchtune.datasets.multimodal._llava_instruct.load_image")
+    @patch("torchtune.data._messages.load_image")
     def test_get_item(self, load_image, load_dataset, tokenizer, test_image_pil):
         """
         WARNING: careful with these mocks, they are applied in bottom up order
@@ -88,28 +86,3 @@ class TestLLaVAInstructDataset:
         assert Counter(input) == expected_count
         assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 11
         assert images == [test_image_pil]
-
-
-class TestLlavaInstructToMessages:
-    @pytest.fixture
-    def transform(self):
-        return LlavaInstructToMessages()
-
-    @mock.patch("torchtune.datasets.multimodal._llava_instruct.load_image")
-    def test_image_only_in_first_user_message(self, mock_load_image, transform):
-        mock_load_image.return_value = PIL.Image.new(mode="RGB", size=(4, 4))
-        sample = {
-            "conversations": [
-                {"from": "human", "value": "<image>\nFirst message."},
-                {"from": "gpt", "value": "First response."},
-                {"from": "human", "value": "Second message."},
-                {"from": "gpt", "value": "Second response."},
-            ],
-            "image": "test_image.jpg",
-        }
-        messages = transform(sample)
-        for idx, message in enumerate(messages["messages"]):
-            if idx == 0:
-                assert message.contains_media
-            else:
-                assert not message.contains_media

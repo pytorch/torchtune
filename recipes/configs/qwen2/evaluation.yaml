@@ -1,0 +1,43 @@
+# Config for EleutherEvalRecipe in eleuther_eval.py
+#
+# To launch, run the following command:
+#    tune run eleuther_eval --config qwen2/evaluation
+
+# Model Arguments
+model:
+  _component_: torchtune.models.qwen2.qwen2_7b
+
+# Checkpointer
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Qwen2-7B-Instruct
+  checkpoint_files: [
+    model-00001-of-00004.safetensors,
+    model-00002-of-00004.safetensors,
+    model-00003-of-00004.safetensors,
+    model-00004-of-00004.safetensors
+  ]
+  output_dir: ./ # Not needed
+  model_type: QWEN2
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.qwen2.qwen2_tokenizer
+  path: /tmp/Qwen2-7B-Instruct/vocab.json
+  merges_file: /tmp/Qwen2-7B-Instruct/merges.txt
+  max_seq_len: null
+
+# Environment
+device: cuda
+dtype: bf16
+seed: 1234 # It is not recommended to change this seed, b/c it matches EleutherAI's default seed
+
+# EleutherAI specific eval args
+tasks: ["truthfulqa_mc2"]
+limit: null
+max_seq_length: 4096
+batch_size: 8
+enable_kv_cache: True
+
+# Quantization specific args
+quantizer: null

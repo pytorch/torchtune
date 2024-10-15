@@ -39,17 +39,17 @@ checkpointer:
     model.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Qwen2-0.5B-Instruct-kd
+  output_dir: /tmp/Qwen2-0.5B-Instruct
   model_type: QWEN2
 
 teacher_checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Qwen2-1.5B-Instruct-lora-finetune
+  checkpoint_dir: /tmp/Qwen2-1.5B-Instruct
   checkpoint_files: [
-    hf_model_0001_0.pt
+    model.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Qwen2-1.5B-Instruct-lora-finetune
+  output_dir: /tmp/Qwen2-1.5B-Instruct
   model_type: QWEN2
 
 resume_from_checkpoint: False
@@ -67,7 +67,7 @@ optimizer:
   weight_decay: 0.01
   lr: 3e-4
 lr_scheduler:
-  _component_: torchtune.modules.get_cosine_schedule_with_warmup
+  _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
 
 loss:

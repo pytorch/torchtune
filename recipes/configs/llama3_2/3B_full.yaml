@@ -1,0 +1,78 @@
+# Config for multi-device full finetuning in full_finetune_distributed.py
+# using a Llama3.2 3B Instruct model
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download meta-llama/Llama-3.2-3B-Instruct --output-dir /tmp/Llama-3.2-3B-Instruct --ignore-patterns "original/consolidated.00.pth"
+#
+# To launch on 4 devices, run the following command from root:
+#   tune run --nproc_per_node 4 full_finetune_distributed --config llama3_2/3B_full
+#
+# You can add specific overrides through the command line. For example
+# to override the checkpointer directory while launching training
+# you can run:
+#   tune run --nproc_per_node 4 full_finetune_distributed --config llama3_2/3B_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#
+# This config works best when the model is being fine-tuned on 2+ GPUs.
+# Single device full finetuning requires more memory optimizations. It's
+# best to use 3B_full_single_device.yaml for those cases
+
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.llama3.llama3_tokenizer
+  path: /tmp/Llama-3.2-3B-Instruct/original/tokenizer.model
+  max_seq_len: null
+
+# Dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_dataset
+seed: null
+shuffle: True
+
+# Model Arguments
+model:
+  _component_: torchtune.models.llama3_2.llama3_2_3b
+
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Llama-3.2-3B-Instruct/
+  checkpoint_files: [
+    model-00001-of-00002.safetensors,
+    model-00002-of-00002.safetensors,
+  ]
+  recipe_checkpoint: null
+  output_dir: /tmp/Llama-3.2-3B-Instruct/
+  model_type: LLAMA3_2
+resume_from_checkpoint: False
+
+# Fine-tuning arguments
+batch_size: 4
+epochs: 3
+
+optimizer:
+  _component_: torch.optim.AdamW
+  lr: 2e-5
+  fused: True
+loss:
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+max_steps_per_epoch: null
+gradient_accumulation_steps: 4
+
+# Training env
+device: cuda
+
+# Memory management
+enable_activation_checkpointing: True
+compile: False # set it to True for better memory and performance
+
+# Reduced precision
+dtype: bf16
+
+# Logging
+metric_logger:
+  _component_: torchtune.training.metric_logging.DiskLogger
+  log_dir: ${output_dir}
+output_dir: /tmp/full-llama3.2-finetune
+log_every_n_steps: 1
+log_peak_memory_stats: False
