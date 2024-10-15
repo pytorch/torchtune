@@ -23,7 +23,28 @@ QWEN2_SPECIAL_TOKENS = {
     "<|im_start|>": 151644,
     "<|im_end|>": 151645,
 }
-
+QWEN2_5_SPECIAL_TOKENS = {
+    **QWEN2_SPECIAL_TOKENS,
+    "<|object_ref_start|>": 151646,
+    "<|object_ref_end|>": 151647,
+    "<|box_start|>": 151648,
+    "<|box_end|>": 151649,
+    "<|quad_start|>": 151650,
+    "<|quad_end|>": 151651,
+    "<|vision_start|>": 151652,
+    "<|vision_end|>": 151653,
+    "<|vision_pad|>": 151654,
+    "<|image_pad|>": 151655,
+    "<|video_pad|>": 151656,
+    "<tool_call>": 151657,
+    "</tool_call>": 151658,
+    "<|fim_prefix|>": 151659,
+    "<|fim_middle|>": 151660,
+    "<|fim_suffix|>": 151661,
+    "<|fim_pad|>": 151662,
+    "<|repo_name|>": 151663,
+    "<|file_sep|>": 151664,
+}
 
 ENDOFTEXT = "<|endoftext|>"
 IM_START = "<|im_start|>"
@@ -73,12 +94,13 @@ def get_pairs(word):
     return pairs
 
 
-class Qwen2Tokenizer(ModelTokenizer):
+class QwenTokenizer(ModelTokenizer):
     """This class construct a Qwen2 tokenizer, based on GPT-2 byte-level BPE tokenization.
 
     See <https://github.com/huggingface/transformers/blob/v4.40.1/src/transformers/models/qwen2/tokenization_qwen2.py>.
 
     Args:
+        version (str): Qwen version ('2' or '2.5')
         path (str): Path to vocab.json file.
         merges_file (str): Path to merges.txt file.
             merges.txt contains all BPE merge operations, and this file is required to split a single word into
@@ -103,14 +125,14 @@ class Qwen2Tokenizer(ModelTokenizer):
         bos_token (Optional[str]): The beginning of sequence token. Defaults to None.
         eos_token (str): The end of sequence token. Defaults to ``<|endoftext|>``.
         pad_token (Optional[str]): The token used for padding. Defaults to ``<|endoftext|>``.
-        bpe_cache_size (int): BPE token cache size in Qwen2Tokenizer.
+        bpe_cache_size (int): BPE token cache size in QwenTokenizer.
             NOTE: large cache size will speed up tokenization, but the cache object will get really
             large for long running processes (esp. for texts of language that do not use space between
             word, e.g. Chinese); technically not a memory leak but appears as one.
             By default, we set the cache size equals to size of the official Qwen2 tokenizer.
 
     Example:
-        >>> tokenizer = Qwen2Tokenizer(path="/path/to/vocab.json", merges_file="/path/to/merges.txt")
+        >>> tokenizer = QwenTokenizer(path="/path/to/vocab.json", merges_file="/path/to/merges.txt")
         >>> tokenized_text = tokenizer.encode("Hello world!")
         >>> print(tokenized_text)
         [39, 385, 78, 675, 0, 2000]
@@ -118,6 +140,7 @@ class Qwen2Tokenizer(ModelTokenizer):
 
     def __init__(
         self,
+        version: str,
         path: str,
         merges_file: str,
         special_tokens: Optional[Dict[str, int]] = None,
@@ -151,9 +174,14 @@ class Qwen2Tokenizer(ModelTokenizer):
 
         self.pat = re.compile(PRETOKENIZE_REGEX)
 
-        self.special_tokens = (
-            special_tokens if special_tokens is not None else QWEN2_SPECIAL_TOKENS
-        )
+        self.special_tokens = special_tokens
+        if self.special_tokens is None:
+            if version == '2':
+                self.special_tokens = QWEN2_SPECIAL_TOKENS    
+            elif version == '2.5':
+                self.special_tokens = QWEN2_5_SPECIAL_TOKENS
+            else:
+                raise ValueError(f'Invalid Qwen version: {version}')
         self._special_tokens_reversed = {v: k for k, v in self.special_tokens.items()}
 
         self.unk_id = None if unk_token is None else self.special_tokens[unk_token]

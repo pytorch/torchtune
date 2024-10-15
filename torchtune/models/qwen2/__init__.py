@@ -16,7 +16,7 @@ from ._model_builders import (
     qwen2_tokenizer,
 )
 from ._positional_embeddings import Qwen2RotaryPositionalEmbeddings
-from ._tokenizer import Qwen2Tokenizer
+from ._tokenizer import QwenTokenizer
 
 __all__ = [
     "qwen2_7b",
@@ -31,5 +31,5 @@ __all__ = [
     "qwen2_hf_to_tune",
     "qwen2_tune_to_hf",
     "Qwen2RotaryPositionalEmbeddings",
-    "Qwen2Tokenizer",
+    "QwenTokenizer",
 ]

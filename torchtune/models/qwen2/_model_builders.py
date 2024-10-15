@@ -6,7 +6,7 @@
 from typing import List, Optional
 
 from torchtune.models.qwen2._component_builders import qwen2, lora_qwen2
-from torchtune.models.qwen2._tokenizer import Qwen2Tokenizer
+from torchtune.models.qwen2._tokenizer import QwenTokenizer
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from torchtune.modules.tokenizers import parse_hf_tokenizer_json
@@ -103,7 +103,7 @@ def qwen2_tokenizer(
     max_seq_len: Optional[int] = None,
     prompt_template: Optional[_TemplateType] = "torchtune.data.ChatMLTemplate",
     **kwargs,
-) -> Qwen2Tokenizer:
+) -> QwenTokenizer:
     """
     Tokenizer for Qwen2.
 
@@ -121,11 +121,11 @@ def qwen2_tokenizer(
             prepend/append tags. Default is :class:`~torchtune.models.llama2.Llama2ChatTemplate`.
 
     Returns:
-        Qwen2Tokenizer: Instantiation of the Qwen2 tokenizer
+        QwenTokenizer: Instantiation of the Qwen2 tokenizer
     """
     special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
     template = _get_prompt_template(prompt_template) if prompt_template is not None else None
-    return Qwen2Tokenizer(path=path, merges_file=merges_file, special_tokens=special_tokens, max_seq_len=max_seq_len, prompt_template=template, **kwargs)
+    return QwenTokenizer(version='2', path=path, merges_file=merges_file, special_tokens=special_tokens, max_seq_len=max_seq_len, prompt_template=template, **kwargs)
 
 
 def lora_qwen2_7b(
