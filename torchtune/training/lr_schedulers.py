@@ -5,9 +5,11 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
+from typing import Union
 
 import torch
 from torch.optim.lr_scheduler import LambdaLR
+from torchtune.training.memory import OptimizerInBackwardWrapper
 
 
 def get_cosine_schedule_with_warmup(
@@ -56,27 +58,38 @@ def get_cosine_schedule_with_warmup(
     return LambdaLR(optimizer, lr_lambda, last_epoch)
 
 
-def get_lr(optimizer_in_bwd, vanilla_optimizer) -> str:
+def get_lr(
+    optimizer: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper]
+) -> float:
     """
-    Full_finetune_distributed and full_finetune_single_deivce assume all optimizers have
+    Full_finetune_distributed and full_finetune_single_device assume all optimizers have
     the same LR, here to validate whether all the LR are the same and return if True.
-    Bsed on optimizer_in_bwd, the second input here could be optimizer or optim_wrapper,
-    name it as vanilla_optimizer to be more general.
+
+    Args:
+        optimizer (Union[torch.optim.Optimizer, OptimizerInBackwardWrapper]): A general
+            optimizer input that could whether be a general optimizer or an optimizer
+            warpper based on optimizer_in_backward.
+
+    Returns:
+        lr (float): The learning rate of the input optimizers.
+
+    Raises:
+        RuntimeError: If the learning rates of the input optimizer are not the same.
     """
-    if optimizer_in_bwd:
+    if isinstance(optimizer, OptimizerInBackwardWrapper):
         param_groups = []
-        for param in vanilla_optimizer.values():
+        for param in optimizer.state_dict().values():
             param_groups.append(param["param_groups"][0])
     else:
-        param_groups = vanilla_optimizer.param_groups
+        param_groups = optimizer.param_groups
     if len(param_groups) < 1:
         raise RuntimeError(
             f"Invalid optimizer param groups with len of: {len(param_groups)}"
         )
 
     # LR Schedulers are the same across all param groups for full_finetune right now
-    lr_scheduler = param_groups[0]["lr"]
+    lr = param_groups[0]["lr"]
     for group in param_groups:
-        if group["lr"] != lr_scheduler:
-            raise RuntimeError("LR Schedulers are dfferent across all param groups ")
-    return lr_scheduler
+        if group["lr"] != lr:
+            raise RuntimeError("LR Schedulers are different across all param groups ")
+    return lr

@@ -662,12 +662,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             # NOTE: for optim in backward, this assumes all optimizers have the same LR. This is currently
                             # true since we don't expose the ability to configure this yet.
                             "lr": get_lr(
-                                self._optimizer_in_bwd,
-                                (
-                                    self._optim_ckpt_wrapper.state_dict()
-                                    if self._optimizer_in_bwd
-                                    else self._optimizer
-                                ),
+                                self._optimizer
+                                if not self._optimizer_in_bwd
+                                else self._optim_ckpt_wrapper,
                             ),
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }

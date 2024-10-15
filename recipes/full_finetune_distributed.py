@@ -463,7 +463,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         cfg_optimizer: DictConfig,
         optimizer_in_bwd: bool = False,
         opt_state_dict: Optional[Dict[str, Any]] = None,
-    ) -> Optimizer:
+    ) -> Optional[Optimizer]:
         if optimizer_in_bwd:
             # Maintain a dict of optims for every parameter.
             optim_dict = {
@@ -479,7 +479,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._optim_ckpt_wrapper = training.create_optim_in_bwd_wrapper(
                 model=self._model, optim_dict=optim_dict
             )
-            # Load optimizer states for each param.
+            # Load optimizer states for each param. If optimizer states are being restored in an optimizer in
+            # backward run, these need to have been saved with the same setting. Cannot restore from runs that
+            # did not use optimizer in backward.
             if opt_state_dict is not None:
                 for param in opt_state_dict.keys():
                     try:
@@ -589,18 +591,18 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         if intermediate_checkpoint:
-            if self._optimizer_in_bwd:
-                opt_state_dict = {}
-                for param, opt in self._optim_ckpt_wrapper.optim_map.items():
-                    opt_state_dict[param] = training.get_full_optimizer_state_dict(
-                        opt, self._is_rank_zero, device=self._device
-                    )
-            else:
+            if not self._optimizer_in_bwd:
                 opt_state_dict = training.get_full_optimizer_state_dict(
                     self._optimizer,
                     self._is_rank_zero,
                     device=self._device,
                 )
+            else:
+                opt_state_dict = {}
+                for param, opt in self._optim_ckpt_wrapper.optim_map.items():
+                    opt_state_dict[param] = training.get_full_optimizer_state_dict(
+                        opt, self._is_rank_zero, device=self._device
+                    )
         else:
             opt_state_dict = None
 
@@ -709,11 +711,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                             raise NotImplementedError(
                                 "Gradient clipping is not supported after optimizer-in-the-backward."
                             )
-                        else:
-                            grad_norm = torch.nn.utils.clip_grad_norm_(
-                                self._model.parameters(),
-                                max_norm=float(self._clip_grad_norm),
-                            )
+                        grad_norm = torch.nn.utils.clip_grad_norm_(
+                            self._model.parameters(),
+                            max_norm=float(self._clip_grad_norm),
+                        )
                     if not self._optimizer_in_bwd:
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
@@ -736,10 +737,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         log_dict = {
                             "loss": loss_to_log,
                             "lr": get_lr(
-                                self._optimizer_in_bwd,
-                                self._optim_ckpt_wrapper.state_dict()
-                                if self._optimizer_in_bwd
-                                else self._optimizer,
+                                self._optimizer
+                                if not self._optimizer_in_bwd
+                                else self._optim_ckpt_wrapper,
                             ),
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }

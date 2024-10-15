@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 import torch
+from packaging import version
 from tests.common import TUNE_PATH
 
 from tests.recipes.utils import (
@@ -29,10 +30,7 @@ from tests.test_utils import (
 
 
 class TestFullFinetuneDistributedRecipe:
-    def _get_test_config_overrides(self, optim_in_bwd):
-        # "optimizer_in_bwd=True" would free gradient info before clip_grad,
-        # causing wrong grad_norm, so we only test one of them each time.
-        # But loss values should be the same.
+    def _get_test_config_overrides(self):
         return [
             "batch_size=4",
             "dtype=fp32",
@@ -44,7 +42,6 @@ class TestFullFinetuneDistributedRecipe:
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
-            "optimizer_in_bwd=True" if optim_in_bwd else "clip_grad_norm=100",
         ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self, model_type):
@@ -101,7 +98,14 @@ class TestFullFinetuneDistributedRecipe:
         if fsdp_sharding_strategy:
             cmd.append(f"fsdp_sharding_strategy={fsdp_sharding_strategy}")
         model_config = MODEL_TEST_CONFIGS[model_type]
-        cmd = cmd + self._get_test_config_overrides(optim_in_bwd) + model_config
+        cmd = cmd + self._get_test_config_overrides() + model_config
+        # "optimizer_in_bwd=True" would free gradient info before clip_grad, causing
+        # wrong grad_norm, so we only test one of them each time. But loss values
+        # should be the same. torch >= 2.5 required to enable optimizer_in_backward.
+        if optim_in_bwd and version.parse(torch.__version__).base_version < "2.5.0":
+            cmd.append("optimizer_in_bwd=True")
+        else:
+            cmd.append("clip_grad_norm=100")
 
         monkeypatch.setattr(sys, "argv", cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")
