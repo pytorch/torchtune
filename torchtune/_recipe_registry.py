@@ -383,6 +383,10 @@ _ALL_RECIPES = [
                 name="qwen2/knowledge_distillation_distributed",
                 file_path="qwen2/knowledge_distillation_distributed.yaml",
             ),
+            Config(
+                name="llama3_2/knowledge_distillation_distributed",
+                file_path="llama3_2/knowledge_distillation_distributed.yaml",
+            ),
         ],
         supports_distributed=True,
     ),

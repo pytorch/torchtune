@@ -46,6 +46,12 @@ class KDRecipeDistributed(FTRecipeInterface):
     for single GPU training. Training on CPU is not supported.
 
     Features:
+        - FSDP. Supported using PyTorch's FSDP APIs. CPU offload of parameters, gradients, and optimizer states
+            is supported via ``fsdp_cpu_offload``. Resharding of parameters after the forward pass is
+            done by default (corresponding to FULL_SHARD sharding strategy), but can be disabled by setting the config
+            ``fsdp_reshard_after_forward`` to False (this corresponds to SHARD_GRAD_OP sharding strategy).
+            DDP is currently not supported. Training on CPU is not supported.
+
         - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
             flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
             activations in memory and instead recompute them during the backward pass. This is especially
@@ -58,7 +64,7 @@ class KDRecipeDistributed(FTRecipeInterface):
             most cases this should halve the memory footprint of full precision (fp32) training, without
             loss in model quality (will depend on the model, training data and other settings). For
             GPUs which do not support bfloat16, we fall back to fp32. Mixed precision training and fp16
-            precision are currently not supported.g
+            precision are currently not supported.
 
         - Gradient Accumulation. You can simulate larger batch sizes by accumulating gradients. This is
             controlled using the ``gradient_accumulation_steps`` flag.
@@ -70,10 +76,6 @@ class KDRecipeDistributed(FTRecipeInterface):
             Gradient accumulation is especially useful when you are memory constrained. In this case,
             accumulating gradients might give you better training speed than enabling activation
             checkpointing.
-
-        - Lower precision optimizers. This recipe supports lower-precision optimizers from the bitsandbytes
-            library (https://huggingface.co/docs/bitsandbytes/main/en/index). We've tested the recipe with
-            8-bit AdamW and Paged AdamW.
 
         - Checkpointing. Model weights are checkpointed both at the end of each epoch and at the end of
             training. Currently we checkpoint both the adapter weights (trainable params only) and the
@@ -503,7 +505,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         is_dora = False
         for m in model.modules():
             if hasattr(m, "initialize_dora_magnitude"):
-                is_dora = (True,)
+                is_dora = True
                 m.initialize_dora_magnitude()
         if is_dora:
             load_dora_magnitudes(model)
@@ -687,14 +689,16 @@ class KDRecipeDistributed(FTRecipeInterface):
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
-            collate_fn=partial(
-                padded_collate_sft,
-                padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
-            )
-            if not packed
-            else partial(
-                padded_collate_packed,
+            collate_fn=(
+                partial(
+                    padded_collate_sft,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else partial(
+                    padded_collate_packed,
+                )
             ),
         )
 
