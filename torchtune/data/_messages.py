@@ -195,7 +195,7 @@ class InputOutputToMessages(Transform):
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         if self._column_map is not None:
             is_multimodal = "image" in sample or (
-                    "image" in self._column_map and self._column_map["image"] in sample
+                "image" in self._column_map and self._column_map["image"] in sample
             )
         else:
             is_multimodal = "image" in sample
