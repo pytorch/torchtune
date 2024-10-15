@@ -433,6 +433,7 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 
+<span class="kn">import</span> <span class="nn">datetime</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">time</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
@@ -525,8 +526,13 @@
 
     <span class="c1"># Use tensorboard trace handler rather than directly exporting chrome traces since</span>
     <span class="c1"># tensorboard doesn&#39;t seem to be able to parse traces with prof.export_chrome_trace</span>
+
+    <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+
     <span class="n">exporter</span> <span class="o">=</span> <span class="n">tensorboard_trace_handler</span><span class="p">(</span>
-        <span class="n">curr_trace_dir</span><span class="p">,</span> <span class="n">worker_name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;rank</span><span class="si">{</span><span class="n">rank</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">use_gzip</span><span class="o">=</span><span class="kc">True</span>
+        <span class="n">curr_trace_dir</span><span class="p">,</span>
+        <span class="n">worker_name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;r0-</span><span class="si">{</span><span class="n">now</span><span class="o">.</span><span class="n">year</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">now</span><span class="o">.</span><span class="n">month</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">now</span><span class="o">.</span><span class="n">day</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">now</span><span class="o">.</span><span class="n">hour</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">now</span><span class="o">.</span><span class="n">minute</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="n">use_gzip</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">exporter</span><span class="p">(</span><span class="n">prof</span><span class="p">)</span>
 
