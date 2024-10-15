@@ -114,6 +114,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         ValueError: If ``dtype`` is set to fp16.
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
         RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
+        RuntimeError: If ``enable_activation_offloading`` is True and ``enable_activation_checkpointing`` is False.
         RuntimeError: If ``left_pad_sequence`` is set as the data collator
 
     """
@@ -435,15 +436,21 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
         # activation checkpointing/offloading
-        if enable_activation_checkpointing and self._device.type != "cuda":
-            raise RuntimeError(
-                "enable_activation_offloading should only be enabled for training on CUDA"
-            )
-        if enable_activation_checkpointing and not enable_activation_offloading:
+        if enable_activation_offloading:
+            if self._device.type != "cuda":
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True for training on CUDA"
+                )
+            if not enable_activation_checkpointing:
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
+                )
+        elif enable_activation_checkpointing:
             log.info(
                 "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
                 "Enabling activation offloading should reduce memory further."
             )
+
         self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
             model, enable_activation_offloading
         )
