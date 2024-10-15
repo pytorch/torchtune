@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import builtins
 import math
 import re
 import runpy
@@ -64,17 +63,10 @@ class TestEleutherEval:
 
         out = caplog.text
 
-        # v0.4.2 format
-        # |    Tasks     |Version|Filter|n-shot|Metric|Value |   |Stderr|
-        # |--------------|------:|------|-----:|------|-----:|---|-----:|
-        # |truthfulqa_mc2|      2|none  |     0|acc   |0.4497|±  |0.1067|
-
-        # v0.4.3 format
+        # Format of output is:
         # |    Tasks     |Version|Filter|n-shot|Metric|   |Value |   |Stderr|
         # |--------------|------:|------|-----:|------|---|-----:|---|-----:|
         # |truthfulqa_mc2|      2|none  |     0|acc   |↑  |0.4497|±  |0.1067|
-
-        # The below RegEx command will pick up both formats
         search_results = re.search(
             r"acc(?:_norm)?\s*\|?\s*(?:\↑\s*\|?)?([\d.]+)", out.strip()
         )
@@ -83,18 +75,20 @@ class TestEleutherEval:
         assert math.isclose(acc_result, expected_acc, abs_tol=0.05)
 
     @pytest.fixture
-    def hide_available_pkg(self, monkeypatch):
-        import_orig = builtins.__import__
+    def hide_correct_version_number(self, monkeypatch):
+        import importlib.metadata
+
+        import_orig = importlib.metadata.version
 
         def mocked_import(name, *args, **kwargs):
-            if name == "lm_eval":
-                raise ImportError()
+            if name == "lm-eval":
+                return "0.4.4"  # Hardcode wrong version number
             return import_orig(name, *args, **kwargs)
 
-        monkeypatch.setattr(builtins, "__import__", mocked_import)
+        monkeypatch.setattr(importlib.metadata, "version", mocked_import)
 
     @pytest.mark.integration_test
-    @pytest.mark.usefixtures("hide_available_pkg")
+    @pytest.mark.usefixtures("hide_correct_version_number")
     def test_eval_recipe_errors_without_lm_eval(self, capsys, monkeypatch, tmpdir):
         ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -116,15 +110,16 @@ class TestEleutherEval:
             device=cpu \
         """.split()
 
-        monkeypatch.setattr(sys, "argv", cmd)
-        with pytest.raises(SystemExit, match="1"):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
+        model_config = llama2_test_config()
+        cmd = cmd + model_config
 
-        printed_err = capsys.readouterr().out
-        assert (
-            "You must install the EleutherAI Eval Harness to run this recipe"
-            in printed_err
-        )
+        monkeypatch.setattr(sys, "argv", cmd)
+        with pytest.raises(
+            RuntimeError,
+            match="This recipe requires EleutherAI Eval Harness v0.4.5. "
+            "Please install with `pip install lm-eval==0.4.5`",
+        ):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
 
     @pytest.mark.integration_test
     def test_eval_recipe_errors_with_quantization_hf_checkpointer(

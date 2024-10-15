@@ -128,7 +128,7 @@ For example: with ``batch_size=1`` and ``gradient_accumulation_steps=32`` we get
 .. note::
 
   For other components in torchtune which use "steps", such as :ref:`metric logging <metric_logging_label>`, or
-  :func:`learning rate schedulers <torchtune.modules.get_cosine_schedule_with_warmup>`, a "step" is counted as a
+  :func:`learning rate schedulers <torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup>`, a "step" is counted as a
   single update to model parameters, rather than a single model forward pass with the data.
   Suppose ``gradient_accumulation_steps = 4`` and ``log_every_n_steps = 10``.
   Metrics would be logged every 10 global steps, which translates to every 40 model forward passes.

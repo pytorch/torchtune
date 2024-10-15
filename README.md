@@ -7,7 +7,7 @@
 ![Recipe Integration Test](https://github.com/pytorch/torchtune/actions/workflows/recipe_test.yaml/badge.svg)
 [![](https://dcbadge.vercel.app/api/server/4Xsdn8Rr9Q?style=flat)](https://discord.gg/4Xsdn8Rr9Q)
 
-[**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) |  [**Documentation**](https://pytorch.org/torchtune/main/index.html) | [**Community**](#community) | [**License**](#license)
+[**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) |  [**Documentation**](https://pytorch.org/torchtune/main/index.html) | [**Community**](#community) | [**License**](#license) | [**Citing torchtune**](#citing-torchtune)
 
 > [!IMPORTANT]
 > Update September 25, 2024: torchtune has support for **Llama 3.2 11B Vision**, **Llama 3.2 3B**, and **Llama 3.2 1B** models! Try them out by following our installation instructions [here](#Installation), then run any of the text configs [here](recipes/configs/llama3_2) or vision configs [here](recipes/configs/llama3_2_vision).
@@ -282,3 +282,19 @@ We also want to acknowledge some awesome libraries and tools from the ecosystem:
 ## License
 
 torchtune is released under the [BSD 3 license](./LICENSE). However you may have other legal obligations that govern your use of other content, such as the terms of service for third-party models.
+
+
+## Citing torchtune
+
+If you find the torchtune library useful, please cite it in your work as below.
+
+```bibtex
+@software{torchtune,
+  title = {torchtune: PyTorch's finetuning library},
+  author = {torchtune maintainers and contributors},
+  url = {https//github.com/pytorch/torchtune},
+  license = {BSD-3-Clause},
+  month = apr,
+  year = {2024}
+}
+```

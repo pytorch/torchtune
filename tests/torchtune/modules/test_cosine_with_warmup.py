@@ -13,7 +13,7 @@ import torch.optim as optim
 
 from tests.test_utils import assert_expected
 
-from torchtune.modules import get_cosine_schedule_with_warmup
+from torchtune.training.lr_schedulers import get_cosine_schedule_with_warmup
 
 
 class TestCosineLR:

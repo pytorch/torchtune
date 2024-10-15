@@ -29,7 +29,6 @@ __all__ = [
     "TanhGate",
     "FeedForward",
     "FrozenNF4Linear",
-    "get_cosine_schedule_with_warmup",
     "KVCache",
     "RotaryPositionalEmbeddings",
     "RMSNorm",
@@ -43,4 +42,5 @@ __all__ = [
     "reparametrize_as_dtype_state_dict_post_hook",
     "create_block_causal_mask",
     "packed_block_causal_mask",
+    "get_cosine_schedule_with_warmup",
 ]

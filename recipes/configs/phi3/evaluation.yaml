@@ -1,0 +1,42 @@
+# Config for EleutherEvalRecipe in eleuther_eval.py
+#
+# To launch, run the following command:
+#    tune run eleuther_eval --config phi3/evaluation
+
+# Model Arguments
+model:
+  _component_: torchtune.models.phi3.phi3_mini
+
+# Checkpointer
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Phi-3-mini-4k-instruct
+  checkpoint_files: [
+    model-00001-of-00002.safetensors,
+    model-00002-of-00002.safetensors
+  ]
+  recipe_checkpoint: null
+  output_dir: /tmp/Phi-3-mini-4k-instruct
+  model_type: PHI3_MINI
+resume_from_checkpoint: False
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.phi3.phi3_mini_tokenizer
+  path: /tmp/Phi-3-mini-4k-instruct/tokenizer.model
+  max_seq_len: null
+
+# Environment
+device: cuda
+dtype: bf16
+seed: 1234 # It is not recommended to change this seed, b/c it matches EleutherAI's default seed
+
+# EleutherAI specific eval args
+tasks: ["truthfulqa_mc2"]
+limit: null
+max_seq_length: 4096
+batch_size: 8
+enable_kv_cache: True
+
+# Quantization specific args
+quantizer: null

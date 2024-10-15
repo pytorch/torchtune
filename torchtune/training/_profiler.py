@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 
+import datetime
 import os
 import time
 from functools import partial
@@ -97,8 +98,13 @@ def trace_handler(
 
     # Use tensorboard trace handler rather than directly exporting chrome traces since
     # tensorboard doesn't seem to be able to parse traces with prof.export_chrome_trace
+
+    now = datetime.datetime.now()
+
     exporter = tensorboard_trace_handler(
-        curr_trace_dir, worker_name=f"rank{rank}", use_gzip=True
+        curr_trace_dir,
+        worker_name=f"r0-{now.year}-{now.month}-{now.day}-{now.hour}-{now.minute}",
+        use_gzip=True,
     )
     exporter(prof)
 
