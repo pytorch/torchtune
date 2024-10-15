@@ -16,6 +16,7 @@ from torchtune import config, generation, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import ChatFormat, InstructTemplate, Message
 from torchtune.training import FullModelTorchTuneCheckpointer
+from torchtune.utils import get_torch_device
 
 logger = utils.get_logger("DEBUG")
 
@@ -214,7 +215,9 @@ class InferenceRecipe:
             f"Time for inference: {t:.02f} sec total, {tokens_sec:.02f} tokens/sec"
         )
         logger.info(f"Bandwidth achieved: {model_size * tokens_sec / 1e9:.02f} GB/s")
-        logger.info(f"Memory used: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
+        logger.info(
+            f"Memory used: {get_torch_device().max_memory_allocated() / 1e9:.02f} GB"
+        )
 
 
 @config.parse
