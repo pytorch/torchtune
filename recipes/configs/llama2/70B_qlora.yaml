@@ -97,3 +97,4 @@ log_peak_memory_stats: False
 device: cuda
 dtype: bf16
 enable_activation_checkpointing: True
+enable_activation_offloading: False
