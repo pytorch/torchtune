@@ -83,7 +83,7 @@ class TestLoRADPOSingleDeviceRecipe:
             save_adapter_weights_only={save_adapter_weights_only} \
             metric_logger.filename={log_file} \
             enable_activation_checkpointing=True \
-           enable_activation_offloading=False \
+            enable_activation_offloading=False \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]

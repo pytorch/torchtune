@@ -188,7 +188,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
             "device=cpu",
             "dtype=fp32",
             "enable_activation_checkpointing=False",
-            "enable_activation_offloadingg=False",
+            "enable_activation_offloading=False",
             "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
             "tokenizer.prompt_template=null",
             "dataset=tests.recipes.utils.DummyDataset",
