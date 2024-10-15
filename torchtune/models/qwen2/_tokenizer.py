@@ -105,7 +105,8 @@ class QwenTokenizer(ModelTokenizer):
         merges_file (str): Path to merges.txt file.
             merges.txt contains all BPE merge operations, and this file is required to split a single word into
             byte-level BPE tokens.
-        special_tokens (Optional[Dict[str, int]]): Special tokens to add to the tokenizer. Default is None.
+        special_tokens (Optional[Dict[str, int]]): Special tokens to add to the tokenizer. 
+            Defaults to the standard list of special tokens for the specified Qwen version.
         max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
             Default: None
         prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
@@ -117,7 +118,7 @@ class QwenTokenizer(ModelTokenizer):
             - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
 
             The extra text will still get tokenized as normal text, not as special tokens.
-            Default is :class:`~torchtune.data.ChatMLTemplate`.
+            Defaults to the standard chat template for the specified Qwen version.
         errors (str): Paradigm to follow when decoding bytes to UTF-8. Defaults to "replace".
             See [bytes.decode](https://docs.python.org/3/library/stdtypes.html#bytes.decode) for more information.
         unk_token (Optional[str]): The unknown token. A token that is not in the vocabulary cannot be converted
@@ -146,7 +147,7 @@ class QwenTokenizer(ModelTokenizer):
         special_tokens: Optional[Dict[str, int]] = None,
         max_seq_len: Optional[int] = None,
         *,
-        prompt_template: Optional[PromptTemplate] = ChatMLTemplate(),
+        prompt_template: Optional[PromptTemplate] = None,
         errors: str = "replace",
         unk_token: Optional[str] = ENDOFTEXT,
         bos_token: Optional[str] = None,
@@ -200,6 +201,13 @@ class QwenTokenizer(ModelTokenizer):
         self.max_seq_len = max_seq_len
 
         self.prompt_template = prompt_template
+        if self.prompt_template is None:
+            if version == '2':
+                self.prompt_template = ChatMLTemplate()    
+            elif version == '2.5':
+                self.prompt_template = Qwen2_5ChatTemplate()
+            else:
+                raise ValueError(f'Invalid Qwen version: {version}')
 
     def _bpe_without_cache(self, token):
         word = tuple(token)
@@ -373,11 +381,7 @@ class QwenTokenizer(ModelTokenizer):
         Raises:
             RuntimeError: If a message contains non-text content
         """
-        templated_messages = (
-            self.prompt_template(messages)
-            if self.prompt_template is not None
-            else messages
-        )
+        templated_messages = self.prompt_template(messages)
 
         tokenized_messages = []
         mask = []
