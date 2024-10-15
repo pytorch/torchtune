@@ -6,12 +6,12 @@
 from typing import List, Optional
 
 from torchtune.models.qwen2._component_builders import qwen2, lora_qwen2
-from torchtune.models.qwen2._tokenizer import QwenTokenizer
+from torchtune.models.qwen2._prompt_template import Qwen2_5ChatTemplate
+from torchtune.models.qwen2._tokenizer import QwenTokenizer, QWEN2_SPECIAL_TOKENS, QWEN2_5_SPECIAL_TOKENS
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from torchtune.modules.tokenizers import parse_hf_tokenizer_json
-from torchtune.data._prompt_templates import _TemplateType
-from torchtune.data._prompt_templates import _get_prompt_template
+from torchtune.data._prompt_templates import _TemplateType, _get_prompt_template, ChatMLTemplate
 
 """
 Model builders build specific instantiations using component builders. For example
@@ -96,12 +96,14 @@ def qwen2_1_5b() -> TransformerDecoder:
     )
 
 
-def qwen2_tokenizer(
+def qwen_tokenizer(
+    qwen_version: str,
     path: str,
-    merges_file: str = None,
+    merges_file: str,
     special_tokens_path: Optional[str] = None,
     max_seq_len: Optional[int] = None,
-    prompt_template: Optional[_TemplateType] = "torchtune.data.ChatMLTemplate",
+    prompt_template: Optional[str] = 'auto',
+    tools: Optional[List[str]] = None,
     **kwargs,
 ) -> QwenTokenizer:
     """
@@ -123,9 +125,32 @@ def qwen2_tokenizer(
     Returns:
         QwenTokenizer: Instantiation of the Qwen2 tokenizer
     """
-    special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    template = _get_prompt_template(prompt_template) if prompt_template is not None else None
-    return QwenTokenizer(version='2', path=path, merges_file=merges_file, special_tokens=special_tokens, max_seq_len=max_seq_len, prompt_template=template, **kwargs)
+    if tools is not None and not (qwen_version == '2.5' and prompt_template == 'auto'): 
+        raise NotImplementedError('Tool use is currently only supported for Qwen2.5 and the default prompt template.')
+
+    if special_tokens_path is not None:
+        special_tokens = parse_hf_tokenizer_json(special_tokens_path)
+    else:
+        if qwen_version == '2':
+            special_tokens = QWEN2_SPECIAL_TOKENS
+        elif qwen_version == '2.5':
+            special_tokens = QWEN2_5_SPECIAL_TOKENS
+        else:
+            raise ValueError(f'Invalid Qwen version: {qwen_version}')
+    
+    if prompt_template == 'auto':
+        if qwen_version == '2':
+            template = ChatMLTemplate()    
+        elif qwen_version == '2.5':
+            template = Qwen2_5ChatTemplate(tools=tools)
+        else:
+            raise ValueError(f'Invalid Qwen version: {qwen_version}')
+    elif prompt_template is not None:
+        template = _get_prompt_template(prompt_template)
+    else:
+        template = None
+
+    return QwenTokenizer(path=path, merges_file=merges_file, special_tokens=special_tokens, max_seq_len=max_seq_len, prompt_template=template, **kwargs)
 
 
 def lora_qwen2_7b(

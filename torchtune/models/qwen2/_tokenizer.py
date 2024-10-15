@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple
 import regex as re
 
 from torchtune.data import ChatMLTemplate, Message, PromptTemplate, truncate
+from torchtune.models.qwen2._prompt_template import Qwen2_5ChatTemplate
 from torchtune.modules.tokenizers import ModelTokenizer
 
 PRETOKENIZE_REGEX = (
@@ -100,7 +101,7 @@ class QwenTokenizer(ModelTokenizer):
     See <https://github.com/huggingface/transformers/blob/v4.40.1/src/transformers/models/qwen2/tokenization_qwen2.py>.
 
     Args:
-        version (str): Qwen version ('2' or '2.5')
+        qwen_version (str): Qwen version ('2' or '2.5')
         path (str): Path to vocab.json file.
         merges_file (str): Path to merges.txt file.
             merges.txt contains all BPE merge operations, and this file is required to split a single word into
@@ -118,7 +119,7 @@ class QwenTokenizer(ModelTokenizer):
             - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
 
             The extra text will still get tokenized as normal text, not as special tokens.
-            Defaults to the standard chat template for the specified Qwen version.
+            Default: None
         errors (str): Paradigm to follow when decoding bytes to UTF-8. Defaults to "replace".
             See [bytes.decode](https://docs.python.org/3/library/stdtypes.html#bytes.decode) for more information.
         unk_token (Optional[str]): The unknown token. A token that is not in the vocabulary cannot be converted
@@ -141,10 +142,9 @@ class QwenTokenizer(ModelTokenizer):
 
     def __init__(
         self,
-        version: str,
         path: str,
         merges_file: str,
-        special_tokens: Optional[Dict[str, int]] = None,
+        special_tokens: Dict[str, int],
         max_seq_len: Optional[int] = None,
         *,
         prompt_template: Optional[PromptTemplate] = None,
@@ -176,14 +176,6 @@ class QwenTokenizer(ModelTokenizer):
         self.pat = re.compile(PRETOKENIZE_REGEX)
 
         self.special_tokens = special_tokens
-        if self.special_tokens is None:
-            if version == '2':
-                self.special_tokens = QWEN2_SPECIAL_TOKENS    
-            elif version == '2.5':
-                self.special_tokens = QWEN2_5_SPECIAL_TOKENS
-            else:
-                raise ValueError(f'Invalid Qwen version: {version}')
-        self._special_tokens_reversed = {v: k for k, v in self.special_tokens.items()}
 
         self.unk_id = None if unk_token is None else self.special_tokens[unk_token]
         self.bos_id = None if bos_token is None else self.special_tokens[bos_token]
@@ -201,13 +193,6 @@ class QwenTokenizer(ModelTokenizer):
         self.max_seq_len = max_seq_len
 
         self.prompt_template = prompt_template
-        if self.prompt_template is None:
-            if version == '2':
-                self.prompt_template = ChatMLTemplate()    
-            elif version == '2.5':
-                self.prompt_template = Qwen2_5ChatTemplate()
-            else:
-                raise ValueError(f'Invalid Qwen version: {version}')
 
     def _bpe_without_cache(self, token):
         word = tuple(token)
@@ -381,7 +366,11 @@ class QwenTokenizer(ModelTokenizer):
         Raises:
             RuntimeError: If a message contains non-text content
         """
-        templated_messages = self.prompt_template(messages)
+        templated_messages = (
+            self.prompt_template(messages)
+            if self.prompt_template is not None
+            else messages
+        )
 
         tokenized_messages = []
         mask = []

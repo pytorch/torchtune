@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List
+from typing import List, Optional
 
 from torchtune.data import Message, PromptTemplateInterface
 
@@ -19,7 +19,6 @@ class Qwen2_5ChatTemplate(PromptTemplateInterface):
     
     Defined in the Jinja template in 
     https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/raw/main/tokenizer_config.json
-    under the key 'chat_template'.
     """
 
     template = {
@@ -28,7 +27,7 @@ class Qwen2_5ChatTemplate(PromptTemplateInterface):
         "assistant": ("<|im_start|>assistant\n", "<|im_end|>\n"),
     }
 
-    def __init__(self, tools: Optional[List] = None):
+    def __init__(self, tools: Optional[List[str]] = None):
         self._tools = tools
 
     def __call__(
@@ -55,7 +54,7 @@ class Qwen2_5ChatTemplate(PromptTemplateInterface):
         if self._tools:
             tool_instruction = [TOOL_INSTRUCTION_START]
             for tool in self._tools:
-                tool_instruction.append(json.dumps(tool))
+                tool_instruction.append(tool)
             tool_instruction.append(TOOL_INSTRUCTION_END)
             tool_instruction = '\n'.join(tool_instruction)
             assert messages[0].role == 'system'
@@ -71,7 +70,7 @@ class Qwen2_5ChatTemplate(PromptTemplateInterface):
                 # If empty assistant message at the end, we are expecting the model
                 # to generate the response continuing from the assistant prepend tag,
                 # so do not add the append tag.
-                if message.role != "assistant" or index != len(messages) - 1:
+                if message.role != "assistant" or i != len(messages) - 1:
                     content += [{"type": "text", "content": append_tag}]
                     
             formatted_dialogue.append(
