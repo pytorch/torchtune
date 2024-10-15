@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+title: "torchtune: PyTorch's finetuning library"
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - given-names: "torchtune maintainers and contributors"
+url: "https//github.com/pytorch/torchtune"
+license: "BSD-3-Clause"
+date-released: "2024-04-14"

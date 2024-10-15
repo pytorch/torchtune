@@ -14,7 +14,6 @@ Modeling Components and Building Blocks
     MultiHeadAttention
     FeedForward
     KVCache
-    get_cosine_schedule_with_warmup
     RotaryPositionalEmbeddings
     RMSNorm
     Fp32LayerNorm
