@@ -16,9 +16,11 @@ if _SUPPORTS_FLEX_ATTENTION:
 else:
     BlockMask = torch.Tensor
 
-from torchtune.utils._device_support import is_torch_npu_available
-
-is_npu_available = is_torch_npu_available()
+from torchtune.utils._device_support import (
+    get_device_support,
+    get_torch_device,
+    is_npu_available,
+)
 
 
 def _get_local_rank() -> Optional[int]:
@@ -34,7 +36,7 @@ def _get_local_rank() -> Optional[int]:
 
 
 def _setup_device(device: torch.device) -> torch.device:
-    """Function that sets the CUDA or NPU(Ascend) device and infers the cuda
+    """Function that sets the CUDA or NPU device and infers the cuda
     index if not set.
 
     Args:
@@ -47,23 +49,19 @@ def _setup_device(device: torch.device) -> torch.device:
         device
     """
     local_rank = _get_local_rank() or 0
+    device_type = get_device_support().device_type
+    device_name = get_device_support().device_name
+    torch_device = get_torch_device()
+
     if device.index is None:
-        if torch.npu.is_available():
-            device = torch.device(type="npu", index=local_rank)
-        else:
-            device = torch.device(type="cuda", index=local_rank)
-    if device.type == "cuda":
-        if device.index >= torch.cuda.device_count():
-            raise RuntimeError(
-                "The local rank is larger than the number of available GPUs."
-            )
-        torch.cuda.set_device(device)
-    elif device.type == "npu":
-        if device.index >= torch.npu.device_count():
-            raise RuntimeError(
-                "The local rank is larger than the number of available NPUs."
-            )
-        torch.npu.set_device(device)
+        device = torch.device(type=device_type, index=local_rank)
+
+    # Ensure index is available before setting device
+    if device.index >= torch_device.device_count():
+        raise RuntimeError(
+            f"The local rank is larger than the number of available {device_name}s."
+        )
+    torch_device.set_device(device)
     return device
 
 

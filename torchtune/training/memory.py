@@ -16,13 +16,11 @@ from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
 )
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim.lr_scheduler import LRScheduler
-from torchtune.utils import get_logger, is_torch_npu_available
+from torchtune.utils import get_device_support, get_logger, get_torch_device
 
 _log: logging.Logger = get_logger()
 
 ACWrapPolicyType: Type = Union[Set[Type], Callable[[nn.Module, bool, int], bool]]
-
-is_npu_available = is_torch_npu_available()
 
 
 def set_activation_checkpointing(
@@ -50,12 +48,8 @@ def cleanup_before_training() -> None:
     Call gc collect, empty CUDA or NPU cache, and reset peak memory stats.
     """
     gc.collect()
-    if is_npu_available():
-        torch.npu.empty_cache()
-        torch.npu.reset_peak_memory_stats()
-    else:
-        torch.cuda.empty_cache()
-        torch.cuda.reset_peak_memory_stats()
+    get_torch_device().empty_cache()
+    get_torch_device().reset_peak_memory_stats()
 
 
 class OptimizerInBackwardWrapper:
@@ -268,22 +262,14 @@ def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
     if device.type == "cpu":
         raise ValueError("Logging memory stats is not supported on CPU devices")
 
-    if is_npu_available:
-        peak_memory_active = torch.npu.memory_stats().get(
-            "active_bytes.all.peak", 0
-        ) / (1024**3)
-        peak_mem_alloc = torch.npu.max_memory_allocated(device) / (1024**3)
-        peak_mem_reserved = torch.npu.max_memory_reserved(device) / (1024**3)
-        if reset_stats:
-            torch.npu.reset_peak_memory_stats(device)
-    else:
-        peak_memory_active = torch.cuda.memory_stats().get(
-            "active_bytes.all.peak", 0
-        ) / (1024**3)
-        peak_mem_alloc = torch.cuda.max_memory_allocated(device) / (1024**3)
-        peak_mem_reserved = torch.cuda.max_memory_reserved(device) / (1024**3)
-        if reset_stats:
-            torch.cuda.reset_peak_memory_stats(device)
+    torch_device = get_torch_device()
+    peak_memory_active = torch_device.memory_stats().get("active_bytes.all.peak", 0) / (
+        1024**3
+    )
+    peak_mem_alloc = torch_device.max_memory_allocated(device) / (1024**3)
+    peak_mem_reserved = torch_device.max_memory_reserved(device) / (1024**3)
+    if reset_stats:
+        torch_device.reset_peak_memory_stats(device)
 
     memory_stats = {
         "peak_memory_active": peak_memory_active,
@@ -303,17 +289,10 @@ def log_memory_stats(stats: Dict[str, float]) -> None:
         stats (Dict[str, float]): A dictionary containing the peak memory active, peak memory
             allocated, and peak memory reserved stats.
     """
-    if is_npu_available:
-        _log.info(
-            "Memory stats after model init:"
-            f"\n\tNPU peak memory allocation: {stats['peak_memory_alloc']:.2f} GiB"
-            f"\n\tNPU peak memory reserved: {stats['peak_memory_reserved']:.2f} GiB"
-            f"\n\tNPU peak memory active: {stats['peak_memory_active']:.2f} GiB"
-        )
-    else:
-        _log.info(
-            "Memory stats after model init:"
-            f"\n\tGPU peak memory allocation: {stats['peak_memory_alloc']:.2f} GiB"
-            f"\n\tGPU peak memory reserved: {stats['peak_memory_reserved']:.2f} GiB"
-            f"\n\tGPU peak memory active: {stats['peak_memory_active']:.2f} GiB"
-        )
+    device_support = get_device_support()
+    _log.info(
+        "Memory stats after model init:"
+        f"\n\t{device_support.device_name} peak memory allocation: {stats['peak_memory_alloc']:.2f} GiB"
+        f"\n\t{device_support.device_name} peak memory reserved: {stats['peak_memory_reserved']:.2f} GiB"
+        f"\n\t{device_support.device_name} peak memory active: {stats['peak_memory_active']:.2f} GiB"
+    )
