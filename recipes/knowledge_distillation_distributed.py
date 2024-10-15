@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
 
 import torch
@@ -248,6 +248,7 @@ class KDRecipeDistributed(FTRecipeInterface):
 
         self._teacher_model = self._setup_teacher_model(
             model_cfg=cfg.teacher_model,
+            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
             model_state_dict=teacher_checkpoint_dict[training.MODEL_KEY],
@@ -536,6 +537,7 @@ class KDRecipeDistributed(FTRecipeInterface):
     def _setup_teacher_model(
         self,
         model_cfg: DictConfig,
+        custom_sharded_layers: Optional[List[str]],
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
         model_state_dict: Dict[str, Any],
@@ -557,6 +559,9 @@ class KDRecipeDistributed(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(model_cfg)
 
+        if self._compile:
+            training.compile_model(model, verbose=self._is_rank_zero)
+
         # For FSDP sharding, we can condition on either the module or its name
         # Shard conditions should be callables taking name (relative to model root)
         # and the module itself and returning a bool on whether to shard the given module
@@ -574,6 +579,9 @@ class KDRecipeDistributed(FTRecipeInterface):
             return len(s_list) == 2 and s_list[0] == "layers" and str.isdigit(s_list[1])
 
         fsdp_shard_conditions = [lambda n, m: _is_layer_fqn(n)]
+
+        if custom_sharded_layers:
+            fsdp_shard_conditions += [lambda n, m: n in custom_sharded_layers]
 
         training.shard_model(
             model=model,
