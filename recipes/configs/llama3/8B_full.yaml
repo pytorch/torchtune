@@ -64,7 +64,7 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True
-enable_activation_offloading: False
+enable_activation_offloading: False  # True reduces memory
 custom_sharded_layers: ['tok_embeddings', 'output']
 
 # Reduced precision
