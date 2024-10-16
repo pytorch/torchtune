@@ -650,6 +650,7 @@
     <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">ignore_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
     <span class="n">pad_direction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;right&quot;</span><span class="p">,</span>
+    <span class="n">pad_max_tiles</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">pad_max_images</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Pad a batch of text sequences, tiled image tensors, aspect ratios,</span>
@@ -687,6 +688,8 @@
 <span class="sd">            :func:`torch.nn.utils.rnn.pad_sequence`, otherwise if ``pad_direction=&quot;left&quot;``,</span>
 <span class="sd">            we use :func:`torchtune.data.left_pad_sequence`. For training, we typically want to pad from the right.</span>
 <span class="sd">            For inference, we typically want to pad from the left. Defaults to &quot;right&quot;.</span>
+<span class="sd">        pad_max_tiles (Optional[int]): Maximum number of tiles to pad to. If None, will pad to the largest number of tiles</span>
+<span class="sd">            in the batch. Defaults to None.</span>
 <span class="sd">        pad_max_images (Optional[int]): Maximum number of images to pad to. If None, will pad to the largest number of images</span>
 <span class="sd">            in the batch. Defaults to None.</span>
 
@@ -700,6 +703,7 @@
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: if ``pad_direction`` is not one of &quot;left&quot; or &quot;right&quot;.</span>
+<span class="sd">        ValueError: if pad_max_tiles is set to a value less than the largest number of tiles in an image.</span>
 
 <span class="sd">    Example:</span>
 <span class="sd">        &gt;&gt;&gt; image_id = 1</span>
@@ -783,6 +787,13 @@
         <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">batch</span>
         <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">][</span><span class="s2">&quot;images&quot;</span><span class="p">]</span>
     <span class="p">)</span>
+    <span class="k">if</span> <span class="n">pad_max_tiles</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">pad_max_tiles</span> <span class="o">&lt;</span> <span class="n">max_num_tiles</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;More tiles in image </span><span class="si">{</span><span class="n">max_num_tiles</span><span class="si">}</span><span class="s2">, than pad_max_tiles </span><span class="si">{</span><span class="n">pad_max_tiles</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="n">max_num_tiles</span> <span class="o">=</span> <span class="n">pad_max_tiles</span>
+
     <span class="c1"># Second loop: pad images and masks to max number of tiles, max text seq len in batch</span>
     <span class="n">batch_images</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">batch_masks</span> <span class="o">=</span> <span class="p">[]</span>
