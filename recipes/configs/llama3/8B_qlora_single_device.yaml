@@ -83,7 +83,7 @@ dtype: bf16
 
 # Activations Memory
 enable_activation_checkpointing: True
-enable_activation_offloading: True  # True reduces memory
+enable_activation_offloading: False  # True reduces memory
 
 # Profiler (disabled)
 profiler:
