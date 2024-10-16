@@ -357,6 +357,7 @@ def get_act_offloading_ctx_manager(
         # step, as the cost for offloading the activation and then soon after bringing
         # it back is expensive. Moreover, due to heuristics in our streaming API,
         # we actually use more memory if we offload it as it interferes with chunkedCE.
+        output_head_detected = False
         if hasattr(model, "output"):
             noop_ctx = NoOpManager()
             if isinstance(model.output, nn.Module):
@@ -366,6 +367,7 @@ def get_act_offloading_ctx_manager(
                 model.output.register_forward_hook(
                     lambda *args: noop_ctx.__exit__(), always_call=True
                 )
+                output_head_detected = True
             elif isinstance(model.output, TiedLinear):
                 model.output.linear.register_forward_pre_hook(
                     lambda *args: noop_ctx.__enter__()
@@ -373,6 +375,28 @@ def get_act_offloading_ctx_manager(
                 model.output.linear.register_forward_hook(
                     lambda *args: noop_ctx.__exit__(), always_call=True
                 )
+                output_head_detected = True
+
+        elif hasattr(model, "decoder"):
+            noop_ctx = NoOpManager()
+            if isinstance(model.decoder, nn.Module):
+                model.decoder.output.register_forward_pre_hook(
+                    lambda *args: noop_ctx.__enter__()
+                )
+                model.decoder.output.register_forward_hook(
+                    lambda *args: noop_ctx.__exit__(), always_call=True
+                )
+                output_head_detected = True
+
+        if not output_head_detected:
+            log.warning(
+                "During activation offloading, no output head was detected. "
+                "If your model has an output head, it will be offloaded. "
+                "This usually greatly slows training, given the large vocabulary size. "
+                "To change this behavior, set your output head as model.output and make it "
+                "an nn.Module."
+            )
+
     else:
         activations_handling_ctx = contextlib.nullcontext()
 

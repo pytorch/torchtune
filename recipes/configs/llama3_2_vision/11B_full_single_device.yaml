@@ -68,7 +68,6 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True
-enable_activation_offloading: False  # True reduces memory
 dtype: bf16
 
 # Logging
