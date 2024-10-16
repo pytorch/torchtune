@@ -190,23 +190,19 @@ class InputOutputToMessages(Transform):
         else:
             self.column_map = {"input": "input", "output": "output"}
 
-        self._column_map = column_map
-
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
-        if self._column_map is not None:
+        if self.column_map is not None:
             is_multimodal = "image" in sample or (
-                "image" in self._column_map and self._column_map["image"] in sample
+                "image" in self.column_map and self.column_map["image"] in sample
             )
         else:
             is_multimodal = "image" in sample
 
-        if not self._column_map and is_multimodal:
-            self._column_map = {"input": "input", "output": "output", "image": "image"}
-        elif not self._column_map and not is_multimodal:
-            self._column_map = {"input": "input", "output": "output"}
+        if is_multimodal and "image" not in self.column_map:
+            self.column_map["image"] = "image"
 
         if is_multimodal:
-            image_path = sample[self._column_map["image"]]
+            image_path = sample[self.column_map["image"]]
             if isinstance(image_path, str):
                 # Load if not loaded
                 pil_image = load_image(image_path)
@@ -214,13 +210,13 @@ class InputOutputToMessages(Transform):
                 pil_image = image_path
             content = [
                 {"type": "image", "content": pil_image},
-                {"type": "text", "content": sample[self._column_map["input"]]},
+                {"type": "text", "content": sample[self.column_map["input"]]},
             ]
         else:
-            content = [{"type": "text", "content": sample[self._column_map["input"]]}]
+            content = [{"type": "text", "content": sample[self.column_map["input"]]}]
 
         output_content = [
-            {"type": "text", "content": sample[self._column_map["output"]]}
+            {"type": "text", "content": sample[self.column_map["output"]]}
         ]
 
         messages = [

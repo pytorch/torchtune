@@ -4,10 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional
 
 from torchtune.data import InputOutputToMessages
-from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.transforms import Transform
 
@@ -21,7 +20,7 @@ def multimodal_instruct_dataset(
     filter_fn: Optional[Callable] = None,
     split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],
-) -> Union[SFTDataset, PackedDataset]:
+) -> SFTDataset:
     """
     Configure a custom text+image dataset with separate columns for user instruction, image, and model response.
 

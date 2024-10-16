@@ -17,8 +17,7 @@ class TestMultimodalInstructDataset:
     def tokenizer(self):
         return DummyTokenizer()
 
-    @pytest.mark.parametrize("train_on_input", [True, False])
-    def test_get_item(self, tokenizer, train_on_input):
+    def test_get_item(self, tokenizer):
         system_prompt = "follow this prompt"
 
         dataset = multimodal_instruct_dataset(
@@ -49,4 +48,4 @@ class TestMultimodalInstructDataset:
             )
             assert prompt == expected_tokens[i]
             assert label == expected_labels[i]
-            assert isinstance(image[0], PngImageFile) is True
+            assert isinstance(image[0], PngImageFile)
