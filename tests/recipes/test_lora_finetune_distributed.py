@@ -149,7 +149,7 @@ class TestLoRAFinetuneDistributedRecipe:
             tokenizer.prompt_template=null \
             save_adapter_weights_only={save_adapter_weights_only} \
             enable_activation_checkpointing=True \
-            enable_activation_offloading=False \
+            enable_activation_offloading=True \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
@@ -175,7 +175,7 @@ class TestLoRAFinetuneDistributedRecipe:
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
             enable_activation_checkpointing=True \
-            enable_activation_offloading=False \
+            enable_activation_offloading=True \
         """.split()
 
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
@@ -219,7 +219,7 @@ class TestLoRAFinetuneDistributedRecipe:
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             enable_activation_checkpointing=True \
-            enable_activation_offloading=False \
+            enable_activation_offloading=True \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
