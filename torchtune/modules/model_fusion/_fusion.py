@@ -391,18 +391,26 @@ class DeepFusionModel(nn.Module):
         )
 
     def caches_are_setup(self) -> bool:
-        """Check if the key value caches are setup."""
+        """
+        Check if the key value caches are setup. This means `setup_caches` has been called, and
+        the relevant attention modules in the model have created `KVCache`s.
+        """
         return self.decoder.caches_are_setup()
 
     def caches_are_enabled(self) -> bool:
         """
-        Checks if the key value caches are enabled. KV-caches must also have been setup
-        for them to be enabled.
+        Checks if the key value caches are enabled. Once KV-caches have been setup, the relevant
+        attention modules will be "enabled" and all forward passes will update the caches. This behaviour
+        can be disabled without altering the state of the KV-caches by "disabling" the KV-caches
+        using ``torchtune.modules.disable_kv_cache``, upon which ``caches_are_enabled`` would return False.
         """
         return self.decoder.caches_are_enabled()
 
     def reset_caches(self):
-        """Reset the key value caches."""
+        """
+        Resets KV-cache buffers on relevant attention modules to zero, and reset cache positions to zero,
+        without deleting or reallocating cache tensors.
+        """
         self.decoder.reset_caches()
 
     def forward(

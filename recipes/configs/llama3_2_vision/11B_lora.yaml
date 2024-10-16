@@ -34,6 +34,7 @@ tokenizer:
   _component_: torchtune.models.llama3_2_vision.llama3_2_vision_transform
   path: /tmp/Llama-3.2-11B-Vision-Instruct/original/tokenizer.model
   image_size: 560
+  max_seq_len: 8192
 
 # Checkpointer
 checkpointer:
@@ -64,7 +65,7 @@ optimizer:
   weight_decay: 0.01
   lr: 2e-5
 lr_scheduler:
-  _component_: torchtune.modules.get_cosine_schedule_with_warmup
+  _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss

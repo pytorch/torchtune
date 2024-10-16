@@ -328,6 +328,18 @@ _ALL_RECIPES = [
                 name="qwen2/evaluation",
                 file_path="qwen2/evaluation.yaml",
             ),
+            Config(
+                name="gemma/evaluation",
+                file_path="gemma/evaluation.yaml",
+            ),
+            Config(
+                name="phi3/evaluation",
+                file_path="phi3/evaluation.yaml",
+            ),
+            Config(
+                name="mistral/evaluation",
+                file_path="mistral/evaluation.yaml",
+            ),
         ],
         supports_distributed=False,
     ),

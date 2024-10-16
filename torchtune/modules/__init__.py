@@ -34,7 +34,6 @@ __all__ = [
     "TanhGate",
     "FeedForward",
     "FrozenNF4Linear",
-    "get_cosine_schedule_with_warmup",
     "KVCache",
     "RotaryPositionalEmbeddings",
     "RMSNorm",
@@ -51,4 +50,5 @@ __all__ = [
     "local_kv_cache",
     "delete_kv_caches",
     "disable_kv_cache",
+    "get_cosine_schedule_with_warmup",
 ]
