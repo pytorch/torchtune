@@ -224,7 +224,7 @@ class MultiHeadAttention(nn.Module):
         # y has shape [b, s_y, d]
         b, s_x, _ = x.shape
         s_y = y.shape[1] if y is not None else 0
-        
+
         # q has shape [b, s_x, num_heads * head_dim]
         q = self.q_proj(x)
 
@@ -243,24 +243,13 @@ class MultiHeadAttention(nn.Module):
         if self.q_norm is not None:
             q = self.q_norm(q)
 
-        def true_fn(y):
-            # if self.kv_cache is None:
-            #     raise ValueError(
-            #         "Must provide y input or use kv_cache to enable streaming decoding"
-            #     )
-            if self.kv_cache is not None:
-                k = self.kv_cache.k_cache
-                v = self.kv_cache.v_cache
-            else:
-                k = torch.zeros(b, s_y, self.num_heads, self.head_dim).transpose(1, 2)
-                v = torch.zeros(b, s_y, self.num_heads, self.head_dim).transpose(1, 2)
-            return k, v
-
-        def false_fn(y):
+        def calculate_kv(original_y):
             # Update k and v shape, positional embeddings, and normalization
 
             # k has shape [b, s_y, num_kv_heads * head_dim]
             # v has shape [b, s_y, num_kv_heads * head_dim]
+            y = original_y.clone()
+
             k = self.k_proj(y)
             v = self.v_proj(y)
 
@@ -296,12 +285,32 @@ class MultiHeadAttention(nn.Module):
             if self.k_norm is not None:
                 k = self.k_norm(k)
 
-            # Update key-value cache
-            if self.kv_cache is not None:
-                k, v = self.kv_cache.update(k, v)
             return k, v
 
-        k, v = torch.cond(torch.isnan(y).all(), true_fn, false_fn, (y, ))
+        def true_fn(y):
+            kv_cache = self.kv_cache.clone()
+            return kv_cache.k_cache, kv_cache.v_cache, kv_cache.cache_pos
+
+        def false_fn(y):
+            k, v = calculate_kv(y)
+            kv_cache = self.kv_cache.clone()
+            kv_cache.update(k, v)
+            return kv_cache.k_cache, kv_cache.v_cache, kv_cache.cache_pos
+
+        # If kv cache is None, we expect y to be provided
+        if self.kv_cache is None:
+            assert (
+                y is not None and not torch.isnan(y).all()
+            ), "Must provide y input or use kv_cache to enable streaming decoding"
+            k, v = calculate_kv(y)
+        else:
+            # Expecting the k, v returning here to be the same size of self.kv_cache
+            k, v, cache_pos = torch.cond(torch.isnan(y).all(), true_fn, false_fn, (y,))
+
+            # Update kv cache
+            self.kv_cache.k_cache.copy_(k)
+            self.kv_cache.v_cache.copy_(v)
+            self.kv_cache.cache_pos.copy_(cache_pos)
 
         output = self._attention_call(
             q,

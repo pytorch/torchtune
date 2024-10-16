@@ -1,3 +1,8 @@
+import os, sys
+import time
+from functools import lru_cache, wraps
+from typing import Optional
+
 import numpy as np
 import PIL
 import torch
@@ -12,10 +17,6 @@ from torchtune.models.flamingo import (
     flamingo_vision_encoder,
     FlamingoTransform,
 )
-import os, sys
-import time
-from functools import lru_cache, wraps
-from typing import Optional
 
 from torchtune.models.flamingo._component_builders import (
     flamingo_decoder,
@@ -552,22 +553,31 @@ def test_aoti(llama3_2_dir):
     )
     data["mask"] = causal_mask[None, seq_len, None, :]
     # run
-    logits = aoti(tok, encoder_mask=data["encoder_mask"], mask=data["mask"], input_pos=data["input_pos"])
+    logits = aoti(
+        tok,
+        encoder_mask=data["encoder_mask"],
+        mask=data["mask"],
+        input_pos=data["input_pos"],
+    )
+
 
 if __name__ == "__main__":
     llama3_2_dir = str(sys.argv[1])
     # validate_vision_encoder(llama3_2_dir)
-    aoti_export_text_decoder(llama3_2_dir)
+    # aoti_export_text_decoder(llama3_2_dir)
     # test_aoti(llama3_2_dir)
     # validate_text_decoder(llama3_2_dir)
-    # model = get_flamingo(llama3_2_dir)
+    model = get_flamingo(llama3_2_dir)
 
-    # with torch.no_grad():
+    with torch.no_grad():
 
-    #     data = get_sample_preprocess_outputs(llama3_2_dir).copy()
-    #     image = data["encoder_input"]["images"].to(dtype=torch.float32)
-    #     embeds = model.encoder(image, data["encoder_input"]["aspect_ratio"])
-    #     data["encoder_input"] = embeds
-    #     tokens = data.pop("tokens")
-    #     print("Start eager run")
-    #     model.decoder(tokens, **data)
+        data = get_sample_preprocess_outputs(llama3_2_dir).copy()
+        image = data["encoder_input"]["images"].to(dtype=torch.float32)
+        embeds = model.encoder(image, data["encoder_input"]["aspect_ratio"])
+        data["encoder_input"] = embeds
+        tokens = data.pop("tokens")
+        print("Start eager run")
+        # model.decoder(tokens, **data)
+        torch._dynamo.config.capture_dynamic_output_shape_ops = True
+        torch._dynamo.config.capture_scalar_outputs = True
+        torch.compile(model.decoder, fullgraph=True)(tokens, **data)
