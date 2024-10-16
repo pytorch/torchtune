@@ -1,0 +1,41 @@
+# Config for EleutherEvalRecipe in eleuther_eval.py
+#
+# To launch, run the following command:
+#    tune run eleuther_eval --config mistral/evaluation
+
+# Model Arguments
+model:
+  _component_: torchtune.models.mistral.mistral_7b
+
+# Checkpointer
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Mistral-7B-v0.1/
+  checkpoint_files: [
+    pytorch_model-00001-of-00002.bin,
+    pytorch_model-00002-of-00002.bin
+  ]
+  output_dir: /tmp/Mistral-7B-v0.1/
+  model_type: MISTRAL
+resume_from_checkpoint: False
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.mistral.mistral_tokenizer
+  path: /tmp/Mistral-7B-v0.1/tokenizer.model
+  max_seq_len: null
+
+# Environment
+device: cuda
+dtype: bf16
+seed: 1234 # It is not recommended to change this seed, b/c it matches EleutherAI's default seed
+
+# EleutherAI specific eval args
+tasks: ["truthfulqa_mc2"]
+limit: null
+max_seq_length: 4096
+batch_size: 8
+enable_kv_cache: True
+
+# Quantization specific args
+quantizer: null
