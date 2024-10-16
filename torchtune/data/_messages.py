@@ -188,18 +188,12 @@ class InputOutputToMessages(Transform):
                     f"Expected a key of 'output' in column_map but found {self.column_map.keys()}."
                 )
         else:
-            self.column_map = {"input": "input", "output": "output"}
+            self.column_map = {"input": "input", "output": "output", "image": "image"}
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
-        if self.column_map is not None:
-            is_multimodal = "image" in sample or (
-                "image" in self.column_map and self.column_map["image"] in sample
-            )
-        else:
-            is_multimodal = "image" in sample
-
-        if is_multimodal and "image" not in self.column_map:
-            self.column_map["image"] = "image"
+        is_multimodal = "image" in sample or (
+            "image" in self.column_map and self.column_map["image"] in sample
+        )
 
         if is_multimodal:
             image_path = sample[self.column_map["image"]]

@@ -23,7 +23,7 @@ class TestMultimodalInstructDataset:
         dataset = vqa_dataset(
             model_transform=tokenizer,
             source="json",
-            data_files=str(ASSETS / "multimodal_instruct_tiny.json"),
+            data_files=str(ASSETS / "vqa_tiny.json"),
             split="train",
             new_system_prompt=system_prompt,
         )

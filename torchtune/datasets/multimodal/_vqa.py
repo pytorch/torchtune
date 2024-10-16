@@ -22,9 +22,9 @@ def vqa_dataset(
     **load_dataset_kwargs: Dict[str, Any],
 ) -> SFTDataset:
     """
-    Configure a custom text+image dataset with separate columns for user instruction, image, and model response.
+    Configure a custom visual question answer dataset with separate columns for user question, image, and model response.
 
-    This builder function can be used to configure a custom multimodal instruct dataset directly from the yaml config
+    This builder function can be used to configure a custom visual question answer dataset directly from the yaml config
     as an alternative to :class:`~torchtune.datasets.SFTDataset`, as it is made to be config friendly.
 
     The dataset should follow this format:
@@ -40,12 +40,6 @@ def vqa_dataset(
     ``"answer"`` and ``"picture"`` you can use:
 
         column_map = {"input": "question", "output": "answer", "image": "picture"}
-
-    Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is
-    set to ``False`` by default
-    - If ``train_on_input`` is True, the prompt is used during training and
-    contributes to the loss.
-    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)
 
     Args:
         model_transform (Transform): callable that applies model-specific pre-processing to the sample.
