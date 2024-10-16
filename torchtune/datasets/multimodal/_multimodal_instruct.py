@@ -121,8 +121,7 @@ def multimodal_instruct_dataset(
           split: train
 
     Returns:
-        Union[SFTDataset, PackedDataset]: the configured :class:`~torchtune.datasets.SFTDataset`
-            or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``
+        SFTDataset: the configured :class:`~torchtune.datasets.SFTDataset`
     """
     message_transform = InputOutputToMessages(
         column_map=column_map, new_system_prompt=new_system_prompt
