@@ -9,7 +9,7 @@ from PIL.PngImagePlugin import PngImageFile
 from tests.common import ASSETS
 from tests.test_utils import DummyTokenizer
 
-from torchtune.datasets.multimodal import multimodal_instruct_dataset
+from torchtune.datasets.multimodal import vqa_dataset
 
 
 class TestMultimodalInstructDataset:
@@ -20,15 +20,13 @@ class TestMultimodalInstructDataset:
     def test_get_item(self, tokenizer):
         system_prompt = "follow this prompt"
 
-        dataset = multimodal_instruct_dataset(
+        dataset = vqa_dataset(
             model_transform=tokenizer,
             source="json",
             data_files=str(ASSETS / "multimodal_instruct_tiny.json"),
             split="train",
             new_system_prompt=system_prompt,
         )
-
-        system_prompt_offset = len(system_prompt.split(" ")) + 1
 
         expected_tokens = [
             [0, 6, 4, 6, -2, 4, 2, 9, 2, 6, 7, 5, -1],

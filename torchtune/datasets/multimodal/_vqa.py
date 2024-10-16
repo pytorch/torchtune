@@ -11,7 +11,7 @@ from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.transforms import Transform
 
 
-def multimodal_instruct_dataset(
+def vqa_dataset(
     model_transform: Transform,
     *,
     source: str,
@@ -89,8 +89,8 @@ def multimodal_instruct_dataset(
 
     ::
 
-        >>> from torchtune.datasets.multimodal import multimodal_instruct_dataset
-        >>> dataset = multimodal_instruct_dataset(
+        >>> from torchtune.datasets.multimodal import vqa_dataset
+        >>> dataset = vqa_dataset(
         ...     model_transform=model_transform,
         ...     source="json",
         ...     data_files="my_dataset.json",
