@@ -759,7 +759,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                         + self.profiler_warmup_steps
                         + self.profiler_active_steps
                     ):
-                        get_torch_device().memory._record_memory_history(enable=None)
+                        get_torch_device().memory._record_memory_history(enabled=None)
 
                     # Step the profiler
                     # Note we are stepping each batch, which might not include optimizer step in the trace

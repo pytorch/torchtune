@@ -711,7 +711,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         + self.profiler_warmup_steps
                         + self.profiler_active_steps
                     ):
-                        get_torch_device().memory._record_memory_history(enable=None)
+                        get_torch_device().memory._record_memory_history(enabled=None)
 
                     # Step profiler
                     # Note that this is called within gradient accumulation block, hence
