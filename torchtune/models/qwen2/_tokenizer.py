@@ -106,7 +106,7 @@ class QwenTokenizer(ModelTokenizer):
         merges_file (str): Path to merges.txt file.
             merges.txt contains all BPE merge operations, and this file is required to split a single word into
             byte-level BPE tokens.
-        special_tokens (Optional[Dict[str, int]]): Special tokens to add to the tokenizer. 
+        special_tokens (Optional[Dict[str, int]]): Special tokens to add to the tokenizer.
             Defaults to the standard list of special tokens for the specified Qwen version.
         max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
             Default: None

@@ -8,16 +8,18 @@ from typing import List, Optional
 from torchtune.data import Message, PromptTemplateInterface
 
 
-DEFAULT_SYS_PROMPT = 'You are Qwen, created by Alibaba Cloud. You are a helpful assistant.'
+DEFAULT_SYS_PROMPT = (
+    "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."
+)
 TOOL_INSTRUCTION_START = "\n\n# Tools\n\nYou may call one or more functions to assist with the user query.\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>"
-TOOL_INSTRUCTION_END = "</tools>\n\nFor each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n<tool_call>\n{\"name\": <function-name>, \"arguments\": <args-json-object>}\n</tool_call>"
+TOOL_INSTRUCTION_END = '</tools>\n\nFor each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n<tool_call>\n{"name": <function-name>, "arguments": <args-json-object>}\n</tool_call>'
 
 
 class Qwen2_5ChatTemplate(PromptTemplateInterface):
     """
     Qwen2.5's chat template.
-    
-    Defined in the Jinja template in 
+
+    Defined in the Jinja template in
     https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/raw/main/tokenizer_config.json
     """
 
@@ -47,8 +49,10 @@ class Qwen2_5ChatTemplate(PromptTemplateInterface):
             The formatted list of messages
         """
         # Add a system prompt if missing
-        if not messages or messages[0].role != 'system':
-            messages.insert(0, Message(role='system', content=DEFAULT_SYS_PROMPT, masked=True))
+        if not messages or messages[0].role != "system":
+            messages.insert(
+                0, Message(role="system", content=DEFAULT_SYS_PROMPT, masked=True)
+            )
 
         # Add tool instructions to the system prompt
         if self._tools:
@@ -56,23 +60,33 @@ class Qwen2_5ChatTemplate(PromptTemplateInterface):
             for tool in self._tools:
                 tool_instruction.append(tool)
             tool_instruction.append(TOOL_INSTRUCTION_END)
-            tool_instruction = '\n'.join(tool_instruction)
-            assert messages[0].role == 'system'
-            messages[0].content.append({'type': 'text', 'content': tool_instruction})
+            tool_instruction = "\n".join(tool_instruction)
+            assert messages[0].role == "system"
+            messages[0].content.append({"type": "text", "content": tool_instruction})
 
-        # Add start/end tags to messages (except ipython tool responses)
+        # Add start/end tags to messages
         formatted_dialogue = []
         for i, message in enumerate(messages):
-            content = message.content
-            if message.role != 'ipython':
+            if message.role == "ipython":
+                if i == 0 or messages[i - 1].role != "ipython":
+                    prepend_tag = f"{self.template['user'][0]}<tool_response>\n"
+                else:
+                    prepend_tag = "\n<tool_response>\n"
+
+                if i == len(messages) - 1 or messages[i + 1]["role"] != "ipython":
+                    append_tag = f"\n</tool_response>{self.template['user'][1]}"
+                else:
+                    append_tag = "\n</tool_response>"
+            else:
                 prepend_tag, append_tag = self.template[message.role]
-                content = [{"type": "text", "content": prepend_tag}] + content
-                # If empty assistant message at the end, we are expecting the model
-                # to generate the response continuing from the assistant prepend tag,
-                # so do not add the append tag.
-                if message.role != "assistant" or i != len(messages) - 1:
-                    content += [{"type": "text", "content": append_tag}]
-                    
+
+            content = [{"type": "text", "content": prepend_tag}] + message.content
+            # If empty assistant message at the end, we are expecting the model
+            # to generate the response continuing from the assistant prepend tag,
+            # so do not add the append tag.
+            if message.role != "assistant" or i != len(messages) - 1:
+                content += [{"type": "text", "content": append_tag}]
+
             formatted_dialogue.append(
                 Message(
                     role=message.role,
