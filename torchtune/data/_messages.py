@@ -178,7 +178,7 @@ class InputOutputToMessages(Transform):
 
         self.column_map = column_map
 
-        if self.column_map:
+        if self.column_map is not None:
             if "input" not in self.column_map:
                 raise ValueError(
                     f"Expected a key of 'input' in column_map but found {self.column_map.keys()}."
