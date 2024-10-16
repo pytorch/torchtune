@@ -17,7 +17,6 @@ from torchtune.data import load_image, Message, padded_collate_tiled_images_and_
 from torchtune.generation import sample
 
 from torchtune.modules.transforms import Transform
-from torchtune.utils import get_torch_device
 
 
 class SingleTurnYAMLToMessages(Transform):
@@ -113,7 +112,7 @@ class InferenceRecipe:
             f"Bandwidth achieved: {model_size * tokens_per_second / 1e9:.02f} GB/s"
         )
         self._logger.info(
-            f"Max memory allocated: {get_torch_device().max_memory_allocated() / 1e9:.02f} GB"
+            f"Max memory allocated: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB"
         )
 
     @torch.inference_mode()
