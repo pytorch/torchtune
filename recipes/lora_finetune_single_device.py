@@ -58,9 +58,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             back during the backward pass. As always, there is a tradeoff--these savings in memory can
             come at the cost of training performance and CPU resources. To recover some runtime cost,
             we've added an option to enable offloading on a different stream to permit overlapping with
-            the computation. This option is currently only available on PyTorch nightly 2.5.0.dev20240907
-            or later and will be enabled by default if an acceptable torch version is found. Activation
-            offloading can be used in conjunction with activation checkpointing.
+            the computation. This option is currently only available on PyTorch 2.5 or later and will
+            be enabled by default if an acceptable torch version is found. Activation offloading can be
+            used in conjunction with activation checkpointing.
 
         - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
             flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
