@@ -104,7 +104,7 @@ def vqa_dataset(
     .. code-block:: yaml
 
         dataset:
-          _component_: torchtune.datasets.multimodal.multimodal_instruct_dataset
+          _component_: torchtune.datasets.multimodal.vqa_dataset
           source: json
           data_files: my_dataset.json
           column_map:
