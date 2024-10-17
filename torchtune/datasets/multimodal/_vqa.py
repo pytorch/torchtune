@@ -51,8 +51,11 @@ def vqa_dataset(
             in the filepath in ``data_files``, and set ``split="train"``. See `Hugging Face's
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details.
-        image_dir (str): path to the directory containing the images as you are expected to download the COCO dataset
-            before using. Default is "coco/".
+        image_dir (str): path to the directory containing the images that is prepended to all image
+            paths in the dataset. For example, if ``image_dir="/home/user/dataset/"` and the sample image path
+            was ``"images/1.jpg"``, the final image path that will be loaded is ``"/home/user/dataset/images/1.jpg"``.
+            If None, assume images are available in current working directory or are located
+            on a remote url. For text-only, leave as None. Default is None.
         column_map (Optional[Dict[str, str]]): a mapping to change the expected "input",
             "output", and "image" column names to the actual column names in the dataset. Keys should be "input",
             "output", and "image, and values should be the actual column names.
