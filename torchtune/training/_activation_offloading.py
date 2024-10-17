@@ -146,7 +146,8 @@ class OffloadActivations(saved_tensors_hooks):
             num_bytes = get_num_bytes_tensor(activation)
             tensor_id = get_tensor_id()
 
-            # only offload hefty bois if they're activations and not params/buffers!
+            # only offload hefty bois if they're activations (our heuristic for that is to
+            # check if they're not params or buffers)!
             if num_bytes >= self.min_tensor_size_bytes and (
                 not isinstance(activation, torch.nn.Parameter)
                 and not isinstance(activation, torch.nn.Buffer)
