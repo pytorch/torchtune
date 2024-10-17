@@ -161,6 +161,11 @@ class InputOutputToMessages(Transform):
             keeping the default "input" and "output" column names.
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Default is None.
+        image_dir (Optional[Path]): path to the directory containing the images that is prepended to all image
+            paths in the dataset. For example, if ``image_dir="/home/user/dataset/"` and the sample image path
+            was ``"images/1.jpg"``, the final image path that will be loaded is ``"/home/user/dataset/images/1.jpg"``.
+            If None, assume images are available in current working directory or are located
+            on a remote url. For text-only, leave as None. Default is None.
 
     Raises:
         ValueError: If ``column_map`` is provided and ``input`` not in ``column_map``, or
@@ -172,6 +177,7 @@ class InputOutputToMessages(Transform):
         train_on_input: bool = False,
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
+        image_dir: Optional[Path] = None,
     ):
         self.train_on_input = train_on_input
         self.new_system_prompt = new_system_prompt
@@ -190,6 +196,8 @@ class InputOutputToMessages(Transform):
         else:
             self.column_map = {"input": "input", "output": "output", "image": "image"}
 
+        self.image_dir = image_dir
+
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         is_multimodal = "image" in sample or (
             "image" in self.column_map and self.column_map["image"] in sample
@@ -198,6 +206,8 @@ class InputOutputToMessages(Transform):
         if is_multimodal:
             image_path = sample[self.column_map["image"]]
             if isinstance(image_path, str):
+                if self.image_dir is not None:
+                    image_path = self.image_dir / image_path
                 # Load if not loaded
                 pil_image = load_image(image_path)
             else:

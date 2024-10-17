@@ -15,6 +15,7 @@ def vqa_dataset(
     model_transform: Transform,
     *,
     source: str,
+    image_dir: str = None,
     column_map: Optional[Dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
     filter_fn: Optional[Callable] = None,
@@ -50,6 +51,8 @@ def vqa_dataset(
             in the filepath in ``data_files``, and set ``split="train"``. See `Hugging Face's
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details.
+        image_dir (str): path to the directory containing the images as you are expected to download the COCO dataset
+            before using. Default is "coco/".
         column_map (Optional[Dict[str, str]]): a mapping to change the expected "input",
             "output", and "image" column names to the actual column names in the dataset. Keys should be "input",
             "output", and "image, and values should be the actual column names.
@@ -118,7 +121,7 @@ def vqa_dataset(
         SFTDataset: the configured :class:`~torchtune.datasets.SFTDataset`
     """
     message_transform = InputOutputToMessages(
-        column_map=column_map, new_system_prompt=new_system_prompt
+        column_map=column_map, new_system_prompt=new_system_prompt, image_dir=image_dir
     )
 
     ds = SFTDataset(
