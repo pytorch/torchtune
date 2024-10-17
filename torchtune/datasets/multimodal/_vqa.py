@@ -50,10 +50,10 @@ def vqa_dataset(
             in the filepath in ``data_files``, and set ``split="train"``. See `Hugging Face's
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details.
-        column_map (Optional[Dict[str, str]]): a mapping to change the expected "input"
-            and "output" column names to the actual column names in the dataset. Keys should be "input" and
-            "output" and values should be the actual column names. Default is None, keeping the default "input"
-            and "output" column names.
+        column_map (Optional[Dict[str, str]]): a mapping to change the expected "input", 
+        "output", and "image" column names to the actual column names in the dataset. Keys should be "input",
+         "output", and "image, and values should be the actual column names.
+            Default is None, keeping the default "input" and "output", and "image" column names. 
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Default is None.
         filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
