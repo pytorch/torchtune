@@ -194,12 +194,3 @@ class TestEleutherEval:
             match="QAT quantizers should only be used during quantization aware training",
         ):
             runpy.run_path(TUNE_PATH, run_name="__main__")
-
-    @pytest.mark.integration_test
-    def test_eval_recipe_errors_with_generate_until_and_mc_tasks(
-        self, caplog, capsys, monkeypatch, tmpdir
-    ):
-        # We can't currently specify both generate_until and mc_tasks in the same run
-        # b/c the KV cache won't be reset and the result will be different. This test
-        # catches that error
-        pass
