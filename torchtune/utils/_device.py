@@ -16,6 +16,12 @@ if _SUPPORTS_FLEX_ATTENTION:
 else:
     BlockMask = torch.Tensor
 
+from torchtune.utils._device_support import (
+    get_device_support,
+    get_torch_device,
+    is_npu_available,
+)
+
 
 def _get_local_rank() -> Optional[int]:
     """Function that gets the local rank from the environment.
@@ -29,8 +35,8 @@ def _get_local_rank() -> Optional[int]:
     return local_rank
 
 
-def _setup_cuda_device(device: torch.device) -> torch.device:
-    """Function that sets the CUDA device and infers the cuda
+def _setup_device(device: torch.device) -> torch.device:
+    """Function that sets the CUDA or NPU device and infers the cuda
     index if not set.
 
     Args:
@@ -43,29 +49,34 @@ def _setup_cuda_device(device: torch.device) -> torch.device:
         device
     """
     local_rank = _get_local_rank() or 0
+    device_type = get_device_support().device_type
+    device_name = get_device_support().device_name
+    torch_device = get_torch_device()
+
     if device.index is None:
-        device = torch.device(type="cuda", index=local_rank)
+        device = torch.device(type=device_type, index=local_rank)
 
     # Ensure index is available before setting device
-    if device.index >= torch.cuda.device_count():
+    if device.index >= torch_device.device_count():
         raise RuntimeError(
-            "The local rank is larger than the number of available GPUs."
+            f"The local rank is larger than the number of available {device_name}s."
         )
-
-    torch.cuda.set_device(device)
+    torch_device.set_device(device)
     return device
 
 
 def _get_device_type_from_env() -> str:
     """Function that gets the torch.device based on the current machine.
 
-    This currently only supports CPU, CUDA.
+    This currently only supports CPU, CUDA, NPU.
 
     Returns:
         device
     """
     if torch.cuda.is_available():
         device = "cuda"
+    elif is_npu_available:
+        device = "npu"
     else:
         device = "cpu"
     return device
@@ -88,12 +99,12 @@ def _validate_device_from_env(device: torch.device) -> None:
     local_rank = _get_local_rank()
 
     # Check if the device index is correct
-    if device.type == "cuda" and local_rank is not None:
+    if device.type in ["cuda", "npu"] and local_rank is not None:
         # Ensure device index matches assigned index when distributed training
         if device.index != local_rank:
             raise RuntimeError(
                 f"You can't specify a device index when using distributed training. \
-                Device specified is {device} but was assigned cuda:{local_rank}"
+                Device specified is {device} but was assigned cuda/npu:{local_rank}"
             )
 
     # Check if the device is available on this machine
@@ -110,10 +121,10 @@ def get_device(device: Optional[str] = None) -> torch.device:
     distributed settings, and returns a :func:`~torch.device`. If device string is not provided, this function will
     infer the device based on the environment.
 
-    If CUDA is available and being used, this function also sets the CUDA device.
+    If CUDA or NPU is available and being used, this function also sets the CUDA or NPU device.
 
     Args:
-        device (Optional[str]): The name of the device to use, e.g. "cuda" or "cpu".
+        device (Optional[str]): The name of the device to use, e.g. "cuda" or "cpu" or "npu".
 
     Example:
         >>> device = get_device("cuda")
@@ -126,8 +137,8 @@ def get_device(device: Optional[str] = None) -> torch.device:
     if device is None:
         device = _get_device_type_from_env()
     device = torch.device(device)
-    if device.type == "cuda":
-        device = _setup_cuda_device(device)
+    if device.type in ["cuda", "npu"]:
+        device = _setup_device(device)
     _validate_device_from_env(device)
     return device
 

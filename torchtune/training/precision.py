@@ -9,9 +9,10 @@ from typing import Dict, Generator, Iterable, Optional, Tuple
 
 import torch
 
-from torchtune.utils import get_logger
+from torchtune.utils import get_logger, is_npu_available
 
 log = get_logger()
+
 
 PRECISION_STR_TO_DTYPE: Dict[str, torch.dtype] = {
     "fp16": torch.float16,
@@ -45,7 +46,7 @@ def _set_float32_precision(precision: str = "high") -> None:
 def verify_bf16_support() -> bool:
     """
     Check that bf16 is available on this hardware. Requirements:
-        - CUDA is available and supports bf16
+        - CUDA or NPU is available and supports bf16
             - CUDA version >= 11
             - CUDA compute capability >= 8
         - NCCL is available and version >= 2.10
@@ -55,6 +56,8 @@ def verify_bf16_support() -> bool:
         bool: True if bf16 is available, False otherwise.
 
     """
+    if is_npu_available:
+        return torch.npu.is_bf16_supported()
     cuda_support = (
         torch.cuda.is_available()
         and torch.cuda.is_bf16_supported()
