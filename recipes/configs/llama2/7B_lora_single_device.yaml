@@ -85,7 +85,7 @@ dtype: bf16
 
 # Activations Memory
 enable_activation_checkpointing: True
-enable_activation_offloading: False
+enable_activation_offloading: False  # True reduces memory
 
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training

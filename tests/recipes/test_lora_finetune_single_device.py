@@ -133,6 +133,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             tokenizer.prompt_template=null \
             compile={compile} \
             enable_activation_checkpointing=False \
+            enable_activation_offloading=False \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2_qlora"]
@@ -189,6 +190,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             tokenizer.prompt_template=null \
             save_adapter_weights_only={save_adapter_weights_only} \
             enable_activation_checkpointing=True \
+            enable_activation_offloading=False \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
@@ -215,6 +217,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
             enable_activation_checkpointing=True \
+            enable_activation_offloading=False \
         """.split()
         cmd_2 = cmd_2 + self._get_test_config_overrides(epochs=3) + model_config
         monkeypatch.setattr(sys, "argv", cmd_2)
@@ -247,6 +250,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
             enable_activation_checkpointing=True \
+            enable_activation_offloading=False \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
