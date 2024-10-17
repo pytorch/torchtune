@@ -147,7 +147,10 @@ class OffloadActivations(saved_tensors_hooks):
             tensor_id = get_tensor_id()
 
             # only offload hefty bois if they're activations and not params/buffers!
-            if num_bytes >= self.min_tensor_size_bytes and (not isinstance(activation, torch.nn.Parameter) and not isinstance(activation, torch.nn.Buffer)):
+            if num_bytes >= self.min_tensor_size_bytes and (
+                not isinstance(activation, torch.nn.Parameter)
+                and not isinstance(activation, torch.nn.Buffer)
+            ):
                 if self.use_streams:
                     # First, sync back and dereference previously offloaded tensors
                     # as the offloading should be done sufficiently long ago.
@@ -281,13 +284,16 @@ class OffloadActivations(saved_tensors_hooks):
                 def hook(outputs, inputs):
                     # create events for the current node inputs/outputs if they were streamed in
                     if brought_back_from_cpu:
-                        # if the tensor is aliased with any of the outputs, meaning it is going to get used later,
+                        # if any of the outputs is a view of the tensor, meaning the tensor might be used later,
                         # we cannot presume to delete it after only the current node is done! So we use our frenemy,
                         # record_stream, to ensure the Tensor stays unmessed with until it's done getting used
                         # in the compute stream (s0 here). Note that the con here is we introduce non-deterministic
                         # memory usage, but this case should not happen often.
                         unpacked_tensor = self.bwd_tensor_stash[unpack_tensor_id]
-                        if any(o.untyped_storage() == unpacked_tensor.untyped_storage() for o in outputs):
+                        if any(
+                            o.untyped_storage() is unpacked_tensor.untyped_storage()
+                            for o in outputs
+                        ):
                             unpacked_tensor.record_stream(self.s0)
                             del self.bwd_tensor_stash[unpack_tensor_id]
                         else:
