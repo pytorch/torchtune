@@ -52,6 +52,7 @@ IM_START = "<|im_start|>"
 IM_END = "<|im_end|>"
 
 DEFAULT_QWEN2_TOKENIZER_BPE_CACHE_SIZE = 151646
+DEFAULT_QWEN2_5_TOKENIZER_BPE_CACHE_SIZE = 151665
 
 
 @lru_cache()
@@ -145,6 +146,7 @@ class QwenTokenizer(ModelTokenizer):
         path: str,
         merges_file: str,
         special_tokens: Dict[str, int],
+        bpe_cache_size: int,
         max_seq_len: Optional[int] = None,
         *,
         prompt_template: Optional[PromptTemplate] = None,
@@ -153,7 +155,6 @@ class QwenTokenizer(ModelTokenizer):
         bos_token: Optional[str] = None,
         eos_token: str = ENDOFTEXT,
         pad_token: Optional[str] = ENDOFTEXT,
-        bpe_cache_size: int = DEFAULT_QWEN2_TOKENIZER_BPE_CACHE_SIZE,
     ):
         with open(path, encoding="utf-8") as vocab_handle:
             self.encoder = json.load(vocab_handle)

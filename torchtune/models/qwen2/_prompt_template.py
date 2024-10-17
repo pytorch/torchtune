@@ -29,7 +29,12 @@ class Qwen2_5ChatTemplate(PromptTemplateInterface):
         "assistant": ("<|im_start|>assistant\n", "<|im_end|>\n"),
     }
 
-    def __init__(self, tools: Optional[List[str]] = None):
+    def __init__(
+        self,
+        add_default_sys_prompt_if_missing: bool = False,
+        tools: Optional[List[str]] = None,
+    ):
+        self._add_default_sys_prompt_if_missing = add_default_sys_prompt_if_missing
         self._tools = tools
 
     def __call__(
@@ -49,13 +54,15 @@ class Qwen2_5ChatTemplate(PromptTemplateInterface):
             The formatted list of messages
         """
         # Add a system prompt if missing
-        if not messages or messages[0].role != "system":
+        if self._add_default_sys_prompt_if_missing and (
+            not messages or messages[0].role != "system"
+        ):
             messages.insert(
                 0, Message(role="system", content=DEFAULT_SYS_PROMPT, masked=True)
             )
 
         # Add tool instructions to the system prompt
-        if self._tools:
+        if self._tools and messages[0].role == "system":
             tool_instruction = [TOOL_INSTRUCTION_START]
             for tool in self._tools:
                 tool_instruction.append(tool)
