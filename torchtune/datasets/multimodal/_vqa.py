@@ -55,7 +55,8 @@ def vqa_dataset(
          "output", and "image, and values should be the actual column names.
             Default is None, keeping the default "input" and "output", and "image" column names. 
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
-            serve as instructions to guide the model response. Default is None.
+            serve as instructions to guide the model response. Setting this will OVERRIDE any system
+            messages already present in the dataset. Default is None.
         filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
             the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
             details.
