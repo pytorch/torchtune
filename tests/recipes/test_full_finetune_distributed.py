@@ -104,7 +104,7 @@ class TestFullFinetuneDistributedRecipe:
         # should be the same. torch >= 2.5 required to enable optimizer_in_backward.
         if not optim_in_bwd:
             cmd.append("clip_grad_norm=100")
-        elif optim_in_bwd and version.parse(torch.__version__).base_version < "2.5.0":
+        elif optim_in_bwd and version.parse(torch.__version__).base_version >= "2.5.0":
             cmd.append("optimizer_in_bwd=True")
 
         monkeypatch.setattr(sys, "argv", cmd)
