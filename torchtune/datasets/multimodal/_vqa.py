@@ -111,6 +111,7 @@ def vqa_dataset(
           column_map:
             input: question
             output: answer
+            image: picture
           train_on_input: False
           packed: False
           split: train
