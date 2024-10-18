@@ -41,8 +41,10 @@ from torchtune.training import (
     OffloadActivations,
     PROFILER_KEY,
 )
+from torchtune.utils import get_torch_device
 
 from tqdm import tqdm
+
 
 log = utils.get_logger("DEBUG")
 
@@ -763,14 +765,14 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 ):
                     break
 
-                # Start tracking CUDA memory for active steps for just the first epoch
+                # Start tracking CUDA or NPU memory for active steps for just the first epoch
                 if (
                     self._is_rank_zero
                     and curr_epoch == 0
                     and self.profiler_profile_memory
                     and idx == self.profiler_wait_steps + self.profiler_warmup_steps
                 ):
-                    torch.cuda.memory._record_memory_history()
+                    get_torch_device().memory._record_memory_history()
 
                 utils.batch_to_device(batch, self._device)
                 num_tokens += batch["tokens"].numel()
@@ -858,7 +860,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         + self.profiler_warmup_steps
                         + self.profiler_active_steps
                     ):
-                        torch.cuda.memory._record_memory_history(enabled=None)
+                        get_torch_device().memory._record_memory_history(enabled=None)
 
                     # Step profiler
                     # Note that this is called within gradient accumulation block, hence
@@ -894,7 +896,14 @@ def recipe_main(cfg: DictConfig) -> None:
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU
         training.set_torch_num_threads()
-    init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
+
+    if cfg.device == "cpu":
+        backend = "gloo"
+    elif cfg.device == "npu":
+        backend = "hccl"
+    else:
+        backend = "nccl"
+    init_process_group(backend=backend)
 
     config.log_config(recipe_name="LoRAFinetuneRecipeDistributed", cfg=cfg)
 

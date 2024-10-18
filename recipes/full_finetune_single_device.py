@@ -23,6 +23,7 @@ from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.utils import get_torch_device
 
 from tqdm import tqdm
 
@@ -379,7 +380,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
         log.info(f"Model is initialized with precision {self._dtype}.")
 
-        if self._device.type == "cuda":
+        if self._device.type in ["cuda", "npu"]:
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
@@ -613,13 +614,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 ):
                     break
 
-                # Start tracking CUDA memory for active steps for just the first epoch
+                # Start tracking CUDA or NPU memory for active steps for just the first epoch
                 if (
                     curr_epoch == 0
                     and self.profiler_profile_memory
                     and idx == self.profiler_wait_steps + self.profiler_warmup_steps
                 ):
-                    torch.cuda.memory._record_memory_history()
+                    get_torch_device().memory._record_memory_history()
 
                 utils.batch_to_device(batch, self._device)
                 num_tokens += batch["tokens"].numel()
@@ -665,7 +666,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             ),
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
-                        if self._device.type == "cuda" and self._log_peak_memory_stats:
+                        if (
+                            self._device.type in ["cuda", "npu"]
+                            and self._log_peak_memory_stats
+                        ):
                             log_dict.update(
                                 training.get_memory_stats(device=self._device)
                             )
@@ -681,7 +685,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     num_tokens = 0
                     t0 = time.perf_counter()
 
-                # Stop tracking CUDA memory now that active steps are complete
+                # Stop tracking CUDA or NPU memory now that active steps are complete
                 if (
                     curr_epoch == 0
                     and self.profiler_profile_memory
@@ -690,7 +694,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     + self.profiler_warmup_steps
                     + self.profiler_active_steps
                 ):
-                    torch.cuda.memory._record_memory_history(enabled=None)
+                    get_torch_device().memory._record_memory_history(enabled=None)
 
                 # Step the profiler
                 # Note we are stepping each batch, which might not include optimizer step in the trace
