@@ -6,7 +6,7 @@
 
 import pytest
 import torch
-from torchtune.rlhf.loss import DPOLoss, RSOLoss, SimPOLoss, KTOLoss
+from torchtune.rlhf.loss import DPOLoss, KTOLoss, RSOLoss, SimPOLoss
 
 
 @pytest.fixture(autouse=True)
@@ -173,9 +173,19 @@ class TestDPOLosses:
         rejected_rewards = torch.tensor([ 0.0000, -0.9900, -2.0900])
         """
 
-        policy_chosen_logprobs, policy_rejected_logprobs, ref_chosen_logprobs, ref_rejected_logprobs = loss_inputs
+        (
+            policy_chosen_logprobs,
+            policy_rejected_logprobs,
+            ref_chosen_logprobs,
+            ref_rejected_logprobs,
+        ) = loss_inputs
 
-        losses, *_ = kto_loss(policy_chosen_logprobs, policy_rejected_logprobs, ref_chosen_logprobs, ref_rejected_logprobs)
+        losses, *_ = kto_loss(
+            policy_chosen_logprobs,
+            policy_rejected_logprobs,
+            ref_chosen_logprobs,
+            ref_rejected_logprobs,
+        )
 
         expected_losses = torch.tensor([0.5000, 0.4975, 0.5225, 0.5000, 0.2709, 0.1101])
         torch.testing.assert_close(losses, expected_losses, atol=1e-4, rtol=1e-5)
