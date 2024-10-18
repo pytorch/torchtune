@@ -488,6 +488,16 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     "supported_aspect_ratios", None
                 ),
             )
+        elif self._model_type == ModelType.GEMMA2:
+            from torchtune.models.gemma2._convert_weights import gemma2_hf_to_tune
+
+            converted_state_dict[training.MODEL_KEY] = gemma2_hf_to_tune(
+                merged_state_dict,
+                num_heads=self._config["num_attention_heads"],
+                num_kv_heads=self._config["num_key_value_heads"],
+                dim=self._config["hidden_size"],
+                head_dim=self._config.get("head_dim", None),
+            )
         else:
             converted_state_dict[training.MODEL_KEY] = convert_weights.hf_to_tune(
                 merged_state_dict,
@@ -577,6 +587,16 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     supported_aspect_ratios=vision_config.get(
                         "supported_aspect_ratios", None
                     ),
+                )
+            elif self._model_type == ModelType.GEMMA2:
+                from torchtune.models.gemma2._convert_weights import gemma2_tune_to_hf
+
+                state_dict[training.MODEL_KEY] = gemma2_tune_to_hf(
+                    state_dict[training.MODEL_KEY],
+                    num_heads=self._config["num_attention_heads"],
+                    num_kv_heads=self._config["num_key_value_heads"],
+                    dim=self._config["hidden_size"],
+                    head_dim=self._config.get("head_dim", None),
                 )
             else:
                 state_dict[training.MODEL_KEY] = convert_weights.tune_to_hf(
