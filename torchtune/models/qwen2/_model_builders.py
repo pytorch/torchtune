@@ -14,8 +14,6 @@ from torchtune.data._prompt_templates import (
 from torchtune.models.qwen2._component_builders import lora_qwen2, qwen2
 from torchtune.models.qwen2._prompt_template import Qwen2_5ChatTemplate
 from torchtune.models.qwen2._tokenizer import (
-    DEFAULT_QWEN2_5_TOKENIZER_BPE_CACHE_SIZE,
-    DEFAULT_QWEN2_TOKENIZER_BPE_CACHE_SIZE,
     QWEN2_5_SPECIAL_TOKENS,
     QWEN2_SPECIAL_TOKENS,
     QwenTokenizer,
@@ -229,11 +227,9 @@ def qwen2_tokenizer(
         QwenTokenizer: Instantiation of the Qwen2 tokenizer
     """
     if qwen_version == "2":
-        bpe_cache_size = DEFAULT_QWEN2_TOKENIZER_BPE_CACHE_SIZE
         default_special_tokens = QWEN2_SPECIAL_TOKENS
         default_template = ChatMLTemplate()
     elif qwen_version == "2.5":
-        bpe_cache_size = DEFAULT_QWEN2_5_TOKENIZER_BPE_CACHE_SIZE
         default_special_tokens = QWEN2_5_SPECIAL_TOKENS
         default_template = Qwen2_5ChatTemplate()
     else:
@@ -256,7 +252,6 @@ def qwen2_tokenizer(
         path=path,
         merges_file=merges_file,
         special_tokens=special_tokens,
-        bpe_cache_size=bpe_cache_size,
         max_seq_len=max_seq_len,
         prompt_template=template,
         **kwargs,
