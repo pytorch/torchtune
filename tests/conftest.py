@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
+import logging
 import os
 import uuid
 from pathlib import Path
@@ -16,6 +17,13 @@ import torchtune
 
 root = str(Path(torchtune.__file__).parent.parent.absolute())
 CACHE_ARTIFACTS_SCRIPT_PATH = root + "/tests/cache_artifacts.sh"
+
+
+def pytest_sessionfinish():
+    """
+    Register a hook to suppress logging errors after the session finishes.
+    """
+    logging.raiseExceptions = False
 
 
 def pytest_configure(config):
