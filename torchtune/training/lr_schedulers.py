@@ -5,9 +5,11 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
+from typing import Union
 
 import torch
 from torch.optim.lr_scheduler import LambdaLR
+from torchtune.training.memory import OptimizerInBackwardWrapper
 
 
 def get_cosine_schedule_with_warmup(
@@ -54,3 +56,40 @@ def get_cosine_schedule_with_warmup(
         return max(0.0, cosine_lr_multiple)
 
     return LambdaLR(optimizer, lr_lambda, last_epoch)
+
+
+def get_lr(
+    optimizer: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper]
+) -> float:
+    """
+    Full_finetune_distributed and full_finetune_single_device assume all optimizers have
+    the same LR, here to validate whether all the LR are the same and return if True.
+
+    Args:
+        optimizer (Union[torch.optim.Optimizer, OptimizerInBackwardWrapper]): A general
+            optimizer input that could whether be a general optimizer or an optimizer
+            warpper based on optimizer_in_backward.
+
+    Returns:
+        lr (float): The learning rate of the input optimizers.
+
+    Raises:
+        RuntimeError: If the learning rates of the input optimizer are not the same.
+    """
+    if isinstance(optimizer, OptimizerInBackwardWrapper):
+        param_groups = []
+        for param in optimizer.state_dict().values():
+            param_groups.append(param["param_groups"][0])
+    else:
+        param_groups = optimizer.param_groups
+    if len(param_groups) < 1:
+        raise RuntimeError(
+            f"Invalid optimizer param groups with len of: {len(param_groups)}"
+        )
+
+    # LR Schedulers are the same across all param groups for full_finetune right now
+    lr = param_groups[0]["lr"]
+    for group in param_groups:
+        if group["lr"] != lr:
+            raise RuntimeError("LR Schedulers are different across all param groups ")
+    return lr

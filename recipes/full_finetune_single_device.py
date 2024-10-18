@@ -23,6 +23,7 @@ from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training.lr_schedulers import get_lr
 
 from tqdm import tqdm
 
@@ -517,13 +518,15 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             sampler=sampler,
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
-            collate_fn=partial(
-                collate_fn,
-                padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
-            )
-            if not packed
-            else padded_collate_packed,
+            collate_fn=(
+                partial(
+                    collate_fn,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else padded_collate_packed
+            ),
         )
 
         log.info("Dataset and Sampler are initialized.")
@@ -658,10 +661,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             "loss": loss_to_log,
                             # NOTE: for optim in backward, this assumes all optimizers have the same LR. This is currently
                             # true since we don't expose the ability to configure this yet.
-                            "lr": (
-                                self._optim_ckpt_wrapper.get_optim_key("lr")
-                                if self._optimizer_in_bwd
-                                else self._optimizer.param_groups[0]["lr"]
+                            "lr": get_lr(
+                                self._optimizer
+                                if not self._optimizer_in_bwd
+                                else self._optim_ckpt_wrapper,
                             ),
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
