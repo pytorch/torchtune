@@ -12,7 +12,7 @@ from torchtune.data._prompt_templates import (
 )
 
 from torchtune.models.qwen2._component_builders import lora_qwen2, qwen2
-from torchtune.models.qwen2._prompt_template import Qwen2_5ChatTemplate
+from torchtune.models.qwen2._prompt_template import Qwen25ChatTemplate
 from torchtune.models.qwen2._tokenizer import (
     QWEN2_5_SPECIAL_TOKENS,
     QWEN2_SPECIAL_TOKENS,
@@ -231,7 +231,7 @@ def qwen2_tokenizer(
         default_template = ChatMLTemplate()
     elif qwen_version == "2.5":
         default_special_tokens = QWEN2_5_SPECIAL_TOKENS
-        default_template = Qwen2_5ChatTemplate()
+        default_template = Qwen25ChatTemplate()
     else:
         raise ValueError(f"Invalid Qwen version: {qwen_version}")
 

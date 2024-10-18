@@ -11,22 +11,25 @@ from torchtune.data import Message, PromptTemplateInterface
 DEFAULT_SYS_PROMPT = (
     "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."
 )
-TOOL_INSTRUCTION_START = "\n\n# Tools\n\nYou may call one or more functions to assist with the user query.\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>"
-TOOL_INSTRUCTION_END = '</tools>\n\nFor each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n<tool_call>\n{"name": <function-name>, "arguments": <args-json-object>}\n</tool_call>'
+TOOL_INSTRUCTION_START = "\n\n# Tools\n\nYou may call one or more functions to assist with the user query.\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>"  # noqa: B950
+TOOL_INSTRUCTION_END = '</tools>\n\nFor each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n<tool_call>\n{"name": <function-name>, "arguments": <args-json-object>}\n</tool_call>'  # noqa: B950
 
 
-class Qwen2_5ChatTemplate(PromptTemplateInterface):
-    """
-    Qwen2.5's chat template.
+class Qwen25ChatTemplate(PromptTemplateInterface):
+    """Qwen2.5's chat template.
 
     Defined in the Jinja template in
     https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/raw/main/tokenizer_config.json
+
+    Attributes:
+        template: a dictionary mapping role to the
+            prepend and append tags
 
     Args:
         add_default_sys_prompt_if_missing (bool): Add Qwen's default system prompt if the messages do not have one.
             Default: False
         tools (Optional[List[str]]): Optional JSON schemas for tools that the LLM can access.
-            If provided, the tool schemas will be added to the system prompt according to Qwen's recommended tool instruction format.
+            If provided, the tool schemas will be added to the system prompt according to Qwen's tool instruction format.
             See https://huggingface.co/blog/unified-tool-use for more information about the JSON tool schema.
             Default: None
     """

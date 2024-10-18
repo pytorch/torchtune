@@ -10,8 +10,7 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 import regex as re
 
-from torchtune.data import ChatMLTemplate, Message, PromptTemplate, truncate
-from torchtune.models.qwen2._prompt_template import Qwen2_5ChatTemplate
+from torchtune.data import Message, PromptTemplate, truncate
 from torchtune.modules.tokenizers import ModelTokenizer
 
 PRETOKENIZE_REGEX = (
@@ -133,7 +132,8 @@ class QwenTokenizer(ModelTokenizer):
             By default, we set the cache size equals to size of the official Qwen2 tokenizer.
 
     Example:
-        >>> tokenizer = QwenTokenizer(path="/path/to/vocab.json", merges_file="/path/to/merges.txt", special_tokens=QWEN2_SPECIAL_TOKENS)
+        >>> tokenizer = QwenTokenizer(
+                path="/path/to/vocab.json", merges_file="/path/to/merges.txt", special_tokens=QWEN2_SPECIAL_TOKENS)
         >>> tokenized_text = tokenizer.encode("Hello world!")
         >>> print(tokenized_text)
         [39, 385, 78, 675, 0, 2000]
