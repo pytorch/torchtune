@@ -9,11 +9,10 @@
 # Model arguments
 model:
   _component_: torchtune.models.llama2.llama2_7b
-# You can turn uncomment the following lines to enable quantization for faster inference
-# and potentially lower VRAM
+# You can turn uncomment the following lines to enable quantization for faster inference and potentially lower VRAM
 # quantization_method:
-#   _component_: torchao.quantization.quant_api.int4_weight_only # int4 weight only is a good balance
-#   use_hqq: False
+#   _component_: torchao.quantization.quant_api.int4_weight_only # int4_weight_only is a good balance of speed and memory
+#   use_hqq: False # Turn on for more accurate results
 
 # Transform arguments
 tokenizer:
