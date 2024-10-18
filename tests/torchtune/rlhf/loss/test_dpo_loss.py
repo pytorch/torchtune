@@ -6,7 +6,7 @@
 
 import pytest
 import torch
-from torchtune.rlhf.loss import DPOLoss, RSOLoss, SimPOLoss
+from torchtune.rlhf.loss import DPOLoss, RSOLoss, SimPOLoss, KTOLoss
 
 
 @pytest.fixture(autouse=True)
@@ -34,6 +34,14 @@ class TestDPOLosses:
             beta=2.0,
             gamma=0.5,
             label_smoothing=0.0,
+        )
+
+    @pytest.fixture
+    def kto_loss(self):
+        return KTOLoss(
+            beta=0.1,
+            undesirable_weight=1.0,
+            desirable_weight=1.0,
         )
 
     @pytest.fixture
@@ -122,4 +130,52 @@ class TestDPOLosses:
         expected_losses = -(1 / (1 + exp_scaled_logits)).log()
         losses, *_ = simpo_loss(policy_chosen_logprobs, policy_rejected_logprobs)
 
+        torch.testing.assert_close(losses, expected_losses, atol=1e-4, rtol=1e-5)
+
+    def test_kto_loss(self, kto_loss, loss_inputs):
+        """
+        beta = 0.1
+        policy_chosen_logprobs = torch.tensor([-0.5, -10.0, -1.0])
+        policy_rejected_logprobs = torch.tensor([-0.1, -30.0, -21.0])
+
+        ref_chosen_logprobs = torch.tensor([-0.5, -10.1, -0.1])
+        ref_rejected_logprobs = torch.tensor([-0.1, -20.1, -0.1])
+
+        kl = torch.tensor([0])
+
+        chosen_logratios = policy_chosen_logprobs - ref_chosen_logprobs
+        chosen_logratios = torch.tensor([0., 0.1, -0.9])
+
+        chosen_losses = 1 - F.sigmoid(0.1 * (torch.tensor([0., 0.1, -0.9]) - torch.tensor([0])))
+        chosen_losses = torch.tensor([0.5000, 0.4975, 0.5225])
+
+        rejected_logratios = policy_rejected_logps - reference_rejected_logps
+        rejected_logratios = torch.tensor([0.0,  -9.9, -20.9])
+
+        rejected_losses = 1 - F.sigmoid(0.1 * (torch.tensor([0]) - torch.tensor([0.0,  -9.9, -20.9])))
+        rejected_losses = torch.tensor([0.5, 0.2709, 0.1101])
+
+
+        desirable_weight = undesirable_weight = 1.0
+        Therefore:
+
+        losses = torch.cat(
+             (1 * chosen_losses, 1 * rejected_losses),
+             0
+        )
+
+        losses = torch.tensor([0.5000, 0.4975, 0.5225, 0.5000, 0.2709, 0.1101])
+
+        chosen_rewards = 0.1 * (chosen_logratios).detach()
+        rejected_rewards = 0.1 * (rejected_logratios).detach()
+
+        chosen_rewards = torch.tensor([0.0000,  0.0100, -0.0900])
+        rejected_rewards = torch.tensor([ 0.0000, -0.9900, -2.0900])
+        """
+
+        policy_chosen_logprobs, policy_rejected_logprobs, ref_chosen_logprobs, ref_rejected_logprobs = loss_inputs
+
+        losses, *_ = kto_loss(policy_chosen_logprobs, policy_rejected_logprobs, ref_chosen_logprobs, ref_rejected_logprobs)
+
+        expected_losses = torch.tensor([0.5000, 0.4975, 0.5225, 0.5000, 0.2709, 0.1101])
         torch.testing.assert_close(losses, expected_losses, atol=1e-4, rtol=1e-5)
