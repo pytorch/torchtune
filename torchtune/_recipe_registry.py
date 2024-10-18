@@ -97,6 +97,7 @@ _ALL_RECIPES = [
             Config(name="qwen2/7B_full", file_path="qwen2/7B_full.yaml"),
             Config(name="qwen2/0.5B_full", file_path="qwen2/0.5B_full.yaml"),
             Config(name="qwen2/1.5B_full", file_path="qwen2/1.5B_full.yaml"),
+            Config(name="qwen2_5/3B_full", file_path="qwen2_5/3B_full.yaml"),
             Config(
                 name="llama3_2_vision/11B_full",
                 file_path="llama3_2_vision/11B_full.yaml",
@@ -211,6 +212,10 @@ _ALL_RECIPES = [
             Config(
                 name="qwen2/1.5B_lora_single_device",
                 file_path="qwen2/1.5B_lora_single_device.yaml",
+            ),
+            Config(
+                name="qwen2_5/7B_lora_single_device",
+                file_path="qwen2_5/7B_lora_single_device.yaml",
             ),
             Config(
                 name="llama3_2_vision/11B_lora_single_device",

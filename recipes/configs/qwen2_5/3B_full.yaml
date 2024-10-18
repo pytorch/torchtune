@@ -1,29 +1,27 @@
 # Config for multi-device full finetuning in full_finetune_distributed.py
-# using a Qwen2 1.5B model
+# using a Qwen2.5 3B model
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download Qwen/Qwen2-1.5B-Instruct --output-dir /tmp/Qwen2-1.5B-Instruct --ignore-patterns None
+#   tune download Qwen/Qwen2.5-3B-Instruct --output-dir /tmp/Qwen2.5-3B-Instruct --ignore-patterns None
 #
 # To launch on 4 devices, run the following command from root:
-#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config qwen2/1.5B_full
+#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config qwen2_5/3B_full
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config qwen2/1.5B_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config qwen2_5/3B_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works best when the model is being fine-tuned on 2+ GPUs.
-# Single device full finetuning requires more memory optimizations. It's
-# best to use 1.5B_full.yaml for those cases
+# Single device full finetuning requires more memory optimizations.
 
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.qwen2.qwen2_tokenizer
-  path: /tmp/Qwen2-1.5B-Instruct/vocab.json
-  merges_file: /tmp/Qwen2-1.5B-Instruct/merges.txt
-  qwen_version: '2'
-  max_seq_len: null
+  path: /tmp/Qwen2.5-3B-Instruct/vocab.json
+  merges_file: /tmp/Qwen2.5-3B-Instruct/merges.txt
+  qwen_version: '2.5'
 
 # Dataset
 dataset:
@@ -33,16 +31,17 @@ shuffle: True
 
 # Model Arguments
 model:
-  _component_: torchtune.models.qwen2.qwen2_1_5b
+  _component_: torchtune.models.qwen2.qwen2_3b
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Qwen2-1.5B-Instruct
+  checkpoint_dir: /tmp/Qwen2.5-3B-Instruct
   checkpoint_files: [
-    model.safetensors
+    model-00001-of-00002.safetensors,
+    model-00002-of-00002.safetensors,
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Qwen2-1.5B-Instruct-finetune
+  output_dir: /tmp/Qwen2.5-3B-Instruct-finetune
   model_type: QWEN2
 resume_from_checkpoint: False
 
@@ -58,7 +57,6 @@ loss:
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
 
-
 # Training env
 device: cuda
 
@@ -72,6 +70,6 @@ dtype: bf16
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
-output_dir: /tmp/Qwen2-1.5B-Instruct-finetune
+output_dir: /tmp/Qwen2.5-3B-Instruct-finetune
 log_every_n_steps: 1
 log_peak_memory_stats: False

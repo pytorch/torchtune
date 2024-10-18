@@ -200,10 +200,10 @@ def qwen2_72b() -> TransformerDecoder:
     )
 
 
-def qwen_tokenizer(
-    qwen_version: str,
+def qwen2_tokenizer(
     path: str,
     merges_file: str,
+    qwen_version: str,
     special_tokens_path: Optional[str] = None,
     max_seq_len: Optional[int] = None,
     prompt_template: Optional[str] = "auto",
@@ -230,22 +230,20 @@ def qwen_tokenizer(
     """
     if qwen_version == "2":
         bpe_cache_size = DEFAULT_QWEN2_TOKENIZER_BPE_CACHE_SIZE
-        special_tokens = (
-            QWEN2_SPECIAL_TOKENS
-            if special_tokens_path is None
-            else parse_hf_tokenizer_json(special_tokens_path)
-        )
+        default_special_tokens = QWEN2_SPECIAL_TOKENS
         default_template = ChatMLTemplate()
     elif qwen_version == "2.5":
         bpe_cache_size = DEFAULT_QWEN2_5_TOKENIZER_BPE_CACHE_SIZE
-        special_tokens = (
-            QWEN2_5_SPECIAL_TOKENS
-            if special_tokens_path is None
-            else parse_hf_tokenizer_json(special_tokens_path)
-        )
+        default_special_tokens = QWEN2_5_SPECIAL_TOKENS
         default_template = Qwen2_5ChatTemplate()
     else:
         raise ValueError(f"Invalid Qwen version: {qwen_version}")
+
+    special_tokens = (
+        default_special_tokens
+        if special_tokens_path is None
+        else parse_hf_tokenizer_json(special_tokens_path)
+    )
 
     if prompt_template == "auto":
         template = default_template
