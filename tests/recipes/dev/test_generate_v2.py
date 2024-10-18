@@ -10,6 +10,8 @@ from pathlib import Path
 
 import pytest
 
+import torch
+
 from tests.common import TUNE_PATH
 from tests.recipes.utils import MODEL_TEST_CONFIGS, write_hf_ckpt_config
 from tests.test_utils import (
@@ -108,6 +110,8 @@ class TestGenerateV2:
         expected_output = (
             "Halfotherтература retir pushingroad Chem CURLorientationocation Stadium"
         )
+
+        torch._dynamo.reset()
 
         logs = caplog.text
         assert expected_output in logs
