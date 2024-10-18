@@ -175,6 +175,7 @@ class QwenTokenizer(ModelTokenizer):
         self.pat = re.compile(PRETOKENIZE_REGEX)
 
         self.special_tokens = special_tokens
+        self._special_tokens_reversed = {v: k for k, v in self.special_tokens.items()}
 
         self.unk_id = None if unk_token is None else self.special_tokens[unk_token]
         self.bos_id = None if bos_token is None else self.special_tokens[bos_token]

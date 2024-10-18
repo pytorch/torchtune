@@ -224,7 +224,7 @@ def qwen2_tokenizer(
             prepend/append tags. Default is :class:`~torchtune.models.llama2.Llama2ChatTemplate`.
 
     Returns:
-        QwenTokenizer: Instantiation of the Qwen2 tokenizer
+        QwenTokenizer: Instantiation of the Qwen2/Qwen2.5 tokenizer
     """
     if qwen_version == "2":
         default_special_tokens = QWEN2_SPECIAL_TOKENS
