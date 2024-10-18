@@ -238,9 +238,9 @@ class KTOLoss(nn.Module):
     KTO: Kahneman-Tversky Optimization: https://arxiv.org/abs/2402.01306
     Intuition from the paper:
 
-        The effectiveness of SimPO is attributed to a key design: using the average log probability of a sequence as
-        the implicit reward. Additionally, we introduce a target reward margin to the Bradley-Terry objective to
-        encourage a larger margin between the winning and losing responses, further enhancing the algorithm's performance.
+        KTO method incorporates Kahneman-Tversky model of human utility 
+        and propose really effective HALO that directly maximizes the utility of generations instead of
+        maximizing the log-likelihood of preferences, as previous methods did.
 
     Based on the TRL implementation:
     https://github.com/huggingface/trl/blob/98ad01ddfd1e1b67ec018014b83cba40e0caea66/trl/trainer/kto_trainer.py
