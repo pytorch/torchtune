@@ -233,9 +233,11 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=checkpoint_dict[training.OPT_KEY]
-            if self._resume_from_checkpoint
-            else None,
+            opt_state_dict=(
+                checkpoint_dict[training.OPT_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
         )
 
         # initialize loss
@@ -525,14 +527,16 @@ class QATRecipeDistributed(FTRecipeInterface):
             sampler=sampler,
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
-            collate_fn=partial(
-                padded_collate_sft,
-                padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
-            )
-            if not packed
-            else partial(
-                padded_collate_packed,
+            collate_fn=(
+                partial(
+                    padded_collate_sft,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else partial(
+                    padded_collate_packed,
+                )
             ),
         )
 
