@@ -6,10 +6,12 @@
 
 import pytest
 import torch
+from tests.test_utils import gpu_test
 from torch import nn
 from torchtune.training import OffloadActivations
 
 
+@gpu_test(gpu_count=1)
 @pytest.mark.parametrize("use_streams", [True, False])
 def test_offloading_is_same_as_without(use_streams) -> None:
     with torch.device("cuda"):
@@ -40,6 +42,7 @@ def test_offloading_is_same_as_without(use_streams) -> None:
         assert torch.equal(param.grad, param_c.grad)
 
 
+@gpu_test(gpu_count=1)
 def test_offloading_works_with_view_outputs() -> None:
     """
     This test is quite contrived but tests against a very obscure situation where
