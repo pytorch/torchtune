@@ -16,7 +16,7 @@ from torchtune.modules import (
     TransformerSelfAttentionLayer,
 )
 
-from torchtune.modules.attention import Gemma2Attention
+from torchtune.models.gemma2._attention import Gemma2Attention
 from torchtune.models.gemma.rms_norm import GemmaRMSNorm
 from torchtune.modules import TransformerDecoder, TiedLinear
 from torchtune.models.gemma.gemma_norm_embedding import GemmaNormEmbeddings
@@ -35,7 +35,7 @@ can take either nn.Linear or nn.LoRALinear for ``q_proj``.
 the building blocks simple.
 """
 
-class TanhSotfCapping(nn.Module):
+class TanhSoftCapping(nn.Module):
     def __init__(
         self,
         capping_value: float,
@@ -62,7 +62,7 @@ class Gemma2FinalNorm(nn.Module):
         super().__init__()
         self.capping_value = capping_value
         self.rms_norm = GemmaRMSNorm(embed_dim, eps=eps)
-        self.logit_capping = TanhSotfCapping(capping_value)
+        self.logit_capping = TanhSoftCapping(capping_value)
         
     def forward(self, x):
         x = self.rms_norm(x)
@@ -246,21 +246,23 @@ def lora_gemma2(
     
     for layer_idx in range(num_layers):
         self_att = lora_gemma2_self_attention(
+            lora_modules=lora_attn_modules,
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             head_dim=head_dim,
-            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
-            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
-            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
-            output_proj=nn.Linear(num_heads * head_dim, embed_dim, bias=False),
-            kv_cache=None,
+            rope_base=rope_base,
             max_seq_len=max_seq_len,
             attn_dropout=attn_dropout,
             # perform sliding window on half of the layers only
             sliding_window_size=sliding_window_size if (layer_idx % 2)==0 else None,
             softcapping=hidden_capping_value,
-            query_pre_attn_scalar=query_pre_attn_scalar
+            query_pre_attn_scalar=query_pre_attn_scalar,
+            lora_rank=lora_rank,
+            lora_alpha=lora_alpha,
+            lora_dropout=lora_dropout,
+            use_dora = use_dora,
+            quantize_base = quantize_base,
         )
         
         layer = TransformerSelfAttentionLayer(

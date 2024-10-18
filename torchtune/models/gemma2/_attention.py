@@ -8,46 +8,21 @@ import logging
 from typing import Optional
 
 import torch
+import torch.nn.functional as F
 from torch import nn
-from torchtune.modules.attention_utils import _MaskType, _sdpa_or_flex_attention
+from torchtune.modules.attention_utils import _MaskType
 from torchtune.modules.kv_cache import KVCache
+
 
 logger = logging.getLogger(__name__)
 
 
-class MultiHeadAttention(nn.Module):
-    """Multi-headed attention layer with support for grouped query
-    attention (GQA) introduced in https://arxiv.org/abs/2305.13245v1.
-
-    GQA is a version of multiheaded attention (MHA) which uses fewer
-    key/value heads than query heads by grouping n query heads for each
-    key and value head. Multi-Query Attention is an extreme
-    version where we have a single key and value head shared by all
-    query heads.
-
-    Following is an example of MHA, GQA and MQA with num_heads = 4
-
-    (credit for the documentation:
-    `litgpt.Config <https://github.com/Lightning-AI/litgpt/blob/eda1aaaf391fd689664f95487ab03dc137e213fd/litgpt/config.py>`_).
-
-
-    ::
-
-        ┌───┐┌───┐┌───┐┌───┐     ┌───┐    ┌───┐             ┌───┐
-        │ v ││ v ││ v ││ v │     │ v │    │ v │             │ v │
-        └───┘└───┘└───┘└───┘     └───┘    └───┘             └───┘
-        │    │    │    │         │        │                 │
-        ┌───┐┌───┐┌───┐┌───┐     ┌───┐    ┌───┐             ┌───┐
-        │ k ││ k ││ k ││ k │     │ k │    │ k │             │ k │
-        └───┘└───┘└───┘└───┘     └───┘    └───┘             └───┘
-        │    │    │    │      ┌──┴──┐  ┌──┴──┐      ┌────┬──┴─┬────┐
-        ┌───┐┌───┐┌───┐┌───┐  ┌───┐┌───┐┌───┐┌───┐  ┌───┐┌───┐┌───┐┌───┐
-        │ q ││ q ││ q ││ q │  │ q ││ q ││ q ││ q │  │ q ││ q ││ q ││ q │
-        └───┘└───┘└───┘└───┘  └───┘└───┘└───┘└───┘  └───┘└───┘└───┘└───┘
-        ◀──────────────────▶  ◀──────────────────▶  ◀──────────────────▶
-                MHA                    GQA                   MQA
-        n_kv_heads =4          n_kv_heads=2           n_kv_heads=1
-
+class Gemma2Attention(nn.Module):
+    """
+    Adapated from official Google Pytorch Implementation:
+    https://github.com/google/gemma_pytorch/blob/80881c2e6e797ef1913a4a705d4b40394791cc58/gemma/model.py#L213
+    to match torchtune style.
+    A new attention had to be added since nn.functional.scaled_dot_product_attention does allow soft capping
     Args:
         embed_dim (int): embedding dimension for the model
         num_heads (int): number of query heads. For MHA this is also the
@@ -72,7 +47,9 @@ class MultiHeadAttention(nn.Module):
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0.
-
+        sliding_window_size (Optional[int]): size of the sliding window if None no sliding window is applied
+        softcapping (Optional[float]): capping value used for soft caping, if None no capping is performed
+        query_pre_attn_scalar (Optional[int]): value used for pre attention normalisation, if None head_dim is used instead
     Raises:
         ValueError: If ``num_heads % num_kv_heads != 0``
         ValueError: If ``embed_dim % num_heads != 0``
@@ -98,6 +75,9 @@ class MultiHeadAttention(nn.Module):
         max_seq_len: int = 4096,
         is_causal: bool = True,
         attn_dropout: float = 0.0,
+        sliding_window_size: Optional[int] = None,
+        softcapping: Optional[float] = 50.0,
+        query_pre_attn_scalar: Optional[int] = None,
     ) -> None:
         super().__init__()
         if num_heads % num_kv_heads != 0:
@@ -137,8 +117,13 @@ class MultiHeadAttention(nn.Module):
         self.k_norm = k_norm
         self.pos_embeddings = pos_embeddings
 
-        # Use flex attention if supported and we are sample packing
-        self._attention_call = _sdpa_or_flex_attention()
+        # gemma related parameters
+        self.sliding_window_size = sliding_window_size
+        self.softcapping = softcapping
+        if query_pre_attn_scalar is not None:
+            self.scaling = query_pre_attn_scalar**-0.5
+        else:
+            self.scaling = self.head_dim**-0.5
 
     def setup_cache(
         self, batch_size: int, dtype: torch.dtype, max_seq_len: int
@@ -294,14 +279,26 @@ class MultiHeadAttention(nn.Module):
             if self.kv_cache is not None:
                 k, v = self.kv_cache.update(k, v)
 
-        output = self._attention_call(
-            q,
-            k,
-            v,
-            mask=mask,
-            dropout_p=self.attn_dropout,
-            is_causal=self.kv_cache is None and mask is None and self.is_causal,
-        )
+        q.mul_(self.scaling)
+        output = torch.matmul(q, k.transpose(2, 3))
+
+        if self.sliding_window_size is not None:
+            all_ones = torch.ones_like(mask)
+            sliding_mask = torch.triu(
+                all_ones, -1 * self.sliding_window_size + 1
+            ) * torch.tril(all_ones, self.sliding_window_size - 1)
+            mask = torch.where(sliding_mask == 1, mask, -2.3819763e38)
+
+        if self.softcapping is not None:
+            output = output / self.softcapping
+            output = torch.tanh(output)
+            output = output * self.softcapping
+
+        output = output + mask
+        output = F.softmax(output.float(), dim=-1).type_as(q)
+
+        # [batch_size, n_local_heads, input_len, head_dim]
+        output = torch.matmul(output, v)
 
         # reshape the output to be the same shape as the input
         output = output.transpose(1, 2).contiguous().view(b, s_x, -1)
