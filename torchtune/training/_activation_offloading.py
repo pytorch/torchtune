@@ -294,6 +294,7 @@ class OffloadActivations(saved_tensors_hooks):
                         if any(
                             o.untyped_storage() is unpacked_tensor.untyped_storage()
                             for o in outputs
+                            if o is not None
                         ):
                             unpacked_tensor.record_stream(self.s0)
                             del self.bwd_tensor_stash[unpack_tensor_id]
