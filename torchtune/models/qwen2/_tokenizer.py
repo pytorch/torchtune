@@ -51,8 +51,7 @@ ENDOFTEXT = "<|endoftext|>"
 IM_START = "<|im_start|>"
 IM_END = "<|im_end|>"
 
-DEFAULT_QWEN2_TOKENIZER_BPE_CACHE_SIZE = 151646
-DEFAULT_QWEN2_5_TOKENIZER_BPE_CACHE_SIZE = 151665
+DEFAULT_QWEN2_TOKENIZER_BPE_CACHE_SIZE = 152064
 
 
 @lru_cache()
@@ -102,13 +101,12 @@ class QwenTokenizer(ModelTokenizer):
     See <https://github.com/huggingface/transformers/blob/v4.40.1/src/transformers/models/qwen2/tokenization_qwen2.py>.
 
     Args:
-        qwen_version (str): Qwen version ('2' or '2.5')
         path (str): Path to vocab.json file.
         merges_file (str): Path to merges.txt file.
             merges.txt contains all BPE merge operations, and this file is required to split a single word into
             byte-level BPE tokens.
-        special_tokens (Optional[Dict[str, int]]): Special tokens to add to the tokenizer.
-            Defaults to the standard list of special tokens for the specified Qwen version.
+        special_tokens (Dict[str, int]): Special tokens to add to the tokenizer.
+            In general, should be QWEN2_SPECIAL_TOKENS for Qwen2 and QWEN2_5_SPECIAL_TOKENS for Qwen2.5
         max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
             Default: None
         prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
@@ -135,7 +133,7 @@ class QwenTokenizer(ModelTokenizer):
             By default, we set the cache size equals to size of the official Qwen2 tokenizer.
 
     Example:
-        >>> tokenizer = QwenTokenizer(path="/path/to/vocab.json", merges_file="/path/to/merges.txt")
+        >>> tokenizer = QwenTokenizer(path="/path/to/vocab.json", merges_file="/path/to/merges.txt", special_tokens=QWEN2_SPECIAL_TOKENS)
         >>> tokenized_text = tokenizer.encode("Hello world!")
         >>> print(tokenized_text)
         [39, 385, 78, 675, 0, 2000]
@@ -146,7 +144,6 @@ class QwenTokenizer(ModelTokenizer):
         path: str,
         merges_file: str,
         special_tokens: Dict[str, int],
-        bpe_cache_size: int,
         max_seq_len: Optional[int] = None,
         *,
         prompt_template: Optional[PromptTemplate] = None,
@@ -155,6 +152,7 @@ class QwenTokenizer(ModelTokenizer):
         bos_token: Optional[str] = None,
         eos_token: str = ENDOFTEXT,
         pad_token: Optional[str] = ENDOFTEXT,
+        bpe_cache_size: int = DEFAULT_QWEN2_TOKENIZER_BPE_CACHE_SIZE,
     ):
         with open(path, encoding="utf-8") as vocab_handle:
             self.encoder = json.load(vocab_handle)

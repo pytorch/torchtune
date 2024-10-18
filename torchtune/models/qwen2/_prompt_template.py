@@ -21,6 +21,14 @@ class Qwen2_5ChatTemplate(PromptTemplateInterface):
 
     Defined in the Jinja template in
     https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/raw/main/tokenizer_config.json
+
+    Args:
+        add_default_sys_prompt_if_missing (bool): Add Qwen's default system prompt if the messages do not have one.
+            Default: False
+        tools (Optional[List[str]]): Optional JSON schemas for tools that the LLM can access.
+            If provided, the tool schemas will be added to the system prompt according to Qwen's recommended tool instruction format.
+            See https://huggingface.co/blog/unified-tool-use for more information about the JSON tool schema.
+            Default: None
     """
 
     template = {
