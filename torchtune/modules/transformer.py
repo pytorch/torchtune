@@ -45,7 +45,7 @@ class TransformerSelfAttentionLayer(nn.Module):
         self.sa_scale = sa_scale or nn.Identity()
         self.mlp_scale = mlp_scale or nn.Identity()
 
-    def setup_cache(
+    def setup_caches(
         self,
         batch_size: int,
         dtype: torch.dtype,
@@ -63,8 +63,11 @@ class TransformerSelfAttentionLayer(nn.Module):
         """
         self.attn.setup_cache(batch_size, dtype, max_seq_len=decoder_max_seq_len)
 
-    @property
-    def cache_enabled(self) -> bool:
+    def caches_are_enabled(self) -> bool:
+        """Check if key value caches are enabled."""
+        return self.attn.cache_enabled
+
+    def caches_are_setup(self) -> bool:
         """Check if the key value caches are setup."""
         return self.attn.kv_cache is not None
 
@@ -165,7 +168,7 @@ class TransformerCrossAttentionLayer(nn.Module):
         self.ca_scale = ca_scale or nn.Identity()
         self.mlp_scale = mlp_scale or nn.Identity()
 
-    def setup_cache(
+    def setup_caches(
         self,
         batch_size: int,
         dtype: torch.dtype,
@@ -183,13 +186,27 @@ class TransformerCrossAttentionLayer(nn.Module):
         """
         self.attn.setup_cache(batch_size, dtype, encoder_max_seq_len)
 
-    @property
-    def cache_enabled(self) -> bool:
-        """Check if the key value caches are setup."""
+    def caches_are_setup(self) -> bool:
+        """
+        Check if the key value caches are setup. This means `setup_caches` has been called, and
+        the relevant attention modules in the model have created `KVCache`s.
+        """
         return self.attn.kv_cache is not None
 
+    def caches_are_enabled(self) -> bool:
+        """
+        Checks if the key value caches are enabled. Once KV-caches have been setup, the relevant
+        attention modules will be "enabled" and all forward passes will update the caches. This behaviour
+        can be disabled without altering the state of the KV-caches by "disabling" the KV-caches
+        using ``torchtune.modules.disable_kv_cache``, upon which ``caches_are_enabled`` would return False.
+        """
+        return self.attn.cache_enabled
+
     def reset_cache(self):
-        """Reset the key value caches."""
+        """
+        Resets KV-cache buffers on relevant attention modules to zero, and reset cache positions to zero,
+        without deleting or reallocating cache tensors.
+        """
         self.attn.reset_cache()
 
     def _skip_mask(self, mask: Optional[torch.Tensor]) -> Optional[torch.Tensor]:
@@ -253,7 +270,7 @@ class TransformerCrossAttentionLayer(nn.Module):
         """
         # During decoding, it's possible encoder_input is None because the embeds
         # are already stored in the kv cache.
-        empty_cache = not self.cache_enabled or self.attn.kv_cache.size == 0
+        empty_cache = not self.caches_are_setup() or self.attn.kv_cache.size == 0
         # Skip cross attention when no secondary input as it's primary purpose
         # is to attend between x and encoder_input.
         if encoder_input is None and empty_cache:
@@ -423,26 +440,33 @@ class TransformerDecoder(nn.Module):
                 self.decoder_max_cache_seq_len = self.max_seq_len
 
         for layer in self.layers:
-            layer.setup_cache(
+            layer.setup_caches(
                 batch_size,
                 dtype,
                 encoder_max_seq_len=self.encoder_max_cache_seq_len,
                 decoder_max_seq_len=self.decoder_max_cache_seq_len,
             )
 
-    def caches_are_enabled(self) -> bool:
-        """Check if the key value caches are setup. This is useful to efficient inference."""
-        return self.layers[0].cache_enabled
+    def caches_are_setup(self) -> bool:
+        """Check if the key value caches have been setup."""
+        return self.layers[0].caches_are_setup()
 
     def reset_caches(self):
         """Reset the key value caches."""
-        if not self.caches_are_enabled():
+        if not self.caches_are_setup():
             raise RuntimeError(
                 "Key value caches are not setup. Call ``setup_caches()`` first."
             )
 
         for layer in self.layers:
             layer.reset_cache()
+
+    def caches_are_enabled(self) -> bool:
+        """
+        Checks if the key value caches are enabled. KV-caches must also have been setup
+        for them to be enabled.
+        """
+        return self.layers[0].caches_are_enabled() and self.caches_are_setup()
 
     @torch.compiler.disable
     def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:
@@ -581,13 +605,7 @@ class TransformerDecoder(nn.Module):
         # input tensor of shape [b, s]
         seq_len = tokens.shape[1]
 
-        self._validate_inputs(
-            seq_len,
-            mask=mask,
-            encoder_input=encoder_input,
-            encoder_mask=encoder_mask,
-            input_pos=input_pos,
-        )
+        self._validate_inputs(seq_len, mask, encoder_input, encoder_mask, input_pos)
 
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
@@ -767,20 +785,20 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
             )
 
     @property
-    def encoder_caches_are_enabled(self) -> bool:
+    def encoder_caches_are_setup(self) -> bool:
         """Checks if there are any :class:`~torchtune.modules.TransformerCrossAttentionLayer`,
         or :class:`~torchtune.modules.fusion.FusionLayer` layers which have cache enabled.
         """
         return self.encoder_max_cache_seq_len is not None
 
     @property
-    def decoder_caches_are_enabled(self) -> bool:
+    def decoder_caches_are_setup(self) -> bool:
         """Check if the key value caches are setup."""
         return self.decoder_max_cache_seq_len is not None
 
     def reset_caches(self):
         """Reset the key value caches."""
-        if not (self.encoder_caches_are_enabled or self.decoder_caches_are_enabled):
+        if not (self.encoder_caches_are_setup or self.decoder_caches_are_setup):
             raise RuntimeError(
                 "Key value caches are not setup. Call ``setup_caches()`` first."
             )
@@ -855,13 +873,13 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
-        if self.decoder_caches_are_enabled:
+        if self.decoder_caches_are_setup:
             if mask is None:
                 raise ValueError(
                     "KV-caches for self-attention layers are setup for inference mode, masks must be provided!"
                     " Use the `mask` arg to provide a mask."
                 )
-        if self.encoder_caches_are_enabled:
+        if self.encoder_caches_are_setup:
             if encoder_mask is None:
                 raise ValueError(
                     "KV-caches for cross-attention/fusion layers are setup for inference mode, encoder masks must be provided!"
@@ -869,8 +887,8 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
                 )
 
         if (
-            self.encoder_caches_are_enabled
-            or self.decoder_caches_are_enabled
+            self.encoder_caches_are_setup
+            or self.decoder_caches_are_setup
             and input_pos is None
         ):
             raise ValueError(

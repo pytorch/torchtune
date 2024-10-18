@@ -13,7 +13,7 @@ import PIL
 
 import torch
 
-from lm_eval.evaluator import evaluate, get_task_list
+from lm_eval.evaluator import evaluate
 from lm_eval.models.hf_vlms import HFMultimodalLM
 from lm_eval.models.huggingface import HFLM
 from lm_eval.tasks import get_task_dict, TaskManager
@@ -29,6 +29,7 @@ from torchtune.data import (
 )
 from torchtune.generation import generate, sample
 from torchtune.modules import TransformerDecoder
+from torchtune.modules.common_utils import local_kv_cache
 from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
@@ -224,18 +225,11 @@ class _VLMEvalWrapper(HFMultimodalLM):
                 "multimodal generation."
             )
 
-        # 2. Setup KV cache and masks for bsz 1
+        encoder_max_seq_len = (
+            self.model_transform.image_seq_len * self._max_images_per_sample
+        )
+        # Setup masks for bsz 1
         with self.device:
-            if self.model.caches_are_enabled():
-                self.model.reset_caches()
-            else:
-                self.model.setup_caches(
-                    batch_size=1,
-                    dtype=self._dtype,
-                    encoder_max_seq_len=self.model_transform.image_seq_len
-                    * self._max_images_per_sample,
-                    decoder_max_seq_len=self.max_length,
-                )
             causal_mask = torch.tril(
                 torch.ones(
                     size=(self.max_length, self.max_length),
@@ -247,28 +241,37 @@ class _VLMEvalWrapper(HFMultimodalLM):
         batch["input_pos"] = input_pos[None, :seq_len]
         batch["mask"] = causal_mask[None, :seq_len]
 
-        # 3. Prefill step
-        generated_tokens = []
-        logits = self.model(prompt, **batch)[:, -1]
-        token = sample(logits, temperature=0.0, top_k=None)
-        generated_tokens.append(token.item())
-
-        cache_mask = batch["encoder_mask"][:, -1:]
-
-        # 4. Continue generating
-        for _ in range(max_length):
-            if token.item() in self.model_transform.stop_tokens:
-                break
-            logits = self.model(
-                token,
-                mask=causal_mask[None, seq_len, None, :],
-                encoder_input=None,
-                encoder_mask=cache_mask,
-                input_pos=input_pos[None, seq_len],
-            )[:, -1]
+        # 2. Setup KV cache
+        with local_kv_cache(
+            self.model,
+            batch_size=self.batch_size,
+            device=self.device,
+            dtype=self._dtype,
+            encoder_max_seq_len=encoder_max_seq_len,
+            decoder_max_seq_len=self.max_length,
+        ):
+            # 3. Prefill step
+            generated_tokens = []
+            logits = self.model(prompt, **batch)[:, -1]
             token = sample(logits, temperature=0.0, top_k=None)
             generated_tokens.append(token.item())
-            seq_len += 1
+
+            cache_mask = batch["encoder_mask"][:, -1:]
+
+            # 4. Continue generating
+            for _ in range(max_length):
+                if token.item() in self.model_transform.stop_tokens:
+                    break
+                logits = self.model(
+                    token,
+                    mask=causal_mask[None, seq_len, None, :],
+                    encoder_input=None,
+                    encoder_mask=cache_mask,
+                    input_pos=input_pos[None, seq_len],
+                )[:, -1]
+                token = sample(logits, temperature=0.0, top_k=None)
+                generated_tokens.append(token.item())
+                seq_len += 1
 
         # 5. Return generated tokens
         return torch.tensor(generated_tokens, dtype=torch.int32).unsqueeze(0)
@@ -388,18 +391,6 @@ class _LLMEvalWrapper(HFLM):
                 "Any decoding strategy other than greedy is not supported."
             )
 
-        # Setup KV caches OR reset them if they're already set up
-        if self.enable_kv_cache:
-            if self.model.caches_are_enabled():
-                self.model.reset_caches()
-            else:
-                with self.device:
-                    self.model.setup_caches(
-                        batch_size=self.batch_size,
-                        dtype=self._dtype,
-                        decoder_max_seq_len=self.max_length,
-                    )
-
         # if we've recieved fewer than self._batch_size samples in the current
         # batch we need to pad the batch out. here we're padding the end of the
         # current batch to the correct length. this is because when we use static
@@ -409,15 +400,21 @@ class _LLMEvalWrapper(HFLM):
             (0, 0, 0, self._batch_size - bsz),
             value=self._tokenizer.eos_id,  # pad with one of the tokenizer's stop tokens so generation can stop early
         )
-
-        toks, _ = generate(
+        with local_kv_cache(
             self.model,
-            maybe_padded_context,
-            max_generated_tokens=self.max_gen_toks,
-            temperature=temperature,
-            top_k=None,
-            stop_tokens=self._tokenizer.stop_tokens,
-        )
+            batch_size=self.batch_size,
+            device=self.device,
+            dtype=self._dtype,
+            decoder_max_seq_len=self.max_length,
+        ):
+            toks, _ = generate(
+                self.model,
+                maybe_padded_context,
+                max_generated_tokens=self.max_gen_toks,
+                temperature=temperature,
+                top_k=None,
+                stop_tokens=self._tokenizer.stop_tokens,
+            )
         return toks[:bsz]
 
 
@@ -536,13 +533,6 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         # Initialize tasks for the harness
         task_manager = TaskManager(include_path=self.include_path)
         task_dict = get_task_dict(self.tasks, task_manager)
-        task_types = set([t.task.OUTPUT_TYPE for t in get_task_list(task_dict)])
-        if len(task_types) > 1 and "generate_until" in task_types:
-            raise RuntimeError(
-                "Evaluating on multiple task types where any one task involves "
-                "generation is currently not supported. See the issue below for more info: "
-                "https://github.com/pytorch/torchtune/issues/1621"
-            )
 
         # Run evaluation
         t0 = time.time()
