@@ -40,41 +40,10 @@ class TestLlama3Tokenizer:
             masked=True,
             eot=True,
         )
-        expected_tokens = [
-            128000,
-            128006,
-            477,
-            273,
-            128007,
-            10,
-            10,
-            73,
-            503,
-            654,
-            262,
-            376,
-            110,
-            46,
-            690,
-            720,
-            428,
-            270,
-            1119,
-            654,
-            262,
-            376,
-            110,
-            44,
-            270,
-            686,
-            334,
-            312,
-            522,
-            511,
-            115,
-            46,
-            128009,
-        ]
+
+        expected_tokens = [128000, 128006, 477, 273, 128007, 10, 10, 73, 503, 654, 262, 376, 110, 46, 690, 720, 428,
+                           270, 1119, 654, 262, 376, 110, 44, 270, 686, 334, 312, 522, 511, 115, 46, 128009]  # noqa
+
         return message, expected_tokens
 
     @pytest.fixture
@@ -85,33 +54,10 @@ class TestLlama3Tokenizer:
             masked=False,
             eot=True,
         )
-        expected_tokens = [
-            128006,
-            520,
-            511,
-            446,
-            128007,
-            10,
-            10,
-            65,
-            269,
-            277,
-            686,
-            334,
-            262,
-            376,
-            110,
-            351,
-            443,
-            32,
-            45,
-            334,
-            351,
-            1955,
-            46,
-            128009,
-            128001,
-        ]
+
+        expected_tokens = [128006, 520, 511, 446, 128007, 10, 10, 65, 269, 277, 686, 334, 262, 376, 110, 351, 443, 32,
+                           45, 334, 351, 1955, 46, 128009, 128001]  # noqa
+
         return message, expected_tokens
 
     @pytest.fixture
@@ -125,42 +71,10 @@ class TestLlama3Tokenizer:
             masked=True,
             eot=True,
         )
-        expected_tokens = [
-            128000,
-            128006,
-            477,
-            273,
-            128007,
-            10,
-            10,
-            128256,
-            73,
-            503,
-            654,
-            262,
-            376,
-            110,
-            46,
-            690,
-            720,
-            428,
-            270,
-            1119,
-            654,
-            262,
-            376,
-            110,
-            44,
-            270,
-            686,
-            334,
-            312,
-            522,
-            511,
-            115,
-            46,
-            128009,
-        ]
+        expected_tokens = [128000, 128006, 477, 273, 128007, 10, 10, 128256, 73, 503, 654, 262, 376, 110, 46, 690, 720,
+                           428, 270, 1119, 654, 262, 376, 110, 44, 270, 686, 334, 312, 522, 511, 115, 46,
+                           128009]  # noqa
+
         return message, expected_tokens
 
     @pytest.fixture
@@ -176,43 +90,11 @@ class TestLlama3Tokenizer:
             masked=True,
             eot=True,
         )
-        expected_tokens = [
-            128000,
-            128006,
-            477,
-            273,
-            128007,
-            10,
-            10,
-            128256,
-            73,
-            503,
-            654,
-            262,
-            376,
-            110,
-            46,
-            128256,
-            1542,
-            720,
-            428,
-            270,
-            1119,
-            654,
-            262,
-            376,
-            110,
-            44,
-            270,
-            686,
-            334,
-            312,
-            522,
-            511,
-            115,
-            46,
-            128009,
-        ]
+
+        expected_tokens = [128000, 128006, 477, 273, 128007, 10, 10, 128256, 73, 503, 654, 262, 376, 110, 46, 128256,
+                           1542, 720, 428, 270, 1119, 654, 262, 376, 110, 44, 270, 686, 334, 312, 522, 511, 115, 46,
+                           128009]  # noqa
+
         return message, expected_tokens
 
     @pytest.fixture
@@ -226,38 +108,10 @@ class TestLlama3Tokenizer:
             ipython=True,
             eot=False,
         )
-        expected_tokens = [
-            128006,
-            520,
-            511,
-            446,
-            128007,
-            10,
-            10,
-            128010,
-            525,
-            99,
-            534,
-            95,
-            115,
-            433,
-            40,
-            114,
-            338,
-            105,
-            477,
-            61,
-            49,
-            1635,
-            95,
-            1635,
-            48,
-            95,
-            1635,
-            48,
-            41,
-            128008,
-        ]
+
+        expected_tokens = [128006, 520, 511, 446, 128007, 10, 10, 128010, 525, 99, 534, 95, 115, 433, 40, 114, 338, 105,
+                           477, 61, 49, 1635, 95, 1635, 48, 95, 1635, 48, 41, 128008]  # noqa
+
         return message, expected_tokens
 
     @pytest.fixture
@@ -270,28 +124,10 @@ class TestLlama3Tokenizer:
             masked=True,
             eot=False,
         )
-        expected_tokens = [
-            128006,
-            1558,
-            121,
-            483,
-            279,
-            128007,
-            10,
-            10,
-            123,
-            34,
-            99,
-            957,
-            317,
-            34,
-            58,
-            323,
-            114,
-            979,
-            125,
-            128008,
-        ]
+
+        expected_tokens = [128006, 1558, 121, 483, 279, 128007, 10, 10, 123, 34, 99, 957, 317, 34, 58, 323, 114, 979,
+                           125, 128008]  # noqa
+
         return message, expected_tokens
 
     def test_token_ids(self, tokenizer):
@@ -311,21 +147,17 @@ class TestLlama3Tokenizer:
         assert tokenizer.vocab_size == 128257
 
     def test_tokenize_text_messages(
-        self, tokenizer, user_text_message, assistant_text_message
+            self, tokenizer, user_text_message, assistant_text_message
     ):
         text_messages = [user_text_message[0], assistant_text_message[0]]
         expected_tokens = user_text_message[1] + assistant_text_message[1]
-        expected_mask = (
-            [True] * len(user_text_message[1])
-            + [False] * (len(assistant_text_message[1]) - 1)
-            + [True]
-        )
+        expected_mask = ([True] * len(user_text_message[1]) + [False] * (len(assistant_text_message[1]) - 1) + [True])
         tokens, mask = tokenizer.tokenize_messages(text_messages)
         assert tokens == expected_tokens
         assert mask == expected_mask
 
     def test_tokenize_message_drop_eot_and_eos(
-        self, tokenizer, user_text_message, assistant_text_message
+            self, tokenizer, user_text_message, assistant_text_message
     ):
         """
         Test that the tokenizer will not add an EOS token or EOT token if user requests it.
@@ -335,35 +167,29 @@ class TestLlama3Tokenizer:
         # Chop the end of the assistant message to remove the EOS token *and* EOT token
         expected_tokens = user_text_message[1] + assistant_text_message[1][:-2]
         # No need to mask out the EOS token *or* EOT token at the end since they are not there
-        expected_mask = [True] * len(user_text_message[1]) + [False] * (
-            len(assistant_text_message[1]) - 2
-        )
+        expected_mask = [True] * len(user_text_message[1]) + [False] * (len(assistant_text_message[1]) - 2)
         tokens, mask = tokenizer.tokenize_messages(text_messages, add_end_tokens=False)
         assert tokens == expected_tokens
         assert mask == expected_mask
 
     def test_tokenize_image_and_text_messages(
-        self, tokenizer, user_image_text_message, assistant_text_message
+            self, tokenizer, user_image_text_message, assistant_text_message
     ):
         image_and_text_messages = [
             user_image_text_message[0],
             assistant_text_message[0],
         ]
         expected_tokens = user_image_text_message[1] + assistant_text_message[1]
-        expected_mask = (
-            [True] * len(user_image_text_message[1])
-            + [False] * (len(assistant_text_message[1]) - 1)
-            + [True]
-        )
+        expected_mask = ([True] * len(user_image_text_message[1]) + [False] * (len(assistant_text_message[1]) - 1) + [True])
         tokens, mask = tokenizer.tokenize_messages(image_and_text_messages)
         assert tokens == expected_tokens
         assert mask == expected_mask
 
     def test_tokenize_interleaved_image_and_text_messages(
-        self,
-        tokenizer,
-        user_interleaved_image_text_message,
-        assistant_text_message,
+            self,
+            tokenizer,
+            user_interleaved_image_text_message,
+            assistant_text_message,
     ):
         interleaved_image_and_text_messages = [
             user_interleaved_image_text_message[0],
@@ -373,21 +199,19 @@ class TestLlama3Tokenizer:
             user_interleaved_image_text_message[1] + assistant_text_message[1]
         )
         expected_mask = (
-            [True] * len(user_interleaved_image_text_message[1])
-            + [False] * (len(assistant_text_message[1]) - 1)
-            + [True]
+            [True] * len(user_interleaved_image_text_message[1]) + [False] * (len(assistant_text_message[1]) - 1) + [True]
         )
         tokens, mask = tokenizer.tokenize_messages(interleaved_image_and_text_messages)
         assert tokens == expected_tokens
         assert mask == expected_mask
 
     def test_tokenize_tool_call_messages(
-        self,
-        tokenizer,
-        user_text_message,
-        assistant_tool_message,
-        ipython_message,
-        assistant_text_message,
+            self,
+            tokenizer,
+            user_text_message,
+            assistant_tool_message,
+            ipython_message,
+            assistant_text_message,
     ):
         tool_call_messages = [
             user_text_message[0],
@@ -396,17 +220,10 @@ class TestLlama3Tokenizer:
             assistant_text_message[0],
         ]
         expected_tokens = (
-            user_text_message[1]
-            + assistant_tool_message[1]
-            + ipython_message[1]
-            + assistant_text_message[1]
+            user_text_message[1] + assistant_tool_message[1] + ipython_message[1] + assistant_text_message[1]
         )
         expected_mask = (
-            [True] * len(user_text_message[1])
-            + [False] * len(assistant_tool_message[1])
-            + [True] * len(ipython_message[1])
-            + [False] * (len(assistant_text_message[1]) - 1)
-            + [True]
+            [True] * len(user_text_message[1]) + [False] * len(assistant_tool_message[1]) + [True] * len(ipython_message[1]) + [False] * (len(assistant_text_message[1]) - 1) + [True]
         )
         tokens, mask = tokenizer.tokenize_messages(tool_call_messages)
         assert tokens == expected_tokens
@@ -414,7 +231,7 @@ class TestLlama3Tokenizer:
 
     def test_validate_special_tokens(self):
         with pytest.raises(
-            ValueError, match="<|begin_of_text|> missing from special_tokens"
+                ValueError, match="<|begin_of_text|> missing from special_tokens"
         ):
             _ = Llama3Tokenizer(
                 path=str(ASSETS / "tiktoken_small.model"),
@@ -430,13 +247,13 @@ class TestLlama3Tokenizer:
             )
 
     def test_skip_special_tokens(
-        self,
-        tokenizer,
-        user_text_message,
-        assistant_text_message,
-        user_text_a,
-        user_text_b,
-        assistant_text,
+            self,
+            tokenizer,
+            user_text_message,
+            assistant_text_message,
+            user_text_a,
+            user_text_b,
+            assistant_text,
     ):
         # This should satisfy text = decode(encode(text))
         tokens = user_text_message[1] + assistant_text_message[1]
