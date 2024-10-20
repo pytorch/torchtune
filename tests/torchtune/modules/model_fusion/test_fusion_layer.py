@@ -137,7 +137,7 @@ class TestFusionLayer:
             "fusion_layer.linear.bias",
         }
 
-    def test_setup_cache(self, fused_layer):
+    def test_setup_caches(self, fused_layer):
         """
         Test that the cache methods works as expected.
         """

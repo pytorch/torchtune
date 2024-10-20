@@ -122,13 +122,16 @@ class FusionLayer(nn.Module):
         )
 
     def caches_are_setup(self) -> bool:
-        """Check if the key value caches have been setup."""
+        """
+        Check if the key value caches are setup on ``self.layer``.
+        See :func:~torchtune.modules.TransformerDecoder.caches_are_setup`.
+        """
         return self.layer.caches_are_setup()
 
     def caches_are_enabled(self) -> bool:
         """
-        Checks if the key value caches are enabled. KV-caches must also have been setup
-        for them to be enabled.
+        Checks if the key value caches on ``self.layer`` are enabled.
+        See :func:~torchtune.modules.TransformerDecoder.caches_are_enabled`.
         """
         return self.layer.caches_are_enabled()
 
@@ -392,8 +395,8 @@ class DeepFusionModel(nn.Module):
 
     def caches_are_setup(self) -> bool:
         """
-        Check if the key value caches are setup. This means `setup_caches` has been called, and
-        the relevant attention modules in the model have created `KVCache`s.
+        Check if the key value caches are setup. This means ``setup_caches`` has been called, and
+        the relevant attention modules in the model have created their ``KVCache``.
         """
         return self.decoder.caches_are_setup()
 
