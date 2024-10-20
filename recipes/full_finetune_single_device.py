@@ -630,7 +630,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     loss = running_loss / num_tokens
-                    print(f"HI LOSS: {loss}")
                     loss.backward()
                     if self._clip_grad_norm is not None:
                         grad_norm = torch.nn.utils.clip_grad_norm_(
