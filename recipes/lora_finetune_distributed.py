@@ -586,8 +586,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
     def _setup_data(
         self,
-        cfg_dataset:
-  packed: False # Set to true for great speed ups DictConfig,
+        cfg_dataset: DictConfig,
         shuffle: bool,
         batch_size: int,
         collate_fn: str,

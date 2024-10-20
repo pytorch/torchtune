@@ -554,8 +554,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             return optimizer
 
     def _setup_data(
-        self, cfg_dataset:
-  packed: False # Set to true for great speed ups DictConfig, shuffle: bool, batch_size: int
+        self, cfg_dataset: DictConfig, shuffle: bool, batch_size: int
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here.
