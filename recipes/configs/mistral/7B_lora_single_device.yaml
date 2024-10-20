@@ -27,6 +27,7 @@ tokenizer:
 
 # Dataset
 dataset:
+  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.alpaca_dataset
 seed: null
 shuffle: True
@@ -89,7 +90,7 @@ metric_logger:
   log_dir: ${output_dir}
 output_dir: /tmp/Mistral-7B-v0.1
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True
 
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training

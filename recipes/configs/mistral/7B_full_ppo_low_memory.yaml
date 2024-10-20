@@ -32,6 +32,7 @@ tokenizer:
 
 # Dataset
 dataset:
+  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.text_completion_dataset
   source: trl-internal-testing/sentiment-trl-style
   split: train
@@ -135,7 +136,7 @@ optimizer:
   _component_: bitsandbytes.optim.PagedAdamW
   lr: 3e-6
 optimizer_in_bwd: True
-log_peak_memory_stats: False
+log_peak_memory_stats: True
 enable_activation_checkpointing: True
 
 # Reduced precision

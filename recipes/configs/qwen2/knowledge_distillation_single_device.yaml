@@ -7,6 +7,7 @@
 #   tune download Qwen/Qwen2-1.5B-Instruct --output-dir /tmp/Qwen2-1.5B-Instruct --ignore-patterns None
 #
 # You get better results using KD if the teacher model has already been fine-tuned on the target dataset:
+  packed: False # Set to true for great speed ups
 #   tune run lora_finetune_single_device --config qwen2/1.5B_lora_single_device
 #
 # To launch on a single device, run the following command from root:
@@ -56,6 +57,7 @@ resume_from_checkpoint: False
 
 # Dataset and Sampler
 dataset:
+  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.alpaca_cleaned_dataset
 seed: null
 shuffle: True
@@ -89,7 +91,7 @@ metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True
 
 # Environment
 device: cuda

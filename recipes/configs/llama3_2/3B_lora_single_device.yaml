@@ -47,6 +47,7 @@ save_adapter_weights_only: False
 
 # Dataset and Sampler
 dataset:
+  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.alpaca_cleaned_dataset
 seed: null
 shuffle: True
@@ -77,7 +78,7 @@ metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True
 
 # Environment
 device: cuda

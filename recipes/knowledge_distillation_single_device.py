@@ -494,7 +494,8 @@ class KDRecipeSingleDevice(FTRecipeInterface):
 
     def _setup_data(
         self,
-        cfg_dataset: DictConfig,
+        cfg_dataset:
+  packed: False # Set to true for great speed ups DictConfig,
         shuffle: bool,
         batch_size: int,
     ) -> Tuple[DistributedSampler, DataLoader]:
