@@ -31,7 +31,6 @@ from tests.test_utils import (
 class TestFullFinetuneDistributedRecipe:
     def _get_test_config_overrides(self):
         return [
-            "batch_size=4",
             "dtype=fp32",
             "enable_activation_checkpointing=False",
             "dataset.train_on_input=False",
@@ -53,16 +52,28 @@ class TestFullFinetuneDistributedRecipe:
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize(
-        "config, model_type, ckpt_type, fsdp_sharding_strategy",
+        "micro_batch_size, gradient_accumulation_steps",
+        [(4, 1), (1, 4)],
+    )
+    @pytest.mark.parametrize(
+        "config, model_type, ckpt_type",
         [
-            ("llama2/7B_full", "llama2", "hf", None),
-            ("llama3/8B_full", "llama3", "tune", None),
-            ("llama3/8B_full", "llama3", "tune", "NO_SHARD"),
+            ("llama2/7B_full", "llama2", "hf"),
+            ("llama3/8B_full", "llama3", "tune"),
+            ("llama3/8B_full", "llama3", "tune"),
         ],
     )
     @gpu_test(gpu_count=2)
     def test_loss(
-        self, config, model_type, ckpt_type, fsdp_sharding_strategy, tmpdir, monkeypatch
+        self,
+        micro_batch_size,
+        gradient_accumulation_steps,
+        config,
+        model_type,
+        ckpt_type,
+        ategy,
+        tmpdir,
+        monkeypatch,
     ):
         ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
         ckpt = model_type + "_" + ckpt_type
@@ -77,6 +88,8 @@ class TestFullFinetuneDistributedRecipe:
         cmd = f"""
         tune run --nnodes 1 --nproc_per_node 2 full_finetune_distributed \
             --config {config} \
+            batch_size={micro_batch_size} \
+            gradient_accumulation_steps={gradient_accumulation_steps} \
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -87,8 +100,6 @@ class TestFullFinetuneDistributedRecipe:
             tokenizer.prompt_template=null \
             metric_logger.filename={log_file} \
         """.split()
-        if fsdp_sharding_strategy:
-            cmd.append(f"fsdp_sharding_strategy={fsdp_sharding_strategy}")
         model_config = MODEL_TEST_CONFIGS[model_type]
         cmd = cmd + self._get_test_config_overrides() + model_config
 
