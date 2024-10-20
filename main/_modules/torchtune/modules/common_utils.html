@@ -432,11 +432,13 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
+<span class="kn">import</span> <span class="nn">contextlib</span>
 <span class="kn">import</span> <span class="nn">mmap</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
@@ -591,6 +593,209 @@
     <span class="n">module</span><span class="o">.</span><span class="n">_register_state_dict_hook</span><span class="p">(</span>
         <span class="n">partial</span><span class="p">(</span><span class="n">hook</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">offload_to_cpu</span><span class="o">=</span><span class="n">offload_to_cpu</span><span class="p">)</span>
     <span class="p">)</span>
+
+
+<div class="viewcode-block" id="disable_kv_cache"><a class="viewcode-back" href="../../../generated/torchtune.modules.common_utils.disable_kv_cache.html#torchtune.modules.common_utils.disable_kv_cache">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">disable_kv_cache</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This context manager temporarily disables KV-cacheing on a given model, which must already</span>
+<span class="sd">    already have KV-caches setup. All forward passes using the model within this context manager</span>
+<span class="sd">    will not use KV-caches.</span>
+
+<span class="sd">    KV-caches will be disabled when entering the context manager, and will be enabled upon exit,</span>
+<span class="sd">    without being modified.</span>
+
+<span class="sd">    This is useful in cases where we might wish to alternate between model calls which use KV-cacheing,</span>
+<span class="sd">    and model calls which do not use KV-cacheing, without the additional overhead of deleting and setting caches up</span>
+<span class="sd">    every time.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; from torchtune.models.llama3_2 import llama3_2_1b</span>
+<span class="sd">        &gt;&gt;&gt; from torchtune.modules import disable_kv_cache</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; model = llama3_2_1b()</span>
+<span class="sd">        &gt;&gt;&gt; # setup caches</span>
+<span class="sd">        &gt;&gt;&gt; model.setup_caches(batch_size=1,</span>
+<span class="sd">        &gt;&gt;&gt;                     dtype=torch.float32,</span>
+<span class="sd">        &gt;&gt;&gt;                     decoder_max_seq_len=1024)</span>
+<span class="sd">        &gt;&gt;&gt; print(model.caches_are_setup())</span>
+<span class="sd">        True</span>
+<span class="sd">        &gt;&gt;&gt; print(model.caches_are_enabled())</span>
+<span class="sd">        True</span>
+<span class="sd">        &gt;&gt;&gt; print(model.layers[0].attn.kv_cache)</span>
+<span class="sd">        KVCache()</span>
+<span class="sd">        &gt;&gt;&gt; # now temporarily disable caches</span>
+<span class="sd">        &gt;&gt;&gt; with disable_kv_cache(model):</span>
+<span class="sd">        &gt;&gt;&gt;     print(model.caches_are_setup())</span>
+<span class="sd">        &gt;&gt;&gt;     True</span>
+<span class="sd">        &gt;&gt;&gt;     print(model.caches_are_enabled())</span>
+<span class="sd">        &gt;&gt;&gt;     False</span>
+<span class="sd">        &gt;&gt;&gt;     print(model.layers[0].attn.kv_cache)</span>
+<span class="sd">        &gt;&gt;&gt;     # KVCache()</span>
+<span class="sd">        &gt;&gt;&gt; # caches are now re-enabled, and their state is untouched</span>
+<span class="sd">        &gt;&gt;&gt; print(model.caches_are_setup())</span>
+<span class="sd">        True</span>
+<span class="sd">        &gt;&gt;&gt; print(model.caches_are_enabled())</span>
+<span class="sd">        True</span>
+<span class="sd">        &gt;&gt;&gt; print(model.layers[0].attn.kv_cache)</span>
+<span class="sd">        &gt;&gt;&gt; KVCache()</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model (nn.Module): model to disable KV-cacheing for.</span>
+
+<span class="sd">    Yields:</span>
+<span class="sd">        None: Returns control to the caller with KV-caches disabled on the given model.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the model does not have caches setup.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">caches_are_setup</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Model caches must be setup before calling disable_kv_cache! &quot;</span>
+            <span class="s2">&quot;Please use model.setup_caches() to setup model caches.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">():</span>
+        <span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;You are using disable_kv_cache with a model that does not &quot;</span>
+            <span class="s2">&quot;have caches enabled. This is a no-op and the expected behaviour &quot;</span>
+            <span class="s2">&quot;may not occur.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">modules</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">&quot;kv_cache&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">callable</span><span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="n">kv_cache</span><span class="p">):</span>
+            <span class="n">module</span><span class="o">.</span><span class="n">cache_enabled</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">yield</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">modules</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">&quot;kv_cache&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">callable</span><span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="n">kv_cache</span><span class="p">):</span>
+                <span class="n">module</span><span class="o">.</span><span class="n">cache_enabled</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="local_kv_cache"><a class="viewcode-back" href="../../../generated/torchtune.modules.common_utils.local_kv_cache.html#torchtune.modules.common_utils.local_kv_cache">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">local_kv_cache</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+    <span class="n">encoder_max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">decoder_max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This context manager temporarily enables KV-cacheing on a given model, which does not</span>
+<span class="sd">    already have KV-caches setup. All forward passes using the model within this context manager</span>
+<span class="sd">    will use KV-caches.</span>
+
+<span class="sd">    KV-caches will be set-up with the given ``batch_size``, ``dtype``, and ``max_seq_len`` when</span>
+<span class="sd">    entering the context manager, and will be deleted on exit.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; from torchtune.models.llama3_2 import llama3_2_1b</span>
+<span class="sd">        &gt;&gt;&gt; from torchtune.modules import local_kv_cache</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; model = llama3_2_1b()</span>
+<span class="sd">        &gt;&gt;&gt; print(model.caches_are_setup())</span>
+<span class="sd">        False</span>
+<span class="sd">        &gt;&gt;&gt; print(model.caches_are_enabled())</span>
+<span class="sd">        False</span>
+<span class="sd">        &gt;&gt;&gt; print(model.layers[0].attn.kv_cache)</span>
+<span class="sd">        None</span>
+<span class="sd">        &gt;&gt;&gt; # entering cacheing mode</span>
+<span class="sd">        &gt;&gt;&gt; with local_kv_cache(model,</span>
+<span class="sd">        &gt;&gt;&gt;                     batch_size=1,</span>
+<span class="sd">        &gt;&gt;&gt;                     device=torch.device(&quot;cpu&quot;),</span>
+<span class="sd">        &gt;&gt;&gt;                     dtype=torch.float32,</span>
+<span class="sd">        &gt;&gt;&gt;                     decoder_max_seq_len=1024):</span>
+<span class="sd">        &gt;&gt;&gt;     print(model.caches_are_setup())</span>
+<span class="sd">        True</span>
+<span class="sd">        &gt;&gt;&gt;     print(model.caches_are_enabled())</span>
+<span class="sd">        True</span>
+<span class="sd">        &gt;&gt;&gt;     print(model.layers[0].attn.kv_cache)</span>
+<span class="sd">        KVCache()</span>
+<span class="sd">        &gt;&gt;&gt; # exited cacheing mode</span>
+<span class="sd">        &gt;&gt;&gt; print(model.caches_are_setup())</span>
+<span class="sd">        False</span>
+<span class="sd">        &gt;&gt;&gt; print(model.caches_are_enabled())</span>
+<span class="sd">        False</span>
+<span class="sd">        &gt;&gt;&gt; print(model.layers[0].attn.kv_cache)</span>
+<span class="sd">        None</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model (nn.Module): model to enable KV-cacheing for.</span>
+<span class="sd">        batch_size (int): batch size for the caches.</span>
+<span class="sd">        device (torch.device): device to setup caches on. this should be the same device</span>
+<span class="sd">            the model is on.</span>
+<span class="sd">        dtype (torch.dtype): dtype for the caches.</span>
+<span class="sd">        encoder_max_seq_len (Optional[int]): maximum encoder cache sequence length.</span>
+<span class="sd">        decoder_max_seq_len (Optional[int]): maximum decoder cache sequence length.</span>
+
+<span class="sd">    Yields:</span>
+<span class="sd">        None: Returns control to the caller with KV-caches setup and enabled on the given model.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the model already has caches setup.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">caches_are_setup</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Model caches must be not setup prior to entering this context manager! &quot;</span>
+            <span class="s2">&quot;Please use delete_kv_caches(model) to delete model caches.&quot;</span>
+        <span class="p">)</span>
+    <span class="c1"># ensure caches are setup on the same device as the model</span>
+    <span class="k">with</span> <span class="n">device</span><span class="p">:</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">setup_caches</span><span class="p">(</span>
+            <span class="n">batch_size</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="p">,</span>
+            <span class="n">encoder_max_seq_len</span><span class="o">=</span><span class="n">encoder_max_seq_len</span><span class="p">,</span>
+            <span class="n">decoder_max_seq_len</span><span class="o">=</span><span class="n">decoder_max_seq_len</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">yield</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">delete_kv_caches</span><span class="p">(</span><span class="n">model</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="delete_kv_caches"><a class="viewcode-back" href="../../../generated/torchtune.modules.common_utils.delete_kv_caches.html#torchtune.modules.common_utils.delete_kv_caches">[docs]</a><span class="k">def</span> <span class="nf">delete_kv_caches</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Deletes KV caches from all attention layers in a model,</span>
+<span class="sd">    and also ensures ``cache_enabled`` is set to False.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; from torchtune.models.llama3_2 import llama3_2_1b</span>
+<span class="sd">        &gt;&gt;&gt; from torchtune.modules import delete_kv_caches</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; model = llama3_2_1b()</span>
+<span class="sd">        &gt;&gt;&gt; model.setup_caches(batch_size=1,</span>
+<span class="sd">        &gt;&gt;&gt;                     dtype=torch.float32,</span>
+<span class="sd">        &gt;&gt;&gt;                     decoder_max_seq_len=1024)</span>
+<span class="sd">        &gt;&gt;&gt; print(model.caches_are_setup())</span>
+<span class="sd">        &gt;&gt;&gt; True</span>
+<span class="sd">        &gt;&gt;&gt; print(model.caches_are_enabled())</span>
+<span class="sd">        &gt;&gt;&gt; True</span>
+<span class="sd">        &gt;&gt;&gt; print(model.layers[0].attn.kv_cache)</span>
+<span class="sd">        &gt;&gt;&gt; KVCache()</span>
+<span class="sd">        &gt;&gt;&gt; delete_kv_caches(model)</span>
+<span class="sd">        &gt;&gt;&gt; print(model.caches_are_setup())</span>
+<span class="sd">        &gt;&gt;&gt; False</span>
+<span class="sd">        &gt;&gt;&gt; print(model.caches_are_enabled())</span>
+<span class="sd">        &gt;&gt;&gt; False</span>
+<span class="sd">        &gt;&gt;&gt; print(model.layers[0].attn.kv_cache)</span>
+<span class="sd">        &gt;&gt;&gt; None</span>
+<span class="sd">    Args:</span>
+<span class="sd">        model (nn.Module): model to enable KV-cacheing for.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: if ``delete_kv_caches`` is called on a model which does not have</span>
+<span class="sd">            caches setup.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">caches_are_setup</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;You have tried to delete model caches, but `model.caches_are_setup()` &quot;</span>
+            <span class="s2">&quot;is False!&quot;</span>
+        <span class="p">)</span>
+    <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">modules</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">&quot;kv_cache&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">callable</span><span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="n">kv_cache</span><span class="p">):</span>
+            <span class="n">module</span><span class="o">.</span><span class="n">cache_enabled</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">module</span><span class="o">.</span><span class="n">kv_cache</span> <span class="o">=</span> <span class="kc">None</span></div>
 </pre></div>
 
              </article>

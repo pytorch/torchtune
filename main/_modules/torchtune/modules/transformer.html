@@ -473,7 +473,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">sa_scale</span> <span class="o">=</span> <span class="n">sa_scale</span> <span class="ow">or</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mlp_scale</span> <span class="o">=</span> <span class="n">mlp_scale</span> <span class="ow">or</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
 
-<div class="viewcode-block" id="TransformerSelfAttentionLayer.setup_cache"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer.setup_cache">[docs]</a>    <span class="k">def</span> <span class="nf">setup_cache</span><span class="p">(</span>
+<div class="viewcode-block" id="TransformerSelfAttentionLayer.setup_caches"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer.setup_caches">[docs]</a>    <span class="k">def</span> <span class="nf">setup_caches</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
@@ -491,10 +491,19 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">setup_cache</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">decoder_max_seq_len</span><span class="p">)</span></div>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">cache_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the key value caches are setup.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+<div class="viewcode-block" id="TransformerSelfAttentionLayer.caches_are_setup"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer.caches_are_setup">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_setup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if the key value caches are setup on ``self.attn``.</span>
+<span class="sd">        See :func:~torchtune.modules.TransformerDecoder.caches_are_setup`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="TransformerSelfAttentionLayer.caches_are_enabled"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer.caches_are_enabled">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks if the key value caches on ``self.attn`` are enabled.</span>
+<span class="sd">        See :func:~torchtune.modules.TransformerDecoder.caches_are_enabled`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">cache_enabled</span></div>
 
 <div class="viewcode-block" id="TransformerSelfAttentionLayer.reset_cache"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer.reset_cache">[docs]</a>    <span class="k">def</span> <span class="nf">reset_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the key value caches.&quot;&quot;&quot;</span>
@@ -593,7 +602,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">ca_scale</span> <span class="o">=</span> <span class="n">ca_scale</span> <span class="ow">or</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mlp_scale</span> <span class="o">=</span> <span class="n">mlp_scale</span> <span class="ow">or</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
 
-<div class="viewcode-block" id="TransformerCrossAttentionLayer.setup_cache"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer.setup_cache">[docs]</a>    <span class="k">def</span> <span class="nf">setup_cache</span><span class="p">(</span>
+<div class="viewcode-block" id="TransformerCrossAttentionLayer.setup_caches"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer.setup_caches">[docs]</a>    <span class="k">def</span> <span class="nf">setup_caches</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
@@ -611,10 +620,19 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">setup_cache</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">encoder_max_seq_len</span><span class="p">)</span></div>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">cache_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the key value caches are setup.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+<div class="viewcode-block" id="TransformerCrossAttentionLayer.caches_are_setup"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer.caches_are_setup">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_setup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if the key value caches are setup on ``self.attn``.</span>
+<span class="sd">        See :func:~torchtune.modules.TransformerDecoder.caches_are_setup`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="TransformerCrossAttentionLayer.caches_are_enabled"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer.caches_are_enabled">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks if the key value caches on ``self.attn`` are enabled.</span>
+<span class="sd">        See :func:~torchtune.modules.TransformerDecoder.caches_are_enabled`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">cache_enabled</span></div>
 
 <div class="viewcode-block" id="TransformerCrossAttentionLayer.reset_cache"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer.reset_cache">[docs]</a>    <span class="k">def</span> <span class="nf">reset_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the key value caches.&quot;&quot;&quot;</span>
@@ -681,7 +699,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># During decoding, it&#39;s possible encoder_input is None because the embeds</span>
         <span class="c1"># are already stored in the kv cache.</span>
-        <span class="n">empty_cache</span> <span class="o">=</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_enabled</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="n">empty_cache</span> <span class="o">=</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span>
         <span class="c1"># Skip cross attention when no secondary input as it&#39;s primary purpose</span>
         <span class="c1"># is to attend between x and encoder_input.</span>
         <span class="k">if</span> <span class="n">encoder_input</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">empty_cache</span><span class="p">:</span>
@@ -851,19 +869,34 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">decoder_max_cache_seq_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span>
 
         <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
-            <span class="n">layer</span><span class="o">.</span><span class="n">setup_cache</span><span class="p">(</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">setup_caches</span><span class="p">(</span>
                 <span class="n">batch_size</span><span class="p">,</span>
                 <span class="n">dtype</span><span class="p">,</span>
                 <span class="n">encoder_max_seq_len</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">encoder_max_cache_seq_len</span><span class="p">,</span>
                 <span class="n">decoder_max_seq_len</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder_max_cache_seq_len</span><span class="p">,</span>
             <span class="p">)</span></div>
 
+<div class="viewcode-block" id="TransformerDecoder.caches_are_setup"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.caches_are_setup">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_setup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if the key value caches are setup. This means ``setup_caches`` has been called, and</span>
+<span class="sd">        the relevant attention modules in the model have created their ``KVCache``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">caches_are_setup</span><span class="p">()</span></div>
+
 <div class="viewcode-block" id="TransformerDecoder.caches_are_enabled"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.caches_are_enabled">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the key value caches are setup. This is useful to efficient inference.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cache_enabled</span></div>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks if the key value caches are enabled. Once KV-caches have been setup, the relevant</span>
+<span class="sd">        attention modules will be &quot;enabled&quot; and all forward passes will update the caches. This behaviour</span>
+<span class="sd">        can be disabled without altering the state of the KV-caches by &quot;disabling&quot; the KV-caches</span>
+<span class="sd">        using ``torchtune.modules.disable_kv_cache``, upon which ``caches_are_enabled`` would return False.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder.reset_caches"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.reset_caches">[docs]</a>    <span class="k">def</span> <span class="nf">reset_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the key value caches.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resets KV-cache buffers on relevant attention modules to zero, and reset cache positions to zero,</span>
+<span class="sd">        without deleting or reallocating cache tensors.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">():</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
                 <span class="s2">&quot;Key value caches are not setup. Call ``setup_caches()`` first.&quot;</span>
@@ -1187,7 +1220,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">decoder_max_cache_seq_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_max_cache_seq_len</span>
 
         <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
-            <span class="n">layer</span><span class="o">.</span><span class="n">setup_cache</span><span class="p">(</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">setup_caches</span><span class="p">(</span>
                 <span class="n">batch_size</span><span class="p">,</span>
                 <span class="n">dtype</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">encoder_max_cache_seq_len</span><span class="p">,</span>

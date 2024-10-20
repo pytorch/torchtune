@@ -487,7 +487,17 @@ adapt the pre-trained encoder to the pre-trained decoder.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="torchtune.modules.model_fusion.DeepFusionModel.caches_are_enabled">
 <span class="sig-name descname"><span class="pre">caches_are_enabled</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/model_fusion/_fusion.html#DeepFusionModel.caches_are_enabled"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.model_fusion.DeepFusionModel.caches_are_enabled" title="Permalink to this definition">¶</a></dt>
-<dd><p>Check if the key value caches are setup.</p>
+<dd><p>Checks if the key value caches are enabled. Once KV-caches have been setup, the relevant
+attention modules will be “enabled” and all forward passes will update the caches. This behaviour
+can be disabled without altering the state of the KV-caches by “disabling” the KV-caches
+using <code class="docutils literal notranslate"><span class="pre">torchtune.modules.disable_kv_cache</span></code>, upon which <code class="docutils literal notranslate"><span class="pre">caches_are_enabled</span></code> would return False.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.modules.model_fusion.DeepFusionModel.caches_are_setup">
+<span class="sig-name descname"><span class="pre">caches_are_setup</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/model_fusion/_fusion.html#DeepFusionModel.caches_are_setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.model_fusion.DeepFusionModel.caches_are_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the key value caches are setup. This means <code class="docutils literal notranslate"><span class="pre">setup_caches</span></code> has been called, and
+the relevant attention modules in the model have created their <code class="docutils literal notranslate"><span class="pre">KVCache</span></code>.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -543,7 +553,8 @@ KV values for each position.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="torchtune.modules.model_fusion.DeepFusionModel.reset_caches">
 <span class="sig-name descname"><span class="pre">reset_caches</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/model_fusion/_fusion.html#DeepFusionModel.reset_caches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.model_fusion.DeepFusionModel.reset_caches" title="Permalink to this definition">¶</a></dt>
-<dd><p>Reset the key value caches.</p>
+<dd><p>Resets KV-cache buffers on relevant attention modules to zero, and reset cache positions to zero,
+without deleting or reallocating cache tensors.</p>
 </dd></dl>
 
 <dl class="py method">

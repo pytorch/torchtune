@@ -519,7 +519,7 @@
                 <span class="n">state_dict</span><span class="p">[</span><span class="n">new_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
                 <span class="k">del</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-<div class="viewcode-block" id="FusionLayer.setup_cache"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.setup_cache">[docs]</a>    <span class="k">def</span> <span class="nf">setup_cache</span><span class="p">(</span>
+<div class="viewcode-block" id="FusionLayer.setup_caches"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.setup_caches">[docs]</a>    <span class="k">def</span> <span class="nf">setup_caches</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
@@ -535,24 +535,33 @@
 <span class="sd">            encoder_max_seq_len (int): maximum cache sequence length for cross-attention layer.</span>
 <span class="sd">            decoder_max_seq_len (int): maximum cache sequence length for self-attention layer.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="o">.</span><span class="n">setup_cache</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="o">.</span><span class="n">setup_caches</span><span class="p">(</span>
             <span class="n">batch_size</span><span class="p">,</span>
             <span class="n">dtype</span><span class="p">,</span>
             <span class="n">encoder_max_seq_len</span><span class="o">=</span><span class="n">encoder_max_seq_len</span><span class="p">,</span>
             <span class="n">decoder_max_seq_len</span><span class="o">=</span><span class="n">decoder_max_seq_len</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">fusion_layer</span><span class="o">.</span><span class="n">setup_cache</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fusion_layer</span><span class="o">.</span><span class="n">setup_caches</span><span class="p">(</span>
             <span class="n">batch_size</span><span class="p">,</span>
             <span class="n">dtype</span><span class="p">,</span>
             <span class="n">encoder_max_seq_len</span><span class="o">=</span><span class="n">encoder_max_seq_len</span><span class="p">,</span>
             <span class="n">decoder_max_seq_len</span><span class="o">=</span><span class="n">decoder_max_seq_len</span><span class="p">,</span>
         <span class="p">)</span></div>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">cache_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the key value caches are setup.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="o">.</span><span class="n">cache_enabled</span>
+<div class="viewcode-block" id="FusionLayer.caches_are_setup"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.caches_are_setup">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_setup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if the key value caches are setup on ``self.layer``.</span>
+<span class="sd">        See :func:~torchtune.modules.TransformerDecoder.caches_are_setup`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="o">.</span><span class="n">caches_are_setup</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="FusionLayer.caches_are_enabled"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.caches_are_enabled">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks if the key value caches on ``self.layer`` are enabled.</span>
+<span class="sd">        See :func:~torchtune.modules.TransformerDecoder.caches_are_enabled`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="FusionLayer.reset_cache"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.reset_cache">[docs]</a>    <span class="k">def</span> <span class="nf">reset_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset both layers&#39; key value caches.&quot;&quot;&quot;</span>
@@ -812,12 +821,27 @@
             <span class="n">decoder_max_seq_len</span><span class="o">=</span><span class="n">decoder_max_seq_len</span><span class="p">,</span>
         <span class="p">)</span></div>
 
+<div class="viewcode-block" id="DeepFusionModel.caches_are_setup"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.caches_are_setup">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_setup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if the key value caches are setup. This means ``setup_caches`` has been called, and</span>
+<span class="sd">        the relevant attention modules in the model have created their ``KVCache``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">caches_are_setup</span><span class="p">()</span></div>
+
 <div class="viewcode-block" id="DeepFusionModel.caches_are_enabled"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.caches_are_enabled">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the key value caches are setup.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks if the key value caches are enabled. Once KV-caches have been setup, the relevant</span>
+<span class="sd">        attention modules will be &quot;enabled&quot; and all forward passes will update the caches. This behaviour</span>
+<span class="sd">        can be disabled without altering the state of the KV-caches by &quot;disabling&quot; the KV-caches</span>
+<span class="sd">        using ``torchtune.modules.disable_kv_cache``, upon which ``caches_are_enabled`` would return False.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="DeepFusionModel.reset_caches"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.reset_caches">[docs]</a>    <span class="k">def</span> <span class="nf">reset_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the key value caches.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resets KV-cache buffers on relevant attention modules to zero, and reset cache positions to zero,</span>
+<span class="sd">        without deleting or reallocating cache tensors.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">reset_caches</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="DeepFusionModel.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>

@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>MultiHeadAttention &mdash; torchtune main documentation</title>
+  <title>disable_kv_cache &mdash; torchtune main documentation</title>
   
 
   
@@ -40,8 +40,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="FeedForward" href="torchtune.modules.FeedForward.html" />
-    <link rel="prev" title="torchtune.modules" href="../api_ref_modules.html" />
+    <link rel="next" title="delete_kv_caches" href="torchtune.modules.common_utils.delete_kv_caches.html" />
+    <link rel="prev" title="local_kv_cache" href="torchtune.modules.common_utils.local_kv_cache.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -396,13 +396,13 @@
         
           <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
         
-      <li>MultiHeadAttention</li>
+      <li>disable_kv_cache</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.modules.MultiHeadAttention.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.modules.common_utils.disable_kv_cache.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -432,147 +432,62 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="multiheadattention">
-<h1>MultiHeadAttention<a class="headerlink" href="#multiheadattention" title="Permalink to this heading">¶</a></h1>
-<dl class="py class">
-<dt class="sig sig-object py" id="torchtune.modules.MultiHeadAttention">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.</span></span><span class="sig-name descname"><span class="pre">MultiHeadAttention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">embed_dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_heads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_kv_heads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">head_dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_proj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.5)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_proj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.5)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">v_proj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.5)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_proj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.5)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_embeddings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.5)"><span class="pre">Module</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_norm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.5)"><span class="pre">Module</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_norm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.5)"><span class="pre">Module</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kv_cache</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="torchtune.modules.KVCache.html#torchtune.modules.KVCache" title="torchtune.modules.kv_cache.KVCache"><span class="pre">KVCache</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4096</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_causal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attn_dropout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/attention.html#MultiHeadAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.MultiHeadAttention" title="Permalink to this definition">¶</a></dt>
-<dd><p>Multi-headed attention layer with support for grouped query
-attention (GQA) introduced in <a class="reference external" href="https://arxiv.org/abs/2305.13245v1">https://arxiv.org/abs/2305.13245v1</a>.</p>
-<p>GQA is a version of multiheaded attention (MHA) which uses fewer
-key/value heads than query heads by grouping n query heads for each
-key and value head. Multi-Query Attention is an extreme
-version where we have a single key and value head shared by all
-query heads.</p>
-<p>Following is an example of MHA, GQA and MQA with num_heads = 4</p>
-<p>(credit for the documentation:
-<a class="reference external" href="https://github.com/Lightning-AI/litgpt/blob/eda1aaaf391fd689664f95487ab03dc137e213fd/litgpt/config.py">litgpt.Config</a>).</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>┌───┐┌───┐┌───┐┌───┐     ┌───┐    ┌───┐             ┌───┐
-│ v ││ v ││ v ││ v │     │ v │    │ v │             │ v │
-└───┘└───┘└───┘└───┘     └───┘    └───┘             └───┘
-│    │    │    │         │        │                 │
-┌───┐┌───┐┌───┐┌───┐     ┌───┐    ┌───┐             ┌───┐
-│ k ││ k ││ k ││ k │     │ k │    │ k │             │ k │
-└───┘└───┘└───┘└───┘     └───┘    └───┘             └───┘
-│    │    │    │      ┌──┴──┐  ┌──┴──┐      ┌────┬──┴─┬────┐
-┌───┐┌───┐┌───┐┌───┐  ┌───┐┌───┐┌───┐┌───┐  ┌───┐┌───┐┌───┐┌───┐
-│ q ││ q ││ q ││ q │  │ q ││ q ││ q ││ q │  │ q ││ q ││ q ││ q │
-└───┘└───┘└───┘└───┘  └───┘└───┘└───┘└───┘  └───┘└───┘└───┘└───┘
-◀──────────────────▶  ◀──────────────────▶  ◀──────────────────▶
-        MHA                    GQA                   MQA
-n_kv_heads =4          n_kv_heads=2           n_kv_heads=1
+  <section id="disable-kv-cache">
+<h1>disable_kv_cache<a class="headerlink" href="#disable-kv-cache" title="Permalink to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="torchtune.modules.common_utils.disable_kv_cache">
+<span class="sig-prename descclassname"><span class="pre">torchtune.modules.common_utils.</span></span><span class="sig-name descname"><span class="pre">disable_kv_cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.5)"><span class="pre">Module</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generator" title="(in Python v3.13)"><span class="pre">Generator</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/modules/common_utils.html#disable_kv_cache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.common_utils.disable_kv_cache" title="Permalink to this definition">¶</a></dt>
+<dd><p>This context manager temporarily disables KV-cacheing on a given model, which must already
+already have KV-caches setup. All forward passes using the model within this context manager
+will not use KV-caches.</p>
+<p>KV-caches will be disabled when entering the context manager, and will be enabled upon exit,
+without being modified.</p>
+<p>This is useful in cases where we might wish to alternate between model calls which use KV-cacheing,
+and model calls which do not use KV-cacheing, without the additional overhead of deleting and setting caches up
+every time.</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">torchtune.models.llama3_2</span> <span class="kn">import</span> <span class="n">llama3_2_1b</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">disable_kv_cache</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">llama3_2_1b</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># setup caches</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">setup_caches</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>                    <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>                    <span class="n">decoder_max_seq_len</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_setup</span><span class="p">())</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">())</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span><span class="p">)</span>
+<span class="go">KVCache()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># now temporarily disable caches</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">disable_kv_cache</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_setup</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="kc">True</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="kc">False</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c1"># KVCache()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># caches are now re-enabled, and their state is untouched</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_setup</span><span class="p">())</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">())</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">KVCache</span><span class="p">()</span>
 </pre></div>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>embed_dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – embedding dimension for the model</p></li>
-<li><p><strong>num_heads</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – number of query heads. For MHA this is also the
-number of heads for key and value</p></li>
-<li><p><strong>num_kv_heads</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – number of key and value heads. User should ensure
-<code class="docutils literal notranslate"><span class="pre">num_heads</span> <span class="pre">%</span> <span class="pre">num_kv_heads</span> <span class="pre">==</span> <span class="pre">0</span></code>. For standard MHA set <code class="docutils literal notranslate"><span class="pre">num_kv_heads</span> <span class="pre">==</span> <span class="pre">num_heads</span></code>,
-for GQA <code class="docutils literal notranslate"><span class="pre">num_kv_heads</span> <span class="pre">&lt;</span> <span class="pre">num_heads</span></code>, and for MQA set <code class="docutils literal notranslate"><span class="pre">num_kv_heads</span> <span class="pre">==</span> <span class="pre">1</span></code>.</p></li>
-<li><p><strong>head_dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – dimension of each head, calculated by <code class="docutils literal notranslate"><span class="pre">embed_dim</span> <span class="pre">//</span> <span class="pre">num_heads</span></code>.</p></li>
-<li><p><strong>q_proj</strong> (<em>nn.Module</em>) – projection layer for query.</p></li>
-<li><p><strong>k_proj</strong> (<em>nn.Module</em>) – projection layer for key.</p></li>
-<li><p><strong>v_proj</strong> (<em>nn.Module</em>) – projection layer for value.</p></li>
-<li><p><strong>output_proj</strong> (<em>nn.Module</em>) – projection layer for output.</p></li>
-<li><p><strong>pos_embeddings</strong> (<em>Optional</em><em>[</em><em>nn.Module</em><em>]</em>) – positional embeddings layer, e.g. RotaryPositionalEmbeddings.</p></li>
-<li><p><strong>q_norm</strong> (<em>Optional</em><em>[</em><em>nn.Module</em><em>]</em>) – normalization layer for query, e.g. RMSNorm. For decoding, this is applied
-before updating from kv_cache. This means it will only support token wide normalization and not
-batch or sequence wide normalization.</p></li>
-<li><p><strong>k_norm</strong> (<em>Optional</em><em>[</em><em>nn.Module</em><em>]</em>) – normalization layer for key, must be set if q_norm is.</p></li>
-<li><p><strong>kv_cache</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="torchtune.modules.KVCache.html#torchtune.modules.KVCache" title="torchtune.modules.KVCache"><em>KVCache</em></a><em>]</em>) – KVCache object used to cache key and value</p></li>
-<li><p><strong>max_seq_len</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – maximum sequence length supported by the model.
-This is needed to compute the RoPE Cache. Default: 4096.</p></li>
-<li><p><strong>is_causal</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – sets the default mask to causal when no mask is provided</p></li>
-<li><p><strong>attn_dropout</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – dropout value passed onto the scaled_dot_product_attention function.
-Default value is 0.0.</p></li>
-</ul>
+<dd class="field-odd"><p><strong>model</strong> (<em>nn.Module</em>) – model to disable KV-cacheing for.</p>
 </dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">num_heads</span> <span class="pre">%</span> <span class="pre">num_kv_heads</span> <span class="pre">!=</span> <span class="pre">0</span></code></p></li>
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">embed_dim</span> <span class="pre">%</span> <span class="pre">num_heads</span> <span class="pre">!=</span> <span class="pre">0</span></code></p></li>
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">attn_dropout</span> <span class="pre">&lt;</span> <span class="pre">0</span></code> or <code class="docutils literal notranslate"><span class="pre">attn_dropout</span> <span class="pre">&gt;</span> <span class="pre">1</span></code></p></li>
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – if q_norm is defined without k_norm or vice versa</p></li>
-</ul>
+<dt class="field-even">Yields<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>None</em> – Returns control to the caller with KV-caches disabled on the given model.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the model does not have caches setup.</p>
 </dd>
 </dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="torchtune.modules.MultiHeadAttention.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/attention.html#MultiHeadAttention.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.MultiHeadAttention.forward" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><em>torch.Tensor</em></a>) – input tensor with shape [b x s_x x d] for the query</p></li>
-<li><p><strong>y</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><em>torch.Tensor</em></a><em>]</em>) – second input tensor with shape [b x s_y x d], is the input
-for k and v. For self attention, x=y. Optional only with kv_cache enabled.</p></li>
-<li><p><strong>mask</strong> (<em>Optional</em><em>[</em><em>_MaskType</em><em>]</em>) – <p>Used to mask the scores after the query-key multiplication
-and before the softmax. Either:</p>
-<p>A boolean tensor with shape <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s</span> <span class="pre">x</span> <span class="pre">s]</span></code>, <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s</span> <span class="pre">x</span> <span class="pre">self.encoder_max_cache_seq_len]</span></code>,
-or <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s</span> <span class="pre">x</span> <span class="pre">self.encoder_max_cache_seq_len]</span></code> if using KV-cacheing with encoder/decoder layers.
-A value of True in row <code class="docutils literal notranslate"><span class="pre">i</span></code> and column <code class="docutils literal notranslate"><span class="pre">j</span></code> means token <code class="docutils literal notranslate"><span class="pre">i</span></code> attends to token <code class="docutils literal notranslate"><span class="pre">j</span></code>. A value of False means
-token <code class="docutils literal notranslate"><span class="pre">i</span></code> does not attend to token <code class="docutils literal notranslate"><span class="pre">j</span></code>. If no mask is specified, a causal mask
-is used by default.</p>
-<p>A <a class="reference external" href="https://pytorch.org/docs/stable/nn.attention.flex_attention.html#torch.nn.attention.flex_attention.BlockMask" title="(in PyTorch v2.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">BlockMask</span></code></a> for document masking in a packed sequence
-created via <a class="reference external" href="https://pytorch.org/blog/flexattention/#mask-mods">create_block_mask</a>. We  use
-<a class="reference external" href="https://pytorch.org/docs/stable/nn.attention.flex_attention.html#torch.nn.attention.flex_attention.flex_attention" title="(in PyTorch v2.5)"><code class="xref py py-func docutils literal notranslate"><span class="pre">flex_attention()</span></code></a> when computing attention with block masks.
-Default is None.</p>
-</p></li>
-<li><p><strong>input_pos</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><em>torch.Tensor</em></a><em>]</em>) – Optional tensor which contains the position ids
-of each token. During training, this is used to indicate the positions
-of each token relative to its sample when packed, shape [b x s].
-During inference, this indicates the position of the current token.
-If none, assume the index of the token is its position id. Default is None.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If no <code class="docutils literal notranslate"><span class="pre">y</span></code> input and <code class="docutils literal notranslate"><span class="pre">kv_cache</span></code> is not enabled.</p>
-</dd>
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>output tensor with attention applied</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)">torch.Tensor</a></p>
-</dd>
-</dl>
-<dl class="simple">
-<dt>Notation used for tensor shapes:</dt><dd><ul class="simple">
-<li><p>b: batch size</p></li>
-<li><p>s_x: sequence length for x</p></li>
-<li><p>s_y: sequence length for y</p></li>
-<li><p>n_h: num heads</p></li>
-<li><p>n_kv: num kv heads</p></li>
-<li><p>d: embed dim</p></li>
-<li><p>h_d: head dim</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="torchtune.modules.MultiHeadAttention.reset_cache">
-<span class="sig-name descname"><span class="pre">reset_cache</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/attention.html#MultiHeadAttention.reset_cache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.MultiHeadAttention.reset_cache" title="Permalink to this definition">¶</a></dt>
-<dd><p>Reset the key value caches.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="torchtune.modules.MultiHeadAttention.setup_cache">
-<span class="sig-name descname"><span class="pre">setup_cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="(in PyTorch v2.5)"><span class="pre">dtype</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/attention.html#MultiHeadAttention.setup_cache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.MultiHeadAttention.setup_cache" title="Permalink to this definition">¶</a></dt>
-<dd><p>Setup key value caches for attention calculation. If called
-after kv_cache is already setup, this will be skipped.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – batch size for the caches.</p></li>
-<li><p><strong>dtype</strong> (<em>torch.dpython:type</em>) – dtype for the caches.</p></li>
-<li><p><strong>max_seq_len</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – maximum sequence length model will be run with.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
 </dd></dl>
 
 </section>
@@ -585,10 +500,10 @@ after kv_cache is already setup, this will be skipped.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.modules.FeedForward.html" class="btn btn-neutral float-right" title="FeedForward" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.modules.common_utils.delete_kv_caches.html" class="btn btn-neutral float-right" title="delete_kv_caches" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="../api_ref_modules.html" class="btn btn-neutral" title="torchtune.modules" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.modules.common_utils.local_kv_cache.html" class="btn btn-neutral" title="local_kv_cache" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -620,7 +535,7 @@ after kv_cache is already setup, this will be skipped.</p>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">MultiHeadAttention</a></li>
+<li><a class="reference internal" href="#">disable_kv_cache</a></li>
 </ul>
 
             </div>

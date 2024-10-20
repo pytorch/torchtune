@@ -587,6 +587,15 @@ model specific tokenizers.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.html#torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook" title="torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook"><code class="xref py py-obj docutils literal notranslate"><span class="pre">common_utils.reparametrize_as_dtype_state_dict_post_hook</span></code></a></p></td>
 <td><p>A state_dict hook that replaces NF4 tensors with their restored higher-precision weight and optionally offloads the restored weight to CPU.</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.common_utils.local_kv_cache.html#torchtune.modules.common_utils.local_kv_cache" title="torchtune.modules.common_utils.local_kv_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">common_utils.local_kv_cache</span></code></a></p></td>
+<td><p>This context manager temporarily enables KV-cacheing on a given model, which does not already have KV-caches setup.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.common_utils.disable_kv_cache.html#torchtune.modules.common_utils.disable_kv_cache" title="torchtune.modules.common_utils.disable_kv_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">common_utils.disable_kv_cache</span></code></a></p></td>
+<td><p>This context manager temporarily disables KV-cacheing on a given model, which must already already have KV-caches setup.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.common_utils.delete_kv_caches.html#torchtune.modules.common_utils.delete_kv_caches" title="torchtune.modules.common_utils.delete_kv_caches"><code class="xref py py-obj docutils literal notranslate"><span class="pre">common_utils.delete_kv_caches</span></code></a></p></td>
+<td><p>Deletes KV caches from all attention layers in a model, and also ensures <code class="docutils literal notranslate"><span class="pre">cache_enabled</span></code> is set to False.</p></td>
+</tr>
 </tbody>
 </table>
 </section>
