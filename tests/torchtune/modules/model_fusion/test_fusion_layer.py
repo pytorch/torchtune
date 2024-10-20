@@ -25,9 +25,12 @@ class DummyCrossAttentionLayer(nn.Module):
         self.cache_enabled = False
         self.encoder_max_seq_len = None
 
-    def setup_cache(self, batch_size, dtype, encoder_max_seq_len, decoder_max_seq_len):
+    def setup_caches(self, batch_size, dtype, encoder_max_seq_len, decoder_max_seq_len):
         self.cache_enabled = True
         self.encoder_max_seq_len = encoder_max_seq_len
+
+    def caches_are_enabled(self):
+        return self.cache_enabled
 
     def reset_cache(self):
         self.cache_enabled = False
@@ -43,9 +46,12 @@ class DummySelfAttentionLayer(nn.Module):
         self.cache_enabled = False
         self.decoder_max_seq_len = None
 
-    def setup_cache(self, batch_size, dtype, encoder_max_seq_len, decoder_max_seq_len):
+    def setup_caches(self, batch_size, dtype, encoder_max_seq_len, decoder_max_seq_len):
         self.cache_enabled = True
         self.decoder_max_seq_len = decoder_max_seq_len
+
+    def caches_are_enabled(self):
+        return self.cache_enabled
 
     def reset_cache(self):
         self.cache_enabled = False
@@ -131,22 +137,20 @@ class TestFusionLayer:
             "fusion_layer.linear.bias",
         }
 
-    def test_setup_cache(self, fused_layer):
+    def test_setup_caches(self, fused_layer):
         """
         Test that the cache methods works as expected.
         """
-        fused_layer.setup_cache(
+        fused_layer.setup_caches(
             2, torch.float32, encoder_max_seq_len=10, decoder_max_seq_len=10
         )
-        assert fused_layer.cache_enabled
-        fused_layer.reset_cache()
-        assert not fused_layer.cache_enabled
+        assert fused_layer.caches_are_enabled()
 
     def test_setup_cache_different_cache_seq_len(self, fused_layer):
         """
         Test that the cache methods works as expected.
         """
-        fused_layer.setup_cache(
+        fused_layer.setup_caches(
             2, torch.float32, encoder_max_seq_len=5, decoder_max_seq_len=10
         )
 

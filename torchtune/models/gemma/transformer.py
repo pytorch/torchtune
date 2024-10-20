@@ -70,7 +70,7 @@ class GemmaTransformerDecoder(nn.Module):
         self.norm_embeddings = norm_embeddings
         self.num_output_chunks = 0
 
-    def caches_are_enabled(self) -> bool:
+    def caches_are_setup(self) -> bool:
         """Check if the key value caches are setup."""
         return self.layers[0].cache_enabled
 
@@ -104,7 +104,7 @@ class GemmaTransformerDecoder(nn.Module):
         if decoder_max_seq_len is not None:
             self.decoder_max_seq_len = decoder_max_seq_len
         for layer in self.layers:
-            layer.setup_cache(
+            layer.setup_caches(
                 batch_size,
                 dtype,
                 encoder_max_seq_len=encoder_max_seq_len,
