@@ -94,7 +94,7 @@ def get_pairs(word):
     return pairs
 
 
-class QwenTokenizer(ModelTokenizer):
+class Qwen2Tokenizer(ModelTokenizer):
     """This class construct a Qwen2 tokenizer, based on GPT-2 byte-level BPE tokenization.
 
     See <https://github.com/huggingface/transformers/blob/v4.40.1/src/transformers/models/qwen2/tokenization_qwen2.py>.
@@ -125,14 +125,14 @@ class QwenTokenizer(ModelTokenizer):
         bos_token (Optional[str]): The beginning of sequence token. Defaults to None.
         eos_token (str): The end of sequence token. Defaults to ``<|endoftext|>``.
         pad_token (Optional[str]): The token used for padding. Defaults to ``<|endoftext|>``.
-        bpe_cache_size (int): BPE token cache size in QwenTokenizer.
+        bpe_cache_size (int): BPE token cache size in Qwen2Tokenizer.
             NOTE: large cache size will speed up tokenization, but the cache object will get really
             large for long running processes (esp. for texts of language that do not use space between
             word, e.g. Chinese); technically not a memory leak but appears as one.
             By default, we set the cache size equals to size of the official Qwen2 tokenizer.
 
     Example:
-        >>> tokenizer = QwenTokenizer(
+        >>> tokenizer = Qwen2Tokenizer(
                 path="/path/to/vocab.json", merges_file="/path/to/merges.txt", special_tokens=QWEN2_SPECIAL_TOKENS)
         >>> tokenized_text = tokenizer.encode("Hello world!")
         >>> print(tokenized_text)

@@ -20,7 +20,6 @@ tokenizer:
   _component_: torchtune.models.qwen2.qwen2_tokenizer
   path: /tmp/Qwen2-0.5B-Instruct/vocab.json
   merges_file: /tmp/Qwen2-0.5B-Instruct/merges.txt
-  qwen_version: '2'
   max_seq_len: null
 
 # Dataset

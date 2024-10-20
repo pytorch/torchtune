@@ -15,7 +15,7 @@ TOOL_INSTRUCTION_START = "\n\n# Tools\n\nYou may call one or more functions to a
 TOOL_INSTRUCTION_END = '</tools>\n\nFor each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n<tool_call>\n{"name": <function-name>, "arguments": <args-json-object>}\n</tool_call>'  # noqa: B950
 
 
-class Qwen25ChatTemplate(PromptTemplateInterface):
+class Qwen2_5ChatTemplate(PromptTemplateInterface):  # noqa: N801
     """Qwen2.5's chat template.
 
     Defined in the Jinja template in
