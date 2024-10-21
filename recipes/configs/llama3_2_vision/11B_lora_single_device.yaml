@@ -80,7 +80,7 @@ enable_activation_offloading: False
 dtype: bf16
 
 # Logging
-output_dir: /tmp/full-llama3.2-vision-finetune
+output_dir: /tmp/lora-llama3.2-vision-finetune
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: /tmp/Llama-3.2-11B-Vision-Instruct/logs
