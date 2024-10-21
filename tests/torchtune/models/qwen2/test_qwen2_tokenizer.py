@@ -14,7 +14,7 @@ from torchtune.data import Message
 from torchtune.models.qwen2 import qwen2_tokenizer
 
 
-class TestQwen2Tokenizer:
+class TestQwenTokenizer:
     def tokenizer(self, template: bool = False, max_seq_len: Optional[int] = None):
         return qwen2_tokenizer(
             path=str(ASSETS / "tiny_bpe_vocab.json"),
