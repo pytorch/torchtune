@@ -46,7 +46,6 @@ save_adapter_weights_only: False
 
 # Dataset and Sampler
 dataset:
-  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.stack_exchange_paired_dataset
 seed: null
 shuffle: True
