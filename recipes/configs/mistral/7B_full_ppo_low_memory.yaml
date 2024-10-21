@@ -135,7 +135,7 @@ optimizer:
   _component_: bitsandbytes.optim.PagedAdamW
   lr: 3e-6
 optimizer_in_bwd: True
-log_peak_memory_stats: False
+log_peak_memory_stats: True
 enable_activation_checkpointing: True
 
 # Reduced precision
