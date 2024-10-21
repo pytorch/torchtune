@@ -91,7 +91,7 @@ class Qwen2_5ChatTemplate(PromptTemplateInterface):  # noqa: N801
                 else:
                     prepend_tag = "\n<tool_response>\n"
 
-                if i == len(messages) - 1 or messages[i + 1]["role"] != "ipython":
+                if i == len(messages) - 1 or messages[i + 1].role != "ipython":
                     append_tag = f"\n</tool_response>{self.template['user'][1]}"
                 else:
                     append_tag = "\n</tool_response>"

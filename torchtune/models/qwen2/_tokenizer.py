@@ -390,14 +390,14 @@ class Qwen2Tokenizer(ModelTokenizer):
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
 
-            # If assistant message, append EOS at end
-            if message.role == "assistant" and add_eos:
-                tokenized_messages.append(self.eos_id)
-                mask.append(message.masked)
-
             # Break out early if we reach max_seq_len
             if self.max_seq_len and len(tokenized_messages) >= self.max_seq_len:
                 break
+
+        # Add the End-Of-Sequence token
+        if add_eos:
+            tokenized_messages.append(self.eos_id)
+            mask.append(message.masked)
 
         # Finally, truncate if necessary
         if self.max_seq_len:
