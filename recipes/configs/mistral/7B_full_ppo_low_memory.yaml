@@ -32,7 +32,6 @@ tokenizer:
 
 # Dataset
 dataset:
-  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.text_completion_dataset
   source: trl-internal-testing/sentiment-trl-style
   split: train
