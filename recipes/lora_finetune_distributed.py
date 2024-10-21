@@ -41,7 +41,7 @@ from torchtune.training import (
     OffloadActivations,
     PROFILER_KEY,
 )
-from torchtune.utils import get_torch_device
+from torchtune.utils import DeviceSupport, get_torch_device
 
 from tqdm import tqdm
 
@@ -897,13 +897,8 @@ def recipe_main(cfg: DictConfig) -> None:
         # speed up when benchmarking fused AdamW on CPU
         training.set_torch_num_threads()
 
-    if cfg.device == "cpu":
-        backend = "gloo"
-    elif cfg.device == "npu":
-        backend = "hccl"
-    else:
-        backend = "nccl"
-    init_process_group(backend=backend)
+    device_support = DeviceSupport.from_type(cfg.device)
+    init_process_group(backend=device_support.communication_backend)
 
     config.log_config(recipe_name="LoRAFinetuneRecipeDistributed", cfg=cfg)
 

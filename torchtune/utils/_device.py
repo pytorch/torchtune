@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
+from enum import Enum
 from typing import Optional
 
 import torch
@@ -16,11 +17,18 @@ if _SUPPORTS_FLEX_ATTENTION:
 else:
     BlockMask = torch.Tensor
 
-from torchtune.utils._device_support import (
-    get_device_support,
-    get_torch_device,
-    is_npu_available,
-)
+
+def is_torch_npu_available() -> bool:
+    """Check the availability of NPU"""
+    try:
+        import torch_npu  # noqa: F401
+
+        return torch.npu.is_available()
+    except ImportError:
+        return False
+
+
+is_npu_available = is_torch_npu_available()
 
 
 def _get_local_rank() -> Optional[int]:
@@ -167,3 +175,54 @@ def batch_to_device(batch: dict, device: torch.device) -> None:
                 f"""To use batch_to_device, all elements in the batch must be a dict or Tensor.
 Got key "{k}" with value of type {type(v)}"""
             )
+
+
+class DeviceSupport(Enum):
+    """
+    This is a simple enum for compute devices,
+    This currently only supports CPU, CUDA, NPU.
+    """
+
+    CPU = ("cpu", "CPU", "gloo")
+    CUDA = ("cuda", "GPU", "nccl")
+    NPU = ("npu", "NPU", "hccl")
+
+    def __init__(self, device_type: str, device_name: str, communication_backend: str):
+        self.device_type = device_type
+        self.device_name = device_name
+        self.communication_backend = communication_backend
+
+    @staticmethod
+    def from_type(device_type: str):
+        for member in DeviceSupport:
+            if member.device_type == device_type:
+                return member
+        raise ValueError(f"Unknown device type: {device_type}.")
+
+
+def get_device_support() -> DeviceSupport:
+    """function that gets the DeviceSupport with compute devices based on the current machine.
+
+    This currently only supports CPU, CUDA, NPU.
+
+    Returns:
+        device_support: DeviceSupport
+    """
+    device_type = _get_device_type_from_env()
+    return DeviceSupport.from_type(device_type)
+
+
+def get_torch_device() -> any:
+    """Return the corresponding torch attribute based on the device type string.
+
+    Returns:
+        module: The corresponding torch module, or torch.cuda if not found.
+    """
+    device_type = get_device_support().device_type
+    try:
+        return getattr(torch, device_type)
+    except AttributeError:
+        print(
+            f"Device Module '{device_type}' not found in torch, try to load torch.cuda."
+        )
+        return torch.cuda
