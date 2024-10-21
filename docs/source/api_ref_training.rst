@@ -86,6 +86,7 @@ Utilities to control lr during the training process.
     :nosignatures:
 
     get_cosine_schedule_with_warmup
+    get_lr
 
 .. _metric_logging_label:
 
