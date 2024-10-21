@@ -405,7 +405,7 @@ class DeepFusionModel(nn.Module):
         Checks if the key value caches are enabled. Once KV-caches have been setup, the relevant
         attention modules will be "enabled" and all forward passes will update the caches. This behaviour
         can be disabled without altering the state of the KV-caches by "disabling" the KV-caches
-        using ``torchtune.modules.disable_kv_cache``, upon which ``caches_are_enabled`` would return False.
+        using :func:`~torchtune.modules.common_utils.disable_kv_cache`, upon which ``caches_are_enabled`` would return False.
         """
         return self.decoder.caches_are_enabled()
 
