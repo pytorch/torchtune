@@ -199,18 +199,18 @@ def disable_kv_cache(model: nn.Module) -> Generator[None, None, None]:
         >>> # now temporarily disable caches
         >>> with disable_kv_cache(model):
         >>>     print(model.caches_are_setup())
-        >>>     True
+        True
         >>>     print(model.caches_are_enabled())
-        >>>     False
+        False
         >>>     print(model.layers[0].attn.kv_cache)
-        >>>     # KVCache()
+        KVCache()
         >>> # caches are now re-enabled, and their state is untouched
         >>> print(model.caches_are_setup())
         True
         >>> print(model.caches_are_enabled())
         True
         >>> print(model.layers[0].attn.kv_cache)
-        >>> KVCache()
+        KVCache()
 
     Args:
         model (nn.Module): model to disable KV-cacheing for.
@@ -219,7 +219,8 @@ def disable_kv_cache(model: nn.Module) -> Generator[None, None, None]:
         None: Returns control to the caller with KV-caches disabled on the given model.
 
     Raises:
-        ValueError: If the model does not have caches setup.
+        ValueError: If the model does not have caches setup. Use :func:`~torchtune.modules.TransformerDecoder.setup_caches` to
+            setup caches first.
     """
     if not model.caches_are_setup():
         raise ValueError(
@@ -306,6 +307,7 @@ def local_kv_cache(
 
     Raises:
         ValueError: If the model already has caches setup.
+            You may use :func:`~torchtune.modules.common_utils.delete_kv_caches` to delete existing caches.
     """
     if model.caches_are_setup():
         raise ValueError(
@@ -340,29 +342,31 @@ def delete_kv_caches(model: nn.Module):
         >>>                     dtype=torch.float32,
         >>>                     decoder_max_seq_len=1024)
         >>> print(model.caches_are_setup())
-        >>> True
+        True
         >>> print(model.caches_are_enabled())
-        >>> True
+        True
         >>> print(model.layers[0].attn.kv_cache)
-        >>> KVCache()
+        KVCache()
         >>> delete_kv_caches(model)
         >>> print(model.caches_are_setup())
-        >>> False
+        False
         >>> print(model.caches_are_enabled())
-        >>> False
+        False
         >>> print(model.layers[0].attn.kv_cache)
-        >>> None
+        None
+
     Args:
         model (nn.Module): model to enable KV-cacheing for.
 
     Raises:
-        ValueError: if ``delete_kv_caches`` is called on a model which does not have
-            caches setup.
+        ValueError: if this function is called on a model which does not have
+            caches setup. Use :func:`~torchtune.modules.TransformerDecoder.setup_caches` to
+            setup caches first.
     """
     if not model.caches_are_setup():
         raise ValueError(
-            "You have tried to delete model caches, but `model.caches_are_setup()` "
-            "is False!"
+            "You have tried to delete model caches, but model.caches_are_setup() "
+            "is False! Please setup caches on the model first."
         )
     for module in model.modules():
         if hasattr(module, "kv_cache") and callable(module.kv_cache):

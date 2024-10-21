@@ -410,9 +410,9 @@ class TransformerDecoder(nn.Module):
     ):
         """
         Sets up key-value attention caches for inference. For each layer in ``self.layers``:
-        - :class:`~torchtune.modules.TransformerSelfAttentionLayer` will use ``decoder_max_seq_len``.
-        - :class:`~torchtune.modules.TransformerCrossAttentionLayer` will use ``encoder_max_seq_len``.
-        - :class:`~torchtune.modules.fusion.FusionLayer` will use both ``decoder_max_seq_len`` and ``encoder_max_seq_len``.
+            - :class:`~torchtune.modules.TransformerSelfAttentionLayer` will use ``decoder_max_seq_len``.
+            - :class:`~torchtune.modules.TransformerCrossAttentionLayer` will use ``encoder_max_seq_len``.
+            - :class:`~torchtune.modules.model_fusion.FusionLayer` will use ``decoder_max_seq_len`` and ``encoder_max_seq_len``.
 
         Args:
             batch_size (int): batch size for the caches.
@@ -460,7 +460,7 @@ class TransformerDecoder(nn.Module):
         Checks if the key value caches are enabled. Once KV-caches have been setup, the relevant
         attention modules will be "enabled" and all forward passes will update the caches. This behaviour
         can be disabled without altering the state of the KV-caches by "disabling" the KV-caches
-        using ``torchtune.modules.disable_kv_cache``, upon which ``caches_are_enabled`` would return False.
+        using :func:`torchtune.modules.common_utils.disable_kv_cache`, upon which ``caches_are_enabled`` would return False.
         """
         return self.layers[0].caches_are_enabled()
 
@@ -468,10 +468,14 @@ class TransformerDecoder(nn.Module):
         """
         Resets KV-cache buffers on relevant attention modules to zero, and reset cache positions to zero,
         without deleting or reallocating cache tensors.
+
+        Raises:
+            RuntimeError: if KV-caches are not setup. Use :func:`~torchtune.modules.TransformerDecoder.setup_caches` to
+                setup caches first.
         """
         if not self.caches_are_enabled():
             raise RuntimeError(
-                "Key value caches are not setup. Call ``setup_caches()`` first."
+                "Key value caches are not setup. Call model.setup_caches first."
             )
 
         for layer in self.layers:
