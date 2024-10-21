@@ -833,7 +833,7 @@
 <span class="sd">        Checks if the key value caches are enabled. Once KV-caches have been setup, the relevant</span>
 <span class="sd">        attention modules will be &quot;enabled&quot; and all forward passes will update the caches. This behaviour</span>
 <span class="sd">        can be disabled without altering the state of the KV-caches by &quot;disabling&quot; the KV-caches</span>
-<span class="sd">        using ``torchtune.modules.disable_kv_cache``, upon which ``caches_are_enabled`` would return False.</span>
+<span class="sd">        using :func:`~torchtune.modules.common_utils.disable_kv_cache`, upon which ``caches_are_enabled`` would return False.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">()</span></div>
 

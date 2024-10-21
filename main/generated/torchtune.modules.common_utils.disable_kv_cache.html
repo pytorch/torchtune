@@ -463,18 +463,18 @@ every time.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># now temporarily disable caches</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">disable_kv_cache</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
 <span class="gp">&gt;&gt;&gt; </span>    <span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_setup</span><span class="p">())</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="kc">True</span>
+<span class="go">True</span>
 <span class="gp">&gt;&gt;&gt; </span>    <span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">())</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="kc">False</span>
+<span class="go">False</span>
 <span class="gp">&gt;&gt;&gt; </span>    <span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="c1"># KVCache()</span>
+<span class="go">KVCache()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># caches are now re-enabled, and their state is untouched</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_setup</span><span class="p">())</span>
 <span class="go">True</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">())</span>
 <span class="go">True</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">KVCache</span><span class="p">()</span>
+<span class="go">KVCache()</span>
 </pre></div>
 </div>
 <dl class="field-list simple">
@@ -485,7 +485,8 @@ every time.</p>
 <dd class="field-even"><p><em>None</em> – Returns control to the caller with KV-caches disabled on the given model.</p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the model does not have caches setup.</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the model does not have caches setup. Use <a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.setup_caches" title="torchtune.modules.TransformerDecoder.setup_caches"><code class="xref py py-func docutils literal notranslate"><span class="pre">setup_caches()</span></code></a> to
+    setup caches first.</p>
 </dd>
 </dl>
 </dd></dl>

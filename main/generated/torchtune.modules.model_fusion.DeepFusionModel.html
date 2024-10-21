@@ -490,7 +490,7 @@ adapt the pre-trained encoder to the pre-trained decoder.</p>
 <dd><p>Checks if the key value caches are enabled. Once KV-caches have been setup, the relevant
 attention modules will be “enabled” and all forward passes will update the caches. This behaviour
 can be disabled without altering the state of the KV-caches by “disabling” the KV-caches
-using <code class="docutils literal notranslate"><span class="pre">torchtune.modules.disable_kv_cache</span></code>, upon which <code class="docutils literal notranslate"><span class="pre">caches_are_enabled</span></code> would return False.</p>
+using <a class="reference internal" href="torchtune.modules.common_utils.disable_kv_cache.html#torchtune.modules.common_utils.disable_kv_cache" title="torchtune.modules.common_utils.disable_kv_cache"><code class="xref py py-func docutils literal notranslate"><span class="pre">disable_kv_cache()</span></code></a>, upon which <code class="docutils literal notranslate"><span class="pre">caches_are_enabled</span></code> would return False.</p>
 </dd></dl>
 
 <dl class="py method">

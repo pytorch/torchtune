@@ -448,18 +448,18 @@ and also ensures <code class="docutils literal notranslate"><span class="pre">ca
 <span class="gp">&gt;&gt;&gt; </span>                    <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
 <span class="gp">&gt;&gt;&gt; </span>                    <span class="n">decoder_max_seq_len</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_setup</span><span class="p">())</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kc">True</span>
+<span class="go">True</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">())</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kc">True</span>
+<span class="go">True</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">KVCache</span><span class="p">()</span>
+<span class="go">KVCache()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">delete_kv_caches</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_setup</span><span class="p">())</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kc">False</span>
+<span class="go">False</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">())</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kc">False</span>
+<span class="go">False</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kc">None</span>
+<span class="go">None</span>
 </pre></div>
 </div>
 <dl class="field-list simple">
@@ -467,8 +467,9 @@ and also ensures <code class="docutils literal notranslate"><span class="pre">ca
 <dd class="field-odd"><p><strong>model</strong> (<em>nn.Module</em>) – model to enable KV-cacheing for.</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – if <code class="docutils literal notranslate"><span class="pre">delete_kv_caches</span></code> is called on a model which does not have
-    caches setup.</p>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – if this function is called on a model which does not have
+    caches setup. Use <a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.setup_caches" title="torchtune.modules.TransformerDecoder.setup_caches"><code class="xref py py-func docutils literal notranslate"><span class="pre">setup_caches()</span></code></a> to
+    setup caches first.</p>
 </dd>
 </dl>
 </dd></dl>
