@@ -157,7 +157,7 @@ class TestLlama3Tokenizer:
         assert mask == expected_mask
 
     def test_tokenize_message_drop_eot_and_eos(
-            self, tokenizer, user_text_message, assistant_text_message
+        self, tokenizer, user_text_message, assistant_text_message
     ):
         """
         Test that the tokenizer will not add an EOS token or EOT token if user requests it.
@@ -173,7 +173,7 @@ class TestLlama3Tokenizer:
         assert mask == expected_mask
 
     def test_tokenize_image_and_text_messages(
-            self, tokenizer, user_image_text_message, assistant_text_message
+        self, tokenizer, user_image_text_message, assistant_text_message
     ):
         image_and_text_messages = [
             user_image_text_message[0],
@@ -186,10 +186,10 @@ class TestLlama3Tokenizer:
         assert mask == expected_mask
 
     def test_tokenize_interleaved_image_and_text_messages(
-            self,
-            tokenizer,
-            user_interleaved_image_text_message,
-            assistant_text_message,
+        self,
+        tokenizer,
+        user_interleaved_image_text_message,
+        assistant_text_message,
     ):
         interleaved_image_and_text_messages = [
             user_interleaved_image_text_message[0],
@@ -206,12 +206,12 @@ class TestLlama3Tokenizer:
         assert mask == expected_mask
 
     def test_tokenize_tool_call_messages(
-            self,
-            tokenizer,
-            user_text_message,
-            assistant_tool_message,
-            ipython_message,
-            assistant_text_message,
+        self,
+        tokenizer,
+        user_text_message,
+        assistant_tool_message,
+        ipython_message,
+        assistant_text_message,
     ):
         tool_call_messages = [
             user_text_message[0],
@@ -231,7 +231,7 @@ class TestLlama3Tokenizer:
 
     def test_validate_special_tokens(self):
         with pytest.raises(
-                ValueError, match="<|begin_of_text|> missing from special_tokens"
+            ValueError, match="<|begin_of_text|> missing from special_tokens"
         ):
             _ = Llama3Tokenizer(
                 path=str(ASSETS / "tiktoken_small.model"),
@@ -247,13 +247,13 @@ class TestLlama3Tokenizer:
             )
 
     def test_skip_special_tokens(
-            self,
-            tokenizer,
-            user_text_message,
-            assistant_text_message,
-            user_text_a,
-            user_text_b,
-            assistant_text,
+        self,
+        tokenizer,
+        user_text_message,
+        assistant_text_message,
+        user_text_a,
+        user_text_b,
+        assistant_text,
     ):
         # This should satisfy text = decode(encode(text))
         tokens = user_text_message[1] + assistant_text_message[1]
