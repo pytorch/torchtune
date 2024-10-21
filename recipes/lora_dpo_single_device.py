@@ -57,6 +57,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         - :class:`~torchtune.rlhf.loss.DPOLoss`: Direct Preference Optimization (DPO).
         - :class:`~torchtune.rlhf.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
         - :class:`~torchtune.rlhf.loss.SimPOLoss`: Simple Preference Optimization (SimPO).
+        - :class:`~torchtune.rlhf.loss.KTOLoss`: Kahneman-Tversky Optimization (KTO).
+
 
     Assumptions:
         - Checkpoints are ONLY saved at epoch boundaries. In case of failure, work done
