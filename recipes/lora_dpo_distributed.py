@@ -33,6 +33,7 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.rlhf.loss import SimPOLoss
+from torchtune.utils import DeviceSupport
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -759,7 +760,8 @@ def recipe_main(cfg: DictConfig) -> None:
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU
         training.set_torch_num_threads()
-    init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
+    device_support = DeviceSupport.from_type(cfg.device)
+    init_process_group(backend=device_support.communication_backend)
 
     config.log_config(recipe_name="LoRADPORecipeDistributed", cfg=cfg)
 

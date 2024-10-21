@@ -20,7 +20,7 @@ from torch._C._profiler import _ExperimentalConfig
 from torch.profiler import tensorboard_trace_handler
 from torchtune.training import get_world_size_and_rank
 
-from torchtune.utils import get_logger
+from torchtune.utils import get_logger, get_torch_device
 
 log = get_logger("INFO")
 
@@ -121,7 +121,7 @@ def trace_handler(
             except Exception as e:
                 log.warn(f" Failed to export memory timeline: {e}")
 
-            torch.cuda.memory._dump_snapshot(
+            get_torch_device().memory._dump_snapshot(
                 f"{curr_trace_dir}/rank{rank}_memory_snapshot.pickle"
             )
 

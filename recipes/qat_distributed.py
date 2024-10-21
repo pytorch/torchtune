@@ -26,8 +26,10 @@ from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.activations import apply_selective_activation_checkpointing
+from torchtune.utils import get_torch_device
 
 from tqdm import tqdm
+
 
 log = utils.get_logger("DEBUG")
 
@@ -633,14 +635,14 @@ class QATRecipeDistributed(FTRecipeInterface):
                 ):
                     break
 
-                # Start tracking CUDA memory for active steps for just the first epoch
+                # Start tracking CUDA or NPU memory for active steps for just the first epoch
                 if (
                     self._is_rank_zero
                     and curr_epoch == 0
                     and self.profiler_profile_memory
                     and idx == self.profiler_wait_steps + self.profiler_warmup_steps
                 ):
-                    torch.cuda.memory._record_memory_history()
+                    get_torch_device().memory._record_memory_history()
 
                 # Both are shape [b, s]
                 tokens, labels = batch["tokens"], batch["labels"]
@@ -738,7 +740,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                     num_tokens = 0
                     t0 = time.perf_counter()
 
-                    # Stop tracking CUDA memory now that active steps are complete
+                    # Stop tracking CUDA or NPU memory now that active steps are complete
                     if (
                         self._is_rank_zero
                         and curr_epoch == 0
@@ -748,7 +750,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                         + self.profiler_warmup_steps
                         + self.profiler_active_steps
                     ):
-                        torch.cuda.memory._record_memory_history(enabled=None)
+                        get_torch_device().memory._record_memory_history(enabled=None)
 
                     # Step profiler
                     # Note that this is called within gradient accumulation block, hence
@@ -780,7 +782,9 @@ def recipe_main(cfg: DictConfig) -> None:
             "Distributed QAT recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
-    init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
+
+    device_support = DeviceSupport.from_type(cfg.device)
+    init_process_group(backend=device_support.communication_backend)
     if cfg.get("fsdp_cpu_offload", False):
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU
