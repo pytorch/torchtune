@@ -223,11 +223,11 @@ class TestLlama3Tokenizer:
             user_text_message[1] + assistant_tool_message[1] + ipython_message[1] + assistant_text_message[1]
         )
         expected_mask = (
-                [True] * len(user_text_message[1])
-                + [False] * len(assistant_tool_message[1])
-                + [True] * len(ipython_message[1])
-                + [False] * (len(assistant_text_message[1]) - 1)
-                + [True]
+            [True] * len(user_text_message[1])
+            + [False] * len(assistant_tool_message[1])
+            + [True] * len(ipython_message[1])
+            + [False] * (len(assistant_text_message[1]) - 1)
+            + [True]
         )
         tokens, mask = tokenizer.tokenize_messages(tool_call_messages)
         assert tokens == expected_tokens
