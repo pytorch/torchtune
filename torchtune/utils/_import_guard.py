@@ -6,12 +6,11 @@
 
 import torch
 import torchao
-from torchtune.utils._version import _is_fbcode, _nightly_version_ge, torch_version_ge
+from torchtune.utils._version import _is_fbcode, _nightly_version_ge
 
 # We can only use flex attention / BlockMask if torch version >= 2.5.0 and GPU is Turing / SM75 and above
 _SUPPORTS_FLEX_ATTENTION = (
-    torch_version_ge("2.5.0")
-    and torch.cuda.is_available()
+    torch.cuda.is_available()
     and torch.cuda.get_device_capability() >= (7, 5)
 )
 

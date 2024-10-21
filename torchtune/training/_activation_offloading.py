@@ -33,7 +33,7 @@ class OffloadActivations(saved_tensors_hooks):
 
         use_streams (Optional[bool]): Whether or not to use streams for performance optimization where
             the communications get overlapped with the computation. Requires a torch build
-            after torch-2.5.0.dev20240907. Default: True if a later torch build is found, else False.
+            after torch-2.5.0.]. Default: True.
 
         max_fwd_stash_size (int): The maximum size of the forward stash, or the maximum number of
             consecutive activations to keep alive during the forward pass. This number must be at
@@ -60,7 +60,7 @@ class OffloadActivations(saved_tensors_hooks):
     def __init__(
         self,
         use_pin_memory: bool = True,
-        use_streams: Optional[bool] = None,
+        use_streams: Optional[bool] = True,
         max_fwd_stash_size: int = 5,
         min_offload_size: int = 1024,
     ) -> None:

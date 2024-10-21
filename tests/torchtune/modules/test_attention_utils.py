@@ -82,10 +82,6 @@ class TestBlockCausalMask:
         )
         torch.testing.assert_close(actual, expected)
 
-    @pytest.mark.skipif(
-        not _SUPPORTS_FLEX_ATTENTION,
-        reason="Please install a nightly build of torch (>=2.5.0) to run this test.",
-    )
     @gpu_test(gpu_count=1)
     def test_packed_block_causal_mask_flex(self):
         # create_block_mask requires that seq_len be divisible by 128, the default block size.

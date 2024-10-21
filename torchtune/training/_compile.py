@@ -42,23 +42,21 @@ def compile_model(
     backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
     if isinstance(model, DeepFusionModel):
         model = model.decoder
-    if torch_version_ge("2.5.0"):
+    # Per-layer compilation by default
+    if verbose:
+        log.info("Compiling model layers with torch.compile...")
+    for m in reversed(list(model.modules())):
+        if isinstance(m, TransformerSelfAttentionLayer) or isinstance(
+            m, TransformerCrossAttentionLayer
+        ):
+            m.compile(backend=backend)
+    # Fallback for models that can't be per-layer compiled
+    if not torch_version_ge("2.5.0"):
         if verbose:
-            log.info("Compiling model layers with torch.compile...")
-        for m in reversed(list(model.modules())):
-            if isinstance(m, TransformerSelfAttentionLayer) or isinstance(
-                m, TransformerCrossAttentionLayer
-            ):
-                m.compile(backend=backend)
-    else:
-        if verbose:
-            log.info(
-                """
-                Compiling full model with torch.compile...
-                For faster compile times via per-layer compile, please run on PyTorch nightlies.
-                """
+            log.warning(
+                "Per-layer compilation may not be fully optimized in PyTorch versions < 2.5.0. "
+                "Consider upgrading for improved performance."
             )
-        model.compile(backend=backend)
 
 
 def compile_loss(loss: nn.Module, verbose: bool = True) -> None:
