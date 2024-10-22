@@ -14,7 +14,7 @@
 #
 # !!!!!!!!!!!!!
 # !!!!!!!!!!!!!
-# ATTENTION: It will only work with pytorch>=2.5 (nightlies). For other pytorch versions, it will OOM, even on 8xA100.
+# ATTENTION: It will only work with pytorch>=2.5. For other pytorch versions, it will OOM, even on 8xA100.
 # !!!!!!!!!!!!!
 # !!!!!!!!!!!!!
 
