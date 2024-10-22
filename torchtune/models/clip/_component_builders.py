@@ -509,6 +509,7 @@ def lora_clip_mlp(
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
+        use_bias=True,
     )
     down_proj = adapter_cls(
         in_dim=hidden_dim,
@@ -517,6 +518,7 @@ def lora_clip_mlp(
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
+        use_bias=True,
     )
     return FeedForward(
         gate_proj=gate_proj, down_proj=down_proj, up_proj=None, activation=activation
