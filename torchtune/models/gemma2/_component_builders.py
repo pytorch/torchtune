@@ -22,7 +22,24 @@ from torchtune.modules import TransformerDecoder, TiedLinear
 from torchtune.models.gemma.gemma_norm_embedding import GemmaNormEmbeddings
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 from torchtune.models.gemma._component_builders import gemma_mlp, lora_gemma_mlp
+from torchtune.utils._import_guard import _SUPPORTS_FLEX_ATTENTION
 
+import logging
+from torchtune.utils._logging import get_logger, log_once
+
+_log: logging.Logger = get_logger()
+
+
+if _SUPPORTS_FLEX_ATTENTION:
+    from torchtune.models.gemma2._attention import FlexGemma2Attention
+    log_once(
+            _log,
+            "Using flex attention for Gemma2 attention computation.",
+            level=logging.DEBUG,
+        )
+    _flex_or_native_gemma2_attention = FlexGemma2Attention
+else:
+    _flex_or_native_gemma2_attention = Gemma2Attention
 """
 Component builders for the Gemma2 2B, 9B models and popular variants such as LoRA.
 
@@ -47,7 +64,7 @@ class TanhSoftCapping(nn.Module):
         attn_weights = attn_weights / self.capping_value
         attn_weights = torch.tanh(attn_weights)
         attn_weights = attn_weights * self.capping_value
-
+        return attn_weights
 
 class Gemma2FinalNorm(nn.Module):
     """
@@ -120,7 +137,8 @@ def gemma2(
     layers = torch.nn.ModuleList()
     
     for layer_idx in range(num_layers):
-        self_att = Gemma2Attention(
+        
+        self_att = _flex_or_native_gemma2_attention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
@@ -316,7 +334,7 @@ def lora_gemma2_self_attention(
     use_dora: bool = False,
     quantize_base: bool = False,
     
-) -> Gemma2Attention:
+) -> _flex_or_native_gemma2_attention:
     if not lora_modules:
         raise ValueError(
             f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules"
@@ -392,7 +410,7 @@ def lora_gemma2_self_attention(
 
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
     
-    self_att = Gemma2Attention(
+    self_att = _flex_or_native_gemma2_attention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,

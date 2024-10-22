@@ -18,7 +18,7 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.gemma.gemma_tokenizer
-  path: /tmp/gemma2-2b/tokenizer.model
+  path: /tmp/gemma-2-2b/tokenizer.model
 
 # Dataset
 dataset:
@@ -44,7 +44,7 @@ checkpointer:
     model-00003-of-00003.safetensors,
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/gemma2-2b
+  output_dir: /tmp/gemma-2-2b
   model_type: GEMMA2
 resume_from_checkpoint: False
 save_adapter_weights_only: False
@@ -62,10 +62,10 @@ loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
 # Fine-tuning arguments
-batch_size: 4
+batch_size: 8
 epochs: 3
 max_steps_per_epoch: null
-gradient_accumulation_steps: 4
+gradient_accumulation_steps: 2
 compile: False
 
 # Training env

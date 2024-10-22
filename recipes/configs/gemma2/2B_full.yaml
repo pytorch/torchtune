@@ -19,7 +19,7 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.gemma.gemma_tokenizer
-  path: /tmp/gemma2-2b/tokenizer.model
+  path: /tmp/gemma-2-2b/tokenizer.model
 
 # Dataset
 dataset:
@@ -33,14 +33,14 @@ model:
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/gemma2-2b/
+  checkpoint_dir: /tmp/gemma-2-2b/
   checkpoint_files: [
     model-00001-of-00003.safetensors,
     model-00002-of-00003.safetensors,
     model-00003-of-00003.safetensors,
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/gemma2-2b
+  output_dir: /tmp/gemma-2-2b
   model_type: GEMMA2
 resume_from_checkpoint: False
 
