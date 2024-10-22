@@ -8,34 +8,34 @@ from functools import partial
 from typing import List, Optional
 
 import torch
+from torchtune.data._prompt_templates import _get_prompt_template, _TemplateType
 from torchtune.models.llama3_2_vision._component_builders import (  # noqa
+    llama3_2_vision_decoder,
+    llama3_2_vision_encoder,
     lora_llama3_2_vision_decoder,
     lora_llama3_2_vision_encoder,
     LoRATrainable,
-    llama3_2_vision_decoder,
-    llama3_2_vision_encoder,
 )
 from torchtune.models.llama3_2_vision._encoder import Llama3VisionEncoder
 from torchtune.models.llama3_2_vision._transform import Llama3VisionTransform
 from torchtune.modules.model_fusion import DeepFusionModel
-from torchtune.modules.tokenizers import parse_hf_tokenizer_json
-from torchtune.data._prompt_templates import _TemplateType
-from torchtune.data._prompt_templates import _get_prompt_template
 from torchtune.modules.peft import LORA_ATTN_MODULES
+from torchtune.modules.tokenizers import parse_hf_tokenizer_json
+
 
 def llama3_2_vision_11b(
     decoder_trainable: bool = False,
     encoder_trainable: bool = True,
     fusion_trainable: bool = True,
-    image_size: int = 560
-    ) -> DeepFusionModel:
-    """ Llama 3.2 Vision 11B model
+    image_size: int = 560,
+) -> DeepFusionModel:
+    """Llama 3.2 Vision 11B model
 
     Args:
         decoder_trainable (bool): Whether to make decoder params trainable. Default is False.
         encoder_trainable (bool): Whether to make encoder params trainable. Default is True.
         fusion_trainable (bool): Whether to make fusion params trainable. Default is True.
-        image_size (int): Base image size that images will be tiled and resized to. 
+        image_size (int): Base image size that images will be tiled and resized to.
             Default is 560 for Instruct weights, use 448 for pre-trained.
 
     Returns:
@@ -62,7 +62,7 @@ def llama3_2_vision_11b(
         num_kv_heads=8,
         embed_dim=4096,
         max_seq_len=131_072,
-        encoder_max_seq_len=128_080,
+        encoder_max_seq_len=128_080,  # 20*6404
         rope_base=500000.0,
         intermediate_dim=14336,
     )
@@ -76,8 +76,12 @@ def llama3_2_vision_11b(
 
 
 def llama3_2_vision_transform(
-        path: str, max_seq_len: int = 8192, image_size: int = 560, special_tokens_path: Optional[str] = None, prompt_template: Optional[_TemplateType] = None
-    ) -> Llama3VisionTransform:
+    path: str,
+    max_seq_len: int = 8192,
+    image_size: int = 560,
+    special_tokens_path: Optional[str] = None,
+    prompt_template: Optional[_TemplateType] = None,
+) -> Llama3VisionTransform:
     """
     Data Transforms (including Tokenizer) for Llama3 Vision.
 
@@ -85,21 +89,27 @@ def llama3_2_vision_transform(
         path (str): path to the tokenizer
         max_seq_len (int): maximum sequence length for tokenizing a single list of messages,
             after which the input will be truncated.
-        image_size (int): Base image size that images will be tiled and resized to. 
+        image_size (int): Base image size that images will be tiled and resized to.
             Default is 560 for Instruct weights, use 448 for pre-trained.
         special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
-            model files that contains all registered special tokens, or a local json file 
+            model files that contains all registered special tokens, or a local json file
             structured similarly. Default is None to use the canonical Llama3 special tokens.
         prompt_template (Optional[_TemplateType]): optional specified prompt template.
             If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
             class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
             prepend/append tags.
-    
+
     Returns:
         Llama3VisionTransform: Instantiation of the Llama 3.2 vision transform
     """
-    special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    template = _get_prompt_template(prompt_template) if prompt_template is not None else None
+    special_tokens = (
+        parse_hf_tokenizer_json(special_tokens_path)
+        if special_tokens_path is not None
+        else None
+    )
+    template = (
+        _get_prompt_template(prompt_template) if prompt_template is not None else None
+    )
     return Llama3VisionTransform(
         path=path,
         special_tokens=special_tokens,
@@ -115,7 +125,7 @@ def llama3_2_vision_transform(
 
 def lora_llama3_2_vision_11b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
-    decoder_trainable: str = "frozen", 
+    decoder_trainable: str = "frozen",
     encoder_trainable: str = "lora",
     fusion_trainable: str = "lora",
     apply_lora_to_mlp: bool = False,
@@ -125,7 +135,7 @@ def lora_llama3_2_vision_11b(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
-    image_size: int = 560
+    image_size: int = 560,
 ) -> DeepFusionModel:
     """
     Return a version of Llama3.2 vision (an instance of :func:`~torchtune.modules.model_fusion.DeepFusionModel`)
@@ -135,11 +145,11 @@ def lora_llama3_2_vision_11b(
         lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
-        decoder_trainable (str): Option to set decoder params as fully trainble (full), lora trainable (lora), 
+        decoder_trainable (str): Option to set decoder params as fully trainble (full), lora trainable (lora),
             or frozen (frozen). The default is "frozen".
-        encoder_trainable (str): Option to set encoder params as fully trainble (full), lora trainable (lora), 
+        encoder_trainable (str): Option to set encoder params as fully trainble (full), lora trainable (lora),
             or frozen (frozen). The default is "lora".
-        fusion_trainable (str): Option to set fusion params as fully trainble (full), lora trainable (lora), 
+        fusion_trainable (str): Option to set fusion params as fully trainble (full), lora trainable (lora),
             or frozen (frozen). The default is "lora".
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
             Default: False
@@ -151,7 +161,7 @@ def lora_llama3_2_vision_11b(
         quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
-        image_size (int): Base image size that images will be tiled and resized to. 
+        image_size (int): Base image size that images will be tiled and resized to.
             Default is 560 for Instruct weights, use 448 for pre-trained.
 
     Returns:
@@ -197,8 +207,8 @@ def lora_llama3_2_vision_11b(
         num_heads=32,
         num_kv_heads=8,
         embed_dim=4096,
-        max_seq_len=8192,
-        encoder_max_seq_len=64040,
+        max_seq_len=131_072,
+        encoder_max_seq_len=128_080,  # 20*6404
         rope_base=500000.0,
         intermediate_dim=14336,
         lora_rank=lora_rank,
