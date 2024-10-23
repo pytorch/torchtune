@@ -429,9 +429,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             )
         else:
             lora_missing, lora_unexpected = None, None
-        import pdb
-
-        pdb.set_trace()
         validate_missing_and_unexpected_for_lora(
             lora_attn_modules=self._lora_attn_modules,
             apply_lora_to_mlp=self._apply_lora_to_mlp,
