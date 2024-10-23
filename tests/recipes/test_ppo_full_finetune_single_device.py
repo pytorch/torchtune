@@ -41,6 +41,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             "device=cpu",
             "dtype=fp32",
             "enable_activation_checkpointing=False",
+            "enable_activation_offloading=False",
             "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
             "tokenizer._component_=torchtune.models.llama2.llama2_tokenizer",
             "tokenizer.prompt_template=null",
