@@ -266,3 +266,10 @@ To use this custom template in the tokenizer, you can pass it in via dotpath str
       _component_: torchtune.models.mistral.mistral_tokenizer
       path: /tmp/Mistral-7B-v0.1/tokenizer.model
       prompt_template: path.to.template.EurekaTemplate
+
+Built-in prompt templates
+-------------------------
+- :class:`torchtune.data.GrammarErrorCorrectionTemplate`
+- :class:`torchtune.data.SummarizeTemplate`
+- :class:`torchtune.data.QuestionAnswerTemplate`
+- :class:`torchtune.data.ChatMLTemplate`
