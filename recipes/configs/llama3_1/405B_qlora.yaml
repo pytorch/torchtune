@@ -12,11 +12,7 @@
 # This config needs 8 GPUs to run
 #   # tune run --nproc_per_node 8 lora_finetune_distributed --config llama3_1/405B_qlora
 #
-# !!!!!!!!!!!!!
-# !!!!!!!!!!!!!
-# ATTENTION: It will only work with pytorch>=2.5. For other pytorch versions, it will OOM, even on 8xA100.
-# !!!!!!!!!!!!!
-# !!!!!!!!!!!!!
+
 
 # Model Arguments
 model:
