@@ -13,7 +13,12 @@ from pathlib import Path
 import pytest
 
 from tests.common import TUNE_PATH
-from tests.recipes.utils import llama2_test_config, write_hf_ckpt_config
+from tests.recipes.utils import (
+    llama2_test_config,
+    llama3_2_vision_test_config,
+    write_hf_ckpt_config,
+    write_hf_vision_ckpt_config,
+)
 from tests.test_utils import CKPT_MODEL_PATHS
 
 
@@ -193,4 +198,64 @@ class TestEleutherEval:
             ValueError,
             match="QAT quantizers should only be used during quantization aware training",
         ):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+
+    @pytest.mark.integration_test
+    def test_meta_eval_vision(self, capsys, monkeypatch, tmpdir):
+        ckpt = "llama3_2_vision_meta"
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        ckpt_dir = ckpt_path.parent
+
+        cmd = f"""
+        tune run eleuther_eval \
+            --config llama3_2_vision/evaluation \
+            output_dir={tmpdir} \
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir} \
+            checkpointer.model_type=LLAMA3_VISION \
+            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
+            tokenizer.prompt_template=null \
+            limit=1 \
+            dtype=fp32 \
+            device=cpu \
+        """.split()
+
+        model_config = llama3_2_vision_test_config()
+        cmd = cmd + model_config
+
+        monkeypatch.setattr(sys, "argv", cmd)
+        with pytest.raises(SystemExit, match=""):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+
+    @pytest.mark.integration_test
+    def test_hf_eval_vision(self, capsys, monkeypatch, tmpdir):
+        ckpt = "llama3_2_vision_hf"
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        ckpt_dir = ckpt_path.parent
+
+        # Config file needed for model conversion.
+        write_hf_vision_ckpt_config(ckpt_dir)
+
+        cmd = f"""
+        tune run eleuther_eval \
+            --config llama3_2_vision/evaluation \
+            output_dir={tmpdir} \
+            checkpointer=torchtune.training.FullModelHFCheckpointer \
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir} \
+            checkpointer.model_type=LLAMA3_VISION \
+            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
+            tokenizer.prompt_template=null \
+            limit=1 \
+            dtype=fp32 \
+            device=cpu \
+        """.split()
+
+        model_config = llama3_2_vision_test_config()
+        cmd = cmd + model_config
+
+        monkeypatch.setattr(sys, "argv", cmd)
+        with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")

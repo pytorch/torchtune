@@ -188,6 +188,8 @@ class _VLMEvalWrapper(HFMultimodalLM):
             pad_direction="left",
             pad_max_images=self._max_images_per_sample,
         )
+        import pdb
+        # pdb.set_trace()
         utils.batch_to_device(tok_batch, self.device)
 
         # Convert the batch to the format expected by the HF

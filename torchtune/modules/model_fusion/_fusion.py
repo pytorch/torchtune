@@ -271,7 +271,10 @@ class FusionEmbedding(nn.Module):
         tokens = torch.masked_select(input, mask)
         # num_fusion_tokens = (input >= vocab_size).sum()
         fusion_tokens = torch.masked_select(input, ~mask) - vocab_size
-
+        import pdb
+        print(tokens.max())
+        if input.max() > vocab_size:
+            pdb.set_trace()
         # [batch_size x num_tokens x embed_dim]
         embeds = self.embedding(tokens)
         # [batch_size x num_fusion_tokens x embed_dim]

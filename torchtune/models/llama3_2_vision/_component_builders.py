@@ -157,6 +157,7 @@ def llama3_2_vision_decoder(
             by :func:`~torchtune.modules.KVCache`.
         encoder_max_seq_len (int): maximum sequence length the encoder will be run with, as used
             by :func:`~torchtune.modules.KVCache`.
+        rope_base (int): base for the rotary positional embeddings. Default: 500_000
         intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
             this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`.
 
