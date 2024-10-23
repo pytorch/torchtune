@@ -51,7 +51,7 @@ from torchtune.training.checkpointing import (
     TOTAL_EPOCHS_KEY,
     update_state_dict_for_classifier,
 )
-from torchtune.training.lr_schedulers import get_cosine_schedule_with_warmup
+from torchtune.training.lr_schedulers import get_cosine_schedule_with_warmup, get_lr
 from torchtune.training.memory import (
     cleanup_before_training,
     create_optim_in_bwd_wrapper,
@@ -93,6 +93,7 @@ __all__ = [
     "TOTAL_EPOCHS_KEY",
     "get_quantizer_mode",
     "get_cosine_schedule_with_warmup",
+    "get_lr",
     "cleanup_before_training",
     "create_optim_in_bwd_wrapper",
     "get_memory_stats",

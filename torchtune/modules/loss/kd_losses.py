@@ -30,6 +30,7 @@ class ForwardKLLoss(torch.nn.Module):
         student_logits: torch.Tensor,
         teacher_logits: torch.Tensor,
         labels: torch.Tensor,
+        normalize: bool = True,
     ) -> torch.Tensor:
         """
         Args:
@@ -39,6 +40,7 @@ class ForwardKLLoss(torch.nn.Module):
                 (batch_size*num_tokens, vocab_size).
             labels (torch.Tensor): Ground truth labels of shape
                 (batch_size, vocab_size).
+            normalize (bool): Whether to normalize the loss by the number of unmasked elements.
 
         Returns:
             torch.Tensor: KL divergence loss of shape (1,).
@@ -50,6 +52,8 @@ class ForwardKLLoss(torch.nn.Module):
         prod_probs = torch.masked_fill(teacher_prob * student_logprob, inf_mask, 0)
         x = torch.sum(prod_probs, dim=-1).view(-1)
         mask = (labels != self.ignore_index).int()
+        if not normalize:
+            return -torch.sum(x * mask.view(-1), dim=0)
         if torch.sum(mask.view(-1), dim=0) == 0:
             return torch.tensor(0.0, device=x.device)
         return -torch.sum(x * mask.view(-1), dim=0) / torch.sum(mask.view(-1), dim=0)
@@ -118,15 +122,19 @@ class ForwardKLWithChunkedOutputLoss(torch.nn.Module):
             student_logits_chunk.reshape(-1, student_logits_chunk.size(-1))
             for student_logits_chunk in student_logits
         ]
+        mask = (labels != self.ignore_index).int()
         # chunk and reshape labels (bsz, num_tokens, vocab) -> [(bsz*num_tokens/num_chunks, vocab)]
         labels = [
             target_chunk.reshape(-1)
             for target_chunk in labels.chunk(self.num_output_chunks, dim=1)
         ]
+
         total_fkl_loss = 0.0
         for student_chunk, teacher_chunk, label_chunk in zip(
             student_logits, teacher_logits, labels
         ):
-            total_fkl_loss += self.fkl_loss(student_chunk, teacher_chunk, label_chunk)
+            total_fkl_loss += self.fkl_loss(
+                student_chunk, teacher_chunk, label_chunk, normalize=False
+            )
 
-        return total_fkl_loss / self.num_output_chunks
+        return total_fkl_loss / torch.sum(mask.view(-1), dim=0)
