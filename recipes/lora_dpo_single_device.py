@@ -572,9 +572,9 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     loss, chosen_rewards, rejected_rewards = self._loss_fn(
                         policy_chosen_log_probs,
                         policy_rejected_log_probs,
+                        policy_KL_logps,
                         reference_chosen_log_probs,
                         reference_rejected_log_probs,
-                        policy_KL_logps,
                         reference_KL_logps
                     )
                 else:

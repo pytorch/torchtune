@@ -273,8 +273,10 @@ class KTOLoss(nn.Module):
         self,
         policy_chosen_logps: torch.Tensor,
         policy_rejected_logps: torch.Tensor,
+        policy_KL_logps,
         reference_chosen_logps: torch.Tensor,
         reference_rejected_logps: torch.Tensor,
+        reference_KL_logps
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Compute the KTO loss for a batch of policy and reference model log probabilities.
@@ -297,7 +299,8 @@ class KTOLoss(nn.Module):
 
         """
 
-        kl = torch.zeros(1).to(policy_chosen_logps.device)
+        kl = (policy_KL_logps - reference_KL_logps).mean().detach()
+        kl = kl.mean().clamp(min=0)
 
         chosen_logratios = policy_chosen_logps - reference_chosen_logps
 
