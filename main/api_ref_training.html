@@ -536,6 +536,9 @@ checkpointing, please see the <a class="reference internal" href="deep_dives/che
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.training.get_cosine_schedule_with_warmup.html#torchtune.training.get_cosine_schedule_with_warmup" title="torchtune.training.get_cosine_schedule_with_warmup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_cosine_schedule_with_warmup</span></code></a></p></td>
 <td><p>Create a learning rate schedule that linearly increases the learning rate from 0.0 to lr over <code class="docutils literal notranslate"><span class="pre">num_warmup_steps</span></code>, then decreases to 0.0 on a cosine schedule over the remaining <code class="docutils literal notranslate"><span class="pre">num_training_steps-num_warmup_steps</span></code> (assuming <code class="docutils literal notranslate"><span class="pre">num_cycles</span></code> = 0.5).</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.training.get_lr.html#torchtune.training.get_lr" title="torchtune.training.get_lr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_lr</span></code></a></p></td>
+<td><p>Full_finetune_distributed and full_finetune_single_device assume all optimizers have the same LR, here to validate whether all the LR are the same and return if True.</p></td>
+</tr>
 </tbody>
 </table>
 </section>

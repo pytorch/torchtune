@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>get_cosine_schedule_with_warmup &mdash; torchtune main documentation</title>
+  <title>get_lr &mdash; torchtune main documentation</title>
   
 
   
@@ -40,8 +40,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="get_lr" href="torchtune.training.get_lr.html" />
-    <link rel="prev" title="register_optim_in_bwd_hooks" href="torchtune.training.register_optim_in_bwd_hooks.html" />
+    <link rel="next" title="CometLogger" href="torchtune.training.metric_logging.CometLogger.html" />
+    <link rel="prev" title="get_cosine_schedule_with_warmup" href="torchtune.training.get_cosine_schedule_with_warmup.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -396,13 +396,13 @@
         
           <li><a href="../api_ref_training.html">torchtune.training</a> &gt;</li>
         
-      <li>get_cosine_schedule_with_warmup</li>
+      <li>get_lr</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.training.get_cosine_schedule_with_warmup.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.training.get_lr.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -432,30 +432,27 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="get-cosine-schedule-with-warmup">
-<h1>get_cosine_schedule_with_warmup<a class="headerlink" href="#get-cosine-schedule-with-warmup" title="Permalink to this heading">¶</a></h1>
+  <section id="get-lr">
+<h1>get_lr<a class="headerlink" href="#get-lr" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.training.get_cosine_schedule_with_warmup">
-<span class="sig-prename descclassname"><span class="pre">torchtune.training.</span></span><span class="sig-name descname"><span class="pre">get_cosine_schedule_with_warmup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/optim.html#torch.optim.Optimizer" title="(in PyTorch v2.5)"><span class="pre">Optimizer</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_warmup_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_training_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_cycles</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_epoch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.LambdaLR.html#torch.optim.lr_scheduler.LambdaLR" title="(in PyTorch v2.5)"><span class="pre">LambdaLR</span></a></span></span><a class="reference internal" href="../_modules/torchtune/training/lr_schedulers.html#get_cosine_schedule_with_warmup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.training.get_cosine_schedule_with_warmup" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create a learning rate schedule that linearly increases the learning rate from
-0.0 to lr over <code class="docutils literal notranslate"><span class="pre">num_warmup_steps</span></code>, then decreases to 0.0 on a cosine schedule over
-the remaining <code class="docutils literal notranslate"><span class="pre">num_training_steps-num_warmup_steps</span></code> (assuming <code class="docutils literal notranslate"><span class="pre">num_cycles</span></code> = 0.5).</p>
-<p>This is based on the Hugging Face implementation
-<a class="reference external" href="https://github.com/huggingface/transformers/blob/v4.23.1/src/transformers/optimization.py#L104">https://github.com/huggingface/transformers/blob/v4.23.1/src/transformers/optimization.py#L104</a>.</p>
+<dt class="sig sig-object py" id="torchtune.training.get_lr">
+<span class="sig-prename descclassname"><span class="pre">torchtune.training.</span></span><span class="sig-name descname"><span class="pre">get_lr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.13)"><span class="pre">Union</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/optim.html#torch.optim.Optimizer" title="(in PyTorch v2.5)"><span class="pre">Optimizer</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper" title="torchtune.training.memory.OptimizerInBackwardWrapper"><span class="pre">OptimizerInBackwardWrapper</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></span><a class="reference internal" href="../_modules/torchtune/training/lr_schedulers.html#get_lr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.training.get_lr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Full_finetune_distributed and full_finetune_single_device assume all optimizers have
+the same LR, here to validate whether all the LR are the same and return if True.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>optimizer</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/optim.html#torch.optim.Optimizer" title="(in PyTorch v2.5)"><em>torch.optim.Optimizer</em></a>) – The optimizer for which to
-schedule the learning rate.</p></li>
-<li><p><strong>num_warmup_steps</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – The number of steps for the warmup phase.</p></li>
-<li><p><strong>num_training_steps</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – The total number of training steps.</p></li>
-<li><p><strong>num_cycles</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – The number of waves in the cosine schedule. Defaults to 0.5
-(decrease from the max value to 0 following a half-cosine).</p></li>
-<li><p><strong>last_epoch</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – The index of the last epoch when resuming training. Defaults to -1</p></li>
-</ul>
+<dd class="field-odd"><p><strong>optimizer</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/optim.html#torch.optim.Optimizer" title="(in PyTorch v2.5)"><em>torch.optim.Optimizer</em></a><em>, </em><a class="reference internal" href="torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper" title="torchtune.training.OptimizerInBackwardWrapper"><em>OptimizerInBackwardWrapper</em></a><em>]</em>) – A general
+optimizer input that could whether be a general optimizer or an optimizer
+warpper based on optimizer_in_backward.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>torch.optim.lr_scheduler.LambdaLR with the appropriate schedule.</p>
+<dd class="field-even"><p>The learning rate of the input optimizers.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>lr (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a>)</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.13)"><strong>RuntimeError</strong></a> – If the learning rates of the input optimizer are not the same.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -470,10 +467,10 @@ schedule the learning rate.</p></li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.training.get_lr.html" class="btn btn-neutral float-right" title="get_lr" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.training.metric_logging.CometLogger.html" class="btn btn-neutral float-right" title="CometLogger" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.training.register_optim_in_bwd_hooks.html" class="btn btn-neutral" title="register_optim_in_bwd_hooks" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.training.get_cosine_schedule_with_warmup.html" class="btn btn-neutral" title="get_cosine_schedule_with_warmup" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -505,7 +502,7 @@ schedule the learning rate.</p></li>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">get_cosine_schedule_with_warmup</a></li>
+<li><a class="reference internal" href="#">get_lr</a></li>
 </ul>
 
             </div>

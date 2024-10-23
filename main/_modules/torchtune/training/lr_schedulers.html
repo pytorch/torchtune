@@ -433,9 +433,11 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch.optim.lr_scheduler</span> <span class="kn">import</span> <span class="n">LambdaLR</span>
+<span class="kn">from</span> <span class="nn">torchtune.training.memory</span> <span class="kn">import</span> <span class="n">OptimizerInBackwardWrapper</span>
 
 
 <div class="viewcode-block" id="get_cosine_schedule_with_warmup"><a class="viewcode-back" href="../../../generated/torchtune.training.get_cosine_schedule_with_warmup.html#torchtune.training.get_cosine_schedule_with_warmup">[docs]</a><span class="k">def</span> <span class="nf">get_cosine_schedule_with_warmup</span><span class="p">(</span>
@@ -482,6 +484,43 @@
         <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">cosine_lr_multiple</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">LambdaLR</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">lr_lambda</span><span class="p">,</span> <span class="n">last_epoch</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_lr"><a class="viewcode-back" href="../../../generated/torchtune.training.get_lr.html#torchtune.training.get_lr">[docs]</a><span class="k">def</span> <span class="nf">get_lr</span><span class="p">(</span>
+    <span class="n">optimizer</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">,</span> <span class="n">OptimizerInBackwardWrapper</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Full_finetune_distributed and full_finetune_single_device assume all optimizers have</span>
+<span class="sd">    the same LR, here to validate whether all the LR are the same and return if True.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        optimizer (Union[torch.optim.Optimizer, OptimizerInBackwardWrapper]): A general</span>
+<span class="sd">            optimizer input that could whether be a general optimizer or an optimizer</span>
+<span class="sd">            warpper based on optimizer_in_backward.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        lr (float): The learning rate of the input optimizers.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        RuntimeError: If the learning rates of the input optimizer are not the same.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">OptimizerInBackwardWrapper</span><span class="p">):</span>
+        <span class="n">param_groups</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">param_groups</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="s2">&quot;param_groups&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">param_groups</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">param_groups</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Invalid optimizer param groups with len of: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">param_groups</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># LR Schedulers are the same across all param groups for full_finetune right now</span>
+    <span class="n">lr</span> <span class="o">=</span> <span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;lr&quot;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">param_groups</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">group</span><span class="p">[</span><span class="s2">&quot;lr&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">lr</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;LR Schedulers are different across all param groups &quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">lr</span></div>
 </pre></div>
 
              </article>
