@@ -12,6 +12,9 @@ __version__ = ""
 # We have to do this because it is not currently possible to
 # properly support both nightly and stable installs of PyTorch + torchao
 # in pyproject.toml.
+import torch
+
+torch.backends.cuda.enable_cudnn_sdp(False)
 try:
     import torchao  # noqa
 except ImportError as e:

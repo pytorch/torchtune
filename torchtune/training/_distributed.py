@@ -608,6 +608,8 @@ def shard_model(
             the forward pass. Setting this to True corresponds to the FULL_SHARD sharding strategy
             from FSDP1, while setting it to False corresponds to the SHARD_GRAD_OP sharding strategy.
 
+    Raises:
+        ValueError: If no layer modules were sharded. Please check if shard conditions is working as expected.
     """
     fsdp_kwargs = {"reshard_after_forward": reshard_after_forward}
     if cpu_offload:
@@ -615,9 +617,16 @@ def shard_model(
 
     # Shard the model with FSDP, iterating in reverse to start with
     # lowest-level modules first
+    num_layers_sharded = 0
     for n, m in reversed(list(model.named_modules())):
         if any([shard_condition(n, m) for shard_condition in shard_conditions]):
             fully_shard(m, **fsdp_kwargs)
+            num_layers_sharded += 1
+
+    if num_layers_sharded == 0:
+        raise ValueError(
+            "No layer modules were sharded. Please check if shard conditions is working as expected."
+        )
 
     # Finally shard the entire model to account for any stragglers
     fully_shard(model, **fsdp_kwargs)

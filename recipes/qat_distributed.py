@@ -233,9 +233,11 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=checkpoint_dict[training.OPT_KEY]
-            if self._resume_from_checkpoint
-            else None,
+            opt_state_dict=(
+                checkpoint_dict[training.OPT_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
         )
 
         # initialize loss
@@ -428,15 +430,18 @@ class QATRecipeDistributed(FTRecipeInterface):
         # Shard transformer decoder layers (or AC-wrapped versions)
         # Alternatively we could condition on the module type (TransformerDecoder or CheckpointWrapper)
         # But directly using the name is more concise
-        def _is_layer_fqn(s: str) -> bool:
+        def _is_layer_name(name: str, module: nn.Module) -> bool:
             """
             Return True for layers.i and False for all other module names
             Covers sharding for both AC-wrapped and non-AC-wrapped modules in one shot
             """
-            s_list = s.split(".")
-            return len(s_list) == 2 and s_list[0] == "layers" and str.isdigit(s_list[1])
+            name_list = name.split(".")
+            if len(name_list) < 2:
+                return False
+            else:
+                return name_list[-2] == "layers" and str.isdigit(name_list[-1])
 
-        fsdp_shard_conditions = [lambda n, m: _is_layer_fqn(n)]
+        fsdp_shard_conditions = [_is_layer_name]
 
         # If wrapping any layers separately, we can add another shard condition
         # A layer will be sharded if any of the fsdp_shard_conditions are met
@@ -525,14 +530,16 @@ class QATRecipeDistributed(FTRecipeInterface):
             sampler=sampler,
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
-            collate_fn=partial(
-                padded_collate_sft,
-                padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
-            )
-            if not packed
-            else partial(
-                padded_collate_packed,
+            collate_fn=(
+                partial(
+                    padded_collate_sft,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else partial(
+                    padded_collate_packed,
+                )
             ),
         )
 

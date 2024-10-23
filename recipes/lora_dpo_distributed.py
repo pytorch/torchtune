@@ -336,11 +336,10 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             Covers sharding for both AC-wrapped and non-AC-wrapped modules in one shot
             """
             name_list = name.split(".")
-            return (
-                len(name_list) == 2
-                and name_list[0] == "layers"
-                and str.isdigit(name_list[1])
-            )
+            if len(name_list) < 2:
+                return False
+            else:
+                return name_list[-2] == "layers" and str.isdigit(name_list[-1])
 
         training.shard_model(
             model=model,
