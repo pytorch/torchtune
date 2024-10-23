@@ -136,7 +136,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             )
             self._log_peak_memory_stats = False
 
-
         # training attributes
         self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
 
