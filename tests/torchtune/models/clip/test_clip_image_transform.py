@@ -37,17 +37,6 @@ class TestCLIPImageTransform:
                 "expected_tile_max": [1.0, 1.0],
                 "expected_tile_min": [0.0, 0.0],
                 "expected_aspect_ratio": [1, 2],
-                "pad_max_tiles": False,
-            },
-            {
-                "image_size": (100, 400, 3),
-                "expected_shape": torch.Size([4, 3, 224, 224]),
-                "resize_to_max_canvas": False,
-                "expected_tile_means": [0.2230, 0.1763, 0.0, 0.0],
-                "expected_tile_max": [1.0, 1.0, 0.0, 0.0],
-                "expected_tile_min": [0.0, 0.0, 0.0, 0.0],
-                "expected_aspect_ratio": [1, 2],
-                "pad_max_tiles": True,
             },
             {
                 "image_size": (1000, 300, 3),
@@ -57,7 +46,6 @@ class TestCLIPImageTransform:
                 "expected_tile_max": [0.9705, 0.9694, 0.9521, 0.9314],
                 "expected_tile_min": [0.0353, 0.0435, 0.0528, 0.0],
                 "expected_aspect_ratio": [4, 1],
-                "pad_max_tiles": False,
             },
             {
                 "image_size": (200, 200, 3),
@@ -67,7 +55,6 @@ class TestCLIPImageTransform:
                 "expected_tile_max": [0.9922, 0.9926, 0.9970, 0.9908],
                 "expected_tile_min": [0.0056, 0.0069, 0.0059, 0.0033],
                 "expected_aspect_ratio": [2, 2],
-                "pad_max_tiles": False,
                 "pad_tiles": 1,
             },
             {
@@ -78,17 +65,6 @@ class TestCLIPImageTransform:
                 "expected_tile_max": [1.0, 1.0, 1.0],
                 "expected_tile_min": [0.0, 0.0, 0.0],
                 "expected_aspect_ratio": [3, 1],
-                "pad_max_tiles": False,
-            },
-            {
-                "image_size": (600, 200, 3),
-                "expected_shape": torch.Size([4, 3, 224, 224]),
-                "resize_to_max_canvas": False,
-                "expected_tile_means": [0.4473, 0.4469, 0.3032, 0.0],
-                "expected_tile_max": [1.0, 1.0, 1.0, 0.0],
-                "expected_tile_min": [0.0, 0.0, 0.0, 0.0],
-                "expected_aspect_ratio": [3, 1],
-                "pad_max_tiles": True,
             },
         ],
     )
@@ -103,7 +79,6 @@ class TestCLIPImageTransform:
             resample="bilinear",
             dtype=torch.float32,
             resize_to_max_canvas=params["resize_to_max_canvas"],
-            pad_max_tiles=params["pad_max_tiles"],
         )
 
         image_transform_inference = CLIPImageTransformInference(
@@ -115,7 +90,6 @@ class TestCLIPImageTransform:
             resample="bilinear",
             resize_to_max_canvas=params["resize_to_max_canvas"],
             antialias=True,
-            pad_max_tiles=params["pad_max_tiles"],
         )
 
         # Generate a deterministic image using np.arange for reproducibility
@@ -169,13 +143,7 @@ class TestCLIPImageTransform:
         ), f"Expected aspect ratio {params['expected_aspect_ratio']} but got {tuple(output_ar.numpy())}"
 
         # number of tiles matches the product of the aspect ratio
-        if params["pad_max_tiles"]:
-            # max_num_tiles=4.
-            assert (
-                4 == output_image.shape[0]
-            ), f"Expected 4 tiles but got {output_image.shape[0]}"
-        else:
-            expected_num_tiles = output_ar[0] * output_ar[1]
-            assert (
-                expected_num_tiles == output_image.shape[0]
-            ), f"Expected {expected_num_tiles} tiles but got {output_image.shape[0]}"
+        expected_num_tiles = output_ar[0] * output_ar[1]
+        assert (
+            expected_num_tiles == output_image.shape[0]
+        ), f"Expected {expected_num_tiles} tiles but got {output_image.shape[0]}"

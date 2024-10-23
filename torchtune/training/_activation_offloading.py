@@ -146,8 +146,12 @@ class OffloadActivations(saved_tensors_hooks):
             num_bytes = get_num_bytes_tensor(activation)
             tensor_id = get_tensor_id()
 
-            # only offload hefty bois
-            if num_bytes >= self.min_tensor_size_bytes:
+            # only offload hefty bois if they're activations (our heuristic for that is to
+            # check if they're not params or buffers)!
+            if num_bytes >= self.min_tensor_size_bytes and (
+                not isinstance(activation, torch.nn.Parameter)
+                and not isinstance(activation, torch.nn.Buffer)
+            ):
                 if self.use_streams:
                     # First, sync back and dereference previously offloaded tensors
                     # as the offloading should be done sufficiently long ago.
@@ -281,8 +285,22 @@ class OffloadActivations(saved_tensors_hooks):
                 def hook(outputs, inputs):
                     # create events for the current node inputs/outputs if they were streamed in
                     if brought_back_from_cpu:
-                        event = self.s0.record_event()
-                        self.bwd_ev_stash[unpack_tensor_id] = event
+                        # if any of the outputs is a view of the tensor, meaning the tensor might be used later,
+                        # we cannot presume to delete it after only the current node is done! So we use our frenemy,
+                        # record_stream, to ensure the Tensor stays unmessed with until it's done getting used
+                        # in the compute stream (s0 here). Note that the con here is we introduce non-deterministic
+                        # memory usage, but this case should not happen often.
+                        unpacked_tensor = self.bwd_tensor_stash[unpack_tensor_id]
+                        if any(
+                            o.untyped_storage() is unpacked_tensor.untyped_storage()
+                            for o in outputs
+                            if o is not None
+                        ):
+                            unpacked_tensor.record_stream(self.s0)
+                            del self.bwd_tensor_stash[unpack_tensor_id]
+                        else:
+                            event = self.s0.record_event()
+                            self.bwd_ev_stash[unpack_tensor_id] = event
 
                     # if there are still things in the fwd_stash, get rid of them as we're in bwd now
                     for id in [k for k in self.fwd_stash.keys()]:
