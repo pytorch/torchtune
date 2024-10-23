@@ -458,6 +458,7 @@
         <span class="n">student_logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">teacher_logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">normalize</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
@@ -467,6 +468,7 @@
 <span class="sd">                (batch_size*num_tokens, vocab_size).</span>
 <span class="sd">            labels (torch.Tensor): Ground truth labels of shape</span>
 <span class="sd">                (batch_size, vocab_size).</span>
+<span class="sd">            normalize (bool): Whether to normalize the loss by the number of unmasked elements.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            torch.Tensor: KL divergence loss of shape (1,).</span>
@@ -478,6 +480,8 @@
         <span class="n">prod_probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span><span class="n">teacher_prob</span> <span class="o">*</span> <span class="n">student_logprob</span><span class="p">,</span> <span class="n">inf_mask</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">prod_probs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">labels</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span><span class="p">)</span><span class="o">.</span><span class="n">int</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">normalize</span><span class="p">:</span>
+            <span class="k">return</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="k">return</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div></div>
@@ -546,18 +550,22 @@
             <span class="n">student_logits_chunk</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">student_logits_chunk</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
             <span class="k">for</span> <span class="n">student_logits_chunk</span> <span class="ow">in</span> <span class="n">student_logits</span>
         <span class="p">]</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">labels</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span><span class="p">)</span><span class="o">.</span><span class="n">int</span><span class="p">()</span>
         <span class="c1"># chunk and reshape labels (bsz, num_tokens, vocab) -&gt; [(bsz*num_tokens/num_chunks, vocab)]</span>
         <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">target_chunk</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">target_chunk</span> <span class="ow">in</span> <span class="n">labels</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="p">]</span>
+
         <span class="n">total_fkl_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="k">for</span> <span class="n">student_chunk</span><span class="p">,</span> <span class="n">teacher_chunk</span><span class="p">,</span> <span class="n">label_chunk</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
             <span class="n">student_logits</span><span class="p">,</span> <span class="n">teacher_logits</span><span class="p">,</span> <span class="n">labels</span>
         <span class="p">):</span>
-            <span class="n">total_fkl_loss</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fkl_loss</span><span class="p">(</span><span class="n">student_chunk</span><span class="p">,</span> <span class="n">teacher_chunk</span><span class="p">,</span> <span class="n">label_chunk</span><span class="p">)</span>
+            <span class="n">total_fkl_loss</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fkl_loss</span><span class="p">(</span>
+                <span class="n">student_chunk</span><span class="p">,</span> <span class="n">teacher_chunk</span><span class="p">,</span> <span class="n">label_chunk</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">total_fkl_loss</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span></div></div>
+        <span class="k">return</span> <span class="n">total_fkl_loss</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div></div>
 </pre></div>
 
              </article>
