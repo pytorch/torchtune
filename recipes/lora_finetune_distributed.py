@@ -624,13 +624,15 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             sampler=sampler,
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
-            collate_fn=partial(
-                collate_fn,
-                padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
-            )
-            if not packed
-            else padded_collate_packed,
+            collate_fn=(
+                partial(
+                    collate_fn,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else padded_collate_packed
+            ),
         )
 
         if self._is_rank_zero:
@@ -773,7 +775,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     torch.cuda.memory._record_memory_history()
 
                 utils.batch_to_device(batch, self._device)
-                num_tokens += batch["tokens"].numel()
+                num_tokens += (batch["labels"] != self._loss_fn.ignore_index).sum()
 
                 # Shape [b, s], needed for the loss not the model
                 labels = batch.pop("labels")
@@ -792,17 +794,15 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     logits = logits.reshape(-1, logits.size(-1))
 
                 # Compute loss
-                loss = self._loss_fn(logits, labels)
+                running_loss += self._loss_fn(logits, labels)
 
                 # free logits otherwise it peaks backward memory
                 del logits
 
-                loss = loss / self._gradient_accumulation_steps
-                running_loss += loss
-                loss.backward()
-
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
+                    loss = running_loss / num_tokens
+                    loss.backward()
                     if self._clip_grad_norm is not None:
                         grad_norm = torch.nn.utils.clip_grad_norm_(
                             self._model.parameters(),
@@ -815,7 +815,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
-                    loss_to_log = running_loss.item()
+                    loss_to_log = loss.item()
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
