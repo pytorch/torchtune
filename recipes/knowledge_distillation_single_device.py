@@ -526,7 +526,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             sampler=sampler,
             batch_size=batch_size,
             # dropping last avoids shape issues with compile + flex attention
-            drop_last=cfg_dataset.get("drop_last", True),
+            drop_last=True,
             collate_fn=(
                 partial(
                     padded_collate_sft,

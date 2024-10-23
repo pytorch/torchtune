@@ -122,7 +122,10 @@ class MistralTokenizer(ModelTokenizer, Transform):
         return self._spm_model.decode(token_ids)
 
     def tokenize_messages(
-        self, messages: List[Message]
+        self,
+        messages: List[Message],
+        *,
+        add_eos: bool = True,
     ) -> Tuple[List[int], List[bool]]:
         r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
@@ -154,6 +157,7 @@ class MistralTokenizer(ModelTokenizer, Transform):
         Args:
             messages (List[Message]): A list of messages, each containing role, content,
                 and masked attributes.
+            add_eos (bool): Whether to append EOS after assistant message, default to True
 
         Returns:
             Tuple[List[int], List[bool]]: The tokenized messages
@@ -167,7 +171,7 @@ class MistralTokenizer(ModelTokenizer, Transform):
             tokenizer=self,
             messages=templated_messages,
             bos_id=self.bos_id,
-            eos_id=self.eos_id,
+            eos_id=self.eos_id if add_eos else None,
         )
 
     def __call__(

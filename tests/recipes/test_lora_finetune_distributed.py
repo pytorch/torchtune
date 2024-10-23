@@ -33,7 +33,6 @@ class TestLoRAFinetuneDistributedRecipe:
     def _get_test_config_overrides(self):
         return [
             "batch_size=4",
-            "enable_activation_checkpointing=False",
             "dataset.train_on_input=False",
             "seed=9",
             "epochs=2",
@@ -81,6 +80,7 @@ class TestLoRAFinetuneDistributedRecipe:
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
             reshard_after_forward={reshard_after_forward} \
+            enable_activation_checkpointing=False \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
@@ -147,6 +147,7 @@ class TestLoRAFinetuneDistributedRecipe:
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             save_adapter_weights_only={save_adapter_weights_only} \
+            enable_activation_checkpointing=True \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
@@ -171,6 +172,7 @@ class TestLoRAFinetuneDistributedRecipe:
             tokenizer.prompt_template=null \
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
+            enable_activation_checkpointing=True \
         """.split()
 
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
@@ -213,6 +215,7 @@ class TestLoRAFinetuneDistributedRecipe:
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
+            enable_activation_checkpointing=True \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]

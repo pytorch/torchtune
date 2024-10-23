@@ -524,7 +524,7 @@ class QATRecipeDistributed(FTRecipeInterface):
             batch_size=batch_size,
             sampler=sampler,
             # dropping last avoids shape issues with compile + flex attention
-            drop_last=cfg_dataset.get("drop_last", True),
+            drop_last=True,
             collate_fn=partial(
                 padded_collate_sft,
                 padding_idx=self._tokenizer.pad_id,

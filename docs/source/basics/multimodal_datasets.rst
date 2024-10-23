@@ -45,7 +45,7 @@ in the text, ``"<image>"`` for where to place the image tokens. This will get re
     from torchtune.models.llama3_2_vision import llama3_2_vision_transform
     from torchtune.datasets.multimodal import multimodal_chat_dataset
 
-    transform = Llama3VisionTransform(
+    model_transform = Llama3VisionTransform(
         path="/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model",
         prompt_template="torchtune.data.QuestionAnswerTemplate",
         max_seq_len=8192,
@@ -64,7 +64,7 @@ in the text, ``"<image>"`` for where to place the image tokens. This will get re
         split="train",
     )
     tokenized_dict = ds[0]
-    print(transform.decode(tokenized_dict["tokens"], skip_special_tokens=False))
+    print(model_transform.decode(tokenized_dict["tokens"], skip_special_tokens=False))
     # '<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\nQuestion:<|image|>What time is it on the clock?Answer:<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nIt is 10:00AM.<|eot_id|>'
     print(tokenized_dict["encoder_input"]["images"][0].shape)  # (num_tiles, num_channels, tile_height, tile_width)
     # torch.Size([4, 3, 224, 224])
@@ -120,7 +120,7 @@ For most datasets, you will also need to specify the ``split`` and/or the subset
     from torchtune.models.llama3_2_vision import llama3_2_vision_transform
     from torchtune.datasets.multimodal import multimodal_chat_dataset
 
-    transform = llama3_2_vision_transform(
+    model_transform = llama3_2_vision_transform(
         path="/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model",
         max_seq_len=8192,
         image_size=560,

@@ -20,7 +20,6 @@ from torchtune.modules import (
     Fp32LayerNorm,
     FrozenNF4Linear,
     MultiHeadAttention,
-    TanhGate,
     TransformerSelfAttentionLayer,
 )
 
@@ -504,20 +503,22 @@ def lora_clip_mlp(
     """
     adapter_cls = DoRALinear if use_dora else LoRALinear
     gate_proj = adapter_cls(
-        in_dim=dim,
+        in_dim=in_dim,
         out_dim=hidden_dim,
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
+        use_bias=True,
     )
     down_proj = adapter_cls(
         in_dim=hidden_dim,
-        out_dim=dim,
+        out_dim=out_dim,
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
+        use_bias=True,
     )
     return FeedForward(
         gate_proj=gate_proj, down_proj=down_proj, up_proj=None, activation=activation
