@@ -24,15 +24,20 @@ class FrozenNF4Linear(nn.Linear):
         out_dim (int): output dimension
         device (Optional[torch.device]): device to use for the underlying weight. If ``None``, uses the default
             device given by `torch.get_default_device()`.
+        bias (bool): whether to include bias in the original linear layer. Default: False
         **kwargs: any additional arguments to pass to the underlying Linear layer.
 
     """
 
     def __init__(
-        self, in_dim: int, out_dim: int, device: Optional[torch.device] = None, **kwargs
+        self,
+        in_dim: int,
+        out_dim: int,
+        device: Optional[torch.device] = None,
+        bias: bool = False,
+        **kwargs,
     ):
-
-        super().__init__(in_dim, out_dim, device=device, **kwargs)
+        super().__init__(in_dim, out_dim, device=device, bias=bias, **kwargs)
         self.weight.requires_grad_(False)
         if self.bias is not None:
             self.bias.requires_grad_(False)
