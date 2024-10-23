@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, List
 from warnings import warn
 
 import torch
@@ -32,6 +32,8 @@ from torchtune.recipe_interfaces import FTRecipeInterface
 
 from torchtune.rlhf.loss import SimPOLoss
 from tqdm import tqdm
+
+from torchtune.torchtune.rlhf.loss import KTOLoss
 
 log = utils.get_logger("DEBUG")
 
@@ -334,11 +336,22 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         log.info("Learning rate scheduler is initialized.")
         return lr_scheduler
 
+    def _unpair_row(self, examples: List[Dict[str, List[Dict[str, str]]]]) -> List[Dict[str, List[Dict[str, str]]]]:
+        batch_size = len(examples["chosen"])
+        new_rows = {
+            "completion": examples["chosen"] + examples["rejected"],
+            "label": [True] * batch_size + [False] * batch_size,
+        }
+        if "prompt" in examples:
+            new_rows["prompt"] = examples["prompt"] + examples["prompt"]
+        return new_rows
+
     def _setup_data(
         self,
         cfg_dataset: DictConfig,
         shuffle: bool,
         batch_size: int,
+        num_proc: Optional[int] = None
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here. Currently this recipe only supports
@@ -353,6 +366,15 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             ds = ConcatDataset(datasets=datasets)
         else:
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+
+        # We need extra processing for KTO.
+        if isinstance(self._loss_fn, KTOLoss):
+            column_names = ds.column_names
+            # We are assuming that we get dataset in correct formatting or pairs dataset like for any contrastive procedure.
+            # See reference implementation in: https://github.com/huggingface/trl/blob/main/trl/data_utils.py
+            if "chosen" in column_names and "rejected" in column_names:
+                ds = ds.map(self._unpair_row, batched=True, remove_columns=["chosen", "rejected"], num_proc=num_proc)
+
 
         sampler = DistributedSampler(
             ds,
@@ -439,6 +461,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         Returns:
             Tuple of chosen log probs, rejected log probs, chosen logits, rejected logits.
         """
+
+
         concatenated_input_ids, concatenated_labels = batch
         concatenated_input_ids = concatenated_input_ids.to(self._device)
         concatenated_labels = concatenated_labels.to(self._device)
