@@ -437,21 +437,25 @@
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
-
-<span class="kn">from</span> <span class="nn">torchtune.modules.vision_transformer</span> <span class="kn">import</span> <span class="n">VisionTransformer</span><span class="p">,</span> <span class="n">CLSProjection</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.clip._position_embeddings</span> <span class="kn">import</span> <span class="n">TokenPositionalEmbedding</span><span class="p">,</span> <span class="n">TiledTokenPositionalEmbedding</span><span class="p">,</span> <span class="n">TilePositionalEmbedding</span>
+<span class="kn">from</span> <span class="nn">torchtune.models.clip._position_embeddings</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">TiledTokenPositionalEmbedding</span><span class="p">,</span>
+    <span class="n">TilePositionalEmbedding</span><span class="p">,</span>
+    <span class="n">TokenPositionalEmbedding</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">TransformerSelfAttentionLayer</span><span class="p">,</span>
+    <span class="n">FeedForward</span><span class="p">,</span>
+    <span class="n">Fp32LayerNorm</span><span class="p">,</span>
     <span class="n">MultiHeadAttention</span><span class="p">,</span>
     <span class="n">TanhGate</span><span class="p">,</span>
-    <span class="n">FeedForward</span><span class="p">,</span>
-    <span class="n">Fp32LayerNorm</span>
+    <span class="n">TransformerSelfAttentionLayer</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.modules.common_utils</span> <span class="kn">import</span> <span class="n">reparametrize_as_dtype_state_dict_post_hook</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">DoRALinear</span><span class="p">,</span> <span class="n">LORA_ATTN_MODULES</span><span class="p">,</span> <span class="n">LoRALinear</span>
+
+<span class="kn">from</span> <span class="nn">torchtune.modules.vision_transformer</span> <span class="kn">import</span> <span class="n">CLSProjection</span><span class="p">,</span> <span class="n">VisionTransformer</span>
 
 
 <div class="viewcode-block" id="clip_vision_encoder"><a class="viewcode-back" href="../../../../generated/torchtune.models.clip.clip_vision_encoder.html#torchtune.models.clip.clip_vision_encoder">[docs]</a><span class="k">def</span> <span class="nf">clip_vision_encoder</span><span class="p">(</span>
@@ -471,7 +475,7 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VisionTransformer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builds the vision encoder associated with the clip model. This includes:</span>
-<span class="sd">    </span>
+
 <span class="sd">    - TransformerEncoderLayer</span>
 <span class="sd">    - positional embeddings</span>
 <span class="sd">    - CLS projection (optional)</span>
@@ -510,21 +514,25 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">embed_dim</span> <span class="o">%</span> <span class="n">num_heads</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;embed_dim must be divisible by num_heads&quot;</span>
 
-    <span class="n">cls_projection</span> <span class="o">=</span> <span class="n">CLSProjection</span><span class="p">(</span><span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">cls_output_dim</span><span class="o">=</span><span class="n">cls_output_dim</span><span class="p">)</span> <span class="k">if</span> <span class="n">output_cls_projection</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="n">cls_projection</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">CLSProjection</span><span class="p">(</span><span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">cls_output_dim</span><span class="o">=</span><span class="n">cls_output_dim</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">output_cls_projection</span>
+        <span class="k">else</span> <span class="kc">None</span>
+    <span class="p">)</span>
 
     <span class="c1"># transformer layer</span>
     <span class="n">self_attn</span> <span class="o">=</span> <span class="n">MultiHeadAttention</span><span class="p">(</span>
-            <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
-            <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
-            <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
-            <span class="n">head_dim</span><span class="o">=</span><span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads</span><span class="p">,</span>
-            <span class="n">q_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">),</span>
-            <span class="n">k_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">),</span>
-            <span class="n">v_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">),</span>
-            <span class="n">output_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">),</span>
-            <span class="n">pos_embeddings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">attn_dropout</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-            <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+        <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+        <span class="n">head_dim</span><span class="o">=</span><span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads</span><span class="p">,</span>
+        <span class="n">q_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">),</span>
+        <span class="n">k_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">),</span>
+        <span class="n">v_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">),</span>
+        <span class="n">output_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">),</span>
+        <span class="n">pos_embeddings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">attn_dropout</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">mlp</span> <span class="o">=</span> <span class="n">clip_mlp</span><span class="p">(</span>
         <span class="n">in_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
@@ -535,8 +543,8 @@
     <span class="n">transformer_layer</span> <span class="o">=</span> <span class="n">TransformerSelfAttentionLayer</span><span class="p">(</span>
         <span class="n">attn</span><span class="o">=</span><span class="n">self_attn</span><span class="p">,</span>
         <span class="n">mlp</span><span class="o">=</span><span class="n">mlp</span><span class="p">,</span>
-        <span class="n">sa_norm</span><span class="o">=</span> <span class="n">Fp32LayerNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">),</span>
-        <span class="n">mlp_norm</span><span class="o">=</span> <span class="n">Fp32LayerNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">),</span>
+        <span class="n">sa_norm</span><span class="o">=</span><span class="n">Fp32LayerNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">),</span>
+        <span class="n">mlp_norm</span><span class="o">=</span><span class="n">Fp32LayerNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">),</span>
         <span class="n">sa_scale</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">mlp_scale</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span>
@@ -546,17 +554,21 @@
         <span class="n">pre_tile_pos_embed</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">post_tile_pos_embed</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">token_pos_embedding</span> <span class="o">=</span> <span class="n">TokenPositionalEmbedding</span><span class="p">(</span>
-            <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> 
-            <span class="n">patch_size</span><span class="o">=</span><span class="n">patch_size</span><span class="p">,</span> 
-            <span class="n">tile_size</span><span class="o">=</span><span class="n">tile_size</span><span class="p">)</span>
+            <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">patch_size</span><span class="o">=</span><span class="n">patch_size</span><span class="p">,</span> <span class="n">tile_size</span><span class="o">=</span><span class="n">tile_size</span>
+        <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">pre_tile_pos_embed</span> <span class="o">=</span> <span class="n">TilePositionalEmbedding</span><span class="p">(</span><span class="n">max_num_tiles</span><span class="o">=</span><span class="n">max_num_tiles</span><span class="p">,</span> <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">)</span>
-        <span class="n">post_tile_pos_embed</span> <span class="o">=</span> <span class="n">TilePositionalEmbedding</span><span class="p">(</span><span class="n">max_num_tiles</span><span class="o">=</span><span class="n">max_num_tiles</span><span class="p">,</span> <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">)</span>
+        <span class="n">pre_tile_pos_embed</span> <span class="o">=</span> <span class="n">TilePositionalEmbedding</span><span class="p">(</span>
+            <span class="n">max_num_tiles</span><span class="o">=</span><span class="n">max_num_tiles</span><span class="p">,</span> <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span>
+        <span class="p">)</span>
+        <span class="n">post_tile_pos_embed</span> <span class="o">=</span> <span class="n">TilePositionalEmbedding</span><span class="p">(</span>
+            <span class="n">max_num_tiles</span><span class="o">=</span><span class="n">max_num_tiles</span><span class="p">,</span> <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span>
+        <span class="p">)</span>
         <span class="n">token_pos_embedding</span> <span class="o">=</span> <span class="n">TiledTokenPositionalEmbedding</span><span class="p">(</span>
-            <span class="n">max_num_tiles</span><span class="o">=</span><span class="n">max_num_tiles</span><span class="p">,</span> 
-            <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> 
-            <span class="n">patch_size</span><span class="o">=</span><span class="n">patch_size</span><span class="p">,</span> 
-            <span class="n">tile_size</span><span class="o">=</span><span class="n">tile_size</span><span class="p">)</span>
+            <span class="n">max_num_tiles</span><span class="o">=</span><span class="n">max_num_tiles</span><span class="p">,</span>
+            <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+            <span class="n">patch_size</span><span class="o">=</span><span class="n">patch_size</span><span class="p">,</span>
+            <span class="n">tile_size</span><span class="o">=</span><span class="n">tile_size</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">VisionTransformer</span><span class="p">(</span>
         <span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span>
@@ -573,13 +585,29 @@
     <span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">clip_mlp</span><span class="p">(</span><span class="n">in_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">activation</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FeedForward</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">clip_mlp</span><span class="p">(</span>
+    <span class="n">in_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">out_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">hidden_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">activation</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FeedForward</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Build the MLP layer associated with the clip model.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">gate_proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">quantize_base</span> <span class="k">else</span> <span class="n">FrozenNF4Linear</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">)</span>
-    <span class="n">down_proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">quantize_base</span> <span class="k">else</span> <span class="n">FrozenNF4Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">FeedForward</span><span class="p">(</span><span class="n">gate_proj</span><span class="o">=</span><span class="n">gate_proj</span><span class="p">,</span> <span class="n">down_proj</span><span class="o">=</span><span class="n">down_proj</span><span class="p">,</span> <span class="n">up_proj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">)</span>
+    <span class="n">gate_proj</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">quantize_base</span>
+        <span class="k">else</span> <span class="n">FrozenNF4Linear</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">down_proj</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">quantize_base</span>
+        <span class="k">else</span> <span class="n">FrozenNF4Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">FeedForward</span><span class="p">(</span>
+        <span class="n">gate_proj</span><span class="o">=</span><span class="n">gate_proj</span><span class="p">,</span> <span class="n">down_proj</span><span class="o">=</span><span class="n">down_proj</span><span class="p">,</span> <span class="n">up_proj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="n">activation</span>
+    <span class="p">)</span>
 
 
 <span class="c1"># ------------------ LoRA CLIP ------------------</span>
@@ -650,7 +678,7 @@
 <span class="sd">        quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base</span>
 <span class="sd">            weights within linear layers LoRA is applied to. The final output linear projection is not</span>
 <span class="sd">            supported for quantization currently.</span>
-<span class="sd">        </span>
+
 
 <span class="sd">    Returns:</span>
 <span class="sd">        VisionTransformer: Instantiation of VisionTransformer model.</span>
@@ -658,34 +686,38 @@
     <span class="k">assert</span> <span class="n">embed_dim</span> <span class="o">%</span> <span class="n">num_heads</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;embed_dim must be divisible by num_heads&quot;</span>
 
     <span class="c1"># TODO: add support for quantizing and LoRA for the final output projection</span>
-    <span class="n">cls_projection</span> <span class="o">=</span> <span class="n">CLSProjection</span><span class="p">(</span><span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">cls_output_dim</span><span class="o">=</span><span class="n">cls_output_dim</span><span class="p">)</span> <span class="k">if</span> <span class="n">output_cls_projection</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="n">cls_projection</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">CLSProjection</span><span class="p">(</span><span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">cls_output_dim</span><span class="o">=</span><span class="n">cls_output_dim</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">output_cls_projection</span>
+        <span class="k">else</span> <span class="kc">None</span>
+    <span class="p">)</span>
 
     <span class="c1"># transformer layer</span>
     <span class="n">self_attn</span> <span class="o">=</span> <span class="n">lora_clip_attention</span><span class="p">(</span>
-            <span class="n">lora_modules</span><span class="o">=</span><span class="n">lora_modules</span><span class="p">,</span>
-            <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
-            <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
-            <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
-            <span class="n">head_dim</span><span class="o">=</span><span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads</span><span class="p">,</span>
-            <span class="n">attn_dropout</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-            <span class="n">lora_rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
-            <span class="n">lora_alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
-            <span class="n">lora_dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
-            <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
-            <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
+        <span class="n">lora_modules</span><span class="o">=</span><span class="n">lora_modules</span><span class="p">,</span>
+        <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+        <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+        <span class="n">head_dim</span><span class="o">=</span><span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads</span><span class="p">,</span>
+        <span class="n">attn_dropout</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">lora_rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
+        <span class="n">lora_alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
+        <span class="n">lora_dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
+        <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
+        <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">apply_lora_to_mlp</span><span class="p">:</span>
         <span class="n">mlp</span> <span class="o">=</span> <span class="n">lora_clip_mlp</span><span class="p">(</span>
-                <span class="n">in_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
-                <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">4</span> <span class="o">*</span> <span class="n">embed_dim</span><span class="p">,</span>
-                <span class="n">out_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
-                <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">(),</span>
-                <span class="n">lora_rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
-                <span class="n">lora_alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
-                <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
-                <span class="n">lora_dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
-                <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="n">in_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+            <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">4</span> <span class="o">*</span> <span class="n">embed_dim</span><span class="p">,</span>
+            <span class="n">out_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+            <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">(),</span>
+            <span class="n">lora_rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
+            <span class="n">lora_alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
+            <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
+            <span class="n">lora_dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
+            <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
+        <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">mlp</span> <span class="o">=</span> <span class="n">clip_mlp</span><span class="p">(</span>
             <span class="n">in_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
@@ -697,8 +729,8 @@
     <span class="n">transformer_layer</span> <span class="o">=</span> <span class="n">TransformerSelfAttentionLayer</span><span class="p">(</span>
         <span class="n">attn</span><span class="o">=</span><span class="n">self_attn</span><span class="p">,</span>
         <span class="n">mlp</span><span class="o">=</span><span class="n">mlp</span><span class="p">,</span>
-        <span class="n">sa_norm</span><span class="o">=</span> <span class="n">Fp32LayerNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">),</span>
-        <span class="n">mlp_norm</span><span class="o">=</span> <span class="n">Fp32LayerNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">),</span>
+        <span class="n">sa_norm</span><span class="o">=</span><span class="n">Fp32LayerNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">),</span>
+        <span class="n">mlp_norm</span><span class="o">=</span><span class="n">Fp32LayerNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">),</span>
         <span class="n">sa_scale</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">mlp_scale</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span>
@@ -708,17 +740,21 @@
         <span class="n">pre_tile_pos_embed</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">post_tile_pos_embed</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">token_pos_embedding</span> <span class="o">=</span> <span class="n">TokenPositionalEmbedding</span><span class="p">(</span>
-            <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> 
-            <span class="n">patch_size</span><span class="o">=</span><span class="n">patch_size</span><span class="p">,</span> 
-            <span class="n">tile_size</span><span class="o">=</span><span class="n">tile_size</span><span class="p">)</span>
+            <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">patch_size</span><span class="o">=</span><span class="n">patch_size</span><span class="p">,</span> <span class="n">tile_size</span><span class="o">=</span><span class="n">tile_size</span>
+        <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">pre_tile_pos_embed</span> <span class="o">=</span> <span class="n">TilePositionalEmbedding</span><span class="p">(</span><span class="n">max_num_tiles</span><span class="o">=</span><span class="n">max_num_tiles</span><span class="p">,</span> <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">)</span>
-        <span class="n">post_tile_pos_embed</span> <span class="o">=</span> <span class="n">TilePositionalEmbedding</span><span class="p">(</span><span class="n">max_num_tiles</span><span class="o">=</span><span class="n">max_num_tiles</span><span class="p">,</span> <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">)</span>
+        <span class="n">pre_tile_pos_embed</span> <span class="o">=</span> <span class="n">TilePositionalEmbedding</span><span class="p">(</span>
+            <span class="n">max_num_tiles</span><span class="o">=</span><span class="n">max_num_tiles</span><span class="p">,</span> <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span>
+        <span class="p">)</span>
+        <span class="n">post_tile_pos_embed</span> <span class="o">=</span> <span class="n">TilePositionalEmbedding</span><span class="p">(</span>
+            <span class="n">max_num_tiles</span><span class="o">=</span><span class="n">max_num_tiles</span><span class="p">,</span> <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span>
+        <span class="p">)</span>
         <span class="n">token_pos_embedding</span> <span class="o">=</span> <span class="n">TiledTokenPositionalEmbedding</span><span class="p">(</span>
-            <span class="n">max_num_tiles</span><span class="o">=</span><span class="n">max_num_tiles</span><span class="p">,</span> 
-            <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> 
-            <span class="n">patch_size</span><span class="o">=</span><span class="n">patch_size</span><span class="p">,</span> 
-            <span class="n">tile_size</span><span class="o">=</span><span class="n">tile_size</span><span class="p">)</span>
+            <span class="n">max_num_tiles</span><span class="o">=</span><span class="n">max_num_tiles</span><span class="p">,</span>
+            <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+            <span class="n">patch_size</span><span class="o">=</span><span class="n">patch_size</span><span class="p">,</span>
+            <span class="n">tile_size</span><span class="o">=</span><span class="n">tile_size</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="n">model</span> <span class="o">=</span> <span class="n">VisionTransformer</span><span class="p">(</span>
         <span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span>
@@ -895,22 +931,26 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">adapter_cls</span> <span class="o">=</span> <span class="n">DoRALinear</span> <span class="k">if</span> <span class="n">use_dora</span> <span class="k">else</span> <span class="n">LoRALinear</span>
     <span class="n">gate_proj</span> <span class="o">=</span> <span class="n">adapter_cls</span><span class="p">(</span>
-        <span class="n">in_dim</span><span class="o">=</span><span class="n">dim</span><span class="p">,</span>
+        <span class="n">in_dim</span><span class="o">=</span><span class="n">in_dim</span><span class="p">,</span>
         <span class="n">out_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
         <span class="n">rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
         <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
         <span class="n">dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
         <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
+        <span class="n">use_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">down_proj</span> <span class="o">=</span> <span class="n">adapter_cls</span><span class="p">(</span>
         <span class="n">in_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
-        <span class="n">out_dim</span><span class="o">=</span><span class="n">dim</span><span class="p">,</span>
+        <span class="n">out_dim</span><span class="o">=</span><span class="n">out_dim</span><span class="p">,</span>
         <span class="n">rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
         <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
         <span class="n">dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
         <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
+        <span class="n">use_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">return</span> <span class="n">FeedForward</span><span class="p">(</span><span class="n">gate_proj</span><span class="o">=</span><span class="n">gate_proj</span><span class="p">,</span> <span class="n">down_proj</span><span class="o">=</span><span class="n">down_proj</span><span class="p">,</span> <span class="n">up_proj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">FeedForward</span><span class="p">(</span>
+        <span class="n">gate_proj</span><span class="o">=</span><span class="n">gate_proj</span><span class="p">,</span> <span class="n">down_proj</span><span class="o">=</span><span class="n">down_proj</span><span class="p">,</span> <span class="n">up_proj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="n">activation</span>
+    <span class="p">)</span>
 </pre></div>
 
              </article>
