@@ -30,23 +30,24 @@ class TestQwen2Tokenizer:
             Message(
                 role="user",
                 content="Below is an instruction that describes a task. Write a response "
-                        "that appropriately completes the request.\n\n### Instruction:\nGenerate "
-                        "a realistic dating profile bio.\n\n### Response:\n",
+                "that appropriately completes the request.\n\n### Instruction:\nGenerate "
+                "a realistic dating profile bio.\n\n### Response:\n",
                 masked=True,
             ),
             Message(
                 role="assistant",
                 content="I'm an outgoing and friendly person who loves spending time with "
-                        "friends and family. I'm also a big-time foodie and love trying out new "
-                        "restaurants and different cuisines. I'm a big fan of the arts and enjoy "
-                        "going to museums and galleries. I'm looking for someone who shares my "
-                        "interest in exploring new places, as well as someone who appreciates a "
-                        "good conversation over coffee.",
+                "friends and family. I'm also a big-time foodie and love trying out new "
+                "restaurants and different cuisines. I'm a big fan of the arts and enjoy "
+                "going to museums and galleries. I'm looking for someone who shares my "
+                "interest in exploring new places, as well as someone who appreciates a "
+                "good conversation over coffee.",
             ),
         ]
 
     @pytest.fixture
     def expected_tokens(self):
+        # fmt: off
         return [33, 214, 174, 156, 194, 130, 197, 184, 446, 789, 113, 98, 1914, 13, 346, 788, 98, 706, 102, 182, 184,
                 1916, 176, 762, 83, 113, 103, 874, 269, 13, 94, 94, 2, 2, 2, 483, 197, 25, 94, 885, 98, 1226, 1960, 348,
                 114, 1123, 399, 1583, 78, 13, 94, 94, 2, 2, 2, 360, 1733, 102, 182, 25, 94, 40, 1791, 194, 453, 70, 78,
@@ -55,12 +56,13 @@ class TestQwen2Tokenizer:
                 122, 893, 13, 223, 1791, 98, 127, 181, 123, 124, 131, 103, 744, 82, 120, 1506, 416, 114, 128, 1429, 182,
                 253, 82, 120, 163, 330, 105, 262, 13, 223, 1791, 155, 1551, 171, 1951, 628, 296, 64, 237, 886, 1390,
                 130, 883, 1678, 447, 306, 279, 113, 11, 215, 785, 215, 1951, 628, 378, 101, 66, 72, 593, 98, 984, 208,
-                1580, 167, 510, 737, 318, 1278, 13, 2000]  # noqa # fmt: skip
+                1580, 167, 510, 737, 318, 1278, 13, 2000]  # noqa
+        # fmt: on
 
     def test_tokenize_messages_chat_template(self, messages):
         tokenizer = self.tokenizer(template=True)
         tokens, mask = tokenizer.tokenize_messages(messages)
-
+        # fmt: off
         expected_tokens = [2001, 273, 105, 94, 33, 214, 174, 156, 194, 130, 197, 184, 446, 789, 113, 98, 1914, 13, 346,
                            788, 98, 706, 102, 182, 184, 1916, 176, 762, 83, 113, 103, 874, 269, 13, 94, 94, 2, 2, 2,
                            483, 197, 25, 94, 885, 98, 1226, 1960, 348, 114, 1123, 399, 1583, 78, 13, 94, 94, 2, 2, 2,
@@ -71,7 +73,8 @@ class TestQwen2Tokenizer:
                            1506, 416, 114, 128, 1429, 182, 253, 82, 120, 163, 330, 105, 262, 13, 223, 1791, 155, 1551,
                            171, 1951, 628, 296, 64, 237, 886, 1390, 130, 883, 1678, 447, 306, 279, 113, 11, 215, 785,
                            215, 1951, 628, 378, 101, 66, 72, 593, 98, 984, 208, 1580, 167, 510, 737, 318, 1278, 13,
-                           2002, 94, 2000]  # noqa # fmt: skip
+                           2002, 94, 2000]  # noqa
+        # fmt: on
 
         expected_mask = [True] * 67 + [False] * 123
         assert expected_tokens == tokens
