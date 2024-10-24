@@ -45,7 +45,9 @@ resume_from_checkpoint: False
 
 # Dataset
 dataset:
+  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.alpaca_dataset
+
 seed: null
 shuffle: True
 
@@ -75,4 +77,4 @@ metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: /tmp/CodeLlama-7b-hf/logs
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True
