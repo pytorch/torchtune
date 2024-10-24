@@ -15,11 +15,6 @@
 #
 # This config is only tested on an 8xA100 machine.
 #
-# !!!!!!!!!!!!!
-# !!!!!!!!!!!!!
-# ATTENTION: It will only work with pytorch>=2.5 (nightlies). For other pytorch versions, it will OOM, even on 8xA100.
-# !!!!!!!!!!!!!
-# !!!!!!!!!!!!!
 
 # Tokenizer
 tokenizer:
