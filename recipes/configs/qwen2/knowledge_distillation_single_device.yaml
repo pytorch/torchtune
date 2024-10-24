@@ -7,7 +7,6 @@
 #   tune download Qwen/Qwen2-1.5B-Instruct --output-dir /tmp/Qwen2-1.5B-Instruct --ignore-patterns None
 #
 # You get better results using KD if the teacher model has already been fine-tuned on the target dataset:
-  packed: False # Set to true for great speed ups
 #   tune run lora_finetune_single_device --config qwen2/1.5B_lora_single_device
 #
 # To launch on a single device, run the following command from root:

@@ -99,7 +99,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             log.info(
                 "log_peak_memory_stats was se to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
             )
-            self._log_peak_memory_stats
+            self._log_peak_memory_stats = False
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
