@@ -583,7 +583,7 @@ def _memory_efficient_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
     return llama3_wrap
 
 
-def shard_condition_is_layer_or_match(
+def get_shard_conditions(
     name: str,
     module: nn.Module,
     names_to_match: Optional[List[str]] = None,

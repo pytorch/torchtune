@@ -449,7 +449,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # For FSDP sharding
         fsdp_shard_conditions = [
             partial(
-                training.shard_condition_is_layer_or_match,
+                training.get_shard_conditions,
                 names_to_match=custom_sharded_layers,
             )
         ]
