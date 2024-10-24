@@ -674,7 +674,7 @@ def shard_model(
 
     if num_layers_sharded == 0:
         raise ValueError(
-            "No layer modules were sharded. Please check if shard conditions is working as expected."
+            "No layer modules were sharded. Please check if shard conditions are working as expected."
         )
 
     # Finally shard the entire model to account for any stragglers
