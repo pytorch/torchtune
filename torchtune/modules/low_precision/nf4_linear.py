@@ -24,7 +24,7 @@ class FrozenNF4Linear(nn.Linear):
         out_dim (int): output dimension
         device (Optional[torch.device]): device to use for the underlying weight. If ``None``, uses the default
             device given by `torch.get_default_device()`.
-        bias (bool): whether to include bias in the original linear layer. Default: False
+        bias (bool): whether to include bias in the linear layer. Default: False
         **kwargs: any additional arguments to pass to the underlying Linear layer.
 
     """
@@ -41,11 +41,11 @@ class FrozenNF4Linear(nn.Linear):
         self.weight.requires_grad_(False)
         if self.bias is not None:
             self.bias.requires_grad_(False)
-        self.nf4_weight = to_nf4(self.weight)
+        nf4_weight = to_nf4(self.weight)
         # re-register self.weight as the nf4 weight, so that the nf4 weight
         # shows up as expected in .parameters, state_dict, etc.
         torch.utils.swap_tensors(
-            self.weight, torch.nn.Parameter(self.nf4_weight, requires_grad=False)
+            self.weight, torch.nn.Parameter(nf4_weight, requires_grad=False)
         )
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:

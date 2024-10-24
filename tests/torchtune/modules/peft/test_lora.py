@@ -72,7 +72,7 @@ class TestLoRALinear:
                     use_bias=use_bias,
                     quantize_base=True,
                 )
-                # fixed_init_model(qlora_linear, dtype=torch.bfloat16)
+                fixed_init_model(qlora_linear, dtype=torch.bfloat16)
             return qlora_linear
 
         return create_qlora_linear
@@ -126,6 +126,7 @@ class TestLoRALinear:
                 use_bias=use_bias,
                 quantize_base=False,
             )
+        fixed_init_model(lora_linear, dtype=torch.bfloat16)
 
         # set weight of lora_linear to unquantized weight of qlora_linear and check
         # parity.
