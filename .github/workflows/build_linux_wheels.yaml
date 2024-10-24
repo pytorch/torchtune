@@ -31,9 +31,11 @@ jobs:
   build:
     needs: generate-matrix
     name: ${{ matrix.repository }}
-    if: ${{ matrix.python_version }} != "3.13"
     uses: pytorch/test-infra/.github/workflows/build_wheels_linux.yml@main
     strategy:
+      matrix: ${{ matrix }}
+      exclude:
+        - python_version: "3.13"
       fail-fast: false
     with:
       repository: pytorch/torchtune
