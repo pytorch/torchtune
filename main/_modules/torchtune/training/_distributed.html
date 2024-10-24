@@ -1011,6 +1011,55 @@
     <span class="k">return</span> <span class="n">llama3_wrap</span>
 
 
+<span class="k">def</span> <span class="nf">get_shard_conditions</span><span class="p">(</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">names_to_match</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returs True for layers named {}.layers.i or layers that exactly match names_to_match, otherwise,</span>
+<span class="sd">    returns False. This is a helper function for sharding a model with FSDP.</span>
+<span class="sd">    In :func:`~torchtune.training.shard_model`, we iterate over the model&#39;s named modules</span>
+<span class="sd">    and apply fully_shard using this condition.</span>
+
+<span class="sd">    As part of our sharding strategy, we want each layer to be sharded separately, as this is</span>
+<span class="sd">    generally efficient. We may also want to shard certain modules that are not layers, such as</span>
+<span class="sd">    the embedding module.</span>
+
+<span class="sd">    #TODO: a more robust way would be to shard on the module type, not the name.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        name (str): Name of the module.</span>
+<span class="sd">        module (nn.Module): Module to be sharded.</span>
+<span class="sd">        names_to_match (Optional[List[str]]): List of names to match, if any.</span>
+<span class="sd">        *args: Variable length argument list to be passed to the Embedding module.</span>
+<span class="sd">        **kwargs: Arbitrary keyword arguments to be passed to the Embedding module.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        bool: True if the module name matches the condition, False otherwise.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; names_to_match = [&quot;embedding&quot;]</span>
+<span class="sd">        &gt;&gt;&gt; layer_names = [&quot;layers.0&quot;, &quot;decoder.layers.1&quot;, &quot;encoder.layers.2.attention&quot;,</span>
+<span class="sd">            &quot;my_wrapper.layer.1.something&quot;, &quot;embedding&quot;]</span>
+<span class="sd">        &gt;&gt;&gt; matches = []</span>
+<span class="sd">        &gt;&gt;&gt; for name in layer_names:</span>
+<span class="sd">        &gt;&gt;&gt;     if shard_condition_is_layer_or_match(name, None): matches.append(name)</span>
+<span class="sd">        &gt;&gt;&gt; print(matches)</span>
+<span class="sd">        &gt;&gt;&gt; [&quot;layers.0&quot;, &quot;decoder.layers.1&quot;, &quot;embedding&quot;]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">names_to_match</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names_to_match</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="n">name_list</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">name_list</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">name_list</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;layers&quot;</span> <span class="ow">and</span> <span class="nb">str</span><span class="o">.</span><span class="n">isdigit</span><span class="p">(</span><span class="n">name_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="kc">False</span>
+
+
 <span class="k">def</span> <span class="nf">shard_model</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">TransformerDecoder</span><span class="p">,</span>
     <span class="n">shard_conditions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]],</span>
@@ -1036,6 +1085,8 @@
 <span class="sd">            the forward pass. Setting this to True corresponds to the FULL_SHARD sharding strategy</span>
 <span class="sd">            from FSDP1, while setting it to False corresponds to the SHARD_GRAD_OP sharding strategy.</span>
 
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If no layer modules were sharded, indicating that no shard_condition was triggered.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">fsdp_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;reshard_after_forward&quot;</span><span class="p">:</span> <span class="n">reshard_after_forward</span><span class="p">}</span>
     <span class="k">if</span> <span class="n">cpu_offload</span><span class="p">:</span>
@@ -1043,9 +1094,16 @@
 
     <span class="c1"># Shard the model with FSDP, iterating in reverse to start with</span>
     <span class="c1"># lowest-level modules first</span>
+    <span class="n">num_layers_sharded</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">named_modules</span><span class="p">())):</span>
         <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">shard_condition</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span> <span class="k">for</span> <span class="n">shard_condition</span> <span class="ow">in</span> <span class="n">shard_conditions</span><span class="p">]):</span>
             <span class="n">fully_shard</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="o">**</span><span class="n">fsdp_kwargs</span><span class="p">)</span>
+            <span class="n">num_layers_sharded</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">num_layers_sharded</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;No layer modules were sharded. Please check if shard conditions are working as expected.&quot;</span>
+        <span class="p">)</span>
 
     <span class="c1"># Finally shard the entire model to account for any stragglers</span>
     <span class="n">fully_shard</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">fsdp_kwargs</span><span class="p">)</span>
