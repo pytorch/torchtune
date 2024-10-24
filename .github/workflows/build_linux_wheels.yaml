@@ -33,7 +33,6 @@ jobs:
     name: ${{ matrix.repository }}
     uses: pytorch/test-infra/.github/workflows/build_wheels_linux.yml@main
     strategy:
-      matrix: ${{ matrix }}
       exclude:
         - python_version: "3.13"
       fail-fast: false
