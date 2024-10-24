@@ -583,20 +583,29 @@ def _memory_efficient_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
     return llama3_wrap
 
 
-def shard_condition_is_layer(name: str, module: nn.Module, *args, **kwargs) -> bool:
+def shard_condition_is_layer_or_match(
+    name: str,
+    module: nn.Module,
+    names_to_match: Optional[List[str]] = None,
+    *args,
+    **kwargs,
+) -> bool:
     """
-    Returs True for layers named {}.layers.i and False for all other module names. This is a helper
-    function for sharding a model with FSDP. In :func:`~torchtune.training.shard_model`,
-    we iterate over the model's named modules and apply fully_shard using this condition.
+    Returs True for layers named {}.layers.i or layers that exactly match names_to_match, otherwise,
+    returns False. This is a helper function for sharding a model with FSDP.
+    In :func:`~torchtune.training.shard_model`, we iterate over the model's named modules
+    and apply fully_shard using this condition.
 
     As part of our sharding strategy, we want each layer to be sharded separately, as this is
-    generally efficient.
+    generally efficient. We may also want to shard certain modules that are not layers, such as
+    the embedding module.
 
     #TODO: a more robust way would be to shard on the module type, not the name.
 
     Args:
         name (str): Name of the module.
         module (nn.Module): Module to be sharded.
+        names_to_match (Optional[List[str]]): List of names to match, if any.
         *args: Variable length argument list to be passed to the Embedding module.
         **kwargs: Arbitrary keyword arguments to be passed to the Embedding module.
 
@@ -604,54 +613,23 @@ def shard_condition_is_layer(name: str, module: nn.Module, *args, **kwargs) -> b
         bool: True if the module name matches the condition, False otherwise.
 
     Examples:
-        >>> layers_names = ["layers.0", "decoder.layers.1", "encoder.layers.2.attention",
+        >>> names_to_match = ["embedding"]
+        >>> layer_names = ["layers.0", "decoder.layers.1", "encoder.layers.2.attention",
             "my_wrapper.layer.1.something", "embedding"]
         >>> matches = []
-        >>> for name in layers_names:
-        >>>     if shard_condition_is_layer(name, None): matches.append(name)
+        >>> for name in layer_names:
+        >>>     if shard_condition_is_layer_or_match(name, None): matches.append(name)
         >>> print(matches)
-        >>> ["layers.0", "decoder.layers.1"]
-
-        Therefore, from the example above, only "layers.0" and "decoder.layers.1",
-        would be sharded separately.
+        >>> ["layers.0", "decoder.layers.1", "embedding"]
     """
+    if names_to_match and name in names_to_match:
+        return True
+
     name_list = name.split(".")
-    if len(name_list) < 2:
-        return False
-    else:
+    if len(name_list) >= 2:
         return name_list[-2] == "layers" and str.isdigit(name_list[-1])
 
-
-def shard_condition_exact_match(
-    name: str, module: nn.Module, names_to_match: List[str], *args, **kwargs
-) -> bool:
-    """
-    Returns True for modules whose name exactly matches the given name. This is a helper
-    function for sharding a model with FSDP. In :func:`~torchtune.training.shard_model`,
-    we iterate over the model's named modules and apply fully_shard using this condition.
-
-    Args:
-        name (str): Name of the module.
-        module (nn.Module): Module to be sharded.
-        names_to_match (List[str]): List of names to match.
-        *args: Variable length argument list to be passed to the Embedding module.
-        **kwargs: Arbitrary keyword arguments to be passed to the Embedding module.
-
-    Returns:
-        bool: True if the module name matches the condition, False otherwise.
-
-    Examples:
-        >>> layers_names = ["layers.0", "decoder.layers.1", "encoder.layers.2.attention",
-            "my_wrapper.layer.1.something", "embedding"]
-        >>> names_to_match = ["my_wrapper.layer.1.something", "embedding"]
-        >>> matches = []
-        >>> for name in layers_names:
-        >>>     if shard_condition_is_layer(name, None, names_to_match): matches.append(name)
-        >>> print(matches)
-        >>> ["my_wrapper.layer.1.something", "embedding"]
-
-    """
-    return name in names_to_match
+    return False
 
 
 def shard_model(

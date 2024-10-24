@@ -19,6 +19,7 @@ from torchtune.training._distributed import (
     lora_fsdp_wrap_policy,
     prepare_model_for_fsdp_with_meta_device,
     set_torch_num_threads,
+    shard_condition_is_layer_or_match,
     shard_model,
     validate_no_params_on_meta_device,
 )
@@ -106,6 +107,7 @@ __all__ = [
     "get_world_size_and_rank",
     "set_torch_num_threads",
     "shard_model",
+    "shard_condition_is_layer_or_match",
     "prepare_model_for_fsdp_with_meta_device",
     "validate_no_params_on_meta_device",
     "contains_fsdp",

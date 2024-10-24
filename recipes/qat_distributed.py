@@ -423,15 +423,12 @@ class QATRecipeDistributed(FTRecipeInterface):
         model = quantizer.prepare(model)
 
         # For FSDP sharding
-        fsdp_shard_conditions = [training.shard_condition_is_layer]
-        if custom_sharded_layers:
-            fsdp_shard_conditions += [
-                partial(
-                    training.shard_condition_exact_match,
-                    names_to_match=custom_sharded_layers,
-                )
-            ]
-
+        fsdp_shard_conditions = [
+            partial(
+                training.shard_condition_is_layer_or_match,
+                names_to_match=custom_sharded_layers,
+            )
+        ]
         training.shard_model(
             model=model,
             shard_conditions=fsdp_shard_conditions,
