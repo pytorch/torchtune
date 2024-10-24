@@ -231,3 +231,94 @@ class SimPOLoss(nn.Module):
         rejected_rewards = self.beta * (policy_rejected_logps).detach()
 
         return losses, chosen_rewards, rejected_rewards
+
+
+class KTOLoss(nn.Module):
+    """
+    KTO: Kahneman-Tversky Optimization: https://arxiv.org/abs/2402.01306
+    Intuition from the paper:
+
+        The effectiveness of SimPO is attributed to a key design: using the average log probability of a sequence as
+        the implicit reward. Additionally, we introduce a target reward margin to the Bradley-Terry objective to
+        encourage a larger margin between the winning and losing responses, further enhancing the algorithm's performance.
+
+    Based on the TRL implementation:
+    https://github.com/huggingface/trl/blob/98ad01ddfd1e1b67ec018014b83cba40e0caea66/trl/trainer/kto_trainer.py
+
+    KTO is simple, but effective alternative to DPO. According KTO paper, KTO is actually >= DPO.
+    And work better than DPO when data is not enough quality. It still uses reference model, but HALO that
+    was proposed is significantly more effective.
+
+    Args:
+        beta (float): Parameter controlling the deviation from the reference model. Higher β means less deviation from the
+            reference model. Default is 0.1.
+        desirable_weight (float):  Desirable losses are weighed by this factor to counter
+            unequal number of desirable and undesirable paris. Default is 1.0.
+        undesirable_weight (float):  Undesirable losses are weighed by this factor to counter
+            unequal number of desirable and undesirable paris. Default is 1.0.
+    """
+
+    def __init__(
+        self,
+        beta: float = 0.1,
+        desirable_weight: float = 1.0,
+        undesirable_weight: float = 1.0,
+    ):
+        super().__init__()
+        self.beta = beta
+        self.desirable_weight = desirable_weight
+        self.undesirable_weight = undesirable_weight
+
+    def forward(
+        self,
+        policy_chosen_logps: torch.Tensor,
+        policy_rejected_logps: torch.Tensor,
+        policy_KL_logps,
+        reference_chosen_logps: torch.Tensor,
+        reference_rejected_logps: torch.Tensor,
+        reference_KL_logps
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Compute the KTO loss for a batch of policy and reference model log probabilities.
+
+        Args:
+                    policy_chosen_logps (torch.Tensor): Log probabilities of the policy model
+                        for the chosen responses. Shape: (batch_size)
+                    policy_rejected_logps (torch.Tensor): Log probabilities of the policy model
+                        for the rejected responses. Shape: (batch_size)
+                    reference_chosen_logps (torch.Tensor): Log probabilities of the reference model
+                        for the chosen responses. Shape: (batch_size)
+                    reference_rejected_logps (torch.Tensor): Log probabilities of the reference model
+                        for the rejected responses. Shape: (batch_size)
+
+        Returns:
+                    Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple of three tensors:
+                        - losses: The DPO loss for each example in the batch.
+                        - chosen_rewards: Rewards for the chosen responses.
+                        - rejected_rewards: Rewards for the rejected responses.
+
+        """
+
+        kl = (policy_KL_logps - reference_KL_logps).mean().detach()
+        kl = kl.mean().clamp(min=0)
+
+        chosen_logratios = policy_chosen_logps - reference_chosen_logps
+
+        chosen_losses = 1 - F.sigmoid(self.beta * (chosen_logratios - kl))
+
+        rejected_logratios = policy_rejected_logps - reference_rejected_logps
+
+        rejected_losses = 1 - F.sigmoid(self.beta * (kl - rejected_logratios))
+
+        losses = torch.cat(
+            (
+                self.desirable_weight * chosen_losses,
+                self.undesirable_weight * rejected_losses,
+            ),
+            0,
+        )
+
+        chosen_rewards = self.beta * (chosen_logratios).detach()
+        rejected_rewards = self.beta * (rejected_logratios).detach()
+
+        return losses, chosen_rewards, rejected_rewards
