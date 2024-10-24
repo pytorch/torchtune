@@ -10,6 +10,7 @@ on:
       # Release candidate tags look like: v1.11.0-rc1
       - v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+
   workflow_dispatch:
+  pull_request:
 
 permissions:
   id-token: write
@@ -28,10 +29,10 @@ jobs:
       with-rocm: enable
       build-python-only: enable
   build:
+    if: ${{ needs.generate-matrix.outputs.matrix.python_version }} != '3.13'
     needs: generate-matrix
     name: ${{ matrix.repository }}
     uses: pytorch/test-infra/.github/workflows/build_wheels_linux.yml@main
-    if: ${{ needs.generate-matrix.outputs.matrix.python_version }} != '3.13'
     strategy:
       fail-fast: false
     with:
