@@ -123,7 +123,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         if self._log_peak_memory_stats and self._device.type == "cuda":
             log.info(
-                "log_peak_memory_stats was se to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
 
