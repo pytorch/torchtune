@@ -40,10 +40,6 @@ class TestNF4Linear:
     Class for testing our NF4Linear implementation.
     """
 
-    def test_bias_unsupported(self):
-        with pytest.raises(RuntimeError, match="does not currently support biases"):
-            _ = FrozenNF4Linear(1, 1, bias=True)
-
     @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
     def test_parameters(self, dtype):
         nf4_linear = FrozenNF4Linear(512, 512, device="cpu", dtype=dtype)
@@ -59,9 +55,10 @@ class TestNF4Linear:
         assert isinstance(state_dict["weight"], NF4Tensor)
 
     @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
-    def test_output_dtype(self, dtype):
+    @pytest.mark.parametrize("bias", [True, False])
+    def test_output_dtype(self, dtype, bias):
         # Test to ensure W4 A16 produces A16 / W4A32 produces A32
-        nf4_linear = FrozenNF4Linear(512, 512, device="cpu", dtype=dtype)
+        nf4_linear = FrozenNF4Linear(512, 512, device="cpu", dtype=dtype, bias=bias)
         inp = torch.randn(2, 512, dtype=dtype, requires_grad=True)
         out = nf4_linear(inp)
         assert out.dtype == dtype

@@ -232,10 +232,11 @@ class FusionEmbedding(nn.Module):
         """Apply extra "embedding" prefix to the state_dict key to
         account for the FusionEmbedding wrapping.
         """
-        key = prefix + "weight"
-        new_key = prefix + "embedding.weight"
-        state_dict[new_key] = state_dict[key]
-        del state_dict[key]
+        if state_dict:
+            key = prefix + "weight"
+            new_key = prefix + "embedding.weight"
+            state_dict[new_key] = state_dict[key]
+            del state_dict[key]
 
     def fusion_params(self) -> List[str]:
         """

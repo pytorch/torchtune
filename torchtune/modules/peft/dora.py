@@ -39,8 +39,6 @@ class DoRALinear(nn.Module, AdapterModule):
         quantize_base (bool): Whether to quantize base linear weight or not.
             Default: False
 
-    Raises:
-        NotImplementedError: If use_bias is enabled.
     """
 
     def __init__(
@@ -54,14 +52,16 @@ class DoRALinear(nn.Module, AdapterModule):
         quantize_base: bool = False,
     ):
         super().__init__()
-        if use_bias:
-            raise NotImplementedError("DoRALinear does not support using bias")
         self.in_dim = in_dim
         self.out_dim = out_dim
         self.scaling = alpha / rank
+        self.use_bias = use_bias
         self._quantize_base = quantize_base
-        weight = self._create_weight()
+        weight, bias = self._create_weight_and_bias()
         self.register_parameter("weight", nn.Parameter(weight))
+        self.register_parameter(
+            "bias", nn.Parameter(bias) if bias is not None else None
+        )
 
         # 'self.disabled' is a flag showing whether to turn off DoRA adapters,
         # this can be used in DPO for treating the dora adapters as the policy model
@@ -90,15 +90,18 @@ class DoRALinear(nn.Module, AdapterModule):
         weight_norm = self._get_weight_norm(base_weight, lora_weight)
         self.magnitude = nn.Parameter(weight_norm, requires_grad=True)
 
-    def _create_weight(self):
+    def _create_weight_and_bias(self):
         """
         Creates a linear weight and bias tensor, using NF4 dtype if we're quantizing
         (indicated via quantize_base=True).
         """
-        in_dim, out_dim = self.in_dim, self.out_dim
-        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=False)
+        in_dim, out_dim, use_bias = self.in_dim, self.out_dim, self.use_bias
+        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
         weight = linear.weight if not self._quantize_base else to_nf4(linear.weight)
-        return weight
+        bias = None
+        if self.use_bias:
+            bias = linear.bias
+        return weight, bias
 
     def _get_weight_norm(self, weight, lora_weight):
         weight = weight + self.scaling * lora_weight
@@ -123,8 +126,10 @@ class DoRALinear(nn.Module, AdapterModule):
         """
         if self._quantize_base:
             base_out = linear_nf4(input=x, weight=self.weight)
+            if self.use_bias:
+                base_out = base_out + self.bias
         else:
-            base_out = F.linear(x, self.weight)
+            base_out = F.linear(x, self.weight, self.bias)
         if self.disabled:
             return base_out
 

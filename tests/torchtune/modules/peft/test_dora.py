@@ -49,80 +49,77 @@ class TestDoRALinear:
         return inputs
 
     @pytest.fixture
-    def dora_linear(self, in_dim, out_dim) -> DoRALinear:
-        dora_linear = DoRALinear(
-            in_dim=in_dim,
-            out_dim=out_dim,
-            rank=RANK,
-            alpha=ALPHA,
-            use_bias=False,
-        )
+    def dora_linear(self, in_dim, out_dim):
+        def create_dora_linear(use_bias, dtype, in_dim=in_dim, out_dim=out_dim):
+            with training.set_default_dtype(dtype):
+                dora_linear = DoRALinear(
+                    in_dim=in_dim,
+                    out_dim=out_dim,
+                    rank=RANK,
+                    alpha=ALPHA,
+                    use_bias=use_bias,
+                )
 
-        fixed_init_model(dora_linear)
-        return dora_linear
+                fixed_init_model(dora_linear)
+            return dora_linear
+
+        return create_dora_linear
 
     @pytest.fixture
-    def qdora_linear(self, in_dim, out_dim) -> DoRALinear:
-        with training.set_default_dtype(torch.bfloat16):
-            qdora_linear = DoRALinear(
-                in_dim=512,
-                out_dim=512,
-                rank=RANK,
-                alpha=ALPHA,
-                use_bias=False,
-                quantize_base=True,
-            )
-            fixed_init_model(qdora_linear, dtype=torch.bfloat16)
+    def qdora_linear(self):
+        def create_qdora_linear(
+            use_bias=False, dtype=torch.bfloat16, in_dim=512, out_dim=512
+        ):
+            with training.set_default_dtype(dtype):
+                qdora_linear = DoRALinear(
+                    in_dim=in_dim,
+                    out_dim=out_dim,
+                    rank=RANK,
+                    alpha=ALPHA,
+                    use_bias=use_bias,
+                    quantize_base=True,
+                )
+                fixed_init_model(qdora_linear)
             return qdora_linear
 
+        return create_qdora_linear
+
     def test_forward(self, inputs, dora_linear, out_dim) -> None:
+        dora_linear = dora_linear(use_bias=False, dtype=torch.float32)
         expected = torch.tensor(EXPECTED_VAL)
         actual = dora_linear(inputs)
         assert actual.shape == (BSZ, SEQ_LEN, out_dim)
         torch.testing.assert_close(actual.mean(), expected, atol=1e-4, rtol=1e-6)
 
-    def test_dora_weight_nf4_when_quantized(self, qdora_linear):
+    @pytest.mark.parametrize("use_bias", [True, False])
+    def test_dora_weight_nf4_when_quantized(self, use_bias, qdora_linear):
+        qdora_linear = qdora_linear(use_bias=use_bias, dtype=torch.bfloat16)
         assert isinstance(qdora_linear.weight, NF4Tensor)
+        if use_bias:
+            assert not isinstance(qdora_linear.bias, NF4Tensor)
+            assert qdora_linear.bias.dtype == torch.bfloat16
 
-    def test_bias_raises(self):
-        with pytest.raises(
-            NotImplementedError, match="DoRALinear does not support using bias"
-        ):
-            DoRALinear(
-                in_dim=512,
-                out_dim=512,
-                rank=RANK,
-                alpha=ALPHA,
-                use_bias=True,
-                quantize_base=False,
-            )
-
-    @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
-    def test_qdora_parity(self, dtype):
+    # Note: with bfloat16 F.linear(x, weight, bias) != F.linear(x, weight) + bias.
+    # This means we would get different results (irrespective of QDoRA).
+    # So we leave that test case out
+    @pytest.mark.parametrize(
+        "use_bias, dtype",
+        [(False, torch.bfloat16), (True, torch.float32), (False, torch.float32)],
+    )
+    def test_qdora_parity(self, use_bias, dtype, dora_linear, qdora_linear):
         with training.set_default_dtype(dtype):
-            torch.manual_seed(0)
-            qdora_linear = DoRALinear(
-                in_dim=512,
-                out_dim=512,
-                rank=RANK,
-                alpha=ALPHA,
-                use_bias=False,
-                quantize_base=True,
+            qdora_linear = qdora_linear(
+                use_bias=use_bias, dtype=dtype, in_dim=512, out_dim=512
             )
-            torch.manual_seed(0)
-            dora_linear = DoRALinear(
-                in_dim=512,
-                out_dim=512,
-                rank=RANK,
-                alpha=ALPHA,
-                use_bias=False,
-                quantize_base=False,
+            dora_linear = dora_linear(
+                use_bias=use_bias, dtype=dtype, in_dim=512, out_dim=512
             )
 
         # set weight of dora_linear to unquantized weight of qdora_linear and check
         # parity.
         dora_linear.weight.data = qdora_linear.weight.to(dtype)
-
+        if use_bias:
+            dora_linear.bias.data = qdora_linear.bias.detach().clone()
         qdora_linear.initialize_dora_magnitude()
         dora_linear.initialize_dora_magnitude()
 
