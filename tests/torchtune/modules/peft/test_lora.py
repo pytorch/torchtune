@@ -72,7 +72,7 @@ class TestLoRALinear:
                     use_bias=use_bias,
                     quantize_base=True,
                 )
-                fixed_init_model(qlora_linear, dtype=torch.bfloat16)
+                fixed_init_model(qlora_linear)
             return qlora_linear
 
         return create_qlora_linear
