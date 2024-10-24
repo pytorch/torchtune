@@ -225,9 +225,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
             optimizer_in_bwd=self._optimizer_in_bwd,
-            opt_state_dict=checkpoint_dict[training.OPT_KEY]
-            if self._resume_from_checkpoint
-            else None,
+            opt_state_dict=(
+                checkpoint_dict[training.OPT_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
         )
 
         # initialize loss
@@ -350,10 +352,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
-        custom_sharded_layers: Optional[List[str]],
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
         model_state_dict: Dict[str, Any],
+        custom_sharded_layers: Optional[List[str]] = None,
         ac_mode: Optional[str] = None,
         ac_option: Optional[int] = None,
     ) -> nn.Module:
@@ -396,31 +398,15 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
-        # For FSDP sharding, we can condition on either the module or its name
-        # Shard conditions should be callables taking name (relative to model root)
-        # and the module itself and returning a bool on whether to shard the given module
-        fsdp_shard_conditions = []
-
-        # Shard transformer decoder layers (or AC-wrapped versions)
-        # Alternatively we could condition on the module type (TransformerDecoder or CheckpointWrapper)
-        # But directly using the name is more concise
-        def _is_layer_name(name: str, module: nn.Module) -> bool:
-            """
-            Return True for layers.i and False for all other module names
-            Covers sharding for both AC-wrapped and non-AC-wrapped modules in one shot
-            """
-            name_list = name.split(".")
-            if len(name_list) < 2:
-                return False
-            else:
-                return name_list[-2] == "layers" and str.isdigit(name_list[-1])
-
-        fsdp_shard_conditions = [_is_layer_name]
-
-        # If wrapping any layers separately, we can add another shard condition
-        # A layer will be sharded if any of the fsdp_shard_conditions are met
+        # For FSDP sharding
+        fsdp_shard_conditions = [training.shard_condition_is_layer]
         if custom_sharded_layers:
-            fsdp_shard_conditions += [lambda n, m: n in custom_sharded_layers]
+            fsdp_shard_conditions += [
+                partial(
+                    training.shard_condition_exact_match,
+                    names_to_match=custom_sharded_layers,
+                )
+            ]
 
         training.shard_model(
             model=model,

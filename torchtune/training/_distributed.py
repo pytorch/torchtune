@@ -583,6 +583,77 @@ def _memory_efficient_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
     return llama3_wrap
 
 
+def shard_condition_is_layer(name: str, module: nn.Module, *args, **kwargs) -> bool:
+    """
+    Returs True for layers named {}.layers.i and False for all other module names. This is a helper
+    function for sharding a model with FSDP. In :func:`~torchtune.training.shard_model`,
+    we iterate over the model's named modules and apply fully_shard using this condition.
+
+    As part of our sharding strategy, we want each layer to be sharded separately, as this is
+    generally efficient.
+
+    #TODO: a more robust way would be to shard on the module type, not the name.
+
+    Args:
+        name (str): Name of the module.
+        module (nn.Module): Module to be sharded.
+        *args: Variable length argument list to be passed to the Embedding module.
+        **kwargs: Arbitrary keyword arguments to be passed to the Embedding module.
+
+    Returns:
+        bool: True if the module name matches the condition, False otherwise.
+
+    Examples:
+        >>> layers_names = ["layers.0", "decoder.layers.1", "encoder.layers.2.attention",
+            "my_wrapper.layer.1.something", "embedding"]
+        >>> matches = []
+        >>> for name in layers_names:
+        >>>     if shard_condition_is_layer(name, None): matches.append(name)
+        >>> print(matches)
+        >>> ["layers.0", "decoder.layers.1"]
+
+        Therefore, from the example above, only "layers.0" and "decoder.layers.1",
+        would be sharded separately.
+    """
+    name_list = name.split(".")
+    if len(name_list) < 2:
+        return False
+    else:
+        return name_list[-2] == "layers" and str.isdigit(name_list[-1])
+
+
+def shard_condition_exact_match(
+    name: str, module: nn.Module, names_to_match: List[str], *args, **kwargs
+) -> bool:
+    """
+    Returs True for modules whose name exactly matches the given name. This is a helper
+    function for sharding a model with FSDP. In :func:`~torchtune.training.shard_model`,
+    we iterate over the model's named modules and apply fully_shard using this condition.
+
+    Args:
+        name (str): Name of the module.
+        module (nn.Module): Module to be sharded.
+        names_to_match (List[str]): List of names to match.
+        *args: Variable length argument list to be passed to the Embedding module.
+        **kwargs: Arbitrary keyword arguments to be passed to the Embedding module.
+
+    Returns:
+        bool: True if the module name matches the condition, False otherwise.
+
+    Examples:
+        >>> layers_names = ["layers.0", "decoder.layers.1", "encoder.layers.2.attention",
+            "my_wrapper.layer.1.something", "embedding"]
+        >>> names_to_match = ["my_wrapper.layer.1.something", "embedding"]
+        >>> matches = []
+        >>> for name in layers_names:
+        >>>     if shard_condition_is_layer(name, None, names_to_match): matches.append(name)
+        >>> print(matches)
+        >>> ["my_wrapper.layer.1.something", "embedding"]
+
+    """
+    return name in names_to_match
+
+
 def shard_model(
     model: TransformerDecoder,
     shard_conditions: List[Callable[[str, nn.Module], bool]],

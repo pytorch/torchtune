@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from warnings import warn
 
 import torch
@@ -290,6 +290,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
         base_model_state_dict: Dict[str, Any],
+        custom_sharded_layers: Optional[List[str]] = None,
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
     ) -> nn.Module:
         """
@@ -323,27 +324,19 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
-        # For FSDP sharding, we can condition on either the module or its name
-        # Shard conditions should be callables taking name (relative to model root)
-        # and the module itself and returning a bool on whether to shard the given module
-
-        # Shard transformer decoder layers (or AC-wrapped versions)
-        # Alternatively we could condition on the module type (TransformerDecoder or CheckpointWrapper)
-        # But directly using the name is more concise
-        def _is_layer_name(name: str, module: nn.Module) -> bool:
-            """
-            Return True for layers.i and False for all other module names
-            Covers sharding for both AC-wrapped and non-AC-wrapped modules in one shot
-            """
-            name_list = name.split(".")
-            if len(name_list) < 2:
-                return False
-            else:
-                return name_list[-2] == "layers" and str.isdigit(name_list[-1])
+        # For FSDP sharding
+        fsdp_shard_conditions = [training.shard_condition_is_layer]
+        if custom_sharded_layers:
+            fsdp_shard_conditions += [
+                partial(
+                    training.shard_condition_exact_match,
+                    names_to_match=custom_sharded_layers,
+                )
+            ]
 
         training.shard_model(
             model=model,
-            shard_conditions=[_is_layer_name],
+            shard_conditions=fsdp_shard_conditions,
             cpu_offload=fsdp_cpu_offload,
             reshard_after_forward=reshard_after_forward,
         )
