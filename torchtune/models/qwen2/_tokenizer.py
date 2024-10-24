@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 import regex as re
 
-from torchtune.data import ChatMLTemplate, Message, PromptTemplate, truncate
+from torchtune.data import Message, PromptTemplate, truncate
 from torchtune.modules.tokenizers import ModelTokenizer
 
 PRETOKENIZE_REGEX = (
@@ -23,13 +23,34 @@ QWEN2_SPECIAL_TOKENS = {
     "<|im_start|>": 151644,
     "<|im_end|>": 151645,
 }
-
+QWEN2_5_SPECIAL_TOKENS = {
+    **QWEN2_SPECIAL_TOKENS,
+    "<|object_ref_start|>": 151646,
+    "<|object_ref_end|>": 151647,
+    "<|box_start|>": 151648,
+    "<|box_end|>": 151649,
+    "<|quad_start|>": 151650,
+    "<|quad_end|>": 151651,
+    "<|vision_start|>": 151652,
+    "<|vision_end|>": 151653,
+    "<|vision_pad|>": 151654,
+    "<|image_pad|>": 151655,
+    "<|video_pad|>": 151656,
+    "<tool_call>": 151657,
+    "</tool_call>": 151658,
+    "<|fim_prefix|>": 151659,
+    "<|fim_middle|>": 151660,
+    "<|fim_suffix|>": 151661,
+    "<|fim_pad|>": 151662,
+    "<|repo_name|>": 151663,
+    "<|file_sep|>": 151664,
+}
 
 ENDOFTEXT = "<|endoftext|>"
 IM_START = "<|im_start|>"
 IM_END = "<|im_end|>"
 
-DEFAULT_QWEN2_TOKENIZER_BPE_CACHE_SIZE = 151646
+DEFAULT_QWEN2_TOKENIZER_BPE_CACHE_SIZE = 152064
 
 
 @lru_cache()
@@ -83,7 +104,8 @@ class Qwen2Tokenizer(ModelTokenizer):
         merges_file (str): Path to merges.txt file.
             merges.txt contains all BPE merge operations, and this file is required to split a single word into
             byte-level BPE tokens.
-        special_tokens (Optional[Dict[str, int]]): Special tokens to add to the tokenizer. Default is None.
+        special_tokens (Dict[str, int]): Special tokens to add to the tokenizer.
+            In general, should be QWEN2_SPECIAL_TOKENS for Qwen2 and QWEN2_5_SPECIAL_TOKENS for Qwen2.5
         max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
             Default: None
         prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
@@ -95,7 +117,7 @@ class Qwen2Tokenizer(ModelTokenizer):
             - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
 
             The extra text will still get tokenized as normal text, not as special tokens.
-            Default is :class:`~torchtune.data.ChatMLTemplate`.
+            Default: None
         errors (str): Paradigm to follow when decoding bytes to UTF-8. Defaults to "replace".
             See [bytes.decode](https://docs.python.org/3/library/stdtypes.html#bytes.decode) for more information.
         unk_token (Optional[str]): The unknown token. A token that is not in the vocabulary cannot be converted
@@ -110,7 +132,8 @@ class Qwen2Tokenizer(ModelTokenizer):
             By default, we set the cache size equals to size of the official Qwen2 tokenizer.
 
     Example:
-        >>> tokenizer = Qwen2Tokenizer(path="/path/to/vocab.json", merges_file="/path/to/merges.txt")
+        >>> tokenizer = Qwen2Tokenizer(
+                path="/path/to/vocab.json", merges_file="/path/to/merges.txt", special_tokens=QWEN2_SPECIAL_TOKENS)
         >>> tokenized_text = tokenizer.encode("Hello world!")
         >>> print(tokenized_text)
         [39, 385, 78, 675, 0, 2000]
@@ -120,10 +143,10 @@ class Qwen2Tokenizer(ModelTokenizer):
         self,
         path: str,
         merges_file: str,
-        special_tokens: Optional[Dict[str, int]] = None,
+        special_tokens: Dict[str, int],
         max_seq_len: Optional[int] = None,
         *,
-        prompt_template: Optional[PromptTemplate] = ChatMLTemplate(),
+        prompt_template: Optional[PromptTemplate] = None,
         errors: str = "replace",
         unk_token: Optional[str] = ENDOFTEXT,
         bos_token: Optional[str] = None,
@@ -151,9 +174,7 @@ class Qwen2Tokenizer(ModelTokenizer):
 
         self.pat = re.compile(PRETOKENIZE_REGEX)
 
-        self.special_tokens = (
-            special_tokens if special_tokens is not None else QWEN2_SPECIAL_TOKENS
-        )
+        self.special_tokens = special_tokens
         self._special_tokens_reversed = {v: k for k, v in self.special_tokens.items()}
 
         self.unk_id = None if unk_token is None else self.special_tokens[unk_token]
@@ -369,14 +390,14 @@ class Qwen2Tokenizer(ModelTokenizer):
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
 
-            # If assistant message, append EOS at end
-            if message.role == "assistant" and add_eos:
-                tokenized_messages.append(self.eos_id)
-                mask.append(message.masked)
-
             # Break out early if we reach max_seq_len
             if self.max_seq_len and len(tokenized_messages) >= self.max_seq_len:
                 break
+
+        # Add the End-Of-Sequence token
+        if add_eos:
+            tokenized_messages.append(self.eos_id)
+            mask.append(message.masked)
 
         # Finally, truncate if necessary
         if self.max_seq_len:
