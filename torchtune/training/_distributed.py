@@ -626,7 +626,7 @@ def shard_condition_exact_match(
     name: str, module: nn.Module, names_to_match: List[str], *args, **kwargs
 ) -> bool:
     """
-    Returs True for modules whose name exactly matches the given name. This is a helper
+    Returns True for modules whose name exactly matches the given name. This is a helper
     function for sharding a model with FSDP. In :func:`~torchtune.training.shard_model`,
     we iterate over the model's named modules and apply fully_shard using this condition.
 
