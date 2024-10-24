@@ -50,23 +50,27 @@ class TestLoRALinear:
 
     @pytest.fixture
     def lora_linear(self, in_dim, out_dim) -> LoRALinear:
-        lora_linear = LoRALinear(
-            in_dim=in_dim,
-            out_dim=out_dim,
-            rank=RANK,
-            alpha=ALPHA,
-            use_bias=True,
-        )
-        fixed_init_model(lora_linear)
-        return lora_linear
+        def create_lora_linear(use_bias, dtype, in_dim=in_dim, out_dim=out_dim):
+            with training.set_default_dtype(dtype):
+                lora_linear = LoRALinear(
+                    in_dim=in_dim,
+                    out_dim=out_dim,
+                    rank=RANK,
+                    alpha=ALPHA,
+                    use_bias=use_bias,
+                )
+                fixed_init_model(lora_linear)
+            return lora_linear
+
+        return create_lora_linear
 
     @pytest.fixture
     def qlora_linear(self):
-        def create_qlora_linear(use_bias, dtype):
+        def create_qlora_linear(use_bias, dtype, in_dim=512, out_dim=512):
             with training.set_default_dtype(dtype):
                 qlora_linear = LoRALinear(
-                    in_dim=512,
-                    out_dim=512,
+                    in_dim=in_dim,
+                    out_dim=out_dim,
                     rank=RANK,
                     alpha=ALPHA,
                     use_bias=use_bias,
@@ -95,6 +99,7 @@ class TestLoRALinear:
         lora_module.lora_b.weight[32, 1] = 12
 
     def test_forward(self, inputs, lora_linear, out_dim) -> None:
+        lora_linear = lora_linear(use_bias=True, dtype=torch.float32)
         expected = torch.tensor(EXPECTED_VAL)
         actual = lora_linear(inputs)
         assert actual.shape == (BSZ, SEQ_LEN, out_dim)
@@ -115,18 +120,13 @@ class TestLoRALinear:
         "use_bias, dtype",
         [(False, torch.bfloat16), (True, torch.float32), (False, torch.float32)],
     )
-    def test_qlora_parity(self, use_bias, dtype, qlora_linear):
-        qlora_linear = qlora_linear(use_bias=use_bias, dtype=dtype)
-        with training.set_default_dtype(dtype):
-            lora_linear = LoRALinear(
-                in_dim=512,
-                out_dim=512,
-                rank=RANK,
-                alpha=ALPHA,
-                use_bias=use_bias,
-                quantize_base=False,
-            )
-        fixed_init_model(lora_linear, dtype=torch.bfloat16)
+    def test_qlora_parity(self, use_bias, dtype, qlora_linear, lora_linear):
+        qlora_linear = qlora_linear(
+            use_bias=use_bias, dtype=dtype, in_dim=512, out_dim=512
+        )
+        lora_linear = lora_linear(
+            use_bias=use_bias, dtype=dtype, in_dim=512, out_dim=512
+        )
 
         # set weight of lora_linear to unquantized weight of qlora_linear and check
         # parity.
