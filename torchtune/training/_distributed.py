@@ -680,7 +680,7 @@ def shard_model(
             from FSDP1, while setting it to False corresponds to the SHARD_GRAD_OP sharding strategy.
 
     Raises:
-        ValueError: If no layer modules were sharded. Please check if shard conditions is working as expected.
+        ValueError: If no layer modules were sharded. Please check if shard conditions are working as expected.
     """
     fsdp_kwargs = {"reshard_after_forward": reshard_after_forward}
     if cpu_offload:
