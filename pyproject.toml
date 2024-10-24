@@ -55,6 +55,7 @@ dev = [
     "urllib3<2.0.0",
     "wandb",
     "expecttest",
+    "torchao",
 ]
 
 [tool.setuptools.dynamic]
