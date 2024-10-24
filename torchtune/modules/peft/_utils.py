@@ -259,7 +259,6 @@ def get_merged_lora_ckpt(
 
         # Otherwise it is just vanilla LoRA
         else:
-            print(f"module is {module}")
             state_dict[f"{module}.weight"] += (
                 (alpha / rank) * lora_b_weight @ lora_a_weight
             )
