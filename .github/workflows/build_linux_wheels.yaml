@@ -28,29 +28,27 @@ jobs:
       with-cuda: enable
       with-rocm: enable
       build-python-only: enable
-  # test:
-  #   needs: generate-matrix
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: step1
-  #       run: echo 'hello'
-  build:
-    if: ${{ needs.generate-matrix.outputs.matrix.python_version != '3.9' }}
+  test:
     needs: generate-matrix
-    name: ${{ matrix.repository }}
-    uses: pytorch/test-infra/.github/workflows/build_wheels_linux.yml@main
-    strategy:
-      fail-fast: false
-    with:
-      repository: pytorch/torchtune
-      ref: ""
-      package-name: torchtune
-      build-matrix: ${{ needs.generate-matrix.outputs.matrix }}
-      pre-script: .github/scripts/pre_build_script.sh
-      trigger-event: ${{ github.event_name }}
-      build-platform: 'python-build-package'
-      pip-install-torch-extra-args:
-        torchvision
-        torchao
+    runs-on: ubuntu-latest
+    run: echo ${{ needs.generate-matrix.outputs }}
+  # build:
+  #   if: ${{ needs.generate-matrix.outputs.python_version != '3.9' }}
+  #   needs: generate-matrix
+  #   name: ${{ matrix.repository }}
+  #   uses: pytorch/test-infra/.github/workflows/build_wheels_linux.yml@main
+  #   strategy:
+  #     fail-fast: false
+  #   with:
+  #     repository: pytorch/torchtune
+  #     ref: ""
+  #     package-name: torchtune
+  #     build-matrix: ${{ needs.generate-matrix.outputs.matrix }}
+  #     pre-script: .github/scripts/pre_build_script.sh
+  #     trigger-event: ${{ github.event_name }}
+  #     build-platform: 'python-build-package'
+  #     pip-install-torch-extra-args:
+  #       torchvision
+  #       torchao
       # - name: output-python-version
       #   run: echo PYTHON_VERSION=$env.PYTHON_VERSION >> "$GITHUB_OUTPUT"
