@@ -36,7 +36,7 @@ jobs:
         env:
           A: ${{ needs.generate-matrix.outputs.matrix }}
         run: |
-          matrix_builds=${A["include"]}
+          matrix_builds="${A["include"]}"
           # new_matrix_builds = ()
           for item in "${matrix_builds[@]}"; do
             echo "$item"
