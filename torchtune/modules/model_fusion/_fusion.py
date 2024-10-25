@@ -4,10 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 
 import torch
-from torch import nn
+from torch import nn, Tensor
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.model_fusion._fusion_utils import get_fusion_params
 from torchtune.modules.peft._utils import set_trainable_params
@@ -370,8 +370,8 @@ class DeepFusionModel(nn.Module):
         batch_size: int,
         dtype: torch.dtype,
         *,
-        encoder_max_seq_len: int = None,
-        decoder_max_seq_len: int = None,
+        encoder_max_seq_len: Optional[int] = None,
+        decoder_max_seq_len: Optional[int] = None,
     ):
         """
         Sets up key-value attention caches for inference for ``self.decoder``.
@@ -421,7 +421,7 @@ class DeepFusionModel(nn.Module):
         tokens: torch.Tensor,
         *,
         mask: Optional[torch.Tensor] = None,
-        encoder_input: Optional[Dict] = None,
+        encoder_input: Optional[Dict[str, Dict[str, Any]]] = None,
         encoder_mask: Optional[torch.Tensor] = None,
         input_pos: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, List[torch.Tensor]]:
@@ -433,7 +433,7 @@ class DeepFusionModel(nn.Module):
                 before the softmax. A value of True in row i and column j means token i attends
                 to token j. A value of False means token i does not attend to token j. If no
                 mask is specified, a causal mask is used by default. Default is None.
-            encoder_input (Optional[Dict]): Optional input for the encoder.
+            encoder_input (Optional[Dict[str, Any]]): Optional input for the encoder.
             encoder_mask (Optional[torch.Tensor]):  Boolean tensor defining a relational matrix between
                 tokens and encoder embeddings. A True value at position i,j means token i can attend
                 to embedding j in the decoder. Mask has shape ``[b x s x s_e]``. Default is None.
@@ -476,4 +476,108 @@ class DeepFusionModel(nn.Module):
             encoder_mask=encoder_mask,
             input_pos=input_pos,
         )
+        return output
+
+class EarlyFusionModel(nn.Module):
+    def __init__(
+        self,
+        decoder: TransformerDecoder,
+        encoders: nn.ModuleDict,
+        encoder_tokens: Dict[str, int],
+        decoder_trainable: bool,
+        encoders_trainable: Dict[str, bool],
+    ):
+        super().__init__()
+        self.decoder = decoder
+        self.encoders = encoders
+        self.encoder_tokens = encoder_tokens
+
+        # A little surgery in the decoder to give the
+        # fusion module access to control the embeddings
+        # The alternative is to pass a special tok_embeddings
+        # module into TransformerDecoder builder that does the
+        # merging there
+        self.tok_embeddings = decoder.tok_embeddings
+        decoder.tok_embeddings = nn.Identity()
+
+        self.register_state_dict_post_hook(self._state_dict_hook)
+        self.register_load_state_dict_pre_hook(
+            self._load_state_dict_hook,
+            with_module=True
+        )
+
+        trainable_params = set()
+        for encoder, trainable in encoders_trainable.items():
+            if trainable:
+                trainable_params |= {
+                    f"encoders.{encoder}.{n}" for n, p in self.encoders[encoder].named_parameters()
+                }
+        if decoder_trainable:
+            trainable_params |= {
+                f"decoder.{n}" for n, p in self.decoder.named_parameters()
+            }
+        set_trainable_params(self, trainable_params)
+
+    def _state_dict_hook(self, destination, prefix, keep_vars):
+        """
+        Keep tok_embeddings inside of decoder state_dict
+
+        [!Note] This update changes the order of the OrderedDict
+        """
+        key = "tok_embeddings"
+        decoder_key = "decoder.tok_embeddings"
+        destination[decoder_key] = destination[key]
+        del destination[key]
+
+    def _load_state_dict_hook(self, state_dict, *args, **kwargs):
+        """ Undo the change from _state_dict_hook """
+        key = "tok_embeddings"
+        decoder_key = "decoder.tok_embeddings"
+        state_dict[key] = state_dict[decoder_key]
+        del state_dict[decoder_key]
+
+    def set_num_output_chunks(self, num_output_chunks: int) -> None:
+        """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
+        This should be called before the first forward pass, in the recipe."""
+        self.decoder.set_num_output_chunks(num_output_chunks)
+
+    def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
+        """Setup key value caches for attention calculation.
+
+        Args:
+            batch_size (int): batch size for the caches.
+            dtype (torch.dtype): dtype for the caches.
+        """
+        self.decoder.setup_caches(batch_size, dtype)
+
+    def caches_are_enabled(self) -> bool:
+        """Check if the key value caches are setup."""
+        return self.decoder.caches_are_enabled()
+
+    def reset_caches(self):
+        """Reset the key value caches."""
+        self.decoder.reset_caches()
+
+    def forward(
+        self,
+        tokens: Tensor,
+        *,
+        mask: Optional[Tensor] = None,
+        encoder_input: Optional[Dict[str, Dict[str, Any]]] = None,
+        input_pos: Optional[Tensor] = None,
+        **kwargs: Dict[str, Any],  # no need for encoder_mask
+    ) -> Tensor:
+        """
+        For the token IDs associated with each encoder, we are assuming that the number of tokens have already
+        been expanded to the number of tokens encoded for the given media. For example, if an image is tiled/patched
+        and tokenized to 100 tokens, we assume the text sequence already has 100 "image" tokens as placeholders.
+        """
+        embeds = self.tok_embeddings(tokens)
+        bsz, seq_len, embed_dim = embeds.shape
+        for encoder, inp in (encoder_input or {}).items():
+            encoder_embeds = self.encoders[encoder](**inp)
+            encoder_mask = (tokens == self.encoder_tokens[encoder]).expand(bsz, seq_len, embed_dim)
+            embeds[encoder_mask] = encoder_embeds
+
+        output = self.decoder(embeds, mask, input_pos)
         return output
