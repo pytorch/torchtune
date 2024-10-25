@@ -51,6 +51,8 @@ jobs:
 
           with open(github_output_file, "w") as handle:
             handle.write(f"matrix={new_dict}")
+
+          print(str(new_dict))
   build:
     needs: filter-python-versions
     name: ${{ matrix.repository }}
