@@ -33,7 +33,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: one
-        run: echo ${{ fromJSON(needs.generate-matrix.includes) }}
+        env:
+          A: ${{ fromJSON(needs.generate-matrix.includes) }}
+        run: echo $A
   # build:
   #   if: ${{ needs.generate-matrix.outputs.python_version != '3.9' }}
   #   needs: generate-matrix
