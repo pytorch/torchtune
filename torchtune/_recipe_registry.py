@@ -101,6 +101,10 @@ _ALL_RECIPES = [
                 name="llama3_2_vision/11B_full",
                 file_path="llama3_2_vision/11B_full.yaml",
             ),
+            Config(
+                name="llama3_2_vision/90B_full",
+                file_path="llama3_2_vision/90B_full.yaml",
+            ),
         ],
         supports_distributed=True,
     ),
@@ -288,6 +292,10 @@ _ALL_RECIPES = [
             Config(
                 name="llama3_2_vision/11B_lora",
                 file_path="llama3_2_vision/11B_lora.yaml",
+            ),
+            Config(
+                name="llama3_2_vision/90B_lora",
+                file_path="llama3_2_vision/90B_lora.yaml",
             ),
         ],
         supports_distributed=True,

@@ -258,7 +258,7 @@ def llama3_2_vision_90b(
     )
     decoder = llama3_2_vision_decoder(
         vocab_size=128_256,
-        num_layers=100,
+        num_layers=80,
         fusion_interval=4,
         num_special_tokens=8,
         num_heads=64,
@@ -356,7 +356,7 @@ def lora_llama3_2_vision_90b(
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
         vocab_size=128_256,
-        num_layers=100,
+        num_layers=80,
         fusion_interval=4,
         num_special_tokens=8,
         num_heads=64,
@@ -365,7 +365,7 @@ def lora_llama3_2_vision_90b(
         max_seq_len=131_072,
         encoder_max_seq_len=128_080,  # 20*6404
         rope_base=500000.0,
-        intermediate_dim=64040,
+        intermediate_dim=28672,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
