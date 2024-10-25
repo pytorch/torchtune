@@ -28,16 +28,18 @@ jobs:
       with-cuda: enable
       with-rocm: enable
       build-python-only: enable
-  test:
-    needs: generate-matrix
-    runs-on: ubuntu-latest
-    steps:
-      - name: step1
-        run: echo 'hello'
+  # test:
+  #   needs: generate-matrix
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: step1
+  #       run: echo 'hello'
   build:
     needs:
       - generate-matrix
-      - test
+      # - test
+    env:
+      PYTHON_VERSION: ${{ env.python_version }}
     if: env.PYTHON_VERSION != '3.9'
     name: ${{ matrix.repository }}
     uses: pytorch/test-infra/.github/workflows/build_wheels_linux.yml@main
