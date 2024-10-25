@@ -19,13 +19,33 @@ class Experts(nn.Module):
             self.up_proj = None
             self.act_fn = nonlinearity
 
-    def forward(self, x, use_token_choice=False):
-        # token choice forward, token choose topK experts
+    def forward(self, x, use_token_choice=False, num_local_tokens_per_expert=None):
+        # token choice forward, token choose topK experts, TODO: use cutlass groupGEMM instead of torch.matmul()
         if use_token_choice:
-            # TODO: 
+            assert num_local_tokens_per_expert is not None, "num_local_tokens_per_expert is needed for token choice expert forward"
+            # x shape [bs*slen*experts_per_expert, hidden_dim]
+            # x_e_GG_D_splits shape [num_experts, tokens_per_expert(varying), hidden_dim]
+            x_e_GG_D_splits = torch.split(x, split_size_or_sections=num_local_tokens_per_expert, dim=0)
+            out_GG_D_splits = []
+            for expert_index, x_GG_D in enumerate(x_e_GG_D_splits):
+                gate_proj = self.gate_proj[expert_index]
+                down_proj = self.down_proj[expert_index]
+                up_proj = None
+                if self.up_proj is not None:
+                    up_proj = self.up_proj[expert_index]
+
+                h = self.act_fn(torch.matmul(x_GG_D, gate_proj))
+                if up_proj is not None:
+                    h = h * torch.matmul(x_GG_D, down_proj)
+                # [tokens_per_expert, hidden_dim]
+                h = torch.matmul(h, down_proj)
+                out_GG_D_splits.append(h)
+            # shape [num_experts * tokens_per_expert(varying), hidden_dim]
+            out_EGG_D = torch.cat(out_GG_D_splits, dim=0)
+            return out_EGG_D
         # expert choice forward, expert choice topK tokens
         else:
-            # TODO: implement clamp()
+            # x shape [num_experts, tokens_per_expert, hidden_dim]
             x = x.view(num_experts, -1, dim_in)
             h = self.act_fn(torch.bmm(x, self.gate_proj))
             if self.up_proj is not None:
@@ -37,14 +57,9 @@ class Experts(nn.Module):
 def moe_experts(hidden_dim, model_dim, num_experts, swiglu, nonlinearity) -> FeedForward:
     return Experts(dim_in=hidden_dim, dim_out=model_dim, nonlinearity=nonlinearity, num_experts=num_experts, swiglu=swiglu)
 
-# Shared expert(single)
+# Shared expert / single expert
 def moe_expert(hidden_dim, model_dim, swiglu, nonlinearity) -> FeedForward:
     return Experts(dim_in=hidden_dim, dim_out=model_dim, nonlinearity=nonlinearity, num_experts=1, swiglu=swiglu)
-
-# For example, the Mixtral expert could be implemented like this
-def mixtral_expert(hidden_dim, model_dim, nonlinearity) -> FeedForward:
-    return Experts(dim_in=hidden_dim, dim_out=model_dim, nonlinearity=nonlinearity, num_experts=1, swiglu=True)
-
 ```
 
 ## Router and Moe Layer
@@ -75,11 +90,11 @@ class TokenChoiceTopKRouter(nn.Module):
         return top_scores, top_indices
 
 
-# For example, Mixtral uses TokenChoiceMoeLayer
+# Option 1: Least efficient approach: looping over experts
 class TokenChoiceMoeLayer(nn.Module):
 	def __init__(self):
-        # self.experts = nn.ModuleList(moe_expert() for _ in range(num_experts))
-        self.experts = moe_experts(hidden_dim, model_dim, num_experts)
+        self.experts = nn.ModuleList(moe_expert() for _ in range(num_experts))
+        self.shared_expert = moe_expert(hidden_dim, model_dim)
         self.router = TokenChoiceTopKRouter(hidden_dim, num_experts, experts_per_token)
 
     # Mixtral token choice forward implementation assuming we have a list of moe_expert()
@@ -97,21 +112,41 @@ class TokenChoiceMoeLayer(nn.Module):
             # compute hidden state for the each selected expert and multiply by the routing weights
             hidden_states = expert(x[token_idx]) * top_scores[token_idx, expert_idx]
             out.index_add_(0, token_idx, hidden_states)
+
+        out += self.shared_expert(x)
         return out
+
+
+# Option 2: More efficient approach using Cutlass Grouped GEMM
+class TokenChoiceMoeLayer(nn.Module):
+	def __init__(self):
+        self.experts = moe_experts(hidden_dim, model_dim, num_experts)
+        self.shared_expert = moe_expert(hidden_dim, model_dim)
+        self.router = TokenChoiceTopKRouter(hidden_dim, num_experts, experts_per_token)
 
     # unifying TC and EC MoeLayer forward function
     def forward(self, x):
         # x shape [bs*slen, hidden_dim]
         # router scores/indices shape [bs*slen, experts_per_token]
         top_scores, selected_experts_indices = self.router(x)
-        # [bs*slen*experts_per_token, hidden_dim]
-        selected_experts_indices_expanded = selected_experts_indices.reshape(-1, 1).expand(-1, D)
 
-        # [bs*slen*experts_per_token, hidden_dim], why do we gather x based on selected expert indices?
-        routed_input = torch.gather(x, dim=0, index=selected_experts_indices_expanded)
-        routed_input = routed_input * top_scores.reshape(-1, 1)
-        # [bs*slen*experts_per_token, hidden_dim], only experts_per_token will be activated for each token
-        routed_output = self.experts(routed_input, use_token_choice=True)
+        # arg sort experts, and group together tokens for each expert
+        # num_local_tokens_per_expert shape [num_experts,]: how many tokens for each expert
+        num_local_tokens_per_expert = torch.histc(selected_expert_indices.view(-1), bins=num_experts, min=0, max=num_experts)
+
+        # shape [bs*slen*experts_per_token,]
+        token_indices_experts_sorted = torch.argsort(selected_experts_indices.view(-1), stable=True)
+        # top_scores shape [bs*slen*experts_per_token,]
+        top_scores = top_scores.view(-1)[token_indices_sorted]
+        # token_indices_experts_sorted_expanded shape [bs*slen*experts_per_token, hidden_dim]
+        token_indices_experts_sorted_expanded = token_indices_experts_sorted.reshape(-1, 1).expand(-1, hidden_dim)
+
+        # routed_input shape [bs*slen*experts_per_token, hidden_dim]
+        routed_input = torch.gather(x, dim=0, index=token_indices_experts_sorted_expanded)
+        routed_input = routed_input * top_scores
+
+        # [bs*slen*experts_per_token, hidden_dim], only experts_per_token experts will be activated for each token
+        routed_output = self.experts(routed_input, use_token_choice=True, num_local_tokens_per_expert=num_local_tokens_per_expert)
 
         # shared expert
         if use_shared_expert:
@@ -126,7 +161,7 @@ class TokenChoiceMoeLayer(nn.Module):
             # [bs*slen*experts_per_token, hidden_dim]
             routed_output,
             # [bs*slen*experts_per_token, hidden_dim]
-            selected_experts_indices_expanded,
+            token_indices_experts_sorted_expanded,
         )
  ```
 
@@ -160,10 +195,37 @@ class ExpertChoiceTopKRouter(nn.Module):
         return top_scores, top_indices
 
 
+# Option 1: Least efficient approach: looping over experts similar to TokenChoiceMoeLayer
+class ExpertChoiceMoeLayer(nn.Module):
+    def __init__(self):
+        self.experts = nn.ModuleList(moe_expert() for _ in range(num_experts))
+        self.shared_expert = moe_expert(hidden_dim, model_dim)
+        self.router = ExpertChoiceTopKRouter(hidden_dim, num_experts, tokens_per_expert)
+
+    def forward(self, x):
+        # x shape [bs*slen, hidden_dim]
+        # router scores/indices shape [num_experts, tokens_per_expert]
+        top_scores, selected_token_indices = self.router(x)
+
+        # out shape [bs*slen, hidden_dim]
+        out = torch.zeros((batch_size * seq_len, hidden_dim))
+        for i in range(num_experts):
+            expert = self.experts[i]
+            # selected tokens [tokens_per_expert, hidden_dim]
+            selected_tokens = x[selected_token_indices[i]]
+            # compute hidden state for the each selected expert and multiply by the routing weights [tokens_per_expert, hidden_dim]
+            hidden_states = expert(selected_tokens) * top_scores[i]
+            out.index_add_(0, selected_token_indices[i], hidden_states)
+
+        out += self.shared_expert(x)
+        return out
+
+
+# Option 2: More efficient approach with GEMM
 class ExpertChoiceMoeLayer(nn.Module):
     def __init__(self):
         self.experts = moe_experts(hidden_dim, model_dim, num_experts)
-        self.shared_expert = moe_shared_expert(hidden_dim, model_dim)
+        self.shared_expert = moe_expert(hidden_dim, model_dim)
         self.router = ExpertChoiceTopKRouter(hidden_dim, num_experts, tokens_per_expert)
 
     def forward(self, x):
@@ -176,7 +238,7 @@ class ExpertChoiceMoeLayer(nn.Module):
         routed_input = torch.gather(x, dim=0, index=selected_token_indices_expanded)
         routed_input = routed_input * top_scores.reshape(-1, 1)
         # routed output shape [num_experts*tokens_per_expert, hidden_dim]
-        routed_output = self.experts(routed_input)
+        routed_output = self.experts(routed_input, use_token_choice=False)
 
         # shared expert
         if use_shared_expert:
