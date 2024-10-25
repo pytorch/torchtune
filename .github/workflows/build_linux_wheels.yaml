@@ -34,7 +34,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - name: set-matrix
+      - id: set-matrix
         shell: python
         env:
           A: ${{ needs.generate-matrix.outputs.matrix }}
