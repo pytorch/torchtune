@@ -36,7 +36,7 @@ jobs:
         env:
           A: ${{ needs.generate-matrix.outputs.matrix }}
         run: |
-          echo $A['includes']
+          echo $A['include']
           # for item in $A["includes"]; do
           #   python_version=$(echo "$item" | jq -r '.python_version')
           #   echo "Python version: $python_version"
