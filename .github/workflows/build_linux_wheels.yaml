@@ -31,8 +31,10 @@ jobs:
   filter-python-versions:
     needs: generate-matrix
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - name: one
+      - name: set-matrix
         shell: python
         env:
           A: ${{ needs.generate-matrix.outputs.matrix }}
