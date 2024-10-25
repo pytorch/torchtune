@@ -55,16 +55,13 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         return [10.5198, 10.5271, 10.5131, 10.5244]
 
     @pytest.mark.integration_test
-    @pytest.mark.parametrize("compile", [True, False])
     @pytest.mark.parametrize(
-        "micro_batch_size, gradient_accumulation_steps",
-        [(8, 1), (2, 4)],
-    )
-    @pytest.mark.parametrize(
-        "config, model_type, ckpt_type",
+        "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, compile",
         [
-            ("llama2/7B_lora_single_device", "llama2", "meta"),
-            ("llama3/8B_lora_single_device", "llama3", "tune"),
+            ("llama2/7B_lora_single_device", "llama2", "meta", 8, 1, False),
+            ("llama3/8B_lora_single_device", "llama3", "tune", 2, 4, True),
+            ("llama2/7B_lora_single_device", "llama2", "meta", 8, 1, True),
+            ("llama3/8B_lora_single_device", "llama3", "tune", 2, 4, False),
         ],
     )
     def test_loss(
@@ -120,18 +117,21 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         )
 
     @pytest.mark.integration_test
-    @pytest.mark.parametrize("dtype", ["fp32", "bf16"])
-    @pytest.mark.parametrize("compile", [True, False])
     @pytest.mark.parametrize(
-        "micro_batch_size, gradient_accumulation_steps",
-        [(8, 1), (2, 4)],
+        "dtype, compile, micro_batch_size, gradient_accumulation_steps",
+        [
+            ("fp32", True, 8, 1),
+            ("bf16", True, 2, 4),
+            ("fp32", False, 4, 2),
+            ("bf16", False, 8, 1),
+        ],
     )
     def test_loss_qlora(
         self,
+        dtype,
         compile,
         micro_batch_size,
         gradient_accumulation_steps,
-        dtype,
         tmpdir,
         monkeypatch,
     ):

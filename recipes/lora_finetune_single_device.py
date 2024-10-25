@@ -631,7 +631,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             labels = labels.reshape(-1)
             logits = logits.reshape(-1, logits.size(-1))
 
-        # Compute loss
         loss = self._loss_fn(logits, labels)
 
         # free logits otherwise it peaks backward memory
@@ -679,9 +678,17 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         torch.cuda.memory._record_memory_history()
 
                     utils.batch_to_device(batch, self._device)
-                    num_tokens += (batch["labels"] != self._loss_fn.ignore_index).sum()
 
-                    running_loss += self._loss_step(batch)
+                    # Calculate the number of unmasked tokens in the current batch
+                    # and increment the total number of tokens seen in the step
+                    current_num_tokens = (
+                        batch["labels"] != self._loss_fn.ignore_index
+                    ).sum()
+                    num_tokens += current_num_tokens
+
+                    # Loss is normalized by default so we multiply by the number of tokens
+                    # This way we can normalize by the total number of tokens if we're accumulating gradients
+                    running_loss += self._loss_step(batch) * current_num_tokens
 
                     # Step with optimizer
                     if (idx + 1) % self._gradient_accumulation_steps == 0:

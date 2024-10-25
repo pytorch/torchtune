@@ -625,8 +625,17 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     torch.cuda.memory._record_memory_history()
 
                 utils.batch_to_device(batch, self._device)
-                num_tokens += (batch["labels"] != self._loss_fn.ignore_index).sum()
-                running_loss += self._loss_step(batch)
+
+                # Calculate the number of unmasked tokens in the current batch
+                # and increment the total number of tokens seen in the step
+                current_num_tokens = (
+                    batch["labels"] != self._loss_fn.ignore_index
+                ).sum()
+                num_tokens += current_num_tokens
+
+                # Loss is normalized by default so we multiply by the number of tokens
+                # This way we can normalize by the total number of tokens if we're accumulating gradients
+                running_loss += self._loss_step(batch) * current_num_tokens
 
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
@@ -660,9 +669,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             # NOTE: for optim in backward, this assumes all optimizers have the same LR. This is currently
                             # true since we don't expose the ability to configure this yet.
                             "lr": get_lr(
-                                self._optimizer
-                                if not self._optimizer_in_bwd
-                                else self._optim_ckpt_wrapper,
+                                (
+                                    self._optimizer
+                                    if not self._optimizer_in_bwd
+                                    else self._optim_ckpt_wrapper
+                                ),
                             ),
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }

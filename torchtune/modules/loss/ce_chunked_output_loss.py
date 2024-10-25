@@ -80,4 +80,4 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
         for logits_chunk, labels_chunk in zip(logits, labels):
             total_loss += self.compute_cross_entropy(logits_chunk, labels_chunk)
 
-        return total_loss
+        return total_loss / total_elements
