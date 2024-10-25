@@ -39,6 +39,7 @@ class Experts(nn.Module):
                     h = h * torch.matmul(x_GG_D, down_proj)
                 # [tokens_per_expert, hidden_dim]
                 h = torch.matmul(h, down_proj)
+
                 out_GG_D_splits.append(h)
             # shape [num_experts * tokens_per_expert(varying), hidden_dim]
             out_EGG_D = torch.cat(out_GG_D_splits, dim=0)
@@ -57,7 +58,7 @@ class Experts(nn.Module):
 def moe_experts(hidden_dim, model_dim, num_experts, swiglu, nonlinearity) -> FeedForward:
     return Experts(dim_in=hidden_dim, dim_out=model_dim, nonlinearity=nonlinearity, num_experts=num_experts, swiglu=swiglu)
 
-# Shared expert / single expert
+# Shared expert / Single expert
 def moe_expert(hidden_dim, model_dim, swiglu, nonlinearity) -> FeedForward:
     return Experts(dim_in=hidden_dim, dim_out=model_dim, nonlinearity=nonlinearity, num_experts=1, swiglu=swiglu)
 ```
@@ -117,7 +118,7 @@ class TokenChoiceMoeLayer(nn.Module):
         return out
 
 
-# Option 2: More efficient approach using Cutlass Grouped GEMM
+# Option 2: More efficient approach: without looping over experts, using bmm
 class TokenChoiceMoeLayer(nn.Module):
 	def __init__(self):
         self.experts = moe_experts(hidden_dim, model_dim, num_experts)
@@ -195,7 +196,7 @@ class ExpertChoiceTopKRouter(nn.Module):
         return top_scores, top_indices
 
 
-# Option 1: Least efficient approach: looping over experts similar to TokenChoiceMoeLayer
+# Option 1: Least efficient approach: looping over experts
 class ExpertChoiceMoeLayer(nn.Module):
     def __init__(self):
         self.experts = nn.ModuleList(moe_expert() for _ in range(num_experts))
@@ -221,7 +222,7 @@ class ExpertChoiceMoeLayer(nn.Module):
         return out
 
 
-# Option 2: More efficient approach with GEMM
+# Option 2: More efficient approach: without looping over experts, using bmm 
 class ExpertChoiceMoeLayer(nn.Module):
     def __init__(self):
         self.experts = moe_experts(hidden_dim, model_dim, num_experts)
@@ -238,7 +239,7 @@ class ExpertChoiceMoeLayer(nn.Module):
         routed_input = torch.gather(x, dim=0, index=selected_token_indices_expanded)
         routed_input = routed_input * top_scores.reshape(-1, 1)
         # routed output shape [num_experts*tokens_per_expert, hidden_dim]
-        routed_output = self.experts(routed_input, use_token_choice=False)
+        routed_output = self.experts(routed_input)
 
         # shared expert
         if use_shared_expert:
