@@ -38,8 +38,11 @@ jobs:
           A: ${{ needs.generate-matrix.outputs.matrix }}
         run: |
           import os
+          import json
           a = os.environ["A"]
           print(type(a))
+          a_as_dict = json.loads(a)
+          print(type(a_as_dict))
           # new_dict = {"include": []}
           # for build in a["include"]:
           #   if build["python_version"] != "3.13":
