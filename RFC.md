@@ -89,6 +89,34 @@ class TokenChoiceMoeLayer(nn.Module):
             hidden_states = expert(x[token_idx]) * top_scores[token_idx, expert_idx]
             out.index_add_(0, token_idx, hidden_states)
         return out
+
+    def forward(self, x):
+        # x shape [bs*slen, hidden_dim]
+        # router scores/indices shape [bs*slen, experts_per_token]
+        top_scores, selected_experts_indices = self.router(x)
+        # [bs*slen*experts_per_token, hidden_dim]
+        selected_experts_indices_expanded = selected_experts_indices.reshape(-1, 1).expand(-1, D)
+        # [bs*slen*experts_per_token, hidden_dim]
+        routed_input = torch.gather(x, dim=0, index=selected_experts_indices_expanded)
+        routed_input = routed_input * top_scores.reshape(-1, 1)
+        # [bs*slen*experts_per_token, hidden_dim]
+        routed_output = self.experts(routed_input)
+
+        # shared expert
+        if use_shared_expert:
+            out = self.shared_expert(x)
+        else:
+            out = torch.zeros_like(x)
+
+        # add experts output
+        out.data = scatter_add_(
+            # [bs*slen, hidden_dim]
+            out.data,
+            # [bs*slen, hidden_dim]
+            routed_output.reshape(-1, experts_per_token, hidden_dim).sum(dim=1),
+            # [bs*slen*experts_per_token, hidden_dim]
+            selected_experts_indices_expanded,
+        )
  ```
 
 However, token choice routing has several pitfalls according to the expert choice [paper](https://arxiv.org/pdf/2002.05202).
