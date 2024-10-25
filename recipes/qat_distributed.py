@@ -659,7 +659,14 @@ class QATRecipeDistributed(FTRecipeInterface):
                         self._model.apply(enable_fq)
 
                 tokens = tokens.to(self._device)
-                num_tokens += tokens.numel()
+
+                # Calculate the number of unmasked tokens in the current batch
+                # and increment the total number of tokens seen in the step
+                current_num_tokens = (
+                    batch["labels"] != self._loss_fn.ignore_index
+                ).sum()
+                num_tokens += current_num_tokens
+
                 labels = labels.to(self._device)
                 mask = mask.to(self._device) if mask is not None else None
                 input_pos = (
@@ -679,23 +686,22 @@ class QATRecipeDistributed(FTRecipeInterface):
                     logits = logits.reshape(-1, logits.size(-1))
 
                 # Compute loss
-                loss = self._loss_fn(logits, labels)
+                running_loss += self._loss_fn(logits, labels) * current_num_tokens
                 # free logits otherwise it peaks backward memory
                 del logits
 
-                loss = loss / self._gradient_accumulation_steps
-                running_loss += loss
-                loss.backward()
-
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
+                    loss = running_loss / num_tokens
+                    loss.backward()
+
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
 
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
-                    loss_to_log = running_loss.item()
+                    loss_to_log = loss.item()
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
