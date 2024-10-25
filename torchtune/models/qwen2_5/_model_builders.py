@@ -305,9 +305,7 @@ def qwen2_5_tokenizer(
     merges_file: str,
     special_tokens_path: Optional[str] = None,
     max_seq_len: Optional[int] = None,
-    prompt_template: Optional[
-        _TemplateType
-    ] = "torchtune.models.qwen2_5._prompt_template.Qwen2_5ChatTemplate",
+    prompt_template: Optional[_TemplateType] = None,
     **kwargs,
 ) -> Qwen2Tokenizer:
     """

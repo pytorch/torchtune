@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 import regex as re
 
-from torchtune.data import Message, PromptTemplate, truncate
+from torchtune.data import ChatMLTemplate, Message, PromptTemplate, truncate
 from torchtune.modules.tokenizers import ModelTokenizer
 
 PRETOKENIZE_REGEX = (
@@ -191,7 +191,6 @@ class Qwen2Tokenizer(ModelTokenizer):
         )
 
         self.max_seq_len = max_seq_len
-
         self.prompt_template = prompt_template
 
     def _bpe_without_cache(self, token):
@@ -366,6 +365,9 @@ class Qwen2Tokenizer(ModelTokenizer):
         Raises:
             RuntimeError: If a message contains non-text content
         """
+        assert not isinstance(
+            self.prompt_template, ChatMLTemplate
+        ), "Using ChatMLTemplate with tokenize_messages will result in multiple <|im_*|> tokens wrapping each message."
         templated_messages = (
             self.prompt_template(messages)
             if self.prompt_template is not None
@@ -374,19 +376,65 @@ class Qwen2Tokenizer(ModelTokenizer):
 
         tokenized_messages = []
         mask = []
-        for index, message in enumerate(templated_messages):
+        for i, message in enumerate(templated_messages):
             tokens = []
+
+            # message header
+            if message.role == "ipython":
+                if i == 0 or templated_messages[i - 1].role != "ipython":
+                    tokens.append(self.im_start_id)
+                    tokens.extend(self.encode("user\n", add_bos=False, add_eos=False))
+                    tokens.extend(
+                        self.encode("<tool_response>\n", add_bos=False, add_eos=False)
+                    )
+                else:
+                    tokens.extend(
+                        self.encode("\n<tool_response>\n", add_bos=False, add_eos=False)
+                    )
+            elif message.role == "assistant" and message.ipython:
+                raise NotImplementedError("TODO")
+            else:
+                tokens.append(self.im_start_id)
+                tokens.extend(
+                    self.encode(message.role + "\n", add_bos=False, add_eos=False)
+                )
+
+            # message content
             for item in message.content:
                 if item["type"] == "text":
-                    tokens = tokens + self.encode(
-                        item["content"],
-                        add_bos=False,
-                        add_eos=False,
+                    tokens.extend(
+                        self.encode(
+                            item["content"],
+                            add_bos=False,
+                            add_eos=False,
+                        )
                     )
                 else:
                     raise RuntimeError(
                         f"Unsupported message content type: {item['type']}"
                     )
+
+            # message footer
+            if message.role == "ipython":
+                if (
+                    i == len(templated_messages) - 1
+                    or templated_messages[i + 1].role != "ipython"
+                ):
+                    tokens.extend(
+                        self.encode("\n</tool_response>", add_bos=False, add_eos=False)
+                    )
+                    tokens.append(self.im_end_id)
+                    tokens.extend(self.encode("\n", add_bos=False, add_eos=False))
+                else:
+                    tokens.extend(
+                        self.encode("\n</tool_response>", add_bos=False, add_eos=False)
+                    )
+            elif message.role == "assistant" and message.ipython:
+                raise NotImplementedError("TODO")
+            elif message.role != "assistant" or i != len(messages) - 1:
+                tokens.append(self.im_end_id)
+                tokens.extend(self.encode("\n", add_bos=False, add_eos=False))
+
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
 
@@ -429,3 +477,6 @@ class Qwen2Tokenizer(ModelTokenizer):
         sample["tokens"] = tokens
         sample["mask"] = mask
         return sample
+
+    def _tokenize_message(self):
+        pass
