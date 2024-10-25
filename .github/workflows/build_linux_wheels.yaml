@@ -35,7 +35,7 @@ jobs:
       m-outputs: ${{ fromJSON(needs.generate-matrix.outputs) }}
     steps:
       - name: one
-        run: echo $env.m-outputs
+        run: echo ${{ env.m-outputs }}
   # build:
   #   if: ${{ needs.generate-matrix.outputs.python_version != '3.9' }}
   #   needs: generate-matrix
