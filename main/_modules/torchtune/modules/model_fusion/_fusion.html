@@ -660,10 +660,11 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply extra &quot;embedding&quot; prefix to the state_dict key to</span>
 <span class="sd">        account for the FusionEmbedding wrapping.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">key</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;weight&quot;</span>
-        <span class="n">new_key</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;embedding.weight&quot;</span>
-        <span class="n">state_dict</span><span class="p">[</span><span class="n">new_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-        <span class="k">del</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">state_dict</span><span class="p">:</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;weight&quot;</span>
+            <span class="n">new_key</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;embedding.weight&quot;</span>
+            <span class="n">state_dict</span><span class="p">[</span><span class="n">new_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">del</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
 <div class="viewcode-block" id="FusionEmbedding.fusion_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionEmbedding.html#torchtune.modules.model_fusion.FusionEmbedding.fusion_params">[docs]</a>    <span class="k">def</span> <span class="nf">fusion_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
