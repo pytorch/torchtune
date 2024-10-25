@@ -40,7 +40,7 @@ jobs:
       # - test
     env:
       PYTHON_VERSION: ${{ env.python_version }}
-    if: env.PYTHON_VERSION != '3.9'
+    if: ${{ env.PYTHON_VERSION }} != '3.9'
     name: ${{ matrix.repository }}
     uses: pytorch/test-infra/.github/workflows/build_wheels_linux.yml@main
     strategy:
