@@ -40,7 +40,6 @@ class TestFullFinetuneDistributedRecipe:
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
-            "clip_grad_norm=100",
         ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self, model_type):
@@ -52,17 +51,14 @@ class TestFullFinetuneDistributedRecipe:
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize(
-        "micro_batch_size, gradient_accumulation_steps",
-        [(4, 1), (1, 4)],
-    )
-    @pytest.mark.parametrize(
-        "config, model_type, ckpt_type",
+        "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps",
         [
-            ("llama2/7B_full", "llama2", "hf"),
-            ("llama3/8B_full", "llama3", "tune"),
-            ("llama3/8B_full", "llama3", "tune"),
+            ("llama2/7B_full", "llama2", "hf", 1, 4),
+            ("llama3/8B_full", "llama3", "tune", 1, 4),
+            ("llama3/8B_full", "llama3", "tune", 4, 1),
         ],
     )
+    @pytest.mark.parametrize("optim_in_bwd", [True, False])
     @gpu_test(gpu_count=2)
     def test_loss(
         self,
@@ -71,7 +67,7 @@ class TestFullFinetuneDistributedRecipe:
         config,
         model_type,
         ckpt_type,
-        ategy,
+        optim_in_bwd,
         tmpdir,
         monkeypatch,
     ):
@@ -102,6 +98,13 @@ class TestFullFinetuneDistributedRecipe:
         """.split()
         model_config = MODEL_TEST_CONFIGS[model_type]
         cmd = cmd + self._get_test_config_overrides() + model_config
+        # "optimizer_in_bwd=True" would free gradient info before clip_grad, causing
+        # wrong grad_norm, so we only test one of them each time. But loss values
+        # should be the same.
+        if not optim_in_bwd:
+            cmd.append("clip_grad_norm=100")
+        else:
+            cmd.append("optimizer_in_bwd=True")
 
         monkeypatch.setattr(sys, "argv", cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")

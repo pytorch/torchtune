@@ -67,7 +67,7 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True
-custom_sharded_layers: ['tok_embeddings', 'output']
+custom_sharded_layers: ['decoder.tok_embeddings']
 dtype: bf16
 
 # Logging
