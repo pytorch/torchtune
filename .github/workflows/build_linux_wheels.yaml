@@ -28,41 +28,35 @@ jobs:
       with-cuda: enable
       with-rocm: enable
       build-python-only: enable
+  # TODO: Remove `filter-python-version` after PyArrow releases v18
   filter-python-versions:
     needs: generate-matrix
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - id: set-matrix
+      - name: Filter matrix to exclude Python 3.13
+        id: set-matrix
         shell: python
         env:
-          A: ${{ needs.generate-matrix.outputs.matrix }}
+          input-matrix: ${{ needs.generate-matrix.outputs.matrix }}
         run: |
           import os
           import json
 
-          a = os.environ["A"]
+          # Grab environment variables
+          input_matrix = json.loads(os.environ["input-matrix"])
           github_output_file = os.environ["GITHUB_OUTPUT"]
-          a_as_dict = json.loads(a)
 
-          new_dict = {"include": []}
-          for build in a_as_dict["include"]:
-            if build["python_version"] != "3.13":
-              new_dict["include"].append(build)
+          # Filter out any builds for 3.13
+          filtered_matrix = {"include": []}
+          for build in input_matrix["include"]:
+            if build["python_version"] != "3.9":
+              filtered_matrix["include"].append(build)
 
+          # Write the new matrix to the default outputs file
           with open(github_output_file, "w") as handle:
-            handle.write(f"matrix={json.dumps(new_dict)}")
-  check-output:
-    needs: filter-python-versions
-    runs-on: ubuntu-latest
-    steps:
-      - name: asdf
-        shell: python
-        env:
-          A: ${{ needs.filter-python-versions.outputs.matrix }}
-        run: |
-          print("hello")
+            handle.write(f"matrix={json.dumps(filtered_matrix)}")
   build:
     needs: filter-python-versions
     name: ${{ matrix.repository }}
