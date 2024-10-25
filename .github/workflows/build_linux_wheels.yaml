@@ -34,9 +34,9 @@ jobs:
     steps:
       - name: one
         env:
-          A: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
+          A: ${{ needs.generate-matrix.outputs.matrix }}
         run: |
-          echo $A
+          echo $A['includes']
           # for item in $A["includes"]; do
           #   python_version=$(echo "$item" | jq -r '.python_version')
           #   echo "Python version: $python_version"
