@@ -31,14 +31,14 @@ jobs:
   test:
     needs: generate-matrix
     runs-on: ubuntu-latest
-    shell: python
     steps:
       - name: one
+        shell: python
         env:
           A: ${{ needs.generate-matrix.outputs.matrix }}
         run: |
           import os
-          a = os.getenv("A")
+          a = os.environ["A"]
           new_dict = {"include": []}
           for build in a["include"]:
             if build["python_version"] != "3.13":
