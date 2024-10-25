@@ -60,7 +60,7 @@ jobs:
       - name: asdf
         shell: python
         env:
-          A: ${{ needs.filter-python-versions.outputs }}
+          A: ${{ needs.filter-python-versions.outputs.matrix }}
         run: |
           print("hello")
   build:
