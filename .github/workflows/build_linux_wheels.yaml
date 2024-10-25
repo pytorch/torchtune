@@ -54,6 +54,16 @@ jobs:
 
           with open(github_output_file, "r") as handle:
             print(handle.read())
+  check-output:
+    needs: filter-python-versions
+    runs-on: ubuntu-latest
+    steps:
+      - name: asdf
+        shell: python
+        env:
+          A: ${{ needs.filter-python-versions.outputs.matrix }}
+        run: |
+          print("hello")
   build:
     needs: filter-python-versions
     name: ${{ matrix.repository }}
