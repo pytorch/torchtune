@@ -382,8 +382,7 @@ class Qwen2Tokenizer(ModelTokenizer):
             # message header
             if message.role == "ipython":
                 if i == 0 or templated_messages[i - 1].role != "ipython":
-                    tokens.append(self.im_start_id)
-                    tokens.extend(self.encode("user\n", add_bos=False, add_eos=False))
+                    self._add_message_start_tokens(tokens, "user")
                     tokens.extend(
                         self.encode("<tool_response>\n", add_bos=False, add_eos=False)
                     )
@@ -391,13 +390,12 @@ class Qwen2Tokenizer(ModelTokenizer):
                     tokens.extend(
                         self.encode("\n<tool_response>\n", add_bos=False, add_eos=False)
                     )
-            elif message.role == "assistant" and message.ipython:
-                raise NotImplementedError("TODO")
             else:
-                tokens.append(self.im_start_id)
-                tokens.extend(
-                    self.encode(message.role + "\n", add_bos=False, add_eos=False)
-                )
+                self._add_message_start_tokens(tokens, message.role)
+                if message.role == "assistant" and message.ipython:
+                    tokens.extend(
+                        self.encode("<tool_call>\n", add_bos=False, add_eos=False)
+                    )
 
             # message content
             for item in message.content:
@@ -423,17 +421,18 @@ class Qwen2Tokenizer(ModelTokenizer):
                     tokens.extend(
                         self.encode("\n</tool_response>", add_bos=False, add_eos=False)
                     )
-                    tokens.append(self.im_end_id)
-                    tokens.extend(self.encode("\n", add_bos=False, add_eos=False))
+                    self._add_message_end_tokens(tokens)
                 else:
                     tokens.extend(
                         self.encode("\n</tool_response>", add_bos=False, add_eos=False)
                     )
-            elif message.role == "assistant" and message.ipython:
-                raise NotImplementedError("TODO")
-            elif message.role != "assistant" or i != len(messages) - 1:
-                tokens.append(self.im_end_id)
-                tokens.extend(self.encode("\n", add_bos=False, add_eos=False))
+            else:
+                if message.role == "assistant" and message.ipython:
+                    tokens.extend(
+                        self.encode("\n</tool_call>", add_bos=False, add_eos=False)
+                    )
+                if message.role != "assistant" or i != len(messages) - 1:
+                    self._add_message_end_tokens(tokens)
 
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
@@ -478,5 +477,10 @@ class Qwen2Tokenizer(ModelTokenizer):
         sample["mask"] = mask
         return sample
 
-    def _tokenize_message(self):
-        pass
+    def _add_message_start_tokens(self, tokens, role):
+        tokens.append(self.im_start_id)
+        tokens.extend(self.encode(f"{role}\n", add_bos=False, add_eos=False))
+
+    def _add_message_end_tokens(self, tokens):
+        tokens.append(self.im_end_id)
+        tokens.extend(self.encode("\n", add_bos=False, add_eos=False))

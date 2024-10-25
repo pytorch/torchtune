@@ -88,7 +88,7 @@ class TestQwenTokenizer:
         messages = [
             Message(role="system", content="a"),
             Message(role="user", content="b"),
-            Message(role="assistant", content="<tool_call>test call</tool_call>"),
+            Message(role="assistant", content="test call", ipython=True),
             Message(role="ipython", content="test response"),
             Message(role="assistant", content=""),
         ]
@@ -114,10 +114,12 @@ class TestQwenTokenizer:
             249,
             94,
             151657,
+            94,
             83,
             269,
             107,
             330,
+            94,
             151658,
             151645,
             94,
@@ -165,7 +167,9 @@ class TestQwenTokenizer:
             "<|im_start|>user\n"
             "b<|im_end|>\n"
             "<|im_start|>assistant\n"
-            "<tool_call>test call</tool_call><|im_end|>\n"
+            "<tool_call>\n"
+            "test call\n"
+            "</tool_call><|im_end|>\n"
             "<|im_start|>user\n"
             "<tool_response>\n"
             "test response\n"
@@ -185,6 +189,7 @@ def _test_tokenize_messages(
     tokenizer, messages, expected_tokens, expected_formatted_messages
 ):
     tokens, mask = tokenizer.tokenize_messages(messages)
+    assert len(tokens) == len(mask)
     assert expected_tokens == tokens
     formatted_messages = tokenizer.decode(tokens)
     assert expected_formatted_messages == formatted_messages
