@@ -39,11 +39,12 @@ jobs:
         run: |
           import os
           a = os.environ["A"]
-          new_dict = {"include": []}
-          for build in a["include"]:
-            if build["python_version"] != "3.13":
-              new_dict["include"].append(build)
-          print("hello")
+          print(a)
+          # new_dict = {"include": []}
+          # for build in a["include"]:
+          #   if build["python_version"] != "3.13":
+          #     new_dict["include"].append(build)
+          # print("hello")
   # build:
   #   if: ${{ needs.generate-matrix.outputs.python_version != '3.9' }}
   #   needs: generate-matrix
