@@ -9,7 +9,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
 
 import torch
@@ -408,6 +408,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
         base_model_state_dict: Dict[str, Any],
+        custom_sharded_layers: Optional[List[str]] = None,
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
     ) -> nn.Module:
         """
@@ -445,28 +446,16 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
-        # For FSDP sharding, we can condition on either the module or its name
-        # Shard conditions should be callables taking name (relative to model root)
-        # and the module itself and returning a bool on whether to shard the given module
-
-        # Shard transformer decoder layers (or AC-wrapped versions)
-        # Alternatively we could condition on the module type (TransformerDecoder or CheckpointWrapper)
-        # But directly using the name is more concise
-        def _is_layer_name(name: str, module: nn.Module) -> bool:
-            """
-            Return True for layers.i and False for all other module names
-            Covers sharding for both AC-wrapped and non-AC-wrapped modules in one shot
-            """
-            name_list = name.split(".")
-            return (
-                len(name_list) == 2
-                and name_list[0] == "layers"
-                and str.isdigit(name_list[1])
+        # For FSDP sharding
+        fsdp_shard_conditions = [
+            partial(
+                training.get_shard_conditions,
+                names_to_match=custom_sharded_layers,
             )
-
+        ]
         training.shard_model(
             model=model,
-            shard_conditions=[_is_layer_name],
+            shard_conditions=fsdp_shard_conditions,
             cpu_offload=fsdp_cpu_offload,
             reshard_after_forward=reshard_after_forward,
         )
@@ -624,13 +613,15 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             sampler=sampler,
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
-            collate_fn=partial(
-                collate_fn,
-                padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
-            )
-            if not packed
-            else padded_collate_packed,
+            collate_fn=(
+                partial(
+                    collate_fn,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else padded_collate_packed
+            ),
         )
 
         if self._is_rank_zero:
@@ -773,7 +764,13 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     torch.cuda.memory._record_memory_history()
 
                 utils.batch_to_device(batch, self._device)
-                num_tokens += batch["tokens"].numel()
+
+                # Calculate the number of unmasked tokens in the current batch
+                # and increment the total number of tokens seen in the step
+                current_num_tokens = (
+                    batch["labels"] != self._loss_fn.ignore_index
+                ).sum()
+                num_tokens += current_num_tokens
 
                 # Shape [b, s], needed for the loss not the model
                 labels = batch.pop("labels")
@@ -792,17 +789,17 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     logits = logits.reshape(-1, logits.size(-1))
 
                 # Compute loss
-                loss = self._loss_fn(logits, labels)
+                # Loss is normalized by default so we multiply by the number of tokens
+                # This way we can normalize by the total number of tokens if we're accumulating gradients
+                running_loss += self._loss_fn(logits, labels) * current_num_tokens
 
                 # free logits otherwise it peaks backward memory
                 del logits
 
-                loss = loss / self._gradient_accumulation_steps
-                running_loss += loss
-                loss.backward()
-
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
+                    loss = running_loss / num_tokens
+                    loss.backward()
                     if self._clip_grad_norm is not None:
                         grad_norm = torch.nn.utils.clip_grad_norm_(
                             self._model.parameters(),
@@ -815,7 +812,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
-                    loss_to_log = running_loss.item()
+                    loss_to_log = loss.item()
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
