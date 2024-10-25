@@ -51,7 +51,7 @@ jobs:
           # Filter out any builds for 3.13
           filtered_matrix = {"include": []}
           for build in input_matrix["include"]:
-            if build["python_version"] != "3.9":
+            if build["python_version"] != "3.13":
               filtered_matrix["include"].append(build)
 
           # Write the new matrix to the default outputs file
