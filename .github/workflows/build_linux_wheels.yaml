@@ -35,7 +35,9 @@ jobs:
       - name: step1
         run: echo 'PYTHON_VERSION=$matrix.python_version' > $GITHUB_ENV
   build:
-    needs: generate-matrix
+    needs:
+      - generate-matrix
+      - test
     if: ${{ vars.PYTHON_VERSION }} != '3.9'
     name: ${{ matrix.repository }}
     uses: pytorch/test-infra/.github/workflows/build_wheels_linux.yml@main
