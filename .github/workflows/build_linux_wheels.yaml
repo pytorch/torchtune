@@ -31,9 +31,11 @@ jobs:
   test:
     needs: generate-matrix
     runs-on: ubuntu-latest
+    env:
+      m-outputs: ${{ fromJSON(needs.generate-matrix.outputs) }}
     steps:
       - name: one
-        run: echo ${{ needs.generate-matrix.outputs }}
+        run: echo $env.m-outputs
   # build:
   #   if: ${{ needs.generate-matrix.outputs.python_version != '3.9' }}
   #   needs: generate-matrix
