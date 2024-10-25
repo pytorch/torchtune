@@ -885,23 +885,31 @@ class KDRecipeDistributed(FTRecipeInterface):
                 batch = {k: v.to(self._device) for k, v in batch.items()}
                 num_tokens += batch["tokens"].numel()
 
+                # Calculate the number of unmasked tokens in the current batch
+                # and increment the total number of tokens seen in the step
+                current_num_tokens = (
+                    batch["labels"] != self._loss_fn.ignore_index
+                ).sum()
+                num_tokens += current_num_tokens
+
                 class_loss, kd_loss = self._loss_step(batch)
-                loss = (1 - self._kd_ratio) * class_loss + self._kd_ratio * kd_loss
-                loss = loss / self._gradient_accumulation_steps
-                running_class_loss += class_loss / self._gradient_accumulation_steps
-                running_kd_loss += kd_loss / self._gradient_accumulation_steps
-                loss.backward()
+                running_class_loss += class_loss * current_num_tokens
+                running_kd_loss += kd_loss * current_num_tokens
 
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
+                    class_loss = running_class_loss / num_tokens
+                    kd_loss = running_kd_loss / num_tokens
+                    loss = (1 - self._kd_ratio) * class_loss + self._kd_ratio * kd_loss
+                    loss.backward()
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
                     self._lr_scheduler.step()
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
-                    class_loss_to_log = running_class_loss.item()
-                    kd_loss_to_log = running_kd_loss.item()
+                    class_loss_to_log = class_loss.item()
+                    kd_loss_to_log = kd_loss.item()
                     loss_to_log = (
                         1 - self._kd_ratio
                     ) * class_loss_to_log + self._kd_ratio * kd_loss_to_log
