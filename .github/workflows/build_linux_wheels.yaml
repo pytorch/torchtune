@@ -50,12 +50,7 @@ jobs:
               new_dict["include"].append(build)
 
           with open(github_output_file, "w") as handle:
-            handle.write(f"matrix={new_dict}")
-
-          print(str(new_dict))
-          print("asdf")
-          print(json.dumps(new_dict))
-          print("asdf")
+            handle.write(f"matrix={json.dumps(new_dict)}")
 
           with open(github_output_file, "r") as handle:
             print(handle.read())
