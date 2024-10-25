@@ -31,21 +31,19 @@ jobs:
   test:
     needs: generate-matrix
     runs-on: ubuntu-latest
+    shell: python
     steps:
       - name: one
         env:
           A: ${{ needs.generate-matrix.outputs.matrix }}
         run: |
-          matrix_builds="${A["include"]}"
-          # new_matrix_builds = ()
-          for item in "${matrix_builds[@]}"; do
-            python_version="${item["python_version"]}"
-            echo $python_version
-            # python_version = ${item["python_version"]}
-            # if "$python_version" != "3.13"; then
-            #   new_matrix_builds+=$item
-            # fi
-          done
+          import os
+          a = os.getenv("A")
+          new_dict = {"include": []}
+          for build in a["include"]:
+            if build["python_version"] != "3.13":
+              new_dict["include"].append(build)
+          print("hello")
   # build:
   #   if: ${{ needs.generate-matrix.outputs.python_version != '3.9' }}
   #   needs: generate-matrix
