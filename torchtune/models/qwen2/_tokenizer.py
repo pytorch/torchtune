@@ -23,28 +23,6 @@ QWEN2_SPECIAL_TOKENS = {
     "<|im_start|>": 151644,
     "<|im_end|>": 151645,
 }
-QWEN2_5_SPECIAL_TOKENS = {
-    **QWEN2_SPECIAL_TOKENS,
-    "<|object_ref_start|>": 151646,
-    "<|object_ref_end|>": 151647,
-    "<|box_start|>": 151648,
-    "<|box_end|>": 151649,
-    "<|quad_start|>": 151650,
-    "<|quad_end|>": 151651,
-    "<|vision_start|>": 151652,
-    "<|vision_end|>": 151653,
-    "<|vision_pad|>": 151654,
-    "<|image_pad|>": 151655,
-    "<|video_pad|>": 151656,
-    "<tool_call>": 151657,
-    "</tool_call>": 151658,
-    "<|fim_prefix|>": 151659,
-    "<|fim_middle|>": 151660,
-    "<|fim_suffix|>": 151661,
-    "<|fim_pad|>": 151662,
-    "<|repo_name|>": 151663,
-    "<|file_sep|>": 151664,
-}
 
 ENDOFTEXT = "<|endoftext|>"
 IM_START = "<|im_start|>"
@@ -104,8 +82,7 @@ class Qwen2Tokenizer(ModelTokenizer):
         merges_file (str): Path to merges.txt file.
             merges.txt contains all BPE merge operations, and this file is required to split a single word into
             byte-level BPE tokens.
-        special_tokens (Dict[str, int]): Special tokens to add to the tokenizer.
-            In general, should be QWEN2_SPECIAL_TOKENS for Qwen2 and QWEN2_5_SPECIAL_TOKENS for Qwen2.5
+        special_tokens (Dict[str, int]): Special tokens to add to the tokenizer. Default is QWEN2_SPECIAL_TOKENS.
         max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
             Default: None
         prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
@@ -143,7 +120,7 @@ class Qwen2Tokenizer(ModelTokenizer):
         self,
         path: str,
         merges_file: str,
-        special_tokens: Dict[str, int],
+        special_tokens: Dict[str, int] = QWEN2_SPECIAL_TOKENS,
         max_seq_len: Optional[int] = None,
         *,
         prompt_template: Optional[PromptTemplate] = None,
@@ -191,6 +168,7 @@ class Qwen2Tokenizer(ModelTokenizer):
         )
 
         self.max_seq_len = max_seq_len
+
         self.prompt_template = prompt_template
 
     def _bpe_without_cache(self, token):
@@ -376,26 +354,15 @@ class Qwen2Tokenizer(ModelTokenizer):
 
         tokenized_messages = []
         mask = []
-        for i, message in enumerate(templated_messages):
+        for index, message in enumerate(templated_messages):
             tokens = []
 
             # message header
-            if message.role == "ipython":
-                if i == 0 or templated_messages[i - 1].role != "ipython":
-                    self._add_message_start_tokens(tokens, "user")
-                    tokens.extend(
-                        self.encode("<tool_response>\n", add_bos=False, add_eos=False)
-                    )
-                else:
-                    tokens.extend(
-                        self.encode("\n<tool_response>\n", add_bos=False, add_eos=False)
-                    )
-            else:
-                self._add_message_start_tokens(tokens, message.role)
-                if message.role == "assistant" and message.ipython:
-                    tokens.extend(
-                        self.encode("<tool_call>\n", add_bos=False, add_eos=False)
-                    )
+            if message.role != "ipython":
+                tokens.append(self.im_start_id)
+                tokens.extend(
+                    self.encode(f"{message.role}\n", add_bos=False, add_eos=False)
+                )
 
             # message content
             for item in message.content:
@@ -413,26 +380,11 @@ class Qwen2Tokenizer(ModelTokenizer):
                     )
 
             # message footer
-            if message.role == "ipython":
-                if (
-                    i == len(templated_messages) - 1
-                    or templated_messages[i + 1].role != "ipython"
-                ):
-                    tokens.extend(
-                        self.encode("\n</tool_response>", add_bos=False, add_eos=False)
-                    )
-                    self._add_message_end_tokens(tokens)
-                else:
-                    tokens.extend(
-                        self.encode("\n</tool_response>", add_bos=False, add_eos=False)
-                    )
-            else:
-                if message.role == "assistant" and message.ipython:
-                    tokens.extend(
-                        self.encode("\n</tool_call>", add_bos=False, add_eos=False)
-                    )
-                if message.role != "assistant" or i != len(messages) - 1:
-                    self._add_message_end_tokens(tokens)
+            if message.role != "ipython" and (
+                message.role != "assistant" or index != len(messages) - 1
+            ):
+                tokens.append(self.im_end_id)
+                tokens.extend(self.encode("\n", add_bos=False, add_eos=False))
 
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
@@ -444,7 +396,7 @@ class Qwen2Tokenizer(ModelTokenizer):
         # Add the End-Of-Sequence token
         if add_eos:
             tokenized_messages.append(self.eos_id)
-            mask.append(message.masked)
+            mask.append(mask[-1])
 
         # Finally, truncate if necessary
         if self.max_seq_len:
@@ -476,11 +428,3 @@ class Qwen2Tokenizer(ModelTokenizer):
         sample["tokens"] = tokens
         sample["mask"] = mask
         return sample
-
-    def _add_message_start_tokens(self, tokens, role):
-        tokens.append(self.im_start_id)
-        tokens.extend(self.encode(f"{role}\n", add_bos=False, add_eos=False))
-
-    def _add_message_end_tokens(self, tokens):
-        tokens.append(self.im_end_id)
-        tokens.extend(self.encode("\n", add_bos=False, add_eos=False))

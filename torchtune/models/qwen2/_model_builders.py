@@ -101,7 +101,7 @@ def qwen2_tokenizer(
     merges_file: str = None,
     special_tokens_path: Optional[str] = None,
     max_seq_len: Optional[int] = None,
-    prompt_template: Optional[_TemplateType] = "torchtune.data.ChatMLTemplate",
+    prompt_template: Optional[_TemplateType] = None,
     **kwargs,
 ) -> Qwen2Tokenizer:
     """
@@ -118,7 +118,7 @@ def qwen2_tokenizer(
         prompt_template (Optional[_TemplateType]): optional specified prompt template.
             If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
             class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
-            prepend/append tags. Default is :class:`~torchtune.data.ChatMLTemplate`.
+            prepend/append tags. Default is None.
 
     Returns:
         Qwen2Tokenizer: Instantiation of the Qwen2 tokenizer

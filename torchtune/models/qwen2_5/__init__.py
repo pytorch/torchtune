@@ -31,7 +31,6 @@ from ._model_builders import (
     qwen2_5_7b_instruct,
     qwen2_5_tokenizer,
 )
-from ._prompt_template import Qwen2_5ChatTemplate
 
 __all__ = [
     "lora_qwen2_5_0_5b",
@@ -59,5 +58,4 @@ __all__ = [
     "qwen2_5_7b_base",
     "qwen2_5_7b_instruct",
     "qwen2_5_tokenizer",
-    "Qwen2_5ChatTemplate",
 ]

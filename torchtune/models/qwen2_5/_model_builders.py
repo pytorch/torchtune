@@ -8,7 +8,7 @@ from typing import List, Optional
 from torchtune.data._prompt_templates import _get_prompt_template, _TemplateType
 
 from torchtune.models.qwen2._component_builders import lora_qwen2, qwen2
-from torchtune.models.qwen2._tokenizer import QWEN2_5_SPECIAL_TOKENS, Qwen2Tokenizer
+from torchtune.models.qwen2_5._tokenizer import QWEN2_5_SPECIAL_TOKENS, Qwen2_5Tokenizer
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from torchtune.modules.tokenizers import parse_hf_tokenizer_json
@@ -307,11 +307,9 @@ def qwen2_5_tokenizer(
     max_seq_len: Optional[int] = None,
     prompt_template: Optional[_TemplateType] = None,
     **kwargs,
-) -> Qwen2Tokenizer:
+) -> Qwen2_5Tokenizer:
     """
     Tokenizer for Qwen2.5.
-
-    The only differences with the Qwen2 tokenizer are the special tokens and prompt template.
 
     Args:
         path (str): path to the vocab.json file.
@@ -328,7 +326,7 @@ def qwen2_5_tokenizer(
             Default is :class:`~torchtune.models.qwen2_5._prompt_template.Qwen2_5ChatTemplate`.
 
     Returns:
-        Qwen2Tokenizer: Instantiation of the Qwen2.5 tokenizer
+        Qwen2_5Tokenizer: Instantiation of the Qwen2.5 tokenizer
     """
     special_tokens = (
         QWEN2_5_SPECIAL_TOKENS
@@ -339,7 +337,7 @@ def qwen2_5_tokenizer(
     if prompt_template is not None:
         prompt_template = _get_prompt_template(prompt_template)
 
-    return Qwen2Tokenizer(
+    return Qwen2_5Tokenizer(
         path=path,
         merges_file=merges_file,
         special_tokens=special_tokens,
