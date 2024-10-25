@@ -39,7 +39,7 @@ jobs:
         run: |
           import os
           a = os.environ["A"]
-          print(a)
+          print(type(a))
           # new_dict = {"include": []}
           # for build in a["include"]:
           #   if build["python_version"] != "3.13":
