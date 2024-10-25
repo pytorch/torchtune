@@ -37,7 +37,11 @@ from torchtune.modules.peft import (
     validate_state_dict_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training import (
+    DummyProfiler,
+    PROFILER_KEY,
+    update_state_dict_for_classifier,
+)
 
 from tqdm import tqdm
 
@@ -156,7 +160,8 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
         the adapter weights and recipe state
         """
         # this is for eval only
-        cfg_checkpointer.pop("eval_adapter_checkpoint")
+        if "eval_adapter_checkpoint" in cfg_checkpointer:
+            cfg_checkpointer.pop("eval_adapter_checkpoint")
         self._checkpointer = config.instantiate(
             cfg_checkpointer,
             resume_from_checkpoint=self._resume_from_checkpoint,
@@ -436,7 +441,9 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
             # Since this is classification drop the output weights from base llama model
             # Otherwise load_state_dict would have key size mismatch
             ############################
-            del base_model_state_dict["output.weight"]
+            update_state_dict_for_classifier(
+                base_model_state_dict, model.named_parameters()
+            )
             model.load_state_dict(base_model_state_dict, strict=False)
             if lora_weights_state_dict:
                 model.load_state_dict(lora_weights_state_dict, strict=False)
@@ -694,6 +701,9 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
+            running_correct = 0.0
+            running_total = 0.0
+
             print("Starting epoch ", curr_epoch)
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
@@ -719,14 +729,20 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
 
                 tokens, labels = batch["tokens"], batch["labels"]
                 # Get the attention mask and position ids from the dataset if they
-                # exist. Currently, only sample packing in PackedDataset returns these
+                # exist. For classification, we return a mask of all 1's so model
+                # can attend to all tokens.
                 mask = batch.get("mask", None)  # shape [b, s, s]
+                if mask is not None:
+                    mask = mask.to(self._device)
+                    if mask.dim() == 2:
+                        mask = mask.unsqueeze(2).expand(-1, -1, mask.size(1))
+
                 input_pos = batch.get("input_pos", None)  # shape [b, s]
 
                 tokens = tokens.to(self._device)
                 num_tokens += tokens.numel()
                 labels = labels.to(self._device)
-                mask = mask.to(self._device) if mask is not None else None
+
                 input_pos = (
                     input_pos.to(self._device) if input_pos is not None else None
                 )
@@ -746,7 +762,7 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
                 # for the token before the last pad token. We always add an eos token
                 # to the end of the prompt from the dataloader, so we can find the end with that
                 sequence_lengths = (
-                    torch.eq(tokens, self._tokenizer.eos_id).int().argmax(-1) - 1
+                    torch.eq(tokens, self._tokenizer.eos_id).int().argmax(-1)
                 )
                 sequence_lengths = sequence_lengths % tokens.shape[-1]
                 sequence_lengths = sequence_lengths.to(logits.device)
@@ -769,6 +785,19 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
 
                 # Compute loss
                 loss = self._loss_fn(logits, labels.float())
+
+                ############################
+                # Compute accuracy
+                ############################
+                correct = (
+                    (torch.argmax(logits, dim=1) == torch.argmax(labels, dim=1))
+                    .sum()
+                    .item()
+                )
+                total = labels.size(0)
+                running_correct += correct
+                running_total += total
+
                 # free logits otherwise it peaks backward memory
                 del logits
 
@@ -801,6 +830,8 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
                             "train_loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                            "train_accuracy": running_correct / running_total,
+                            "train_batch_accuracy": correct / total,
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
@@ -866,6 +897,9 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
 
             self.epochs_run += 1
             print("Saving checkpoint")
+            # if last epoch, save the model
+            if curr_epoch == (self.total_epochs - 1):
+                self._save_adapter_weights_only = False
             self.save_checkpoint(epoch=curr_epoch)
 
         self._profiler.stop()
@@ -893,18 +927,30 @@ class LoRAFinetunePromptClassificationRecipeDistributed(FTRecipeInterface):
                 ############################
                 # Both are shape [b, s]
                 tokens, labels = batch["tokens"], batch["labels"]
+                # Get the attention mask and position ids from the dataset if they
+                # exist. For classification, we return a mask of all 1's so model
+                # can attend to all tokens.
+                mask = batch.get("mask", None)  # shape [b, s, s]
+                input_pos = batch.get("input_pos", None)  # shape [b, s]
 
                 tokens = tokens.to(self._device)
                 labels = labels.to(self._device)
+                if mask is not None:
+                    mask = mask.to(self._device)
+                    if mask.dim() == 2:
+                        mask = mask.unsqueeze(2).expand(-1, -1, mask.size(1))
+                input_pos = (
+                    input_pos.to(self._device) if input_pos is not None else None
+                )
 
-                logits = self._model(tokens, mask=None, input_pos=None)
+                logits = self._model(tokens, mask=mask, input_pos=input_pos)
 
                 # find the location of the eos_id token in the sequence
                 # Note, this is different from the huggingface implementation since that one looks
                 # for the token before the last pad token. We always add an eos token
                 # to the end of the prompt from the dataloader, so we can find the end with that
                 sequence_lengths = (
-                    torch.eq(tokens, self._tokenizer.eos_id).int().argmax(-1) - 1
+                    torch.eq(tokens, self._tokenizer.eos_id).int().argmax(-1)
                 )
                 sequence_lengths = sequence_lengths % tokens.shape[-1]
                 sequence_lengths = sequence_lengths.to(logits.device)

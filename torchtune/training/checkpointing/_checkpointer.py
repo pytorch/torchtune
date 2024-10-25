@@ -324,6 +324,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         model_type (ModelType): Model type of the model for which the checkpointer is being loaded
         output_dir (str): Directory to save the checkpoint files
         adapter_checkpoint (Optional[str]): Path to the adapter weights. Default is None
+        adapter_config (Optional[str]): Path to the adapter configuration file. Default is None
         recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. Default is None
         resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files to
             resume training from a previous run. Default is False
@@ -340,6 +341,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         model_type: ModelType,
         output_dir: str,
         adapter_checkpoint: Optional[str] = None,
+        adapter_config: Optional[str] = None,
         recipe_checkpoint: Optional[str] = None,
         resume_from_checkpoint: bool = False,
         safe_serialization: bool = False,
@@ -354,6 +356,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             if adapter_checkpoint
             else None
         )
+        self._adapter_config = Path(adapter_config) if adapter_config else None
 
         self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
@@ -473,6 +476,12 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         if self._adapter_checkpoint:
             adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
             converted_state_dict[training.ADAPTER_KEY] = adapter_state_dict
+
+        if self._adapter_config:
+            adapter_config = json.loads(self._adapter_config.read_text())
+            converted_state_dict[
+                training.ADAPTER_CONFIG
+            ] = convert_weights.peft_to_tune_adapter_config(adapter_config)
 
         if self._resume_from_checkpoint:
             recipe_state = safe_torch_load(self._recipe_checkpoint, mmap=False)
