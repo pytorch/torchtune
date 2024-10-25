@@ -34,7 +34,7 @@ jobs:
     steps:
       - name: one
         env:
-          A: ${{ needs.generate-matrix.outputs.matrix }}
+          A: ${{ needs.generate-matrix.outputs.matrix.include }}
         run: |
           matrix_builds="${A["include"]}"
           # new_matrix_builds = ()
