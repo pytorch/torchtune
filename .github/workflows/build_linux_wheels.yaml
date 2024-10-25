@@ -29,8 +29,8 @@ jobs:
       with-rocm: enable
       build-python-only: enable
   build:
-    if: ${{ matrix.python_version }} != '3.9'
     needs: generate-matrix
+    if: ${{ matrix.python_version }} != '3.9'
     name: ${{ matrix.repository }}
     uses: pytorch/test-infra/.github/workflows/build_wheels_linux.yml@main
     strategy:
