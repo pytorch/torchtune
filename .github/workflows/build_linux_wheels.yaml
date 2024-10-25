@@ -30,6 +30,7 @@ jobs:
       build-python-only: enable
   test:
     needs: generate-matrix
+    runs-on: ${{ matrix.validation_runner }}
     steps:
       - name: step1
         run: echo 'PYTHON_VERSION=$matrix.python_version' > $GITHUB_ENV
