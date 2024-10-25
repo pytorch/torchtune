@@ -36,11 +36,15 @@ jobs:
         env:
           A: ${{ needs.generate-matrix.outputs.matrix }}
         run: |
-          echo ${A["include"]}
-          # for item in $A["includes"]; do
-          #   python_version=$(echo "$item" | jq -r '.python_version')
-          #   echo "Python version: $python_version"
-          # done
+          matrix_builds = ${A["include"]}
+          # new_matrix_builds = ()
+          for item in ${matrix_builds[@]}; do
+            echo "$item"
+            # python_version = ${item["python_version"]}
+            # if "$python_version" != "3.13"; then
+            #   new_matrix_builds+=$item
+            # fi
+          done
   # build:
   #   if: ${{ needs.generate-matrix.outputs.python_version != '3.9' }}
   #   needs: generate-matrix
