@@ -53,6 +53,12 @@ jobs:
             handle.write(f"matrix={new_dict}")
 
           print(str(new_dict))
+          print("asdf")
+          print(json.dumps(new_dict))
+          print("asdf")
+
+          with open(github_output_file, "r") as handle:
+            print(handle.read())
   build:
     needs: filter-python-versions
     name: ${{ matrix.repository }}
