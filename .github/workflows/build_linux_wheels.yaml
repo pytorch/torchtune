@@ -31,8 +31,8 @@ jobs:
   test:
     needs: generate-matrix
     steps:
-      - run: |
-      echo 'PYTHON_VERSION=$matrix.python_version' > $GITHUB_ENV
+      - name: step1
+        run: echo 'PYTHON_VERSION=$matrix.python_version' > $GITHUB_ENV
   build:
     needs: generate-matrix
     if: ${{ vars.PYTHON_VERSION }} != '3.9'
