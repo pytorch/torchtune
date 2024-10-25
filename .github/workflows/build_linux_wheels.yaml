@@ -41,14 +41,17 @@ jobs:
           import json
 
           a = os.environ["A"]
+          github_output_file = os.environ["GITHUB_OUTPUT"]
+          print(github_output_file)
           a_as_dict = json.loads(a)
 
           new_dict = {"include": []}
           for build in a_as_dict["include"]:
-            if build["python_version"] != "3.9":
+            if build["python_version"] != "3.13":
               new_dict["include"].append(build)
 
-          print(new_dict)
+          with open(github_output_file, "w") as handle:
+            handle.write(f"matrix={json.dumps(new_dict)}")
   # build:
   #   if: ${{ needs.generate-matrix.outputs.python_version != '3.9' }}
   #   needs: generate-matrix
