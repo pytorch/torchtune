@@ -42,7 +42,6 @@ jobs:
 
           a = os.environ["A"]
           github_output_file = os.environ["GITHUB_OUTPUT"]
-          print(github_output_file)
           a_as_dict = json.loads(a)
 
           new_dict = {"include": []}
@@ -51,7 +50,7 @@ jobs:
               new_dict["include"].append(build)
 
           with open(github_output_file, "w") as handle:
-            handle.write(f"matrix={json.dumps(new_dict)}")
+            handle.write(f"matrix={new_dict}")
   build:
     needs: filter-python-versions
     name: ${{ matrix.repository }}
