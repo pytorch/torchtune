@@ -38,7 +38,7 @@ jobs:
         run: |
           matrix_builds = ${A["include"]}
           # new_matrix_builds = ()
-          for item in ${matrix_builds[@]}; do
+          for item in "${matrix_builds[@]}"; do
             echo "$item"
             # python_version = ${item["python_version"]}
             # if "$python_version" != "3.13"; then
