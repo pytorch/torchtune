@@ -118,7 +118,7 @@ class TokenChoiceMoeLayer(nn.Module):
         return out
 
 
-# Option 2: More efficient approach: without looping over experts, using bmm
+# Option 2: More efficient approach: without looping over experts
 class TokenChoiceMoeLayer(nn.Module):
 	def __init__(self):
         self.experts = moe_experts(hidden_dim, model_dim, num_experts)
@@ -222,7 +222,7 @@ class ExpertChoiceMoeLayer(nn.Module):
         return out
 
 
-# Option 2: More efficient approach: without looping over experts, using bmm 
+# Option 2: More efficient approach: without looping over experts, using bmm
 class ExpertChoiceMoeLayer(nn.Module):
     def __init__(self):
         self.experts = moe_experts(hidden_dim, model_dim, num_experts)
