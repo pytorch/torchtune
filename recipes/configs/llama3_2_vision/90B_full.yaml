@@ -59,6 +59,7 @@ optimizer:
   _component_: torch.optim.AdamW
   lr: 2e-5
   fused: True
+
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 clip_grad_norm: 1.0
