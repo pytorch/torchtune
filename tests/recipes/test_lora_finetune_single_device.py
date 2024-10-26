@@ -26,13 +26,11 @@ from tests.test_utils import (
     TOKENIZER_PATHS,
 )
 from torchtune import config
-from torchtune.utils import torch_version_ge
 
 
 class TestLoRAFinetuneSingleDeviceRecipe:
     def _get_test_config_overrides(self, dtype_str: str = "fp32", epochs: int = 2):
         return [
-            "batch_size=8",
             "device=cpu",
             f"dtype={dtype_str}",
             "dataset.train_on_input=False",
@@ -41,7 +39,6 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             "max_steps_per_epoch=2",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
-            "gradient_accumulation_steps=1",
             "clip_grad_norm=100",
         ] + dummy_alpaca_dataset_config()
 
@@ -58,15 +55,26 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         return [10.5198, 10.5271, 10.5131, 10.5244]
 
     @pytest.mark.integration_test
-    @pytest.mark.parametrize("compile", [True, False])
     @pytest.mark.parametrize(
-        "config, model_type, ckpt_type",
+        "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, compile",
         [
-            ("llama2/7B_lora_single_device", "llama2", "meta"),
-            ("llama3/8B_lora_single_device", "llama3", "tune"),
+            ("llama2/7B_lora_single_device", "llama2", "meta", 8, 1, False),
+            ("llama3/8B_lora_single_device", "llama3", "tune", 2, 4, True),
+            ("llama2/7B_lora_single_device", "llama2", "meta", 8, 1, True),
+            ("llama3/8B_lora_single_device", "llama3", "tune", 2, 4, False),
         ],
     )
-    def test_loss(self, compile, config, model_type, ckpt_type, tmpdir, monkeypatch):
+    def test_loss(
+        self,
+        compile,
+        micro_batch_size,
+        gradient_accumulation_steps,
+        config,
+        model_type,
+        ckpt_type,
+        tmpdir,
+        monkeypatch,
+    ):
         ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
         ckpt = model_type + "_" + ckpt_type
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -77,6 +85,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         cmd = f"""
         tune run lora_finetune_single_device \
             --config {config} \
+            batch_size={micro_batch_size} \
+            gradient_accumulation_steps={gradient_accumulation_steps} \
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -107,13 +117,24 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         )
 
     @pytest.mark.integration_test
-    @pytest.mark.parametrize("dtype", ["fp32", "bf16"])
-    @pytest.mark.parametrize("compile", [True, False])
-    @pytest.mark.skipif(
-        not torch_version_ge("2.4.0"),
-        reason="Please install a nightly build of torch to run this test.",
+    @pytest.mark.parametrize(
+        "dtype, compile, micro_batch_size, gradient_accumulation_steps",
+        [
+            ("fp32", True, 8, 1),
+            ("bf16", True, 2, 4),
+            ("fp32", False, 4, 2),
+            ("bf16", False, 8, 1),
+        ],
     )
-    def test_loss_qlora(self, compile, dtype, tmpdir, monkeypatch):
+    def test_loss_qlora(
+        self,
+        dtype,
+        compile,
+        micro_batch_size,
+        gradient_accumulation_steps,
+        tmpdir,
+        monkeypatch,
+    ):
         ckpt = "llama2_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
@@ -122,6 +143,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         cmd = f"""
         tune run lora_finetune_single_device
             --config llama2/7B_qlora_single_device \
+            batch_size={micro_batch_size} \
+            gradient_accumulation_steps={gradient_accumulation_steps} \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelMetaCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -179,6 +202,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         cmd_1 = f"""
         tune run lora_finetune_single_device \
             --config llama2/7B_lora_single_device \
+            batch_size=8 \
+            gradient_accumulation_steps=1 \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -202,6 +227,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         cmd_2 = f"""
         tune run lora_finetune_single_device \
             --config llama2/7B_lora_single_device \
+            batch_size=8 \
+            gradient_accumulation_steps=1 \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
