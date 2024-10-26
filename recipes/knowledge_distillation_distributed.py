@@ -883,7 +883,6 @@ class KDRecipeDistributed(FTRecipeInterface):
                     torch.cuda.memory._record_memory_history()
 
                 batch = {k: v.to(self._device) for k, v in batch.items()}
-                num_tokens += batch["tokens"].numel()
 
                 # Calculate the number of unmasked tokens in the current batch
                 # and increment the total number of tokens seen in the step
