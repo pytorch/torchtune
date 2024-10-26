@@ -55,6 +55,8 @@ class TestDPOLosses:
         ref_chosen_logprobs = torch.tensor([-0.5, -10.1, -0.1])
         ref_rejected_logprobs = torch.tensor([-0.1, -20.1, -0.1])
 
+
+
         return (
             policy_chosen_logprobs,
             policy_rejected_logprobs,
@@ -141,6 +143,12 @@ class TestDPOLosses:
         ref_chosen_logprobs = torch.tensor([-0.5, -10.1, -0.1])
         ref_rejected_logprobs = torch.tensor([-0.1, -20.1, -0.1])
 
+        policy_KL_logps = torch.tensor([-1.0, 0.25, 1.0])
+        reference_KL_logps = torch.tensor([0.4, 0.2, -0.2])
+
+        kl = (policy_KL_logps - reference_KL_logps).mean().detach()
+        kl = kl.mean().clamp(min=0)
+
         kl = torch.tensor([0])
 
         chosen_logratios = policy_chosen_logprobs - ref_chosen_logprobs
@@ -180,11 +188,17 @@ class TestDPOLosses:
             ref_rejected_logprobs,
         ) = loss_inputs
 
+        # We don't add it in general fixture, as it is only relevant for KTO
+        policy_KL_logps = torch.tensor([-1.0, 0.25, 1.0])
+        reference_KL_logps = torch.tensor([0.4, 0.2, -0.2])
+
         losses, *_ = kto_loss(
             policy_chosen_logprobs,
             policy_rejected_logprobs,
+            policy_KL_logps,
             ref_chosen_logprobs,
             ref_rejected_logprobs,
+            reference_KL_logps
         )
 
         expected_losses = torch.tensor([0.5000, 0.4975, 0.5225, 0.5000, 0.2709, 0.1101])
