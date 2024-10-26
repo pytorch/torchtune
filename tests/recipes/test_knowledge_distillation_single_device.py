@@ -47,19 +47,26 @@ class TestKDSingleDeviceRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "llama3": [11.0651, 11.0577, 11.0540, 11.7671],
+            "llama3": [11.7898, 11.7825, 11.7788, 11.7671],
         }
         return loss_values_map[model_type]
 
     @pytest.mark.integration_test
-    @pytest.mark.parametrize("compile", [True, False])
     @pytest.mark.parametrize(
-        "config, model_type, ckpt_type",
-        [
-            ("qwen2/knowledge_distillation_single_device", "llama3", "tune"),
-        ],
+        "micro_batch_size, gradient_accumulation_steps, compile",
+        [(8, 1, False), (2, 4, True), (2, 4, False)],
     )
-    def test_loss(self, compile, config, model_type, ckpt_type, tmpdir, monkeypatch):
+    def test_loss(
+        self,
+        micro_batch_size,
+        gradient_accumulation_steps,
+        compile,
+        tmpdir,
+        monkeypatch,
+    ):
+        config = "qwen2/knowledge_distillation_single_device"
+        model_type = "llama3"
+        ckpt_type = "tune"
         ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
         ckpt = model_type + "_" + ckpt_type
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -71,6 +78,8 @@ class TestKDSingleDeviceRecipe:
         tune run knowledge_distillation_single_device \
             --config {config} \
             output_dir={tmpdir} \
+            batch_size={micro_batch_size} \
+            gradient_accumulation_steps={gradient_accumulation_steps} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}] \

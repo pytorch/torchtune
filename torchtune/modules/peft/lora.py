@@ -95,10 +95,6 @@ class LoRALinear(nn.Module, AdapterModule):
         weight = linear.weight if not self._quantize_base else to_nf4(linear.weight)
         bias = None
         if self.use_bias:
-            if self._quantize_base:
-                raise NotImplementedError(
-                    "Quantized LoRALinear does not support bias at the moment."
-                )
             bias = linear.bias
         return weight, bias
 
@@ -123,6 +119,8 @@ class LoRALinear(nn.Module, AdapterModule):
         """
         if self._quantize_base:
             out = linear_nf4(input=x, weight=self.weight)
+            if self.use_bias:
+                out = out + self.bias
         else:
             out = F.linear(x, self.weight, self.bias)
         if self.disabled:

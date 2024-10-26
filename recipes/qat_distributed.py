@@ -233,9 +233,11 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=checkpoint_dict[training.OPT_KEY]
-            if self._resume_from_checkpoint
-            else None,
+            opt_state_dict=(
+                checkpoint_dict[training.OPT_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
         )
 
         # initialize loss
@@ -363,10 +365,10 @@ class QATRecipeDistributed(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
-        custom_sharded_layers: Optional[List[str]],
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
         model_state_dict: Dict[str, Any],
+        custom_sharded_layers: Optional[List[str]] = None,
         ac_mode: Optional[str] = None,
         ac_option: Optional[int] = None,
         quantizer_cfg: Optional[DictConfig] = None,
@@ -420,29 +422,13 @@ class QATRecipeDistributed(FTRecipeInterface):
         self._quantizer_mode = quantizer_mode
         model = quantizer.prepare(model)
 
-        # For FSDP sharding, we can condition on either the module or its name
-        # Shard conditions should be callables taking name (relative to model root)
-        # and the module itself and returning a bool on whether to shard the given module
-        fsdp_shard_conditions = []
-
-        # Shard transformer decoder layers (or AC-wrapped versions)
-        # Alternatively we could condition on the module type (TransformerDecoder or CheckpointWrapper)
-        # But directly using the name is more concise
-        def _is_layer_fqn(s: str) -> bool:
-            """
-            Return True for layers.i and False for all other module names
-            Covers sharding for both AC-wrapped and non-AC-wrapped modules in one shot
-            """
-            s_list = s.split(".")
-            return len(s_list) == 2 and s_list[0] == "layers" and str.isdigit(s_list[1])
-
-        fsdp_shard_conditions = [lambda n, m: _is_layer_fqn(n)]
-
-        # If wrapping any layers separately, we can add another shard condition
-        # A layer will be sharded if any of the fsdp_shard_conditions are met
-        if custom_sharded_layers:
-            fsdp_shard_conditions += [lambda n, m: n in custom_sharded_layers]
-
+        # For FSDP sharding
+        fsdp_shard_conditions = [
+            partial(
+                training.get_shard_conditions,
+                names_to_match=custom_sharded_layers,
+            )
+        ]
         training.shard_model(
             model=model,
             shard_conditions=fsdp_shard_conditions,
@@ -525,14 +511,16 @@ class QATRecipeDistributed(FTRecipeInterface):
             sampler=sampler,
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
-            collate_fn=partial(
-                padded_collate_sft,
-                padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
-            )
-            if not packed
-            else partial(
-                padded_collate_packed,
+            collate_fn=(
+                partial(
+                    padded_collate_sft,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else partial(
+                    padded_collate_packed,
+                )
             ),
         )
 
@@ -671,7 +659,14 @@ class QATRecipeDistributed(FTRecipeInterface):
                         self._model.apply(enable_fq)
 
                 tokens = tokens.to(self._device)
-                num_tokens += tokens.numel()
+
+                # Calculate the number of unmasked tokens in the current batch
+                # and increment the total number of tokens seen in the step
+                current_num_tokens = (
+                    batch["labels"] != self._loss_fn.ignore_index
+                ).sum()
+                num_tokens += current_num_tokens
+
                 labels = labels.to(self._device)
                 mask = mask.to(self._device) if mask is not None else None
                 input_pos = (
@@ -691,23 +686,22 @@ class QATRecipeDistributed(FTRecipeInterface):
                     logits = logits.reshape(-1, logits.size(-1))
 
                 # Compute loss
-                loss = self._loss_fn(logits, labels)
+                running_loss += self._loss_fn(logits, labels) * current_num_tokens
                 # free logits otherwise it peaks backward memory
                 del logits
 
-                loss = loss / self._gradient_accumulation_steps
-                running_loss += loss
-                loss.backward()
-
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
+                    loss = running_loss / num_tokens
+                    loss.backward()
+
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
 
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
-                    loss_to_log = running_loss.item()
+                    loss_to_log = loss.item()
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
