@@ -1,4 +1,4 @@
-# Config for multi-device LoRA finetuning in lora_finetune_classification_distributed.py
+# Config for multi-device LoRA finetuning in lora_finetune_completion_distributed.py
 # using a Llama2 7B model
 #
 # This config assumes that you've run the following command before launching
@@ -6,12 +6,12 @@
 #   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --hf-token <HF_TOKEN>
 #
 # To launch on 2 devices, run the following command from root:
-#   tune run --nnodes 1 --nproc_per_node 2 --recipes lora_finetune_classification_distributed.py --config llama2/7B_lora_classification
+#   tune run --nnodes 1 --nproc_per_node 2 --recipes lora_finetune_completion_distributed.py --config llama2/7B_lora_completion
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run --nnodes 1 --nproc_per_node 2 --recipes lora_finetune_classification_distributed.py --config llama2/7B_lora_classification checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run --nnodes 1 --nproc_per_node 2 --recipes lora_finetune_completion_distributed.py --config llama2/7B_lora_completion checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works best when the model is being fine-tuned on 2+ GPUs.
 # For single device LoRA finetuning please use 7B_lora_single_device.yaml
@@ -27,8 +27,8 @@ dataset_source: /nfs/scratch/qhsu/dataset/relevance_labeling__all_scale_query_en
 model:
   _component_: torchtune.models.llama2.lora_llama2_7b
   lora_attn_modules: ['q_proj', 'v_proj', 'k_proj']
-  apply_lora_to_mlp: true
-  apply_lora_to_output: true
+  apply_lora_to_mlp: True
+  apply_lora_to_output: True
   lora_rank: 24
   lora_alpha: 32
   lora_dropout: 0.05
@@ -47,22 +47,22 @@ checkpointer:
   recipe_checkpoint:
   output_dir: ${output_dir_parent}/${xp_name}
   model_type: LLAMA2
-resume_from_checkpoint: false
-save_adapter_weights_only: true
+resume_from_checkpoint: False
+save_adapter_weights_only: True
 
 # Dataset and Sampler
 dataset:
   _component_: torchtune.datasets.prompt_completion_dataset
   # source: /nfs/scratch/qhsu/dataset/relevance_labeling_esci__may_baseline_reorganized
   source: ${dataset_source}
-  from_disk: true
+  from_disk: True
   text_column: prompt
   label_column: completion
   split: train
   max_seq_len: 850
-  packed: false
-seed:
-shuffle: true
+  packed: False
+seed: null
+shuffle: True
 batch_size: 4
 
 # Hack for now to have separate validation dataset loader
@@ -70,12 +70,12 @@ val_dataset:
   _component_: torchtune.datasets.prompt_completion_dataset
   # source: /nfs/scratch/qhsu/dataset/relevance_labeling_esci__may_baseline_reorganized
   source: ${dataset_source}
-  from_disk: true
+  from_disk: True
   text_column: prompt
   label_column: completion
   split: test
   max_seq_len: 850
-  packed: false
+  packed: False
 val_batch_size: 32
 # validate_every_n_steps: 2 # Not working
 
@@ -85,7 +85,7 @@ optimizer:
   weight_decay: 0.01
   lr: 1e-4
 lr_scheduler:
-  _component_: torchtune.modules.get_cosine_schedule_with_warmup
+  _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
   num_warmup_steps: 40
 
 loss:
@@ -93,15 +93,9 @@ loss:
 
 # Training
 epochs: 3
-max_steps_per_epoch:
+max_steps_per_epoch: null
 gradient_accumulation_steps: 32
 clip_grad_norm: 1.0
-
-# Environment
-device: cuda
-dtype: bf16
-enable_activation_checkpointing: false
-
 # Logging
 output_dir: ${output_dir_parent}/${xp_name}/logs
 # enable logging to the built-in CometLogger
@@ -112,19 +106,35 @@ metric_logger:
   experiment_name: ${xp_name}
   tags: [lora, llama2_7B, completion, distributed]
 log_every_n_steps: 5
-log_peak_memory_stats: true
+log_peak_memory_stats: True
 
-# Profiling example, disabled by default since slows down a lot
+# Environment
+device: cuda
+dtype: bf16
+enable_activation_checkpointing: False
+
+# Show case the usage of pytorch profiler
+# Set enabled to False as it's only needed for debugging training
 profiler:
   _component_: torchtune.training.setup_torch_profiler
-  enabled: false
+
+  enabled: False
+
+  #Output directory of trace artifacts
   output_dir: ${output_dir}/profiling_outputs
-  cpu: true
-  cuda: true
-  profile_memory: true
-  with_stack: false
-  record_shapes: false
-  with_flops: false
+
+  #`torch.profiler.ProfilerActivity` types to trace
+  cpu: True
+  cuda: True
+
+  #trace options passed to `torch.profiler.profile`
+  profile_memory: False
+  with_stack: False
+  record_shapes: True
+  with_flops: False
+
+  # `torch.profiler.schedule` options:
+  # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
   wait_steps: 5
   warmup_steps: 5
   active_steps: 2
