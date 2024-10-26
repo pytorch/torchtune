@@ -120,9 +120,9 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
-        if self._log_peak_memory_stats and self._device.type == "cuda":
+        if self._log_peak_memory_stats and self._device.type != "cuda":
             log.info(
-                "log_peak_memory_stats was se to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
 
