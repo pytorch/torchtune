@@ -65,7 +65,7 @@ class InferenceRecipe:
     This works for text-only generation and image-text generation.
 
     This *does not* currently support the following features:
-        - torch.compile
+        - torch.compile for the prefill step
         - multi-GPU generation
         - batch generation
     """
