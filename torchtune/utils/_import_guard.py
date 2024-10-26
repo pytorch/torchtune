@@ -20,7 +20,7 @@ torchao_version = torchao.__version__
 _USE_NEW_TENSOR_CORE_TILED_LAYOUT_API = _is_fbcode() or (
     not _is_fbcode()
     and (
-        ("dev" not in torchao_version and torchao_version >= "0.6.0")
+        ("dev" not in torchao_version and torchao_version >= "0.7.0")
         or (
             "dev" in torchao_version
             and _nightly_version_ge(torchao_version, "2024-10-10")
