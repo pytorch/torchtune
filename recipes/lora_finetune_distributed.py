@@ -151,6 +151,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
+        if self._log_peak_memory_stats and self._device.type != "cuda":
+            log.info(
+                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+            )
+            self._log_peak_memory_stats = False
+
         # training attributes
         self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
         self._enable_activation_offloading = cfg.get(
@@ -833,6 +839,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                             log_dict.update(
                                 training.get_memory_stats(device=self._device)
                             )
+
                         if self._clip_grad_norm is not None:
                             log_dict.update({"grad_norm": grad_norm})
                         self._metric_logger.log_dict(

@@ -23,6 +23,7 @@ tokenizer:
 
 # Dataset
 dataset:
+  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.alpaca_dataset
 seed: null
 shuffle: True
@@ -54,6 +55,7 @@ loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
+compile: False
 
 # Training env
 device: cuda
@@ -70,4 +72,4 @@ metric_logger:
   log_dir: ${output_dir}
 output_dir: /tmp/alpaca-gemma-finetune
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True
