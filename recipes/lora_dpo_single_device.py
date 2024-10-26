@@ -30,10 +30,8 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 
-from torchtune.rlhf.loss import SimPOLoss
+from torchtune.rlhf.loss import SimPOLoss, KTOLoss
 from tqdm import tqdm
-
-from torchtune.torchtune.rlhf.loss import KTOLoss
 
 log = utils.get_logger("DEBUG")
 
@@ -374,9 +372,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             # See reference implementation in: https://github.com/huggingface/trl/blob/main/trl/data_utils.py
             if "chosen" in column_names and "rejected" in column_names:
                 ds = ds.map(self._unpair_row, batched=True, remove_columns=["chosen", "rejected"], num_proc=num_proc)
-
-
-
 
         sampler = DistributedSampler(
             ds,
