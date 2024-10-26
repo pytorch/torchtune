@@ -572,13 +572,28 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         intermediate_checkpoint = epoch + 1 < self.total_epochs
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
+        if self._is_rank_zero:
+            log.info(
+                "Saving checkpoint. This may take some time, depending on ",
+                "the size of your model. Getting full model state dict...",
+            )
+            start = time.perf_counter()
+
         cpu_state_dict = training.get_full_model_state_dict(
             self._model,
             self._is_rank_zero,
             device=self._device,
         )
 
+        if self._is_rank_zero:
+            log.info(
+                f"Getting full model state dict took {time.perf_counter() - start:.2f} secs"
+            )
+
         if intermediate_checkpoint:
+            start = time.perf_counter()
+            if self._is_rank_zero:
+                log.info("Getting optimizer state dict...")
             if not self._optimizer_in_bwd:
                 opt_state_dict = training.get_full_optimizer_state_dict(
                     self._optimizer,
@@ -591,12 +606,18 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     opt_state_dict[param] = training.get_full_optimizer_state_dict(
                         opt, self._is_rank_zero, device=self._device
                     )
+            log.info(
+                f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs"
+            )
         else:
             opt_state_dict = None
 
         # Now that we have the model and opt state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file
+
         if self._is_rank_zero:
+            log.info("Saving checkpoint...")
+            start = time.perf_counter()
             checkpoint_dict.update({training.MODEL_KEY: cpu_state_dict})
 
             # if training is in-progress, checkpoint the optimizer state and recipe state
@@ -617,6 +638,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 epoch=epoch,
                 intermediate_checkpoint=intermediate_checkpoint,
             )
+            log.info(f"Saving checkpoint took {time.perf_counter() - start:.2f} secs")
+
+        torch.distributed.barrier()
 
     def train(self) -> None:
         """
