@@ -12,8 +12,6 @@
 #    tune run --nproc_per_node 4 full_finetune_distributed --config llama3_2_vision/90B_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works best when the model is being fine-tuned on 2+ GPUs.
-# Single device full finetuning requires more memory optimizations. It's
-# best to use 90B_full_single_device.yaml for those cases.
 
 # Model arguments
 model:
