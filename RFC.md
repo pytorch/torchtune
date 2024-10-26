@@ -93,7 +93,7 @@ class TokenChoiceTopKRouter(nn.Module):
         return top_scores, top_indices
 
 
-# Option 1: Least efficient approach: looping over experts
+# Implementation 1: Least efficient approach: looping over experts
 class TokenChoiceMoeLayer(nn.Module):
 	def __init__(self):
         self.experts = nn.ModuleList(moe_experts(hidden_dim, model_dim, num_experts=1) for _ in range(num_experts))
@@ -119,7 +119,7 @@ class TokenChoiceMoeLayer(nn.Module):
         return out
 
 
-# Option 2: More efficient approach: without explicitly looping over experts, use_token_choice=True for expert's forward
+# Implementation 2: More efficient approach: without explicitly looping over experts, use_token_choice=True for expert's forward
 class TokenChoiceMoeLayer(nn.Module):
 	def __init__(self):
         self.experts = moe_experts(hidden_dim, model_dim, num_experts=num_experts)
@@ -192,7 +192,7 @@ class ExpertChoiceTopKRouter(nn.Module):
         return top_scores, top_indices
 
 
-# Option 1: Least efficient approach: looping over experts
+# Implementation 1: Least efficient approach: looping over experts
 class ExpertChoiceMoeLayer(nn.Module):
     def __init__(self):
         self.experts = nn.ModuleList(moe_experts(hidden_dim, model_dim, num_experts=1) for _ in range(num_experts))
@@ -218,14 +218,14 @@ class ExpertChoiceMoeLayer(nn.Module):
         return out
 
 
-# Option 2: More efficient approach: without looping over experts using torch.bmm
+# Implementation 2: More efficient approach: without looping over experts using torch.bmm
 class ExpertChoiceMoeLayer(nn.Module):
     def __init__(self):
         self.experts = moe_experts(hidden_dim, model_dim, num_experts=num_experts)
-        self.shared_expert = moe_expert(hidden_dim, model_dim, num_experts=1)
+        self.shared_expert = moe_experts(hidden_dim, model_dim, num_experts=1)
         self.router = ExpertChoiceTopKRouter(hidden_dim, num_experts, tokens_per_expert)
 
-    def forward(self, x):
+    def forward(self, x, infernece=False):
         # x shape [bs*slen, hidden_dim]
         # router scores/indices shape [num_experts, tokens_per_expert]
         top_scores, selected_token_indices = self.router(x)
