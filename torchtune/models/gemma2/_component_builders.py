@@ -22,7 +22,10 @@ from torchtune.modules import TransformerDecoder, TiedLinear
 from torchtune.models.gemma.gemma_norm_embedding import GemmaNormEmbeddings
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 from torchtune.models.gemma._component_builders import gemma_mlp, lora_gemma_mlp
-from torchtune.utils._import_guard import _SUPPORTS_FLEX_ATTENTION
+# from torchtune.utils._import_guard import _SUPPORTS_FLEX_ATTENTION
+# The flex attention implementation for gemma2 is not working yet
+# flex attention is disabled for now untill we solve the case
+_SUPPORTS_FLEX_ATTENTION = False
 
 import logging
 from torchtune.utils._logging import get_logger, log_once
@@ -132,11 +135,11 @@ def gemma2(
     """
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
     
-    mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
-    
     layers = torch.nn.ModuleList()
     
     for layer_idx in range(num_layers):
+        
+        mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
         
         self_att = _flex_or_native_gemma2_attention(
             embed_dim=embed_dim,
@@ -244,18 +247,6 @@ def lora_gemma2(
         TransformerDecoder: Instantiation of Gemma model with LoRA applied to
         a subset of the attention projections in each layer.
     """
-    if apply_lora_to_mlp:
-        mlp = lora_gemma_mlp(
-            dim=embed_dim,
-            hidden_dim=intermediate_dim,
-            lora_rank=lora_rank,
-            lora_alpha=lora_alpha,
-            lora_dropout=lora_dropout,
-            use_dora=use_dora,
-            quantize_base=quantize_base,
-        )
-    else:
-        mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim, quantize_base=quantize_base)
 
     tok_embeddings = GemmaNormEmbeddings(vocab_size, embed_dim)
     output_proj = TiedLinear(tok_embeddings)
@@ -263,6 +254,18 @@ def lora_gemma2(
     layers = torch.nn.ModuleList()
     
     for layer_idx in range(num_layers):
+        if apply_lora_to_mlp:
+            mlp = lora_gemma_mlp(
+                dim=embed_dim,
+                hidden_dim=intermediate_dim,
+                lora_rank=lora_rank,
+                lora_alpha=lora_alpha,
+                lora_dropout=lora_dropout,
+                use_dora=use_dora,
+                quantize_base=quantize_base,
+            )
+        else:
+            mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim, quantize_base=quantize_base)
         self_att = lora_gemma2_self_attention(
             lora_modules=lora_attn_modules,
             embed_dim=embed_dim,

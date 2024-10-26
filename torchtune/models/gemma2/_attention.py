@@ -12,7 +12,11 @@ import torch.nn.functional as F
 from torch import nn
 from torchtune.modules.attention_utils import _MaskType
 from torchtune.modules.kv_cache import KVCache
-from torchtune.utils._import_guard import _SUPPORTS_FLEX_ATTENTION
+
+# from torchtune.utils._import_guard import _SUPPORTS_FLEX_ATTENTION
+# The flex attention implementation for gemma2 is not working yet
+# flex attention is disabled for now untill we solve the case
+_SUPPORTS_FLEX_ATTENTION = False
 
 if _SUPPORTS_FLEX_ATTENTION:
     from torch.nn.attention.flex_attention import create_block_mask
@@ -132,6 +136,11 @@ class Gemma2Attention(nn.Module):
         else:
             self.scaling = self.head_dim**-0.5
 
+        # this flag indicates whether to update the kv-cache during forward
+        # passes. when disabled, we can have the cache setup but still
+        # perform normal forward passes
+        self.cache_enabled = False
+
     def setup_cache(
         self, batch_size: int, dtype: torch.dtype, max_seq_len: int
     ) -> None:
@@ -156,6 +165,7 @@ class Gemma2Attention(nn.Module):
                 head_dim=self.head_dim,
                 dtype=dtype,
             )
+            self.cache_enabled = True
 
     def reset_cache(self):
         """Reset the key value caches."""
@@ -283,7 +293,7 @@ class Gemma2Attention(nn.Module):
                 k = self.k_norm(k)
 
             # Update key-value cache
-            if self.kv_cache is not None:
+            if self.kv_cache is not None and self.cache_enabled:
                 k, v = self.kv_cache.update(k, v)
 
         q.mul_(self.scaling)
@@ -436,6 +446,11 @@ class FlexGemma2Attention(nn.Module):
             self.softcapping, self.scaling
         )
 
+        # this flag indicates whether to update the kv-cache during forward
+        # passes. when disabled, we can have the cache setup but still
+        # perform normal forward passes
+        self.cache_enabled = False
+
     def setup_cache(
         self, batch_size: int, dtype: torch.dtype, max_seq_len: int
     ) -> None:
@@ -460,6 +475,7 @@ class FlexGemma2Attention(nn.Module):
                 head_dim=self.head_dim,
                 dtype=dtype,
             )
+            self.cache_enabled = True
 
     def reset_cache(self):
         """Reset the key value caches."""
@@ -587,7 +603,7 @@ class FlexGemma2Attention(nn.Module):
                 k = self.k_norm(k)
 
             # Update key-value cache
-            if self.kv_cache is not None:
+            if self.kv_cache is not None and self.cache_enabled:
                 k, v = self.kv_cache.update(k, v)
 
         # TODO: how to avoid to compute same block mask at every layer ?

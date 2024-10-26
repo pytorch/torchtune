@@ -8,7 +8,10 @@ from typing import Any
 
 import torch
 
-from torchtune.utils._import_guard import _SUPPORTS_FLEX_ATTENTION
+# from torchtune.utils._import_guard import _SUPPORTS_FLEX_ATTENTION
+# The flex attention implementation for gemma2 is not working yet
+# flex attention is disabled for now untill we solve the case
+_SUPPORTS_FLEX_ATTENTION = False
 
 if _SUPPORTS_FLEX_ATTENTION:
     from functools import lru_cache
@@ -19,7 +22,9 @@ if _SUPPORTS_FLEX_ATTENTION:
         flex_attention,
     )
 
-    # flex_attention_compiled = torch.compile(flex_attention, dynamic=False)
+    flex_attention_compiled = torch.compile(
+        flex_attention, dynamic=False, mode="max-autotune"
+    )
 
     @lru_cache
     def create_block_mask_cached(score_mod, b, h, m, n, device="cuda"):
@@ -40,7 +45,7 @@ if _SUPPORTS_FLEX_ATTENTION:
     ) -> torch.Tensor:
         """
         Flex attention does not seem to work with my A6000 with the default options.
-        Using proposed options here: https://github.com/pytorch/pytorch/issues/133254
+        Using proposed options here: https://github.com/pytorch/torchtune/pull/1835#discussion_r1815058279
         """
         return flex_attention(
             q,
@@ -49,12 +54,8 @@ if _SUPPORTS_FLEX_ATTENTION:
             score_mod=score_mod,
             block_mask=block_mask,
             # kernel_options={
-            #     "BLOCK_M": 64,
-            #     "BLOCK_N": 64,
-            #     "BLOCK_M1": 32,
-            #     "BLOCK_N1": 64,
-            #     "BLOCK_M2": 64,
-            #     "BLOCK_N2": 32,
+            #     "BLOCK_M": 32,
+            #     "BLOCK_N": 32,
             # },
         )
 

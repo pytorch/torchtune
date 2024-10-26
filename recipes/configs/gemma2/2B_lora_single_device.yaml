@@ -37,7 +37,7 @@ model:
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/gemma-2b/
+  checkpoint_dir: /tmp/gemma-2-2b/
   checkpoint_files: [
     model-00001-of-00003.safetensors,
     model-00002-of-00003.safetensors,
