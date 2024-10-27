@@ -260,15 +260,21 @@ def tune_to_peft_adapter_weights(
     # re-use the _FROM_HF mapping for base model weights. We iterate over it twice:
     # once to add mappings for LoRA A matrices and once to add mappings for LoRA B matrices.
     for k, v in _TO_PEFT_KEYS.items():
-        full_mapping.update(
-            {
-                vv.replace(".weight", f".{k}.weight"): kk.replace(
-                    ".weight", f".{v}.weight"
+        for kk, vv in _FROM_META.items():
+            if vv is None:
+                continue
+            if "lora" in k:
+                full_mapping.update(
+                    {
+                        vv.replace(".weight", f".{k}.weight"): kk.replace(
+                            ".weight", f".{v}.weight"
+                        )
+                    }
                 )
-                for kk, vv in _FROM_HF.items()
-                if vv is not None
-            }
-        )
+            else:
+                full_mapping.update(
+                    {vv.replace(".weight", f".{k}"): kk.replace(".weight", f".{v}")}
+                )
 
     if head_dim is None:
         head_dim = dim // num_heads
