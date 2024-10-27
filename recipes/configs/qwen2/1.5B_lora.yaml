@@ -44,6 +44,7 @@ resume_from_checkpoint: False
 
 # Dataset and Sampler
 dataset:
+  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.alpaca_cleaned_dataset
 seed: null
 shuffle: True
@@ -66,6 +67,7 @@ loss:
 epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 8
+compile: False
 
 # Logging
 output_dir: /tmp/Qwen2-1.5B-Instruct-lora-finetune
@@ -73,7 +75,7 @@ metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True
 
 # Environment
 device: cuda
