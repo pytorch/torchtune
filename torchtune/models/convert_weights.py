@@ -260,7 +260,7 @@ def tune_to_peft_adapter_weights(
     # re-use the _FROM_HF mapping for base model weights. We iterate over it twice:
     # once to add mappings for LoRA A matrices and once to add mappings for LoRA B matrices.
     for k, v in _TO_PEFT_KEYS.items():
-        for kk, vv in _FROM_META.items():
+        for kk, vv in _FROM_HF.items():
             if vv is None:
                 continue
             if "lora" in k:
