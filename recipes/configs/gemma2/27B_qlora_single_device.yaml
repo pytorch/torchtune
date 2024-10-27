@@ -22,6 +22,7 @@ tokenizer:
 
 # Dataset
 dataset:
+  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.alpaca_dataset
 seed: null
 shuffle: True
@@ -64,7 +65,7 @@ batch_size: 4
 epochs: 3
 max_steps_per_epoch: null
 gradient_accumulation_steps: 4
-compile: False
+compile: False  # pytorch compile, set to true for perf/memory improvement
 
 # Training env
 device: cuda
@@ -82,7 +83,7 @@ metric_logger:
   log_dir: ${output_dir}
 output_dir: /tmp/alpaca-gemma2-27b-lora
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True
 
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training
