@@ -1,48 +1,45 @@
 # Config for single device LoRA finetuning in lora_finetune_single_device.py
-# using a Qwen2.5 7B model
+# using a Qwen2.5 1.5B model
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download Qwen/Qwen2.5-7B-Instruct --output-dir /tmp/Qwen2_5-7B-Instruct --ignore-patterns None
+#   tune download Qwen/Qwen2.5-1.5B-Instruct --output-dir /tmp/Qwen2_5-1_5B-Instruct --ignore-patterns None
 #
 # To launch on a single device, run the following command from root:
-#   tune run lora_finetune_single_device --config qwen2_5/7B_lora_single_device
+#   tune run lora_finetune_single_device --config qwen2_5/1_5B_lora_single_device
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run lora_finetune_single_device --config qwen2_5/7B_lora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run lora_finetune_single_device --config qwen2_5/1_5B_lora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works only for training on single device.
 
 
 # Model Arguments
 model:
-  _component_: torchtune.models.qwen2_5.lora_qwen2_5_7b_instruct
+  _component_: torchtune.models.qwen2_5.lora_qwen2_5_1_5b_instruct
   lora_attn_modules: ['q_proj', 'v_proj']
   apply_lora_to_mlp: False
   apply_lora_to_output: False
-  lora_rank: 8
-  lora_alpha: 16
+  lora_rank: 32
+  lora_alpha: 64
   lora_dropout: 0.0
 
 tokenizer:
   _component_: torchtune.models.qwen2_5.qwen2_5_tokenizer
-  path: /tmp/Qwen2_5-7B-Instruct/vocab.json
-  merges_file: /tmp/Qwen2_5-7B-Instruct/merges.txt
+  path: /tmp/Qwen2_5-1_5B-Instruct/vocab.json
+  merges_file: /tmp/Qwen2_5-1_5B-Instruct/merges.txt
   max_seq_len: null
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Qwen2_5-7B-Instruct
+  checkpoint_dir: /tmp/Qwen2_5-1_5B-Instruct
   checkpoint_files: [
-    model-00001-of-00004.safetensors,
-    model-00002-of-00004.safetensors,
-    model-00003-of-00004.safetensors,
-    model-00004-of-00004.safetensors,
+    model.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Qwen2_5-7B-Instruct-lora-finetune
+  output_dir: /tmp/Qwen2_5-1_5B-Instruct-lora-finetune
   model_type: QWEN2
 resume_from_checkpoint: False
 
@@ -57,8 +54,8 @@ batch_size: 2
 optimizer:
   _component_: torch.optim.AdamW
   fused: True
-  weight_decay: 0.01
-  lr: 3e-4
+  lr: 2e-3
+
 lr_scheduler:
   _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
@@ -69,11 +66,11 @@ loss:
 # Training
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 64
+gradient_accumulation_steps: 8
 compile: False
 
 # Logging
-output_dir: /tmp/Qwen2_5-7B-Instruct-lora-finetune
+output_dir: /tmp/Qwen2_5-1_5B-Instruct-lora-finetune
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}

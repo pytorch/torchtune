@@ -350,6 +350,7 @@ def qwen2_5_tokenizer(
 def lora_qwen2_5_0_5b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
+    apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
     lora_dropout: float = 0.0,
@@ -383,7 +384,7 @@ def lora_qwen2_5_0_5b(
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
-        apply_lora_to_output=False,
+        apply_lora_to_output=apply_lora_to_output,
         vocab_size=151936,
         num_layers=24,
         num_heads=14,
@@ -406,6 +407,7 @@ def lora_qwen2_5_0_5b(
 def lora_qwen2_5_1_5b_base(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
+    apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
     lora_dropout: float = 0.0,
@@ -439,7 +441,7 @@ def lora_qwen2_5_1_5b_base(
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
-        apply_lora_to_output=False,
+        apply_lora_to_output=apply_lora_to_output,
         vocab_size=151936,
         num_layers=28,
         num_heads=12,
@@ -462,6 +464,7 @@ def lora_qwen2_5_1_5b_base(
 def lora_qwen2_5_1_5b_instruct(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
+    apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
     lora_dropout: float = 0.0,
@@ -495,7 +498,7 @@ def lora_qwen2_5_1_5b_instruct(
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
-        apply_lora_to_output=False,
+        apply_lora_to_output=apply_lora_to_output,
         vocab_size=151936,
         num_layers=28,
         num_heads=12,
@@ -518,6 +521,7 @@ def lora_qwen2_5_1_5b_instruct(
 def lora_qwen2_5_3b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
+    apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
     lora_dropout: float = 0.0,
@@ -551,7 +555,7 @@ def lora_qwen2_5_3b(
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
-        apply_lora_to_output=False,
+        apply_lora_to_output=apply_lora_to_output,
         vocab_size=151936,
         num_layers=36,
         num_heads=16,

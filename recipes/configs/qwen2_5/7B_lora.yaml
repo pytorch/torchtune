@@ -1,19 +1,20 @@
-# Config for single device LoRA finetuning in lora_finetune_single_device.py
+# Config for multi-device LoRA finetuning in lora_finetune_distributed.py
 # using a Qwen2.5 7B model
 #
 # This config assumes that you've run the following command before launching
 # this run:
 #   tune download Qwen/Qwen2.5-7B-Instruct --output-dir /tmp/Qwen2_5-7B-Instruct --ignore-patterns None
 #
-# To launch on a single device, run the following command from root:
-#   tune run lora_finetune_single_device --config qwen2_5/7B_lora_single_device
+# To launch on 2 devices, run the following command from root:
+#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config qwen2_5/7B_lora
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run lora_finetune_single_device --config qwen2_5/7B_lora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config qwen2_5/7B_lora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
-# This config works only for training on single device.
+# This config works best when the model is being fine-tuned on 2+ GPUs.
+# For single device LoRA finetuning please use 7B_lora_single_device.yaml
 
 
 # Model Arguments
@@ -69,8 +70,7 @@ loss:
 # Training
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 64
-compile: False
+gradient_accumulation_steps: 32
 
 # Logging
 output_dir: /tmp/Qwen2_5-7B-Instruct-lora-finetune
@@ -83,15 +83,13 @@ log_peak_memory_stats: False
 # Environment
 device: cuda
 dtype: bf16
-
-# Activations Offloading
-enable_activation_checkpointing: True
-enable_activation_offloading: False
+enable_activation_checkpointing: False
 
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training
 profiler:
   _component_: torchtune.training.setup_torch_profiler
+
   enabled: False
 
   #Output directory of trace artifacts
