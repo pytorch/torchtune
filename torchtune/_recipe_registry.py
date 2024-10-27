@@ -279,6 +279,10 @@ _ALL_RECIPES = [
                 name="llama3_2_vision/11B_lora_single_device",
                 file_path="llama3_2_vision/11B_lora_single_device.yaml",
             ),
+            Config(
+                name="llama3_2_vision/11B_qlora_single_device",
+                file_path="llama3_2_vision/11B_qlora_single_device.yaml",
+            ),
         ],
         supports_distributed=False,
     ),
@@ -358,6 +362,10 @@ _ALL_RECIPES = [
             Config(
                 name="llama3_2_vision/11B_lora",
                 file_path="llama3_2_vision/11B_lora.yaml",
+            ),
+            Config(
+                name="llama3_2_vision/11B_qlora",
+                file_path="llama3_2_vision/11B_qlora.yaml",
             ),
         ],
         supports_distributed=True,
