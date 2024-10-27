@@ -1,4 +1,18 @@
+## System Prompt Compliance Setup
 
+In the system-prompt-compliance repo:
+```bash
+python main.py --output_path output/train_outputs.jsonl
+python convert_torchtune.py
+```
+
+Paste `output/compliance_dataset.json` from that repo into this repo's `data/` directory
+
+In this repo: (update the directories in `llama3_1/8B_full_single_device.yaml` to match your `path/to/model`)
+```bash
+tune download meta-llama/Meta-Llama-3.1-8B-Instruct --output-dir path/to/model/Meta-Llama-3.1-8B-Instruct --ignore-patterns='original/consolidated.00.pth'
+tune run full_finetune_single_device --config llama3_1/8B_full_single_device
+```
 
 
 # torchtune
