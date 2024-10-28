@@ -152,16 +152,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             )
             self._log_peak_memory_stats = False
 
-        # training attributes
-        self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
-        self._enable_activation_offloading = cfg.get(
-            "enable_activation_offloading", False
-        )
-        if self._enable_activation_offloading and self._device.type != "cuda":
-            raise RuntimeError(
-                "enable_activation_offloading should only be enabled for training on CUDA"
-            )
-
         # These attributes constitute the recipe state and are updated by ``load_checkpoint``
         # when ``resume_from_checkpoint`` is ``True``
         self.seed = training.set_seed(seed=cfg.seed)
