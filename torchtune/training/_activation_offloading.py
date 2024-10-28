@@ -292,11 +292,10 @@ class OffloadActivations(saved_tensors_hooks):
 
                     # This hook will be called when the recompute logic of the AC
                     # caches a recomputed saved tensor.
+                    storage_id = id(maybe_gpu_tensor.untyped_storage())
+
                     def gather_views_hook(recomputed_tensor):
-                        if (
-                            recomputed_tensor.untyped_storage()
-                            is maybe_gpu_tensor.untyped_storage()
-                        ):
+                        if id(recomputed_tensor.untyped_storage()) == storage_id:
                             recomputed_tensors_that_are_views.append(
                                 recomputed_tensor.data_ptr()
                             )
