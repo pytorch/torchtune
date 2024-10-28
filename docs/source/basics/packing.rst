@@ -4,10 +4,12 @@
 Sample packing
 ==============
 
-You can use sample packing with any of the single dataset builders by passing in
-:code:`packed=True`. This requires some pre-processing of the dataset which may
+Sample packing involves concatenating multiple samples from your dataset into a single sequence, upto a maximum
+sequence length. This requires some pre-processing of the dataset which may
 slow down time-to-first-batch, but can introduce significant training speedups
-depending on the dataset.
+depending on the dataset. In torchtune, sample packing is done by iterating through your dataset and performing
+greedy packing upon dataset initialization. You can use sample packing with any of the single dataset builders by passing in
+:code:`packed=True`.
 
 To set the max sequence length to pack to, make sure to define ``max_seq_len`` on your tokenizer.
 
@@ -48,5 +50,5 @@ To set the max sequence length to pack to, make sure to define ``max_seq_len`` o
 torchtune will automatically handle document masking and relative position IDs when sample packing is enabled
 to prevent different irrelevant samples from cross-attending. This is done via PyTorch's `Flex Attention <https://pytorch.org/blog/flexattention/#document-maskingjagged-sequences>`_,
 which enables the use of flash attention with non-causal masks. If your hardware does not support Flex Attention
-(for CUDA devices, it must be Turing or above), standard SDPA with ememory-efficient attention will be used as a fallback,
+(for CUDA devices, it must be Turing or above), standard SDPA with memory-efficient attention will be used as a fallback,
 while retaining the document masking and relative position IDs.

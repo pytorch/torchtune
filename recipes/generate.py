@@ -13,7 +13,7 @@ from omegaconf import DictConfig
 from torch import nn
 
 from torchtune import config, generation, training, utils
-from torchtune.data import Message
+from torchtune.data import Message, Role
 from torchtune.training import FullModelTorchTuneCheckpointer
 
 logger = utils.get_logger("DEBUG")
@@ -99,17 +99,22 @@ class InferenceRecipe:
 
     def convert_prompt_to_tokens(
         self,
-        prompt: str,
+        prompt: Dict[Role, str],
     ) -> List[int]:
         """
-        Convert the prompt string to a user message and tokenize using the prompt template
-        defined on the tokenizer.
+        Convert the prompt string to a user message with optional system messages
+        and tokenize using the prompt template defined on the tokenizer.
         """
-        messages = [
-            Message(role="user", content=prompt),
-            # Empty assistant message to kick-start generation
-            Message(role="assistant", content=""),
-        ]
+        messages = []
+        if "system" in prompt and prompt["system"] is not None:
+            messages.append(Message(role="system", content=prompt["system"]))
+        messages.extend(
+            [
+                Message(role="user", content=prompt["user"]),
+                # Empty assistant message to kick-start generation
+                Message(role="assistant", content=""),
+            ]
+        )
         return self._tokenizer({"messages": messages}, inference=True)["tokens"]
 
     @torch.inference_mode()
