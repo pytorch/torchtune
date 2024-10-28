@@ -168,32 +168,6 @@ class DummyTokenizer(ModelTokenizer, Transform):
         return -2
 
 
-class DummyChatFormat:
-
-    B_SYS, E_SYS = "System:\n", "\n"
-    B_INST, E_INST = "User:\n", "\nAssistant:\n"
-    B_ASST, E_ASST = "", ""
-    system = f"{B_SYS}{{content}}{E_SYS}"
-    user = f"{B_INST}{{content}}{E_INST}"
-    assistant = f"{B_ASST}{{content}}{E_ASST}"
-
-    @classmethod
-    def format(
-        cls,
-        messages,
-    ):
-        formats = {"system": cls.system, "user": cls.user, "assistant": cls.assistant}
-        formatted_dialogue = []
-        for message in messages:
-            content = formats.get(message.role).format(
-                content=message.content[0]["content"]
-            )
-            formatted_dialogue.append(
-                Message(role=message.role, content=content, masked=message.masked),
-            )
-        return formatted_dialogue
-
-
 DummyPromptTemplate = partial(
     PromptTemplate,
     template={

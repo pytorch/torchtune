@@ -26,6 +26,7 @@ tokenizer:
 
 # Dataset
 dataset:
+  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.alpaca_dataset
 seed: null
 shuffle: True
@@ -64,7 +65,7 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: False
-compile: False # set it to True for better memory and performance
+compile: False # pytorch compile, set to true for perf/memory improvement
 
 # Reduced precision
 dtype: bf16
@@ -75,4 +76,4 @@ metric_logger:
   log_dir: ${output_dir}
 output_dir: /tmp/full-llama3.2-finetune
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True
