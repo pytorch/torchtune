@@ -16,6 +16,9 @@ from torch.autograd.graph import saved_tensors_hooks
 from torchao.dtypes.nf4tensor import NF4Tensor
 
 from torchtune.modules import TiedLinear
+from torchtune.utils import get_logger
+
+log = get_logger("DEBUG")
 
 
 class OffloadActivations(saved_tensors_hooks):
@@ -376,8 +379,8 @@ def get_act_offloading_ctx_manager(
         # it back is expensive. Moreover, due to heuristics in our streaming API,
         # we actually use more memory if we offload it as it interferes with chunkedCE.
         output_head_detected = False
+        noop_ctx = NoOpManager()
         if hasattr(model, "output"):
-            noop_ctx = NoOpManager()
             if isinstance(model.output, nn.Module):
                 model.output.register_forward_pre_hook(
                     lambda *args: noop_ctx.__enter__()
@@ -396,7 +399,6 @@ def get_act_offloading_ctx_manager(
                 output_head_detected = True
 
         elif hasattr(model, "decoder"):
-            noop_ctx = NoOpManager()
             if isinstance(model.decoder, nn.Module):
                 model.decoder.output.register_forward_pre_hook(
                     lambda *args: noop_ctx.__enter__()
