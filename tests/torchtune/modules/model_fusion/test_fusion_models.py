@@ -9,7 +9,11 @@ import pytest
 import torch
 from tests.test_utils import assert_expected, fixed_init_model
 from torch import nn
-from torchtune.modules.model_fusion import DeepFusionModel, register_fusion_module, EarlyFusionModel
+from torchtune.modules.model_fusion import (
+    DeepFusionModel,
+    EarlyFusionModel,
+    register_fusion_module,
+)
 from torchtune.training.seed import set_seed
 
 
@@ -186,6 +190,7 @@ class TestDeepFusionModel:
             "decoder.embed.weight",
         }
 
+
 class TestEarlyFusionModel:
     @pytest.fixture
     def vocab_size(self) -> int:
@@ -229,7 +234,9 @@ class TestEarlyFusionModel:
         tokens[:, 8:] = 2
         encoder_input = {
             "red": {"input": torch.randint(0, vocab_size, (batch_size, red_seq_len))},
-            "green": {"input": torch.randint(0, vocab_size, (batch_size, green_seq_len))},
+            "green": {
+                "input": torch.randint(0, vocab_size, (batch_size, green_seq_len))
+            },
             "blue": {"input": torch.randint(0, vocab_size, (batch_size, blue_seq_len))},
         }
         encoder_mask = torch.randint(0, 2, (batch_size, seq_len, seq_len)).bool()

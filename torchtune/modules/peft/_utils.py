@@ -62,7 +62,9 @@ def get_adapter_params(model: nn.Module) -> Dict[str, nn.Parameter]:
     return adapter_params
 
 
-def set_trainable_params(model: nn.Module, adapter_params: Union[Dict[str, Any], Set]) -> None:
+def set_trainable_params(
+    model: nn.Module, adapter_params: Union[Dict[str, Any], Set]
+) -> None:
     """
     Set trainable parameters for an nn.Module based on a state dict of adapter parameters.
 

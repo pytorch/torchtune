@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List, Optional, Union, Any
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 from torch import nn, Tensor
@@ -478,6 +478,7 @@ class DeepFusionModel(nn.Module):
         )
         return output
 
+
 class EarlyFusionModel(nn.Module):
     def __init__(
         self,
@@ -502,15 +503,15 @@ class EarlyFusionModel(nn.Module):
 
         self.register_state_dict_post_hook(self._state_dict_hook)
         self.register_load_state_dict_pre_hook(
-            self._load_state_dict_hook,
-            with_module=True
+            self._load_state_dict_hook, with_module=True
         )
 
         trainable_params = set()
         for encoder, trainable in encoders_trainable.items():
             if trainable:
                 trainable_params |= {
-                    f"encoders.{encoder}.{n}" for n, p in self.encoders[encoder].named_parameters()
+                    f"encoders.{encoder}.{n}"
+                    for n, p in self.encoders[encoder].named_parameters()
                 }
         if decoder_trainable:
             trainable_params |= {
@@ -530,7 +531,7 @@ class EarlyFusionModel(nn.Module):
         del destination[key]
 
     def _load_state_dict_hook(self, state_dict, *args, **kwargs):
-        """ Undo the change from _state_dict_hook """
+        """Undo the change from _state_dict_hook"""
         key = "tok_embeddings"
         decoder_key = "decoder.tok_embeddings"
         state_dict[key] = state_dict[decoder_key]
@@ -576,7 +577,9 @@ class EarlyFusionModel(nn.Module):
         bsz, seq_len, embed_dim = embeds.shape
         for encoder, inp in (encoder_input or {}).items():
             encoder_embeds = self.encoders[encoder](**inp)
-            encoder_mask = (tokens == self.encoder_tokens[encoder]).expand(bsz, seq_len, embed_dim)
+            encoder_mask = (tokens == self.encoder_tokens[encoder]).expand(
+                bsz, seq_len, embed_dim
+            )
             embeds[encoder_mask] = encoder_embeds
 
         output = self.decoder(embeds, mask, input_pos)
