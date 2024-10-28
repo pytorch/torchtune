@@ -254,18 +254,17 @@ class OffloadActivations(saved_tensors_hooks):
                 unpack_tensor_id in self.tracker
             ), f"untracked tensor with id {unpack_tensor_id}"
 
-            # Get data on the current autograd node
-            graph_id = torch._C._current_graph_task_id()
-            node = torch._C._current_autograd_node()
-            prev_node_ids = []
-
-            # If we're on a new node, mark prev node's tensors to be freed later
-            if graph_id == self.curr_graph_id and self.curr_autograd_node != node:
-                self.curr_autograd_node = node
-                prev_node_ids = [id for id in self.bwd_tensor_stash.keys()]
-
             maybe_gpu_tensor, modified = self.tracker[unpack_tensor_id]
             if modified:
+                # Get data on the current autograd node
+                graph_id = torch._C._current_graph_task_id()
+                node = torch._C._current_autograd_node()
+                prev_node_ids = []
+
+                # If we're on a new node, mark prev node's tensors to be freed later
+                if graph_id == self.curr_graph_id and self.curr_autograd_node != node:
+                    self.curr_autograd_node = node
+                    prev_node_ids = [id for id in self.bwd_tensor_stash.keys()]
 
                 brought_back_from_cpu = True
                 if unpack_tensor_id in self.fwd_stash:
@@ -307,7 +306,6 @@ class OffloadActivations(saved_tensors_hooks):
                     )
 
                 def hook(outputs, inputs):
-
                     # create events for the current node inputs/outputs if they were streamed in
                     if brought_back_from_cpu:
                         # if any of the outputs is a view of the tensor, OR if a view of the tensor has been saved
