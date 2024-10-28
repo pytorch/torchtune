@@ -6,8 +6,6 @@ torchtune.data
 
 .. currentmodule:: torchtune.data
 
-.. _chat_formats:
-
 Text templates
 --------------
 
@@ -18,14 +16,12 @@ and models.
     :toctree: generated/
     :nosignatures:
 
-    InstructTemplate
     GrammarErrorCorrectionTemplate
     SummarizeTemplate
     QuestionAnswerTemplate
     PromptTemplate
     PromptTemplateInterface
     ChatMLTemplate
-    ChatFormat
 
 Types
 -----
@@ -36,18 +32,6 @@ Types
 
     Message
     Role
-
-Converters
-----------
-
-Converts data from common JSON formats into a torchtune :class:`Message`.
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    get_sharegpt_messages
-    get_openai_messages
 
 .. _message_transforms_ref:
 

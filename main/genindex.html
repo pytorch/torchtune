@@ -319,6 +319,7 @@
 <li class="toctree-l1"><a class="reference internal" href="basics/message_transforms.html">Message Transforms</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basics/tokenizers.html">Tokenizers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basics/prompt_templates.html">Prompt Templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/packing.html">Sample packing</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
@@ -328,7 +329,6 @@
 <li class="toctree-l1"><a class="reference internal" href="tutorials/qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
 </ul>
@@ -521,16 +521,14 @@
 </li>
       <li><a href="generated/torchtune.datasets.chat_dataset.html#torchtune.datasets.chat_dataset">chat_dataset() (in module torchtune.datasets)</a>
 </li>
-      <li><a href="generated/torchtune.data.ChatFormat.html#torchtune.data.ChatFormat">ChatFormat (class in torchtune.data)</a>
-</li>
       <li><a href="generated/torchtune.data.ChatMLTemplate.html#torchtune.data.ChatMLTemplate">ChatMLTemplate (class in torchtune.data)</a>
 </li>
       <li><a href="generated/torchtune.data.ChosenRejectedToMessages.html#torchtune.data.ChosenRejectedToMessages">ChosenRejectedToMessages (class in torchtune.data)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.chunked_output">chunked_output() (torchtune.modules.TransformerDecoder method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.models.clip.clip_vision_encoder.html#torchtune.models.clip.clip_vision_encoder">clip_vision_encoder() (in module torchtune.models.clip)</a>
 </li>
       <li><a href="generated/torchtune.training.metric_logging.CometLogger.html#torchtune.training.metric_logging.CometLogger.close">close() (torchtune.training.metric_logging.CometLogger method)</a>
@@ -619,12 +617,6 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.modules.FeedForward.html#torchtune.modules.FeedForward">FeedForward (class in torchtune.modules)</a>
 </li>
-      <li><a href="generated/torchtune.data.ChatFormat.html#torchtune.data.ChatFormat.format">format() (torchtune.data.ChatFormat class method)</a>
-
-      <ul>
-        <li><a href="generated/torchtune.data.InstructTemplate.html#torchtune.data.InstructTemplate.format">(torchtune.data.InstructTemplate class method)</a>
-</li>
-      </ul></li>
       <li><a href="generated/torchtune.data.format_content_with_images.html#torchtune.data.format_content_with_images">format_content_with_images() (in module torchtune.data)</a>
 </li>
       <li><a href="generated/torchtune.training.FormattedCheckpointFiles.html#torchtune.training.FormattedCheckpointFiles">FormattedCheckpointFiles (class in torchtune.training)</a>
@@ -743,10 +735,10 @@
 </li>
       <li><a href="generated/torchtune.modules.model_fusion.get_fusion_params.html#torchtune.modules.model_fusion.get_fusion_params">get_fusion_params() (in module torchtune.modules.model_fusion)</a>
 </li>
-      <li><a href="generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper.get_last_lr">get_last_lr() (torchtune.training.OptimizerInBackwardWrapper method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper.get_last_lr">get_last_lr() (torchtune.training.OptimizerInBackwardWrapper method)</a>
+</li>
       <li><a href="generated/torchtune.utils.get_logger.html#torchtune.utils.get_logger">get_logger() (in module torchtune.utils)</a>
 </li>
       <li><a href="generated/torchtune.training.get_lr.html#torchtune.training.get_lr">get_lr() (in module torchtune.training)</a>
@@ -755,8 +747,6 @@
 </li>
       <li><a href="generated/torchtune.training.get_memory_stats.html#torchtune.training.get_memory_stats">get_memory_stats() (in module torchtune.training)</a>
 </li>
-      <li><a href="generated/torchtune.data.get_openai_messages.html#torchtune.data.get_openai_messages">get_openai_messages() (in module torchtune.data)</a>
-</li>
       <li><a href="generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper.get_optim_key">get_optim_key() (torchtune.training.OptimizerInBackwardWrapper method)</a>
 </li>
       <li><a href="generated/torchtune.generation.get_position_ids_from_padding_mask.html#torchtune.generation.get_position_ids_from_padding_mask">get_position_ids_from_padding_mask() (in module torchtune.generation)</a>
@@ -764,8 +754,6 @@
       <li><a href="generated/torchtune.training.get_quantizer_mode.html#torchtune.training.get_quantizer_mode">get_quantizer_mode() (in module torchtune.training)</a>
 </li>
       <li><a href="generated/torchtune.rlhf.get_rewards_ppo.html#torchtune.rlhf.get_rewards_ppo">get_rewards_ppo() (in module torchtune.rlhf)</a>
-</li>
-      <li><a href="generated/torchtune.data.get_sharegpt_messages.html#torchtune.data.get_sharegpt_messages">get_sharegpt_messages() (in module torchtune.data)</a>
 </li>
       <li><a href="generated/torchtune.training.get_unmasked_sequence_lengths.html#torchtune.training.get_unmasked_sequence_lengths">get_unmasked_sequence_lengths() (in module torchtune.training)</a>
 </li>
@@ -793,13 +781,11 @@
 </li>
       <li><a href="generated/torchtune.data.InputOutputToMessages.html#torchtune.data.InputOutputToMessages">InputOutputToMessages (class in torchtune.data)</a>
 </li>
-      <li><a href="generated/torchtune.config.instantiate.html#torchtune.config.instantiate">instantiate() (in module torchtune.config)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="generated/torchtune.datasets.instruct_dataset.html#torchtune.datasets.instruct_dataset">instruct_dataset() (in module torchtune.datasets)</a>
+      <li><a href="generated/torchtune.config.instantiate.html#torchtune.config.instantiate">instantiate() (in module torchtune.config)</a>
 </li>
-      <li><a href="generated/torchtune.data.InstructTemplate.html#torchtune.data.InstructTemplate">InstructTemplate (class in torchtune.data)</a>
+      <li><a href="generated/torchtune.datasets.instruct_dataset.html#torchtune.datasets.instruct_dataset">instruct_dataset() (in module torchtune.datasets)</a>
 </li>
       <li><a href="generated/torchtune.training.is_distributed.html#torchtune.training.is_distributed">is_distributed() (in module torchtune.training)</a>
 </li>

@@ -1,9 +1,0 @@
-﻿.. role:: hidden
-    :class: hidden-section
-.. currentmodule:: torchtune.data
-
-
-get_openai_messages
-===================
-
-.. autofunction:: get_openai_messages
