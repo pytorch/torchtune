@@ -18,8 +18,8 @@ from torchtune.models.clip._position_embeddings import (
 from torchtune.modules import (
     FeedForward,
     Fp32LayerNorm,
+    FrozenNF4Linear,
     MultiHeadAttention,
-    TanhGate,
     TransformerSelfAttentionLayer,
 )
 
@@ -170,12 +170,12 @@ def clip_mlp(
     gate_proj = (
         nn.Linear(in_dim, hidden_dim)
         if not quantize_base
-        else FrozenNF4Linear(in_dim, hidden_dim)
+        else FrozenNF4Linear(in_dim, hidden_dim, bias=True)
     )
     down_proj = (
         nn.Linear(hidden_dim, out_dim)
         if not quantize_base
-        else FrozenNF4Linear(hidden_dim, out_dim)
+        else FrozenNF4Linear(hidden_dim, out_dim, bias=True)
     )
     return FeedForward(
         gate_proj=gate_proj, down_proj=down_proj, up_proj=None, activation=activation

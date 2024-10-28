@@ -70,6 +70,7 @@ loss:
 epochs: 1
 max_steps_per_epoch: 1000
 gradient_accumulation_steps: 8
+compile: False
 
 # Logging
 output_dir: /tmp/lora_dpo_output/
@@ -77,7 +78,7 @@ metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True
 
 # Environment
 device: cuda
