@@ -66,6 +66,7 @@ save_adapter_weights_only: False
 
 # Dataset and Sampler
 dataset:
+  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.alpaca_dataset
 seed: null
 shuffle: True
@@ -88,7 +89,7 @@ loss:
 epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
-compile: False # set it to True for better memory and performance
+compile: False # pytorch compile, set to true for perf/memory improvement
 
 # Logging
 output_dir: /tmp/lora-llama3_1-finetune-output
@@ -96,7 +97,7 @@ metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True
 
 # Environment
 device: cuda

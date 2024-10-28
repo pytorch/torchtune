@@ -1,0 +1,7 @@
+[
+    {
+        "input": "What is presented on image?",
+        "output": "PyTorch logo.",
+        "image": "tests/assets/rgb_pytorch.png"
+    }
+]

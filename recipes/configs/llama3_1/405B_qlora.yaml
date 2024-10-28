@@ -12,11 +12,7 @@
 # This config needs 8 GPUs to run
 #   # tune run --nproc_per_node 8 lora_finetune_distributed --config llama3_1/405B_qlora
 #
-# !!!!!!!!!!!!!
-# !!!!!!!!!!!!!
-# ATTENTION: It will only work with pytorch>=2.5 (nightlies). For other pytorch versions, it will OOM, even on 8xA100.
-# !!!!!!!!!!!!!
-# !!!!!!!!!!!!!
+
 
 # Model Arguments
 model:
@@ -45,6 +41,7 @@ save_adapter_weights_only: True
 
 # Dataset and Sampler
 dataset:
+  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.alpaca_dataset
   train_on_input: True
 seed: null
@@ -71,7 +68,7 @@ fsdp:
 epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 16
-compile: False # set it to True for better memory and performance
+compile: False # pytorch compile, set to true for perf/memory improvement
 
 # Logging
 output_dir: /tmp/qlora_finetune_output

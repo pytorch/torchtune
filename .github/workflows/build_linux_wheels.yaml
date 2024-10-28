@@ -27,8 +27,37 @@ jobs:
       with-cuda: enable
       with-rocm: enable
       build-python-only: enable
-  build:
+  # TODO: Remove `filter-python-version` after PyArrow releases v18
+  filter-python-versions:
     needs: generate-matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Filter matrix to exclude Python 3.13
+        id: set-matrix
+        shell: python
+        env:
+          input-matrix: ${{ needs.generate-matrix.outputs.matrix }}
+        run: |
+          import os
+          import json
+
+          # Grab environment variables
+          input_matrix = json.loads(os.environ["input-matrix"])
+          github_output_file = os.environ["GITHUB_OUTPUT"]
+
+          # Filter out any builds for 3.13
+          filtered_matrix = {"include": []}
+          for build in input_matrix["include"]:
+            if build["python_version"] != "3.13":
+              filtered_matrix["include"].append(build)
+
+          # Write the new matrix to the default outputs file
+          with open(github_output_file, "w") as handle:
+            handle.write(f"matrix={json.dumps(filtered_matrix)}")
+  build:
+    needs: filter-python-versions
     name: ${{ matrix.repository }}
     uses: pytorch/test-infra/.github/workflows/build_wheels_linux.yml@main
     strategy:
@@ -37,7 +66,7 @@ jobs:
       repository: pytorch/torchtune
       ref: ""
       package-name: torchtune
-      build-matrix: ${{ needs.generate-matrix.outputs.matrix }}
+      build-matrix: ${{ needs.filter-python-versions.outputs.matrix }}
       pre-script: .github/scripts/pre_build_script.sh
       trigger-event: ${{ github.event_name }}
       build-platform: 'python-build-package'
