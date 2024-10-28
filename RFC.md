@@ -30,7 +30,7 @@ class TokenChoiceExperts(Experts):
             x: input tokens, shape [bs*slen*experts_per_token, hidden_dim]
             num_local_tokens_per_expert: number of tokens for each expert
         outputs:
-            out: output tokens, shape [bs*slen*experts_per_token, hidden_dim] 
+            out: output tokens, shape [bs*slen*experts_per_token, hidden_dim]
         '''
         # TODO: use cutlass groupGEMM instead of torch.matmul() to optimize performance
         assert num_local_tokens_per_expert is not None, "num_local_tokens_per_expert is needed for token choice expert forward"
@@ -94,7 +94,7 @@ class TokenChoiceTopKRouter(nn.Module):
         self.gate = nn.Linear(hidden_dim, num_experts)
         self.experts_per_token = experts_per_token
 
-    def forward(self, x):
+    def forward(self, x, use_sigmoid=False):
         '''
         input:
             x shape [bs*slen, hidden_dim]
@@ -104,7 +104,10 @@ class TokenChoiceTopKRouter(nn.Module):
         '''
         # scores shape [bs*slen, num_experts]
         scores = self.gate(x)
-        scores = F.softmax(scores, dim=1)
+        if use_sigmoid:
+            scores = torch.sigmoid(scores.to(sigmoid_dtype)).to(x.dtype)
+        else:
+            scores = F.softmax(scores.to(softmax_dtype), dim=1).to(x.dtype)
         top_scores, top_indices = torch.topk(scores, k=self.experts_per_token, dim=1)
         top_scores /= top_scores.sum(dim=-1, keep_dim=True).to(x.dtype)
         return top_scores, top_indices
@@ -194,7 +197,7 @@ class ExpertChoiceTopKRouter(nn.Module):
 		self.gate = nn.Linear(hidden_dim, num_experts)
 		self.tokens_per_expert = tokens_per_expert
 
-	def forward(self, x):
+	def forward(self, x, use_sigmoid=False):
         '''
         input:
             x shape [bs*slen, hidden_dim]
@@ -204,7 +207,10 @@ class ExpertChoiceTopKRouter(nn.Module):
         '''
         # scores shape [num_experts, bs*slen]
         scores = self.gate(x).transpose(0,1)
-        scores = F.softmax(scores.to(softmax_dtype), dim=0).to(scores.dtype)
+        if use_sigmoid:
+            scores = torch.sigmoid(scores.to(sigmoid_dtype)).to(x.dtype)
+        else:
+            scores = F.softmax(scores.to(softmax_dtype), dim=0).to(x.dtype)
         top_scores, top_indices = torch.topk(scores, k=self.tokens_per_expert, dim=1)
         return top_scores, top_indices
 
