@@ -18,7 +18,7 @@ custom chat dataset for fine-tuning Llama3 Instruct.
 
     .. grid-item-card:: :octicon:`list-unordered;1em;` Prerequisites
 
-      * Be familiar with :ref:`configuring datasets<dataset_tutorial_label>`
+      * Be familiar with :ref:`configuring datasets<chat_dataset_usage_label>`
       * Know how to :ref:`download Llama3 Instruct weights <llama3_label>`
 
 
