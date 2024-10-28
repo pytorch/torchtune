@@ -57,6 +57,7 @@ optimizer:
   _component_: torch.optim.AdamW
   lr: 2e-5
   fused: True
+optimizer_in_bwd: False # Set to True to use less memory. Requires gradient_accumulation_steps=1.
 
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
