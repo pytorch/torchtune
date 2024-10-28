@@ -9,7 +9,7 @@
 # You get better results using KD if the teacher model has already been fine-tuned on the target dataset:
 #   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config qwen2/1.5B_lora
 #
-# To launch on a 2 devices, run the following command from root:
+# To launch on 2 devices, run the following command from root:
 #   tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed --config qwen2/knowledge_distillation_distributed
 #
 # This config works best for distilling on 2+ devices.

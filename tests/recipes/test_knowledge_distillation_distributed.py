@@ -29,7 +29,7 @@ from tests.test_utils import (
 from torchtune import config
 
 
-class TestKDDistributedDeviceRecipe:
+class TestKDDistributedRecipe:
     def _get_test_config_overrides(self, epochs: int = 2):
         return [
             "batch_size=4",
@@ -91,8 +91,6 @@ class TestKDDistributedDeviceRecipe:
         num_losses = int(len(loss_values) / 4)  # 2 steps per epoch, 2 epochs
         loss_values = loss_values[0::num_losses]
         expected_loss_values = self._fetch_expected_loss_values("llama3")
-        print(loss_values)
-        print(expected_loss_values)
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
