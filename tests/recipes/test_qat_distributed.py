@@ -26,13 +26,11 @@ from tests.test_utils import (
     gpu_test,
     TOKENIZER_PATHS,
 )
-from torchao.utils import TORCH_VERSION_AFTER_2_4
 
 
 class TestQATDistributedRecipe:
     def _get_test_config_overrides(self):
         return [
-            "batch_size=4",
             "dtype=fp32",
             "enable_activation_checkpointing=False",
             "dataset.train_on_input=False",
@@ -53,17 +51,24 @@ class TestQATDistributedRecipe:
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize(
-        "config, model_type, ckpt_type",
+        "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps",
         [
-            ("llama2/7B_qat_full", "llama2", "hf"),
-            ("llama3/8B_qat_full", "llama3", "tune"),
+            ("llama2/7B_qat_full", "llama2", "hf", 4, 1),
+            ("llama3/8B_qat_full", "llama3", "tune", 4, 1),
+            ("llama3/8B_qat_full", "llama3", "tune", 4, 1),
         ],
     )
     @gpu_test(gpu_count=2)
-    @pytest.mark.skipif(
-        not TORCH_VERSION_AFTER_2_4, reason="QAT only supported for PyTorch 2.4+"
-    )
-    def test_loss(self, config, model_type, ckpt_type, tmpdir, monkeypatch):
+    def test_loss(
+        self,
+        config,
+        model_type,
+        ckpt_type,
+        micro_batch_size,
+        gradient_accumulation_steps,
+        tmpdir,
+        monkeypatch,
+    ):
         ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
         ckpt = model_type + "_" + ckpt_type
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -78,6 +83,8 @@ class TestQATDistributedRecipe:
         tune run --nnodes 1 --nproc_per_node 2 qat_distributed \
             --config {config} \
             output_dir={tmpdir} \
+            batch_size={micro_batch_size} \
+            gradient_accumulation_steps={gradient_accumulation_steps} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
