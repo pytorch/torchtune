@@ -370,6 +370,9 @@ def get_act_offloading_ctx_manager(
 
     Returns:
         contextlib.ContextDecorator: the activation offloading context manager for the model.
+
+    Raises:
+        NotImplementedError: If the model is a multimodal model and activation offloading is enabled.
     """
     if enable_activation_offloading:
         activations_handling_ctx = OffloadActivations()
@@ -399,14 +402,21 @@ def get_act_offloading_ctx_manager(
                 output_head_detected = True
 
         elif hasattr(model, "decoder"):
-            if isinstance(model.decoder, nn.Module):
-                model.decoder.output.register_forward_pre_hook(
-                    lambda *args: noop_ctx.__enter__()
-                )
-                model.decoder.output.register_forward_hook(
-                    lambda *args: noop_ctx.__exit__(), always_call=True
-                )
-                output_head_detected = True
+            # TODO: it errors out. Needs debugging.
+            # assert_size_stride(rsqrt_2, (4, 32, 1601, 1), (52224, 1632, 1, 1))
+            # AssertionError: expected size 4==4, stride 51232==52224 at dim=0;
+            # # expected size 32==32, stride 1601==1632 at dim=1
+            raise NotImplementedError(
+                "Multimodal model does not support activation offloading yet. Please set it to False"
+            )
+            # if isinstance(model.decoder, nn.Module):
+            #     model.decoder.output.register_forward_pre_hook(
+            #         lambda *args: noop_ctx.__enter__()
+            #     )
+            #     model.decoder.output.register_forward_hook(
+            #         lambda *args: noop_ctx.__exit__(), always_call=True
+            #     )
+            #     output_head_detected = True
 
         if not output_head_detected:
             log.warning(
