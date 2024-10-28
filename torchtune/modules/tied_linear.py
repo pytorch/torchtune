@@ -52,7 +52,7 @@ class TiedLinear:
                 "Provided module does not have attribute 'weight'. Please check your tied_module."
             )
 
-    def __call__(self, x: torch.Tensor):
+    def __call__(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
             x (torch.Tensor): Input tensor. Should have shape ``(..., in_dim)``, where ``in_dim``
