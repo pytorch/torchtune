@@ -407,7 +407,7 @@ def get_act_offloading_ctx_manager(
             # AssertionError: expected size 4==4, stride 51232==52224 at dim=0;
             # # expected size 32==32, stride 1601==1632 at dim=1
             raise NotImplementedError(
-                "Multimodal model does not support activation offloading yet. Please set it to False"
+                "Multimodal model does not support activation offloading yet. Please set enable_activation_offloading=False"
             )
             # if isinstance(model.decoder, nn.Module):
             #     model.decoder.output.register_forward_pre_hook(
