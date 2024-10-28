@@ -51,7 +51,6 @@ Interested in seeing this recipe in action? Check out some of our tutorials to s
 
 * :ref:`Finetuning Llama2 with LoRA<lora_finetune_label>`
 * :ref:`Finetuning Llama2 with QLoRA<qlora_finetune_label>`
-* :ref:`End-to-End Workflow with torchtune<dataset_tutorial_label>`
 * :ref:`Fine-tuning Llama3 with Chat Data<chat_tutorial_label>`
 * :ref:`Meta Llama3 in torchtune<llama3_label>`
 * :ref:`Fine-Tune Your First LLM<finetune_llama_label>`
