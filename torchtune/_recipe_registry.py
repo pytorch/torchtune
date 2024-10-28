@@ -457,6 +457,17 @@ _ALL_RECIPES = [
         supports_distributed=True,
     ),
     Recipe(
+        name="qat_lora_finetune_distributed",
+        file_path="qat_lora_finetune_distributed.py",
+        configs=[
+            Config(name="llama3/8B_qat_lora", file_path="llama3/8B_qat_lora.yaml"),
+            Config(name="llama3_1/8B_qat_lora", file_path="llama3_1/8B_qat_lora.yaml"),
+            Config(name="llama3_2/1B_qat_lora", file_path="llama3_2/1B_qat_lora.yaml"),
+            Config(name="llama3_2/3B_qat_lora", file_path="llama3_2/3B_qat_lora.yaml"),
+        ],
+        supports_distributed=True,
+    ),
+    Recipe(
         name="knowledge_distillation_single_device",
         file_path="knowledge_distillation_single_device.py",
         configs=[
