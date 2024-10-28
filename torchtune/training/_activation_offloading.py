@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import weakref
 from typing import Optional
 from warnings import warn
 
@@ -12,6 +13,14 @@ import torch
 import torchao
 from torch.autograd.graph import saved_tensors_hooks
 from torchao.dtypes.nf4tensor import NF4Tensor
+
+global wr, t
+t = []
+
+
+def my_print(*args, **kwargs):
+    # print(*args, **kwargs)
+    pass
 
 
 class OffloadActivations(saved_tensors_hooks):
@@ -145,6 +154,21 @@ class OffloadActivations(saved_tensors_hooks):
             # query for basic tensor info
             num_bytes = get_num_bytes_tensor(activation)
             tensor_id = get_tensor_id()
+            if False:  # tensor_id == 10:
+
+                def cb(t) -> None:
+                    my_print("Tensor 10 is actually getting deleted now!")
+
+                global wr
+                wr = weakref.ref(activation, cb)
+                my_print(f"TENSOR 10 HAS DATA PTR {activation.data_ptr()=}")
+
+            my_print(
+                f"Processing activation {tensor_id} with {activation.shape=}, "
+                f"{activation.dtype=}, "
+                f"{isinstance(activation, torch.nn.Parameter)=}, "
+                f"{isinstance(activation, torch.nn.Buffer)=}"
+            )
 
             # only offload hefty bois if they're activations (our heuristic for that is to
             # check if they're not params or buffers)!
@@ -152,6 +176,9 @@ class OffloadActivations(saved_tensors_hooks):
                 not isinstance(activation, torch.nn.Parameter)
                 and not isinstance(activation, torch.nn.Buffer)
             ):
+                my_print(
+                    f"  We're offloading {tensor_id}! Cuz it's not a buffer, not a param, and is big."
+                )
                 if self.use_streams:
                     # First, sync back and dereference previously offloaded tensors
                     # as the offloading should be done sufficiently long ago.
@@ -230,8 +257,24 @@ class OffloadActivations(saved_tensors_hooks):
             # we will use to retrieve the saved/offloaded tensor
             if self.is_first_backward_call:
                 self.curr_graph_id = torch._C._current_graph_task_id()
+                nodes = torch._C._current_graph_task_execution_order()
+                for i, n in enumerate(nodes):
+                    if len(nodes) - i == 7:
+
+                        def t_hook(outputs, inputs):
+                            global t
+                            t.append(
+                                (
+                                    n.name(),
+                                    outputs[0][0][0][0].bfloat16(),
+                                )
+                            )
+
+                        n.register_hook(t_hook)
 
                 def wait_and_del_remaining_references() -> None:
+                    global t
+                    print(t)
                     for id in [k for k in self.bwd_tensor_stash.keys()]:
                         event = self.bwd_ev_stash[id]
                         self.s1.wait_event(event)
@@ -254,27 +297,62 @@ class OffloadActivations(saved_tensors_hooks):
                 unpack_tensor_id in self.tracker
             ), f"untracked tensor with id {unpack_tensor_id}"
 
+            # Get data on the current autograd node
+            graph_id = torch._C._current_graph_task_id()
+            node = torch._C._current_autograd_node()
+            prev_node_ids = []
+
+            # If we're on a new node, mark prev node's tensors to be freed later
+            if graph_id == self.curr_graph_id and self.curr_autograd_node != node:
+                self.curr_autograd_node = node
+                my_print(node.name())
+                prev_node_ids = [id for id in self.bwd_tensor_stash.keys()]
+
+            my_print(f"  We're about to bring back tensor {unpack_tensor_id}")
+
             maybe_gpu_tensor, modified = self.tracker[unpack_tensor_id]
             if modified:
-                # Get data on the current autograd node
-                graph_id = torch._C._current_graph_task_id()
-                node = torch._C._current_autograd_node()
-                prev_node_ids = []
-
-                # If we're on a new node, mark prev node's tensors to be freed later
-                if graph_id == self.curr_graph_id and self.curr_autograd_node != node:
-                    self.curr_autograd_node = node
-                    prev_node_ids = [id for id in self.bwd_tensor_stash.keys()]
 
                 brought_back_from_cpu = True
                 if unpack_tensor_id in self.fwd_stash:
+                    my_print(
+                        f"  Retrieving {unpack_tensor_id} from the fwd_stash {self.fwd_stash.keys()}"
+                    )
                     maybe_gpu_tensor = self.fwd_stash[unpack_tensor_id][0]
                     brought_back_from_cpu = False
                 else:
+                    my_print(
+                        f"    It was modified. We're waiting to bring back {unpack_tensor_id}"
+                    )
                     # Kick off the process to bring tensors back
                     with torch.cuda.stream(self.s1):
-                        gpu_tensor = maybe_gpu_tensor.to("cuda", non_blocking=True)
+                        if False:  # unpack_tensor_id == 1:
+                            gpu_tensor = torch.ones_like(
+                                maybe_gpu_tensor, device="cuda"
+                            )
+                        else:
+                            gpu_tensor = maybe_gpu_tensor.to("cuda", non_blocking=True)
                         maybe_gpu_tensor = gpu_tensor
+                        print(
+                            f"{unpack_tensor_id} is getting on-loaded at data ptr {hex(gpu_tensor.data_ptr())}"
+                        )
+                        recomputed_tensors_that_are_views = []
+
+                        def gather_views_hook(recomputed_tensor):
+                            print(
+                                f"Running the recomputed tensor hook! on tensor with shape {recomputed_tensor.shape}"
+                            )
+                            if (
+                                recomputed_tensor.untyped_storage()
+                                is maybe_gpu_tensor.untyped_storage()
+                            ):
+                                recomputed_tensors_that_are_views.append(
+                                    recomputed_tensor.data_ptr()
+                                )
+
+                        torch.utils.checkpoint._register_checkpoint_saved_tensor_hook(
+                            gather_views_hook
+                        )
 
                     # Tell comp stream to wait for the info to be loaded before executing
                     self.s0.wait_stream(self.s1)
@@ -283,6 +361,10 @@ class OffloadActivations(saved_tensors_hooks):
                     self.bwd_tensor_stash[unpack_tensor_id] = maybe_gpu_tensor
 
                 def hook(outputs, inputs):
+                    my_print(
+                        f"We are running a hook after the node {self.curr_autograd_node.name()}"
+                    )
+
                     # create events for the current node inputs/outputs if they were streamed in
                     if brought_back_from_cpu:
                         # if any of the outputs is a view of the tensor, meaning the tensor might be used later,
@@ -291,11 +373,14 @@ class OffloadActivations(saved_tensors_hooks):
                         # in the compute stream (s0 here). Note that the con here is we introduce non-deterministic
                         # memory usage, but this case should not happen often.
                         unpacked_tensor = self.bwd_tensor_stash[unpack_tensor_id]
+                        print(
+                            f"{len(recomputed_tensors_that_are_views)=} for tensor {unpack_tensor_id}"
+                        )
                         if any(
                             o.untyped_storage() is unpacked_tensor.untyped_storage()
                             for o in outputs
                             if o is not None
-                        ):
+                        ) or (len(recomputed_tensors_that_are_views) > 0):
                             unpacked_tensor.record_stream(self.s0)
                             del self.bwd_tensor_stash[unpack_tensor_id]
                         else:
@@ -304,6 +389,9 @@ class OffloadActivations(saved_tensors_hooks):
 
                     # if there are still things in the fwd_stash, get rid of them as we're in bwd now
                     for id in [k for k in self.fwd_stash.keys()]:
+                        my_print(
+                            f"s0 is waiting on the event and will be deleting {id}"
+                        )
                         _, ev = self.fwd_stash[id]
                         self.s0.wait_event(ev)
                         del self.fwd_stash[id]
@@ -312,6 +400,9 @@ class OffloadActivations(saved_tensors_hooks):
                     for id in prev_node_ids:
                         event = self.bwd_ev_stash[id]
                         self.s1.wait_event(event)
+                        # if id == 4:
+                        #     self.bwd_tensor_stash[id].record_stream(self.s0)
+                        #     print(hex(self.bwd_tensor_stash[id].data_ptr()))
                         del self.bwd_tensor_stash[id]
 
                     return outputs
