@@ -24,7 +24,7 @@ defaults:
 jobs:
   gpu_test:
     if: github.repository_owner == 'pytorch'
-    runs-on: linux.8xlarge.nvidia.gpu
+    runs-on: linux.g5.4xlarge.nvidia.gpu
     strategy:
       matrix:
         python-version: ['3.9', '3.10', '3.11']
