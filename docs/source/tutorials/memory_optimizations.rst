@@ -273,11 +273,12 @@ These are all specified under the ``model`` flag or config entry, i.e:
 
   tune run lora_finetune_single_device --config llama3/8B_lora_single_device  \
   model.apply_lora_to_mlp=True \
-  model.lora_attn_modules=["q_proj","k_proj","v_proj"]
+  model.lora_attn_modules=["q_proj","k_proj","v_proj"] \
 
 .. code-block:: yaml
 
   model:
+    _component_: torchtune.models.llama3.lora_llama3_8b
     apply_lora_to_mlp: True
     model.lora_attn_modules: ["q_proj", "k_proj", "v_proj"]
 
@@ -292,7 +293,24 @@ Secondly, parameters which control the scale of the impact of LoRA on the model:
   to your specific use case. Typically, one jointly changes ``lora_rank`` and ``lora_alpha`` together, where ``lora_alpha ~= 2*lora_rank``.
 * ``lora_dropout`` introduces dropout in the LoRA layers to help regularize training. We default to 0.0 for all of our models.
 
-As above, these parameters are also specified under the ``model`` flag or config entry.
+As above, these parameters are also specified under the ``model`` flag or config entry:
+
+.. code-block:: bash
+
+  tune run lora_finetune_single_device --config llama3/8B_lora_single_device  \
+  model.apply_lora_to_mlp=True \
+  model.lora_attn_modules=["q_proj","k_proj","v_proj"] \
+  model.lora_rank=128 \
+  model.lora_rank=256
+
+.. code-block:: yaml
+
+  model:
+    _component_: torchtune.models.llama3.lora_llama3_8b
+    apply_lora_to_mlp: True
+    model.lora_attn_modules: ["q_proj", "k_proj", "v_proj"]
+    model.lora_rank: 128
+    model.lora_rank: 256
 
 .. note::
 
@@ -323,17 +341,99 @@ You can finetune using QLoRA with any of our LoRA recipes, i.e. recipes with the
 QLoRA-enabled model builders, which we support for all our models, and also use the ``qlora_`` prefix, e.g.
 the :func:`torchtune.models.llama3.llama3_8b` model has a corresponding :func:`torchtune.models.llama3.qlora_llama3_8b`.
 We aim to provide a comprehensive set of configurations to allow you to get started with training with QLoRA quickly,
-just specify any config with ``_qlora`` in its name, e.g:
-
-
-.. code-block:: bash
-
-  tune run lora_finetune_single_device --config llama3/8B_qlora_single_device
+just specify any config with ``_qlora`` in its name.
 
 All the rest of the LoRA parameters remain the same for QLoRA - check out the section above on :ref:`LoRA <glossary_lora>`
 to see how to configure.
 
+To configure from the command line:
+
+.. code-block:: bash
+
+  tune run lora_finetune_single_device --config llama3/8B_qlora_single_device \
+  model.apply_lora_to_mlp=True \
+  model.lora_attn_modules=["q_proj","k_proj","v_proj"] \
+  model.lora_rank=128 \
+  model.lora_rank=256 \
+
+
+or, by modifying a config:
+
+.. code-block:: yaml
+
+  model:
+    _component_: torchtune.models.qlora_llama3_8b
+    apply_lora_to_mlp: True
+    model.lora_attn_modules: ["q_proj", "k_proj", "v_proj"]
+    model.lora_rank: 128
+    model.lora_rank: 256
+
+
+
+.. _glossary_dora:
+
+Weight-Decomposed Low-Rank Adaptation (DoRA)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*What's going on here?*
+
+`DoRA <https://arxiv.org/abs/2402.09353>`_ is another PEFT technique which builds on-top of LoRA by
+further decomposing the pre-trained weights into two components: magnitude and direction. The magnitude component
+is a scalar vector that adjusts the scale, while the direction component corresponds to the original LoRA decomposition and
+updates the orientation of weights.
+
+DoRA adds a small overhead to LoRA training due to the addition of the magnitude parameter, but it has been shown to
+improve the performance of LoRA, particularly at low ranks.
+
+*Sounds great! How do I use it?*
+
+Much like LoRA and QLoRA, you can finetune using DoRA with any of our LoRA recipes. We use the same model builders for LoRA
+as we do for DoRA, so you can use the ``lora_`` version of any model builder with ``use_dora=True``. For example, to finetune
+:func:`torchtune.models.llama3.llama3_8b` with DoRA, you would use :func:`torchtune.models.llama3.lora_llama3_8b` with ``use_dora=True``:
+
+.. code-block:: bash
+
+  tune run lora_finetune_single_device --config llama3/8B_lora_single_device \
+  model.use_dora=True
+
+.. code-block:: yaml
+
+  model:
+    _component_: torchtune.models.lora_llama3_8b
+    use_dora: True
+
+Since DoRA extends LoRA, the parameters for :ref:`customizing LoRA <glossary_lora>` are identical. You can also quantize the base model weights like in :ref:`glossary_qlora` by using ``quantize=True`` to reap
+even more memory savings!
+
+.. code-block:: bash
+
+  tune run lora_finetune_single_device --config llama3/8B_lora_single_device \
+  model.apply_lora_to_mlp=True \
+  model.lora_attn_modules=["q_proj","k_proj","v_proj"] \
+  model.lora_rank=128 \
+  model.lora_rank=256 \
+  model.use_dora=True \
+  model.quantize_base=True \
+
+.. code-block:: yaml
+
+  model:
+    _component_: torchtune.models.lora_llama3_8b
+    apply_lora_to_mlp: True
+    model.lora_attn_modules: ["q_proj", "k_proj", "v_proj"]
+    model.lora_rank: 128
+    model.lora_rank: 256
+    use_dora: True
+    quantize_base: True
+
+
+.. note::
+
+   Under the hood, we've enabled DoRA by adding the :class:`~torchtune.modules.peft.DoRALinear` module, which we swap
+   out for :class:`~torchtune.modules.peft.LoRALinear` when ``use_dora=True``.
+
 .. _glossary_distrib:
+
 
 .. TODO
 
