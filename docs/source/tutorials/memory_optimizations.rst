@@ -21,6 +21,7 @@ To make things easy, we've summarized these components in the following table:
    ":ref:`glossary_opt_in_bwd`", "Helps reduce memory usage when using stateful optimizers, particularly when full-finetuning large models with high gradient memory usage. This is not compatible with ``gradient_accumulation_steps``, so training may slow down due to reduced model throughput."
    ":ref:`glossary_lora`", "When you want to significantly reduce the number of trainable parameters, saving gradient and optimizer memory during training, and significantly speeding up training."
    ":ref:`glossary_qlora`", "When you need even more memory savings than LoRA, at the potential cost of some training speed. Useful for very large models or limited hardware."
+   ":ref:`glossary_dora`", "Like LoRA, DoRA can provide significant memory savings and training speed-ups. DoRA may improve performance over LoRA, particularly when using small rank updates."
 
 
 .. note::
