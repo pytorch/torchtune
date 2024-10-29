@@ -414,6 +414,8 @@ def get_full_model_state_dict(
             module.reshard()
     else:
         for param_name, sharded_param in sharded_sd.items():
+            # without this, it may hang forever for +70B models.
+            torch.distributed.barrier()
             if sharded_param.is_cpu:
                 assert device is not None and device.type == "cuda", (
                     f"Expect cuda but got device={device}. "
@@ -446,6 +448,8 @@ def get_full_optimizer_state_dict(
     for group_id, sharded_group in sharded_state.items():
         group_state = {}
         for attr, sharded_tensor in sharded_group.items():
+            # without this, it may hang forever for +70B models.
+            torch.distributed.barrier()
             # "exp_avg" in AdamW is `DTensor`
             if isinstance(sharded_tensor, DTensor):
                 if sharded_tensor.is_cpu:
