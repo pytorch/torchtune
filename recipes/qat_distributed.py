@@ -692,14 +692,17 @@ class QATRecipeDistributed(FTRecipeInterface):
                     logits = logits.reshape(-1, logits.size(-1))
 
                 # Compute loss
-                running_loss += self._loss_fn(logits, labels) * current_num_tokens
+                current_loss = self._loss_fn(logits, labels) * current_num_tokens
+
                 # free logits otherwise it peaks backward memory
                 del logits
 
+                running_loss += current_loss
+                current_loss.backward
+
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    loss = running_loss / num_tokens
-                    loss.backward()
+                    training.scale_grads(self._model, 1 / num_tokens)
 
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
@@ -707,7 +710,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
-                    loss_to_log = loss.item()
+                    loss_to_log = running_loss.item() / num_tokens
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
