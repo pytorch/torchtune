@@ -434,6 +434,7 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
 
 <span class="k">try</span><span class="p">:</span>
     <span class="c1"># torchao 0.7+</span>
@@ -447,22 +448,29 @@
     <span class="n">int8_dynamic_activation_int4_weight</span><span class="p">,</span>
     <span class="n">quantize_</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">torchao.quantization.prototype.qat</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">disable_4w_fake_quant</span><span class="p">,</span>
-    <span class="n">disable_8da4w_fake_quant</span><span class="p">,</span>
-    <span class="n">enable_4w_fake_quant</span><span class="p">,</span>
-    <span class="n">enable_8da4w_fake_quant</span><span class="p">,</span>
-    <span class="n">Int4WeightOnlyQATQuantizer</span><span class="p">,</span>
-    <span class="n">Int8DynActInt4WeightQATQuantizer</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span> <span class="nn">torchao.quantization.prototype.qat._module_swap_api</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">disable_4w_fake_quant_module_swap</span><span class="p">,</span>
-    <span class="n">disable_8da4w_fake_quant_module_swap</span><span class="p">,</span>
-    <span class="n">enable_4w_fake_quant_module_swap</span><span class="p">,</span>
-    <span class="n">enable_8da4w_fake_quant_module_swap</span><span class="p">,</span>
-    <span class="n">Int4WeightOnlyQATQuantizerModuleSwap</span><span class="p">,</span>
-    <span class="n">Int8DynActInt4WeightQATQuantizerModuleSwap</span><span class="p">,</span>
-<span class="p">)</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="c1"># torchao 0.7+</span>
+    <span class="kn">from</span> <span class="nn">torchao.quantization.qat</span> <span class="kn">import</span> <span class="p">(</span>
+        <span class="n">Int4WeightOnlyQATQuantizer</span><span class="p">,</span>
+        <span class="n">Int8DynActInt4WeightQATQuantizer</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="kn">from</span> <span class="nn">torchao.quantization.qat.linear</span> <span class="kn">import</span> <span class="p">(</span>
+        <span class="n">disable_4w_fake_quant</span><span class="p">,</span>
+        <span class="n">disable_8da4w_fake_quant</span><span class="p">,</span>
+        <span class="n">enable_4w_fake_quant</span><span class="p">,</span>
+        <span class="n">enable_8da4w_fake_quant</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="c1"># torchao 0.6 and before</span>
+    <span class="kn">from</span> <span class="nn">torchao.quantization.prototype.qat</span> <span class="kn">import</span> <span class="p">(</span>
+        <span class="n">disable_4w_fake_quant</span><span class="p">,</span>
+        <span class="n">disable_8da4w_fake_quant</span><span class="p">,</span>
+        <span class="n">enable_4w_fake_quant</span><span class="p">,</span>
+        <span class="n">enable_8da4w_fake_quant</span><span class="p">,</span>
+        <span class="n">Int4WeightOnlyQATQuantizer</span><span class="p">,</span>
+        <span class="n">Int8DynActInt4WeightQATQuantizer</span><span class="p">,</span>
+    <span class="p">)</span>
 
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
@@ -481,9 +489,9 @@
 <span class="n">_quantizer_mode_to_enable_fake_quant</span> <span class="o">=</span> <span class="p">{}</span>
 
 
-<span class="c1"># ========================================================</span>
-<span class="c1"># int8 dynamic activations + int4 weight tensor subclass |</span>
-<span class="c1"># ========================================================</span>
+<span class="c1"># ========================================</span>
+<span class="c1"># int8 dynamic activations + int4 weight |</span>
+<span class="c1"># ========================================</span>
 
 
 <span class="k">class</span> <span class="nc">Int8DynActInt4WeightQuantizer</span><span class="p">:</span>
@@ -535,15 +543,15 @@
 <span class="n">_quantizer_mode_to_enable_fake_quant</span><span class="p">[</span><span class="s2">&quot;4w-qat&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">enable_4w_fake_quant</span>
 
 
-<span class="c1"># =============</span>
-<span class="c1"># module swap |</span>
-<span class="c1"># =============</span>
+<span class="c1"># ====================== #</span>
+<span class="c1"># Backward compatibility #</span>
+<span class="c1"># ====================== #</span>
 
-<span class="c1"># Note: QAT tensor subclass implementation in torchao only works</span>
-<span class="c1"># with FSDP2 today. For other distribution strategies like DDP and</span>
-<span class="c1"># FSDP1, users will need to fall back to the old module swap flow.</span>
 
 <span class="c1"># int4 weight-only</span>
+<span class="n">Int4WeightOnlyQATQuantizerModuleSwap</span> <span class="o">=</span> <span class="n">Int4WeightOnlyQATQuantizer</span>
+<span class="n">disable_4w_fake_quant_module_swap</span> <span class="o">=</span> <span class="n">disable_4w_fake_quant</span>
+<span class="n">enable_4w_fake_quant_module_swap</span> <span class="o">=</span> <span class="n">enable_4w_fake_quant</span>
 <span class="n">_quantizer_to_mode</span><span class="p">[</span><span class="n">Int4WeightOnlyQATQuantizerModuleSwap</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;4w-qat-module-swap&quot;</span>
 <span class="n">_quantizer_mode_to_disable_fake_quant</span><span class="p">[</span>
     <span class="s2">&quot;4w-qat-module-swap&quot;</span>
@@ -553,6 +561,9 @@
 <span class="p">]</span> <span class="o">=</span> <span class="n">enable_4w_fake_quant_module_swap</span>
 
 <span class="c1"># int8 dynamic activations + int4 weight</span>
+<span class="n">Int8DynActInt4WeightQATQuantizerModuleSwap</span> <span class="o">=</span> <span class="n">Int8DynActInt4WeightQATQuantizer</span>
+<span class="n">disable_8da4w_fake_quant_module_swap</span> <span class="o">=</span> <span class="n">disable_8da4w_fake_quant</span>
+<span class="n">enable_8da4w_fake_quant_module_swap</span> <span class="o">=</span> <span class="n">enable_8da4w_fake_quant</span>
 <span class="n">_quantizer_to_mode</span><span class="p">[</span><span class="n">Int8DynActInt4WeightQATQuantizerModuleSwap</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;8da4w-qat-module-swap&quot;</span>
 <span class="n">_quantizer_mode_to_disable_fake_quant</span><span class="p">[</span>
     <span class="s2">&quot;8da4w-qat-module-swap&quot;</span>
@@ -570,8 +581,10 @@
 
 <span class="sd">    Currently supported:</span>
 
-<span class="sd">    - :class:`~torchao.quantization.quant_api.Int8DynActInt4WeightQuantizer`: &quot;8da4w&quot; (requires ``torch&gt;=2.3.0``)</span>
-<span class="sd">    - :class:`~torchao.quantization.prototype.qat.Int8DynActInt4WeightQATQuantizer`: &quot;8da4w-qat&quot; (requires ``torch&gt;=2.4.0``)</span>
+<span class="sd">    - :class:`~torchtune.training.quantization.Int8DynActInt4WeightQuantizer`: &quot;8da4w&quot;</span>
+<span class="sd">    - :class:`~torchtune.training.quantization.Int4WeightOnlyQuantizer`: &quot;4w&quot;</span>
+<span class="sd">    - :class:`~torchao.quantization.qat.Int8DynActInt4WeightQATQuantizer`: &quot;8da4w-qat&quot;</span>
+<span class="sd">    - :class:`~torchao.quantization.qat.Int4WeightOnlyQATQuantizer`: &quot;4w-qat&quot;</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        quantizer (Optional[Callable]): A callable object that implements the `quantize` method.</span>
@@ -579,7 +592,12 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        Optional[str]: The quantization mode.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">_quantizer_to_mode</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">quantizer</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span></div>
+    <span class="n">mode</span> <span class="o">=</span> <span class="n">_quantizer_to_mode</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">quantizer</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;module-swap&quot;</span> <span class="ow">in</span> <span class="n">mode</span><span class="p">:</span>
+        <span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;*QuantizerModuleSwap is deprecated. Please use the version without &#39;ModuleSwap&#39; instead&quot;</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">mode</span></div>
 
 
 <span class="k">def</span> <span class="nf">_get_disable_fake_quant</span><span class="p">(</span><span class="n">quantizer_mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
