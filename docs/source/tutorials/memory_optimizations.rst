@@ -344,7 +344,7 @@ We aim to provide a comprehensive set of configurations to allow you to get star
 just specify any config with ``_qlora`` in its name.
 
 All the rest of the LoRA parameters remain the same for QLoRA - check out the section above on :ref:`LoRA <glossary_lora>`
-to see how to configure.
+to see how to configure these parameters.
 
 To configure from the command line:
 
