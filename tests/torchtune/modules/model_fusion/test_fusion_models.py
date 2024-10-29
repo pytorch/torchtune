@@ -83,7 +83,7 @@ class TestDeepFusionModel:
     @pytest.fixture
     def fused_model(self, encoder, decoder) -> DeepFusionModel:
         model = DeepFusionModel(
-            encoder=encoder,
+            encoders={"encoder": encoder},
             decoder=decoder,
         )
         return model
@@ -93,7 +93,9 @@ class TestDeepFusionModel:
         batch_size = 2
         seq_len = 10
         tokens = torch.randint(0, vocab_size, (batch_size, seq_len))
-        encoder_input = {"input": torch.randint(0, vocab_size, (batch_size, seq_len))}
+        encoder_input = {
+            "encoder": {"input": torch.randint(0, vocab_size, (batch_size, seq_len))}
+        }
         encoder_mask = torch.randint(0, 2, (batch_size, seq_len, seq_len)).bool()
         input_pos = torch.Tensor([1]).int()
         return tokens, encoder_input, encoder_mask, input_pos
@@ -164,9 +166,9 @@ class TestDeepFusionModel:
 
         # Test encoder only
         model = DeepFusionModel(
-            encoder=encoder,
+            encoders={"encoder": encoder},
             decoder=decoder,
-            encoder_trainable=True,
+            encoders_trainable=True,
             fusion_trainable=False,
         )
         trainable_params = {n for n, p in model.named_parameters() if p.requires_grad}
@@ -174,7 +176,7 @@ class TestDeepFusionModel:
 
         # Test decoder only, and confirm fusion layers are removed independently
         model = DeepFusionModel(
-            encoder=encoder,
+            encoders={"encoder": encoder},
             decoder=decoder,
             decoder_trainable=True,
             fusion_trainable=False,
@@ -189,6 +191,29 @@ class TestDeepFusionModel:
             "decoder.v.bias",
             "decoder.embed.weight",
         }
+
+    def test_incorrect_number_of_encoders(self, decoder):
+        with pytest.raises(ValueError):
+            _ = DeepFusionModel(
+                encoders={"encoder": nn.Identity(), "encoder2": nn.Identity()},
+                decoder=decoder,
+            )
+
+    def test_mismatched_encoder_keys(self, decoder):
+        with pytest.raises(ValueError):
+            _ = DeepFusionModel(
+                encoders={"encoder": nn.Identity()},
+                decoder=decoder,
+                encoders_trainable={"encoder2": True},
+            )
+
+    def test_mismatched_encoder_input(self, fused_model, inputs):
+        tokens, _, _, _ = inputs
+        with pytest.raises(ValueError):
+            _ = fused_model(
+                tokens,
+                encoder_input={"encoder2": {"input": torch.tensor([1])}},
+            )
 
 
 class TestEarlyFusionModel:
@@ -314,3 +339,29 @@ class TestEarlyFusionModel:
             "decoder.embed.weight",
             "encoders.green.weight",
         }
+
+    def test_mismatched_encoder_tokens(self, decoder):
+        with pytest.raises(ValueError):
+            _ = EarlyFusionModel(
+                encoders={"encoder": nn.Identity(), "encoder2": nn.Identity()},
+                decoder=decoder,
+                encoder_tokens={"encoder": 0, "encoder3": 1},
+                encoders_trainable=False,
+            )
+
+    def test_mismatched_encoder_trainable(self, decoder):
+        with pytest.raises(ValueError):
+            _ = EarlyFusionModel(
+                encoders={"encoder": nn.Identity(), "encoder2": nn.Identity()},
+                decoder=decoder,
+                encoder_tokens={"encoder": 0, "encoder2": 1},
+                encoders_trainable={"encoder": True, "encoder3": False},
+            )
+
+    def test_mismatched_encoder_input(self, fused_model, inputs):
+        tokens, _, _, _ = inputs
+        with pytest.raises(ValueError):
+            _ = fused_model(
+                tokens,
+                encoder_input={"encoder": {"input": torch.tensor([1])}},
+            )

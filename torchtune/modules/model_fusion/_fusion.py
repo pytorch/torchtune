@@ -590,7 +590,7 @@ class EarlyFusionModel(nn.Module):
         decoder: TransformerDecoder,
         encoders: Dict[str, nn.Module],
         encoder_tokens: Dict[str, int],
-        decoder_trainable: bool,
+        decoder_trainable: bool = False,
         encoders_trainable: Union[bool, Dict[str, bool]] = False,
         fusion_trainable: bool = True,
     ):
