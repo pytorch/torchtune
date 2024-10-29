@@ -219,8 +219,8 @@ e.g. when using a stateful optimizer with a model with a lot of parameters, and 
 
 .. _glossary_cpu_offload:
 
-Offloading Single-Device Optimizer/Gradient states to CPU
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Offloading Optimizer/Gradient states to CPU
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *What's going on here?*
 
@@ -260,6 +260,7 @@ Some helpful hints from the ``torchao`` `CPUOffloadOptimizer page <https://githu
 * The CPU optimizer step is often the bottleneck when optimizer CPU offload is used. To minimize the slowdown, it is recommended to (1) use full ``bf16`` training so that parameters, gradients, and optimizer states are in ``bf16``; and (2) give GPU more work per optimizer step (e.g. larger batch size with activation checkpointing, gradient accumulation).
 * Gradient accumulation should always be set to 1 when ``offload_gradients=True``, as gradients are cleared on GPU every backward pass.
 * This optimizer works by keeping a copy of parameters and pre-allocating gradient memory on CPU. Therefore, expect your RAM usage to increase by 4x model size.
+* This optimizer is only supported for single-device recipes. To use CPU-offloading in distributed recipes, use ``fsdp_cpu_offload=True`` in any distributed recipe. See :class:`torch.distributed.fsdp.FullyShardedDataParallel` for more details
 
 
 .. _glossary_peft:
