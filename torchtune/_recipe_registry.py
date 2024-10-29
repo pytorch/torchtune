@@ -395,6 +395,21 @@ _ALL_RECIPES = [
         ],
         supports_distributed=False,
     ),
+    Recipe(
+        name="knowledge_distillation_distributed",
+        file_path="knowledge_distillation_distributed.py",
+        configs=[
+            Config(
+                name="qwen2/knowledge_distillation_distributed",
+                file_path="qwen2/knowledge_distillation_distributed.yaml",
+            ),
+            Config(
+                name="llama3_2/knowledge_distillation_distributed",
+                file_path="llama3_2/knowledge_distillation_distributed.yaml",
+            ),
+        ],
+        supports_distributed=True,
+    ),
 ]
 
 
