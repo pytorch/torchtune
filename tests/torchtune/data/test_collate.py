@@ -138,17 +138,14 @@ class TestPaddedCollateTiledImagesAndMask:
         )
         imgs, tiles = actual["encoder_input"]["images"].shape[1:3]
         seq_len = actual["encoder_mask"].shape[-1]
-        assert imgs * tiles * self.tokens_per_tile == seq_len
+        assert 5 * 4 * self.tokens_per_tile == seq_len
 
-        mask_1 = torch.concat(
-            [torch.ones(4, 5 * 2), torch.zeros(4, 5 * 3)], dim=1
-        )  # pad 3 extra tiles
-        mask_2 = torch.concat(
-            [torch.ones(4, 5 * 3), torch.zeros(4, 5 * 2)], dim=1
-        )  # pad 2 extra tiles
-        mask_3 = torch.concat(
-            [torch.zeros(2, 20), torch.ones(2, 5 * 4)], dim=0
-        )  # Left pad text tokens
+        # pad 3 extra tiles
+        mask_1 = torch.concat([torch.ones(4, 5 * 2), torch.zeros(4, 5 * 3)], dim=1)
+        # pad 2 extra tiles
+        mask_2 = torch.concat([torch.ones(4, 5 * 3), torch.zeros(4, 5 * 2)], dim=1)
+        # Left pad text tokens
+        mask_3 = torch.concat([torch.zeros(2, 20), torch.ones(2, 5 * 4)], dim=0)
         mask_3 = F.pad(mask_3, (0, 5), value=0)  # pad 5th tile
         sample_1 = torch.stack([mask_1, mask_2])
         sample_2 = torch.stack([mask_3, torch.zeros(4, 25)])
@@ -163,13 +160,9 @@ class TestPaddedCollateTiledImagesAndMask:
                         [
                             [[[[1.0]]], [[[1.0]]], [[[0.0]]], [[[0.0]]], [[[0.0]]]],
                             [[[[1.0]]], [[[1.0]]], [[[1.0]]], [[[0.0]]], [[[0.0]]]],
-                            [[[[0.0]]], [[[0.0]]], [[[0.0]]], [[[0.0]]], [[[0.0]]]],
-                            [[[[0.0]]], [[[0.0]]], [[[0.0]]], [[[0.0]]], [[[0.0]]]],
                         ],
                         [
                             [[[[1.0]]], [[[1.0]]], [[[1.0]]], [[[1.0]]], [[[0.0]]]],
-                            [[[[0.0]]], [[[0.0]]], [[[0.0]]], [[[0.0]]], [[[0.0]]]],
-                            [[[[0.0]]], [[[0.0]]], [[[0.0]]], [[[0.0]]], [[[0.0]]]],
                             [[[[0.0]]], [[[0.0]]], [[[0.0]]], [[[0.0]]], [[[0.0]]]],
                         ],
                     ]
