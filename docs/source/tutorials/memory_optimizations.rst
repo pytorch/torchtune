@@ -301,8 +301,8 @@ As above, these parameters are also specified under the ``model`` flag or config
   tune run lora_finetune_single_device --config llama3/8B_lora_single_device  \
   model.apply_lora_to_mlp=True \
   model.lora_attn_modules=["q_proj","k_proj","v_proj"] \
-  model.lora_rank=128 \
-  model.lora_rank=256
+  model.lora_rank=32 \
+  model.lora_rank=64
 
 .. code-block:: yaml
 
@@ -311,7 +311,7 @@ As above, these parameters are also specified under the ``model`` flag or config
     apply_lora_to_mlp: True
     lora_attn_modules: ["q_proj", "k_proj", "v_proj"]
     lora_rank: 32
-    lora_rank: 64
+    lora_alpha: 64
 
 .. note::
 
@@ -368,8 +368,6 @@ or, by modifying a config:
     lora_attn_modules: ["q_proj", "k_proj", "v_proj"]
     lora_rank: 32
     lora_alpha: 64
-
-
 
 .. _glossary_dora:
 
