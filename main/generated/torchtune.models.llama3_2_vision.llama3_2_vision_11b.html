@@ -547,8 +547,14 @@ Default is 560 for Instruct weights, use 448 for pre-trained.</p></li>
     var collapsedSections = ['Introduction', 'Getting Started', 'Tutorials']
 </script> -->
 
-<script script type="text/javascript">
+<script type="text/javascript">
     var collapsedSections = []
+</script>
+ 
+<script type="text/javascript">
+    $(document).ready(function() {
+        $(".main-menu-item a[href='https://github.com/pytorch/pytorch']").attr("href", "https://github.com/pytorch/torchtune");
+    });
 </script>
 
 

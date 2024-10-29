@@ -567,8 +567,14 @@ If none, base model keys will not be validated.</p></li>
     var collapsedSections = ['Introduction', 'Getting Started', 'Tutorials']
 </script> -->
 
-<script script type="text/javascript">
+<script type="text/javascript">
     var collapsedSections = []
+</script>
+ 
+<script type="text/javascript">
+    $(document).ready(function() {
+        $(".main-menu-item a[href='https://github.com/pytorch/pytorch']").attr("href", "https://github.com/pytorch/torchtune");
+    });
 </script>
 
 
