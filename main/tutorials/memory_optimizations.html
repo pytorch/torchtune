@@ -472,6 +472,9 @@ To make things easy, we’ve summarized these components in the following table:
 <tr class="row-even"><td><p><a class="reference internal" href="#glossary-qlora"><span class="std std-ref">Quantized Low Rank Adaptation (QLoRA)</span></a></p></td>
 <td><p>When you need even more memory savings than LoRA, at the potential cost of some training speed. Useful for very large models or limited hardware.</p></td>
 </tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#glossary-dora"><span class="std std-ref">Weight-Decomposed Low-Rank Adaptation (DoRA)</span></a></p></td>
+<td><p>Like LoRA, DoRA can provide significant memory savings and training speed-ups. DoRA may improve performance over LoRA, particularly when using small rank updates.</p></td>
+</tr>
 </tbody>
 </table>
 <div class="admonition note">
@@ -539,7 +542,7 @@ checkpointing, where all activations will either be recomputed later in the back
 <p><em>Sounds great! How do I use it?</em></p>
 <p>To enable activation offloading, use the <code class="docutils literal notranslate"><span class="pre">enable_activation_offloading</span></code> config entry or flag
 in our lora finetuning single device recipe, e.g. <code class="docutils literal notranslate"><span class="pre">enable_activation_offloading=True</span></code>. To allow
-usage of streams, make sure you are on a torch version later than PyTorch 2.5.0.dev20240907.</p>
+usage of streams, make sure you are on a torch version later than PyTorch 2.5.0.</p>
 </section>
 <section id="gradient-accumulation">
 <span id="glossary-grad-accm"></span><h2>Gradient Accumulation<a class="headerlink" href="#gradient-accumulation" title="Permalink to this heading">¶</a></h2>
@@ -713,6 +716,7 @@ model.lora_attn_modules<span class="o">=[</span><span class="s2">&quot;q_proj&qu
 </pre></div>
 </div>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">model</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama3.lora_llama3_8b</span>
 <span class="w">  </span><span class="nt">apply_lora_to_mlp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
 <span class="w">  </span><span class="nt">model.lora_attn_modules</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;q_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;k_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;v_proj&quot;</span><span class="p p-Indicator">]</span>
 </pre></div>
@@ -728,7 +732,22 @@ We provide default settings for these parameters which we’ve tested with all o
 to your specific use case. Typically, one jointly changes <code class="docutils literal notranslate"><span class="pre">lora_rank</span></code> and <code class="docutils literal notranslate"><span class="pre">lora_alpha</span></code> together, where <code class="docutils literal notranslate"><span class="pre">lora_alpha</span> <span class="pre">~=</span> <span class="pre">2*lora_rank</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">lora_dropout</span></code> introduces dropout in the LoRA layers to help regularize training. We default to 0.0 for all of our models.</p></li>
 </ul>
-<p>As above, these parameters are also specified under the <code class="docutils literal notranslate"><span class="pre">model</span></code> flag or config entry.</p>
+<p>As above, these parameters are also specified under the <code class="docutils literal notranslate"><span class="pre">model</span></code> flag or config entry:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_lora_single_device<span class="w">  </span><span class="se">\</span>
+model.apply_lora_to_mlp<span class="o">=</span>True<span class="w"> </span><span class="se">\</span>
+model.lora_attn_modules<span class="o">=[</span><span class="s2">&quot;q_proj&quot;</span>,<span class="s2">&quot;k_proj&quot;</span>,<span class="s2">&quot;v_proj&quot;</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
+model.lora_rank<span class="o">=</span><span class="m">32</span><span class="w"> </span><span class="se">\</span>
+model.lora_alpha<span class="o">=</span><span class="m">64</span>
+</pre></div>
+</div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">model</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama3.lora_llama3_8b</span>
+<span class="w">  </span><span class="nt">apply_lora_to_mlp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">  </span><span class="nt">lora_attn_modules</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;q_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;k_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;v_proj&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">lora_rank</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="w">  </span><span class="nt">lora_alpha</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">64</span>
+</pre></div>
+</div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>To get a deeper sense of how LoRA parameters affect memory usage during training,
@@ -752,12 +771,75 @@ to address this by speeding up training.</p>
 QLoRA-enabled model builders, which we support for all our models, and also use the <code class="docutils literal notranslate"><span class="pre">qlora_</span></code> prefix, e.g.
 the <a class="reference internal" href="../generated/torchtune.models.llama3.llama3_8b.html#torchtune.models.llama3.llama3_8b" title="torchtune.models.llama3.llama3_8b"><code class="xref py py-func docutils literal notranslate"><span class="pre">torchtune.models.llama3.llama3_8b()</span></code></a> model has a corresponding <a class="reference internal" href="../generated/torchtune.models.llama3.qlora_llama3_8b.html#torchtune.models.llama3.qlora_llama3_8b" title="torchtune.models.llama3.qlora_llama3_8b"><code class="xref py py-func docutils literal notranslate"><span class="pre">torchtune.models.llama3.qlora_llama3_8b()</span></code></a>.
 We aim to provide a comprehensive set of configurations to allow you to get started with training with QLoRA quickly,
-just specify any config with <code class="docutils literal notranslate"><span class="pre">_qlora</span></code> in its name, e.g:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_qlora_single_device
+just specify any config with <code class="docutils literal notranslate"><span class="pre">_qlora</span></code> in its name.</p>
+<p>All the rest of the LoRA parameters remain the same for QLoRA - check out the section above on <a class="reference internal" href="#glossary-lora"><span class="std std-ref">LoRA</span></a>
+to see how to configure these parameters.</p>
+<p>To configure from the command line:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_qlora_single_device<span class="w"> </span><span class="se">\</span>
+model.apply_lora_to_mlp<span class="o">=</span>True<span class="w"> </span><span class="se">\</span>
+model.lora_attn_modules<span class="o">=[</span><span class="s2">&quot;q_proj&quot;</span>,<span class="s2">&quot;k_proj&quot;</span>,<span class="s2">&quot;v_proj&quot;</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
+model.lora_rank<span class="o">=</span><span class="m">32</span><span class="w"> </span><span class="se">\</span>
+model.lora_alpha<span class="o">=</span><span class="m">64</span>
 </pre></div>
 </div>
-<p>All the rest of the LoRA parameters remain the same for QLoRA - check out the section above on <a class="reference internal" href="#glossary-lora"><span class="std std-ref">LoRA</span></a>
-to see how to configure.</p>
+<p>or, by modifying a config:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">model</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.qlora_llama3_8b</span>
+<span class="w">  </span><span class="nt">apply_lora_to_mlp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">  </span><span class="nt">lora_attn_modules</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;q_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;k_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;v_proj&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">lora_rank</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="w">  </span><span class="nt">lora_alpha</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">64</span>
+</pre></div>
+</div>
+</section>
+<section id="weight-decomposed-low-rank-adaptation-dora">
+<span id="glossary-dora"></span><h3>Weight-Decomposed Low-Rank Adaptation (DoRA)<a class="headerlink" href="#weight-decomposed-low-rank-adaptation-dora" title="Permalink to this heading">¶</a></h3>
+<p><em>What’s going on here?</em></p>
+<p><a class="reference external" href="https://arxiv.org/abs/2402.09353">DoRA</a> is another PEFT technique which builds on-top of LoRA by
+further decomposing the pre-trained weights into two components: magnitude and direction. The magnitude component
+is a scalar vector that adjusts the scale, while the direction component corresponds to the original LoRA decomposition and
+updates the orientation of weights.</p>
+<p>DoRA adds a small overhead to LoRA training due to the addition of the magnitude parameter, but it has been shown to
+improve the performance of LoRA, particularly at low ranks.</p>
+<p><em>Sounds great! How do I use it?</em></p>
+<p>Much like LoRA and QLoRA, you can finetune using DoRA with any of our LoRA recipes. We use the same model builders for LoRA
+as we do for DoRA, so you can use the <code class="docutils literal notranslate"><span class="pre">lora_</span></code> version of any model builder with <code class="docutils literal notranslate"><span class="pre">use_dora=True</span></code>. For example, to finetune
+<a class="reference internal" href="../generated/torchtune.models.llama3.llama3_8b.html#torchtune.models.llama3.llama3_8b" title="torchtune.models.llama3.llama3_8b"><code class="xref py py-func docutils literal notranslate"><span class="pre">torchtune.models.llama3.llama3_8b()</span></code></a> with DoRA, you would use <a class="reference internal" href="../generated/torchtune.models.llama3.lora_llama3_8b.html#torchtune.models.llama3.lora_llama3_8b" title="torchtune.models.llama3.lora_llama3_8b"><code class="xref py py-func docutils literal notranslate"><span class="pre">torchtune.models.llama3.lora_llama3_8b()</span></code></a> with <code class="docutils literal notranslate"><span class="pre">use_dora=True</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_lora_single_device<span class="w"> </span><span class="se">\</span>
+model.use_dora<span class="o">=</span>True
+</pre></div>
+</div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">model</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.lora_llama3_8b</span>
+<span class="w">  </span><span class="nt">use_dora</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+</pre></div>
+</div>
+<p>Since DoRA extends LoRA, the parameters for <a class="reference internal" href="#glossary-lora"><span class="std std-ref">customizing LoRA</span></a> are identical. You can also quantize the base model weights like in <a class="reference internal" href="#glossary-qlora"><span class="std std-ref">Quantized Low Rank Adaptation (QLoRA)</span></a> by using <code class="docutils literal notranslate"><span class="pre">quantize=True</span></code> to reap
+even more memory savings!</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_lora_single_device<span class="w"> </span><span class="se">\</span>
+model.apply_lora_to_mlp<span class="o">=</span>True<span class="w"> </span><span class="se">\</span>
+model.lora_attn_modules<span class="o">=[</span><span class="s2">&quot;q_proj&quot;</span>,<span class="s2">&quot;k_proj&quot;</span>,<span class="s2">&quot;v_proj&quot;</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
+model.lora_rank<span class="o">=</span><span class="m">16</span><span class="w"> </span><span class="se">\</span>
+model.lora_alpha<span class="o">=</span><span class="m">32</span><span class="w"> </span><span class="se">\</span>
+model.use_dora<span class="o">=</span>True<span class="w"> </span><span class="se">\</span>
+model.quantize_base<span class="o">=</span>True
+</pre></div>
+</div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">model</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.lora_llama3_8b</span>
+<span class="w">  </span><span class="nt">apply_lora_to_mlp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">  </span><span class="nt">lora_attn_modules</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;q_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;k_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;v_proj&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">lora_rank</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">16</span>
+<span class="w">  </span><span class="nt">lora_alpha</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="w">  </span><span class="nt">use_dora</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">  </span><span class="nt">quantize_base</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Under the hood, we’ve enabled DoRA by adding the <a class="reference internal" href="../generated/torchtune.modules.peft.DoRALinear.html#torchtune.modules.peft.DoRALinear" title="torchtune.modules.peft.DoRALinear"><code class="xref py py-class docutils literal notranslate"><span class="pre">DoRALinear</span></code></a> module, which we swap
+out for <a class="reference internal" href="../generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear" title="torchtune.modules.peft.LoRALinear"><code class="xref py py-class docutils literal notranslate"><span class="pre">LoRALinear</span></code></a> when <code class="docutils literal notranslate"><span class="pre">use_dora=True</span></code>.</p>
+</div>
 <span class="target" id="glossary-distrib"></span></section>
 </section>
 </section>
@@ -819,6 +901,7 @@ to see how to configure.</p>
 <li><a class="reference internal" href="#parameter-efficient-fine-tuning-peft">Parameter Efficient Fine-Tuning (PEFT)</a><ul>
 <li><a class="reference internal" href="#low-rank-adaptation-lora">Low Rank Adaptation (LoRA)</a></li>
 <li><a class="reference internal" href="#quantized-low-rank-adaptation-qlora">Quantized Low Rank Adaptation (QLoRA)</a></li>
+<li><a class="reference internal" href="#weight-decomposed-low-rank-adaptation-dora">Weight-Decomposed Low-Rank Adaptation (DoRA)</a></li>
 </ul>
 </li>
 </ul>
