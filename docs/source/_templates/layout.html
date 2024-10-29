@@ -17,11 +17,11 @@
 
 <script type="text/javascript">
     var collapsedSections = []
-    </script>
-    {{ super() }}
-    <script type="text/javascript">
-      $(document).ready(function() {
-            $(".main-menu-item a[href='https://github.com/pytorch/pytorch']").attr("href", "https://github.com/pytorch/torchtune");
-      });
-    </script>
+</script>
+{{ super() }}
+<script type="text/javascript">
+    $(document).ready(function() {
+        $(".main-menu-item a[href='https://github.com/pytorch/pytorch']").attr("href", "https://github.com/pytorch/torchtune");
+    });
+</script>
 {% endblock %}
