@@ -302,7 +302,7 @@ As above, these parameters are also specified under the ``model`` flag or config
   model.apply_lora_to_mlp=True \
   model.lora_attn_modules=["q_proj","k_proj","v_proj"] \
   model.lora_rank=32 \
-  model.lora_rank=64
+  model.lora_alpha=64
 
 .. code-block:: yaml
 
@@ -421,7 +421,7 @@ even more memory savings!
     apply_lora_to_mlp: True
     lora_attn_modules: ["q_proj", "k_proj", "v_proj"]
     lora_rank: 16
-    lora_rank: 32
+    lora_alpha: 32
     use_dora: True
     quantize_base: True
 
