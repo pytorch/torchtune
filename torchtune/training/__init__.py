@@ -23,6 +23,7 @@ from torchtune.training._distributed import (
     shard_model,
     validate_no_params_on_meta_device,
 )
+from torchtune.training._grad_scaler import scale_grads
 from torchtune.training._profiler import (
     DEFAULT_PROFILE_DIR,
     DEFAULT_PROFILER_ACTIVITIES,
@@ -132,4 +133,5 @@ __all__ = [
     "NoOpManager",
     "OffloadActivations",
     "FormattedCheckpointFiles",
+    "scale_grads",
 ]
