@@ -843,6 +843,8 @@
             <span class="n">module</span><span class="o">.</span><span class="n">reshard</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">sharded_param</span> <span class="ow">in</span> <span class="n">sharded_sd</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># without this, it may hang forever for +70B models.</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">barrier</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">sharded_param</span><span class="o">.</span><span class="n">is_cpu</span><span class="p">:</span>
                 <span class="k">assert</span> <span class="n">device</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">,</span> <span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;Expect cuda but got device=</span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">. &quot;</span>
@@ -875,6 +877,8 @@
     <span class="k">for</span> <span class="n">group_id</span><span class="p">,</span> <span class="n">sharded_group</span> <span class="ow">in</span> <span class="n">sharded_state</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="n">group_state</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">sharded_tensor</span> <span class="ow">in</span> <span class="n">sharded_group</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># without this, it may hang forever for +70B models.</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">barrier</span><span class="p">()</span>
             <span class="c1"># &quot;exp_avg&quot; in AdamW is `DTensor`</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sharded_tensor</span><span class="p">,</span> <span class="n">DTensor</span><span class="p">):</span>
                 <span class="k">if</span> <span class="n">sharded_tensor</span><span class="o">.</span><span class="n">is_cpu</span><span class="p">:</span>

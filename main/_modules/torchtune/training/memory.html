@@ -667,7 +667,8 @@
         <span class="n">optim_dict</span><span class="p">[</span><span class="n">param</span><span class="p">]</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
 
     <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">register_post_accumulate_grad_hook</span><span class="p">(</span><span class="n">optim_step</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">register_post_accumulate_grad_hook</span><span class="p">(</span><span class="n">optim_step</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_memory_stats"><a class="viewcode-back" href="../../../generated/torchtune.training.get_memory_stats.html#torchtune.training.get_memory_stats">[docs]</a><span class="k">def</span> <span class="nf">get_memory_stats</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">reset_stats</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
