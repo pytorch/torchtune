@@ -109,7 +109,7 @@ checkpointing, where all activations will either be recomputed later in the back
 
 To enable activation offloading, use the ``enable_activation_offloading`` config entry or flag
 in our lora finetuning single device recipe, e.g. ``enable_activation_offloading=True``. To allow
-usage of streams, make sure you are on a torch version later than PyTorch 2.5.0.dev20240907.
+usage of streams, make sure you are on a torch version later than PyTorch 2.5.0.
 
 .. _glossary_grad_accm:
 
