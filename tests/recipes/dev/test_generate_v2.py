@@ -6,6 +6,7 @@
 
 import runpy
 import sys
+import os
 from pathlib import Path
 
 import pytest
@@ -76,6 +77,9 @@ class TestGenerateV2:
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         tokenizer_path = Path(TOKENIZER_PATHS["llama2"])
         ckpt_dir = ckpt_path.parent
+
+        # Debugging code - remove when done
+        os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
         # Config file needed for model conversion.
         write_hf_ckpt_config(ckpt_dir)
