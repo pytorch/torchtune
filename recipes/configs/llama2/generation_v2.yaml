@@ -12,7 +12,7 @@ model:
 # You can turn uncomment the following lines to enable quantization for faster inference and potentially lower VRAM
 # quantization_method:
 #   _component_: torchao.quantization.quant_api.int4_weight_only # int4_weight_only is a good balance of speed and memory
-#   use_hqq: False # Turn on for more accurate results
+#   use_hqq: False # Turn on to use Half-Quadratic Quantization
 
 # Transform arguments
 tokenizer:
