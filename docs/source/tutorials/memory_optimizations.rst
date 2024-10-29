@@ -309,9 +309,9 @@ As above, these parameters are also specified under the ``model`` flag or config
   model:
     _component_: torchtune.models.llama3.lora_llama3_8b
     apply_lora_to_mlp: True
-    model.lora_attn_modules: ["q_proj", "k_proj", "v_proj"]
-    model.lora_rank: 128
-    model.lora_rank: 256
+    lora_attn_modules: ["q_proj", "k_proj", "v_proj"]
+    lora_rank: 32
+    lora_rank: 64
 
 .. note::
 
@@ -354,8 +354,8 @@ To configure from the command line:
   tune run lora_finetune_single_device --config llama3/8B_qlora_single_device \
   model.apply_lora_to_mlp=True \
   model.lora_attn_modules=["q_proj","k_proj","v_proj"] \
-  model.lora_rank=128 \
-  model.lora_rank=256 \
+  model.lora_rank=32 \
+  model.lora_alpha=64
 
 
 or, by modifying a config:
@@ -365,9 +365,9 @@ or, by modifying a config:
   model:
     _component_: torchtune.models.qlora_llama3_8b
     apply_lora_to_mlp: True
-    model.lora_attn_modules: ["q_proj", "k_proj", "v_proj"]
-    model.lora_rank: 128
-    model.lora_rank: 256
+    lora_attn_modules: ["q_proj", "k_proj", "v_proj"]
+    lora_rank: 32
+    lora_alpha: 64
 
 
 
@@ -411,8 +411,8 @@ even more memory savings!
   tune run lora_finetune_single_device --config llama3/8B_lora_single_device \
   model.apply_lora_to_mlp=True \
   model.lora_attn_modules=["q_proj","k_proj","v_proj"] \
-  model.lora_rank=128 \
-  model.lora_rank=256 \
+  model.lora_rank=16 \
+  model.lora_alpha=32 \
   model.use_dora=True \
   model.quantize_base=True
 
@@ -421,9 +421,9 @@ even more memory savings!
   model:
     _component_: torchtune.models.lora_llama3_8b
     apply_lora_to_mlp: True
-    model.lora_attn_modules: ["q_proj", "k_proj", "v_proj"]
-    model.lora_rank: 128
-    model.lora_rank: 256
+    lora_attn_modules: ["q_proj", "k_proj", "v_proj"]
+    lora_rank: 16
+    lora_rank: 32
     use_dora: True
     quantize_base: True
 
