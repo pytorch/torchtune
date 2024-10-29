@@ -4,17 +4,15 @@
 Custom Components and Recipes
 =============================
 
-torchtune lets you launch fine-tuning jobs directly from the command-line using both library and custom datasets,
-models, recipes, and configs. This is done with the ``tune run`` command (see :ref:`cli_label`), which can also be
-used from your project folder.
+torchtune lets you launch fine-tuning jobs directly from the command-line using both built-in and custom components,
+such as datasets, models, recipes, and configs. This is done with the ``tune run`` command (see :ref:`cli_label`),
+which can also be used from your project folder.
 
 Setting up your torchtune project
 ---------------------------------
-First, ensure that you have torchtune installed, see :ref:`install_label`. This will also install the ``tune`` command
-to your environment.
-
-You can launch with ``tune run`` from any directory. Let's create a new project directory and ensure we can launch a built-in
-library recipe with a library config from that folder.
+First, ensure that you have torchtune installed - see :ref:`install_label`. This will install the ``tune`` command
+in your environment, so you can launch ``tune run`` from any directory. Let's create a new project directory and ensure
+we can launch a built-in library recipe with a library config from that folder.
 
 .. code-block:: bash
 
@@ -108,6 +106,10 @@ model and dataset builders in our project directory:
         # Return the module you want to train
         return CustomTransformerDecoder(...)
 
+This allows us to expose our custom model in a config friendly manner - rather than having to define every argument needed to
+construct our custom model in our config, we only expose the arguments which we care about modifying. This is how we implement
+our models in torchtune - see :func:`~torchtune.models.llama3_2_vision.llama3_2_vision_11b` as an example.
+
 .. code-block:: python
 
     #
@@ -141,7 +143,7 @@ model and dataset builders in our project directory:
 
     If you are using a default torchtune recipe with a custom dataset, you must define the first
     positional argument to be the tokenizer or model transform. These are automatically passed into
-    dataset instantiation and are defined separately in the config, not under the dataset field.
+    dataset during instantiation and are defined separately in the config, not under the dataset field.
 
 You can define the custom model and custom dataset in the config using the relative import path from where
 you are launching with ``tune run``. It is best to define the path relative to your project root directory
@@ -153,9 +155,12 @@ and launch from there.
     model:
       _component_: models.custom_decoder.custom_model
       num_layers: 32
+      # this is an optional param, so you can also omit this from the config
+      classification_head: False
 
     dataset:
       _component_: datasets.custom_dataset.tiny_codes
+      # we don't need to define a tokenizer here as it's automatically passed in
       packed: True
 
 .. code-block:: bash
