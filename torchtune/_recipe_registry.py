@@ -329,8 +329,8 @@ _ALL_RECIPES = [
                 file_path="llama2/generation_v2.yaml",
             ),
             Config(
-                name="llama3_2_vision/generation_v2",
-                file_path="llama3_2_vision/generation_v2.yaml",
+                name="llama3_2_vision/11B_generation_v2",
+                file_path="llama3_2_vision/11B_generation_v2.yaml",
             ),
         ],
         supports_distributed=False,
@@ -341,8 +341,8 @@ _ALL_RECIPES = [
         configs=[
             Config(name="eleuther_evaluation", file_path="eleuther_evaluation.yaml"),
             Config(
-                name="llama3_2_vision/evaluation",
-                file_path="llama3_2_vision/evaluation.yaml",
+                name="llama3_2_vision/11B_evaluation",
+                file_path="llama3_2_vision/11B_evaluation.yaml",
             ),
             Config(
                 name="qwen2/evaluation",
