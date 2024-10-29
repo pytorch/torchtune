@@ -1,0 +1,113 @@
+# Config for single device QLoRA finetuning in lora_finetune_single_device.py
+# using a Llama3.2 11B Vision Instruct model
+#
+# This config assumes that you've run the following command before launching:
+#   tune download meta-llama/Llama-3.2-11B-Vision-Instruct --output-dir /tmp/Llama-3.2-11B-Vision-Instruct
+#
+# To launch on a single device, run the following command from root:
+#   tune run lora_finetune_single_device --config llama3_2_vision/11B_qlora_single_device
+#
+# You can add specific overrides through the command line. For example
+# to override the checkpointer directory while launching training:
+#   tune run lora_finetune_single_device --config llama3_2_vision/11B_qlora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#
+# This config works only for training on single device.
+
+# Model arguments
+model:
+  _component_: torchtune.models.llama3_2_vision.qlora_llama3_2_vision_11b
+  decoder_trainable: "frozen"
+  encoder_trainable: "lora"
+  fusion_trainable: "lora"
+  lora_attn_modules: ['q_proj', 'v_proj']
+  apply_lora_to_mlp: False
+  apply_lora_to_output: False
+  lora_rank: 8
+  lora_alpha: 16
+  lora_dropout: 0.0
+  image_size: 560 # Make sure this matches the image_size in tokenizer
+
+# Transform
+tokenizer:
+  _component_: torchtune.models.llama3_2_vision.llama3_2_vision_transform
+  path: /tmp/Llama-3.2-11B-Vision-Instruct/original/tokenizer.model
+  image_size: 560
+  max_seq_len: 8192
+
+# Checkpointer
+checkpointer:
+  _component_: torchtune.training.FullModelMetaCheckpointer
+  checkpoint_dir: /tmp/Llama-3.2-11B-Vision-Instruct/original/
+  checkpoint_files: [consolidated.pth]
+  recipe_checkpoint: null
+  output_dir: /tmp/Llama-3.2-11B-Vision-Instruct/
+  model_type: LLAMA3_VISION
+resume_from_checkpoint: False
+
+# Dataset
+dataset:
+  _component_: torchtune.datasets.multimodal.the_cauldron_dataset
+  subset: ocrvqa
+seed: null
+shuffle: True
+collate_fn: torchtune.data.padded_collate_tiled_images_and_mask
+
+# Fine-tuning arguments
+epochs: 1
+max_steps_per_epoch: null
+batch_size: 2
+gradient_accumulation_steps: 16
+optimizer:
+  _component_: torch.optim.AdamW
+  fused: True
+  weight_decay: 0.01
+  lr: 2e-5
+optimizer_in_bwd: False
+lr_scheduler:
+  _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
+  num_warmup_steps: 100
+loss:
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+clip_grad_norm: 1.0
+compile: False # set it to True for better memory and performance
+
+# Training env
+device: cuda
+
+# Memory management
+enable_activation_checkpointing: True
+enable_activation_offloading: False
+dtype: bf16
+
+# Logging
+output_dir: /tmp/qlora-llama3.2-vision-finetune
+metric_logger:
+  _component_: torchtune.training.metric_logging.DiskLogger
+  log_dir: /tmp/Llama-3.2-11B-Vision-Instruct/logs
+log_every_n_steps: 1
+log_peak_memory_stats: False
+
+# Profiler (disabled)
+profiler:
+  _component_: torchtune.training.setup_torch_profiler
+  enabled: False
+
+  #Output directory of trace artifacts
+  output_dir: ${output_dir}/profiling_outputs
+
+  #`torch.profiler.ProfilerActivity` types to trace
+  cpu: True
+  cuda: True
+
+  #trace options passed to `torch.profiler.profile`
+  profile_memory: True
+  with_stack: False
+  record_shapes: True
+  with_flops: False
+
+  # `torch.profiler.schedule` options:
+  # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+  wait_steps: 1
+  warmup_steps: 2
+  active_steps: 1
+  num_cycles: 1

@@ -6,80 +6,13 @@
 
 from functools import partial
 
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union
 
-from torchtune.data._messages import Message
+from torchtune.data._messages import AlpacaToMessages
+
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.tokenizers import ModelTokenizer
-from torchtune.modules.transforms import Transform
-
-
-class AlpacaToMessages(Transform):
-    """
-    Message transform class for Alpaca-style datasets with "instruction", "input", and "output"
-    (or equivalent fields specified in column_map) columns. User messages are formed from the
-    instruction + input columns and assistant messages are formed from the output column. Prompt
-    templating is conditional on the presence of the "input" column, and thus is handled directly
-    in this transform class instead of a dedicated :class:`~torchtune.data.PromptTemplate` class
-    due to this custom logic.
-
-    Args:
-        train_on_input (bool): Whether the model is trained on the user prompt or not.
-            Default is True.
-        column_map (Optional[Dict[str, str]]): a mapping to change the expected "instruction", "input",
-            and "output" column names to the actual column names in the dataset. Default is None,
-            keeping the default column names.
-    """
-
-    def __init__(
-        self, train_on_input: bool = True, column_map: Optional[Dict[str, str]] = None
-    ):
-        self.train_on_input = train_on_input
-        self.column_map = column_map
-        self.template = {
-            "prompt_input": (
-                "Below is an instruction that describes a task, paired with an input that provides further context. "
-                "Write a response that appropriately completes the request.\n\n"
-                "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:\n"
-            ),
-            "prompt_no_input": (
-                "Below is an instruction that describes a task. "
-                "Write a response that appropriately completes the request.\n\n"
-                "### Instruction:\n{instruction}\n\n### Response:\n"
-            ),
-        }
-
-    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
-        column_map = self.column_map or {}
-        key_input = column_map.get("input", "input")
-        key_instruction = column_map.get("instruction", "instruction")
-        key_output = column_map.get("output", "output")
-
-        if key_input in sample and sample[key_input]:
-            prompt = self.template["prompt_input"].format(
-                instruction=sample[key_instruction], input=sample[key_input]
-            )
-        else:
-            prompt = self.template["prompt_no_input"].format(
-                instruction=sample[key_instruction]
-            )
-
-        messages = [
-            Message(
-                role="user",
-                content=prompt,
-                masked=not self.train_on_input,
-                eot=True,
-            ),
-            Message(
-                role="assistant",
-                content=sample[key_output],
-                masked=False,
-                eot=True,
-            ),
-        ]
-        return {"messages": messages}
 
 
 def alpaca_dataset(
@@ -89,6 +22,7 @@ def alpaca_dataset(
     column_map: Optional[Dict[str, str]] = None,
     train_on_input: bool = True,
     packed: bool = False,
+    filter_fn: Optional[Callable] = None,
     split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],
 ) -> Union[SFTDataset, PackedDataset]:
@@ -119,6 +53,9 @@ def alpaca_dataset(
             the default column names ``"instruction``, ``"input"``, and ``"output"`` in ``tatsu-lab/alpaca``.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
+        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
+            the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
+            details.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
@@ -145,6 +82,7 @@ def alpaca_dataset(
         source=source,
         message_transform=message_transform,
         model_transform=tokenizer,
+        filter_fn=filter_fn,
         split=split,
         **load_dataset_kwargs,
     )

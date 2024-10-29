@@ -8,8 +8,13 @@ import math
 
 import torch
 from torch.optim.lr_scheduler import LambdaLR
+from torchtune.utils._logging import deprecated
 
 
+@deprecated(
+    msg="Please use get_cosine_schedule_with_warmup from torchtune.training.lr_schedulers instead. \
+        "
+)
 def get_cosine_schedule_with_warmup(
     optimizer: torch.optim.Optimizer,
     num_warmup_steps: int,

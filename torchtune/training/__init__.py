@@ -11,6 +11,7 @@ from torchtune.training._distributed import (
     get_full_finetune_fsdp_wrap_policy,
     get_full_model_state_dict,
     get_full_optimizer_state_dict,
+    get_shard_conditions,
     get_world_size_and_rank,
     init_distributed,
     is_distributed,
@@ -51,6 +52,7 @@ from torchtune.training.checkpointing import (
     TOTAL_EPOCHS_KEY,
     update_state_dict_for_classifier,
 )
+from torchtune.training.lr_schedulers import get_cosine_schedule_with_warmup, get_lr
 from torchtune.training.memory import (
     cleanup_before_training,
     create_optim_in_bwd_wrapper,
@@ -91,6 +93,8 @@ __all__ = [
     "STEPS_KEY",
     "TOTAL_EPOCHS_KEY",
     "get_quantizer_mode",
+    "get_cosine_schedule_with_warmup",
+    "get_lr",
     "cleanup_before_training",
     "create_optim_in_bwd_wrapper",
     "get_memory_stats",
@@ -103,6 +107,7 @@ __all__ = [
     "get_world_size_and_rank",
     "set_torch_num_threads",
     "shard_model",
+    "get_shard_conditions",
     "prepare_model_for_fsdp_with_meta_device",
     "validate_no_params_on_meta_device",
     "contains_fsdp",

@@ -100,20 +100,17 @@ See `PyTorch autograd hook tutorial <https://pytorch.org/tutorials/intermediate/
 for more details about how this is implemented through :func:`torch.autograd.graph.saved_tensors_hooks`.
 
 This setting is especially helpful for larger batch sizes, or longer context lengths when you're memory constrained.
-However, these savings in memory can come at the cost of training speed (i.e. tokens per-second), as it takes runtime
-and resources to move Tensors from GPU to CPU and back. The implementation in torchtune has the ``offload_with_streams``
-option to use multiple CUDA streams in order to overlap the extra communication with the computation to hide the extra
-runtime. As the communication workload is variable depending on the number and size of tensors being offloaded, it is
-common to not offload every single activation. In fact, once can use offloading in conjunction with activations
+While of course it takes runtime and resources to move Tensors from GPU to CPU and back, the implementation in
+torchtune uses multiple CUDA streams (when available) in order to overlap the extra communication with the computation
+to hide the extra runtime. As the communication workload is variable depending on the number and size of tensors being
+offloaded, it is common to not offload every single activation. In fact, one can use offloading in conjunction with activations
 checkpointing, where all activations will either be recomputed later in the backward or brought back from the CPU.
 
 *Sounds great! How do I use it?*
 
-To enable activation offloading, use the ``enable_activation_offloading`` config entry or flag,
-e.g. ``enable_activation_offloading=True``. To allow usage of streams, make sure you are on a torch version
-later than PyTorch 2.5.0.dev20240907 and specify ``offload_with_streams=True``.
-
-Currently, this is only supported in our LoRA single-device and distributed recipes.
+To enable activation offloading, use the ``enable_activation_offloading`` config entry or flag
+in our lora finetuning single device recipe, e.g. ``enable_activation_offloading=True``. To allow
+usage of streams, make sure you are on a torch version later than PyTorch 2.5.0.dev20240907.
 
 .. _glossary_grad_accm:
 
@@ -133,7 +130,7 @@ For example: with ``batch_size=1`` and ``gradient_accumulation_steps=32`` we get
 .. note::
 
   For other components in torchtune which use "steps", such as :ref:`metric logging <metric_logging_label>`, or
-  :func:`learning rate schedulers <torchtune.modules.get_cosine_schedule_with_warmup>`, a "step" is counted as a
+  :func:`learning rate schedulers <torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup>`, a "step" is counted as a
   single update to model parameters, rather than a single model forward pass with the data.
   Suppose ``gradient_accumulation_steps = 4`` and ``log_every_n_steps = 10``.
   Metrics would be logged every 10 global steps, which translates to every 40 model forward passes.

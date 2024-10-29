@@ -26,6 +26,7 @@ tokenizer:
 
 # Dataset
 dataset:
+  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.alpaca_dataset
 seed: null
 shuffle: True
@@ -60,7 +61,7 @@ loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
-
+compile: False
 
 # Training env
 device: cuda
@@ -68,7 +69,7 @@ device: cuda
 # Memory management
 enable_activation_checkpointing: True
 custom_sharded_layers: ['tok_embeddings', 'output']
-compile: False # set it to True for better memory and performance
+compile: False # pytorch compile, set to true for perf/memory improvement
 
 # Reduced precision
 dtype: bf16
@@ -79,4 +80,4 @@ metric_logger:
   log_dir: ${output_dir}
 output_dir: /tmp/full-llama3.1-finetune
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True

@@ -216,6 +216,10 @@ _ALL_RECIPES = [
                 name="llama3_2_vision/11B_lora_single_device",
                 file_path="llama3_2_vision/11B_lora_single_device.yaml",
             ),
+            Config(
+                name="llama3_2_vision/11B_qlora_single_device",
+                file_path="llama3_2_vision/11B_qlora_single_device.yaml",
+            ),
         ],
         supports_distributed=False,
     ),
@@ -289,6 +293,10 @@ _ALL_RECIPES = [
                 name="llama3_2_vision/11B_lora",
                 file_path="llama3_2_vision/11B_lora.yaml",
             ),
+            Config(
+                name="llama3_2_vision/11B_qlora",
+                file_path="llama3_2_vision/11B_qlora.yaml",
+            ),
         ],
         supports_distributed=True,
     ),
@@ -323,6 +331,22 @@ _ALL_RECIPES = [
             Config(
                 name="llama3_2_vision/evaluation",
                 file_path="llama3_2_vision/evaluation.yaml",
+            ),
+            Config(
+                name="qwen2/evaluation",
+                file_path="qwen2/evaluation.yaml",
+            ),
+            Config(
+                name="gemma/evaluation",
+                file_path="gemma/evaluation.yaml",
+            ),
+            Config(
+                name="phi3/evaluation",
+                file_path="phi3/evaluation.yaml",
+            ),
+            Config(
+                name="mistral/evaluation",
+                file_path="mistral/evaluation.yaml",
             ),
         ],
         supports_distributed=False,
