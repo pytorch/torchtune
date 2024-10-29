@@ -19,18 +19,22 @@ class Experts(nn.Module):
             self.up_proj = None
             self.act_fn = nonlinearity
 
-    def forward(self, x, use_token_choice=False, num_local_tokens_per_expert=None):
+    def forward(self, x, num_local_tokens_per_expert=None):
         '''
         inputs:
-            x: input tokens, shape [bs*slen*experts_per_token, hidden_dim] for TC or [num_experts*tokens_per_expert, hidden_dim] for EC
-            use_token_choice: if we use token choice forward
-            num_local_tokens_per_expert: number of tokens for each expert, only used for token choice forward
+            x: input tokens
+                shape [bs*slen*experts_per_token, hidden_dim] for TC forward
+                shape [num_experts*tokens_per_expert, hidden_dim] for EC forward
+            num_local_tokens_per_expert: number of tokens for each expert, only used for TC forward
         outputs:
-            out: output tokens, shape [bs*slen*experts_per_token, hidden_dim]
+            out: output tokens
+                shape [bs*slen*experts_per_token, hidden_dim] for TC forward
+                shape [num_experts*tokens_per_expert, hidden_dim] for EC forward
         '''
-        if use_token_choice:
+        # TC forward
+        if num_local_tokens_per_expert is not None:
             # TODO: use cutlass groupGEMM instead of torch.matmul() to optimize performance
-            assert num_local_tokens_per_expert is not None, "num_local_tokens_per_expert is needed for token choice expert forward"
+            # x shape [bs*slen*experts_per_token, hidden_dim]
             # x_expert_splits shape [num_experts, tokens_per_expert(varying), hidden_dim]
             x_expert_splits = torch.split(x, split_size_or_sections=num_local_tokens_per_expert, dim=0)
             out_expert_splits = []
@@ -50,6 +54,7 @@ class Experts(nn.Module):
                 out_expert_splits.append(h)
             # shape [num_experts * tokens_per_expert(varying), hidden_dim] = [bs*slen*experts_per_token, hidden_dim]
             out = torch.cat(out_expert_splits, dim=0)
+        # EC forward
         else:
             # x shape [num_experts, tokens_per_expert, hidden_dim]
             x = x.view(num_experts, -1, dim_in)
@@ -83,10 +88,14 @@ class TokenChoiceTopKRouter(nn.Module):
     def forward(self, x, use_sigmoid=False):
         '''
         input:
-            x shape [bs*slen, hidden_dim]
+            x: input tokens
+                shape [bs*slen, hidden_dim]
         outputs:
-            routed_input shape [bs*slen*experts_per_token, hidden_dim]
-            num_local_tokens_per_expert shape [num_experts,]
+            routed_input: tokens gather by selected experts
+                shape [bs*slen*experts_per_token, hidden_dim]
+            token_indices: token indices sorted by selected experts indices
+            num_local_tokens_per_expert: number of tokens assigned to each expert
+                shape [num_experts,]
         '''
         # scores shape [bs*slen, num_experts]
         scores = self.gate(x)
@@ -109,13 +118,13 @@ class TokenChoiceTopKRouter(nn.Module):
         # top_scores shape [bs*slen*experts_per_token,]
         top_scores = top_scores.view(-1)[token_indices_experts_sorted]
 
-        # token_indices_experts_sorted_expanded shape [bs*slen*experts_per_token, hidden_dim]
-        token_indices_experts_sorted_expanded = token_indices_experts_sorted.reshape(-1, 1).expand(-1, hidden_dim)
+        # token_indices shape [bs*slen*experts_per_token, hidden_dim]
+        token_indices = token_indices_experts_sorted.reshape(-1, 1).expand(-1, hidden_dim)
         # routed_input shape [bs*slen*experts_per_token, hidden_dim]
-        routed_input = torch.gather(x, dim=0, index=token_indices_experts_sorted_expanded)
+        routed_input = torch.gather(x, dim=0, index=token_indices)
         routed_input = routed_input * top_scores
 
-        return routed_input, token_indices_experts_sorted_expanded, num_local_tokens_per_expert
+        return routed_input, token_indices, num_local_tokens_per_expert
  ```
 
 However, token choice routing has several pitfalls according to the expert choice [paper](https://arxiv.org/pdf/2002.05202).
@@ -137,7 +146,9 @@ class ExpertChoiceTopKRouter(nn.Module):
         input:
             x: shape [bs*slen, hidden_dim]
         outputs:
-            routed_input: shape [num_experts*tokens_per_expert, hidden_dim]
+            routed_input: selected tokens
+                shape [num_experts*tokens_per_expert, hidden_dim]
+            token_indices: selected token indices
             num_local_tokens_per_expert: None
         '''
         # scores shape [num_experts, bs*slen]
@@ -150,11 +161,11 @@ class ExpertChoiceTopKRouter(nn.Module):
         top_scores, selected_token_indices = torch.topk(scores, k=self.tokens_per_expert, dim=1)
 
         # apply the token preprocess function and then run experts forward
-        selected_token_indices_expanded = selected_token_indices.reshape(-1, 1).expand(-1, D)
+        token_indices = selected_token_indices.reshape(-1, 1).expand(-1, D)
         # routed input shape [num_experts*tokens_per_expert, hidden_dim]
-        routed_input = torch.gather(x, dim=0, index=selected_token_indices_expanded)
+        routed_input = torch.gather(x, dim=0, index=token_indices)
         routed_input = routed_input * top_scores.reshape(-1, 1)
-        return routed_input, selected_token_indices_expanded, None,
+        return routed_input, token_indices, None,
 ```
 
 ## Moe Layer
@@ -175,7 +186,6 @@ class MoeLayer(nn.Module):
 
     def forward(self, x, infernece=False):
         routed_input, token_indices, num_local_tokens_per_expert = self.router(x)
-
         # routed output shape [num_experts*tokens_per_expert, hidden_dim] for EC, [bs*slen*experts_per_token, hidden_dim] for TC
         routed_output = self.experts(routed_input, num_local_tokens_per_expert=num_local_tokens_per_expert)
 
