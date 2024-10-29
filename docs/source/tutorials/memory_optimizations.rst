@@ -413,7 +413,7 @@ even more memory savings!
   model.lora_rank=128 \
   model.lora_rank=256 \
   model.use_dora=True \
-  model.quantize_base=True \
+  model.quantize_base=True
 
 .. code-block:: yaml
 
