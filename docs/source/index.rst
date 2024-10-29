@@ -132,6 +132,7 @@ torchtune tutorials.
    basics/tokenizers
    basics/prompt_templates
    basics/packing
+   basics/custom_components
 
 .. toctree::
    :glob:
