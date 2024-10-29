@@ -273,7 +273,7 @@ These are all specified under the ``model`` flag or config entry, i.e:
 
   tune run lora_finetune_single_device --config llama3/8B_lora_single_device  \
   model.apply_lora_to_mlp=True \
-  model.lora_attn_modules=["q_proj","k_proj","v_proj"] \
+  model.lora_attn_modules=["q_proj","k_proj","v_proj"]
 
 .. code-block:: yaml
 
