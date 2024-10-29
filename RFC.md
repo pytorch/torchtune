@@ -76,9 +76,9 @@ def moe_expert(hidden_dim, model_dim, swiglu=True, nonlinearity=None):
 ## Router
 Router is a gating network that calculates router scores and learns token-to-expert affinity. There are two types of routing: token choice routing and expert choice routing.
 
-Mixtral uses *token choice* topK routing, which means each token will select its topK experts. The router is implemented through a learnable gate function, whose outputs will go through softmax and topK. The router defines how tokens select experts / experts select tokens based on router scores.
+Mixtral uses *token choice* topK routing, which means each token will select its topK experts. The router is implemented through a learnable gate function, whose outputs will go through softmax and topK. The router then defines how tokens select experts based on router scores.
 
-**Here's the proposed Token Choice Routing and TokenChoiceMoeLayer design in torchtune:**
+**Here's the proposed Token Choice Routing design in torchtune:**
 ```python
 class TokenChoiceTopKRouter(nn.Module):
     def __init__(self, hidden_dim, num_experts, experts_per_token):
@@ -132,16 +132,16 @@ However, token choice routing has several pitfalls according to the expert choic
 2. Experts under specialization. Ideally the gating network will learn token-to-expert affinity such that similar or relevant tokens are routed to the same expert. However, a sub-optimal strategy can produce redundant experts and/or experts that are not sufficiently specialized.
 3. Same compute for each token. Token choice will allocate a fixed number of experts to each token regardless of the importance of different tokens. Ideally an MOE model should flexibly allocate compute resources based on the complexity of the input.
 
-Compared to **token choice**, **expert choice** topK routing lets experts select its top-k tokens. The ExpertChoiceMoeLayer class routes input tokens to different experts based on the routing algorithm, processes them through the experts and the shared expert, and then combines the output.
+Compared to **token choice**, **expert choice** topK routing lets experts select its top-k tokens. The ExpertChoiceTopKRouter class routes input tokens to different experts based on the router scores.
 
-**Here's the proposed Expert Choice Routing and ExpertChoiceMoeLayer design in torchtune:**
+**Here's the proposed Expert Choice Routing design in torchtune:**
 ```python
 class ExpertChoiceTopKRouter(nn.Module):
-	def __init__(self, hidden_dim, num_experts):
-		self.gate = nn.Linear(hidden_dim, num_experts)
-		self.tokens_per_expert = tokens_per_expert
+    def __init__(self, hidden_dim, num_experts):
+        self.gate = nn.Linear(hidden_dim, num_experts)
+        self.tokens_per_expert = tokens_per_expert
 
-	def forward(self, x, use_sigmoid=False):
+    def forward(self, x, use_sigmoid=False):
         '''
         input:
             x: shape [bs*slen, hidden_dim]
