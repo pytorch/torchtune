@@ -147,7 +147,6 @@ torchtune tutorials.
    tutorials/qat_finetune
    tutorials/e2e_flow
    tutorials/llama_kd_tutorial
-   tutorials/datasets
    tutorials/memory_optimizations
 
 .. toctree::
