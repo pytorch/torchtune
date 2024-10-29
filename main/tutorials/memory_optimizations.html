@@ -40,8 +40,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation" href="llama_kd_tutorial.html" />
-    <link rel="prev" title="End-to-End Workflow with torchtune" href="e2e_flow.html" />
+    <link rel="next" title="Checkpointing in torchtune" href="../deep_dives/checkpointer.html" />
+    <link rel="prev" title="Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation" href="llama_kd_tutorial.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -333,8 +333,8 @@
 <li class="toctree-l1"><a class="reference internal" href="qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
 <li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Memory Optimization Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Memory Optimization Overview</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
@@ -451,14 +451,20 @@ To make things easy, we’ve summarized these components in the following table:
 <tr class="row-odd"><td><p><a class="reference internal" href="#glossary-act-ckpt"><span class="std std-ref">Activation Checkpointing</span></a></p></td>
 <td><p>Use when you’re memory constrained and need to handle larger batch sizes or longer context lengths. Be aware that it may slow down training speed.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#glossary-grad-accm"><span class="std std-ref">Gradient Accumulation</span></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#glossary-act-off"><span class="std std-ref">Activation Offloading</span></a></p></td>
+<td><p>Similar to activation checkpointing, this can be used when memory constrained, but comes at the cost of training speed due to the overhead of moving tensors between GPU VRAM and CPU. This can also be used alongside activation checkpointing.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#glossary-grad-accm"><span class="std std-ref">Gradient Accumulation</span></a></p></td>
 <td><p>Helpful when memory-constrained to simulate larger batch sizes. Often preferable to activation checkpointing for better training speed.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#glossary-low-precision-opt"><span class="std std-ref">Lower Precision Optimizers</span></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#glossary-low-precision-opt"><span class="std std-ref">Lower Precision Optimizers</span></a></p></td>
 <td><p>When you need to further reduce memory usage beyond using <code class="docutils literal notranslate"><span class="pre">bf16</span></code> by reducing the precision in the optimizer states. Note that lower precision optimizers may reduce training stability/accuracy.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#glossary-opt-in-bwd"><span class="std std-ref">Fusing Optimizer Step into Backward Pass</span></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#glossary-opt-in-bwd"><span class="std std-ref">Fusing Optimizer Step into Backward Pass</span></a></p></td>
 <td><p>Helps reduce memory usage when using stateful optimizers, particularly when full-finetuning large models with high gradient memory usage. This is not compatible with <code class="docutils literal notranslate"><span class="pre">gradient_accumulation_steps</span></code>, so training may slow down due to reduced model throughput.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#glossary-cpu-offload"><span class="std std-ref">Offloading Optimizer/Gradient states to CPU</span></a></p></td>
+<td><p>Offloads optimizer states and (optionally) gradients to CPU, and performs optimizer steps on CPU. This can be used to significantly reduce GPU memory usage at the cost of CPU RAM and training speed, as CPU optimizer steps can be slow and bottleneck training performance.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#glossary-lora"><span class="std std-ref">Low Rank Adaptation (LoRA)</span></a></p></td>
 <td><p>When you want to significantly reduce the number of trainable parameters, saving gradient and optimizer memory during training, and significantly speeding up training.</p></td>
@@ -523,7 +529,7 @@ in any of our recipes, e.g. <code class="docutils literal notranslate"><span cla
 efficiency technique that allows saving GPU VRAM by temporarily moving activations to CPU and bringing
 them back when needed in the backward pass.</p>
 <p>See <a class="reference external" href="https://pytorch.org/tutorials/intermediate/autograd_saved_tensors_hooks_tutorial.html#saving-tensors-to-cpu">PyTorch autograd hook tutorial</a>
-for more details about how this is implemented through saved_tensors_hooks.</p>
+for more details about how this is implemented through <code class="xref py py-func docutils literal notranslate"><span class="pre">torch.autograd.graph.saved_tensors_hooks()</span></code>.</p>
 <p>This setting is especially helpful for larger batch sizes, or longer context lengths when you’re memory constrained.
 While of course it takes runtime and resources to move Tensors from GPU to CPU and back, the implementation in
 torchtune uses multiple CUDA streams (when available) in order to overlap the extra communication with the computation
@@ -571,8 +577,10 @@ computations.</p>
 <p>Gradient accumulation should always be set to 1 when <a class="reference internal" href="#glossary-opt-in-bwd"><span class="std std-ref">fusing the optimizer step into the backward pass</span></a>.</p>
 </div>
 </section>
+<section id="optimizers">
+<h2>Optimizers<a class="headerlink" href="#optimizers" title="Permalink to this heading">¶</a></h2>
 <section id="lower-precision-optimizers">
-<span id="glossary-low-precision-opt"></span><h2>Lower Precision Optimizers<a class="headerlink" href="#lower-precision-optimizers" title="Permalink to this heading">¶</a></h2>
+<span id="glossary-low-precision-opt"></span><h3>Lower Precision Optimizers<a class="headerlink" href="#lower-precision-optimizers" title="Permalink to this heading">¶</a></h3>
 <p><em>What’s going on here?</em></p>
 <p>In addition to <a class="reference internal" href="#glossary-precision"><span class="std std-ref">reducing model and optimizer precision</span></a> during training, we can further reduce precision in our optimizer states.
 All of our single-device fine-tuning recipes support lower-precision optimizers from the <a class="reference external" href="https://huggingface.co/docs/bitsandbytes/main/en/index">bitsandbytes</a> library -
@@ -592,7 +600,7 @@ a low precision optimizer using the <a class="reference internal" href="../tune_
 </div>
 </section>
 <section id="fusing-optimizer-step-into-backward-pass">
-<span id="glossary-opt-in-bwd"></span><h2>Fusing Optimizer Step into Backward Pass<a class="headerlink" href="#fusing-optimizer-step-into-backward-pass" title="Permalink to this heading">¶</a></h2>
+<span id="glossary-opt-in-bwd"></span><h3>Fusing Optimizer Step into Backward Pass<a class="headerlink" href="#fusing-optimizer-step-into-backward-pass" title="Permalink to this heading">¶</a></h3>
 <p><em>What’s going on here?</em></p>
 <p>Stateful optimizers (e.g. optimizers which use momentum) are the default in modern deep learning due to their stable convergence properties.
 However, maintaining a state of gradient statistics comes at the cost of additional memory usage. An immediate alternative might be to
@@ -605,9 +613,56 @@ How is this possible, you might ask? By <em>completely removing the buffer of gr
 <a class="reference external" href="https://pytorch.org/tutorials/intermediate/optimizer_step_in_backward_tutorial.html">How to save memory by fusing the optimizer step into the backward pass</a>.</p>
 <p><em>Sounds great! How do I use it?</em></p>
 <p>In torchtune, you can enable this feature using the <code class="docutils literal notranslate"><span class="pre">optimizer_in_bwd</span></code> flag, which is currently only supported in our
-single-device full finetune recipe. This feature works best when gradient memory is particularly large;
+single-device full finetune recipe. This feature works best when optimizer memory is particularly large;
 e.g. when using a stateful optimizer with a model with a lot of parameters, and when you don’t need to use
 <a class="reference internal" href="#glossary-grad-accm"><span class="std std-ref">gradient accumulation</span></a>.</p>
+</section>
+<section id="offloading-optimizer-gradient-states-to-cpu">
+<span id="glossary-cpu-offload"></span><h3>Offloading Optimizer/Gradient states to CPU<a class="headerlink" href="#offloading-optimizer-gradient-states-to-cpu" title="Permalink to this heading">¶</a></h3>
+<p><em>What’s going on here?</em></p>
+<p>We’ve mentioned above the concept of optimizer states - memory used by the stateful optimizers to maintain a state of gradient statistics, and
+model gradients - tensors used to store gradients when we perform model backwards passes. We support using CPU offloading in our single-device recipes
+through the <a class="reference external" href="https://github.com/pytorch/ao/tree/main/torchao/prototype/low_bit_optim#optimizer-cpu-offload">CPUOffloadOptimizer</a> from <code class="docutils literal notranslate"><span class="pre">torchao</span></code>.</p>
+<p>This optimizer can wrap any base optimizer and works by keeping the optimizer states and performing the optimizer step on CPU, thus reducing
+GPU memory usage by the size of the optimizer states. Additionally, we can also offload gradients to the CPU by using <cite>offload_gradients=True</cite>.</p>
+<p><em>Sounds great! How do I use it?</em></p>
+<p>To use this optimizer in your recipes, set the <code class="docutils literal notranslate"><span class="pre">optimizer</span></code> key in your config to <code class="xref py py-class docutils literal notranslate"><span class="pre">torchao.prototype.low_bit_optim.CPUOffloadOptimizer</span></code>, which
+will use the <a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.optim.AdamW.html#torch.optim.AdamW" title="(in PyTorch v2.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.optim.AdamW</span></code></a> optimizer with <code class="docutils literal notranslate"><span class="pre">fused=True</span></code> as the base optimizer. For example, to use this optimizer to offload
+both optimizer states and gradients to CPU:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>&lt;RECIPE&gt;<span class="w"> </span>--config<span class="w"> </span>&lt;CONFIG&gt;<span class="w"> </span><span class="se">\</span>
+<span class="nv">optimizer</span><span class="o">=</span><span class="nv">optimizer</span><span class="o">=</span>torchao.prototype.low_bit_optim.CPUOffloadOptimizer<span class="w"> </span><span class="se">\</span>
+optimizer.offload_gradients<span class="o">=</span>True<span class="w"> </span><span class="se">\</span>
+<span class="nv">lr</span><span class="o">=</span>4e-5
+</pre></div>
+</div>
+<p>or by directly <a class="reference internal" href="../deep_dives/configs.html#config-tutorial-label"><span class="std std-ref">modifying a config file</span></a>:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">optimizer</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchao.prototype.low_bit_optim.CPUOffloadOptimizer</span>
+<span class="w">  </span><span class="nt">offload_gradients</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">  </span><span class="c1"># additional key-word arguments can be passed to torch.optim.AdamW</span>
+<span class="w">  </span><span class="nt">lr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4e-5</span>
+</pre></div>
+</div>
+<p>or using it directly in your code, which allows you to change the base optimizer:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchao.prototype.low_bit_optim</span> <span class="kn">import</span> <span class="n">CPUOffloadOptimizer</span>
+<span class="kn">from</span> <span class="nn">torch.optim</span> <span class="kn">import</span> <span class="n">Adam</span>
+
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">CPUOffloadOptimizer</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="c1"># your model here</span>
+    <span class="n">Adam</span><span class="p">,</span>
+    <span class="n">lr</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+    <span class="n">fused</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Some helpful hints from the <code class="docutils literal notranslate"><span class="pre">torchao</span></code> <a class="reference external" href="https://github.com/pytorch/ao/tree/main/torchao/prototype/low_bit_optim#optimizer-cpu-offload">CPUOffloadOptimizer page</a>:</p>
+<ul class="simple">
+<li><p>The CPU optimizer step is often the bottleneck when optimizer CPU offload is used. To minimize the slowdown, it is recommended to (1) use full <code class="docutils literal notranslate"><span class="pre">bf16</span></code> training so that parameters, gradients, and optimizer states are in <code class="docutils literal notranslate"><span class="pre">bf16</span></code>; and (2) give GPU more work per optimizer step (e.g. larger batch size with activation checkpointing, gradient accumulation).</p></li>
+<li><p>Gradient accumulation should always be set to 1 when <code class="docutils literal notranslate"><span class="pre">offload_gradients=True</span></code>, as gradients are cleared on GPU every backward pass.</p></li>
+<li><p>This optimizer works by keeping a copy of parameters and pre-allocating gradient memory on CPU. Therefore, expect your RAM usage to increase by 4x model size.</p></li>
+<li><p>This optimizer is only supported for single-device recipes. To use CPU-offloading in distributed recipes, use <code class="docutils literal notranslate"><span class="pre">fsdp_cpu_offload=True</span></code> in any distributed recipe. See <a class="reference external" href="https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel" title="(in PyTorch v2.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.distributed.fsdp.FullyShardedDataParallel</span></code></a> for more details</p></li>
+</ul>
+</section>
 </section>
 <section id="parameter-efficient-fine-tuning-peft">
 <span id="glossary-peft"></span><h2>Parameter Efficient Fine-Tuning (PEFT)<a class="headerlink" href="#parameter-efficient-fine-tuning-peft" title="Permalink to this heading">¶</a></h2>
@@ -715,10 +770,10 @@ to see how to configure.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="llama_kd_tutorial.html" class="btn btn-neutral float-right" title="Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="../deep_dives/checkpointer.html" class="btn btn-neutral float-right" title="Checkpointing in torchtune" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="e2e_flow.html" class="btn btn-neutral" title="End-to-End Workflow with torchtune" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="llama_kd_tutorial.html" class="btn btn-neutral" title="Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -755,8 +810,12 @@ to see how to configure.</p>
 <li><a class="reference internal" href="#activation-checkpointing">Activation Checkpointing</a></li>
 <li><a class="reference internal" href="#activation-offloading">Activation Offloading</a></li>
 <li><a class="reference internal" href="#gradient-accumulation">Gradient Accumulation</a></li>
+<li><a class="reference internal" href="#optimizers">Optimizers</a><ul>
 <li><a class="reference internal" href="#lower-precision-optimizers">Lower Precision Optimizers</a></li>
 <li><a class="reference internal" href="#fusing-optimizer-step-into-backward-pass">Fusing Optimizer Step into Backward Pass</a></li>
+<li><a class="reference internal" href="#offloading-optimizer-gradient-states-to-cpu">Offloading Optimizer/Gradient states to CPU</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#parameter-efficient-fine-tuning-peft">Parameter Efficient Fine-Tuning (PEFT)</a><ul>
 <li><a class="reference internal" href="#low-rank-adaptation-lora">Low Rank Adaptation (LoRA)</a></li>
 <li><a class="reference internal" href="#quantized-low-rank-adaptation-qlora">Quantized Low Rank Adaptation (QLoRA)</a></li>
