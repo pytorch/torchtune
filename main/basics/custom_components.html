@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Transform &mdash; torchtune main documentation</title>
+  <title>Custom Components and Recipes &mdash; torchtune main documentation</title>
   
 
   
@@ -40,8 +40,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="VisionCrossAttentionMask" href="torchtune.modules.transforms.VisionCrossAttentionMask.html" />
-    <link rel="prev" title="delete_kv_caches" href="torchtune.modules.common_utils.delete_kv_caches.html" />
+    <link rel="next" title="Meta Llama3 in torchtune" href="../tutorials/llama3.html" />
+    <link rel="prev" title="Sample packing" href="packing.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -310,20 +310,20 @@
 <li class="toctree-l1"><a class="reference internal" href="../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Basics</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../basics/datasets_overview.html">Datasets Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/chat_datasets.html">Chat Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/instruct_datasets.html">Instruct Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/preference_datasets.html">Preference Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/text_completion_datasets.html">Text-completion Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/model_transforms.html">Multimodal Transforms</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/messages.html">Messages</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/message_transforms.html">Message Transforms</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/tokenizers.html">Tokenizers</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/prompt_templates.html">Prompt Templates</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/packing.html">Sample packing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/custom_components.html">Custom Components and Recipes</a></li>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prompt_templates.html">Prompt Templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="packing.html">Sample packing</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Custom Components and Recipes</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
@@ -345,13 +345,13 @@
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
-<ul class="current">
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
@@ -395,15 +395,13 @@
       </li>
 
         
-          <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
-        
-      <li>Transform</li>
+      <li>Custom Components and Recipes</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.modules.transforms.Transform.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/basics/custom_components.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -433,17 +431,161 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="transform">
-<h1>Transform<a class="headerlink" href="#transform" title="Permalink to this heading">¶</a></h1>
-<dl class="py class">
-<dt class="sig sig-object py" id="torchtune.modules.transforms.Transform">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.transforms.</span></span><span class="sig-name descname"><span class="pre">Transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/transforms/_transforms.html#Transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.transforms.Transform" title="Permalink to this definition">¶</a></dt>
-<dd><p>Loose interface for all data and model transforms. Transforms operate at the
-sample level and perform operations on a sample dict, returning the updated dict.
-For an example implementation of this protocol, see
-<a class="reference internal" href="torchtune.modules.transforms.VisionCrossAttentionMask.html#torchtune.modules.transforms.VisionCrossAttentionMask" title="torchtune.modules.transforms.VisionCrossAttentionMask"><code class="xref py py-class docutils literal notranslate"><span class="pre">VisionCrossAttentionMask</span></code></a>.</p>
-</dd></dl>
+  <section id="custom-components-and-recipes">
+<span id="custom-components-label"></span><h1>Custom Components and Recipes<a class="headerlink" href="#custom-components-and-recipes" title="Permalink to this heading">¶</a></h1>
+<p>torchtune lets you launch fine-tuning jobs directly from the command-line using both built-in and custom components,
+such as datasets, models, recipes, and configs. This is done with the <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">run</span></code> command (see <a class="reference internal" href="../tune_cli.html#cli-label"><span class="std std-ref">torchtune CLI</span></a>),
+which can also be used from your project folder.</p>
+<section id="setting-up-your-torchtune-project">
+<h2>Setting up your torchtune project<a class="headerlink" href="#setting-up-your-torchtune-project" title="Permalink to this heading">¶</a></h2>
+<p>First, ensure that you have torchtune installed - see <a class="reference internal" href="../install.html#install-label"><span class="std std-ref">Install Instructions</span></a>. This will install the <code class="docutils literal notranslate"><span class="pre">tune</span></code> command
+in your environment, so you can launch <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">run</span></code> from any directory. Let’s create a new project directory and ensure
+we can launch a built-in library recipe with a library config from that folder.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>~/my_project
+<span class="nb">cd</span><span class="w"> </span>~/my_project
+<span class="c1"># This downloads the Llama 3.2 1B Instruct model</span>
+tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Llama-3.2-1B-Instruct<span class="w"> </span>--output-dir<span class="w"> </span>/tmp/Llama-3.2-1B-Instruct<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;original/consolidated.00.pth&quot;</span>
+<span class="c1"># This launches a lora finetuning run with the default single device config</span>
+tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3_2/1B_lora_single_device
+</pre></div>
+</div>
+</section>
+<section id="launching-custom-configs">
+<h2>Launching custom configs<a class="headerlink" href="#launching-custom-configs" title="Permalink to this heading">¶</a></h2>
+<p>Often, you’ll want to start with one of our default configs for a particular model and adjust a few training hyperparameters.
+You can use the <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">cp</span></code> command to create a copy of a default config in your project directory so you can make modifications.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Show all the default model configs for each recipe</span>
+tune<span class="w"> </span>ls
+<span class="c1"># This makes a copy of a Qwen2 full finetune config</span>
+tune<span class="w"> </span>cp<span class="w"> </span>qwen2/0.5B_full_single_device<span class="w"> </span>~/my_project/config/qwen_config.yaml
+</pre></div>
+</div>
+<p>Now, you can make modifications to the config directly in your project folder and launch the custom config. Make sure you are using
+the correct recipe associated with the config and that you’ve downloaded the model. Even if you didn’t start with copying a library
+recipe, you can launch a completely custom config using the same command. Note that for custom configs, you must specify the file extension.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>~/my_project/config
+tune<span class="w"> </span>run<span class="w"> </span>full_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>~/my_project/config/qwen_config.yaml
+<span class="c1"># Or launch directly from the project directory with a relative path</span>
+tune<span class="w"> </span>run<span class="w"> </span>full_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>config/qwen_config.yaml
+</pre></div>
+</div>
+<p>For a more detailed discussion on downloading models and modifying library configs, see <a class="reference internal" href="../tutorials/first_finetune_tutorial.html#finetune-llama-label"><span class="std std-ref">Fine-Tune Your First LLM</span></a>.</p>
+</section>
+<section id="launching-custom-recipes">
+<h2>Launching custom recipes<a class="headerlink" href="#launching-custom-recipes" title="Permalink to this heading">¶</a></h2>
+<p>torchtune’s built-in recipes provide starting points for your fine-tuning workflows, but you can write your own training loop
+with customized logic for your use case and launch training with <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">run</span></code>. Similar to modifying library configs, you can
+also copy one of our recipes as a starting point and modify, or write one completely from scratch. Note that for launching
+custom recipes, you must specify the file extension.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>~/my_project/recipes
+<span class="c1"># Show all the default recipes</span>
+tune<span class="w"> </span>ls
+<span class="c1"># This makes a copy of the full finetune single device recipe locally</span>
+tune<span class="w"> </span>cp<span class="w"> </span>full_finetune_single_device<span class="w"> </span>~/my_project/recipes/single_device.py
+<span class="c1"># Launch custom recipe with custom config from project directory</span>
+tune<span class="w"> </span>run<span class="w"> </span>recipes/single_device.py<span class="w"> </span>--config<span class="w"> </span>config/qwen_config.yaml
+</pre></div>
+</div>
+<p>If you are writing a new recipe from scratch, we recommend following the Python convention of defining a <code class="docutils literal notranslate"><span class="pre">main()</span></code> function
+in your script and decorating it with the <a class="reference internal" href="../generated/torchtune.config.parse.html#torchtune.config.parse" title="torchtune.config.parse"><code class="xref py py-func docutils literal notranslate"><span class="pre">parse()</span></code></a> decorator. This will enable you to launch the recipe
+with <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">run</span></code> and pass in a yaml file for the <code class="docutils literal notranslate"><span class="pre">--config</span></code> argument.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">omegaconf</span> <span class="kn">import</span> <span class="n">DictConfig</span>
 
+<span class="nd">@config</span><span class="o">.</span><span class="n">parse</span>
+<span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">cfg</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">):</span>
+    <span class="c1"># Add all your recipe logic here, access config fields as attributes</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="c1"># Config will be parsed from CLI, don&#39;t need to pass in here</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="launching-with-custom-components">
+<h2>Launching with custom components<a class="headerlink" href="#launching-with-custom-components" title="Permalink to this heading">¶</a></h2>
+<p>torchtune supports full experimentation with custom models, datasets, optimizers, or any fine-tuning component. You can define
+these locally in your repo and use them in your recipes and configs that you can launch with <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">run</span></code>.</p>
+<p>We recommend following the “builder” pattern when making your components. This means creating “builder” functions that set up
+the classes you need with a few high level parameters that can be modified easily from the config. For example, we can define custom
+model and dataset builders in our project directory:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#</span>
+<span class="c1"># In models/custom_decoder.py</span>
+<span class="c1">#</span>
+<span class="k">class</span> <span class="nc">CustomTransformerDecoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="c1"># A custom architecture not present in torchtune</span>
+
+<span class="c1"># Builder function for the custom model</span>
+<span class="k">def</span> <span class="nf">custom_model</span><span class="p">(</span><span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">classification_head</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="c1"># Any setup for defining the class</span>
+    <span class="o">...</span>
+    <span class="c1"># Return the module you want to train</span>
+    <span class="k">return</span> <span class="n">CustomTransformerDecoder</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This allows us to expose our custom model in a config friendly manner - rather than having to define every argument needed to
+construct our custom model in our config, we only expose the arguments which we care about modifying. This is how we implement
+our models in torchtune - see <a class="reference internal" href="../generated/torchtune.models.llama3_2_vision.llama3_2_vision_11b.html#torchtune.models.llama3_2_vision.llama3_2_vision_11b" title="torchtune.models.llama3_2_vision.llama3_2_vision_11b"><code class="xref py py-func docutils literal notranslate"><span class="pre">llama3_2_vision_11b()</span></code></a> as an example.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#</span>
+<span class="c1"># In datasets/custom_dataset.py</span>
+<span class="c1">#</span>
+<span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">SFTDataset</span><span class="p">,</span> <span class="n">PackedDataset</span>
+<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">InputOutputToMessages</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">ModelTokenizer</span>
+
+<span class="c1"># Example builder function for a custom code instruct dataset not in torchtune, but using</span>
+<span class="c1"># different dataset building blocks from torchtune</span>
+<span class="k">def</span> <span class="nf">tiny_codes</span><span class="p">(</span><span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span> <span class="n">packed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Python subset of nampdn-ai/tiny-codes. Instruct and code response pairs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">SFTDataset</span><span class="p">(</span>
+        <span class="n">model_transform</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+        <span class="n">source</span><span class="o">=</span><span class="s2">&quot;nampdn-ai/tiny-codes&quot;</span><span class="p">,</span>
+        <span class="n">message_transform</span><span class="o">=</span><span class="n">InputOutputToMessages</span><span class="p">(</span>
+            <span class="n">column_map</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="s2">&quot;prompt&quot;</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="s2">&quot;response&quot;</span><span class="p">},</span>
+        <span class="p">),</span>
+        <span class="n">filter_fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;language&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;python&quot;</span><span class="p">,</span>
+        <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">packed</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">PackedDataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">split_across_pack</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ds</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you are using a default torchtune recipe with a custom dataset, you must define the first
+positional argument to be the tokenizer or model transform. These are automatically passed into
+dataset during instantiation and are defined separately in the config, not under the dataset field.</p>
+</div>
+<p>You can define the custom model and custom dataset in the config using the relative import path from where
+you are launching with <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">run</span></code>. It is best to define the path relative to your project root directory
+and launch from there.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># In YAML file config/custom_finetune.yaml</span>
+<span class="nt">model</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">models.custom_decoder.custom_model</span>
+<span class="w">  </span><span class="nt">num_layers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="w">  </span><span class="c1"># this is an optional param, so you can also omit this from the config</span>
+<span class="w">  </span><span class="nt">classification_head</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
+
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">datasets.custom_dataset.tiny_codes</span>
+<span class="w">  </span><span class="c1"># we don&#39;t need to define a tokenizer here as it&#39;s automatically passed in</span>
+<span class="w">  </span><span class="nt">packed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>~/my_project/
+tune<span class="w"> </span>run<span class="w"> </span>recipes/single_device.py<span class="w"> </span>--config<span class="w"> </span>config/custom_finetune.yaml
+</pre></div>
+</div>
+<p>If your custom components are not being found or imported correctly, you can try to launch with <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">run</span></code> after
+modifying the <code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code> to ensure the files in your project directory are importable.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">PYTHONPATH</span><span class="o">=</span><span class="si">${</span><span class="nv">pwd</span><span class="si">}</span>:PYTHONPATH<span class="w"> </span>tune<span class="w"> </span>run<span class="w"> </span>recipes/single_device.py<span class="w"> </span>--config<span class="w"> </span>config/custom_finetune.yaml
+</pre></div>
+</div>
+</section>
 </section>
 
 
@@ -454,10 +596,10 @@ For an example implementation of this protocol, see
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.modules.transforms.VisionCrossAttentionMask.html" class="btn btn-neutral float-right" title="VisionCrossAttentionMask" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="../tutorials/llama3.html" class="btn btn-neutral float-right" title="Meta Llama3 in torchtune" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.modules.common_utils.delete_kv_caches.html" class="btn btn-neutral" title="delete_kv_caches" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="packing.html" class="btn btn-neutral" title="Sample packing" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -489,7 +631,13 @@ For an example implementation of this protocol, see
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">Transform</a></li>
+<li><a class="reference internal" href="#">Custom Components and Recipes</a><ul>
+<li><a class="reference internal" href="#setting-up-your-torchtune-project">Setting up your torchtune project</a></li>
+<li><a class="reference internal" href="#launching-custom-configs">Launching custom configs</a></li>
+<li><a class="reference internal" href="#launching-custom-recipes">Launching custom recipes</a></li>
+<li><a class="reference internal" href="#launching-with-custom-components">Launching with custom components</a></li>
+</ul>
+</li>
 </ul>
 
             </div>
