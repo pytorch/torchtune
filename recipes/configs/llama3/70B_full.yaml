@@ -15,11 +15,6 @@
 #
 # This config is only tested on an 8xA100 machine.
 #
-# !!!!!!!!!!!!!
-# !!!!!!!!!!!!!
-# ATTENTION: It will only work with pytorch>=2.5 (nightlies). For other pytorch versions, it will OOM, even on 8xA100.
-# !!!!!!!!!!!!!
-# !!!!!!!!!!!!!
 
 
 # Tokenizer
@@ -30,6 +25,7 @@ tokenizer:
 
 # Dataset
 dataset:
+  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.alpaca_dataset
 seed: null
 shuffle: True
@@ -99,7 +95,7 @@ device: cuda
 enable_activation_checkpointing: True
 custom_sharded_layers: ['tok_embeddings', 'output']
 fsdp_cpu_offload: True
-compile: False # set it to True for better memory and performance
+compile: False # pytorch compile, set to true for perf/memory improvement
 
 # Reduced precision
 dtype: bf16
@@ -110,4 +106,4 @@ metric_logger:
   log_dir: ${output_dir}
 output_dir: /tmp/full-llama3-finetune
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True
