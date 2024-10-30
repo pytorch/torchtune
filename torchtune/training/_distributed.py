@@ -297,17 +297,16 @@ def load_from_full_model_state_dict(
     """
     meta_sharded_sd = model.state_dict()
     sharded_sd = {}
-    contain_nf4 = False
+    has_nf4 = any(
+        isinstance(param._local_tensor, NF4Tensor) for param in model.parameters()
+    )
     for param_name in full_sd.keys():
         sharded_meta_param = meta_sharded_sd.get(param_name)
         full_sd[param_name] = (
             full_sd[param_name].to(sharded_meta_param.dtype).to(device)
         )
-        # assumme that all the tensors are NF4Tensor or not, and process accordingly
-        if isinstance(sharded_meta_param._local_tensor, NF4Tensor):
-            contain_nf4 = True
 
-    if contain_nf4:
+    if has_nf4:
         for param_name, full_tensor in full_sd.items():
             full_tensor = to_nf4(full_tensor)
             # replicating logic from `_fsdp_param.py`` `_init_sharded_param`
@@ -343,9 +342,9 @@ def load_from_full_model_state_dict(
             if cpu_offload:
                 sharded_tensor = sharded_tensor.cpu()
             sharded_sd[param_name] = nn.Parameter(sharded_tensor)
+        # choose `assign=True` since we cannot call `copy_` on meta tensor
         return model.load_state_dict(sharded_sd, strict=strict, assign=True)
     else:
-        # choose `assign=True` since we cannot call `copy_` on meta tensor
         options = torch.distributed.checkpoint.state_dict.StateDictOptions(
             full_state_dict=True, broadcast_from_rank0=True, strict=strict
         )
@@ -421,21 +420,12 @@ def get_full_model_state_dict(
                     cpu_state_dict[full_fqn] = param.cpu()
             module.reshard()
     else:
-        for param_name, sharded_param in sharded_sd.items():
-            # without this, it may hang forever for +70B models.
-            torch.distributed.barrier()
-            if sharded_param.is_cpu:
-                assert device is not None and device.type == "cuda", (
-                    f"Expect cuda but got device={device}. "
-                    "Please call get_full_model_state_dict(..., device=self._device),"
-                    " so DTensor can communicate over NCCL."
-                )
-                sharded_param = sharded_param.to(device)
-            full_param = sharded_param.full_tensor()
-            if is_rank_zero:
-                cpu_state_dict[param_name] = full_param.cpu()
-            else:
-                del full_param
+        options = torch.distributed.checkpoint.state_dict.StateDictOptions(
+            full_state_dict=True, broadcast_from_rank0=True
+        )
+        cpu_state_dict = torch.distributed.checkpoint.state_dict.get_model_state_dict(
+            model=model, options=options
+        )
     return cpu_state_dict
 
 
