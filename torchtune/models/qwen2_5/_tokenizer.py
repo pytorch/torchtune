@@ -112,6 +112,9 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
             bpe_cache_size=bpe_cache_size,
         )
 
+        self.tool_call_start_id = self.special_tokens["<tool_call>"]
+        self.tool_call_end_id = self.special_tokens["</tool_call>"]
+
     def tokenize_messages(
         self,
         messages: List[Message],
@@ -133,9 +136,10 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
         Raises:
             RuntimeError: If a message contains non-text content
         """
-        assert not isinstance(
-            self.prompt_template, ChatMLTemplate
-        ), "Using ChatMLTemplate with tokenize_messages will result in multiple <|im_*|> tokens wrapping each message."
+        assert not isinstance(self.prompt_template, ChatMLTemplate), (
+            "Using ChatMLTemplate with tokenize_messages will result in multiple <|im_*|> tokens wrapping each message."
+            "Please use a different template or set to None."
+        )
         templated_messages = (
             self.prompt_template(messages)
             if self.prompt_template is not None
@@ -150,6 +154,7 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
             # message header
             if message.role == "ipython":
                 if i == 0 or templated_messages[i - 1].role != "ipython":
+                    # only add the "user" header if this is the first tool response msg
                     self._add_message_start_tokens(tokens, "user")
                     tokens.extend(
                         self.encode("<tool_response>\n", add_bos=False, add_eos=False)
@@ -161,9 +166,8 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
             else:
                 self._add_message_start_tokens(tokens, message.role)
                 if message.role == "assistant" and message.ipython:
-                    tokens.extend(
-                        self.encode("<tool_call>\n", add_bos=False, add_eos=False)
-                    )
+                    tokens.append(self.tool_call_start_id)
+                    tokens.extend(self.encode("\n", add_bos=False, add_eos=False))
 
             # message content
             for item in message.content:
@@ -196,9 +200,8 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
                     )
             else:
                 if message.role == "assistant" and message.ipython:
-                    tokens.extend(
-                        self.encode("\n</tool_call>", add_bos=False, add_eos=False)
-                    )
+                    tokens.extend(self.encode("\n", add_bos=False, add_eos=False))
+                    tokens.append(self.tool_call_end_id)
                 if message.role != "assistant" or i != len(messages) - 1:
                     self._add_message_end_tokens(tokens)
 

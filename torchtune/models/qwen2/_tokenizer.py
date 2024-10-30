@@ -343,9 +343,10 @@ class Qwen2Tokenizer(ModelTokenizer):
         Raises:
             RuntimeError: If a message contains non-text content
         """
-        assert not isinstance(
-            self.prompt_template, ChatMLTemplate
-        ), "Using ChatMLTemplate with tokenize_messages will result in multiple <|im_*|> tokens wrapping each message."
+        assert not isinstance(self.prompt_template, ChatMLTemplate), (
+            "Using ChatMLTemplate with tokenize_messages will result in multiple <|im_*|> tokens wrapping each message."
+            "Please use a different template or set to None."
+        )
         templated_messages = (
             self.prompt_template(messages)
             if self.prompt_template is not None
