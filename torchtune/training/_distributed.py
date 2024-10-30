@@ -297,10 +297,18 @@ def load_from_full_model_state_dict(
     """
     meta_sharded_sd = model.state_dict()
     sharded_sd = {}
-    for param_name, full_tensor in full_sd.items():
+    contain_nf4 = False
+    for param_name in full_sd.keys():
         sharded_meta_param = meta_sharded_sd.get(param_name)
-        full_tensor = full_tensor.to(sharded_meta_param.dtype).to(device)
+        full_sd[param_name] = (
+            full_sd[param_name].to(sharded_meta_param.dtype).to(device)
+        )
+        # assumme that all the tensors are NF4Tensor or not, and process accordingly
         if isinstance(sharded_meta_param._local_tensor, NF4Tensor):
+            contain_nf4 = True
+
+    if contain_nf4:
+        for param_name, full_tensor in full_sd.items():
             full_tensor = to_nf4(full_tensor)
             # replicating logic from `_fsdp_param.py`` `_init_sharded_param`
             # otherwise `distribute_tensor(DTensor(local=NF4))`
@@ -332,18 +340,18 @@ def load_from_full_model_state_dict(
                 ),
                 requires_grad=sharded_meta_param.requires_grad,
             )
-
-        else:
-            sharded_tensor = distribute_tensor(
-                full_tensor,
-                sharded_meta_param.device_mesh,
-                sharded_meta_param.placements,
-            )
-        if cpu_offload:
-            sharded_tensor = sharded_tensor.cpu()
-        sharded_sd[param_name] = nn.Parameter(sharded_tensor)
-    # choose `assign=True` since we cannot call `copy_` on meta tensor
-    return model.load_state_dict(sharded_sd, strict=strict, assign=True)
+            if cpu_offload:
+                sharded_tensor = sharded_tensor.cpu()
+            sharded_sd[param_name] = nn.Parameter(sharded_tensor)
+        return model.load_state_dict(sharded_sd, strict=strict, assign=True)
+    else:
+        # choose `assign=True` since we cannot call `copy_` on meta tensor
+        options = torch.distributed.checkpoint.state_dict.StateDictOptions(
+            full_state_dict=True, broadcast_from_rank0=True, strict=strict
+        )
+        torch.distributed.checkpoint.state_dict.set_model_state_dict(
+            model=model, model_state_dict=full_sd, options=options
+        )
 
 
 def get_full_model_state_dict(
@@ -432,6 +440,7 @@ def get_full_model_state_dict(
 
 
 def get_full_optimizer_state_dict(
+    model: "FSDPModule",  # noqa
     opt: Optimizer,
     is_rank_zero: bool,
     device: Optional[torch.device] = None,
@@ -481,6 +490,7 @@ def get_full_optimizer_state_dict(
 
 
 def load_from_full_optimizer_state_dict(
+    model: "FSDPModule",  # noqa
     opt: Optimizer,
     full_sd: Dict[str, Any],
     device: torch.device,
