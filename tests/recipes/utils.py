@@ -135,6 +135,7 @@ def lora_llama2_test_config(
     lora_rank: int = 8,
     lora_alpha: float = 16,
     quantize_base: bool = False,
+    use_dora: bool = False,
 ) -> List[str]:
     return [
         # Note: we explicitly use _component_ so that we can also call
@@ -154,6 +155,7 @@ def lora_llama2_test_config(
         f"model.lora_alpha={lora_alpha}",
         "model.lora_dropout=0.0",
         f"model.quantize_base={quantize_base}",
+        f"model.use_dora={use_dora}",
     ]
 
 
@@ -206,6 +208,14 @@ MODEL_TEST_CONFIGS = {
         apply_lora_to_output=False,
         lora_rank=8,
         lora_alpha=16,
+    ),
+    "llama2_dora": lora_llama2_test_config(
+        lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"],
+        apply_lora_to_mlp=False,
+        apply_lora_to_output=False,
+        lora_rank=8,
+        lora_alpha=16,
+        use_dora=True,
     ),
     "llama2_qlora": lora_llama2_test_config(
         lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"],
