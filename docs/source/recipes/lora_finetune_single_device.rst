@@ -44,6 +44,7 @@ see our documentation for the different PEFT training paradigms we support:
 
 * :ref:`glossary_lora`
 * :ref:`glossary_qlora`
+* :ref:`glossary_dora`
 
 Many of our other memory optimization features can be used in this recipe. You can learn more about all of our memory optimization features in our :ref:`memory optimization overview<memory_optimization_overview_label>`.
 
