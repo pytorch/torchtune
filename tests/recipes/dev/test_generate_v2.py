@@ -77,6 +77,8 @@ class TestGenerateV2:
         tokenizer_path = Path(TOKENIZER_PATHS["llama2"])
         ckpt_dir = ckpt_path.parent
 
+        torch._dynamo.reset()
+
         # Config file needed for model conversion.
         write_hf_ckpt_config(ckpt_dir)
 

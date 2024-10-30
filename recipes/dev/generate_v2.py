@@ -93,8 +93,9 @@ class InferenceRecipe:
             from torchao.quantization.quant_api import quantize_
 
             quantization_method = config.instantiate(cfg.quantization_method)
-            compile_model(model)
             quantize_(model, quantization_method, device=self.device)
+            # Compile for most speedup
+            compile_model(model)
 
         self.model = model
 
