@@ -440,9 +440,12 @@
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.</span></span><span class="sig-name descname"><span class="pre">TiedLinear</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tied_module</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.5)"><span class="pre">Module</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/tied_linear.html#TiedLinear"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.TiedLinear" title="Permalink to this definition">¶</a></dt>
 <dd><p>A tied linear layer, without bias, that shares the same weight as another linear layer.
 This is useful for models that use tied weights, such as <code class="xref py py-func docutils literal notranslate"><span class="pre">qwen2_0_5b()</span></code>,
-<code class="xref py py-func docutils literal notranslate"><span class="pre">qwen2_1_5b()</span></code> and all of the <code class="xref py py-func docutils literal notranslate"><span class="pre">gemma()</span></code> models.
-It requires as input an nn.Module, instead of the weight of the module, so it
-can work with FSDP. Otherwise, the memory reference will be lost after FSDP is applied.</p>
+<code class="xref py py-func docutils literal notranslate"><span class="pre">qwen2_1_5b()</span></code> and all of the <code class="xref py py-func docutils literal notranslate"><span class="pre">gemma()</span></code> and
+<code class="xref py py-func docutils literal notranslate"><span class="pre">llama3_2()</span></code> models.</p>
+<p>It requires as input an nn.Module, instead of the weight of the module, so it
+can work with FSDP. When FSDP is applied, the memory pointer to the weight is different,
+but the nn.Module remains the same. This is why we need to pass the nn.Module instead of
+the weight, if we want to keep the weights tied.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>tied_module</strong> (<em>nn.Module</em>) – The module whose weight is shared. Only
