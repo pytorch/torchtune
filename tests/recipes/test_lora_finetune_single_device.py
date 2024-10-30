@@ -24,6 +24,7 @@ from tests.test_utils import (
     gen_log_file_name,
     get_loss_values_from_metric_logger,
     TOKENIZER_PATHS,
+    gpu_test
 )
 from torchtune import config
 
@@ -116,6 +117,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
+    @gpu_test(gpu_count=1)
     @pytest.mark.integration_test
     @pytest.mark.parametrize(
         "dtype, compile, micro_batch_size, gradient_accumulation_steps",
@@ -161,6 +163,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         model_config = MODEL_TEST_CONFIGS["llama2_qlora"]
 
         cmd = cmd + self._get_test_config_overrides(dtype_str=dtype) + model_config
+        
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
