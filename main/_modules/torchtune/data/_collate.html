@@ -855,7 +855,8 @@
     <span class="k">if</span> <span class="n">pad_max_images</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">img_seq</span> <span class="o">=</span> <span class="n">concat_masks</span><span class="o">.</span><span class="n">shape</span>
         <span class="n">concat_masks</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
-            <span class="n">concat_masks</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pad_max_images</span> <span class="o">*</span> <span class="n">image_seq_len</span> <span class="o">-</span> <span class="n">img_seq</span><span class="p">)</span>
+            <span class="n">concat_masks</span><span class="p">,</span>
+            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pad_max_images</span> <span class="o">*</span> <span class="n">max_num_tiles</span> <span class="o">*</span> <span class="n">tokens_per_tile</span> <span class="o">-</span> <span class="n">img_seq</span><span class="p">),</span>
         <span class="p">)</span>
 
     <span class="n">batch_dict</span> <span class="o">=</span> <span class="p">{</span>

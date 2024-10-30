@@ -522,11 +522,11 @@
             <span class="n">tile_size</span><span class="o">=</span><span class="n">tile_size</span><span class="p">,</span>
             <span class="n">patch_size</span><span class="o">=</span><span class="n">patch_size</span><span class="p">,</span>
             <span class="n">image_token_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">image_id</span><span class="p">,</span>
-            <span class="n">max_num_tiles</span><span class="o">=</span><span class="n">max_num_tiles</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">stop_tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">stop_tokens</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">max_seq_len</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_num_tiles</span> <span class="o">=</span> <span class="n">max_num_tiles</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">image_seq_len</span> <span class="o">=</span> <span class="n">max_num_tiles</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xattn_mask</span><span class="o">.</span><span class="n">patches_per_tile</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">prompt_template</span> <span class="o">=</span> <span class="n">prompt_template</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pad_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_id</span>
