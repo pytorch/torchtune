@@ -5,22 +5,10 @@
 # LICENSE file in the root directory of this source tree.
 
 
-import contextlib
 import logging
 import os
 from itertools import chain
-from typing import (
-    Any,
-    Callable,
-    cast,
-    Dict,
-    Generator,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Type,
-)
+from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type
 
 import torch
 import torch.distributed as dist
@@ -691,12 +679,3 @@ def shard_model(
 
     # Finally shard the entire model to account for any stragglers
     fully_shard(model, **fsdp_kwargs)
-
-
-@contextlib.contextmanager
-def no_sync(model: nn.Module) -> Generator[None, None, None]:
-    model.set_requires_gradient_sync(False)
-    try:
-        yield
-    finally:
-        model.set_requires_gradient_sync(True)

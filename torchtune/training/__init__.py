@@ -18,7 +18,6 @@ from torchtune.training._distributed import (
     load_from_full_model_state_dict,
     load_from_full_optimizer_state_dict,
     lora_fsdp_wrap_policy,
-    no_sync,
     prepare_model_for_fsdp_with_meta_device,
     set_torch_num_threads,
     shard_model,
@@ -135,5 +134,4 @@ __all__ = [
     "OffloadActivations",
     "FormattedCheckpointFiles",
     "scale_grads",
-    "no_sync",
 ]

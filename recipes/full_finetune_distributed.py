@@ -130,14 +130,19 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
-        self._world_size, rank = training.get_world_size_and_rank()
-        self._rank = rank
+        _, rank = training.get_world_size_and_rank()
         self._is_rank_zero = rank == 0
 
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
+
+        if self._gradient_accumulation_steps > 1 and self._optimizer_in_bwd:
+            raise RuntimeError(
+                "Gradient accumulation is not supported with optimizer in bwd."
+                "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
+            )
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -632,7 +637,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        self._world_size, rank = training.get_world_size_and_rank()
+        world_size, rank = training.get_world_size_and_rank()
 
         # zero out the gradients before starting training
         if not self._optimizer_in_bwd:
@@ -705,17 +710,24 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 running_loss += current_loss
 
-                if (idx + 1) % self._gradient_accumulation_steps != 0:
-                    with training.no_sync(self._model):
-                        current_loss.backward()
-                else:
-                    current_loss.backward()
+                # For optimizer in backward, we need to normalize before calling backward
+                # This case and gradient accumulation are mutually exclusive
+                if self._optimizer_in_bwd:
+                    torch.distributed.all_reduce(num_tokens)
+                    torch.distributed.all_reduce(running_loss)
+                    current_loss = current_loss / num_tokens
+
+                current_loss.backward()
 
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    local_num_tokens = num_tokens.detach().clone()
-                    torch.distributed.all_reduce(num_tokens)
-                    training.scale_grads(self._model, self._world_size / num_tokens)
+                    if not self._optimizer_in_bwd:
+                        # Get total number of tokens across all ranks to normalize gradients
+                        torch.distributed.all_reduce(num_tokens)
+                        # This will ensure that the logged loss matches what we're optimizing
+                        torch.distributed.all_reduce(running_loss)
+                        # Manually scale the gradients from unnormalized loss by total # of tokens
+                        training.scale_grads(self._model, 1 / num_tokens)
                     if self._clip_grad_norm is not None:
                         if self._optimizer_in_bwd:
                             raise NotImplementedError(
@@ -753,8 +765,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                                     else self._optim_ckpt_wrapper
                                 ),
                             ),
-                            "tokens_per_second_per_gpu": local_num_tokens
-                            / time_per_step,
+                            "tokens_per_second_per_gpu": num_tokens
+                            / (time_per_step * world_size),
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
