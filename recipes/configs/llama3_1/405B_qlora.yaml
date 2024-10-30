@@ -37,7 +37,7 @@ checkpointer:
   output_dir: /tmp/Meta-Llama-3.1-405B-Instruct/
   model_type: LLAMA3
 resume_from_checkpoint: False
-save_adapter_weights_only: True
+save_adapter_weights_only: True # Set to false to save the whole model + adapter merged
 
 # Dataset and Sampler
 dataset:

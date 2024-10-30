@@ -655,6 +655,13 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         checkpoint_dict = {}
 
         intermediate_checkpoint = epoch + 1 < self.total_epochs
+
+        if self._is_rank_zero:
+            log.info(
+                "Saving checkpoint. This may take some time. Retrieving full model state dict..."
+            )
+            start = time.perf_counter()
+
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
         cpu_state_dict = training.get_full_model_state_dict(
@@ -663,20 +670,30 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             device=self._device,
             trainable_only=self._save_adapter_weights_only,
         )
+        if self._is_rank_zero:
+            log.info(
+                f"Getting full model state dict took {time.perf_counter() - start:.2f} secs"
+            )
 
         if intermediate_checkpoint:
+            if self._is_rank_zero:
+                log.info("Retrieving optimizer state dict...")
             opt_state_dict = training.get_full_optimizer_state_dict(
                 self._optimizer,
                 self._is_rank_zero,
                 device=self._device,
             )
+            if self._is_rank_zero:
+                log.info(
+                    f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs"
+                )
         else:
             opt_state_dict = None
 
         # Now that we have the model and opt state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file
         if self._is_rank_zero:
-
+            start = time.perf_counter()
             # Filter out the adapter keys and weights from the model state dict. These will
             # be saved separately
             adapter_key_filter = lambda x: x in self.adapter_params
@@ -718,13 +735,15 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 "peft_type": "LORA",
             }
             checkpoint_dict.update({training.ADAPTER_CONFIG: adapter_config})
-            print("saving checkpoint")
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
                 epoch=epoch,
                 intermediate_checkpoint=intermediate_checkpoint,
                 adapter_only=self._save_adapter_weights_only,
             )
+            log.info(f"Saving checkpoint took {time.perf_counter() - start:.2f} secs")
+
+        torch.distributed.barrier()
 
     def train(self) -> None:
         """

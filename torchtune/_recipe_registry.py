@@ -136,6 +136,10 @@ _ALL_RECIPES = [
                 name="llama3_2_vision/11B_full",
                 file_path="llama3_2_vision/11B_full.yaml",
             ),
+            Config(
+                name="llama3_2_vision/90B_full",
+                file_path="llama3_2_vision/90B_full.yaml",
+            ),
         ],
         supports_distributed=True,
     ),
@@ -367,6 +371,14 @@ _ALL_RECIPES = [
                 name="llama3_2_vision/11B_qlora",
                 file_path="llama3_2_vision/11B_qlora.yaml",
             ),
+            Config(
+                name="llama3_2_vision/90B_lora",
+                file_path="llama3_2_vision/90B_lora.yaml",
+            ),
+            Config(
+                name="llama3_2_vision/90B_qlora",
+                file_path="llama3_2_vision/90B_qlora.yaml",
+            ),
         ],
         supports_distributed=True,
     ),
@@ -387,8 +399,8 @@ _ALL_RECIPES = [
                 file_path="llama2/generation_v2.yaml",
             ),
             Config(
-                name="llama3_2_vision/generation_v2",
-                file_path="llama3_2_vision/generation_v2.yaml",
+                name="llama3_2_vision/11B_generation_v2",
+                file_path="llama3_2_vision/11B_generation_v2.yaml",
             ),
         ],
         supports_distributed=False,
@@ -399,8 +411,8 @@ _ALL_RECIPES = [
         configs=[
             Config(name="eleuther_evaluation", file_path="eleuther_evaluation.yaml"),
             Config(
-                name="llama3_2_vision/evaluation",
-                file_path="llama3_2_vision/evaluation.yaml",
+                name="llama3_2_vision/11B_evaluation",
+                file_path="llama3_2_vision/11B_evaluation.yaml",
             ),
             Config(
                 name="qwen2/evaluation",
@@ -452,6 +464,21 @@ _ALL_RECIPES = [
             ),
         ],
         supports_distributed=False,
+    ),
+    Recipe(
+        name="knowledge_distillation_distributed",
+        file_path="knowledge_distillation_distributed.py",
+        configs=[
+            Config(
+                name="qwen2/knowledge_distillation_distributed",
+                file_path="qwen2/knowledge_distillation_distributed.yaml",
+            ),
+            Config(
+                name="llama3_2/knowledge_distillation_distributed",
+                file_path="llama3_2/knowledge_distillation_distributed.yaml",
+            ),
+        ],
+        supports_distributed=True,
     ),
 ]
 

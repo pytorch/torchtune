@@ -238,7 +238,8 @@ def register_optim_in_bwd_hooks(
         optim_dict[param].zero_grad()
 
     for p in model.parameters():
-        p.register_post_accumulate_grad_hook(optim_step)
+        if p.requires_grad:
+            p.register_post_accumulate_grad_hook(optim_step)
 
 
 def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
