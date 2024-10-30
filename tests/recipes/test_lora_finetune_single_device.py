@@ -32,7 +32,7 @@ from torchtune import config
 class TestLoRAFinetuneSingleDeviceRecipe:
     def _get_test_config_overrides(self, dtype_str: str = "fp32", epochs: int = 2):
         return [
-            "device=gpu",
+            "device=cuda",
             f"dtype={dtype_str}",
             "dataset.train_on_input=False",
             "seed=9",
