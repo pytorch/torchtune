@@ -11,4 +11,4 @@ from torch import nn
 def scale_grads(m: nn.Module, scaler: torch.Tensor) -> None:
     for p in m.parameters():
         if p.grad is not None:
-            p.grad /= scaler
+            p.grad *= scaler

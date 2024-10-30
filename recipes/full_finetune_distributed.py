@@ -130,7 +130,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
-        _, rank = training.get_world_size_and_rank()
+        self._world_size, rank = training.get_world_size_and_rank()
+        self._rank = rank
         self._is_rank_zero = rank == 0
 
         # Training cfg
@@ -631,7 +632,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        _, rank = training.get_world_size_and_rank()
+        self._world_size, rank = training.get_world_size_and_rank()
 
         # zero out the gradients before starting training
         if not self._optimizer_in_bwd:
@@ -703,11 +704,18 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 del logits
 
                 running_loss += current_loss
-                current_loss.backward()
+
+                if (idx + 1) % self._gradient_accumulation_steps != 0:
+                    with training.no_sync(self._model):
+                        current_loss.backward()
+                else:
+                    current_loss.backward()
 
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    training.scale_grads(self._model, 1 / num_tokens)
+                    local_num_tokens = num_tokens.detach().clone()
+                    torch.distributed.all_reduce(num_tokens)
+                    training.scale_grads(self._model, self._world_size / num_tokens)
                     if self._clip_grad_norm is not None:
                         if self._optimizer_in_bwd:
                             raise NotImplementedError(
@@ -745,7 +753,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                                     else self._optim_ckpt_wrapper
                                 ),
                             ),
-                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                            "tokens_per_second_per_gpu": local_num_tokens
+                            / time_per_step,
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
