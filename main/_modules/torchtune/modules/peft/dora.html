@@ -508,7 +508,8 @@
         <span class="n">_lora_a_init_params</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lora_a</span><span class="p">)</span>
         <span class="n">_lora_b_init_params</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lora_b</span><span class="p">)</span>
 
-<div class="viewcode-block" id="DoRALinear.initialize_dora_magnitude"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.DoRALinear.html#torchtune.modules.peft.DoRALinear.initialize_dora_magnitude">[docs]</a>    <span class="k">def</span> <span class="nf">initialize_dora_magnitude</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="DoRALinear.initialize_dora_magnitude"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.DoRALinear.html#torchtune.modules.peft.DoRALinear.initialize_dora_magnitude">[docs]</a>    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">initialize_dora_magnitude</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        DoRA initializes the magnitude vector such that its outputs are initially</span>
 <span class="sd">        identical to standard LoRA&#39;s outputs.</span>
@@ -516,7 +517,7 @@
         <span class="n">base_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lora_a</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="n">lora_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lora_b</span><span class="o">.</span><span class="n">weight</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">lora_a</span><span class="o">.</span><span class="n">weight</span>
         <span class="n">weight_norm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_weight_norm</span><span class="p">(</span><span class="n">base_weight</span><span class="p">,</span> <span class="n">lora_weight</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">magnitude</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">weight_norm</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">magnitude</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">weight_norm</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_create_weight_and_bias</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
