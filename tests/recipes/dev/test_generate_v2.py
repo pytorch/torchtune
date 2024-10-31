@@ -81,8 +81,7 @@ class TestGenerateV2:
         write_hf_ckpt_config(ckpt_dir)
 
         cmd = f"""
-        TORCHINDUCTOR_FORCE_DISABLE_CACHES=1 \
-            tune run dev/generate_v2 \
+        tune run dev/generate_v2 \
             --config llama2/generation_v2 \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
@@ -101,6 +100,8 @@ class TestGenerateV2:
         model_config = MODEL_TEST_CONFIGS["llama2"]
         cmd = cmd + model_config
 
+        import os
+        os.environ["TORCH_COMPILE_BACKEND"] = "eager"
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
