@@ -10,7 +10,7 @@ from torchtune.data import Message
 from torchtune.models.qwen2_5 import qwen2_5_tokenizer
 
 
-class TestQwenTokenizer:
+class TestQwen2_5Tokenizer:  # noqa: N801
     def tokenizer(self):
         return qwen2_5_tokenizer(
             path=str(ASSETS / "tiny_bpe_vocab.json"),

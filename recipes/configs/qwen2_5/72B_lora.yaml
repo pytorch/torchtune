@@ -12,8 +12,6 @@
 # to override the checkpointer directory while launching training
 # you can run:
 #   tune run --nnodes 1 --nproc_per_node 8 lora_finetune_distributed --config qwen2_5/72B_lora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
-#
-# This config works best when the model is being fine-tuned on 2+ GPUs.
 
 
 # Model Arguments
@@ -82,6 +80,7 @@ resume_from_checkpoint: False
 # Dataset and Sampler
 dataset:
   _component_: torchtune.datasets.alpaca_dataset
+  packed: False
 seed: null
 shuffle: True
 batch_size: 2

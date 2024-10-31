@@ -149,25 +149,8 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
         tokenized_messages = []
         mask = []
         for i, message in enumerate(templated_messages):
-            tokens = []
-
             # message header
-            if message.role == "ipython":
-                if i == 0 or templated_messages[i - 1].role != "ipython":
-                    # only add the "user" header if this is the first tool response msg
-                    self._add_message_start_tokens(tokens, "user")
-                    tokens.extend(
-                        self.encode("<tool_response>\n", add_bos=False, add_eos=False)
-                    )
-                else:
-                    tokens.extend(
-                        self.encode("\n<tool_response>\n", add_bos=False, add_eos=False)
-                    )
-            else:
-                self._add_message_start_tokens(tokens, message.role)
-                if message.role == "assistant" and message.ipython:
-                    tokens.append(self.tool_call_start_id)
-                    tokens.extend(self.encode("\n", add_bos=False, add_eos=False))
+            tokens = self._tokenize_header(templated_messages, i)
 
             # message content
             for item in message.content:
@@ -185,25 +168,7 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
                     )
 
             # message footer
-            if message.role == "ipython":
-                if (
-                    i == len(templated_messages) - 1
-                    or templated_messages[i + 1].role != "ipython"
-                ):
-                    tokens.extend(
-                        self.encode("\n</tool_response>", add_bos=False, add_eos=False)
-                    )
-                    self._add_message_end_tokens(tokens)
-                else:
-                    tokens.extend(
-                        self.encode("\n</tool_response>", add_bos=False, add_eos=False)
-                    )
-            else:
-                if message.role == "assistant" and message.ipython:
-                    tokens.extend(self.encode("\n", add_bos=False, add_eos=False))
-                    tokens.append(self.tool_call_end_id)
-                if message.role != "assistant" or i != len(messages) - 1:
-                    self._add_message_end_tokens(tokens)
+            tokens.extend(self._tokenize_footer(templated_messages, i))
 
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
@@ -225,6 +190,48 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
             mask = truncate(mask, self.max_seq_len, True if add_eos else None)
 
         return tokenized_messages, mask
+
+    def _tokenize_header(self, messages, i):
+        tokens = []
+        message = messages[i]
+        if message.role == "ipython":
+            if i == 0 or messages[i - 1].role != "ipython":
+                # only add the "user" header if this is the first tool response msg
+                self._add_message_start_tokens(tokens, "user")
+                tokens.extend(
+                    self.encode("<tool_response>\n", add_bos=False, add_eos=False)
+                )
+            else:
+                tokens.extend(
+                    self.encode("\n<tool_response>\n", add_bos=False, add_eos=False)
+                )
+        else:
+            self._add_message_start_tokens(tokens, message.role)
+            if message.role == "assistant" and message.ipython:
+                tokens.append(self.tool_call_start_id)
+                tokens.extend(self.encode("\n", add_bos=False, add_eos=False))
+        return tokens
+
+    def _tokenize_footer(self, messages, i):
+        tokens = []
+        message = messages[i]
+        if message.role == "ipython":
+            if i == len(messages) - 1 or messages[i + 1].role != "ipython":
+                tokens.extend(
+                    self.encode("\n</tool_response>", add_bos=False, add_eos=False)
+                )
+                self._add_message_end_tokens(tokens)
+            else:
+                tokens.extend(
+                    self.encode("\n</tool_response>", add_bos=False, add_eos=False)
+                )
+        else:
+            if message.role == "assistant" and message.ipython:
+                tokens.extend(self.encode("\n", add_bos=False, add_eos=False))
+                tokens.append(self.tool_call_end_id)
+            if message.role != "assistant" or i != len(messages) - 1:
+                self._add_message_end_tokens(tokens)
+        return tokens
 
     def _add_message_start_tokens(self, tokens, role):
         tokens.append(self.im_start_id)

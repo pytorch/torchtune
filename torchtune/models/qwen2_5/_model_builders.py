@@ -22,7 +22,7 @@ Qwen2.5 7B model.
 
 def qwen2_5_0_5b() -> TransformerDecoder:
     """
-    Builder for creating a Qwen2.5 model initialized w/ the default 0.5B parameter values
+    Builder for creating a Qwen2.5 model (base or instruct) initialized w/ the default 0.5B parameter values
     from https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct
 
     Returns:
@@ -323,7 +323,7 @@ def qwen2_5_tokenizer(
             If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
             class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
             prepend/append tags.
-            Default is :class:`~torchtune.models.qwen2_5._prompt_template.Qwen2_5ChatTemplate`.
+            Default is None.
 
     Returns:
         Qwen2_5Tokenizer: Instantiation of the Qwen2.5 tokenizer
@@ -358,7 +358,7 @@ def lora_qwen2_5_0_5b(
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
-    Builder for creating a Qwen2.5 0.5B model with LoRA enabled.
+    Builder for creating a Qwen2.5 0.5B model (base or instruct) with LoRA enabled.
 
     The Qwen2.5 defaults are the same as in :func:`~torchtune.models.qwen2_5.qwen2_5_0_5b`,
     while LoRA default params are based on
