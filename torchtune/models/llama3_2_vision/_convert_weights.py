@@ -345,6 +345,7 @@ def llama3_vision_tune_to_hf(
     tile_size: int = 448,
     num_tiles: int = 4,
     supported_aspect_ratios: List[Tuple[int, int]] = None,
+    peft_dict: bool = False,
 ) -> Dict[str, torch.Tensor]:
     """
     Convertor from Tune state dict to HF state dict. This handles:
@@ -364,6 +365,8 @@ def llama3_vision_tune_to_hf(
         "decoder.tok_embeddings.fusion_embedding.weight": None,
     }
     inverted_mapping_dict.update(missing_keys)
+    if peft_dict:
+        inverted_mapping_dict = _get_peft_dict(inverted_mapping_dict)
 
     if head_dim is None:
         head_dim = dim // num_heads
@@ -427,3 +430,31 @@ def llama3_vision_tune_to_hf(
 
         converted_state_dict[new_key] = value
     return converted_state_dict
+
+
+# Mapping from torchtune LoRA module names to PEFT LoRA module names
+_TO_PEFT_KEYS = {
+    "lora_a": "lora_A",
+    "lora_b": "lora_B",
+    "magnitude": "lora_magnitude_vector",
+}
+
+
+def _get_peft_dict(mapping_dict: Dict[str, str]) -> Dict[str, torch.Tensor]:
+    """
+    Rather than recreate a separate mapping for LoRA adapter weights, we just
+    re-use the _FROM_HF mapping for base model weights. We iterate over it twice:
+    once to add mappings for LoRA A matrices and once to add mappings for LoRA B matrices.
+    """
+    new_mapping_dict = {}
+    for k, v in _TO_PEFT_KEYS.items():
+        new_mapping_dict.update(
+            {
+                vv.replace(".weight", f".{k}.weight"): kk.replace(
+                    ".weight", f".{v}.weight"
+                )
+                for kk, vv in mapping_dict.items()
+                if vv is not None
+            }
+        )
+    return new_mapping_dict

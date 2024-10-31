@@ -632,15 +632,35 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     "Saving Phi-3 Mini adapter weights to PEFT format is not supported, saving to torchtune format instead"
                 )
             else:
-                state_dict[
-                    training.ADAPTER_KEY
-                ] = convert_weights.tune_to_peft_adapter_weights(
-                    state_dict[training.ADAPTER_KEY],
-                    num_heads=self._config["num_attention_heads"],
-                    num_kv_heads=self._config["num_key_value_heads"],
-                    dim=self._config["hidden_size"],
-                    head_dim=self._config.get("head_dim", None),
-                )
+                if self._model_type == ModelType.LLAMA3_VISION:
+                    state_dict[training.ADAPTER_KEY] = llama3_vision_tune_to_hf(
+                        state_dict[training.MODEL_KEY],
+                        num_heads=text_config["num_attention_heads"],
+                        num_kv_heads=text_config["num_key_value_heads"],
+                        dim=text_config["hidden_size"],
+                        head_dim=text_config.get("head_dim", None),
+                        vocab_size=text_config["vocab_size"],
+                        cross_attention_layers=text_config.get(
+                            "cross_attention_layers", None
+                        ),
+                        encoder_dim=vision_config["hidden_size"],
+                        tile_size=vision_config["image_size"],
+                        num_tiles=vision_config["max_num_tiles"],
+                        supported_aspect_ratios=vision_config.get(
+                            "supported_aspect_ratios", None
+                        ),
+                        peft_dict=True,
+                    )
+                else:
+                    state_dict[
+                        training.ADAPTER_KEY
+                    ] = convert_weights.tune_to_peft_adapter_weights(
+                        state_dict[training.ADAPTER_KEY],
+                        num_heads=self._config["num_attention_heads"],
+                        num_kv_heads=self._config["num_key_value_heads"],
+                        dim=self._config["hidden_size"],
+                        head_dim=self._config.get("head_dim", None),
+                    )
                 peft_output_path = Path.joinpath(
                     self._output_dir, "adapter_model"
                 ).with_suffix(".bin")
@@ -656,24 +676,19 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             )
 
         if training.ADAPTER_CONFIG in state_dict:
-            if self._model_type == ModelType.PHI3_MINI:
-                logger.warning(
-                    "PEFT integration for Phi-3 Mini is not supported, skipping adapter config save"
-                )
-            else:
-                state_dict[
-                    training.ADAPTER_CONFIG
-                ] = convert_weights.tune_to_peft_adapter_config(
-                    state_dict[training.ADAPTER_CONFIG]
-                )
-                output_path = Path.joinpath(self._output_dir, "adapter_config.json")
-                with open(output_path, "w") as f:
-                    json.dump(state_dict[training.ADAPTER_CONFIG], f)
-                logger.info(
-                    "Adapter checkpoint of size "
-                    f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
-                    f"saved to {output_path}"
-                )
+            state_dict[
+                training.ADAPTER_CONFIG
+            ] = convert_weights.tune_to_peft_adapter_config(
+                state_dict[training.ADAPTER_CONFIG]
+            )
+            output_path = Path.joinpath(self._output_dir, "adapter_config.json")
+            with open(output_path, "w") as f:
+                json.dump(state_dict[training.ADAPTER_CONFIG], f)
+            logger.info(
+                "Adapter checkpoint of size "
+                f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                f"saved to {output_path}"
+            )
 
         # If the recipe state needs to be output, first remove the model state dict
         # and if it exists, remove the adapter state dict as well
