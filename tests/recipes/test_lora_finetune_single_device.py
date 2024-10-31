@@ -259,8 +259,9 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
+    @pytest.mark.parametrize("use_dora", [False, True])
     @pytest.mark.integration_test
-    def test_save_and_load_merged_weights(self, tmpdir, monkeypatch):
+    def test_save_and_load_merged_weights(self, tmpdir, monkeypatch, use_dora):
         ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
@@ -280,7 +281,10 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             enable_activation_offloading=False \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS["llama2_lora"]
+        if use_dora:
+            model_config = MODEL_TEST_CONFIGS["llama2_dora"]
+        else:
+            model_config = MODEL_TEST_CONFIGS["llama2_lora"]
 
         cmd = cmd + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd)
