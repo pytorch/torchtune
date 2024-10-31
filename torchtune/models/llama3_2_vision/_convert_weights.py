@@ -345,7 +345,6 @@ def llama3_vision_tune_to_hf(
     tile_size: int = 448,
     num_tiles: int = 4,
     supported_aspect_ratios: List[Tuple[int, int]] = None,
-    peft_dict: bool = False,
 ) -> Dict[str, torch.Tensor]:
     """
     Convertor from Tune state dict to HF state dict. This handles:
@@ -365,8 +364,6 @@ def llama3_vision_tune_to_hf(
         "decoder.tok_embeddings.fusion_embedding.weight": None,
     }
     inverted_mapping_dict.update(missing_keys)
-    if peft_dict:
-        inverted_mapping_dict = _get_peft_dict(inverted_mapping_dict)
 
     if head_dim is None:
         head_dim = dim // num_heads
@@ -440,21 +437,95 @@ _TO_PEFT_KEYS = {
 }
 
 
-def _get_peft_dict(mapping_dict: Dict[str, str]) -> Dict[str, torch.Tensor]:
+def _get_peft_dict(tune_to_hf_dict: Dict[str, str]) -> Dict[str, torch.Tensor]:
     """
     Rather than recreate a separate mapping for LoRA adapter weights, we just
     re-use the _FROM_HF mapping for base model weights. We iterate over it twice:
     once to add mappings for LoRA A matrices and once to add mappings for LoRA B matrices.
     """
     new_mapping_dict = {}
-    for k, v in _TO_PEFT_KEYS.items():
-        new_mapping_dict.update(
-            {
-                vv.replace(".weight", f".{k}.weight"): kk.replace(
-                    ".weight", f".{v}.weight"
-                )
-                for kk, vv in mapping_dict.items()
-                if vv is not None
-            }
-        )
+    for tune_peft, hf_peft in _TO_PEFT_KEYS.items():
+        for tune_key, hf_key in tune_to_hf_dict.items():
+            if hf_key is None or hf_val is None:
+                continue
+
+            if peft_key == "magnitude":
+                # e.g. attn.q_proj.magnitude -> attn.q_proj.lora_magnitude_vector
+                tune_adapter = tune_key.replace(".weight", f".{tune_peft}")
+                hf_adapter = hf_key.replace(".weight", f".{hf_peft}")
+            else:
+                # e.g. attn.q_proj.lora_a.weight -> attn.q_proj.lora_A.weight
+                tune_adapter = tune_key.replace(".weight", f".{tune_peft}.weight")
+                hf_adapter = hf_key.replace(".weight", f".{hf_peft}.weight")
+
+            new_mapping_dict[tune_adapter] = hf_adapter
     return new_mapping_dict
+
+
+def llama3_vision_tune_to_peft_adapter_weights(
+    state_dict: Dict[str, torch.Tensor],
+    num_heads: int = 32,
+    num_kv_heads: int = 32,
+    dim: int = 4096,
+    head_dim: int = None,
+    cross_attention_layers: Optional[List[int]] = None,
+) -> Dict[str, torch.Tensor]:
+    """
+    Convertor from Tune state dict to HF state dict. This handles:
+    - Updateing the cross attention layer numbers
+    - skip loading the rope embeddings
+    - reshaping q, k projections
+    """
+    converted_state_dict = {}
+    inverted_mapping_dict = {v: k for k, v in _FROM_HF.items()}
+    # missing keys in _FROM_HF due to naming collisions
+    missing_keys = {
+        "decoder.layers.{}.fusion_layer.ca_norm.scale": "language_model.model.layers.{}.input_layernorm.weight",
+        "decoder.layers.{}.fusion_layer.mlp_norm.scale": "language_model.model.layers.{}.post_attention_layernorm.weight",
+        "decoder.layers.{}.fusion_layer.mlp.w1.weight": "language_model.model.layers.{}.mlp.gate_proj.weight",
+        "decoder.layers.{}.fusion_layer.mlp.w3.weight": "language_model.model.layers.{}.mlp.up_proj.weight",
+        "decoder.layers.{}.fusion_layer.mlp.w2.weight": "language_model.model.layers.{}.mlp.down_proj.weight",
+        "decoder.tok_embeddings.fusion_embedding.weight": None,
+    }
+    inverted_mapping_dict.update(missing_keys)
+    inverted_mapping_dict = _get_peft_dict(inverted_mapping_dict)
+
+    if head_dim is None:
+        head_dim = dim // num_heads
+    if cross_attention_layers is None:
+        cross_attention_layers = []
+    # convert hf layer numbers to tune numbers
+    cross_attention_layers = [
+        l - i for i, l in enumerate(sorted(cross_attention_layers))
+    ]
+
+    def _permute_lora_matrix(t, n_heads):
+        rank = t.shape[-1]
+        return (
+            t.view(n_heads, head_dim // 2, 2, rank)
+            .transpose(1, 2)
+            .reshape((head_dim * n_heads), rank)
+        )
+
+    for key, value in state_dict.items():
+        # if key == "decoder.layers.3.layer.attn.q_proj.lora_a.weight":
+        #    import pdb; pdb.set_trace()
+        new_key = get_mapped_key(key, inverted_mapping_dict)
+        if "decoder" in key:
+            if "layers" in key:  # Update layer numbers
+                layer = int(key.split(".")[2])
+                num_shifts = sum(layer > l for l in cross_attention_layers)
+                new_layer = layer + num_shifts
+                key_lst = new_key.split(".")
+                if layer in cross_attention_layers and "fusion_layer" not in key:
+                    new_layer += 1  # hf treats the fusion_layer as an additional layer
+                key_lst[3] = str(new_layer)
+                new_key = ".".join(key_lst)
+            if "q_proj" in key and "lora_B" in new_key and "cross_attn" not in new_key:
+                value = _permute_lora_matrix(value, num_heads)
+            elif (
+                "k_proj" in key and "lora_B" in new_key and "cross_attn" not in new_key
+            ):
+                value = _permute_lora_matrix(value, num_kv_heads)
+        converted_state_dict["base_model.model." + new_key] = value
+    return converted_state_dict

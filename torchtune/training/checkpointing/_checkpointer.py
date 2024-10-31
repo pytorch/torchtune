@@ -637,23 +637,21 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 )
             else:
                 if self._model_type == ModelType.LLAMA3_VISION:
-                    state_dict[training.ADAPTER_KEY] = llama3_vision_tune_to_hf(
-                        state_dict[training.MODEL_KEY],
+                    from torchtune.models.llama3_2_vision._convert_weights import (
+                        llama3_vision_tune_to_peft_adapter_weights,
+                    )
+
+                    state_dict[
+                        training.ADAPTER_KEY
+                    ] = llama3_vision_tune_to_peft_adapter_weights(
+                        state_dict[training.ADAPTER_KEY],
                         num_heads=text_config["num_attention_heads"],
                         num_kv_heads=text_config["num_key_value_heads"],
                         dim=text_config["hidden_size"],
                         head_dim=text_config.get("head_dim", None),
-                        vocab_size=text_config["vocab_size"],
                         cross_attention_layers=text_config.get(
                             "cross_attention_layers", None
                         ),
-                        encoder_dim=vision_config["hidden_size"],
-                        tile_size=vision_config["image_size"],
-                        num_tiles=vision_config["max_num_tiles"],
-                        supported_aspect_ratios=vision_config.get(
-                            "supported_aspect_ratios", None
-                        ),
-                        peft_dict=True,
                     )
                 else:
                     state_dict[
