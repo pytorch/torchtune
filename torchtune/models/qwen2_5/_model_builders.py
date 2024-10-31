@@ -55,6 +55,10 @@ def qwen2_5_1_5b_base() -> TransformerDecoder:
         TransformerDecoder: Instantiation of Qwen2.5 1.5B model
 
     Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
+
+    Note:
         Qwen2.5 0.5B-3B model builders will enable `tie_word_embeddings` by default.
     """
     return qwen2(
@@ -79,6 +83,10 @@ def qwen2_5_1_5b_instruct() -> TransformerDecoder:
 
     Returns:
         TransformerDecoder: Instantiation of Qwen2.5 1.5B instruct model
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
 
     Note:
         Qwen2.5 0.5B-3B model builders will enable `tie_word_embeddings` by default.
@@ -131,6 +139,10 @@ def qwen2_5_7b_base() -> TransformerDecoder:
 
     Returns:
         TransformerDecoder: Instantiation of Qwen2.5 7B model
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
     return qwen2(
         vocab_size=152064,
@@ -153,6 +165,10 @@ def qwen2_5_7b_instruct() -> TransformerDecoder:
 
     Returns:
         TransformerDecoder: Instantiation of Qwen2.5 7B instruct model
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
     return qwen2(
         vocab_size=152064,
@@ -175,6 +191,10 @@ def qwen2_5_14b_base() -> TransformerDecoder:
 
     Returns:
         TransformerDecoder: Instantiation of Qwen2.5 14B model
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
     return qwen2(
         vocab_size=152064,
@@ -197,6 +217,10 @@ def qwen2_5_14b_instruct() -> TransformerDecoder:
 
     Returns:
         TransformerDecoder: Instantiation of Qwen2.5 14B instruct model
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
     return qwen2(
         vocab_size=152064,
@@ -219,6 +243,10 @@ def qwen2_5_32b_base() -> TransformerDecoder:
 
     Returns:
         TransformerDecoder: Instantiation of Qwen2.5 32B model
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
     return qwen2(
         vocab_size=152064,
@@ -241,6 +269,10 @@ def qwen2_5_32b_instruct() -> TransformerDecoder:
 
     Returns:
         TransformerDecoder: Instantiation of Qwen2.5 32B instruct model
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
     return qwen2(
         vocab_size=152064,
@@ -263,6 +295,10 @@ def qwen2_5_72b_base() -> TransformerDecoder:
 
     Returns:
         TransformerDecoder: Instantiation of Qwen2.5 72B model
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
     return qwen2(
         vocab_size=152064,
@@ -285,6 +321,10 @@ def qwen2_5_72b_instruct() -> TransformerDecoder:
 
     Returns:
         TransformerDecoder: Instantiation of Qwen2.5 72B instruct model
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
     return qwen2(
         vocab_size=152064,
@@ -437,6 +477,10 @@ def lora_qwen2_5_1_5b_base(
 
     Note:
         Qwen2.5 0.5B-3B model builders will enable `tie_word_embeddings` by default.
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
@@ -494,6 +538,10 @@ def lora_qwen2_5_1_5b_instruct(
 
     Note:
         Qwen2.5 0.5B-3B model builders will enable `tie_word_embeddings` by default.
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
@@ -607,6 +655,10 @@ def lora_qwen2_5_7b_base(
 
     Returns:
         TransformerDecoder: Instantiation of Qwen2.5 7B model with LoRA applied
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
@@ -662,6 +714,10 @@ def lora_qwen2_5_7b_instruct(
 
     Returns:
         TransformerDecoder: Instantiation of Qwen2.5 7B model with LoRA applied
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
@@ -717,6 +773,10 @@ def lora_qwen2_5_14b_base(
 
     Returns:
         TransformerDecoder: Instantiation of Qwen2.5 14B model with LoRA applied
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
@@ -772,6 +832,10 @@ def lora_qwen2_5_14b_instruct(
 
     Returns:
         TransformerDecoder: Instantiation of Qwen2.5 14B model with LoRA applied
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
@@ -827,6 +891,10 @@ def lora_qwen2_5_32b_base(
 
     Returns:
         TransformerDecoder: Instantiation of Qwen2.5 32B model with LoRA applied
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
@@ -882,6 +950,10 @@ def lora_qwen2_5_32b_instruct(
 
     Returns:
         TransformerDecoder: Instantiation of Qwen2.5 32B model with LoRA applied
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
@@ -937,6 +1009,10 @@ def lora_qwen2_5_72b_base(
 
     Returns:
         TransformerDecoder: Instantiation of Qwen2.5 72B model with LoRA applied
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
@@ -992,6 +1068,10 @@ def lora_qwen2_5_72b_instruct(
 
     Returns:
         TransformerDecoder: Instantiation of Qwen2.5 72B model with LoRA applied
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
