@@ -18,15 +18,14 @@ from torchtune.modules.peft import AdapterModule
 
 
 class DoRALinear(nn.Module, AdapterModule):
-    """LoRA linear layer as introduced in `LoRA: Low-Rank Adaptation of Large Language Models <https://arxiv.org/abs/2106.09685>`_.
+    """DoRA linear layer as introduced in
+    `DoRA: Weight-Decomposed Low-Rank Adaptation of Large Language Models <https://arxiv.org/abs/2402.09353>`_.
 
-    LoRA perturbs a given layer via a low-rank approximation where only
-    the rank decomposition matrices are trainable. In a linear layer instead of
-    :math:`x \\mapsto W_0x` a LoRALinear layer is defined as
-    :math:`x \\mapsto W_0x + (\\alpha / r)BAx`, where :math:`r` is the rank of
-    the matrices :math:`A` and :math:`B` and :math:`\\alpha` is a scaling factor.
-    As in the original implementation, we support dropout before multiplication
-    by the low-rank matrices.
+    DoRA (Weight-Decomposed Low-Rank Adaptation) fine-tunes a layer by decomposing the pre-trained weights
+    into two components: magnitude and direction. The magnitude component is a learnable scalar vector
+    that scales each output channel, while the direction component, modified via LoRA, adjusts the orientation
+    of weights. By scaling the LoRA update component :math:`BAx` with the `magnitude` vector, DoRA allows the model
+    to apply distinct scaling adjustments across different output dimensions.
 
     Args:
         in_dim (int): input dimension
