@@ -54,7 +54,7 @@ class TestQATDistributedRecipe:
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps",
         [
-            # ("llama2/7B_qat_full", "llama2", "hf", 4, 1),
+            ("llama2/7B_qat_full", "llama2", "hf", 4, 1),
             ("llama3/8B_qat_full", "llama3", "tune", 4, 1),
             ("llama3/8B_qat_full", "llama3", "tune", 1, 4),
         ],
