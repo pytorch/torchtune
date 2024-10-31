@@ -6,9 +6,6 @@
 from torchtune.training._activation_offloading import NoOpManager, OffloadActivations
 from torchtune.training._compile import compile_loss, compile_model
 from torchtune.training._distributed import (
-    contains_fsdp,
-    FSDPPolicyType,
-    get_full_finetune_fsdp_wrap_policy,
     get_full_model_state_dict,
     get_full_optimizer_state_dict,
     get_shard_conditions,
@@ -17,8 +14,6 @@ from torchtune.training._distributed import (
     is_distributed,
     load_from_full_model_state_dict,
     load_from_full_optimizer_state_dict,
-    lora_fsdp_wrap_policy,
-    prepare_model_for_fsdp_with_meta_device,
     set_torch_num_threads,
     shard_model,
     validate_no_params_on_meta_device,
@@ -108,12 +103,7 @@ __all__ = [
     "set_torch_num_threads",
     "shard_model",
     "get_shard_conditions",
-    "prepare_model_for_fsdp_with_meta_device",
     "validate_no_params_on_meta_device",
-    "contains_fsdp",
-    "FSDPPolicyType",
-    "get_full_finetune_fsdp_wrap_policy",
-    "lora_fsdp_wrap_policy",
     "get_full_model_state_dict",
     "get_full_optimizer_state_dict",
     "load_from_full_model_state_dict",

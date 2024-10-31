@@ -20,7 +20,6 @@ from torchtune.modules.peft import (
     LoRALinear,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
-    validate_state_dict_for_lora,
 )
 
 N_LAYERS = 3
@@ -384,7 +383,7 @@ class TestPeftUtils:
             )
         if expected:
             with pytest.raises(AssertionError, match=expected):
-                validate_state_dict_for_lora(
+                validate_missing_and_unexpected_for_lora(
                     lora_attn_modules,
                     apply_lora_to_mlp,
                     apply_lora_to_output,
@@ -393,7 +392,7 @@ class TestPeftUtils:
                     base_model_state_dict_keys=base_model_state_dict_keys,
                 )
         else:
-            validate_state_dict_for_lora(
+            validate_missing_and_unexpected_for_lora(
                 lora_attn_modules,
                 apply_lora_to_mlp,
                 apply_lora_to_output,

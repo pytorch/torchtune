@@ -14,7 +14,6 @@ from ._utils import (  # noqa
     LORA_ATTN_MODULES,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
-    validate_state_dict_for_lora,
 )
 from .dora import DoRALinear
 from .lora import LoRALinear
@@ -27,7 +26,6 @@ __all__ = [
     "get_adapter_params",
     "set_trainable_params",
     "validate_missing_and_unexpected_for_lora",
-    "validate_state_dict_for_lora",
     "load_dora_magnitudes",
     "disable_adapter",
     "get_merged_lora_ckpt",
