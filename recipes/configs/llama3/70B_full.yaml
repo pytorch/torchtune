@@ -93,6 +93,7 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True
+enable_activation_offloading: False  # True reduces memory
 custom_sharded_layers: ['tok_embeddings', 'output']
 fsdp_cpu_offload: True
 compile: False # pytorch compile, set to true for perf/memory improvement

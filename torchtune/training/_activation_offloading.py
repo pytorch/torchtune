@@ -4,14 +4,21 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional
+import contextlib
+from typing import Optional, Union
 from warnings import warn
 
 import psutil
 import torch
 import torchao
+from torch import nn
 from torch.autograd.graph import saved_tensors_hooks
 from torchao.dtypes.nf4tensor import NF4Tensor
+
+from torchtune.modules import TiedLinear
+from torchtune.utils import get_logger
+
+log = get_logger("DEBUG")
 
 
 class OffloadActivations(saved_tensors_hooks):
@@ -345,3 +352,82 @@ class NoOpManager(saved_tensors_hooks):
             return tensor
 
         super().__init__(noop, noop)
+
+
+def get_act_offloading_ctx_manager(
+    model: nn.Module, enable_activation_offloading: bool
+) -> Union[OffloadActivations, contextlib.nullcontext]:
+    """Returns the activation offloading context manager for the model, which will be
+    a null context if enable_activation_offloading is False.
+
+    If activation offloading is enabled, we return the OffloadActivations context manager.
+    If activation offloading is disabled, we return a NoOpManager context manager.
+
+    Args:
+        model (nn.Module): the model to wrap with the activation offloading context manager.
+        enable_activation_offloading (bool): whether or not to enable activation offloading
+            for the model.
+
+    Returns:
+        contextlib.ContextDecorator: the activation offloading context manager for the model.
+
+    Raises:
+        NotImplementedError: If the model is a multimodal model and activation offloading is enabled.
+    """
+    if enable_activation_offloading:
+        activations_handling_ctx = OffloadActivations()
+
+        # Below is our hack to disable offloading the last output Linear in every
+        # step, as the cost for offloading the activation and then soon after bringing
+        # it back is expensive. Moreover, due to heuristics in our streaming API,
+        # we actually use more memory if we offload it as it interferes with chunkedCE.
+        output_head_detected = False
+        noop_ctx = NoOpManager()
+        if hasattr(model, "output"):
+            if isinstance(model.output, nn.Module):
+                model.output.register_forward_pre_hook(
+                    lambda *args: noop_ctx.__enter__()
+                )
+                model.output.register_forward_hook(
+                    lambda *args: noop_ctx.__exit__(), always_call=True
+                )
+                output_head_detected = True
+            elif isinstance(model.output, TiedLinear):
+                model.output.linear.register_forward_pre_hook(
+                    lambda *args: noop_ctx.__enter__()
+                )
+                model.output.linear.register_forward_hook(
+                    lambda *args: noop_ctx.__exit__(), always_call=True
+                )
+                output_head_detected = True
+
+        elif hasattr(model, "decoder"):
+            # TODO: it errors out. Needs debugging.
+            # assert_size_stride(rsqrt_2, (4, 32, 1601, 1), (52224, 1632, 1, 1))
+            # AssertionError: expected size 4==4, stride 51232==52224 at dim=0;
+            # # expected size 32==32, stride 1601==1632 at dim=1
+            raise NotImplementedError(
+                "Multimodal model does not support activation offloading yet. Please set enable_activation_offloading=False"
+            )
+            # if isinstance(model.decoder, nn.Module):
+            #     model.decoder.output.register_forward_pre_hook(
+            #         lambda *args: noop_ctx.__enter__()
+            #     )
+            #     model.decoder.output.register_forward_hook(
+            #         lambda *args: noop_ctx.__exit__(), always_call=True
+            #     )
+            #     output_head_detected = True
+
+        if not output_head_detected:
+            log.warning(
+                "During activation offloading, no output head was detected. "
+                "If your model has an output head, it will be offloaded. "
+                "This usually greatly slows training, given the large vocabulary size. "
+                "To change this behavior, set your output head as model.output and make it "
+                "an nn.Module."
+            )
+
+    else:
+        activations_handling_ctx = contextlib.nullcontext()
+
+    return activations_handling_ctx

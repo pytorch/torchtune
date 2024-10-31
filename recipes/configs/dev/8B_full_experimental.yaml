@@ -65,6 +65,7 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: False
+enable_activation_offloading: False  # True reduces memory
 ac_mode: 'selective'  # ['selective', 'full']
 ac_option: 2 # [int] = ac every positive int layer
 memory_efficient_fsdp_wrap: False

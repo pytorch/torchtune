@@ -45,12 +45,24 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ``fsdp_reshard_after_forward`` to False (this corresponds to SHARD_GRAD_OP sharding strategy).
             DDP is currently not supported. Training on CPU is not supported.
 
-        - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
+        - Activation Checkpointing. This can be controlled using the ``enable_activation_checkpointing``
             flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
             activations in memory and instead recompute them during the backward pass. This is especially
             helpful for larger batch sizes when you're memory constrained. But these savings in memory
             come at the cost of training performance. In most cases training can slow-down quite a bit as
             a result of this activation recomputation.
+
+        - Activation Offloading. This can be controlled using the ``enable_activation_offloading``
+            flag. Activation offloading is a technique similar to activations checkpointing that helps
+            reduce the memory footprint to prevent OOMs on CUDA and enable bigger batches. Where activations
+            checkpointing drops the activation in the forward to recompute it later in the backward,
+            activations offloading will drop the activation in the forward to the CPU and bring it
+            back during the backward pass. As always, there is a tradeoff--these savings in memory can
+            come at the cost of training performance and CPU resources. To recover some runtime cost,
+            we've added an option to enable offloading on a different stream to permit overlapping with
+            the computation. This option is currently only available on PyTorch 2.5 or later and will
+            be enabled by default if an acceptable torch version is found. Activation offloading can be
+            used in conjunction with activation checkpointing.
 
         - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
             flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
@@ -97,6 +109,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         ValueError: If ``dtype`` is set to fp16.
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
         RuntimeError: If ``left_pad_sequence`` is set as the data collator.
+        RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
+        RuntimeError: If ``enable_activation_offloading`` is True and ``enable_activation_checkpointing`` is False.
     """
 
     def __init__(self, cfg: DictConfig) -> None:
@@ -137,6 +151,50 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
+
+        # activation checkpointing/offloading
+        self._enable_activation_checkpointing = cfg.get(
+            "enable_activation_checkpointing", False
+        )
+        self._enable_activation_offloading = cfg.get(
+            "enable_activation_offloading", False
+        )
+        if self._enable_activation_offloading:
+            if self._device.type != "cuda":
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when training on CUDA"
+                )
+            if not self._enable_activation_checkpointing:
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
+                )
+        elif self._enable_activation_checkpointing:
+            log.info(
+                "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
+                "Enabling activation offloading should reduce memory further."
+            )
+
+        # activation checkpointing/offloading
+        self._enable_activation_checkpointing = cfg.get(
+            "enable_activation_checkpointing", False
+        )
+        self._enable_activation_offloading = cfg.get(
+            "enable_activation_offloading", False
+        )
+        if self._enable_activation_offloading:
+            if self._device.type != "cuda":
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when training on CUDA"
+                )
+            if not self._enable_activation_checkpointing:
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
+                )
+        elif self._enable_activation_checkpointing:
+            log.info(
+                "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
+                "Enabling activation offloading should reduce memory further."
+            )
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -218,7 +276,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._compile = cfg.get("compile", False)
         self._model = self._setup_model(
             cfg_model=cfg.model,
-            enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            enable_activation_checkpointing=self._enable_activation_checkpointing,
+            enable_activation_offloading=self._enable_activation_offloading,
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
@@ -358,6 +417,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
+        enable_activation_offloading: bool,
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
         model_state_dict: Dict[str, Any],
@@ -433,6 +493,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._is_rank_zero,
             strict=True,
             cpu_offload=fsdp_cpu_offload,
+        )
+
+        # activation offloading
+        self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
+            model, enable_activation_offloading
         )
 
         # Ensure no params and buffers are on meta device
@@ -576,6 +641,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         checkpoint_dict = {}
 
         intermediate_checkpoint = epoch + 1 < self.total_epochs
+
+        if self._is_rank_zero:
+            log.info(
+                "Saving checkpoint. This may take some time. Retrieving full model state dict..."
+            )
+            start = time.perf_counter()
+
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
         cpu_state_dict = training.get_full_model_state_dict(
@@ -584,7 +656,15 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             device=self._device,
         )
 
+        if self._is_rank_zero:
+            log.info(
+                f"Getting full model state dict took {time.perf_counter() - start:.2f} secs"
+            )
+
         if intermediate_checkpoint:
+            start = time.perf_counter()
+            if self._is_rank_zero:
+                log.info("Getting optimizer state dict...")
             if not self._optimizer_in_bwd:
                 opt_state_dict = training.get_full_optimizer_state_dict(
                     self._optimizer,
@@ -597,12 +677,18 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     opt_state_dict[param] = training.get_full_optimizer_state_dict(
                         opt, self._is_rank_zero, device=self._device
                     )
+            if self._is_rank_zero:
+                log.info(
+                    f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs"
+                )
         else:
             opt_state_dict = None
 
         # Now that we have the model and opt state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file
+
         if self._is_rank_zero:
+            start = time.perf_counter()
             checkpoint_dict.update({training.MODEL_KEY: cpu_state_dict})
 
             # if training is in-progress, checkpoint the optimizer state and recipe state
@@ -623,6 +709,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 epoch=epoch,
                 intermediate_checkpoint=intermediate_checkpoint,
             )
+            log.info(f"Saving checkpoint took {time.perf_counter() - start:.2f} secs")
+
+        torch.distributed.barrier()
 
     def train(self) -> None:
         """
@@ -682,7 +771,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 # Shape [b, s], needed for the loss not the model
                 labels = batch.pop("labels")
 
-                logits = self._model(**batch)
+                with self.activations_handling_ctx:
+                    logits = self._model(**batch)
 
                 # Shift labels to compute loss
                 # equivalent to doing labels[..., 1:] and logits[..., :-1, :]

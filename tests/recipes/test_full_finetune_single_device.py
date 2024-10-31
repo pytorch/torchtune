@@ -36,6 +36,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             "device=cpu",
             "dtype=fp32",
             "enable_activation_checkpointing=False",
+            "enable_activation_offloading=False",
             "dataset.train_on_input=False",
             "seed=9",
             "epochs=2",

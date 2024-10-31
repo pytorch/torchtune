@@ -93,11 +93,11 @@ class Llama3VisionTransform(ModelTokenizer, Transform):
             tile_size=tile_size,
             patch_size=patch_size,
             image_token_id=self.tokenizer.image_id,
-            max_num_tiles=max_num_tiles,
         )
 
         self.stop_tokens = self.tokenizer.stop_tokens
         self.max_seq_len = max_seq_len
+        self.max_num_tiles = max_num_tiles
         self.image_seq_len = max_num_tiles * (self.xattn_mask.patches_per_tile + 1)
         self.prompt_template = prompt_template
         self.pad_id = self.tokenizer.pad_id

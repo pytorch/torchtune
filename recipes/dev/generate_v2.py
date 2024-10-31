@@ -152,7 +152,10 @@ class InferenceRecipe:
         batch = {}
         if is_multimodal_input:
             batch = padded_collate_tiled_images_and_mask(
-                [model_inputs], pad_direction="left", pad_max_images=1
+                [model_inputs],
+                pad_direction="left",
+                pad_max_images=1,
+                pad_max_tiles=self.model_transform.max_num_tiles,
             )
             batch["encoder_mask"] = batch["encoder_mask"][:, :seq_len]
             prompt = batch.pop("tokens").to(self._device)
