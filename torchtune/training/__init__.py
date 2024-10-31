@@ -3,7 +3,11 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from torchtune.training._activation_offloading import NoOpManager, OffloadActivations
+from torchtune.training._activation_offloading import (
+    get_act_offloading_ctx_manager,
+    NoOpManager,
+    OffloadActivations,
+)
 from torchtune.training._compile import compile_loss, compile_model
 from torchtune.training._distributed import (
     contains_fsdp,
@@ -23,6 +27,7 @@ from torchtune.training._distributed import (
     shard_model,
     validate_no_params_on_meta_device,
 )
+from torchtune.training._grad_scaler import scale_grads
 from torchtune.training._profiler import (
     DEFAULT_PROFILE_DIR,
     DEFAULT_PROFILER_ACTIVITIES,
@@ -72,6 +77,7 @@ from torchtune.training.quantization import get_quantizer_mode
 from torchtune.training.seed import set_seed
 
 __all__ = [
+    "get_act_offloading_ctx_manager",
     "apply_selective_activation_checkpointing",
     "get_dtype",
     "set_default_dtype",
@@ -132,4 +138,5 @@ __all__ = [
     "NoOpManager",
     "OffloadActivations",
     "FormattedCheckpointFiles",
+    "scale_grads",
 ]

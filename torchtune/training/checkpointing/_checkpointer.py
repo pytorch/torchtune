@@ -631,6 +631,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 logger.warning(
                     "Saving Phi-3 Mini adapter weights to PEFT format is not supported, saving to torchtune format instead"
                 )
+            elif self._model_type == ModelType.QWEN2:
+                logger.warning(
+                    "Saving QWEN2 adapter weights to PEFT format is not supported, saving to torchtune format instead"
+                )
             else:
                 if self._model_type == ModelType.LLAMA3_VISION:
                     state_dict[training.ADAPTER_KEY] = llama3_vision_tune_to_hf(

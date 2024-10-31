@@ -18,15 +18,14 @@ from torchtune.modules.peft import AdapterModule
 
 
 class DoRALinear(nn.Module, AdapterModule):
-    """LoRA linear layer as introduced in `LoRA: Low-Rank Adaptation of Large Language Models <https://arxiv.org/abs/2106.09685>`_.
+    """DoRA linear layer as introduced in
+    `DoRA: Weight-Decomposed Low-Rank Adaptation of Large Language Models <https://arxiv.org/abs/2402.09353>`_.
 
-    LoRA perturbs a given layer via a low-rank approximation where only
-    the rank decomposition matrices are trainable. In a linear layer instead of
-    :math:`x \\mapsto W_0x` a LoRALinear layer is defined as
-    :math:`x \\mapsto W_0x + (\\alpha / r)BAx`, where :math:`r` is the rank of
-    the matrices :math:`A` and :math:`B` and :math:`\\alpha` is a scaling factor.
-    As in the original implementation, we support dropout before multiplication
-    by the low-rank matrices.
+    DoRA (Weight-Decomposed Low-Rank Adaptation) fine-tunes a layer by decomposing the pre-trained weights
+    into two components: magnitude and direction. The magnitude component is a learnable scalar vector
+    that scales each output channel, while the direction component, modified via LoRA, adjusts the orientation
+    of weights. By scaling the LoRA update component :math:`BAx` with the `magnitude` vector, DoRA allows the model
+    to apply distinct scaling adjustments across different output dimensions.
 
     Args:
         in_dim (int): input dimension
@@ -80,6 +79,7 @@ class DoRALinear(nn.Module, AdapterModule):
         _lora_a_init_params(self.lora_a)
         _lora_b_init_params(self.lora_b)
 
+    @torch.no_grad()
     def initialize_dora_magnitude(self):
         """
         DoRA initializes the magnitude vector such that its outputs are initially
@@ -88,7 +88,7 @@ class DoRALinear(nn.Module, AdapterModule):
         base_weight = self.weight.to(self.lora_a.weight.dtype)
         lora_weight = self.lora_b.weight @ self.lora_a.weight
         weight_norm = self._get_weight_norm(base_weight, lora_weight)
-        self.magnitude = nn.Parameter(weight_norm, requires_grad=True)
+        self.magnitude.copy_(weight_norm)
 
     def _create_weight_and_bias(self):
         """
