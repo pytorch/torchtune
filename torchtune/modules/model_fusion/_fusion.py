@@ -600,7 +600,7 @@ class EarlyFusionModel(nn.Module):
             and encoders.keys() != encoders_trainable.keys()
         ):
             raise ValueError(
-                f"Found mismatched keys in encoders and encoders_trainable. Got {encoders.keys()} and {encoders_trainable.keys()}."
+                f"Found mismatched keys in encoders, encoder_tokens, and/or encoders_trainable. Expected {encoders.keys()}"
             )
 
         self.decoder = decoder
@@ -620,10 +620,8 @@ class EarlyFusionModel(nn.Module):
         self.tok_embeddings = decoder.tok_embeddings
         decoder.tok_embeddings = nn.Identity()
 
-        self.register_state_dict_post_hook(self._state_dict_hook)
-        self.register_load_state_dict_pre_hook(
-            self._load_state_dict_hook, with_module=True
-        )
+        self._register_state_dict_hook(self._state_dict_hook)
+        self.register_load_state_dict_pre_hook(self._load_state_dict_hook)
 
         trainable_params = set()
         for encoder, trainable in self.encoders_trainable.items():
@@ -636,6 +634,9 @@ class EarlyFusionModel(nn.Module):
             trainable_params |= {
                 f"decoder.{n}" for n, p in self.decoder.named_parameters()
             }
+            trainable_params |= {
+                f"tok_embeddings.{n}" for n, p in self.tok_embeddings.named_parameters()
+            }
         if fusion_trainable:
             trainable_params |= set(get_fusion_params(self))
         else:
@@ -643,7 +644,7 @@ class EarlyFusionModel(nn.Module):
 
         set_trainable_params(self, trainable_params)
 
-    def _state_dict_hook(self, destination, prefix, keep_vars):
+    def _state_dict_hook(self, destination, *args, **kwargs):
         """
         Keep tok_embeddings inside of decoder state_dict
 

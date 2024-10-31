@@ -172,7 +172,7 @@ class TestDeepFusionModel:
             fusion_trainable=False,
         )
         trainable_params = {n for n, p in model.named_parameters() if p.requires_grad}
-        assert trainable_params == {"encoder.weight"}
+        assert trainable_params == {"encoders.encoder.weight"}
 
         # Test decoder only, and confirm fusion layers are removed independently
         model = DeepFusionModel(
@@ -189,7 +189,7 @@ class TestDeepFusionModel:
             "decoder.k.bias",
             "decoder.v.weight",
             "decoder.v.bias",
-            "decoder.embed.weight",
+            "decoder.tok_embeddings.weight",
         }
 
     def test_incorrect_number_of_encoders(self, decoder):
