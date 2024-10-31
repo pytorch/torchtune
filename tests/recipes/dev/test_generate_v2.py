@@ -77,13 +77,12 @@ class TestGenerateV2:
         tokenizer_path = Path(TOKENIZER_PATHS["llama2"])
         ckpt_dir = ckpt_path.parent
 
-        torch._dynamo.reset()
-
         # Config file needed for model conversion.
         write_hf_ckpt_config(ckpt_dir)
 
         cmd = f"""
-        tune run dev/generate_v2 \
+        TORCHINDUCTOR_FORCE_DISABLE_CACHES=1 \
+            tune run dev/generate_v2 \
             --config llama2/generation_v2 \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
