@@ -339,7 +339,7 @@ To download the Gemma2 2B, 9B, 27B models :
     :nosignatures:
 
     gemma2.gemma2
-    gemma2.lora_gemma
+    gemma2.lora_gemma2
     gemma2.gemma2_2b
     gemma2.lora_gemma2_2b
     gemma2.qlora_gemma2_2b
