@@ -151,12 +151,20 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
+        self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
-        if self._gradient_accumulation_steps > 1 and self._optimizer_in_bwd:
-            raise RuntimeError(
-                "Gradient accumulation is not supported with optimizer in bwd."
-                "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
-            )
+        # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
+        if self._optimizer_in_bwd:
+            if self._clip_grad_norm is not None:
+                raise RuntimeError(
+                    "Gradient clipping is not supported with optimizer in bwd."
+                    "Please set clip_grad_norm=None, or optimizer_in_bwd=False."
+                )
+            if self._gradient_accumulation_steps > 1:
+                raise RuntimeError(
+                    "Gradient accumulation is not supported with optimizer in bwd."
+                    "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
+                )
 
         # activation checkpointing/offloading
         self._enable_activation_checkpointing = cfg.get(
@@ -187,7 +195,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
-        self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -796,16 +803,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         torch.distributed.all_reduce(running_loss)
                         # Manually scale the gradients from unnormalized loss by total # of tokens
                         training.scale_grads(self._model, 1 / num_tokens)
-                    if self._clip_grad_norm is not None:
-                        if self._optimizer_in_bwd:
-                            raise NotImplementedError(
-                                "Gradient clipping is not supported after optimizer-in-the-backward."
+                        if self._clip_grad_norm is not None:
+                            grad_norm = torch.nn.utils.clip_grad_norm_(
+                                self._model.parameters(),
+                                max_norm=float(self._clip_grad_norm),
                             )
-                        grad_norm = torch.nn.utils.clip_grad_norm_(
-                            self._model.parameters(),
-                            max_norm=float(self._clip_grad_norm),
-                        )
-                    if not self._optimizer_in_bwd:
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
 
