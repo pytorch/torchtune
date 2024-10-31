@@ -5,13 +5,13 @@
 # LICENSE file in the root directory of this source tree.
 from typing import List, Optional
 
-from torchtune.models.qwen2._component_builders import qwen2, lora_qwen2
-from torchtune.models.qwen2._tokenizer import Qwen2Tokenizer
+from torchtune.data._prompt_templates import _get_prompt_template, _TemplateType
+
+from torchtune.models.qwen2._component_builders import lora_qwen2, qwen2
+from torchtune.models.qwen2._tokenizer import QWEN2_SPECIAL_TOKENS, Qwen2Tokenizer
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from torchtune.modules.tokenizers import parse_hf_tokenizer_json
-from torchtune.data._prompt_templates import _TemplateType
-from torchtune.data._prompt_templates import _get_prompt_template
 
 """
 Model builders build specific instantiations using component builders. For example
@@ -101,7 +101,7 @@ def qwen2_tokenizer(
     merges_file: str = None,
     special_tokens_path: Optional[str] = None,
     max_seq_len: Optional[int] = None,
-    prompt_template: Optional[_TemplateType] = "torchtune.data.ChatMLTemplate",
+    prompt_template: Optional[_TemplateType] = None,
     **kwargs,
 ) -> Qwen2Tokenizer:
     """
@@ -118,14 +118,27 @@ def qwen2_tokenizer(
         prompt_template (Optional[_TemplateType]): optional specified prompt template.
             If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
             class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
-            prepend/append tags. Default is :class:`~torchtune.models.llama2.Llama2ChatTemplate`.
+            prepend/append tags. Default is None.
 
     Returns:
         Qwen2Tokenizer: Instantiation of the Qwen2 tokenizer
     """
-    special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    template = _get_prompt_template(prompt_template) if prompt_template is not None else None
-    return Qwen2Tokenizer(path=path, merges_file=merges_file, special_tokens=special_tokens, max_seq_len=max_seq_len, prompt_template=template, **kwargs)
+    special_tokens = (
+        parse_hf_tokenizer_json(special_tokens_path)
+        if special_tokens_path is not None
+        else QWEN2_SPECIAL_TOKENS
+    )
+    template = (
+        _get_prompt_template(prompt_template) if prompt_template is not None else None
+    )
+    return Qwen2Tokenizer(
+        path=path,
+        merges_file=merges_file,
+        special_tokens=special_tokens,
+        max_seq_len=max_seq_len,
+        prompt_template=template,
+        **kwargs,
+    )
 
 
 def lora_qwen2_7b(
