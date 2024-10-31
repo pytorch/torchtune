@@ -101,6 +101,7 @@ class TestGenerateV2:
         cmd = cmd + model_config
 
         import os
+
         os.environ["TORCH_COMPILE_BACKEND"] = "eager"
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit, match=""):
@@ -114,6 +115,7 @@ class TestGenerateV2:
         )
 
         torch._dynamo.reset()
+        del os.environ["TORCH_COMPILE_BACKEND"]
 
         logs = caplog.text
         assert expected_output in logs
