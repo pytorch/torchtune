@@ -1,5 +1,6 @@
 import os, sys
 import time
+import warnings
 from functools import lru_cache, wraps
 from typing import Optional
 
@@ -8,6 +9,8 @@ import PIL
 import torch
 from executorch import exir
 from executorch.exir.passes.sym_shape_eval_pass import ConstraintBasedSymShapeEvalPass
+
+from torch._inductor.package import package_aoti
 from torchtune.data import Message, padded_collate_tiled_images_and_mask
 from torchtune.data._prompt_templates import _TemplateType
 from torchtune.generation._generation import sample
@@ -201,7 +204,7 @@ def get_vision_encoder_dynamic_shapes():
 
 @lru_cache(maxsize=1)
 def get_text_decoder_dynamic_shapes():
-    dim = torch.export.Dim("token_dim", min=2, max=max_seq_len)
+    dim = torch.export.Dim("token_dim", min=1, max=max_seq_len)
     dim_enc = torch.export.Dim("enc_dim", min=1, max=encoder_max_seq_len)
 
     return {
@@ -350,7 +353,7 @@ def export_vision_encoder(llama3_2_dir):
 
 def aoti_export_vision_encoder(llama3_2_dir):
     preprocess_outputs = get_sample_preprocess_outputs(llama3_2_dir)
-    image = preprocess_outputs["encoder_input"]["image"].to(dtype=torch.float32)
+    image = preprocess_outputs["encoder_input"]["images"].to(dtype=torch.float32)
     aspect_ratio = preprocess_outputs["encoder_input"]["aspect_ratio"]
     image_dynamic_dim = get_vision_encoder_dynamic_shapes()
 
@@ -361,13 +364,10 @@ def aoti_export_vision_encoder(llama3_2_dir):
         so = torch._export.aot_compile(
             model.encoder,
             args=(image, aspect_ratio),
-            options={
-                "aot_inductor.output_path": os.path.join(
-                    llama3_2_dir, "vision_encoder.so"
-                )
-            },
+            options={"aot_inductor.package": True},
             dynamic_shapes=(image_dynamic_dim, None),
         )
+        package_aoti(os.path.join(llama3_2_dir, "vision_encoder.pt2"), so)
     print("Done AOTI exporting vision encoder")
 
 
@@ -396,13 +396,10 @@ def aoti_export_text_decoder(llama3_2_dir):
                 model.decoder,
                 (tokens,),
                 data,
-                options={
-                    "aot_inductor.output_path": os.path.join(
-                        llama3_2_dir, "text_decoder.so"
-                    )
-                },
+                options={"aot_inductor.package": True},
                 dynamic_shapes=dynamic_shapes,
             )
+            package_aoti(os.path.join(llama3_2_dir, "text_decoder.pt2"), so)
 
 
 def export_text_decoder(llama3_2_dir):
@@ -447,22 +444,71 @@ def export_text_decoder(llama3_2_dir):
     return ep
 
 
+def get_random_input_to_decoder():
+    encoder_input = torch.randn(1, 6404, 4096)
+    seq_len = 17
+    causal_mask = torch.tril(
+        torch.ones(
+            size=(max_seq_len, max_seq_len),
+            dtype=torch.bool,
+        )
+    )
+    mask = causal_mask[None, :seq_len, :]
+    encoder_mask = torch.ones(1, seq_len, 6404, dtype=torch.bool)
+    input_pos = torch.arange(seq_len).unsqueeze(0)
+    tokens = torch.tensor(
+        [
+            [
+                128000,
+                128006,
+                882,
+                128007,
+                271,
+                128256,
+                3923,
+                596,
+                304,
+                420,
+                2217,
+                30,
+                128009,
+                128006,
+                78191,
+                128007,
+                271,
+            ]
+        ]
+    )
+
+    return tokens, {
+        "encoder_input": encoder_input,
+        "mask": mask,
+        "encoder_mask": encoder_mask,
+        "input_pos": input_pos,
+    }
+
+
 def validate_text_decoder(llama3_2_dir):
     # aoti_export_text_decoder(llama3_2_dir)
     # compare result
-    aoti = torch._export.aot_load(
-        os.path.join(llama3_2_dir, "text_decoder.so"), device="cpu"
+    aoti = torch._inductor.aoti_load_package(
+        os.path.join(llama3_2_dir, "text_decoder.pt2")
     )
-    model = get_flamingo(llama3_2_dir)
-    eager = model.decoder
+    print("AOTI loaded")
+
     # export = export_text_decoder(llama3_2_dir)
 
     # inputs
-    tokens, data = get_text_decoder_inputs(llama3_2_dir, model)
-
+    # tokens, data = get_text_decoder_inputs(llama3_2_dir, model)
+    tokens, data = get_random_input_to_decoder()
+    print("Start running aoti")
     # run eager
-    eager_res = eager(tokens, **data)
+    # breakpoint()
     aoti_res = aoti(tokens, **data)
+
+    model = get_flamingo(llama3_2_dir)
+    eager = model.decoder
+    eager_res = eager(tokens, **data)
     # export_res = export.module()(tokens, **data)
 
     # debug
@@ -491,7 +537,7 @@ def validate_text_decoder(llama3_2_dir):
 
 def validate_vision_encoder(llama3_2_dir):
     preprocess_outputs = get_sample_preprocess_outputs(llama3_2_dir)
-    image = preprocess_outputs["encoder_input"]["image"].to(dtype=torch.float32)
+    image = preprocess_outputs["encoder_input"]["images"].to(dtype=torch.float32)
     aspect_ratio = preprocess_outputs["encoder_input"]["aspect_ratio"]
     # eager model
     vision_encoder = get_vision_encoder().eval()
@@ -518,13 +564,13 @@ def validate_vision_encoder(llama3_2_dir):
 
 
 def test_aoti(llama3_2_dir):
-    aoti = torch._export.aot_load(
-        os.path.join(llama3_2_dir, "text_decoder.so"), device="cpu"
+    aoti = torch._inductor.aoti_load_package(
+        os.path.join(llama3_2_dir, "text_decoder.pt2")
     )
     model = get_flamingo(llama3_2_dir)
     eager = model.decoder
     # export = export_text_decoder(llama3_2_dir)
-
+    transform = flamingo_transform(os.path.join(llama3_2_dir, "tokenizer.model"))
     # inputs
     tokens, data = get_text_decoder_inputs(llama3_2_dir, model)
     seq_len = tokens.shape[1]
@@ -539,45 +585,64 @@ def test_aoti(llama3_2_dir):
 
     # second run with no image
     print("Second run with no image")
-    tok = sample(aoti_res[:, -1])
-    # adjust input
-    data["encoder_mask"] = data["encoder_mask"][:, -1:]
-    data.pop("encoder_input")
-    seq_len += 1
-    data["input_pos"] = input_pos[None, seq_len]
+    tok = sample(aoti_res[:, -1]).to(torch.int64)
+    generated_tokens = [tok]
+
+    input_pos = torch.arange(max_seq_len)
     causal_mask = torch.tril(
         torch.ones(
             size=(max_seq_len, max_seq_len),
             dtype=torch.bool,
         )
     )
-    data["mask"] = causal_mask[None, seq_len, None, :]
-    # run
-    logits = aoti(
-        tok,
-        encoder_mask=data["encoder_mask"],
-        mask=data["mask"],
-        input_pos=data["input_pos"],
-    )
+    encoder_input = data.pop("encoder_input")
+    for _ in range(10):
+        # adjust input
+        data["encoder_mask"] = data["encoder_mask"][:, -1:]
+        data["input_pos"] = input_pos[None, seq_len]
+        data["mask"] = causal_mask[None, seq_len, None, :]
+        # run
+        aoti_logits = aoti(
+            tok,
+            encoder_input=torch.full_like(encoder_input, torch.nan),
+            encoder_mask=data["encoder_mask"],
+            mask=data["mask"],
+            input_pos=data["input_pos"],
+        )
+        eager_logits = eager(
+            tok,
+            encoder_input=torch.full_like(encoder_input, torch.nan),
+            encoder_mask=data["encoder_mask"],
+            mask=data["mask"],
+            input_pos=data["input_pos"],
+        )
+        print(
+            f"AOTI close to eager? {torch.allclose(eager_logits, aoti_logits, atol=1e-3, rtol=1e-3)}"
+        )
+        seq_len += 1
+        tok = sample(aoti_logits[:, -1]).to(torch.int64)
+        generated_tokens.append(tok)
+    print(transform.decode(generated_tokens))
 
 
 if __name__ == "__main__":
     llama3_2_dir = str(sys.argv[1])
+    aoti_export_vision_encoder(llama3_2_dir)
     # validate_vision_encoder(llama3_2_dir)
     # aoti_export_text_decoder(llama3_2_dir)
     # test_aoti(llama3_2_dir)
     # validate_text_decoder(llama3_2_dir)
-    model = get_flamingo(llama3_2_dir)
+    # model = get_flamingo(llama3_2_dir)
 
-    with torch.no_grad():
+    # with torch.no_grad():
 
-        data = get_sample_preprocess_outputs(llama3_2_dir).copy()
-        image = data["encoder_input"]["images"].to(dtype=torch.float32)
-        embeds = model.encoder(image, data["encoder_input"]["aspect_ratio"])
-        data["encoder_input"] = embeds
-        tokens = data.pop("tokens")
-        print("Start eager run")
-        # model.decoder(tokens, **data)
-        torch._dynamo.config.capture_dynamic_output_shape_ops = True
-        torch._dynamo.config.capture_scalar_outputs = True
-        torch.compile(model.decoder, fullgraph=True)(tokens, **data)
+    #     data = get_sample_preprocess_outputs(llama3_2_dir).copy()
+    #     image = data["encoder_input"]["images"].to(dtype=torch.float32)
+    #     embeds = model.encoder(image, data["encoder_input"]["aspect_ratio"])
+    #     data["encoder_input"] = embeds
+    #     tokens = data.pop("tokens")
+    #     print("Start eager run")
+    #     # model.decoder(tokens, **data)
+    #     torch._dynamo.config.capture_dynamic_output_shape_ops = True
+    #     torch._dynamo.config.capture_scalar_outputs = True
+    #     torch.compile(model.decoder, fullgraph=True)(tokens, **data)

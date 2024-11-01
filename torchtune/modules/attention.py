@@ -223,7 +223,6 @@ class MultiHeadAttention(nn.Module):
         # x has shape [b, s_x, d]
         # y has shape [b, s_y, d]
         b, s_x, _ = x.shape
-        s_y = y.shape[1] if y is not None else 0
 
         # q has shape [b, s_x, num_heads * head_dim]
         q = self.q_proj(x)
@@ -249,6 +248,7 @@ class MultiHeadAttention(nn.Module):
             # k has shape [b, s_y, num_kv_heads * head_dim]
             # v has shape [b, s_y, num_kv_heads * head_dim]
             y = original_y.clone()
+            s_y = y.shape[1]
 
             k = self.k_proj(y)
             v = self.v_proj(y)
@@ -300,12 +300,16 @@ class MultiHeadAttention(nn.Module):
         # If kv cache is None, we expect y to be provided
         if self.kv_cache is None:
             assert (
-                y is not None and not torch.isnan(y).all()
+                y is not None
             ), "Must provide y input or use kv_cache to enable streaming decoding"
             k, v = calculate_kv(y)
         else:
             # Expecting the k, v returning here to be the same size of self.kv_cache
-            k, v, cache_pos = torch.cond(torch.isnan(y).all(), true_fn, false_fn, (y,))
+            # In eager, we expect this predicate to specialize. In export, this will
+            # become a SymBool so it's not specialized.
+            k, v, cache_pos = torch.cond(
+                torch.isnan(y).all().item(), true_fn, false_fn, (y,)
+            )
 
             # Update kv cache
             self.kv_cache.k_cache.copy_(k)
