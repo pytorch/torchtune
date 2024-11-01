@@ -67,7 +67,7 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True  # True reduces memory
-memory_efficient_fsdp_wrap: False
+enable_activation_offloading: False  # True reduces memory
 
 # Reduced precision
 dtype: bf16
