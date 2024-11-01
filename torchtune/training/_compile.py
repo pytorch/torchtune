@@ -41,6 +41,7 @@ def compile_model(
     """
     backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
     if isinstance(model, DeepFusionModel):
+        # TODO: compile encoder too. Make sure to compile decoder.norm, etc..
         model = model.decoder
     if torch_version_ge("2.5.0"):
         if verbose:
