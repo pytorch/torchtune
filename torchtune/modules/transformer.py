@@ -481,7 +481,6 @@ class TransformerDecoder(nn.Module):
         for layer in self.layers:
             layer.reset_cache()
 
-    @torch.compiler.disable
     def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:
         """
         Apply output projection in chunks. This should be applied in conjunction with
