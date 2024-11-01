@@ -205,6 +205,8 @@ class TilePositionalEmbedding(nn.Module):
             # i.e. n_tiles_h, n_tiles_w.
             torch._check_is_size(n_tiles_h)
             torch._check_is_size(n_tiles_w)
+            torch._check(n_tiles_h >= 1)
+            torch._check(n_tiles_w >= 1)
             torch._check(n_tiles_h <= self.max_num_tiles)
             torch._check(n_tiles_w <= self.max_num_tiles)
             padded_embedding = F.pad(self.embedding, (0, 0, 0, 0, 0, 1, 0, 1))
