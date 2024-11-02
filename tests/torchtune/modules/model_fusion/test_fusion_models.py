@@ -4,6 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import pdb
+
 import pytest
 
 import torch
@@ -42,14 +44,22 @@ class DummyModel(nn.Module):
     def reset_caches(self):
         self.cache_enabled = False
 
-    def forward(self, tokens, mask, encoder_input, encoder_mask, input_pos):
+    def forward(
+        self,
+        tokens,
+        *,
+        mask=None,
+        encoder_input=None,
+        encoder_mask=None,
+        input_pos=None
+    ):
         x = self.tok_embeddings(tokens)
         if encoder_input is not None:
             q = self.q(x)
-            k = self.k(encoder_input)
-            v = self.v(encoder_input)
+            k = self.k(encoder_input) if encoder_input is not None else self.k(x)
+            v = self.v(encoder_input) if encoder_input is not None else self.v(x)
             x += nn.functional.scaled_dot_product_attention(
-                q, k, v, attn_mask=encoder_mask
+                q, k, v, attn_mask=encoder_mask if encoder_mask is not None else mask
             )
         x = self.output(x)
         return x
@@ -245,6 +255,7 @@ class TestEarlyFusionModel:
             encoder_tokens={"red": 0, "green": 1, "blue": 2},
             decoder_trainable=True,
             encoders_trainable={"red": False, "green": True, "blue": False},
+            fusion_trainable=False,
         )
         return model
 
@@ -273,17 +284,19 @@ class TestEarlyFusionModel:
         """
         Test that the forward pass of the EarlyFusionModel works as expected.
         """
-        tokens, encoder_input, encoder_mask, _ = inputs
+        tokens, encoder_input, *_ = inputs
         batch_size, seq_len = tokens.shape
+        pdb.set_trace()
         out = fused_model(
-            tokens, encoder_input=encoder_input, encoder_mask=encoder_mask
+            tokens,
+            encoder_input=encoder_input,
         )
 
         assert out.shape == (batch_size, seq_len, vocab_size)
         assert_expected(out.mean(), torch.tensor(8.5584), atol=1e-3, rtol=1e-3)
 
     @torch.no_grad()
-    def test_forward_no_encoding(self, fused_model, inputs, vocab_size):
+    def test_forward_no_encoder(self, fused_model, inputs, vocab_size):
         """
         Test that the forward pass of the EarlyFusionModel with no encoder input.
         """
@@ -295,7 +308,7 @@ class TestEarlyFusionModel:
         assert_expected(out.mean(), torch.tensor(0.2271), atol=1e-3, rtol=1e-3)
 
     @torch.no_grad()
-    def test_decoding_forward(self, fused_model, inputs, vocab_size):
+    def test_decoder_forward(self, fused_model, inputs, vocab_size):
         """
         Test that the forward pass of the EarlyFusionModel works during decoding.
         """
@@ -336,7 +349,7 @@ class TestEarlyFusionModel:
             "decoder.k.bias",
             "decoder.v.weight",
             "decoder.v.bias",
-            "decoder.embed.weight",
+            "tok_embeddings.weight",
             "encoders.green.weight",
         }
 

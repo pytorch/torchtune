@@ -644,7 +644,8 @@ class EarlyFusionModel(nn.Module):
 
         set_trainable_params(self, trainable_params)
 
-    def _state_dict_hook(self, destination, *args, **kwargs):
+    @staticmethod
+    def _state_dict_hook(module, state_dict, *args, **kwargs):
         """
         Keep tok_embeddings inside of decoder state_dict
 
@@ -652,10 +653,11 @@ class EarlyFusionModel(nn.Module):
         """
         key = "tok_embeddings"
         decoder_key = "decoder.tok_embeddings"
-        destination[decoder_key] = destination[key]
-        del destination[key]
+        state_dict[decoder_key] = state_dict[key]
+        del state_dict[key]
 
-    def _load_state_dict_hook(self, state_dict, *args, **kwargs):
+    @staticmethod
+    def _load_state_dict_hook(module, state_dict, *args, **kwargs):
         """Undo the change from _state_dict_hook"""
         key = "tok_embeddings"
         decoder_key = "decoder.tok_embeddings"
@@ -676,8 +678,20 @@ class EarlyFusionModel(nn.Module):
         """
         self.decoder.setup_caches(batch_size, dtype)
 
+    def caches_are_setup(self) -> bool:
+        """
+        Check if the key value caches are setup. This means ``setup_caches`` has been called, and
+        the relevant attention modules in the model have created their ``KVCache``.
+        """
+        return self.decoder.caches_are_setup()
+
     def caches_are_enabled(self) -> bool:
-        """Check if the key value caches are setup."""
+        """
+        Checks if the key value caches are enabled. Once KV-caches have been setup, the relevant
+        attention modules will be "enabled" and all forward passes will update the caches. This behaviour
+        can be disabled without altering the state of the KV-caches by "disabling" the KV-caches
+        using :func:`~torchtune.modules.common_utils.disable_kv_cache`, upon which ``caches_are_enabled`` would return False.
+        """
         return self.decoder.caches_are_enabled()
 
     def reset_caches(self):
@@ -743,10 +757,12 @@ class EarlyFusionModel(nn.Module):
         bsz, seq_len, embed_dim = embeds.shape
         for encoder, inp in (encoder_input or {}).items():
             encoder_embeds = self.encoders[encoder](**inp)
-            encoder_mask = (tokens == self.encoder_tokens[encoder]).expand(
-                bsz, seq_len, embed_dim
+            encoder_mask = (
+                (tokens == self.encoder_tokens[encoder])
+                .unsqueeze(-1)
+                .expand(bsz, seq_len, embed_dim)
             )
-            embeds[encoder_mask] = encoder_embeds
+            embeds = torch.where(encoder_mask, encoder_embeds, embeds)
 
-        output = self.decoder(embeds, mask, input_pos)
+        output = self.decoder(embeds, mask=mask, input_pos=input_pos)
         return output
