@@ -21,6 +21,11 @@ def scale_grads(model: nn.Module, scaler: torch.Tensor) -> None:
     Outputs:
         None (grad fields are modified in place)
     """
+    device = None
     for p in model.parameters():
+        # First ensure scaler is on the same device as the model
+        if not device:
+            device = p.device
+            scaler = scaler.to(device)
         if p.grad is not None:
             p.grad *= scaler
