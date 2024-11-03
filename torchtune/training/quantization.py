@@ -8,7 +8,9 @@ from typing import Callable, Optional
 from warnings import warn
 
 import torch
+import torchao
 from torch import nn
+from packaging.version import Version
 
 try:
     # torchao 0.7+
@@ -53,7 +55,7 @@ from torchtune.utils._version import torch_version_ge
 
 _SUPPORTS_INT8_MIXED_PRECISION_TRAINING = (
     torch_version_ge("2.4.0")
-    # and tuple(_TORCHAO_VERSION.split(".")) >= ("0", "5", "0")
+    and Version(torchao.__version__) >= Version("0.7")
     and torch.cuda.is_available()
     and torch.cuda.get_device_capability() >= (8, 0)
 )
@@ -207,8 +209,8 @@ class Int8MixedPrecisionTrainingQuantizer:
     ) -> None:
         if not _SUPPORTS_INT8_MIXED_PRECISION_TRAINING:
             raise RuntimeError(
-                "INT8 mixed-precision training requires torch>=2.4, torchao>=0.5, and"
-                " a CUDA capable device with compute capability >= 8.0"
+                "INT8 mixed-precision training requires torch>=2.4, torchao>=0.7, and"
+                " a CUDA-capable device with compute capability >= 8.0"
             )
 
         self._config = Int8MixedPrecisionTrainingConfig(
@@ -218,21 +220,16 @@ class Int8MixedPrecisionTrainingQuantizer:
         )
 
     def prepare(self, model: nn.Module) -> nn.Module:
-        quantize_fn = int8_mixed_precision_training(self._config)
+        quantize_fn = int8_mixed_precision_training(self._config, module_swap=True)
 
         # custom filter_fn to work with torchtune's peft
         def filter_fn(module: nn.Module, name: str) -> bool:
             if isinstance(module, nn.Linear):
                 return not (name.endswith(".lora_a") or name.endswith(".lora_b"))
-
-            if isinstance(module, (LoRALinear, DoRALinear)):
-                return not module._quantize_base  # doesn't work with NF4 yet
-
             return False
 
         # Don't apply INT8 mixed-precision training to LM head since end2end speedup
-        # will be slightly worse. There are also possible issues with tied word
-        # embeddings.
+        # will be slightly worse. There are also possible issues with tied word embeddings.
         if isinstance(model, TransformerDecoder):
             quantize_(model.layers, quantize_fn, filter_fn=filter_fn)
         else:
