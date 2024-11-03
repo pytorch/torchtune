@@ -9,8 +9,8 @@ from warnings import warn
 
 import torch
 import torchao
-from torch import nn
 from packaging.version import Version
+from torch import nn
 
 try:
     # torchao 0.7+
@@ -49,7 +49,6 @@ except ImportError:
     )
 
 from torchtune.modules import TransformerDecoder
-from torchtune.modules.peft import DoRALinear, LoRALinear
 from torchtune.utils._version import torch_version_ge
 
 
