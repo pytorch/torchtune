@@ -423,9 +423,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
-        if mixed_precision_cfg is not None and mixed_precision_cfg.get("enabled", False):
+        if mixed_precision_cfg is not None and mixed_precision_cfg.get(
+            "enabled", False
+        ):
             log.info(f"Preparing model with {mixed_precision_cfg._component_}")
-            cfg = dict(mixed_precision_cfg)  # shallow copy
+            cfg = mixed_precision_cfg.copy()
             cfg.pop("enabled", None)
             quantizer = config.instantiate(cfg)
             model = quantizer.prepare(model)
