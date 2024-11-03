@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from copy import deepcopy
 import sys
 import time
 from functools import partial
@@ -130,6 +131,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self._max_validation_steps = cfg.get("max_validation_steps", None)
 
         if self._log_peak_memory_stats and self._device.type != "cuda":
             log.info(
@@ -185,6 +187,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
+        self.save_checkpoints = cfg.get("save_checkpoints", 1)
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -291,12 +294,34 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
+        cfg.dataset["split"] = "train"  # NOTE: added by us
         collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
         self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
             collate_fn=collate_name,
+        )
+
+        # NOTE: added by us
+        # validation dataloader
+        cfg["validation_dataset"] = deepcopy(cfg.dataset)
+        cfg["validation_dataset"]["split"] = "validation"
+        self._sampler_validation, self._dataloader_validation = self._setup_data(
+            cfg_dataset=cfg["validation_dataset"],
+            shuffle=cfg.shuffle,
+            batch_size=cfg.batch_size,
+            collate_fn=collate_name,  # TODO: check if this is correct
+        )
+
+        # NOTE: added by us
+        # validation dataloader
+        cfg["validation_dataset"] = deepcopy(cfg.dataset)
+        cfg["validation_dataset"]["split"] = "validation"
+        self._sampler_validation, self._dataloader_validation = self._setup_data(
+            cfg_dataset=cfg["validation_dataset"],
+            shuffle=cfg.shuffle,
+            batch_size=cfg.batch_size,
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -565,12 +590,21 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             num_replicas=1,
             rank=0,
             shuffle=shuffle,
-            seed=0,
+            seed=self.seed,
         )
         dataloader = DataLoader(
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
+            collate_fn=(
+                partial(
+                    utils.padded_collate,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else None
+            ),
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
             collate_fn=(
@@ -593,6 +627,16 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
         """
+
+        if self.save_checkpoints:
+            if self.save_checkpoint == -1:
+                if epoch + 1 != self.total_epochs:
+                    return
+            elif epoch % self.save_checkpoints != 0:
+                return
+        else:
+            return
+
         ckpt_dict = {training.MODEL_KEY: self._model.state_dict()}
         # if training is in-progress, checkpoint the optimizer state as well
         if epoch + 1 < self.total_epochs:
@@ -651,11 +695,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         if not self._optimizer_in_bwd:
             self._optimizer.zero_grad()
 
-        # Initialize tokens count and running loss (for grad accumulation)
-        t0 = time.perf_counter()
-        running_loss = 0
-        num_tokens = 0
-
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
@@ -663,7 +702,47 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            pbar = tqdm(total=self._steps_per_epoch)
+            # ------ Validation Step ------ #
+            self._model.eval()
+
+            with torch.no_grad():
+                cum_val_loss = 0
+                num_eval_steps = (
+                    min(self._max_validation_steps, len(self._dataloader_validation))
+                    if self._max_validation_steps is not None
+                    else len(self._dataloader_validation)
+                )
+                pbar_val = tqdm(total=num_eval_steps, desc="Validation")
+                for idx, batch in enumerate(self._dataloader_validation):
+                    utils.batch_to_device(batch, self._device)
+                    val_loss = self._loss_step(batch)
+                    cum_val_loss += val_loss
+                    pbar_val.update(1)
+                    pbar_val.set_description(
+                        f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {cum_val_loss / (idx + 1)}"
+                    )
+
+                    if (
+                        self._max_validation_steps is not None
+                        and idx == self._max_validation_steps
+                    ):
+                        break
+
+                mean_val_loss = cum_val_loss / (idx + 1)
+                self._metric_logger.log_dict(
+                    {"val_loss": mean_val_loss},
+                    step=self.global_step,
+                )
+                pbar_val.close()
+
+            # ------ Training Epoch ------ #
+            # Initialize tokens count and running loss (for grad accumulation)
+            t0 = time.perf_counter()
+            running_loss = 0
+            num_tokens = 0
+            self._model.train()
+
+            pbar = tqdm(total=self._steps_per_epoch, desc="Training")
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
@@ -767,6 +846,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 self._profiler.step()
 
             self.epochs_run += 1
+            # TODO: update self.save_checkpoint with new logic
             self.save_checkpoint(epoch=curr_epoch)
 
         self._profiler.stop()

@@ -6,6 +6,11 @@
 
 from typing import Any, Callable, Dict, Optional, Union
 
+# NOTE: adding this because of out of disk space error
+import datasets
+
+datasets.builder.has_sufficient_disk_space = lambda needed_bytes, directory=".": True
+
 from torchtune.data import InputOutputToMessages
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset

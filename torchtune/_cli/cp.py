@@ -12,7 +12,11 @@ import torchtune
 from torchtune._cli.subcommand import Subcommand
 from torchtune._recipe_registry import get_all_recipes
 
-ROOT = Path(torchtune.__file__).parent.parent
+# ROOT = Path(torchtune.__file__).parent.parent
+try:
+    ROOT = Path(torchtune.__file__).parent.parent
+except:
+    ROOT = "/home/toolkit/ui-copilot/finetuning/torchtune"
 
 
 class Copy(Subcommand):

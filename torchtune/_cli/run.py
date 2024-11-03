@@ -20,7 +20,11 @@ from torch.distributed.run import get_args_parser as get_torchrun_args_parser, r
 from torchtune._cli.subcommand import Subcommand
 from torchtune._recipe_registry import Config, get_all_recipes, Recipe
 
-ROOT = Path(torchtune.__file__).parent.parent
+# ROOT = Path(torchtune.__file__).parent.parent
+try:
+    ROOT = Path(torchtune.__file__).parent.parent
+except:
+    ROOT = "/home/toolkit/ui-copilot/finetuning/torchtune"
 
 
 class Run(Subcommand):
