@@ -91,7 +91,7 @@ class FusionLayer(nn.Module):
                 state_dict[new_key] = state_dict[key]
                 del state_dict[key]
 
-    def setup_cache(
+    def setup_caches(
         self,
         batch_size: int,
         dtype: torch.dtype,
@@ -107,24 +107,33 @@ class FusionLayer(nn.Module):
             encoder_max_seq_len (int): maximum cache sequence length for cross-attention layer.
             decoder_max_seq_len (int): maximum cache sequence length for self-attention layer.
         """
-        self.layer.setup_cache(
+        self.layer.setup_caches(
             batch_size,
             dtype,
             encoder_max_seq_len=encoder_max_seq_len,
             decoder_max_seq_len=decoder_max_seq_len,
         )
 
-        self.fusion_layer.setup_cache(
+        self.fusion_layer.setup_caches(
             batch_size,
             dtype,
             encoder_max_seq_len=encoder_max_seq_len,
             decoder_max_seq_len=decoder_max_seq_len,
         )
 
-    @property
-    def cache_enabled(self) -> bool:
-        """Check if the key value caches are setup."""
-        return self.layer.cache_enabled
+    def caches_are_setup(self) -> bool:
+        """
+        Check if the key value caches are setup on ``self.layer``.
+        See :func:~torchtune.modules.TransformerDecoder.caches_are_setup`.
+        """
+        return self.layer.caches_are_setup()
+
+    def caches_are_enabled(self) -> bool:
+        """
+        Checks if the key value caches on ``self.layer`` are enabled.
+        See :func:~torchtune.modules.TransformerDecoder.caches_are_enabled`.
+        """
+        return self.layer.caches_are_enabled()
 
     def reset_cache(self):
         """Reset both layers' key value caches."""
@@ -223,10 +232,11 @@ class FusionEmbedding(nn.Module):
         """Apply extra "embedding" prefix to the state_dict key to
         account for the FusionEmbedding wrapping.
         """
-        key = prefix + "weight"
-        new_key = prefix + "embedding.weight"
-        state_dict[new_key] = state_dict[key]
-        del state_dict[key]
+        if state_dict:
+            key = prefix + "weight"
+            new_key = prefix + "embedding.weight"
+            state_dict[new_key] = state_dict[key]
+            del state_dict[key]
 
     def fusion_params(self) -> List[str]:
         """
@@ -384,12 +394,27 @@ class DeepFusionModel(nn.Module):
             decoder_max_seq_len=decoder_max_seq_len,
         )
 
+    def caches_are_setup(self) -> bool:
+        """
+        Check if the key value caches are setup. This means ``setup_caches`` has been called, and
+        the relevant attention modules in the model have created their ``KVCache``.
+        """
+        return self.decoder.caches_are_setup()
+
     def caches_are_enabled(self) -> bool:
-        """Check if the key value caches are setup."""
+        """
+        Checks if the key value caches are enabled. Once KV-caches have been setup, the relevant
+        attention modules will be "enabled" and all forward passes will update the caches. This behaviour
+        can be disabled without altering the state of the KV-caches by "disabling" the KV-caches
+        using :func:`~torchtune.modules.common_utils.disable_kv_cache`, upon which ``caches_are_enabled`` would return False.
+        """
         return self.decoder.caches_are_enabled()
 
     def reset_caches(self):
-        """Reset the key value caches."""
+        """
+        Resets KV-cache buffers on relevant attention modules to zero, and reset cache positions to zero,
+        without deleting or reallocating cache tensors.
+        """
         self.decoder.reset_caches()
 
     def forward(

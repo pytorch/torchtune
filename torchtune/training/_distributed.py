@@ -414,6 +414,8 @@ def get_full_model_state_dict(
             module.reshard()
     else:
         for param_name, sharded_param in sharded_sd.items():
+            # without this, it may hang forever for +70B models.
+            torch.distributed.barrier()
             if sharded_param.is_cpu:
                 assert device is not None and device.type == "cuda", (
                     f"Expect cuda but got device={device}. "
@@ -446,6 +448,8 @@ def get_full_optimizer_state_dict(
     for group_id, sharded_group in sharded_state.items():
         group_state = {}
         for attr, sharded_tensor in sharded_group.items():
+            # without this, it may hang forever for +70B models.
+            torch.distributed.barrier()
             # "exp_avg" in AdamW is `DTensor`
             if isinstance(sharded_tensor, DTensor):
                 if sharded_tensor.is_cpu:
@@ -583,6 +587,55 @@ def _memory_efficient_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
     return llama3_wrap
 
 
+def get_shard_conditions(
+    name: str,
+    module: nn.Module,
+    names_to_match: Optional[List[str]] = None,
+    *args,
+    **kwargs,
+) -> bool:
+    """
+    Returs True for layers named {}.layers.i or layers that exactly match names_to_match, otherwise,
+    returns False. This is a helper function for sharding a model with FSDP.
+    In :func:`~torchtune.training.shard_model`, we iterate over the model's named modules
+    and apply fully_shard using this condition.
+
+    As part of our sharding strategy, we want each layer to be sharded separately, as this is
+    generally efficient. We may also want to shard certain modules that are not layers, such as
+    the embedding module.
+
+    #TODO: a more robust way would be to shard on the module type, not the name.
+
+    Args:
+        name (str): Name of the module.
+        module (nn.Module): Module to be sharded.
+        names_to_match (Optional[List[str]]): List of names to match, if any.
+        *args: Variable length argument list to be passed to the Embedding module.
+        **kwargs: Arbitrary keyword arguments to be passed to the Embedding module.
+
+    Returns:
+        bool: True if the module name matches the condition, False otherwise.
+
+    Examples:
+        >>> names_to_match = ["embedding"]
+        >>> layer_names = ["layers.0", "decoder.layers.1", "encoder.layers.2.attention",
+            "my_wrapper.layer.1.something", "embedding"]
+        >>> matches = []
+        >>> for name in layer_names:
+        >>>     if shard_condition_is_layer_or_match(name, None): matches.append(name)
+        >>> print(matches)
+        >>> ["layers.0", "decoder.layers.1", "embedding"]
+    """
+    if names_to_match and name in names_to_match:
+        return True
+
+    name_list = name.split(".")
+    if len(name_list) >= 2:
+        return name_list[-2] == "layers" and str.isdigit(name_list[-1])
+
+    return False
+
+
 def shard_model(
     model: TransformerDecoder,
     shard_conditions: List[Callable[[str, nn.Module], bool]],
@@ -608,6 +661,8 @@ def shard_model(
             the forward pass. Setting this to True corresponds to the FULL_SHARD sharding strategy
             from FSDP1, while setting it to False corresponds to the SHARD_GRAD_OP sharding strategy.
 
+    Raises:
+        ValueError: If no layer modules were sharded, indicating that no shard_condition was triggered.
     """
     fsdp_kwargs = {"reshard_after_forward": reshard_after_forward}
     if cpu_offload:
@@ -615,9 +670,16 @@ def shard_model(
 
     # Shard the model with FSDP, iterating in reverse to start with
     # lowest-level modules first
+    num_layers_sharded = 0
     for n, m in reversed(list(model.named_modules())):
         if any([shard_condition(n, m) for shard_condition in shard_conditions]):
             fully_shard(m, **fsdp_kwargs)
+            num_layers_sharded += 1
+
+    if num_layers_sharded == 0:
+        raise ValueError(
+            "No layer modules were sharded. Please check if shard conditions are working as expected."
+        )
 
     # Finally shard the entire model to account for any stragglers
     fully_shard(model, **fsdp_kwargs)

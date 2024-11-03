@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import re
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from torchtune.data import Message, PromptTemplate, truncate
@@ -113,6 +114,12 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
 
         self.prompt_template = prompt_template
 
+        # Regex for removing special tokens from the decoded string
+        self._special_token_regex = re.compile(r"<\|.*?\|>")
+        self._special_token_header_regex = re.compile(
+            r"<\|start_header_id\|>.*?<\|end_header_id\|>\n\n"
+        )
+
     def _validate_special_tokens(
         self,
     ):
@@ -130,6 +137,15 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         ]:
             if token not in self.special_tokens:
                 raise ValueError(f"{token} missing from special_tokens")
+
+    def _remove_special_tokens(self, text: str) -> str:
+        """
+        Remove special tokens from the decoded string.
+        """
+        # First remove the headers, then the remaining special tokens
+        return self._special_token_regex.sub(
+            "", self._special_token_header_regex.sub("", text)
+        )
 
     @property
     def base_vocab_size(self) -> int:
@@ -166,10 +182,18 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         Returns:
             str: The decoded string.
         """
-        return self.tt_model.decode(
-            token_ids,
+        # We will remove special tokens manually via regex on the decoded string.
+        # This is because removing all special tokens does not remove the role and
+        # whitespace added from the special tokens, i.e., the "user" and "\n\n" in
+        # "<|start_header_id|>user<|end_header_id|>\n\n"
+        decoded_string = self.tt_model.decode(
+            token_ids=token_ids,
             truncate_at_eos=truncate_at_eos,
-            skip_special_tokens=skip_special_tokens,
+        )
+        return (
+            self._remove_special_tokens(decoded_string)
+            if skip_special_tokens
+            else decoded_string
         )
 
     def _tokenize_header(self, message: Message) -> List[int]:

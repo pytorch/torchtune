@@ -61,7 +61,7 @@ def compile_model(
         model.compile(backend=backend)
 
 
-def compile_loss(loss: nn.Module, verbose: bool = True) -> None:
+def compile_loss(loss: nn.Module, verbose: bool = True) -> nn.Module:
     """
     Utility to compile and return loss function. If the loss function is chunked cross-entropy,
     we only compile the upcast + cross-entropy calculation, not the chunking. For other losses

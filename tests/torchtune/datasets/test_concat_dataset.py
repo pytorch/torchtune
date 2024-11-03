@@ -6,7 +6,25 @@
 
 import pytest
 from datasets import Dataset
+from torch.utils.data import Dataset as TorchDataset
 from torchtune.datasets._concat import ConcatDataset
+from torchtune.datasets._packed import PackedDataset
+
+
+class DummyDataset(TorchDataset):
+    def __init__(self, sample_size):
+        self.sample_size = sample_size
+
+    def __getitem__(self, index):
+        if index >= 1000:
+            raise IndexError()
+        return {
+            "tokens": [index] * self.sample_size,
+            "labels": [index] * self.sample_size,
+        }
+
+    def __len__(self):
+        return 1000
 
 
 class TestConcatDataset:
@@ -18,6 +36,16 @@ class TestConcatDataset:
         ds4 = Dataset.from_list([{"data": f"ds4_{i}"} for i in range(16)])
         ds5 = Dataset.from_list([{"data": f"ds5_{i}"} for i in range(23)])
         ds6 = Dataset.from_list([{"data": f"ds6_{i}"} for i in range(42)])
+        return [ds1, ds2, ds3, ds4, ds5, ds6]
+
+    @pytest.fixture
+    def torch_datasets(self):
+        ds1 = DummyDataset(4)
+        ds2 = DummyDataset(8)
+        ds3 = DummyDataset(15)
+        ds4 = DummyDataset(16)
+        ds5 = DummyDataset(23)
+        ds6 = DummyDataset(42)
         return [ds1, ds2, ds3, ds4, ds5, ds6]
 
     def test_length(self, datasets):
@@ -51,3 +79,14 @@ class TestConcatDataset:
 
         with pytest.raises(TypeError):
             multi_dataset["invalid_type"]  # Non-integer index
+
+    def test_packed_dataset(self, torch_datasets):
+        torch_datasets[0] = PackedDataset(
+            torch_datasets[0],
+            max_seq_len=25,
+            max_packs=5,
+            split_across_pack=True,
+        )
+
+        with pytest.raises(ValueError):
+            concated_dataset = ConcatDataset(torch_datasets)

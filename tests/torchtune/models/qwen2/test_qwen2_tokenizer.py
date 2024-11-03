@@ -14,13 +14,12 @@ from torchtune.data import Message
 from torchtune.models.qwen2 import qwen2_tokenizer
 
 
-class TestQwen2Tokenizer:
-    def tokenizer(self, template: bool = False, max_seq_len: Optional[int] = None):
+class TestQwenTokenizer:
+    def tokenizer(self, max_seq_len: Optional[int] = None):
         return qwen2_tokenizer(
             path=str(ASSETS / "tiny_bpe_vocab.json"),
             merges_file=str(ASSETS / "tiny_bpe_merges.txt"),
             special_tokens_path=str(ASSETS / "tiny_bpe_tokenizer.json"),
-            prompt_template="torchtune.data.ChatMLTemplate" if template else None,
             max_seq_len=max_seq_len,
         )
 
@@ -45,8 +44,8 @@ class TestQwen2Tokenizer:
             ),
         ]
 
-    def test_tokenize_messages_chat_template(self, messages):
-        tokenizer = self.tokenizer(template=True)
+    def test_tokenize_messages(self, messages):
+        tokenizer = self.tokenizer()
         tokens, mask = tokenizer.tokenize_messages(messages)
         expected_tokens = [
             2001,
@@ -236,26 +235,33 @@ class TestQwen2Tokenizer:
             318,
             1278,
             13,
-            2002,
-            94,
             2000,
         ]
-        expected_mask = [True] * 67 + [False] * 123
+        expected_mask = [True] * 67 + [False] * 121
         assert expected_tokens == tokens
         assert expected_mask == mask
 
         formatted_messages = tokenizer.decode(tokens)
         expected_formatted_messages = (
             f"<|im_start|>user\n{messages[0].text_content}<|im_end|>\n"
-            f"<|im_start|>assistant\n{messages[1].text_content}<|im_end|>\n"
-            "<|endoftext|>"
+            f"<|im_start|>assistant\n{messages[1].text_content}<|endoftext|>"
         )
         assert expected_formatted_messages == formatted_messages
 
-    def test_tokenize_messages(self, messages):
-        tokenizer = self.tokenizer(template=False)
+    def test_tokenize_messages_gt_max_seq_len(self, messages):
+        # Super basic test to make sure max_seq_len is working properly
+        tokenizer = self.tokenizer(max_seq_len=10)
         tokens, mask = tokenizer.tokenize_messages(messages)
+        assert len(tokens) == 10
+        assert len(mask) == 10
+
+    def test_tokenize_message_drop_eos(self, messages):
+        tokenizer = self.tokenizer()
         expected_tokens = [
+            2001,
+            273,
+            105,
+            94,
             33,
             214,
             174,
@@ -316,6 +322,13 @@ class TestQwen2Tokenizer:
             102,
             182,
             25,
+            94,
+            2002,
+            94,
+            2001,
+            397,
+            251,
+            249,
             94,
             40,
             1791,
@@ -432,15 +445,8 @@ class TestQwen2Tokenizer:
             318,
             1278,
             13,
-            2000,
         ]
-        expected_mask = [True] * 61 + [False] * 116
-        assert expected_tokens == tokens
-        assert expected_mask == mask
-
-    def test_tokenize_messages_gt_max_seq_len(self, messages):
-        # Super basic test to make sure max_seq_len is working properly
-        tokenizer = self.tokenizer(template=False, max_seq_len=10)
-        tokens, mask = tokenizer.tokenize_messages(messages)
-        assert len(tokens) == 10
-        assert len(mask) == 10
+        expected_mask = [True] * 67 + [False] * 120
+        tokens, mask = tokenizer.tokenize_messages(messages, add_eos=False)
+        assert tokens == expected_tokens
+        assert mask == expected_mask

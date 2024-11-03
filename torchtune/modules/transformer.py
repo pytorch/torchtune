@@ -11,6 +11,7 @@ import torch.nn.functional as F
 from torch import nn
 from torchtune.modules import MultiHeadAttention
 from torchtune.modules.attention_utils import _MaskType
+from torchtune.utils._logging import deprecated
 
 
 class TransformerSelfAttentionLayer(nn.Module):
@@ -44,7 +45,7 @@ class TransformerSelfAttentionLayer(nn.Module):
         self.sa_scale = sa_scale or nn.Identity()
         self.mlp_scale = mlp_scale or nn.Identity()
 
-    def setup_cache(
+    def setup_caches(
         self,
         batch_size: int,
         dtype: torch.dtype,
@@ -62,10 +63,19 @@ class TransformerSelfAttentionLayer(nn.Module):
         """
         self.attn.setup_cache(batch_size, dtype, max_seq_len=decoder_max_seq_len)
 
-    @property
-    def cache_enabled(self) -> bool:
-        """Check if the key value caches are setup."""
+    def caches_are_setup(self) -> bool:
+        """
+        Check if the key value caches are setup on ``self.attn``.
+        See :func:~torchtune.modules.TransformerDecoder.caches_are_setup`.
+        """
         return self.attn.kv_cache is not None
+
+    def caches_are_enabled(self) -> bool:
+        """
+        Checks if the key value caches on ``self.attn`` are enabled.
+        See :func:~torchtune.modules.TransformerDecoder.caches_are_enabled`.
+        """
+        return self.attn.cache_enabled
 
     def reset_cache(self):
         """Reset the key value caches."""
@@ -164,7 +174,7 @@ class TransformerCrossAttentionLayer(nn.Module):
         self.ca_scale = ca_scale or nn.Identity()
         self.mlp_scale = mlp_scale or nn.Identity()
 
-    def setup_cache(
+    def setup_caches(
         self,
         batch_size: int,
         dtype: torch.dtype,
@@ -182,10 +192,19 @@ class TransformerCrossAttentionLayer(nn.Module):
         """
         self.attn.setup_cache(batch_size, dtype, encoder_max_seq_len)
 
-    @property
-    def cache_enabled(self) -> bool:
-        """Check if the key value caches are setup."""
+    def caches_are_setup(self) -> bool:
+        """
+        Check if the key value caches are setup on ``self.attn``.
+        See :func:~torchtune.modules.TransformerDecoder.caches_are_setup`.
+        """
         return self.attn.kv_cache is not None
+
+    def caches_are_enabled(self) -> bool:
+        """
+        Checks if the key value caches on ``self.attn`` are enabled.
+        See :func:~torchtune.modules.TransformerDecoder.caches_are_enabled`.
+        """
+        return self.attn.cache_enabled
 
     def reset_cache(self):
         """Reset the key value caches."""
@@ -252,7 +271,7 @@ class TransformerCrossAttentionLayer(nn.Module):
         """
         # During decoding, it's possible encoder_input is None because the embeds
         # are already stored in the kv cache.
-        empty_cache = not self.cache_enabled or self.attn.kv_cache.size == 0
+        empty_cache = not self.caches_are_enabled() or self.attn.kv_cache.size == 0
         # Skip cross attention when no secondary input as it's primary purpose
         # is to attend between x and encoder_input.
         if encoder_input is None and empty_cache:
@@ -391,9 +410,9 @@ class TransformerDecoder(nn.Module):
     ):
         """
         Sets up key-value attention caches for inference. For each layer in ``self.layers``:
-        - :class:`~torchtune.modules.TransformerSelfAttentionLayer` will use ``decoder_max_seq_len``.
-        - :class:`~torchtune.modules.TransformerCrossAttentionLayer` will use ``encoder_max_seq_len``.
-        - :class:`~torchtune.modules.fusion.FusionLayer` will use both ``decoder_max_seq_len`` and ``encoder_max_seq_len``.
+            - :class:`~torchtune.modules.TransformerSelfAttentionLayer` will use ``decoder_max_seq_len``.
+            - :class:`~torchtune.modules.TransformerCrossAttentionLayer` will use ``encoder_max_seq_len``.
+            - :class:`~torchtune.modules.model_fusion.FusionLayer` will use ``decoder_max_seq_len`` and ``encoder_max_seq_len``.
 
         Args:
             batch_size (int): batch size for the caches.
@@ -422,22 +441,41 @@ class TransformerDecoder(nn.Module):
                 self.decoder_max_cache_seq_len = self.max_seq_len
 
         for layer in self.layers:
-            layer.setup_cache(
+            layer.setup_caches(
                 batch_size,
                 dtype,
                 encoder_max_seq_len=self.encoder_max_cache_seq_len,
                 decoder_max_seq_len=self.decoder_max_cache_seq_len,
             )
 
+    def caches_are_setup(self) -> bool:
+        """
+        Check if the key value caches are setup. This means ``setup_caches`` has been called, and
+        the relevant attention modules in the model have created their ``KVCache``.
+        """
+        return self.layers[0].caches_are_setup()
+
     def caches_are_enabled(self) -> bool:
-        """Check if the key value caches are setup. This is useful to efficient inference."""
-        return self.layers[0].cache_enabled
+        """
+        Checks if the key value caches are enabled. Once KV-caches have been setup, the relevant
+        attention modules will be "enabled" and all forward passes will update the caches. This behaviour
+        can be disabled without altering the state of the KV-caches by "disabling" the KV-caches
+        using :func:`torchtune.modules.common_utils.disable_kv_cache`, upon which ``caches_are_enabled`` would return False.
+        """
+        return self.layers[0].caches_are_enabled()
 
     def reset_caches(self):
-        """Reset the key value caches."""
+        """
+        Resets KV-cache buffers on relevant attention modules to zero, and reset cache positions to zero,
+        without deleting or reallocating cache tensors.
+
+        Raises:
+            RuntimeError: if KV-caches are not setup. Use :func:`~torchtune.modules.TransformerDecoder.setup_caches` to
+                setup caches first.
+        """
         if not self.caches_are_enabled():
             raise RuntimeError(
-                "Key value caches are not setup. Call ``setup_caches()`` first."
+                "Key value caches are not setup. Call model.setup_caches first."
             )
 
         for layer in self.layers:
@@ -578,7 +616,7 @@ class TransformerDecoder(nn.Module):
             - m_s: max seq len
         """
         # input tensor of shape [b, s]
-        bsz, seq_len = tokens.shape
+        seq_len = tokens.shape[1]
 
         self._validate_inputs(
             seq_len,
@@ -619,6 +657,11 @@ class TransformerDecoder(nn.Module):
         return output
 
 
+@deprecated(
+    msg="Please use torchtune.modules.TransformerDecoder instead. \
+If you need an example, see torchtune.models.qwen2._component_builders.py \
+on how to use torch.modules.TiedLinear for the output projection."
+)
 class TiedEmbeddingTransformerDecoder(nn.Module):
     """
     Transformer Decoder with tied embedding weight. A key difference between
@@ -753,7 +796,7 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
                 self.decoder_max_cache_seq_len = self.decoder_max_cache_seq_len
 
         for layer in self.layers:
-            layer.setup_cache(
+            layer.setup_caches(
                 batch_size,
                 dtype,
                 self.encoder_max_cache_seq_len,

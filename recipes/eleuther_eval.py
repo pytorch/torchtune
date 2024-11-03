@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import importlib.metadata
 import sys
 import time
 
@@ -13,6 +12,12 @@ from typing import Dict, List, Tuple, Union
 import PIL
 
 import torch
+
+from lm_eval.evaluator import evaluate
+from lm_eval.models.hf_vlms import HFMultimodalLM
+from lm_eval.models.huggingface import HFLM
+from lm_eval.tasks import get_task_dict, TaskManager
+from lm_eval.utils import make_table
 from omegaconf import DictConfig
 
 from torchtune import config, training, utils
@@ -24,44 +29,12 @@ from torchtune.data import (
 )
 from torchtune.generation import generate, sample
 from torchtune.modules import TransformerDecoder
+from torchtune.modules.common_utils import local_kv_cache
 from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
 from torchtune.recipe_interfaces import EvalRecipeInterface
-
-try:
-    import lm_eval
-except ImportError:
-    print(
-        "You must install the EleutherAI Eval Harness to run this recipe. "
-        "Please install with `pip install lm_eval>=0.4.2`"
-    )
-    sys.exit(1)
-
-lm_eval_version = importlib.metadata.version("lm_eval")
-if not lm_eval_version >= "0.4.2":
-    print(
-        "You must install the EleutherAI Eval Harness >= v0.4.2 to run this recipe. "
-        "Please install with `pip install lm_eval>=0.4.2`"
-    )
-    sys.exit(1)
-
-from lm_eval.evaluator import evaluate, get_task_list
-
-# User doesn't have to have nightlies installed, they just won't be able
-# to use the multimodal model
-try:
-    from lm_eval.models.hf_vlms import HFMultimodalLM
-except ImportError as e:
-    # Create a dummy class to avoid having to import the HF models
-    # TODO (@joecummings): Remove this once v0.4.5 patch is released
-    class HFMultimodalLM:
-        def __init__(self, *args, **kwargs):
-            pass
-
-
-from lm_eval.models.huggingface import HFLM
-from lm_eval.tasks import get_task_dict, TaskManager
+from torchtune.training import FullModelTorchTuneCheckpointer
 
 
 class _VLMEvalWrapper(HFMultimodalLM):
@@ -181,6 +154,7 @@ class _VLMEvalWrapper(HFMultimodalLM):
         self,
         all_texts: List[str],
         all_images: List[List[PIL.Image.Image]],
+        left_truncate_len: int = None,
         *args,
         **kwargs,
     ):
@@ -213,11 +187,18 @@ class _VLMEvalWrapper(HFMultimodalLM):
             all_encoded_messages,
             pad_direction="left",
             pad_max_images=self._max_images_per_sample,
+            pad_max_tiles=self._transform.max_num_tiles,
         )
         utils.batch_to_device(tok_batch, self.device)
 
         # Convert the batch to the format expected by the HF
         tok_batch["input_ids"] = tok_batch.pop("tokens")
+
+        # the harness will use left_truncate_len to indicate that the current batch
+        # needs to be truncated to self.max_seq_len - self.max_gen_toks
+        if left_truncate_len is not None:
+            tok_batch["input_ids"] = tok_batch["input_ids"][:, -left_truncate_len:]
+
         return tok_batch
 
     @torch.inference_mode()
@@ -245,18 +226,11 @@ class _VLMEvalWrapper(HFMultimodalLM):
                 "multimodal generation."
             )
 
-        # 2. Setup KV cache and masks for bsz 1
+        encoder_max_seq_len = (
+            self.model_transform.image_seq_len * self._max_images_per_sample
+        )
+        # Setup masks for bsz 1
         with self.device:
-            if self.model.caches_are_enabled():
-                self.model.reset_caches()
-            else:
-                self.model.setup_caches(
-                    batch_size=1,
-                    dtype=self._dtype,
-                    encoder_max_seq_len=self.model_transform.image_seq_len
-                    * self._max_images_per_sample,
-                    decoder_max_seq_len=self.max_length,
-                )
             causal_mask = torch.tril(
                 torch.ones(
                     size=(self.max_length, self.max_length),
@@ -268,28 +242,37 @@ class _VLMEvalWrapper(HFMultimodalLM):
         batch["input_pos"] = input_pos[None, :seq_len]
         batch["mask"] = causal_mask[None, :seq_len]
 
-        # 3. Prefill step
-        generated_tokens = []
-        logits = self.model(prompt, **batch)[:, -1]
-        token = sample(logits, temperature=0.0, top_k=None)
-        generated_tokens.append(token.item())
-
-        cache_mask = batch["encoder_mask"][:, -1:]
-
-        # 4. Continue generating
-        for _ in range(max_length):
-            if token.item() in self.model_transform.stop_tokens:
-                break
-            logits = self.model(
-                token,
-                mask=causal_mask[None, seq_len, None, :],
-                encoder_input=None,
-                encoder_mask=cache_mask,
-                input_pos=input_pos[None, seq_len],
-            )[:, -1]
+        # 2. Setup KV cache
+        with local_kv_cache(
+            self.model,
+            batch_size=self.batch_size,
+            device=self.device,
+            dtype=self._dtype,
+            encoder_max_seq_len=encoder_max_seq_len,
+            decoder_max_seq_len=self.max_length,
+        ):
+            # 3. Prefill step
+            generated_tokens = []
+            logits = self.model(prompt, **batch)[:, -1]
             token = sample(logits, temperature=0.0, top_k=None)
             generated_tokens.append(token.item())
-            seq_len += 1
+
+            cache_mask = batch["encoder_mask"][:, -1:]
+
+            # 4. Continue generating
+            for _ in range(max_length):
+                if token.item() in self.model_transform.stop_tokens:
+                    break
+                logits = self.model(
+                    token,
+                    mask=causal_mask[None, seq_len, None, :],
+                    encoder_input=None,
+                    encoder_mask=cache_mask,
+                    input_pos=input_pos[None, seq_len],
+                )[:, -1]
+                token = sample(logits, temperature=0.0, top_k=None)
+                generated_tokens.append(token.item())
+                seq_len += 1
 
         # 5. Return generated tokens
         return torch.tensor(generated_tokens, dtype=torch.int32).unsqueeze(0)
@@ -370,7 +353,7 @@ class _LLMEvalWrapper(HFLM):
         return self._tokenizer.encode(text=text, add_bos=False, add_eos=False)
 
     def tok_batch_encode(
-        self, text: List[str], **kwargs
+        self, text: List[str], left_truncate_len: int = None, **kwargs
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         tokenized_text = [self.tok_encode(x) for x in text]
 
@@ -380,6 +363,11 @@ class _LLMEvalWrapper(HFLM):
             batch_first=True,
             padding_value=self._tokenizer.pad_id,
         )
+
+        # the harness will use left_truncate_len to indicate that the current batch
+        # needs to be truncated to self.max_seq_len - self.max_gen_toks
+        if left_truncate_len is not None:
+            x = x[:, -left_truncate_len:]
 
         return x, torch.ones_like(x)  # return 'mask' b/c it's expected by the harness
 
@@ -404,18 +392,6 @@ class _LLMEvalWrapper(HFLM):
                 "Any decoding strategy other than greedy is not supported."
             )
 
-        # Setup KV caches OR reset them if they're already set up
-        if self.enable_kv_cache:
-            if self.model.caches_are_enabled():
-                self.model.reset_caches()
-            else:
-                with self.device:
-                    self.model.setup_caches(
-                        batch_size=self.batch_size,
-                        dtype=self._dtype,
-                        decoder_max_seq_len=self.max_length,
-                    )
-
         # if we've recieved fewer than self._batch_size samples in the current
         # batch we need to pad the batch out. here we're padding the end of the
         # current batch to the correct length. this is because when we use static
@@ -425,15 +401,21 @@ class _LLMEvalWrapper(HFLM):
             (0, 0, 0, self._batch_size - bsz),
             value=self._tokenizer.eos_id,  # pad with one of the tokenizer's stop tokens so generation can stop early
         )
-
-        toks, _ = generate(
+        with local_kv_cache(
             self.model,
-            maybe_padded_context,
-            max_generated_tokens=self.max_gen_toks,
-            temperature=temperature,
-            top_k=None,
-            stop_tokens=self._tokenizer.stop_tokens,
-        )
+            batch_size=self.batch_size,
+            device=self.device,
+            dtype=self._dtype,
+            decoder_max_seq_len=self.max_length,
+        ):
+            toks, _ = generate(
+                self.model,
+                maybe_padded_context,
+                max_generated_tokens=self.max_gen_toks,
+                temperature=temperature,
+                top_k=None,
+                stop_tokens=self._tokenizer.stop_tokens,
+            )
         return toks[:bsz]
 
 
@@ -456,6 +438,16 @@ class EleutherEvalRecipe(EvalRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
+        # Double check we have the right Eval Harness version
+        from importlib.metadata import version
+
+        if version("lm-eval") != "0.4.5":
+            raise RuntimeError(
+                "This recipe requires EleutherAI Eval Harness v0.4.5. "
+                "Please install with `pip install lm-eval==0.4.5`"
+            )
+
+        # General variable initialization
         self.device = utils.get_device(device=cfg.device)
         self.dtype = training.get_dtype(dtype=cfg.dtype, device=self.device)
         self.logger = utils.get_logger(cfg.get("log_level", "info"))
@@ -475,13 +467,6 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
         # Load checkpoint
         checkpointer = config.instantiate(cfg.checkpointer)
-        if quantization_mode is None:
-            ckpt_dict = checkpointer.load_checkpoint()
-        else:
-            # weights_only needs to be False when loading a quantized model
-            # currently loading a quantized model is only supported with the
-            # FullModelTorchTuneCheckpointer
-            ckpt_dict = checkpointer.load_checkpoint(weights_only=False)
 
         # Initialize model
         with training.set_default_dtype(self.dtype), self.device:
@@ -489,14 +474,32 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
         # Quantize model if requested
         if quantization_mode is not None:
+            if not isinstance(checkpointer, FullModelTorchTuneCheckpointer):
+                raise ValueError(
+                    "Quantization is only supported for models quantized and saved with the "
+                    "FullModelTorchTuneCheckpointer - please ensure you have quantized your "
+                    "model and are using the quantized weights!"
+                )
+            if "qat" in quantization_mode:
+                raise ValueError(
+                    "You have specified a quantizer with 'QAT' - "
+                    "QAT quantizers should only be used during quantization aware training "
+                    "and when quantizing models. Please use the corresponding post-training "
+                    "quantizer e.g. Int8DynActInt4WeightQuantizer for Int8DynActInt4WeightQATQuantizer."
+                )
             model = quantizer.quantize(model)
             model = model.to(device=self.device, dtype=self.dtype)
-            for k, v in model_state_dict.items():
-                model_state_dict[k] = v.to(self._device)
-            model.load_state_dict(model_state_dict, assign=True)
+            ckpt_dict = checkpointer.load_checkpoint(weights_only=False)[
+                training.MODEL_KEY
+            ]
+            for k, v in ckpt_dict.items():
+                ckpt_dict[k] = v.to(self.device)
+            model.load_state_dict(ckpt_dict, assign=True)
+        else:
+            ckpt_dict = checkpointer.load_checkpoint()[training.MODEL_KEY]
+            model.load_state_dict(ckpt_dict)
 
         # Load model weights into initialized model
-        model.load_state_dict(ckpt_dict[training.MODEL_KEY])
         self.logger.info(f"Model is initialized with precision {self.dtype}.")
 
         # Put model in eval mode.
@@ -506,11 +509,6 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
         # Initialize tokenizer/transform
         model_transform = config.instantiate(cfg.tokenizer)
-        max_seq_len = (
-            model_transform.max_seq_len
-            if model_transform.max_seq_len is not None
-            else 4096  # default max_seq_len to 4096
-        )
 
         # Finally, we setup the actual EvalWrapper class
         if isinstance(model, DeepFusionModel):
@@ -526,7 +524,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
             model,
             model_transform,
             device=self.device,
-            max_seq_length=max_seq_len,
+            max_seq_length=cfg.max_seq_length,
             batch_size=self.batch_size,
             dtype=self.dtype,
             enable_kv_cache=self.enable_kv_cache,
@@ -536,13 +534,6 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         # Initialize tasks for the harness
         task_manager = TaskManager(include_path=self.include_path)
         task_dict = get_task_dict(self.tasks, task_manager)
-        task_types = set([t.task.OUTPUT_TYPE for t in get_task_list(task_dict)])
-        if len(task_types) > 1 and "generate_until" in task_types:
-            raise RuntimeError(
-                "Evaluating on multiple task types where any one task involves "
-                "generation is currently not supported. See the issue below for more info: "
-                "https://github.com/pytorch/torchtune/issues/1621"
-            )
 
         # Run evaluation
         t0 = time.time()
@@ -559,7 +550,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         self.logger.info(
             f"Max memory allocated: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB"
         )
-        formatted_output = lm_eval.utils.make_table(output)
+        formatted_output = make_table(output)
         self.logger.info(f"\n\n{formatted_output}\n")
 
 

@@ -69,9 +69,8 @@ class MultiHeadAttention(nn.Module):
         max_seq_len (int): maximum sequence length supported by the model.
             This is needed to compute the RoPE Cache. Default: 4096.
         is_causal (bool): sets the default mask to causal when no mask is provided
-        attn_dropout (float): dropout value passed onto the
-            scaled_dot_product_attention function. This argument is ignored if the
-            self.training is False. Default value is 0.0.
+        attn_dropout (float): dropout value passed onto the scaled_dot_product_attention function.
+            Default value is 0.0.
 
     Raises:
         ValueError: If ``num_heads % num_kv_heads != 0``
@@ -140,6 +139,11 @@ class MultiHeadAttention(nn.Module):
         # Use flex attention if supported and we are sample packing
         self._attention_call = _sdpa_or_flex_attention()
 
+        # this flag indicates whether to update the kv-cache during forward
+        # passes. when disabled, we can have the cache setup but still
+        # perform normal forward passes
+        self.cache_enabled = False
+
     def setup_cache(
         self, batch_size: int, dtype: torch.dtype, max_seq_len: int
     ) -> None:
@@ -164,6 +168,7 @@ class MultiHeadAttention(nn.Module):
                 head_dim=self.head_dim,
                 dtype=dtype,
             )
+            self.cache_enabled = True
 
     def reset_cache(self):
         """Reset the key value caches."""
@@ -291,7 +296,7 @@ class MultiHeadAttention(nn.Module):
                 k = self.k_norm(k)
 
             # Update key-value cache
-            if self.kv_cache is not None:
+            if self.kv_cache is not None and self.cache_enabled:
                 k, v = self.kv_cache.update(k, v)
 
         output = self._attention_call(
@@ -299,7 +304,7 @@ class MultiHeadAttention(nn.Module):
             k,
             v,
             mask=mask,
-            dropout_p=self.attn_dropout,
+            dropout_p=self.attn_dropout if self.training else 0.0,
             is_causal=self.kv_cache is None and mask is None and self.is_causal,
         )
 
