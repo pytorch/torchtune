@@ -48,7 +48,6 @@ except ImportError:
         Int8DynActInt4WeightQATQuantizer,
     )
 
-from torchtune.modules import TransformerDecoder
 from torchtune.utils._version import torch_version_ge
 
 
@@ -181,9 +180,9 @@ class Int8MixedPrecisionTrainingQuantizer:
     https://github.com/pytorch/ao/tree/main/torchao/prototype/quantized_training#int8-mixed-precision
 
     Args:
-        output (bool): whether to apply INT8 mixed-precision for calculating output.
-        grad_input (bool): whether to apply INT8 mixed-precision for calculating grad_input.
-        grad_weight (bool): whether to apply INT8 mixed-precision for calculating grad_weight.
+        output (bool): whether to apply INT8 mixed-precision for calculating output. Default: True
+        grad_input (bool): whether to apply INT8 mixed-precision for calculating grad_input. Default: True
+        grad_weight (bool): whether to apply INT8 mixed-precision for calculating grad_weight. Default: True
 
     Raises:
         RuntimeError: If runtime requirements for INT8 mixed-precision training are not met.
@@ -219,20 +218,29 @@ class Int8MixedPrecisionTrainingQuantizer:
         )
 
     def prepare(self, model: nn.Module) -> nn.Module:
+        # we use module-swap implementation so that the state_dict remains plain tensors,
+        # as well as better FSDP compatibility in torchtune.
         quantize_fn = int8_mixed_precision_training(self._config, module_swap=True)
 
         # custom filter_fn to work with torchtune's peft
         def filter_fn(module: nn.Module, name: str) -> bool:
             if isinstance(module, nn.Linear):
-                return not (name.endswith(".lora_a") or name.endswith(".lora_b"))
+                # skip LoRA adapters since they are too small, so the speedup will not
+                # outweight quantization overhead.
+                # also skip LM head since end2end speedup is slightly worse.
+                # there are also possible issues with tied word embeddings.
+                if (
+                    name.endswith(".lora_a")
+                    or name.endswith(".lora_b")
+                    or module.weight.shape[0] >= 32_000
+                ):
+                    return False
+                else:
+                    return True
+
             return False
 
-        # Don't apply INT8 mixed-precision training to LM head since end2end speedup
-        # will be slightly worse. There are also possible issues with tied word embeddings.
-        if isinstance(model, TransformerDecoder):
-            quantize_(model.layers, quantize_fn, filter_fn=filter_fn)
-        else:
-            quantize_(model, quantize_fn, filter_fn=filter_fn)
+        quantize_(model, quantize_fn, filter_fn=filter_fn)
         return model
 
 

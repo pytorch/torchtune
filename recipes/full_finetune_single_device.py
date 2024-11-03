@@ -263,7 +263,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             enable_activation_offloading=self._enable_activation_offloading,
             compile_model=self._compile,
             model_state_dict=ckpt_dict[training.MODEL_KEY],
-            quantizer_cfg=cfg.get("quantizer", None),
+            mixed_precision_cfg=cfg.get("mixed_precision", None),
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
         log.info("Tokenizer is initialized from file.")
@@ -407,7 +407,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         enable_activation_offloading: bool,
         compile_model: bool,
         model_state_dict: Dict[str, Any],
-        quantizer_cfg: Optional[DictConfig] = None,
+        mixed_precision_cfg: Optional[DictConfig] = None,
     ) -> nn.Module:
         """
         Set up the model including enabling activation checkpointing.
@@ -423,9 +423,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
-        if quantizer_cfg is not None:
-            log.info(f"Preparing model with {quantizer_cfg._component_}")
-            quantizer = config.instantiate(quantizer_cfg)
+        if mixed_precision_cfg is not None and mixed_precision_cfg.get("enabled", False):
+            log.info(f"Preparing model with {mixed_precision_cfg._component_}")
+            cfg = dict(mixed_precision_cfg)  # shallow copy
+            cfg.pop("enabled", None)
+            quantizer = config.instantiate(cfg)
             model = quantizer.prepare(model)
 
         model.load_state_dict(model_state_dict)
