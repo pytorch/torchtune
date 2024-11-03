@@ -547,6 +547,11 @@ class EarlyFusionModel(nn.Module):
 
     You can pass in multiple encoders as a dictionary into ``encoders``.
 
+    Note: Once the decoder is wrapped in this module, the decoder's ``tok_embeddings`` module is moved
+    to the parent EarlyFusionModel's ``tok_embeddings``. You should not forward pass the decoder individually.
+    Instead, use EarlyFusionModel's forward pass with ``encoder_input=None`` to get decoder-only outputs.
+    State dicts will automatically be updated on save and load to account for this change.
+
     Example:
         >>> # decoder is a text-only TransformerDecoder (e.g. llama3_8b) with no modifications
         >>> decoder = llama3_8b()
@@ -557,18 +562,17 @@ class EarlyFusionModel(nn.Module):
         >>> encoders = {"image": nn.Sequential(clip_vit_224(), projection_head)}
         >>>
         >>> # EarlyFusionModel combines the encoder and decoder
-        >>> model = DeepFusionModel(decoder, encoders)
+        >>> model = EarlyFusionModel(decoder, encoders, encoder_tokens={"image": 128256})
         >>>
         >>> # Load full fused checkpoints
         >>> model.load_state_dict(...)
         >>>
-        >>> # Or load pretrained individual models (fusion_params are not loaded)
-        >>> model.encoder.load_state_dict(..., strict=False)
-        >>> model.decoder.load_state_dict(..., strict=False)
-        >>>
         >>> # Forward pass
         >>> encoder_input = {"image": {...}}
-        >>> output = model(tokens, mask, encoder_input, encoder_mask, input_pos)
+        >>> output = model(tokens, mask=mask, encoder_input=encoder_input, encoder_mask=encoder_mask, input_pos=input_pos)
+        >>>
+        >>> # Forward pass decoder only
+        >>> output = model(tokens, mask=mask, input_pos=input_pos)
 
     Args:
         decoder (TransformerDecoder): decoder module
@@ -651,18 +655,18 @@ class EarlyFusionModel(nn.Module):
 
         [!Note] This update changes the order of the OrderedDict
         """
-        key = "tok_embeddings"
-        decoder_key = "decoder.tok_embeddings"
-        state_dict[decoder_key] = state_dict[key]
-        del state_dict[key]
+        for n, p in module.tok_embeddings.named_parameters():
+            state_dict[f"decoder.tok_embeddings.{n}"] = p
+            del state_dict[f"tok_embeddings.{n}"]
 
     @staticmethod
     def _load_state_dict_hook(module, state_dict, *args, **kwargs):
         """Undo the change from _state_dict_hook"""
-        key = "tok_embeddings"
-        decoder_key = "decoder.tok_embeddings"
-        state_dict[key] = state_dict[decoder_key]
-        del state_dict[decoder_key]
+        old_keys = list(state_dict.keys())
+        for key in old_keys:
+            if key.startswith("decoder.tok_embeddings"):
+                state_dict[key[len("decoder.") :]] = state_dict[key]
+                del state_dict[key]
 
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
@@ -754,15 +758,16 @@ class EarlyFusionModel(nn.Module):
             )
 
         embeds = self.tok_embeddings(tokens)
-        bsz, seq_len, embed_dim = embeds.shape
+        bsz, _, embed_dim = embeds.shape
         for encoder, inp in (encoder_input or {}).items():
             encoder_embeds = self.encoders[encoder](**inp)
             encoder_mask = (
-                (tokens == self.encoder_tokens[encoder])
-                .unsqueeze(-1)
-                .expand(bsz, seq_len, embed_dim)
+                torch.where(tokens == self.encoder_tokens[encoder])[1]
+                .view(bsz, -1, 1)
+                .expand(bsz, -1, embed_dim)  # shape: [bsz, num_values, embed_dim]
             )
-            embeds = torch.where(encoder_mask, encoder_embeds, embeds)
+            # At locations where encoder token is found, replace with encoder embedding
+            embeds.scatter_(1, encoder_mask, encoder_embeds)
 
         output = self.decoder(embeds, mask=mask, input_pos=input_pos)
         return output

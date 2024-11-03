@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import pdb
+from collections import OrderedDict
 
 import pytest
 
@@ -51,7 +51,7 @@ class DummyModel(nn.Module):
         mask=None,
         encoder_input=None,
         encoder_mask=None,
-        input_pos=None
+        input_pos=None,
     ):
         x = self.tok_embeddings(tokens)
         if encoder_input is not None:
@@ -236,23 +236,28 @@ class TestEarlyFusionModel:
         return 64
 
     @pytest.fixture
-    def encoder(self, dim, vocab_size) -> nn.Module:
-        encoder = nn.Embedding(vocab_size, dim)
-        fixed_init_model(encoder)
-        return encoder
-
-    @pytest.fixture
     def decoder(self, dim, vocab_size) -> nn.Module:
-        decoder = DummyModel(dim, vocab_size)
+        decoder = DummyModel(dim, vocab_size + 3)
         fixed_init_model(decoder, max_val=0.1)
         return decoder
 
     @pytest.fixture
-    def fused_model(self, encoder, decoder) -> EarlyFusionModel:
+    def fused_model(self, vocab_size, dim, decoder) -> EarlyFusionModel:
+        red = nn.Embedding(vocab_size, dim)
+        fixed_init_model(red)
+        green = nn.Embedding(vocab_size, dim)
+        fixed_init_model(green)
+        blue = nn.Embedding(vocab_size, dim)
+        fixed_init_model(blue)
+
         model = EarlyFusionModel(
-            encoders={"red": encoder, "green": encoder, "blue": encoder},
+            encoders={"red": red, "green": green, "blue": blue},
             decoder=decoder,
-            encoder_tokens={"red": 0, "green": 1, "blue": 2},
+            encoder_tokens={
+                "red": vocab_size,
+                "green": vocab_size + 1,
+                "blue": vocab_size + 2,
+            },
             decoder_trainable=True,
             encoders_trainable={"red": False, "green": True, "blue": False},
             fusion_trainable=False,
@@ -265,9 +270,9 @@ class TestEarlyFusionModel:
         seq_len = 10
         tokens = torch.randint(0, vocab_size, (batch_size, seq_len))
         red_seq_len, green_seq_len, blue_seq_len = 1, 2, 3
-        tokens[:, 0] = 0
-        tokens[:, 3:5] = 1
-        tokens[:, 8:] = 2
+        tokens[:, 0] = vocab_size
+        tokens[:, 3:5] = vocab_size + 1
+        tokens[:, 7:] = vocab_size + 2
         encoder_input = {
             "red": {"input": torch.randint(0, vocab_size, (batch_size, red_seq_len))},
             "green": {
@@ -279,6 +284,25 @@ class TestEarlyFusionModel:
         input_pos = torch.Tensor([1]).int()
         return tokens, encoder_input, encoder_mask, input_pos
 
+    @pytest.fixture
+    def state_dict(self, dim, vocab_size):
+        return OrderedDict(
+            {
+                "decoder.q.weight": torch.randn((dim, dim)),
+                "decoder.q.bias": torch.randn((dim,)),
+                "decoder.k.weight": torch.randn((dim, dim)),
+                "decoder.k.bias": torch.randn((dim,)),
+                "decoder.v.weight": torch.randn((dim, dim)),
+                "decoder.v.bias": torch.randn((dim,)),
+                "decoder.output.weight": torch.randn((vocab_size + 3, dim)),
+                "decoder.output.bias": torch.randn((vocab_size + 3,)),
+                "decoder.tok_embeddings.weight": torch.randn((vocab_size + 3, dim)),
+                "encoders.red.weight": torch.randn((vocab_size, dim)),
+                "encoders.green.weight": torch.randn((vocab_size, dim)),
+                "encoders.blue.weight": torch.randn((vocab_size, dim)),
+            }
+        )
+
     @torch.no_grad()
     def test_forward(self, fused_model, inputs, vocab_size):
         """
@@ -286,26 +310,53 @@ class TestEarlyFusionModel:
         """
         tokens, encoder_input, *_ = inputs
         batch_size, seq_len = tokens.shape
-        pdb.set_trace()
+
         out = fused_model(
             tokens,
             encoder_input=encoder_input,
         )
 
-        assert out.shape == (batch_size, seq_len, vocab_size)
-        assert_expected(out.mean(), torch.tensor(8.5584), atol=1e-3, rtol=1e-3)
+        assert out.shape == (batch_size, seq_len, vocab_size + 3)
+        assert_expected(out.mean(), torch.tensor(1.1828), atol=1e-3, rtol=1e-3)
 
     @torch.no_grad()
-    def test_forward_no_encoder(self, fused_model, inputs, vocab_size):
+    def test_forward_no_decoder(self, fused_model, inputs, dim):
+        """
+        Test that the forward pass of the EarlyFusionModel works as expected.
+        """
+        tokens, encoder_input, *_ = inputs
+        batch_size, seq_len = tokens.shape
+
+        class DummyModule(nn.Module):
+            def forward(self, x, **kwargs):
+                return x
+
+        fused_model.decoder = DummyModule()
+
+        out = fused_model(
+            tokens,
+            encoder_input=encoder_input,
+        )
+
+        assert out.shape == (batch_size, seq_len, dim)
+        # Check that each encoder output is placed correctly in the fused output
+        red = fused_model.encoders["red"](**encoder_input["red"])
+        assert_expected(out[:, :1, :], red, atol=1e-3, rtol=1e-3)
+        green = fused_model.encoders["green"](**encoder_input["green"])
+        assert_expected(out[:, 3:5, :], green, atol=1e-3, rtol=1e-3)
+        blue = fused_model.encoders["blue"](**encoder_input["blue"])
+        assert_expected(out[:, 7:, :], blue, atol=1e-3, rtol=1e-3)
+
+    @torch.no_grad()
+    def test_forward_no_encoder(self, fused_model, inputs):
         """
         Test that the forward pass of the EarlyFusionModel with no encoder input.
         """
         tokens, *_ = inputs
-        batch_size, seq_len = tokens.shape
-        out = fused_model(tokens)
+        actual = fused_model(tokens)
+        expected = fused_model.decoder(fused_model.tok_embeddings(tokens))
 
-        assert out.shape == (batch_size, seq_len, vocab_size)
-        assert_expected(out.mean(), torch.tensor(0.2271), atol=1e-3, rtol=1e-3)
+        assert_expected(actual, expected, atol=1e-3, rtol=1e-3)
 
     @torch.no_grad()
     def test_decoder_forward(self, fused_model, inputs, vocab_size):
@@ -323,8 +374,8 @@ class TestEarlyFusionModel:
             input_pos=input_pos,
         )
 
-        assert out.shape == (batch_size, seq_len, vocab_size)
-        assert_expected(out.mean(), torch.tensor(9.0072), atol=1e-3, rtol=1e-3)
+        assert out.shape == (batch_size, seq_len, vocab_size + 3)
+        assert_expected(out.mean(), torch.tensor(0.200152), atol=1e-3, rtol=1e-3)
 
     def test_setup_cache(self, fused_model):
         """
@@ -378,3 +429,9 @@ class TestEarlyFusionModel:
                 tokens,
                 encoder_input={"encoder": {"input": torch.tensor([1])}},
             )
+
+    def test_state_dict_hooks(self, fused_model, state_dict):
+        fused_model.load_state_dict(state_dict)
+        actual = fused_model.state_dict()
+        expected = state_dict
+        assert_expected(actual, expected)
