@@ -28,7 +28,6 @@ from tests.test_utils import (
     get_loss_values_from_metric_logger,
     TOKENIZER_PATHS,
 )
-from torchtune.models.llama3 import llama3
 
 
 class TestFullFinetuneSingleDeviceRecipe:
