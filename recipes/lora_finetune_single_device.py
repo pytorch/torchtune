@@ -266,7 +266,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 if self._resume_from_checkpoint
                 else None
             ),
-            quantizer_cfg=cfg.get("quantizer", None),
+            mixed_precision_cfg=cfg.get("mixed_precision", None),
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
@@ -411,7 +411,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         compile_model: bool,
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
-        quantizer_cfg: Optional[DictConfig] = None,
+        mixed_precision_cfg: Optional[DictConfig] = None,
     ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
@@ -433,9 +433,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
-        if quantizer_cfg is not None:
-            log.info(f"Preparing model with {quantizer_cfg._component_}")
-            quantizer = config.instantiate(quantizer_cfg)
+        if mixed_precision_cfg is not None and mixed_precision_cfg.get(
+            "enabled", False
+        ):
+            log.info(f"Preparing model with {mixed_precision_cfg._component_}")
+            cfg = mixed_precision_cfg.copy()
+            cfg.pop("enabled", None)
+            quantizer = config.instantiate(cfg)
             model = quantizer.prepare(model)
 
         base_missing, base_unexpected = model.load_state_dict(
