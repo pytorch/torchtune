@@ -70,7 +70,7 @@ def set_trainable_params(
 
     Args:
         model (nn.Module): Instance of model class containing some adapter params.
-        adapter_params (Dict[str, Any]): State dict mapping adapter key names to their
+        adapter_params (Union[Dict[str, Any], Set]): State dict mapping adapter key names to their
             respective nn.Parameters (i.e. outputs of :func:`~torchtune.modules.peft.get_adapter_params`.)
 
     Returns:
