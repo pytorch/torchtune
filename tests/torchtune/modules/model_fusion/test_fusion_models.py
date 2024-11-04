@@ -236,8 +236,16 @@ class TestEarlyFusionModel:
         return 64
 
     @pytest.fixture
+    def batch_size(self) -> int:
+        return 2
+
+    @pytest.fixture
+    def seq_len(self) -> int:
+        return 10
+
+    @pytest.fixture
     def decoder(self, dim, vocab_size) -> nn.Module:
-        decoder = DummyModel(dim, vocab_size + 3)
+        decoder = DummyModel(dim, vocab_size)
         fixed_init_model(decoder, max_val=0.1)
         return decoder
 
@@ -253,6 +261,7 @@ class TestEarlyFusionModel:
         model = EarlyFusionModel(
             encoders={"red": red, "green": green, "blue": blue},
             decoder=decoder,
+            # These are IDs that are out of vocab in the decoder
             encoder_tokens={
                 "red": vocab_size,
                 "green": vocab_size + 1,
@@ -265,9 +274,7 @@ class TestEarlyFusionModel:
         return model
 
     @pytest.fixture
-    def inputs(self, vocab_size):
-        batch_size = 2
-        seq_len = 10
+    def inputs(self, batch_size, seq_len, vocab_size):
         tokens = torch.randint(0, vocab_size, (batch_size, seq_len))
         red_seq_len, green_seq_len, blue_seq_len = 1, 2, 3
         tokens[:, 0] = vocab_size
@@ -294,9 +301,9 @@ class TestEarlyFusionModel:
                 "decoder.k.bias": torch.randn((dim,)),
                 "decoder.v.weight": torch.randn((dim, dim)),
                 "decoder.v.bias": torch.randn((dim,)),
-                "decoder.output.weight": torch.randn((vocab_size + 3, dim)),
-                "decoder.output.bias": torch.randn((vocab_size + 3,)),
-                "decoder.tok_embeddings.weight": torch.randn((vocab_size + 3, dim)),
+                "decoder.output.weight": torch.randn((vocab_size, dim)),
+                "decoder.output.bias": torch.randn((vocab_size,)),
+                "decoder.tok_embeddings.weight": torch.randn((vocab_size, dim)),
                 "encoders.red.weight": torch.randn((vocab_size, dim)),
                 "encoders.green.weight": torch.randn((vocab_size, dim)),
                 "encoders.blue.weight": torch.randn((vocab_size, dim)),
@@ -316,8 +323,8 @@ class TestEarlyFusionModel:
             encoder_input=encoder_input,
         )
 
-        assert out.shape == (batch_size, seq_len, vocab_size + 3)
-        assert_expected(out.mean(), torch.tensor(1.1828), atol=1e-3, rtol=1e-3)
+        assert out.shape == (batch_size, seq_len, vocab_size)
+        assert_expected(out.mean(), torch.tensor(0.5647), atol=1e-3, rtol=1e-3)
 
     @torch.no_grad()
     def test_forward_no_decoder(self, fused_model, inputs, dim):
@@ -327,6 +334,7 @@ class TestEarlyFusionModel:
         tokens, encoder_input, *_ = inputs
         batch_size, seq_len = tokens.shape
 
+        # No-op for the decoder
         class DummyModule(nn.Module):
             def forward(self, x, **kwargs):
                 return x
@@ -348,15 +356,71 @@ class TestEarlyFusionModel:
         assert_expected(out[:, 7:, :], blue, atol=1e-3, rtol=1e-3)
 
     @torch.no_grad()
-    def test_forward_no_encoder(self, fused_model, inputs):
+    def test_forward_no_encoder(self, fused_model, batch_size, seq_len, vocab_size):
         """
-        Test that the forward pass of the EarlyFusionModel with no encoder input.
+        Test the forward pass of the EarlyFusionModel with no encoder input.
         """
-        tokens, *_ = inputs
+        tokens = torch.randint(0, vocab_size, (batch_size, seq_len))
+
         actual = fused_model(tokens)
         expected = fused_model.decoder(fused_model.tok_embeddings(tokens))
 
         assert_expected(actual, expected, atol=1e-3, rtol=1e-3)
+
+    @torch.no_grad()
+    def test_forward_no_decoder_uneven_encoder_tokens(
+        self, fused_model, dim, batch_size, seq_len, vocab_size
+    ):
+        """
+        If each sample has a different number of encoder tokens in the sequence, test that mask scatter
+        of embeds still works as expected:
+
+        <image> This is a dog.
+        <image> My dog is better than yours. <image>
+        """
+        red_seq_len, green_seq_len, blue_seq_len = 1, 2, 3
+        # In a real encoder input, it would be padded to max number of media in the batch, so we don't
+        # make these test inputs uneven. The forward pass should still be able to take the number of embeddings
+        # it needs and ignore the rest, which would be pad embeddings.
+        encoder_input = {
+            "red": {"input": torch.randint(0, vocab_size, (batch_size, red_seq_len))},
+            "green": {
+                "input": torch.randint(0, vocab_size, (batch_size, green_seq_len))
+            },
+            "blue": {"input": torch.randint(0, vocab_size, (batch_size, blue_seq_len))},
+        }
+        tokens = torch.randint(0, vocab_size, (batch_size, seq_len))
+        # For red encoder, only the first sample has a token
+        tokens[0, 0] = vocab_size
+        # For green encoder, first sample has 2 tokens, second sample has 1 token
+        tokens[0, 3:5] = vocab_size + 1
+        tokens[1, 4] = vocab_size + 1
+        # For blue encoder, first sample has 3 tokens, second sample has 2 tokens
+        tokens[0, 7:] = vocab_size + 2
+        tokens[1, 8:] = vocab_size + 2
+
+        # No-op for the decoder
+        class DummyModule(nn.Module):
+            def forward(self, x, **kwargs):
+                return x
+
+        fused_model.decoder = DummyModule()
+
+        out = fused_model(
+            tokens,
+            encoder_input=encoder_input,
+        )
+
+        assert out.shape == (batch_size, seq_len, dim)
+        # Check that each encoder output is placed correctly in the fused output
+        red = fused_model.encoders["red"](**encoder_input["red"])
+        assert_expected(out[0, 0, :], red[0, 0, :], atol=1e-3, rtol=1e-3)
+        green = fused_model.encoders["green"](**encoder_input["green"])
+        assert_expected(out[0, 3:5, :], green[0, :, :], atol=1e-3, rtol=1e-3)
+        assert_expected(out[1, 4, :], green[1, 0, :], atol=1e-3, rtol=1e-3)
+        blue = fused_model.encoders["blue"](**encoder_input["blue"])
+        assert_expected(out[0, 7:, :], blue[0, :, :], atol=1e-3, rtol=1e-3)
+        assert_expected(out[1, 8:, :], blue[1, :2, :], atol=1e-3, rtol=1e-3)
 
     @torch.no_grad()
     def test_decoder_forward(self, fused_model, inputs, vocab_size):
@@ -374,8 +438,8 @@ class TestEarlyFusionModel:
             input_pos=input_pos,
         )
 
-        assert out.shape == (batch_size, seq_len, vocab_size + 3)
-        assert_expected(out.mean(), torch.tensor(0.200152), atol=1e-3, rtol=1e-3)
+        assert out.shape == (batch_size, seq_len, vocab_size)
+        assert_expected(out.mean(), torch.tensor(0.2383), atol=1e-3, rtol=1e-3)
 
     def test_setup_cache(self, fused_model):
         """

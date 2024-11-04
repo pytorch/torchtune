@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import nn
@@ -273,9 +273,9 @@ class FusionEmbedding(nn.Module):
         # num_fusion_tokens = (input >= vocab_size).sum()
         fusion_tokens = torch.masked_select(input, ~mask) - vocab_size
 
-        # [batch_size x num_tokens x embed_dim]
+        # [batch_size * num_tokens, embed_dim]
         embeds = self.embedding(tokens)
-        # [batch_size x num_fusion_tokens x embed_dim]
+        # [batch_size * num_fusion_tokens, embed_dim]
         fusion_embeds = self.fusion_embedding(fusion_tokens)
 
         # [batch_size x seq_length x embed_dim]
@@ -536,8 +536,8 @@ class EarlyFusionModel(nn.Module):
     """EarlyFusion is a type of fused model architecture where pretrained encoder(s) are combined
     with a pretrained decoder (LLM) at the model input and not in internal layers. This is a popular architecture
     for multimodal models, with a full overview available in `The Evolution of Multimodal Model Architectures
-    <https://arxiv.org/abs/2405.17927>`_. This module assumes the decoder is trained to recognize tokens specific
-    to each encoder, which are then replaced in the sequence with the encoder embedding outputs.
+    <https://arxiv.org/abs/2405.17927>`_. This module works both for decoders in which the encoder tokens are
+    inside the vocab and outside the vocab.
 
     This module has the same methods and forward signature as :class:`~torchtune.modules.TransformerDecoder` and can be used
     interchangeably where :class:`~torchtune.modules.TransformerDecoder` is. It combines the encoders with the decoder as a
@@ -702,6 +702,16 @@ class EarlyFusionModel(nn.Module):
         """Reset the key value caches."""
         self.decoder.reset_caches()
 
+    def _decoder_embed(self, tokens) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Embed the text-only tokens with the decoder's tok_embeddings"""
+        encoder_token_ids = torch.tensor(list(self.encoder_tokens.values()))
+        # [bsz, seq_len], True indicates the token is not an encoder special token
+        is_text = ~torch.isin(tokens, encoder_token_ids)
+        text_tokens = torch.masked_select(tokens, is_text)
+        # [num_text, embed_dim]
+        text_embeds = self.tok_embeddings(text_tokens)
+        return is_text, text_embeds
+
     def forward(
         self,
         tokens: torch.Tensor,
@@ -757,17 +767,27 @@ class EarlyFusionModel(nn.Module):
                 f"Got {encoder_input.keys()}, expected {self.encoders.keys()}."
             )
 
-        embeds = self.tok_embeddings(tokens)
-        bsz, _, embed_dim = embeds.shape
-        for encoder, inp in (encoder_input or {}).items():
-            encoder_embeds = self.encoders[encoder](**inp)
-            encoder_mask = (
-                torch.where(tokens == self.encoder_tokens[encoder])[1]
-                .view(bsz, -1, 1)
-                .expand(bsz, -1, embed_dim)  # shape: [bsz, num_values, embed_dim]
-            )
-            # At locations where encoder token is found, replace with encoder embedding
-            embeds.scatter_(1, encoder_mask, encoder_embeds)
+        bsz, seq_len = tokens.shape
+        # is_text: [bsz, seq_len], text_embeds: [num_text, embed_dim]
+        is_text, text_embeds = self._decoder_embed(tokens)
+        embed_dim = text_embeds.shape[-1]
 
-        output = self.decoder(embeds, mask=mask, input_pos=input_pos)
+        # Holds the final embedding vector
+        fused_embeds = torch.empty(
+            bsz, seq_len, embed_dim, dtype=text_embeds.dtype, device=text_embeds.device
+        )
+        # Place the text-only embeddings
+        fused_embeds = fused_embeds.masked_scatter(is_text.unsqueeze(-1), text_embeds)
+
+        for encoder, inp in (encoder_input or {}).items():
+            # [bsz, num_encoder_tokens, embed_dim]
+            encoder_embeds = self.encoders[encoder](**inp)
+            # [bsz * num_encoder_tokens, embed_dim]
+            encoder_embeds = encoder_embeds.view(-1, embed_dim)
+            # [bsz, seq_len, 1]
+            encoder_mask = (tokens == self.encoder_tokens[encoder]).unsqueeze(-1)
+            # At locations where encoder token is found, replace with encoder embedding
+            fused_embeds = fused_embeds.masked_scatter(encoder_mask, encoder_embeds)
+
+        output = self.decoder(fused_embeds, mask=mask, input_pos=input_pos)
         return output
