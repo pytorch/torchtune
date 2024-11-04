@@ -151,28 +151,20 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
+        self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
-        # activation checkpointing/offloading
-        self._enable_activation_checkpointing = cfg.get(
-            "enable_activation_checkpointing", False
-        )
-        self._enable_activation_offloading = cfg.get(
-            "enable_activation_offloading", False
-        )
-        if self._enable_activation_offloading:
-            if self._device.type != "cuda":
+        # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
+        if self._optimizer_in_bwd:
+            if self._clip_grad_norm is not None:
                 raise RuntimeError(
-                    "enable_activation_offloading should only be True when training on CUDA"
+                    "Gradient clipping is not supported with optimizer in bwd."
+                    "Please set clip_grad_norm=None, or optimizer_in_bwd=False."
                 )
-            if not self._enable_activation_checkpointing:
+            if self._gradient_accumulation_steps > 1:
                 raise RuntimeError(
-                    "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
+                    "Gradient accumulation is not supported with optimizer in bwd."
+                    "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
                 )
-        elif self._enable_activation_checkpointing:
-            log.info(
-                "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
-                "Enabling activation offloading should reduce memory further."
-            )
 
         # activation checkpointing/offloading
         self._enable_activation_checkpointing = cfg.get(
@@ -203,7 +195,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
-        self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -720,7 +711,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        _, rank = training.get_world_size_and_rank()
+        world_size, rank = training.get_world_size_and_rank()
 
         # zero out the gradients before starting training
         if not self._optimizer_in_bwd:
@@ -787,32 +778,43 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 # Compute loss
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                running_loss += self._loss_fn(logits, labels) * current_num_tokens
+                current_loss = self._loss_fn(logits, labels) * current_num_tokens
 
                 # free logits otherwise it peaks backward memory
                 del logits
 
+                running_loss += current_loss
+
+                # For optimizer in backward, we need to normalize before calling backward
+                # This case and gradient accumulation are mutually exclusive
+                if self._optimizer_in_bwd:
+                    torch.distributed.all_reduce(num_tokens)
+                    torch.distributed.all_reduce(running_loss)
+                    current_loss = current_loss / num_tokens
+
+                current_loss.backward()
+
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    loss = running_loss / num_tokens
-                    loss.backward()
-                    if self._clip_grad_norm is not None:
-                        if self._optimizer_in_bwd:
-                            raise NotImplementedError(
-                                "Gradient clipping is not supported after optimizer-in-the-backward."
-                            )
-                        grad_norm = torch.nn.utils.clip_grad_norm_(
-                            self._model.parameters(),
-                            max_norm=float(self._clip_grad_norm),
-                        )
                     if not self._optimizer_in_bwd:
+                        # Get total number of tokens across all ranks to normalize gradients
+                        torch.distributed.all_reduce(num_tokens)
+                        # This will ensure that the logged loss matches what we're optimizing
+                        torch.distributed.all_reduce(running_loss)
+                        # Manually scale the gradients from unnormalized loss by total # of tokens
+                        training.scale_grads(self._model, 1 / num_tokens)
+                        if self._clip_grad_norm is not None:
+                            grad_norm = torch.nn.utils.clip_grad_norm_(
+                                self._model.parameters(),
+                                max_norm=float(self._clip_grad_norm),
+                            )
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
 
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
-                    loss_to_log = loss.item()
+                    loss_to_log = running_loss.item() / num_tokens
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
@@ -833,7 +835,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                                     else self._optim_ckpt_wrapper
                                 ),
                             ),
-                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                            "tokens_per_second_per_gpu": num_tokens
+                            / (time_per_step * world_size),
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(

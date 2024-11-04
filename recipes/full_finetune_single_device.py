@@ -141,6 +141,20 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._optimizer_in_bwd = cfg.optimizer_in_bwd
+        self._clip_grad_norm = cfg.get("clip_grad_norm", None)
+
+        # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
+        if self._optimizer_in_bwd:
+            if self._clip_grad_norm is not None:
+                raise RuntimeError(
+                    "Gradient clipping is not supported with optimizer in bwd."
+                    "Please set clip_grad_norm=None, or optimizer_in_bwd=False."
+                )
+            if self._gradient_accumulation_steps > 1:
+                raise RuntimeError(
+                    "Gradient accumulation is not supported with optimizer in bwd."
+                    "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
+                )
 
         # activation checkpointing/offloading
         self._enable_activation_checkpointing = cfg.get(
@@ -164,14 +178,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 "Enabling activation offloading should reduce memory further."
             )
 
-        # TODO: find a better place / way to perform validation of args that don't yet
-        # compose with each other.
-        if self._gradient_accumulation_steps > 1 and self._optimizer_in_bwd:
-            raise RuntimeError(
-                "Gradient accumulation is not supported with optimizer in bwd."
-                "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
-            )
-
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
         self.seed = training.set_seed(seed=cfg.seed)
@@ -179,7 +185,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
-        self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -686,18 +691,19 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                running_loss += self._loss_step(batch) * current_num_tokens
+                current_loss = self._loss_step(batch) * current_num_tokens
+                running_loss += current_loss
+                current_loss.backward()
 
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    loss = running_loss / num_tokens
-                    loss.backward()
-                    if self._clip_grad_norm is not None:
-                        grad_norm = torch.nn.utils.clip_grad_norm_(
-                            self._model.parameters(),
-                            max_norm=float(self._clip_grad_norm),
-                        )
                     if not self._optimizer_in_bwd:
+                        training.scale_grads(self._model, 1 / num_tokens)
+                        if self._clip_grad_norm is not None:
+                            grad_norm = torch.nn.utils.clip_grad_norm_(
+                                self._model.parameters(),
+                                max_norm=float(self._clip_grad_norm),
+                            )
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
 
@@ -706,7 +712,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         self._lr_scheduler.step()
                     self.global_step += 1
 
-                    loss_to_log = loss.item()
+                    loss_to_log = running_loss.item() / num_tokens
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
