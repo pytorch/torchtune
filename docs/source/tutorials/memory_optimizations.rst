@@ -18,9 +18,9 @@ To make things easy, we've summarized these components in the following table:
    ":ref:`glossary_act_ckpt`", "Use when you're memory constrained and want to use a larger model, batch size or context lengths. Be aware that it will slow down training speed."
    ":ref:`glossary_act_off`", "Similar to activation checkpointing, this can be used when memory constrained, but may decrease training speed due to the overhead of moving tensors between GPU VRAM and CPU. We minimize it by using a different stream, so you may not experience any slow down. This **should** be used alongside activation checkpointing."
    ":ref:`glossary_grad_accm`", "Helpful when memory-constrained to simulate larger batch sizes. However, it is not compatible with optimizer in backward. Use it when training adapters, e.g. LoRA, which don't benefit from optimizer in backward, or when you can already fit a batch with you memory, but not enough of them.
-   ":ref:`glossary_low_precision_opt`", "When you have a large model and need to further reduce memory. If you are using an Adam based optimizer, the optimizer state should be 2x the size of the model. Note that lower precision optimizers may reduce training stability/accuracy."
+   ":ref:`glossary_low_precision_opt`", "When you have a large model (optimizer state is 2x model size) and need to further reduce memory. Note that lower precision optimizers may reduce training stability/accuracy."
    ":ref:`glossary_opt_in_bwd`", "Helps reduce memory usage when using stateful optimizers, particularly when full-finetuning large models with high gradient memory usage. This is not compatible with ``gradient_accumulation_steps``, so training may slow down due to reduced model throughput."
-   ":ref:`glossary_cpu_offload`", "Offloads optimizer states and (optionally) gradients to CPU, and performs optimizer steps on CPU. Use it when training a large model and using optimizer in backward and low precision optimizer are not an option. This can be used to significantly reduce GPU memory usage at the cost of CPU RAM and training speed, as CPU optimizer steps can be slow and bottleneck training performance."
+   ":ref:`glossary_cpu_offload`", "Offloads optimizer states and (optionally) gradients to CPU, and performs optimizer steps on CPU. This can be used to significantly reduce GPU memory usage at the cost of CPU RAM and training speed, as CPU optimizer steps can be slow and bottleneck training performance. Prioritize using it only if the other techniques are not enough."
    ":ref:`glossary_lora`", "When you want to significantly reduce the number of trainable parameters, saving gradient and optimizer memory during training, and significantly speeding up training. This may reduce training accuracy"
    ":ref:`glossary_qlora`", "When you are training a large model and quantizing it will save significant memory, at the potential cost of some training speed and accuracy."
    ":ref:`glossary_dora`", "Like LoRA, DoRA can provide significant memory savings and training speed-ups. DoRA may improve performance over LoRA, particularly when using small rank updates."
@@ -170,7 +170,8 @@ Lower Precision Optimizers
 In addition to :ref:`reducing model and optimizer precision <glossary_precision>` during training, we can further reduce precision in our optimizer states.
 All of our single-device fine-tuning recipes support lower-precision optimizers from the `torchao <https://github.com/pytorch/ao/tree/main/torchao/prototype/low_bit_optim>`_
 or `bitsandbytes <https://huggingface.co/docs/bitsandbytes/main/en/index>`_ libraries - a good place to start might be the ``AdamW8bit`` and ``PagedAdamW8bit`` optimizers,
-which we've tested our recipes with.
+which we've tested our recipes with. Note that the implementation from bitsandbytes, at the moment this article was written, is not compatible with
+our distributed training recipes.
 
 *Sounds great! How do I use it?*
 
@@ -220,10 +221,9 @@ To understand how this works, we encourage you to read through the relevant PyTo
 
 .. todo ref full finetune recipe doc
 
-In torchtune, you can enable this feature using the ``optimizer_in_bwd`` flag. This feature works best when optimizer memory
-is particularly large; e.g. when using a stateful optimizer with a model with a lot of parameters, and when you don't need to use
-:ref:`gradient accumulation <glossary_grad_accm>`. You won't see meaningful impact when finetuning LoRA recipe's, since in this
-case the number of parameters being updated are small.
+In torchtune, you can enable this feature using the ``optimizer_in_bwd`` flag. This feature works best when using a stateful optimizer
+with a model with a lot of parameters, and when you don't need to use :ref:`gradient accumulation <glossary_grad_accm>`.
+You won't see meaningful impact when finetuning LoRA recipe's, since in this case the number of parameters being updated are small.
 
 .. _glossary_cpu_offload:
 
@@ -239,8 +239,8 @@ through the `CPUOffloadOptimizer <https://github.com/pytorch/ao/tree/main/torcha
 This optimizer can wrap any base optimizer and works by keeping the optimizer states and performing the optimizer step on CPU, thus reducing
 GPU memory usage by the size of the optimizer states. Additionally, we can also offload gradients to the CPU by using `offload_gradients=True`.
 
-Another option is to use the PagedAdamW8bit from bitsandbytes, mentioned above, which will *only* offload to CPU when there is not enough
-GPU available.
+If finetuning on a single-device, another option is to use the PagedAdamW8bit from bitsandbytes, mentioned above, which will *only* offload to CPU
+when there is not enough GPU available.
 
 *Sounds great! How do I use it?*
 
@@ -285,7 +285,7 @@ Some helpful hints from the ``torchao`` `CPUOffloadOptimizer page <https://githu
 * The CPU optimizer step is often the bottleneck when optimizer CPU offload is used. To minimize the slowdown, it is recommended to (1) use full ``bf16`` training so that parameters, gradients, and optimizer states are in ``bf16``; and (2) give GPU more work per optimizer step to amortize the offloading time (e.g. larger batch size with activation checkpointing, gradient accumulation).
 * Gradient accumulation should always be set to 1 when ``offload_gradients=True``, as gradients are cleared on GPU every backward pass.
 * This optimizer works by keeping a copy of parameters and pre-allocating gradient memory on CPU. Therefore, expect your RAM usage to increase by 4x model size.
-* This optimizer is only supported for single-device recipes. To use CPU-offloading in distributed recipes, use ``fsdp_cpu_offload=True`` instead in any distributed recipe. See :class:`torch.distributed.fsdp.FullyShardedDataParallel` for more details
+* This optimizer is only supported for single-device recipes. To use CPU-offloading in distributed recipes, use ``fsdp_cpu_offload=True`` instead. See :class:`torch.distributed.fsdp.FullyShardedDataParallel` for more details
 
 
 .. _glossary_peft:
