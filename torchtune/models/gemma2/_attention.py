@@ -285,7 +285,9 @@ class Gemma2Attention(nn.Module):
                 k, v = self.kv_cache.update(k, v)
 
         q.mul_(self.scaling)
-        output = torch.matmul(q, k.transpose(2, 3))
+        output = torch.matmul(
+            q, k.transpose(2, 3)
+        )  # [batch_size, n_local_heads, input_len, head_dim]
 
         # if mask is None: default to causal mask
         if mask is None:
@@ -296,6 +298,12 @@ class Gemma2Attention(nn.Module):
                 ).to(x.device)
             )
 
+        # update masks bias to be 0 for visible tokens and -2.3819763e38 otherwise
+        # this is similar to what torch sdpa is doing:
+        # https://pytorch.org/docs/stable/generated/torch.nn.functional.scaled_dot_product_attention.html
+        if mask.dtype == torch.bool:
+            mask = torch.where(mask.logical_not(), -2.3819763e38, 0)
+
         if self.sliding_window_size is not None:
             all_ones = torch.ones_like(mask)
 
@@ -303,6 +311,11 @@ class Gemma2Attention(nn.Module):
                 all_ones, -1 * self.sliding_window_size + 1
             ) * torch.tril(all_ones, self.sliding_window_size - 1)
             mask = torch.where(sliding_mask == 1, mask, -2.3819763e38)
+
+        if mask.dim() == 3:
+            # This is the case for block masks where attention is different per sample
+            # we want mask to be broadcastable with output so we aim for (bs, 1, s_x, s_y)
+            mask = mask.unsqueeze(1)
 
         if self.softcapping is not None:
             output = output / self.softcapping
