@@ -208,10 +208,10 @@ To download the CodeLlama-7B model:
     code_llama2.lora_code_llama2_70b
     code_llama2.qlora_code_llama2_70b
 
-qwen-2
-------
+qwen-2 & qwen-2.5
+-----------------
 
-Models of size 0.5B, 1.5B, 3B, 7B, 14B, 32B, 72B from the `Qwen2.5 family <https://huggingface.co/collections/Qwen/qwen25-66e81a666513e518adb90d9e>`
+Models of size 0.5B, 1.5B, 3B, 7B, 14B, 32B, 72B from the `Qwen2.5 family <https://huggingface.co/collections/Qwen/qwen25-66e81a666513e518adb90d9e>`_
 and 0.5B, 1.5B, and 7B from the `Qwen2 family <https://huggingface.co/collections/Qwen/qwen2-6659360b33528ced941e557f>`_.
 
 To download the Qwen2 1.5B model, for example:
@@ -350,7 +350,7 @@ To download the Gemma 7B model:
 
 
 clip
------
+----
 
 Vision components to support multimodality using `CLIP encoder <https://arxiv.org/abs/2103.00020>`_.
 
