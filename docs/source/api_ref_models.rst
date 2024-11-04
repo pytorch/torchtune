@@ -321,7 +321,7 @@ To download the Gemma 7B model:
 
 
 gemma2 :
------
+--------
 
 Models of size 2B, 9B, 27B from the `Gemma family <https://blog.google/technology/developers/gemma-open-models/>`_.
 
