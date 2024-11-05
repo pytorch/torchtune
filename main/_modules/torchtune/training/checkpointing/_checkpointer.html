@@ -540,7 +540,7 @@
 <span class="sd">        checkpoint_dir (str): Directory containing the checkpoint files</span>
 <span class="sd">        checkpoint_files (List[str]): List of checkpoint files to load. Since the checkpointer takes care</span>
 <span class="sd">            of sorting by file ID, the order in this list does not matter</span>
-<span class="sd">        model_type (ModelType): Model type of the model for which the checkpointer is being loaded</span>
+<span class="sd">        model_type (str): Model type of the model for which the checkpointer is being loaded</span>
 <span class="sd">        output_dir (str): Directory to save the checkpoint files</span>
 <span class="sd">        adapter_checkpoint (Optional[str]): Path to the adapter weights. Default is None</span>
 <span class="sd">        recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. Default is None</span>
@@ -559,7 +559,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">checkpoint_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-        <span class="n">model_type</span><span class="p">:</span> <span class="n">ModelType</span><span class="p">,</span>
+        <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">adapter_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">recipe_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -588,7 +588,7 @@
         <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span> <span class="o">=</span> <span class="n">resume_from_checkpoint</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">=</span> <span class="n">model_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">=</span> <span class="n">ModelType</span><span class="p">[</span><span class="n">model_type</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
 
         <span class="c1"># recipe_checkpoint contains the recipe state. This should be available if</span>
@@ -751,7 +751,7 @@
 <span class="sd">        checkpoint_dir (str): Directory containing the checkpoint files</span>
 <span class="sd">        checkpoint_files (Union[List[str], Dict[str, str]]): List of checkpoint files to load. Since the checkpointer takes care</span>
 <span class="sd">            of sorting by file ID, the order in this list does not matter. TODO: update this</span>
-<span class="sd">        model_type (ModelType): Model type of the model for which the checkpointer is being loaded</span>
+<span class="sd">        model_type (str): Model type of the model for which the checkpointer is being loaded</span>
 <span class="sd">        output_dir (str): Directory to save the checkpoint files</span>
 <span class="sd">        adapter_checkpoint (Optional[str]): Path to the adapter weights. Default is None</span>
 <span class="sd">        recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. Default is None</span>
@@ -767,7 +767,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">checkpoint_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
-        <span class="n">model_type</span><span class="p">:</span> <span class="n">ModelType</span><span class="p">,</span>
+        <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">adapter_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">recipe_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1152,7 +1152,7 @@
 <span class="sd">        checkpoint_dir (str): Directory containing the checkpoint files</span>
 <span class="sd">        checkpoint_files (List[str]): List of checkpoint files to load. Currently this checkpointer only</span>
 <span class="sd">            supports loading a single checkpoint file.</span>
-<span class="sd">        model_type (ModelType): Model type of the model for which the checkpointer is being loaded</span>
+<span class="sd">        model_type (str): Model type of the model for which the checkpointer is being loaded</span>
 <span class="sd">        output_dir (str): Directory to save the checkpoint files</span>
 <span class="sd">        adapter_checkpoint (Optional[str]): Path to the adapter weights. Default is None</span>
 <span class="sd">        recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. Default is None</span>
@@ -1168,7 +1168,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">checkpoint_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-        <span class="n">model_type</span><span class="p">:</span> <span class="n">ModelType</span><span class="p">,</span>
+        <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">adapter_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">recipe_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
