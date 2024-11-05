@@ -583,7 +583,21 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 }
             )
 
-        adapter_state_dict = {k: v.cpu() for k, v in self.adapter_params.items()}
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Testing remove this !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        adapter_state_dict = {}
+        for k, v in self._model.named_modules():
+            if hasattr(v, "adapter_params") and callable(v.adapter_params):
+                import pdb
+
+                pdb.set_trace()
+                adapter_params = v.adapter_params()
+                for n, p in v.state_dict().items():
+                    if any(n.endswith(param) for param in adapter_params):
+                        full_key = f"{k}.{n}"
+                        adapter_state_dict[n] = p.cpu()
+
+        # adapter_state_dict = {k: v.cpu() for k, v in self.adapter_params.items()}
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! End Testing !!!!!!!! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
 
         if not self._save_adapter_weights_only:

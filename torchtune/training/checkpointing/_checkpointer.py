@@ -615,6 +615,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 )
 
         if training.ADAPTER_KEY in state_dict:
+            # import pdb; pdb.set_trace()
             # Save torchtune format adapter weights even if we save PEFT format
             # This way we can resume no matter what (and memory footprint of adapter weights is small)
             output_path = Path.joinpath(

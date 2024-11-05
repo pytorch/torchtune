@@ -446,10 +446,10 @@ def _get_peft_dict(tune_to_hf_dict: Dict[str, str]) -> Dict[str, torch.Tensor]:
     new_mapping_dict = {}
     for tune_peft, hf_peft in _TO_PEFT_KEYS.items():
         for tune_key, hf_key in tune_to_hf_dict.items():
-            if hf_key is None or hf_val is None:
+            if hf_key is None or tune_key is None:
                 continue
 
-            if peft_key == "magnitude":
+            if tune_peft == "magnitude":
                 # e.g. attn.q_proj.magnitude -> attn.q_proj.lora_magnitude_vector
                 tune_adapter = tune_key.replace(".weight", f".{tune_peft}")
                 hf_adapter = hf_key.replace(".weight", f".{hf_peft}")
