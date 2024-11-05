@@ -170,7 +170,7 @@ Lower Precision Optimizers
 In addition to :ref:`reducing model and optimizer precision <glossary_precision>` during training, we can further reduce precision in our optimizer states.
 All of our single-device fine-tuning recipes support lower-precision optimizers from the `torchao <https://github.com/pytorch/ao/tree/main/torchao/prototype/low_bit_optim>`_
 or `bitsandbytes <https://huggingface.co/docs/bitsandbytes/main/en/index>`_ libraries - a good place to start might be the ``AdamW8bit`` and ``PagedAdamW8bit`` optimizers,
-which we've tested our recipes with. Note that the implementation from bitsandbytes, at the moment this article was written, is not compatible with
+which we've tested our recipes with. Note that bitsandbytes low-precision optimizers are not currently compatible with
 our distributed training recipes.
 
 *Sounds great! How do I use it?*
