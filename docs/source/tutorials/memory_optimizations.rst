@@ -14,16 +14,16 @@ To make things easy, we've summarized these components in the following table:
    :header: "Component", "When to use?"
    :widths: auto
 
-   ":ref:`glossary_precision`", "You'll usually want to leave this as its default ``bfloat16``. If you're struggling with training stability or accuracy due to precision, fp32 may help, but will significantly increase memory usage and decrease training speed."
+   ":ref:`glossary_precision`", "You'll usually want to leave this as its default ``bfloat16``. It uses 2 bytes per model parameter, half of fp32."
    ":ref:`glossary_act_ckpt`", "Use when you're memory constrained and want to use a larger model, batch size or context lengths. Be aware that it will slow down training speed."
-   ":ref:`glossary_act_off`", "Similar to activation checkpointing, this can be used when memory constrained, but may decrease training speed due to the overhead of moving tensors between GPU VRAM and CPU. We minimize it by using a different stream, so you may not experience any slow down. This **should** be used alongside activation checkpointing."
-   ":ref:`glossary_grad_accm`", "Helpful when memory-constrained to simulate larger batch sizes. However, it is not compatible with optimizer in backward. Use it when training adapters, e.g. LoRA, which don't benefit from optimizer in backward, or when you can already fit a batch with you memory, but not enough of them.
-   ":ref:`glossary_low_precision_opt`", "When you have a large model (optimizer state is 2x model size) and need to further reduce memory. Note that lower precision optimizers may reduce training stability/accuracy."
-   ":ref:`glossary_opt_in_bwd`", "Helps reduce memory usage when using stateful optimizers, particularly when full-finetuning large models with high gradient memory usage. This is not compatible with ``gradient_accumulation_steps``, so training may slow down due to reduced model throughput."
-   ":ref:`glossary_cpu_offload`", "Offloads optimizer states and (optionally) gradients to CPU, and performs optimizer steps on CPU. This can be used to significantly reduce GPU memory usage at the cost of CPU RAM and training speed, as CPU optimizer steps can be slow and bottleneck training performance. Prioritize using it only if the other techniques are not enough."
+   ":ref:`glossary_act_off`", "Similar to activation checkpointing, this can be used when memory constrained, but may decrease training speed. This **should** be used alongside activation checkpointing."
+   ":ref:`glossary_grad_accm`", "Helpful when memory-constrained to simulate larger batch sizes. Not compatible with optimizer in backward. Use it when you can already fit at least one sample without OOMing, but not enough of them.
+   ":ref:`glossary_low_precision_opt`", "Use it When you have a large model, since optimizer state is 2x model size, and need to further reduce memory. Note that lower precision optimizers may reduce training stability/accuracy."
+   ":ref:`glossary_opt_in_bwd`", "Use it when you have large gradients and can fit a large enough batch size, since this is not compatible with ``gradient_accumulation_steps``."
+   ":ref:`glossary_cpu_offload`", "Offloads optimizer states and (optionally) gradients to CPU, performing optimizer steps on CPU. This can be used to significantly reduce GPU memory usage at the cost of CPU RAM and training speed. Prioritize using it only if the other techniques are not enough."
    ":ref:`glossary_lora`", "When you want to significantly reduce the number of trainable parameters, saving gradient and optimizer memory during training, and significantly speeding up training. This may reduce training accuracy"
-   ":ref:`glossary_qlora`", "When you are training a large model and quantizing it will save significant memory, at the potential cost of some training speed and accuracy."
-   ":ref:`glossary_dora`", "Like LoRA, DoRA can provide significant memory savings and training speed-ups. DoRA may improve performance over LoRA, particularly when using small rank updates."
+   ":ref:`glossary_qlora`", "When you are training a large model, since quantization will save 1.5 bytes * (# of model parameters), at the potential cost of some training speed and accuracy."
+   ":ref:`glossary_dora`", "A variant of LoRA."
 
 
 .. note::
@@ -83,8 +83,7 @@ and in most cases training can slow down quite a bit as a result of this activat
 
 *Sounds great! How do I use it?*
 
-To enable activation checkpointing, use the ``enable_activation_checkpointing`` config entry or flag
-in any of our recipes, e.g. ``enable_activation_checkpointing=True``.
+To enable activation checkpointing, use ``enable_activation_checkpointing=True``.
 
 .. _glossary_act_off:
 
@@ -109,8 +108,7 @@ tensors will be offloaded.
 
 *Sounds great! How do I use it?*
 
-To enable activation offloading, use the ``enable_activation_offloading`` config entry or flag
-in our lora finetuning single device recipe, e.g. ``enable_activation_offloading=True``. If you are on torch
+To enable activation offloading, use ``enable_activation_offloading=True``. If you are on torch
 version later than PyTorch 2.5.0, it will allow the usage of multiple CUDA streams automatically.
 
 .. _glossary_grad_accm:
@@ -143,8 +141,8 @@ If you're using one of our distributed recipes, simply multiply by the number of
 
   ``total_batch_size = batch_size * gradient_accumulation_steps * num_devices``
 
-Gradient accumulation is especially useful when you can fit only a couple of batches in your GPU, even after using LoRA or
-optimizer in backward. In this case, accumulating gradients might give you faster training speeds than using other memory optimization techniques like :ref:`activation checkpointing <glossary_act_ckpt>`.
+Gradient accumulation is especially useful when you can fit at least one sample in your GPU. In this case, artificially increasing the batch by
+accumulating gradients might give you faster training speeds than using other memory optimization techniques that trade-off memory for speed, like :ref:`activation checkpointing <glossary_act_ckpt>`.
 
 *Sounds great! How do I use it?*
 
@@ -166,10 +164,12 @@ Lower Precision Optimizers
 *What's going on here?*
 
 In addition to :ref:`reducing model and optimizer precision <glossary_precision>` during training, we can further reduce precision in our optimizer states.
-All of our single-device fine-tuning recipes support lower-precision optimizers from the `torchao <https://github.com/pytorch/ao/tree/main/torchao/prototype/low_bit_optim>`_
-or `bitsandbytes <https://huggingface.co/docs/bitsandbytes/main/en/index>`_ libraries - a good place to start might be the ``AdamW8bit`` and ``PagedAdamW8bit`` optimizers,
-which we've tested our recipes with. Note that bitsandbytes low-precision optimizers are not currently compatible with
-our distributed training recipes.
+All of our recipes support lower-precision optimizers from the `torchao <https://github.com/pytorch/ao/tree/main/torchao/prototype/low_bit_optim>`_ library.
+For single device recipes, we also support `bitsandbytes <https://huggingface.co/docs/bitsandbytes/main/en/index>`_ .
+
+A good place to start might be the :class:`torchao.prototype.low_bit_optim.torchao.AdamW8bit` and :class:`bitsandbytes.optim.PagedAdamW8bit` optimizers.
+Both reduce memory by quanting the optimizer state dict. The PagedAdam will also offload to CPU if there isn't enough GPU memory available. In practice,
+you can expect higher memory savings from bnb's PagedAdamW8bit but higher training speed from torchao's AdamW8bit.
 
 *Sounds great! How do I use it?*
 
@@ -237,7 +237,7 @@ through the `CPUOffloadOptimizer <https://github.com/pytorch/ao/tree/main/torcha
 This optimizer can wrap any base optimizer and works by keeping the optimizer states and performing the optimizer step on CPU, thus reducing
 GPU memory usage by the size of the optimizer states. Additionally, we can also offload gradients to the CPU by using `offload_gradients=True`.
 
-If finetuning on a single-device, another option is to use the PagedAdamW8bit from bitsandbytes, mentioned above, which will *only* offload to CPU
+If finetuning on a single-device, another option is to use the ``PagedAdamW8bit`` from bitsandbytes, mentioned :ref:`above <glossary_low_precision_opt>`, which will *only* offload to CPU
 when there is not enough GPU available.
 
 *Sounds great! How do I use it?*
@@ -283,7 +283,7 @@ Some helpful hints from the ``torchao`` `CPUOffloadOptimizer page <https://githu
 * The CPU optimizer step is often the bottleneck when optimizer CPU offload is used. To minimize the slowdown, it is recommended to (1) use full ``bf16`` training so that parameters, gradients, and optimizer states are in ``bf16``; and (2) give GPU more work per optimizer step to amortize the offloading time (e.g. larger batch size with activation checkpointing, gradient accumulation).
 * Gradient accumulation should always be set to 1 when ``offload_gradients=True``, as gradients are cleared on GPU every backward pass.
 * This optimizer works by keeping a copy of parameters and pre-allocating gradient memory on CPU. Therefore, expect your RAM usage to increase by 4x model size.
-* This optimizer is only supported for single-device recipes. To use CPU-offloading in distributed recipes, use ``fsdp_cpu_offload=True`` instead. See :class:`torch.distributed.fsdp.FullyShardedDataParallel` for more details
+* This optimizer is only supported for single-device recipes. To use CPU-offloading in distributed recipes, use ``fsdp_cpu_offload=True`` instead. See :class:`torch.distributed.fsdp.FullyShardedDataParallel` for more details and `FSDP1 vs FSDP2 <https://github.com/pytorch/torchtitan/blob/main/docs/fsdp.md>_` to see how they differ.
 
 
 .. _glossary_peft:
@@ -404,9 +404,9 @@ This is enabled through a novel  4-bit NormalFloat (NF4) data type proposed by t
 parameter memory usage whilst retaining model accuracy. You can read our tutorial on :ref:`finetuning Llama2 with QLoRA<qlora_finetune_label>`
 for a deeper understanding of how it works.
 
-When considering using QLoRA to reduce memory usage, it's worth noting that a) QLoRA is slower than LoRA and may not be worth it if
-the model you are finetuning is small; b) QLoRA prevents accuracy degradation during quantization by up-casting quantized parameters
-to the original higher precision datatype during model forward passes - this up-casting may incur penalties to training speed.
+When considering using QLoRA to reduce memory usage, it's worth noting that QLoRA is slower than LoRA and may not be worth it if
+the model you are finetuning is small. In numbers, QLoRA saves roughly 1.5 bytes * (# of model parameters). Also, although QLoRA quantizes the model,
+it minimizes accuracy degradation by up-casting quantized parameters to the original higher precision datatype during model forward passes - this up-casting may incur penalties to training speed.
 The :ref:`relevant section <qlora_compile_label>` in our QLoRA tutorial demonstrates the usage of ``torch.compile`` to address this by speeding up training.
 
 *Sounds great! How do I use it?*
