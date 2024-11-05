@@ -104,7 +104,7 @@ This setting is especially helpful for larger batch sizes, or longer context len
 While of course it takes runtime and resources to move Tensors from GPU to CPU and back, the implementation in
 torchtune uses multiple CUDA streams (when available) in order to overlap the extra communication with the computation
 to hide the extra runtime. As the communication workload is variable depending on the number and size of tensors being
-offloaded, we do not recommend using it unless Activation Checkpointing is also enabled, in which case only the checkpointed
+offloaded, we do not recommend using it unless :ref:`glossary_act_ckpt` is also enabled, in which case only the checkpointed
 tensors will be offloaded.
 
 *Sounds great! How do I use it?*
