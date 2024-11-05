@@ -277,7 +277,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
 
         # If the recipe state needs to be output, first remove the model state dict
         if intermediate_checkpoint:
-            _ = state_dict.pop(training.MODEL_KEY)
+            _ = state_dict.pop(training.MODEL_KEY, None)
             _ = state_dict.pop(training.ADAPTER_KEY, None)
             _ = state_dict.pop(training.ADAPTER_CONFIG, None)
             output_path = Path.joinpath(self._output_dir, "recipe_state.pt")
@@ -889,7 +889,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         # If the recipe state needs to be output, first remove the model state dict
         # and if it exists, remove the adapter state dict as well
         if intermediate_checkpoint:
-            _ = state_dict.pop(training.MODEL_KEY)
+            _ = state_dict.pop(training.MODEL_KEY, None)
             _ = state_dict.pop(training.ADAPTER_KEY, None)
             _ = state_dict.pop(training.ADAPTER_CONFIG, None)
             output_path = Path.joinpath(self._output_dir, "recipe_state.pt")
