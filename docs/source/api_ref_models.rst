@@ -208,33 +208,20 @@ To download the CodeLlama-7B model:
     code_llama2.lora_code_llama2_70b
     code_llama2.qlora_code_llama2_70b
 
-qwen-2 & qwen-2.5
------------------
+qwen-2.5
+--------
 
-Models of size 0.5B, 1.5B, 3B, 7B, 14B, 32B, 72B from the `Qwen2.5 family <https://huggingface.co/collections/Qwen/qwen25-66e81a666513e518adb90d9e>`_
-and 0.5B, 1.5B, and 7B from the `Qwen2 family <https://huggingface.co/collections/Qwen/qwen2-6659360b33528ced941e557f>`_.
+Models of size 0.5B, 1.5B, 3B, 7B, 14B, 32B, 72B from the `Qwen2.5 family <https://huggingface.co/collections/Qwen/qwen25-66e81a666513e518adb90d9e>`_.
 
-To download the Qwen2 1.5B model, for example:
+To download the Qwen2.5 1.5B model, for example:
 
 .. code-block:: bash
 
-    tune download Qwen/Qwen2-1.5B-Instruct --output-dir /tmp/Qwen2-1.5B-Instruct --ignore-patterns None
+    tune download Qwen/Qwen2.5-1.5B-Instruct --output-dir /tmp/Qwen2_5-1_5B-Instruct --ignore-patterns None
 
 .. autosummary::
     :toctree: generated/
     :nosignatures:
-
-    qwen2.qwen2
-    qwen2.lora_qwen2
-    qwen2.qwen2_0_5b
-    qwen2.lora_qwen2_0_5b
-    qwen2.qwen2_1_5b
-    qwen2.lora_qwen2_1_5b
-    qwen2.qwen2_7b
-    qwen2.lora_qwen2_7b
-    qwen2.qwen2_tokenizer
-
-    |
 
     qwen2_5.qwen2_5_0_5b
     qwen2_5.lora_qwen2_5_0_5b
@@ -261,6 +248,31 @@ To download the Qwen2 1.5B model, for example:
     qwen2_5.lora_qwen2_5_72b_base
     qwen2_5.lora_qwen2_5_72b_instruct
     qwen2_5.qwen2_5_tokenizer
+
+qwen-2
+------
+
+Models of size 0.5B, 1.5B, and 7B from the `Qwen2 family <https://huggingface.co/collections/Qwen/qwen2-6659360b33528ced941e557f>`_.
+
+To download the Qwen2 1.5B model, for example:
+
+.. code-block:: bash
+
+    tune download Qwen/Qwen2-1.5B-Instruct --output-dir /tmp/Qwen2-1.5B-Instruct --ignore-patterns None
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    qwen2.qwen2
+    qwen2.lora_qwen2
+    qwen2.qwen2_0_5b
+    qwen2.lora_qwen2_0_5b
+    qwen2.qwen2_1_5b
+    qwen2.lora_qwen2_1_5b
+    qwen2.qwen2_7b
+    qwen2.lora_qwen2_7b
+    qwen2.qwen2_tokenizer
 
 phi-3
 -----
