@@ -29,7 +29,7 @@ def qwen2_5_0_5b() -> TransformerDecoder:
         TransformerDecoder: Instantiation of Qwen2.5 0.5B model
 
     Note:
-        Qwen2.5 0.5B-3B model builders will enable `tie_word_embeddings` by default.
+        Qwen2.5 0.5B-3B model builders will enable ``tie_word_embeddings`` by default (see :func:`~torchtune.models.qwen2.qwen2`)
     """
     return qwen2(
         vocab_size=151936,
@@ -59,7 +59,7 @@ def qwen2_5_1_5b_base() -> TransformerDecoder:
         except 0.5B and 3B. Make sure to select the correct model builder for the weights.
 
     Note:
-        Qwen2.5 0.5B-3B model builders will enable `tie_word_embeddings` by default.
+        Qwen2.5 0.5B-3B model builders will enable ``tie_word_embeddings`` by default (see :func:`~torchtune.models.qwen2.qwen2`).
     """
     return qwen2(
         vocab_size=151936,
@@ -89,7 +89,7 @@ def qwen2_5_1_5b_instruct() -> TransformerDecoder:
         except 0.5B and 3B. Make sure to select the correct model builder for the weights.
 
     Note:
-        Qwen2.5 0.5B-3B model builders will enable `tie_word_embeddings` by default.
+        Qwen2.5 0.5B-3B model builders will enable ``tie_word_embeddings`` by default (see :func:`~torchtune.models.qwen2.qwen2`)
     """
     return qwen2(
         vocab_size=151936,
@@ -115,7 +115,7 @@ def qwen2_5_3b() -> TransformerDecoder:
         TransformerDecoder: Instantiation of Qwen2.5 3B model
 
     Note:
-        Qwen2.5 0.5B-3B model builders will enable `tie_word_embeddings` by default.
+        Qwen2.5 0.5B-3B model builders will enable ``tie_word_embeddings`` by default (see :func:`~torchtune.models.qwen2.qwen2`)
     """
     return qwen2(
         vocab_size=151936,
@@ -419,7 +419,7 @@ def lora_qwen2_5_0_5b(
         TransformerDecoder: Instantiation of Qwen2.5 0.5B model with LoRA applied
 
     Note:
-        Qwen2.5 0.5B-3B model builders will enable `tie_word_embeddings` by default.
+        Qwen2.5 0.5B-3B model builders will enable ``tie_word_embeddings`` by default (see :func:`~torchtune.models.qwen2.qwen2`)
     """
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
@@ -476,7 +476,7 @@ def lora_qwen2_5_1_5b_base(
         TransformerDecoder: Instantiation of Qwen2.5 1.5B model with LoRA applied
 
     Note:
-        Qwen2.5 0.5B-3B model builders will enable `tie_word_embeddings` by default.
+        Qwen2.5 0.5B-3B model builders will enable ``tie_word_embeddings`` by default (see :func:`~torchtune.models.qwen2.qwen2`)
 
     Note:
         The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
@@ -537,7 +537,7 @@ def lora_qwen2_5_1_5b_instruct(
         TransformerDecoder: Instantiation of Qwen2.5 1.5B model with LoRA applied
 
     Note:
-        Qwen2.5 0.5B-3B model builders will enable `tie_word_embeddings` by default.
+        Qwen2.5 0.5B-3B model builders will enable ``tie_word_embeddings`` by default (see :func:`~torchtune.models.qwen2.qwen2`)
 
     Note:
         The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
@@ -598,7 +598,7 @@ def lora_qwen2_5_3b(
         TransformerDecoder: Instantiation of Qwen2.5 3B model with LoRA applied
 
     Note:
-        Qwen2.5 0.5B-3B model builders will enable `tie_word_embeddings` by default.
+        Qwen2.5 0.5B-3B model builders will enable ``tie_word_embeddings`` by default (see :func:`~torchtune.models.qwen2.qwen2`)
     """
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
