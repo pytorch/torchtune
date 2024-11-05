@@ -144,9 +144,7 @@ If you're using one of our distributed recipes, simply multiply by the number of
   ``total_batch_size = batch_size * gradient_accumulation_steps * num_devices``
 
 Gradient accumulation is especially useful when you can fit only a couple of batches in your GPU, even after using LoRA or
-optimizer in backward. In this case, accumulating gradients might give you better training speed than
-enabling :ref:`activation checkpointing <glossary_act_ckpt>`, since activation checkpointing reduces memory
-consumption at the cost of repeated computations.
+optimizer in backward. In this case, accumulating gradients might give you faster training speeds than using other memory optimization techniques like :ref:`activation checkpointing <glossary_act_ckpt>`.
 
 *Sounds great! How do I use it?*
 
