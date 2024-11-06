@@ -25,8 +25,10 @@ class RMSNorm(nn.Module):
 
     def __init__(self, dim: int, eps: float = 1e-6) -> None:
         super().__init__()
-        self.eps = eps
-        self.scale = nn.Parameter(torch.ones(dim))
+        self._dim = dim
+        self._original_eps = eps
+        self.reset_parameters()
+
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -42,3 +44,7 @@ class RMSNorm(nn.Module):
             x_fp32 * torch.rsqrt(x_fp32.pow(2).mean(-1, keepdim=True) + self.eps)
         ).type_as(x)
         return x_normed * self.scale
+
+    def reset_parameters(self) -> None:
+        self.eps = self._original_eps
+        self.scale = nn.Parameter(torch.ones(self._dim))
