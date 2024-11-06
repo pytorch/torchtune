@@ -164,7 +164,7 @@ class MultiHeadAttention(nn.Module):
             self.kv_cache = KVCache(
                 batch_size=batch_size,
                 max_seq_len=max_seq_len,
-                num_heads=self.num_heads,
+                num_kv_heads=self.num_kv_heads,
                 head_dim=self.head_dim,
                 dtype=dtype,
             )
@@ -269,35 +269,35 @@ class MultiHeadAttention(nn.Module):
             if self.pos_embeddings is not None:
                 k = self.pos_embeddings(k, input_pos=input_pos)
 
-            # View + expand + reshape bring num_kv_heads to num_heads for k and v
-            # to match q.
-
-            # k: [b, s_y, n_kv, 1, h_d]
-            # v: [b, s_y, n_kv, 1, h_d]
-            k = k.view(b, s_y, self.num_kv_heads, 1, self.head_dim)
-            v = v.view(b, s_y, self.num_kv_heads, 1, self.head_dim)
-
-            # If needed, expand the key and value tensors to have the same shape
-            # as the query tensor by copying values across the relevant dim
-            if self.num_heads != self.num_kv_heads:
-                k = k.expand(b, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
-                v = v.expand(b, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
-
-            # [b, s, n_h, h_d]
-            k = k.reshape(b, s_y, -1, self.head_dim)
-            v = v.reshape(b, s_y, -1, self.head_dim)
-
             # [b, n_h, s, h_d]
             k = k.transpose(1, 2)
             v = v.transpose(1, 2)
 
-            # Normalize k
-            if self.k_norm is not None:
-                k = self.k_norm(k)
-
             # Update key-value cache
             if self.kv_cache is not None and self.cache_enabled:
                 k, v = self.kv_cache.update(k, v)
+
+            # View + expand + reshape bring num_kv_heads to num_heads for k and v
+            # to match q.
+
+            # k: [b, n_kv, 1, s_y, h_d]
+            # v: [b, n_kv, 1, s_y, h_d]
+            k = k.view(b, self.num_kv_heads, 1, s_y, self.head_dim)
+            v = v.view(b, self.num_kv_heads, 1, s_y, self.head_dim)
+
+            # If needed, expand the key and value tensors to have the same shape
+            # as the query tensor by copying values across the relevant dim
+            if self.num_heads != self.num_kv_heads:
+                k = k.expand(b, self.num_kv_heads, q_per_kv, s_y, self.head_dim)
+                v = v.expand(b, self.num_kv_heads, q_per_kv, s_y, self.head_dim)
+
+            # [b, s, n_h, h_d]
+            k = k.reshape(b, -1, s_y, self.head_dim)
+            v = v.reshape(b, -1, s_y, self.head_dim)
+
+            # Normalize k
+            if self.k_norm is not None:
+                k = self.k_norm(k)
 
         output = self._attention_call(
             q,
