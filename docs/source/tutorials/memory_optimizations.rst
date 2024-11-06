@@ -15,7 +15,7 @@ To make things easy, we've summarized these components in the following table:
    :widths: auto
 
    ":ref:`glossary_precision`", "You'll usually want to leave this as its default ``bfloat16``. It uses 2 bytes per model parameter, half of fp32."
-   ":ref:`glossary_act_ckpt`", "Use when you're memory constrained and want to use a larger model, batch size or context lengths. Be aware that it will slow down training speed."
+   ":ref:`glossary_act_ckpt`", "Use when you're memory constrained and want to use a larger model, batch size or context length. Be aware that it will slow down training speed."
    ":ref:`glossary_act_off`", "Similar to activation checkpointing, this can be used when memory constrained, but may decrease training speed. This **should** be used alongside activation checkpointing."
    ":ref:`glossary_grad_accm`", "Helpful when memory-constrained to simulate larger batch sizes. Not compatible with optimizer in backward. Use it when you can already fit at least one sample without OOMing, but not enough of them."
    ":ref:`glossary_low_precision_opt`", "Use it when you have a large model, since optimizer state is 2x model size, and need to further reduce memory. Note that lower precision optimizers may reduce training stability/accuracy."
