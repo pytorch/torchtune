@@ -261,6 +261,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # should be called before ``_setup_optimizer`` since transforming the optimizer
         # state dict requires the model
         self._compile = cfg.compile
+        if cfg.device == "npu" and cfg.compile:
+            raise ValueError(
+                "NPU does not support model compilation. Please set `compile: False` in the config."
+            )
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
@@ -439,7 +443,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         log.info(f"Model is initialized with precision {self._dtype}.")
 
-        if self._device.type == "cuda":
+        if self._device.type != "cpu":
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
@@ -738,7 +742,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             ),
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
-                        if self._device.type == "cuda" and self._log_peak_memory_stats:
+                        if self._device.type != "cpu" and self._log_peak_memory_stats:
                             log_dict.update(
                                 training.get_memory_stats(device=self._device)
                             )
