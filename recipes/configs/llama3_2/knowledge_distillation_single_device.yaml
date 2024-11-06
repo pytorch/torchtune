@@ -63,7 +63,7 @@ teacher_checkpointer:
 # Dataset and Sampler
 dataset:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
-  packed: False # Set to true for great speed ups
+  packed: False  # True increases speed
 seed: null
 shuffle: True
 batch_size: 4
@@ -127,6 +127,6 @@ profiler:
   # `torch.profiler.schedule` options:
   # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
   wait_steps: 5
-  warmup_steps: 5
+  warmup_steps: 3
   active_steps: 2
   num_cycles: 1
