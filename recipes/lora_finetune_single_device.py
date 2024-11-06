@@ -32,6 +32,7 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
+
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -169,10 +170,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 raise RuntimeError(
                     "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
                 )
-        elif self._enable_activation_checkpointing:
-            log.info(
+        elif (
+            self._enable_activation_checkpointing
+            and cfg.checkpointer.model_type != "LLAMA3_VISION"
+        ):
+            utils.log_rank_zero(
+                log,
                 "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
-                "Enabling activation offloading should reduce memory further."
+                "Enabling activation offloading should reduce memory further.",
             )
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
@@ -248,6 +253,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._metric_logger.log_config(cfg)
 
         self._compile = cfg.compile
+        if cfg.device == "npu" and cfg.compile:
+            raise ValueError(
+                "NPU does not support model compilation. Please set `compile: False` in the config."
+            )
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
         # hack to toggle to the low cpu ram version of the reparametrize_as_dtype
@@ -470,7 +479,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         log.info(f"Model is initialized with precision {self._dtype}.")
 
-        if self._device.type == "cuda":
+        if self._device.type != "cpu":
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
         return model
