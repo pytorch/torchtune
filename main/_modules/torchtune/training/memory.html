@@ -445,7 +445,7 @@
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">torch.distributed.fsdp.wrap</span> <span class="kn">import</span> <span class="n">ModuleWrapPolicy</span>
 <span class="kn">from</span> <span class="nn">torch.optim.lr_scheduler</span> <span class="kn">import</span> <span class="n">LRScheduler</span>
-<span class="kn">from</span> <span class="nn">torchtune.utils</span> <span class="kn">import</span> <span class="n">get_logger</span>
+<span class="kn">from</span> <span class="nn">torchtune.utils</span> <span class="kn">import</span> <span class="n">get_device_support</span><span class="p">,</span> <span class="n">get_logger</span><span class="p">,</span> <span class="n">get_torch_device_namespace</span>
 
 <span class="n">_log</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">()</span>
 
@@ -474,11 +474,11 @@
 
 <span class="k">def</span> <span class="nf">cleanup_before_training</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Call gc collect, empty CUDA cache, and reset peak memory stats.</span>
+<span class="sd">    Call gc collect, empty device cache, and reset peak memory stats.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
-    <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">empty_cache</span><span class="p">()</span>
-    <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">reset_peak_memory_stats</span><span class="p">()</span>
+    <span class="n">get_torch_device_namespace</span><span class="p">()</span><span class="o">.</span><span class="n">empty_cache</span><span class="p">()</span>
+    <span class="n">get_torch_device_namespace</span><span class="p">()</span><span class="o">.</span><span class="n">reset_peak_memory_stats</span><span class="p">()</span>
 
 
 <div class="viewcode-block" id="OptimizerInBackwardWrapper"><a class="viewcode-back" href="../../../generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper">[docs]</a><span class="k">class</span> <span class="nc">OptimizerInBackwardWrapper</span><span class="p">:</span>
@@ -689,19 +689,17 @@
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If the passed-in device is not CUDA.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s2">&quot;cuda&quot;</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Logging memory stats is only supported on CUDA devices, got </span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;cpu&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Logging memory stats is not supported on CPU devices&quot;</span><span class="p">)</span>
 
-    <span class="n">peak_memory_active</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">memory_stats</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;active_bytes.all.peak&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
+    <span class="n">torch_device</span> <span class="o">=</span> <span class="n">get_torch_device_namespace</span><span class="p">()</span>
+    <span class="n">peak_memory_active</span> <span class="o">=</span> <span class="n">torch_device</span><span class="o">.</span><span class="n">memory_stats</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;active_bytes.all.peak&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
         <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span>
     <span class="p">)</span>
-    <span class="n">peak_mem_alloc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">max_memory_allocated</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
-    <span class="n">peak_mem_reserved</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">max_memory_reserved</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
-
+    <span class="n">peak_mem_alloc</span> <span class="o">=</span> <span class="n">torch_device</span><span class="o">.</span><span class="n">max_memory_allocated</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">peak_mem_reserved</span> <span class="o">=</span> <span class="n">torch_device</span><span class="o">.</span><span class="n">max_memory_reserved</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">reset_stats</span><span class="p">:</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">reset_peak_memory_stats</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">torch_device</span><span class="o">.</span><span class="n">reset_peak_memory_stats</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
     <span class="n">memory_stats</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">&quot;peak_memory_active&quot;</span><span class="p">:</span> <span class="n">peak_memory_active</span><span class="p">,</span>
@@ -721,11 +719,12 @@
 <span class="sd">        stats (Dict[str, float]): A dictionary containing the peak memory active, peak memory</span>
 <span class="sd">            allocated, and peak memory reserved stats.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">device_support</span> <span class="o">=</span> <span class="n">get_device_support</span><span class="p">()</span>
     <span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
         <span class="s2">&quot;Memory stats after model init:&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">GPU peak memory allocation: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;peak_memory_alloc&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">GPU peak memory reserved: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;peak_memory_reserved&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">GPU peak memory active: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;peak_memory_active&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="si">{</span><span class="n">device_support</span><span class="o">.</span><span class="n">device_name</span><span class="si">}</span><span class="s2"> peak memory allocation: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;peak_memory_alloc&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="si">{</span><span class="n">device_support</span><span class="o">.</span><span class="n">device_name</span><span class="si">}</span><span class="s2"> peak memory reserved: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;peak_memory_reserved&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="si">{</span><span class="n">device_support</span><span class="o">.</span><span class="n">device_name</span><span class="si">}</span><span class="s2"> peak memory active: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;peak_memory_active&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB&quot;</span>
     <span class="p">)</span></div>
 </pre></div>
 

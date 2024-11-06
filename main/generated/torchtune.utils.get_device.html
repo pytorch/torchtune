@@ -441,10 +441,10 @@
 <dd><p>Function that takes an optional device string, verifies it’s correct and available given the machine and
 distributed settings, and returns a <code class="xref py py-func docutils literal notranslate"><span class="pre">device()</span></code>. If device string is not provided, this function will
 infer the device based on the environment.</p>
-<p>If CUDA is available and being used, this function also sets the CUDA device.</p>
+<p>If CUDA-like is available and being used, this function also sets the CUDA-like device.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>device</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – The name of the device to use, e.g. “cuda” or “cpu”.</p>
+<dd class="field-odd"><p><strong>device</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – The name of the device to use, e.g. “cuda” or “cpu” or “npu”.</p>
 </dd>
 </dl>
 <p class="rubric">Example</p>
