@@ -16,6 +16,7 @@ from safetensors.torch import save_file
 from torchtune import training
 
 from torchtune.models import convert_weights
+from torchtune.models.clip._convert_weights import clip_text_hf_to_tune
 from torchtune.models.phi3._convert_weights import phi3_hf_to_tune, phi3_tune_to_hf
 from torchtune.models.qwen2._convert_weights import qwen2_hf_to_tune, qwen2_tune_to_hf
 from torchtune.rlhf.utils import reward_hf_to_tune, reward_tune_to_hf
@@ -487,6 +488,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 supported_aspect_ratios=vision_config.get(
                     "supported_aspect_ratios", None
                 ),
+            )
+        elif self._model_type == ModelType.CLIP_TEXT:
+            converted_state_dict[training.MODEL_KEY] = clip_text_hf_to_tune(
+                merged_state_dict,
             )
         else:
             converted_state_dict[training.MODEL_KEY] = convert_weights.hf_to_tune(

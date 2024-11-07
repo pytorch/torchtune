@@ -55,6 +55,7 @@ class ModelType(Enum):
             to a single class for reward modelling.
             See :func:`~torchtune.models.mistral.mistral_reward_7b` or :func:`~torchtune.models.llama2.llama2_reward_7b`
         QWEN2 (str): Qwen2 family of models. See :func:`~torchtune.models.qwen2.qwen2`
+        CLIP_TEXT (str): CLIP text encoder. See :func:`~torchtune.models.clip.clip_text_encoder_large`
 
     Example:
         >>> # Usage in a checkpointer class
@@ -73,6 +74,7 @@ class ModelType(Enum):
     PHI3_MINI: str = "phi3_mini"
     REWARD: str = "reward"
     QWEN2: str = "qwen2"
+    CLIP_TEXT: str = "clip_text"
 
 
 class FormattedCheckpointFiles:
