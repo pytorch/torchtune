@@ -8,7 +8,6 @@ from pathlib import Path
 import requests
 from tqdm import tqdm
 
-
 TORCHTUNE_LOCAL_CACHE_FOLDER = Path("~/.cache/torchtune").expanduser()
 
 

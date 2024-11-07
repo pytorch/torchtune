@@ -41,7 +41,6 @@ _IGNORE = {
 def clip_text_hf_to_tune(state_dict):
     converted_state_dict = {}
     for key, value in state_dict.items():
-        # print(key)
         if key.startswith("vision_model.") or key in _IGNORE:
             continue
         new_key = get_mapped_key(key, _FROM_HF)

@@ -3,18 +3,22 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from torchtune.models.clip._transform import CLIPImageTransform
 from pathlib import Path
 
-from torchtune.utils._download import download_file, TORCHTUNE_LOCAL_CACHE_FOLDER
-from torchtune.models.clip._tokenizer import CLIPTokenizer
 from torchtune.models.clip._text_encoder import CLIPTextEncoder
+from torchtune.models.clip._tokenizer import CLIPTokenizer
+from torchtune.models.clip._transform import CLIPImageTransform
+from torchtune.utils._download import TORCHTUNE_LOCAL_CACHE_FOLDER, download_file
+
+CLIP_VOCAB_URL = "https://github.com/openai/CLIP/raw/refs/heads/main/clip/bpe_simple_vocab_16e6.txt.gz"
 
 
-CLIP_VOCAB_URL = 'https://github.com/openai/CLIP/raw/refs/heads/main/clip/bpe_simple_vocab_16e6.txt.gz'
-
-
-def clip_tokenizer(vocab_path: Path = TORCHTUNE_LOCAL_CACHE_FOLDER / 'clip_vocab.txt.gz', download_if_missing: bool = True, max_seq_len: int = 77, truncate: bool = True) -> CLIPTokenizer:
+def clip_tokenizer(
+    vocab_path: Path = TORCHTUNE_LOCAL_CACHE_FOLDER / "clip_vocab.txt.gz",
+    download_if_missing: bool = True,
+    max_seq_len: int = 77,
+    truncate: bool = True,
+) -> CLIPTokenizer:
     """
     Builder for the CLIP text tokenizer.
 
@@ -32,9 +36,9 @@ def clip_tokenizer(vocab_path: Path = TORCHTUNE_LOCAL_CACHE_FOLDER / 'clip_vocab
         CLIPTokenizer: Instantiation of the CLIP text tokenizer
     """
     if not vocab_path.exists():
-        assert download_if_missing, f'Missing CLIP tokenizer vocab: {vocab_path}'
+        assert download_if_missing, f"Missing CLIP tokenizer vocab: {vocab_path}"
         download_file(CLIP_VOCAB_URL, vocab_path)
-    
+
     return CLIPTokenizer(vocab_path, max_seq_len=max_seq_len, truncate=truncate)
 
 
