@@ -446,34 +446,34 @@ To make things easy, we’ve summarized these components in the following table:
 </thead>
 <tbody>
 <tr class="row-even"><td><p><a class="reference internal" href="#glossary-precision"><span class="std std-ref">Model Precision</span></a></p></td>
-<td><p>You’ll usually want to leave this as its default <code class="docutils literal notranslate"><span class="pre">bfloat16</span></code>. If you’re struggling with training stability or accuracy due to precision, fp32 may help, but will significantly increase memory usage and decrease training speed.</p></td>
+<td><p>You’ll usually want to leave this as its default <code class="docutils literal notranslate"><span class="pre">bfloat16</span></code>. It uses 2 bytes per model parameter instead of 4 bytes when using <code class="docutils literal notranslate"><span class="pre">float32</span></code>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#glossary-act-ckpt"><span class="std std-ref">Activation Checkpointing</span></a></p></td>
-<td><p>Use when you’re memory constrained and need to handle larger batch sizes or longer context lengths. Be aware that it may slow down training speed.</p></td>
+<td><p>Use when you’re memory constrained and want to use a larger model, batch size or context length. Be aware that it will slow down training speed.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#glossary-act-off"><span class="std std-ref">Activation Offloading</span></a></p></td>
-<td><p>Similar to activation checkpointing, this can be used when memory constrained, but comes at the cost of training speed due to the overhead of moving tensors between GPU VRAM and CPU. This can also be used alongside activation checkpointing.</p></td>
+<td><p>Similar to activation checkpointing, this can be used when memory constrained, but may decrease training speed. This <strong>should</strong> be used alongside activation checkpointing.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#glossary-grad-accm"><span class="std std-ref">Gradient Accumulation</span></a></p></td>
-<td><p>Helpful when memory-constrained to simulate larger batch sizes. Often preferable to activation checkpointing for better training speed.</p></td>
+<td><p>Helpful when memory-constrained to simulate larger batch sizes. Not compatible with optimizer in backward. Use it when you can already fit at least one sample without OOMing, but not enough of them.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#glossary-low-precision-opt"><span class="std std-ref">Lower Precision Optimizers</span></a></p></td>
-<td><p>When you need to further reduce memory usage beyond using <code class="docutils literal notranslate"><span class="pre">bf16</span></code> by reducing the precision in the optimizer states. Note that lower precision optimizers may reduce training stability/accuracy.</p></td>
+<td><p>Use when you want to reduce the size of the optimizer state. This is relevant when training large models and using optimizers with momentum, like Adam. Note that lower precision optimizers may reduce training stability/accuracy.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#glossary-opt-in-bwd"><span class="std std-ref">Fusing Optimizer Step into Backward Pass</span></a></p></td>
-<td><p>Helps reduce memory usage when using stateful optimizers, particularly when full-finetuning large models with high gradient memory usage. This is not compatible with <code class="docutils literal notranslate"><span class="pre">gradient_accumulation_steps</span></code>, so training may slow down due to reduced model throughput.</p></td>
+<td><p>Use it when you have large gradients and can fit a large enough batch size, since this is not compatible with <code class="docutils literal notranslate"><span class="pre">gradient_accumulation_steps</span></code>.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#glossary-cpu-offload"><span class="std std-ref">Offloading Optimizer/Gradient states to CPU</span></a></p></td>
-<td><p>Offloads optimizer states and (optionally) gradients to CPU, and performs optimizer steps on CPU. This can be used to significantly reduce GPU memory usage at the cost of CPU RAM and training speed, as CPU optimizer steps can be slow and bottleneck training performance.</p></td>
+<td><p>Offloads optimizer states and (optionally) gradients to CPU, and performs optimizer steps on CPU. This can be used to significantly reduce GPU memory usage at the cost of CPU RAM and training speed. Prioritize using it only if the other techniques are not enough.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#glossary-lora"><span class="std std-ref">Low Rank Adaptation (LoRA)</span></a></p></td>
-<td><p>When you want to significantly reduce the number of trainable parameters, saving gradient and optimizer memory during training, and significantly speeding up training.</p></td>
+<td><p>When you want to significantly reduce the number of trainable parameters, saving gradient and optimizer memory during training, and significantly speeding up training. This may reduce training accuracy</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#glossary-qlora"><span class="std std-ref">Quantized Low Rank Adaptation (QLoRA)</span></a></p></td>
-<td><p>When you need even more memory savings than LoRA, at the potential cost of some training speed. Useful for very large models or limited hardware.</p></td>
+<td><p>When you are training a large model, since quantization will save 1.5 bytes * (# of model parameters), at the potential cost of some training speed and accuracy.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#glossary-dora"><span class="std std-ref">Weight-Decomposed Low-Rank Adaptation (DoRA)</span></a></p></td>
-<td><p>Like LoRA, DoRA can provide significant memory savings and training speed-ups. DoRA may improve performance over LoRA, particularly when using small rank updates.</p></td>
+<td><p>a variant of LoRA that may improve model performance at the cost of slightly more memory.</p></td>
 </tr>
 </tbody>
 </table>
@@ -522,8 +522,7 @@ regions omits saving tensors for backward and recomputes them during the backwar
 However, these savings in memory come at the cost of training speed (i.e. tokens-per-second),
 and in most cases training can slow down quite a bit as a result of this activation recomputation.</p>
 <p><em>Sounds great! How do I use it?</em></p>
-<p>To enable activation checkpointing, use the <code class="docutils literal notranslate"><span class="pre">enable_activation_checkpointing</span></code> config entry or flag
-in any of our recipes, e.g. <code class="docutils literal notranslate"><span class="pre">enable_activation_checkpointing=True</span></code>.</p>
+<p>To enable activation checkpointing, use <code class="docutils literal notranslate"><span class="pre">enable_activation_checkpointing=True</span></code>.</p>
 </section>
 <section id="activation-offloading">
 <span id="glossary-act-off"></span><h2>Activation Offloading<a class="headerlink" href="#activation-offloading" title="Permalink to this heading">¶</a></h2>
@@ -537,12 +536,11 @@ for more details about how this is implemented through <code class="xref py py-f
 While of course it takes runtime and resources to move Tensors from GPU to CPU and back, the implementation in
 torchtune uses multiple CUDA streams (when available) in order to overlap the extra communication with the computation
 to hide the extra runtime. As the communication workload is variable depending on the number and size of tensors being
-offloaded, it is common to not offload every single activation. In fact, one can use offloading in conjunction with activations
-checkpointing, where all activations will either be recomputed later in the backward or brought back from the CPU.</p>
+offloaded, we do not recommend using it unless <a class="reference internal" href="#glossary-act-ckpt"><span class="std std-ref">Activation Checkpointing</span></a> is also enabled, in which case only the checkpointed
+tensors will be offloaded.</p>
 <p><em>Sounds great! How do I use it?</em></p>
-<p>To enable activation offloading, use the <code class="docutils literal notranslate"><span class="pre">enable_activation_offloading</span></code> config entry or flag
-in our lora finetuning single device recipe, e.g. <code class="docutils literal notranslate"><span class="pre">enable_activation_offloading=True</span></code>. To allow
-usage of streams, make sure you are on a torch version later than PyTorch 2.5.0.</p>
+<p>To enable activation offloading, use <code class="docutils literal notranslate"><span class="pre">enable_activation_offloading=True</span></code>. If you are on torch
+version later than PyTorch 2.5.0, it will allow the usage of multiple CUDA streams automatically.</p>
 </section>
 <section id="gradient-accumulation">
 <span id="glossary-grad-accm"></span><h2>Gradient Accumulation<a class="headerlink" href="#gradient-accumulation" title="Permalink to this heading">¶</a></h2>
@@ -568,10 +566,8 @@ and progress bars may update more slowly.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">total_batch_size</span> <span class="pre">=</span> <span class="pre">batch_size</span> <span class="pre">*</span> <span class="pre">gradient_accumulation_steps</span> <span class="pre">*</span> <span class="pre">num_devices</span></code></p>
 </div></blockquote>
-<p>Gradient accumulation is especially useful when you are memory constrained. In this case,
-accumulating gradients might give you better training speed than enabling <a class="reference internal" href="#glossary-act-ckpt"><span class="std std-ref">activation
-checkpointing</span></a>, since activation checkpointing reduces memory consumption at the cost of repeated
-computations.</p>
+<p>Gradient accumulation is especially useful when you can fit at least one sample in your GPU. In this case, artificially increasing the batch by
+accumulating gradients might give you faster training speeds than using other memory optimization techniques that trade-off memory for speed, like <a class="reference internal" href="#glossary-act-ckpt"><span class="std std-ref">activation checkpointing</span></a>.</p>
 <p><em>Sounds great! How do I use it?</em></p>
 <p>All of our finetuning recipes support simulating larger batch sizes by accumulating gradients. Just set the
 <code class="docutils literal notranslate"><span class="pre">gradient_accumulation_steps</span></code> flag or config entry.</p>
@@ -586,18 +582,25 @@ computations.</p>
 <span id="glossary-low-precision-opt"></span><h3>Lower Precision Optimizers<a class="headerlink" href="#lower-precision-optimizers" title="Permalink to this heading">¶</a></h3>
 <p><em>What’s going on here?</em></p>
 <p>In addition to <a class="reference internal" href="#glossary-precision"><span class="std std-ref">reducing model and optimizer precision</span></a> during training, we can further reduce precision in our optimizer states.
-All of our single-device fine-tuning recipes support lower-precision optimizers from the <a class="reference external" href="https://huggingface.co/docs/bitsandbytes/main/en/index">bitsandbytes</a> library -
-a good place to start might be the <code class="docutils literal notranslate"><span class="pre">AdamW8bit</span></code> and <code class="docutils literal notranslate"><span class="pre">PagedAdamW8bit</span></code> optimizers, which we’ve tested our recipes with.</p>
+All of our recipes support lower-precision optimizers from the <a class="reference external" href="https://github.com/pytorch/ao/tree/main/torchao/prototype/low_bit_optim">torchao</a> library.
+For single device recipes, we also support <a class="reference external" href="https://huggingface.co/docs/bitsandbytes/main/en/index">bitsandbytes</a>.</p>
+<p>A good place to start might be the <code class="xref py py-class docutils literal notranslate"><span class="pre">torchao.prototype.low_bit_optim.torchao.AdamW8bit</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">bitsandbytes.optim.PagedAdamW8bit</span></code> optimizers.
+Both reduce memory by quantizing the optimizer state dict. Paged optimizers will also offload to CPU if there isn’t enough GPU memory available. In practice,
+you can expect higher memory savings from bnb’s PagedAdamW8bit but higher training speed from torchao’s AdamW8bit.</p>
 <p><em>Sounds great! How do I use it?</em></p>
-<p>To use this in your recipes, make sure you have installed bitsandbytes (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">bitsandbytes</span></code>). Then, enable
+<p>To use this in your recipes, make sure you have installed torchao (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">torchao</span></code>) or bitsandbytes (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">bitsandbytes</span></code>). Then, enable
 a low precision optimizer using the <a class="reference internal" href="../tune_cli.html#cli-label"><span class="std std-ref">torchtune CLI</span></a>:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>&lt;RECIPE&gt;<span class="w"> </span>--config<span class="w"> </span>&lt;CONFIG&gt;<span class="w"> </span><span class="se">\</span>
-<span class="nv">optimizer</span><span class="o">=</span>bitsandbytes.optim.PagedAdamW
+<span class="nv">optimizer</span><span class="o">=</span>torchao.prototype.low_bit_optim.torchao.AdamW8bit
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>&lt;RECIPE&gt;<span class="w"> </span>--config<span class="w"> </span>&lt;CONFIG&gt;<span class="w"> </span><span class="se">\</span>
+<span class="nv">optimizer</span><span class="o">=</span>bitsandbytes.optim.PagedAdamW8bit
 </pre></div>
 </div>
 <p>or by directly <a class="reference internal" href="../deep_dives/configs.html#config-tutorial-label"><span class="std std-ref">modifying a config file</span></a>:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">optimizer</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitsandbytes.optim.PagedAdamW</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitsandbytes.optim.PagedAdamW8bit</span>
 <span class="w">  </span><span class="nt">lr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2e-5</span>
 </pre></div>
 </div>
@@ -615,10 +618,9 @@ How is this possible, you might ask? By <em>completely removing the buffer of gr
 <p>To understand how this works, we encourage you to read through the relevant PyTorch tutorial on this concept:
 <a class="reference external" href="https://pytorch.org/tutorials/intermediate/optimizer_step_in_backward_tutorial.html">How to save memory by fusing the optimizer step into the backward pass</a>.</p>
 <p><em>Sounds great! How do I use it?</em></p>
-<p>In torchtune, you can enable this feature using the <code class="docutils literal notranslate"><span class="pre">optimizer_in_bwd</span></code> flag, which is currently only supported in our
-single-device full finetune recipe. This feature works best when optimizer memory is particularly large;
-e.g. when using a stateful optimizer with a model with a lot of parameters, and when you don’t need to use
-<a class="reference internal" href="#glossary-grad-accm"><span class="std std-ref">gradient accumulation</span></a>.</p>
+<p>In torchtune, you can enable this feature using the <code class="docutils literal notranslate"><span class="pre">optimizer_in_bwd</span></code> flag. This feature works best when using a stateful optimizer
+with a model with a lot of parameters, and when you don’t need to use <a class="reference internal" href="#glossary-grad-accm"><span class="std std-ref">gradient accumulation</span></a>.
+You won’t see meaningful impact when finetuning LoRA recipes, since in this case the number of parameters being updated are small.</p>
 </section>
 <section id="offloading-optimizer-gradient-states-to-cpu">
 <span id="glossary-cpu-offload"></span><h3>Offloading Optimizer/Gradient states to CPU<a class="headerlink" href="#offloading-optimizer-gradient-states-to-cpu" title="Permalink to this heading">¶</a></h3>
@@ -628,6 +630,8 @@ model gradients - tensors used to store gradients when we perform model backward
 through the <a class="reference external" href="https://github.com/pytorch/ao/tree/main/torchao/prototype/low_bit_optim#optimizer-cpu-offload">CPUOffloadOptimizer</a> from <code class="docutils literal notranslate"><span class="pre">torchao</span></code>.</p>
 <p>This optimizer can wrap any base optimizer and works by keeping the optimizer states and performing the optimizer step on CPU, thus reducing
 GPU memory usage by the size of the optimizer states. Additionally, we can also offload gradients to the CPU by using <cite>offload_gradients=True</cite>.</p>
+<p>If finetuning on a single-device, another option is to use the <code class="docutils literal notranslate"><span class="pre">PagedAdamW8bit</span></code> from bitsandbytes, mentioned <a class="reference internal" href="#glossary-low-precision-opt"><span class="std std-ref">above</span></a>, which will <em>only</em> offload to CPU
+when there is not enough GPU available.</p>
 <p><em>Sounds great! How do I use it?</em></p>
 <p>To use this optimizer in your recipes, set the <code class="docutils literal notranslate"><span class="pre">optimizer</span></code> key in your config to <code class="xref py py-class docutils literal notranslate"><span class="pre">torchao.prototype.low_bit_optim.CPUOffloadOptimizer</span></code>, which
 will use the <a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.optim.AdamW.html#torch.optim.AdamW" title="(in PyTorch v2.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.optim.AdamW</span></code></a> optimizer with <code class="docutils literal notranslate"><span class="pre">fused=True</span></code> as the base optimizer. For example, to use this optimizer to offload
@@ -660,10 +664,10 @@ optimizer.offload_gradients<span class="o">=</span>True<span class="w"> </span><
 </div>
 <p>Some helpful hints from the <code class="docutils literal notranslate"><span class="pre">torchao</span></code> <a class="reference external" href="https://github.com/pytorch/ao/tree/main/torchao/prototype/low_bit_optim#optimizer-cpu-offload">CPUOffloadOptimizer page</a>:</p>
 <ul class="simple">
-<li><p>The CPU optimizer step is often the bottleneck when optimizer CPU offload is used. To minimize the slowdown, it is recommended to (1) use full <code class="docutils literal notranslate"><span class="pre">bf16</span></code> training so that parameters, gradients, and optimizer states are in <code class="docutils literal notranslate"><span class="pre">bf16</span></code>; and (2) give GPU more work per optimizer step (e.g. larger batch size with activation checkpointing, gradient accumulation).</p></li>
+<li><p>The CPU optimizer step is often the bottleneck when optimizer CPU offload is used. To minimize the slowdown, it is recommended to (1) use full <code class="docutils literal notranslate"><span class="pre">bf16</span></code> training so that parameters, gradients, and optimizer states are in <code class="docutils literal notranslate"><span class="pre">bf16</span></code>; and (2) give GPU more work per optimizer step to amortize the offloading time (e.g. larger batch size with activation checkpointing, gradient accumulation).</p></li>
 <li><p>Gradient accumulation should always be set to 1 when <code class="docutils literal notranslate"><span class="pre">offload_gradients=True</span></code>, as gradients are cleared on GPU every backward pass.</p></li>
 <li><p>This optimizer works by keeping a copy of parameters and pre-allocating gradient memory on CPU. Therefore, expect your RAM usage to increase by 4x model size.</p></li>
-<li><p>This optimizer is only supported for single-device recipes. To use CPU-offloading in distributed recipes, use <code class="docutils literal notranslate"><span class="pre">fsdp_cpu_offload=True</span></code> in any distributed recipe. See <a class="reference external" href="https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel" title="(in PyTorch v2.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.distributed.fsdp.FullyShardedDataParallel</span></code></a> for more details</p></li>
+<li><p>This optimizer is only supported for single-device recipes. To use CPU-offloading in distributed recipes, use <code class="docutils literal notranslate"><span class="pre">fsdp_cpu_offload=True</span></code> instead. See <a class="reference external" href="https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel" title="(in PyTorch v2.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.distributed.fsdp.FullyShardedDataParallel</span></code></a> for more details and <a class="reference external" href="https://github.com/pytorch/torchtitan/blob/main/docs/fsdp.md">FSDP1 vs FSDP2</a> to see how they differ.</p></li>
 </ul>
 </section>
 </section>
@@ -712,20 +716,20 @@ final output projection do not support <code class="docutils literal notranslate
 <p>These are all specified under the <code class="docutils literal notranslate"><span class="pre">model</span></code> flag or config entry, i.e:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_lora_single_device<span class="w">  </span><span class="se">\</span>
 model.apply_lora_to_mlp<span class="o">=</span>True<span class="w"> </span><span class="se">\</span>
-model.lora_attn_modules<span class="o">=[</span><span class="s2">&quot;q_proj&quot;</span>,<span class="s2">&quot;k_proj&quot;</span>,<span class="s2">&quot;v_proj&quot;</span><span class="o">]</span>
+model.lora_attn_modules<span class="o">=[</span><span class="s2">&quot;q_proj&quot;</span>,<span class="s2">&quot;k_proj&quot;</span>,<span class="s2">&quot;v_proj&quot;</span>,<span class="s2">&quot;output_proj&quot;</span><span class="o">]</span>
 </pre></div>
 </div>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">model</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama3.lora_llama3_8b</span>
 <span class="w">  </span><span class="nt">apply_lora_to_mlp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
-<span class="w">  </span><span class="nt">model.lora_attn_modules</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;q_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;k_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;v_proj&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">model.lora_attn_modules</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;q_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;k_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;v_proj&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;output_proj&quot;</span><span class="p p-Indicator">]</span>
 </pre></div>
 </div>
 <p>Secondly, parameters which control the scale of the impact of LoRA on the model:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">lora_rank:</span> <span class="pre">int</span></code> affects the scale of the LoRA decomposition, where <code class="docutils literal notranslate"><span class="pre">lora_rank</span> <span class="pre">&lt;&lt;</span> <span class="pre">in_dim</span></code> and <code class="docutils literal notranslate"><span class="pre">lora_rank</span> <span class="pre">&lt;&lt;</span> <span class="pre">out_dim</span></code>
 - the dimensions of an arbitrary linear layer in the model. Concretely, <code class="docutils literal notranslate"><span class="pre">lora_rank</span></code> reduces the number of gradients stored
-in a linear fashion from <code class="docutils literal notranslate"><span class="pre">in_dim</span> <span class="pre">*</span> <span class="pre">out_dim</span></code> to <code class="docutils literal notranslate"><span class="pre">lora_rank</span> <span class="pre">*</span> <span class="pre">(in_dim</span> <span class="pre">+</span> <span class="pre">out_dim)</span></code>. Typically, we have <code class="docutils literal notranslate"><span class="pre">lora_rank</span> <span class="pre">in</span> <span class="pre">[8,</span> <span class="pre">128]</span></code>.</p></li>
+in a linear fashion from <code class="docutils literal notranslate"><span class="pre">in_dim</span> <span class="pre">*</span> <span class="pre">out_dim</span></code> to <code class="docutils literal notranslate"><span class="pre">lora_rank</span> <span class="pre">*</span> <span class="pre">(in_dim</span> <span class="pre">+</span> <span class="pre">out_dim)</span></code>. Typically, we have <code class="docutils literal notranslate"><span class="pre">lora_rank</span> <span class="pre">in</span> <span class="pre">[8,</span> <span class="pre">256]</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">lora_alpha:</span> <span class="pre">float</span></code> affects the magnitude of the LoRA updates. A larger alpha results in larger updates to the base model weights
 , potentially at the cost of training stability, conversely, smaller alpha can stabilize training at the cost of slower learning.
 We provide default settings for these parameters which we’ve tested with all of our models, but we encourage you to adjust them
@@ -735,7 +739,7 @@ to your specific use case. Typically, one jointly changes <code class="docutils 
 <p>As above, these parameters are also specified under the <code class="docutils literal notranslate"><span class="pre">model</span></code> flag or config entry:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_lora_single_device<span class="w">  </span><span class="se">\</span>
 model.apply_lora_to_mlp<span class="o">=</span>True<span class="w"> </span><span class="se">\</span>
-model.lora_attn_modules<span class="o">=[</span><span class="s2">&quot;q_proj&quot;</span>,<span class="s2">&quot;k_proj&quot;</span>,<span class="s2">&quot;v_proj&quot;</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
+model.lora_attn_modules<span class="o">=[</span><span class="s2">&quot;q_proj&quot;</span>,<span class="s2">&quot;k_proj&quot;</span>,<span class="s2">&quot;v_proj&quot;</span>,<span class="s2">&quot;output_proj&quot;</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
 model.lora_rank<span class="o">=</span><span class="m">32</span><span class="w"> </span><span class="se">\</span>
 model.lora_alpha<span class="o">=</span><span class="m">64</span>
 </pre></div>
@@ -743,7 +747,7 @@ model.lora_alpha<span class="o">=</span><span class="m">64</span>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">model</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama3.lora_llama3_8b</span>
 <span class="w">  </span><span class="nt">apply_lora_to_mlp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
-<span class="w">  </span><span class="nt">lora_attn_modules</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;q_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;k_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;v_proj&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">lora_attn_modules</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;q_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;k_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;v_proj&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;output_proj&quot;</span><span class="p p-Indicator">]</span>
 <span class="w">  </span><span class="nt">lora_rank</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
 <span class="w">  </span><span class="nt">lora_alpha</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">64</span>
 </pre></div>
@@ -757,15 +761,15 @@ see the <a class="reference internal" href="lora_finetune.html#lora-tutorial-mem
 <section id="quantized-low-rank-adaptation-qlora">
 <span id="glossary-qlora"></span><h3>Quantized Low Rank Adaptation (QLoRA)<a class="headerlink" href="#quantized-low-rank-adaptation-qlora" title="Permalink to this heading">¶</a></h3>
 <p><em>What’s going on here?</em></p>
-<p><a class="reference external" href="https://arxiv.org/abs/2305.14314">QLoRA</a> is an enhancement on top of <a class="reference external" href="https://arxiv.org/abs/2106.09685">LoRA</a>
+<p><a class="reference external" href="https://arxiv.org/abs/2305.14314">QLoRA</a> is a memory enhancement on top of <a class="reference external" href="https://arxiv.org/abs/2106.09685">LoRA</a>
 that maintains the frozen model parameters from LoRA in 4-bit quantized precision, thereby reducing memory usage.
 This is enabled through a novel  4-bit NormalFloat (NF4) data type proposed by the authors, which allows for 4-8x less
 parameter memory usage whilst retaining model accuracy. You can read our tutorial on <a class="reference internal" href="qlora_finetune.html#qlora-finetune-label"><span class="std std-ref">finetuning Llama2 with QLoRA</span></a>
 for a deeper understanding of how it works.</p>
-<p>When considering using QLoRA to reduce memory usage, it’s worth noting that QLoRA prevents accuracy degradation during quantization
-by up-casting quantized parameters to the original higher precision datatype during model forward passes - this up-casting may
-incur penalties to training speed. The <a class="reference internal" href="qlora_finetune.html#qlora-compile-label"><span class="std std-ref">relevant section</span></a> in our QLoRA tutorial demonstrates the usage of <code class="docutils literal notranslate"><span class="pre">torch.compile</span></code>
-to address this by speeding up training.</p>
+<p>When considering using QLoRA to reduce memory usage, it’s worth noting that QLoRA is slower than LoRA and may not be worth it if
+the model you are finetuning is small. In numbers, QLoRA saves roughly 1.5 bytes * (# of model parameters). Also, although QLoRA quantizes the model,
+it minimizes accuracy degradation by up-casting quantized parameters to the original higher precision datatype during model forward passes - this up-casting may incur penalties to training speed.
+The <a class="reference internal" href="qlora_finetune.html#qlora-compile-label"><span class="std std-ref">relevant section</span></a> in our QLoRA tutorial demonstrates the usage of <code class="docutils literal notranslate"><span class="pre">torch.compile</span></code> to address this by speeding up training.</p>
 <p><em>Sounds great! How do I use it?</em></p>
 <p>You can finetune using QLoRA with any of our LoRA recipes, i.e. recipes with the <code class="docutils literal notranslate"><span class="pre">lora_</span></code> prefix, e.g. <a class="reference internal" href="../recipes/lora_finetune_single_device.html#lora-finetune-recipe-label"><span class="std std-ref">lora_finetune_single_device</span></a>. These recipes utilize
 QLoRA-enabled model builders, which we support for all our models, and also use the <code class="docutils literal notranslate"><span class="pre">qlora_</span></code> prefix, e.g.
