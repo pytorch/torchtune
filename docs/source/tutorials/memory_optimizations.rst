@@ -165,7 +165,7 @@ Lower Precision Optimizers
 
 In addition to :ref:`reducing model and optimizer precision <glossary_precision>` during training, we can further reduce precision in our optimizer states.
 All of our recipes support lower-precision optimizers from the `torchao <https://github.com/pytorch/ao/tree/main/torchao/prototype/low_bit_optim>`_ library.
-For single device recipes, we also support `bitsandbytes <https://huggingface.co/docs/bitsandbytes/main/en/index>`_ .
+For single device recipes, we also support `bitsandbytes <https://huggingface.co/docs/bitsandbytes/main/en/index>`_.
 
 A good place to start might be the :class:`torchao.prototype.low_bit_optim.torchao.AdamW8bit` and :class:`bitsandbytes.optim.PagedAdamW8bit` optimizers.
 Both reduce memory by quanting the optimizer state dict. The PagedAdam will also offload to CPU if there isn't enough GPU memory available. In practice,
