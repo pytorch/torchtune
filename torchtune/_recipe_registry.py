@@ -129,6 +129,15 @@ _ALL_RECIPES = [
         supports_distributed=True,
     ),
     Recipe(
+        name="full_dpo_distributed",
+        file_path="full_dpo_distributed.py",
+        configs=[
+            Config(name="llama3/8B_full_dpo", file_path="llama3/8B_full_dpo.yaml"),
+            Config(name="llama3_1/8B_full_dpo", file_path="llama3_1/8B_full_dpo.yaml"),
+        ],
+        supports_distributed=True,
+    ),
+    Recipe(
         name="lora_finetune_single_device",
         file_path="lora_finetune_single_device.py",
         configs=[
