@@ -23,7 +23,7 @@ To make things easy, we've summarized these components in the following table:
    ":ref:`glossary_cpu_offload`", "Offloads optimizer states and (optionally) gradients to CPU, and performs optimizer steps on CPU. This can be used to significantly reduce GPU memory usage at the cost of CPU RAM and training speed. Prioritize using it only if the other techniques are not enough."
    ":ref:`glossary_lora`", "When you want to significantly reduce the number of trainable parameters, saving gradient and optimizer memory during training, and significantly speeding up training. This may reduce training accuracy"
    ":ref:`glossary_qlora`", "When you are training a large model, since quantization will save 1.5 bytes * (# of model parameters), at the potential cost of some training speed and accuracy."
-   ":ref:`glossary_dora`", "A variant of LoRA."
+   ":ref:`glossary_dora`", "a variant of LoRA that may improve model performance at the cost of slightly more memory."
 
 
 .. note::
