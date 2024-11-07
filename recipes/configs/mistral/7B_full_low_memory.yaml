@@ -31,8 +31,8 @@ tokenizer:
 
 # Dataset
 dataset:
-  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.alpaca_dataset
+  packed: False  # True increases speed
 seed: null
 shuffle: True
 
@@ -61,21 +61,21 @@ optimizer:
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
-gradient_accumulation_steps: 1
-optimizer_in_bwd: True
+gradient_accumulation_steps: 1  # Use to increase virtual batch size
+optimizer_in_bwd: True  # True saves memory. Requires gradient_accumulation_steps=1
 
 # Training env
 device: cuda
 
 # Memory management
-enable_activation_checkpointing: True
+enable_activation_checkpointing: True  # True reduces memory
 enable_activation_offloading: True  # True reduces memory
 
 # Reduced precision
 dtype: bf16
 
 # Model compilation
-compile: False
+compile: False  # pytorch compile, set to true for better perf/memory
 
 # Logging
 metric_logger:
@@ -84,3 +84,28 @@ metric_logger:
 output_dir: /tmp/Mistral-7B-v0.1/
 log_every_n_steps: 1
 log_peak_memory_stats: True
+
+# Profiler (disabled)
+profiler:
+  _component_: torchtune.training.setup_torch_profiler
+  enabled: False
+
+  #Output directory of trace artifacts
+  output_dir: ${output_dir}/profiling_outputs
+
+  #`torch.profiler.ProfilerActivity` types to trace
+  cpu: True
+  cuda: True
+
+  #trace options passed to `torch.profiler.profile`
+  profile_memory: False
+  with_stack: False
+  record_shapes: True
+  with_flops: False
+
+  # `torch.profiler.schedule` options:
+  # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+  wait_steps: 5
+  warmup_steps: 3
+  active_steps: 2
+  num_cycles: 1
