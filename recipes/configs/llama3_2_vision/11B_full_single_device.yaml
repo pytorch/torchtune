@@ -46,8 +46,8 @@ resume_from_checkpoint: False
 
 # Dataset
 dataset:
-  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.multimodal.the_cauldron_dataset
+  packed: False  # True increases speed
   subset: ocrvqa
 seed: null
 shuffle: True
@@ -57,22 +57,22 @@ collate_fn: torchtune.data.padded_collate_tiled_images_and_mask
 epochs: 1
 max_steps_per_epoch: null
 batch_size: 2
-gradient_accumulation_steps: 16
+gradient_accumulation_steps: 8  # Use to increase virtual batch size
 optimizer:
   _component_: bitsandbytes.optim.PagedAdamW8bit
   lr: 2e-5
-optimizer_in_bwd: False # Set to True to use less memory. Requires gradient_accumulation_steps=1.
+optimizer_in_bwd: False  # True saves memory. Requires gradient_accumulation_steps=1
 
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 clip_grad_norm: 1.0
-compile: False # pytorch compile, set to true for perf/memory improvement
+compile: False  # pytorch compile, set to true for better perf/memory
 
 # Training env
 device: cuda
 
 # Memory management
-enable_activation_checkpointing: True
+enable_activation_checkpointing: True  # True reduces memory
 dtype: bf16
 
 # Logging

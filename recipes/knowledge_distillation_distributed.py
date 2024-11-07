@@ -821,7 +821,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        _, rank = training.get_world_size_and_rank()
+        world_size, rank = training.get_world_size_and_rank()
 
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
@@ -857,7 +857,7 @@ class KDRecipeDistributed(FTRecipeInterface):
                 ):
                     torch.cuda.memory._record_memory_history()
 
-                batch = {k: v.to(self._device) for k, v in batch.items()}
+                utils.batch_to_device(batch, self._device)
 
                 # Calculate the number of unmasked tokens in the current batch
                 # and increment the total number of tokens seen in the step
@@ -869,13 +869,22 @@ class KDRecipeDistributed(FTRecipeInterface):
                 class_loss, kd_loss = self._loss_step(batch)
                 running_class_loss += class_loss * current_num_tokens
                 running_kd_loss += kd_loss * current_num_tokens
+                current_loss = (
+                    1 - self._kd_ratio
+                ) * class_loss + self._kd_ratio * kd_loss
+                current_loss.backward()
 
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    class_loss = running_class_loss / num_tokens
-                    kd_loss = running_kd_loss / num_tokens
-                    loss = (1 - self._kd_ratio) * class_loss + self._kd_ratio * kd_loss
-                    loss.backward()
+                    # Get total number of tokens across all ranks to normalize gradients
+                    torch.distributed.all_reduce(num_tokens)
+                    # This will ensure that the logged loss matches what we're optimizing
+                    torch.distributed.all_reduce(running_class_loss)
+                    torch.distributed.all_reduce(running_kd_loss)
+                    # Manually scale the gradients from unnormalized loss by total # of tokens
+                    training.scale_grads(self._model, 1 / num_tokens)
+                    class_loss_to_log = running_class_loss.item() / num_tokens
+                    kd_loss_to_log = running_kd_loss.item() / num_tokens
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
                     self._lr_scheduler.step()
@@ -903,7 +912,8 @@ class KDRecipeDistributed(FTRecipeInterface):
                             "class_loss": class_loss_to_log,
                             "kd_loss": kd_loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
-                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                            "tokens_per_second_per_gpu": num_tokens
+                            / (time_per_step * world_size),
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(

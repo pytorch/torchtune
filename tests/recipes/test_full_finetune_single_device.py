@@ -36,6 +36,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             "device=cpu",
             "dtype=fp32",
             "enable_activation_checkpointing=False",
+            "enable_activation_offloading=False",
             "dataset.train_on_input=False",
             "seed=9",
             "epochs=2",
@@ -45,7 +46,6 @@ class TestFullFinetuneSingleDeviceRecipe:
             "lr_scheduler.num_warmup_steps=0",
             "lr_scheduler.num_cycles=0",
             "log_every_n_steps=1",
-            "clip_grad_norm=100",
         ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self, model_type):
@@ -93,7 +93,6 @@ class TestFullFinetuneSingleDeviceRecipe:
             --config {config} \
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
-            optimizer_in_bwd={optimizer_in_bwd} \
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -108,7 +107,14 @@ class TestFullFinetuneSingleDeviceRecipe:
 
         model_config = MODEL_TEST_CONFIGS[model_type]
         cmd = cmd + self._get_test_config_overrides() + model_config
-
+        # "optimizer_in_bwd=True" would free gradient info before clip_grad, causing
+        # wrong grad_norm, so we only test one of them each time. But loss values
+        # should be the same.
+        if not optimizer_in_bwd:
+            cmd.append("clip_grad_norm=100")
+            cmd.append("optimizer_in_bwd=False")
+        else:
+            cmd.append("optimizer_in_bwd=True")
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")

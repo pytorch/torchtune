@@ -14,9 +14,12 @@ import pytest
 import torch
 from torchtune.utils._device import (
     _get_device_type_from_env,
-    _setup_cuda_device,
+    _setup_device,
     batch_to_device,
+    DeviceSupport,
     get_device,
+    get_device_support,
+    get_torch_device_namespace,
 )
 
 
@@ -69,7 +72,10 @@ class TestDevice:
             if device_idx > 0:
                 with pytest.raises(
                     RuntimeError,
-                    match=f"Device specified is cuda:0 but was assigned cuda:{device_idx}",
+                    match=(
+                        f"You can't specify a device index when using distributed training. "
+                        f"Device specified is cuda:0 but local rank is:{device_idx}"
+                    ),
                 ):
                     device = get_device("cuda:0")
 
@@ -83,7 +89,24 @@ class TestDevice:
 
         # Test that we fall back to 0 if LOCAL_RANK is not specified
         device = torch.device(_get_device_type_from_env())
-        device = _setup_cuda_device(device)
+        device = _setup_device(device)
         assert device.type == "cuda"
         assert device.index == 0
         assert device.index == torch.cuda.current_device()
+
+    @pytest.mark.skipif(not cuda_available, reason="The test requires GPUs to run.")
+    @patch("torch.cuda.is_available", return_value=True)
+    def test_cuda_available(self, mock_cuda):
+        # Test if CUDA is available, get_device_support should return DeviceSupport.CUDA
+        device_support = get_device_support()
+        assert device_support == DeviceSupport.CUDA
+        assert device_support.device_type == "cuda"
+        assert device_support.device_name == "GPU"
+        assert device_support.communication_backend == "nccl"
+
+    @pytest.mark.skipif(not cuda_available, reason="The test requires GPUs to run.")
+    @patch("torch.cuda.is_available", return_value=True)
+    def test_get_torch_device_for_cuda(self, mock_cuda):
+        # Test if get_torch_device returns the correct torch.cuda module
+        torch_device = get_torch_device_namespace()
+        assert torch_device == torch.cuda
