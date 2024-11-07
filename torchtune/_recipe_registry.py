@@ -72,6 +72,22 @@ _ALL_RECIPES = [
                 file_path="qwen2/1.5B_full_single_device.yaml",
             ),
             Config(
+                name="qwen2_5/0_5B_full_single_device",
+                file_path="qwen2_5/0_5B_full_single_device.yaml",
+            ),
+            Config(
+                name="qwen2_5/1_5B_full_single_device",
+                file_path="qwen2_5/1_5B_full_single_device.yaml",
+            ),
+            Config(
+                name="qwen2_5/3B_full_single_device",
+                file_path="qwen2_5/3B_full_single_device.yaml",
+            ),
+            Config(
+                name="qwen2_5/7B_full_single_device",
+                file_path="qwen2_5/7B_full_single_device.yaml",
+            ),
+            Config(
                 name="llama3_2_vision/11B_full_single_device",
                 file_path="llama3_2_vision/11B_full_single_device.yaml",
             ),
@@ -97,9 +113,17 @@ _ALL_RECIPES = [
             Config(name="qwen2/7B_full", file_path="qwen2/7B_full.yaml"),
             Config(name="qwen2/0.5B_full", file_path="qwen2/0.5B_full.yaml"),
             Config(name="qwen2/1.5B_full", file_path="qwen2/1.5B_full.yaml"),
+            Config(name="qwen2_5/0_5B_full", file_path="qwen2_5/0_5B_full.yaml"),
+            Config(name="qwen2_5/1_5B_full", file_path="qwen2_5/1_5B_full.yaml"),
+            Config(name="qwen2_5/3B_full", file_path="qwen2_5/3B_full.yaml"),
+            Config(name="qwen2_5/7B_full", file_path="qwen2_5/7B_full.yaml"),
             Config(
                 name="llama3_2_vision/11B_full",
                 file_path="llama3_2_vision/11B_full.yaml",
+            ),
+            Config(
+                name="llama3_2_vision/90B_full",
+                file_path="llama3_2_vision/90B_full.yaml",
             ),
         ],
         supports_distributed=True,
@@ -213,8 +237,32 @@ _ALL_RECIPES = [
                 file_path="qwen2/1.5B_lora_single_device.yaml",
             ),
             Config(
+                name="qwen2_5/0_5B_lora_single_device",
+                file_path="qwen2_5/0_5B_lora_single_device.yaml",
+            ),
+            Config(
+                name="qwen2_5/1_5B_lora_single_device",
+                file_path="qwen2_5/1_5B_lora_single_device.yaml",
+            ),
+            Config(
+                name="qwen2_5/3B_lora_single_device",
+                file_path="qwen2_5/3B_lora_single_device.yaml",
+            ),
+            Config(
+                name="qwen2_5/7B_lora_single_device",
+                file_path="qwen2_5/7B_lora_single_device.yaml",
+            ),
+            Config(
+                name="qwen2_5/14B_lora_single_device",
+                file_path="qwen2_5/14B_lora_single_device.yaml",
+            ),
+            Config(
                 name="llama3_2_vision/11B_lora_single_device",
                 file_path="llama3_2_vision/11B_lora_single_device.yaml",
+            ),
+            Config(
+                name="llama3_2_vision/11B_qlora_single_device",
+                file_path="llama3_2_vision/11B_qlora_single_device.yaml",
             ),
         ],
         supports_distributed=False,
@@ -285,9 +333,27 @@ _ALL_RECIPES = [
             Config(name="qwen2/7B_lora", file_path="qwen2/7B_lora.yaml"),
             Config(name="qwen2/0.5B_lora", file_path="qwen2/0.5B_lora.yaml"),
             Config(name="qwen2/1.5B_lora", file_path="qwen2/1.5B_lora.yaml"),
+            Config(name="qwen2_5/0_5B_lora", file_path="qwen2_5/0_5B_lora.yaml"),
+            Config(name="qwen2_5/1_5B_lora", file_path="qwen2_5/1_5B_lora.yaml"),
+            Config(name="qwen2_5/3B_lora", file_path="qwen2_5/3B_lora.yaml"),
+            Config(name="qwen2_5/7B_lora", file_path="qwen2_5/7B_lora.yaml"),
+            Config(name="qwen2_5/32B_lora", file_path="qwen2_5/32B_lora.yaml"),
+            Config(name="qwen2_5/72B_lora", file_path="qwen2_5/72B_lora.yaml"),
             Config(
                 name="llama3_2_vision/11B_lora",
                 file_path="llama3_2_vision/11B_lora.yaml",
+            ),
+            Config(
+                name="llama3_2_vision/11B_qlora",
+                file_path="llama3_2_vision/11B_qlora.yaml",
+            ),
+            Config(
+                name="llama3_2_vision/90B_lora",
+                file_path="llama3_2_vision/90B_lora.yaml",
+            ),
+            Config(
+                name="llama3_2_vision/90B_qlora",
+                file_path="llama3_2_vision/90B_qlora.yaml",
             ),
         ],
         supports_distributed=True,
@@ -309,8 +375,8 @@ _ALL_RECIPES = [
                 file_path="llama2/generation_v2.yaml",
             ),
             Config(
-                name="llama3_2_vision/generation_v2",
-                file_path="llama3_2_vision/generation_v2.yaml",
+                name="llama3_2_vision/11B_generation_v2",
+                file_path="llama3_2_vision/11B_generation_v2.yaml",
             ),
         ],
         supports_distributed=False,
@@ -321,8 +387,8 @@ _ALL_RECIPES = [
         configs=[
             Config(name="eleuther_evaluation", file_path="eleuther_evaluation.yaml"),
             Config(
-                name="llama3_2_vision/evaluation",
-                file_path="llama3_2_vision/evaluation.yaml",
+                name="llama3_2_vision/11B_evaluation",
+                file_path="llama3_2_vision/11B_evaluation.yaml",
             ),
             Config(
                 name="qwen2/evaluation",
@@ -374,6 +440,21 @@ _ALL_RECIPES = [
             ),
         ],
         supports_distributed=False,
+    ),
+    Recipe(
+        name="knowledge_distillation_distributed",
+        file_path="knowledge_distillation_distributed.py",
+        configs=[
+            Config(
+                name="qwen2/knowledge_distillation_distributed",
+                file_path="qwen2/knowledge_distillation_distributed.yaml",
+            ),
+            Config(
+                name="llama3_2/knowledge_distillation_distributed",
+                file_path="llama3_2/knowledge_distillation_distributed.yaml",
+            ),
+        ],
+        supports_distributed=True,
     ),
 ]
 

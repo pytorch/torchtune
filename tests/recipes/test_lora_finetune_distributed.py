@@ -32,7 +32,6 @@ from torchtune import config
 class TestLoRAFinetuneDistributedRecipe:
     def _get_test_config_overrides(self):
         return [
-            "batch_size=4",
             "dataset.train_on_input=False",
             "seed=9",
             "epochs=2",
@@ -40,7 +39,6 @@ class TestLoRAFinetuneDistributedRecipe:
             "max_steps_per_epoch=2",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
-            "gradient_accumulation_steps=1",
             "compile=False",
         ] + dummy_alpaca_dataset_config()
 
@@ -48,21 +46,25 @@ class TestLoRAFinetuneDistributedRecipe:
         # These values have been validated against single device recipe test via
         # https://gist.github.com/ebsmothers/f1c3db7c66655a23a91e0290360960c4
         loss_values_map = {
-            "llama2": [10.5136, 10.4856, 10.5292, 10.5345],
-            "llama3": [11.9325, 11.9325, 11.9325, 11.9369],
+            "llama2": [10.5209, 10.5269, 10.5130, 10.5242],
+            "llama3": [11.9839, 11.9691, 11.9617, 11.9383],
         }
         return loss_values_map[model_type]
 
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
     @pytest.mark.parametrize(
-        "reshard_after_forward",
-        [
-            True,
-            False,
-        ],
+        "micro_batch_size, gradient_accumulation_steps, reshard_after_forward",
+        [(4, 1, True), (1, 4, False)],
     )
-    def test_loss(self, reshard_after_forward, tmpdir, monkeypatch):
+    def test_loss(
+        self,
+        micro_batch_size,
+        gradient_accumulation_steps,
+        reshard_after_forward,
+        tmpdir,
+        monkeypatch,
+    ):
         ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
@@ -70,6 +72,8 @@ class TestLoRAFinetuneDistributedRecipe:
         cmd = f"""
         tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed
             --config llama2/7B_lora \
+            batch_size={micro_batch_size} \
+            gradient_accumulation_steps={gradient_accumulation_steps} \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -81,6 +85,7 @@ class TestLoRAFinetuneDistributedRecipe:
             tokenizer.prompt_template=null \
             reshard_after_forward={reshard_after_forward} \
             enable_activation_checkpointing=False \
+            enable_activation_offloading=False \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
@@ -138,6 +143,8 @@ class TestLoRAFinetuneDistributedRecipe:
         cmd_1 = f"""
         tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed \
             --config {config} \
+            batch_size=4 \
+            gradient_accumulation_steps=1 \
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -148,6 +155,7 @@ class TestLoRAFinetuneDistributedRecipe:
             tokenizer.prompt_template=null \
             save_adapter_weights_only={save_adapter_weights_only} \
             enable_activation_checkpointing=True \
+            enable_activation_offloading=True \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
@@ -160,6 +168,8 @@ class TestLoRAFinetuneDistributedRecipe:
         cmd_2 = f"""
         tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed \
             --config {config} \
+            batch_size=4 \
+            gradient_accumulation_steps=1 \
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir={tmpdir} \
@@ -173,6 +183,7 @@ class TestLoRAFinetuneDistributedRecipe:
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
             enable_activation_checkpointing=True \
+            enable_activation_offloading=True \
         """.split()
 
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
@@ -206,6 +217,8 @@ class TestLoRAFinetuneDistributedRecipe:
         cmd = f"""
         tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed \
             --config {recipe_config} \
+            batch_size=4 \
+            gradient_accumulation_steps=1 \
             output_dir={tmpdir} \
             model=torchtune.models.lora_small_test_model \
             checkpointer._component_={ckpt_component} \
@@ -216,6 +229,7 @@ class TestLoRAFinetuneDistributedRecipe:
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             enable_activation_checkpointing=True \
+            enable_activation_offloading=True \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]

@@ -49,6 +49,7 @@ save_adapter_weights_only: False
 
 # Dataset and Sampler
 dataset:
+  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.alpaca_cleaned_dataset
 seed: null
 shuffle: True
@@ -78,12 +79,13 @@ metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True
 
 # Environment
 device: cuda
 dtype: bf16
 enable_activation_checkpointing: False
+enable_activation_offloading: False  # True reduces memory
 
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training
@@ -92,14 +94,14 @@ profiler:
 
   enabled: False
 
-  #Output directory of trace artifacts
+  # Output directory of trace artifacts
   output_dir: ${output_dir}/profiling_outputs
 
   #`torch.profiler.ProfilerActivity` types to trace
   cpu: True
   cuda: True
 
-  #trace options passed to `torch.profiler.profile`
+  # trace options passed to `torch.profiler.profile`
   profile_memory: False
   with_stack: False
   record_shapes: True

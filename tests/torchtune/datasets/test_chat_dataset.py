@@ -4,19 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import pytest
 from tests.common import ASSETS
-from tests.test_utils import DummyChatFormat, DummyTokenizer
+from tests.test_utils import DummyTokenizer
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets import chat_dataset
 
 
 class TestChatDataset:
-    @pytest.fixture
-    def chat_format(self):
-        return DummyChatFormat
-
-    def test_get_item(self, chat_format):
+    def test_get_item(self):
         expected_tokenized_prompts = [
             [
                 0,

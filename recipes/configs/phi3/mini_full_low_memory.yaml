@@ -44,6 +44,7 @@ resume_from_checkpoint: False
 
 # Dataset
 dataset:
+  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.alpaca_cleaned_dataset
 seed: null
 shuffle: True
@@ -66,6 +67,7 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True
+enable_activation_offloading: True  # True reduces memory
 dtype: bf16
 
 # Logging
@@ -74,4 +76,4 @@ metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: /tmp/Phi-3-mini-4k-instruct/logs
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True

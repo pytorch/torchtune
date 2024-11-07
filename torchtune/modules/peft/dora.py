@@ -18,15 +18,14 @@ from torchtune.modules.peft import AdapterModule
 
 
 class DoRALinear(nn.Module, AdapterModule):
-    """LoRA linear layer as introduced in `LoRA: Low-Rank Adaptation of Large Language Models <https://arxiv.org/abs/2106.09685>`_.
+    """DoRA linear layer as introduced in
+    `DoRA: Weight-Decomposed Low-Rank Adaptation of Large Language Models <https://arxiv.org/abs/2402.09353>`_.
 
-    LoRA perturbs a given layer via a low-rank approximation where only
-    the rank decomposition matrices are trainable. In a linear layer instead of
-    :math:`x \\mapsto W_0x` a LoRALinear layer is defined as
-    :math:`x \\mapsto W_0x + (\\alpha / r)BAx`, where :math:`r` is the rank of
-    the matrices :math:`A` and :math:`B` and :math:`\\alpha` is a scaling factor.
-    As in the original implementation, we support dropout before multiplication
-    by the low-rank matrices.
+    DoRA (Weight-Decomposed Low-Rank Adaptation) fine-tunes a layer by decomposing the pre-trained weights
+    into two components: magnitude and direction. The magnitude component is a learnable scalar vector
+    that scales each output channel, while the direction component, modified via LoRA, adjusts the orientation
+    of weights. By scaling the LoRA update component :math:`BAx` with the `magnitude` vector, DoRA allows the model
+    to apply distinct scaling adjustments across different output dimensions.
 
     Args:
         in_dim (int): input dimension
@@ -39,8 +38,6 @@ class DoRALinear(nn.Module, AdapterModule):
         quantize_base (bool): Whether to quantize base linear weight or not.
             Default: False
 
-    Raises:
-        NotImplementedError: If use_bias is enabled.
     """
 
     def __init__(
@@ -54,14 +51,16 @@ class DoRALinear(nn.Module, AdapterModule):
         quantize_base: bool = False,
     ):
         super().__init__()
-        if use_bias:
-            raise NotImplementedError("DoRALinear does not support using bias")
         self.in_dim = in_dim
         self.out_dim = out_dim
         self.scaling = alpha / rank
+        self.use_bias = use_bias
         self._quantize_base = quantize_base
-        weight = self._create_weight()
+        weight, bias = self._create_weight_and_bias()
         self.register_parameter("weight", nn.Parameter(weight))
+        self.register_parameter(
+            "bias", nn.Parameter(bias) if bias is not None else None
+        )
 
         # 'self.disabled' is a flag showing whether to turn off DoRA adapters,
         # this can be used in DPO for treating the dora adapters as the policy model
@@ -80,6 +79,7 @@ class DoRALinear(nn.Module, AdapterModule):
         _lora_a_init_params(self.lora_a)
         _lora_b_init_params(self.lora_b)
 
+    @torch.no_grad()
     def initialize_dora_magnitude(self):
         """
         DoRA initializes the magnitude vector such that its outputs are initially
@@ -88,17 +88,20 @@ class DoRALinear(nn.Module, AdapterModule):
         base_weight = self.weight.to(self.lora_a.weight.dtype)
         lora_weight = self.lora_b.weight @ self.lora_a.weight
         weight_norm = self._get_weight_norm(base_weight, lora_weight)
-        self.magnitude = nn.Parameter(weight_norm, requires_grad=True)
+        self.magnitude.copy_(weight_norm)
 
-    def _create_weight(self):
+    def _create_weight_and_bias(self):
         """
         Creates a linear weight and bias tensor, using NF4 dtype if we're quantizing
         (indicated via quantize_base=True).
         """
-        in_dim, out_dim = self.in_dim, self.out_dim
-        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=False)
+        in_dim, out_dim, use_bias = self.in_dim, self.out_dim, self.use_bias
+        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
         weight = linear.weight if not self._quantize_base else to_nf4(linear.weight)
-        return weight
+        bias = None
+        if self.use_bias:
+            bias = linear.bias
+        return weight, bias
 
     def _get_weight_norm(self, weight, lora_weight):
         weight = weight + self.scaling * lora_weight
@@ -123,8 +126,10 @@ class DoRALinear(nn.Module, AdapterModule):
         """
         if self._quantize_base:
             base_out = linear_nf4(input=x, weight=self.weight)
+            if self.use_bias:
+                base_out = base_out + self.bias
         else:
-            base_out = F.linear(x, self.weight)
+            base_out = F.linear(x, self.weight, self.bias)
         if self.disabled:
             return base_out
 

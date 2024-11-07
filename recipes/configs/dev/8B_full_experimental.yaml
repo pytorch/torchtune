@@ -26,6 +26,7 @@ tokenizer:
 
 # Dataset
 dataset:
+  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.alpaca_dataset
 seed: null
 shuffle: True
@@ -57,13 +58,14 @@ loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
-
+compile: False
 
 # Training env
 device: cuda
 
 # Memory management
 enable_activation_checkpointing: False
+enable_activation_offloading: False  # True reduces memory
 ac_mode: 'selective'  # ['selective', 'full']
 ac_option: 2 # [int] = ac every positive int layer
 memory_efficient_fsdp_wrap: False
@@ -78,3 +80,4 @@ metric_logger:
   log_dir: ${output_dir}
 output_dir: /tmp/alpaca-llama3-finetune
 log_every_n_steps: null
+log_peak_memory_stats: True
