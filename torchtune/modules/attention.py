@@ -9,7 +9,11 @@ from typing import Optional
 
 import torch
 from torch import nn
-from torchtune.modules.attention_utils import _MaskType, _sdpa_or_flex_attention
+from torchtune.modules.attention_utils import (
+    _MaskType,
+    _sdpa_or_flex_attention,
+    repeat_interleave,
+)
 from torchtune.modules.kv_cache import KVCache
 
 logger = logging.getLogger(__name__)
@@ -258,42 +262,30 @@ class MultiHeadAttention(nn.Module):
         else:
             # Update k and v shape, positional embeddings, and normalization
 
-            # k has shape [b, s_y, num_kv_heads * head_dim]
-            # v has shape [b, s_y, num_kv_heads * head_dim]
+            # k,v shape [b, s_y, num_kv_heads * head_dim]
             k = self.k_proj(y)
             v = self.v_proj(y)
 
             # Apply positional embeddings
-            # k: [b, s_y, n_kv, h_d]
+            # k,v shape: [b, s_y, n_kv, h_d]
             k = k.view(b, s_y, -1, self.head_dim)
+            v = v.view(b, s_y, -1, self.head_dim)
             if self.pos_embeddings is not None:
                 k = self.pos_embeddings(k, input_pos=input_pos)
 
-            # [b, n_h, s, h_d]
-            k = k.transpose(1, 2)
-            v = v.transpose(1, 2)
+            # k,v shape: [b, n_kv, s_y, h_d]
+            k, v = k.transpose(1, 2), v.transpose(1, 2)
 
             # Update key-value cache
             if self.kv_cache is not None and self.cache_enabled:
                 k, v = self.kv_cache.update(k, v)
 
-            # View + expand + reshape bring num_kv_heads to num_heads for k and v
-            # to match q.
-
-            # k: [b, n_kv, 1, s_y, h_d]
-            # v: [b, n_kv, 1, s_y, h_d]
-            k = k.view(b, self.num_kv_heads, 1, s_y, self.head_dim)
-            v = v.view(b, self.num_kv_heads, 1, s_y, self.head_dim)
-
             # If needed, expand the key and value tensors to have the same shape
             # as the query tensor by copying values across the relevant dim
+            # k,v shape: [b, n_h, s, h_d]
             if self.num_heads != self.num_kv_heads:
-                k = k.expand(b, self.num_kv_heads, q_per_kv, s_y, self.head_dim)
-                v = v.expand(b, self.num_kv_heads, q_per_kv, s_y, self.head_dim)
-
-            # [b, s, n_h, h_d]
-            k = k.reshape(b, -1, s_y, self.head_dim)
-            v = v.reshape(b, -1, s_y, self.head_dim)
+                k = repeat_interleave(k, dim=1, repeat=q_per_kv)
+                v = repeat_interleave(v, dim=1, repeat=q_per_kv)
 
             # Normalize k
             if self.k_norm is not None:
