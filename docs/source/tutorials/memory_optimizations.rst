@@ -168,7 +168,7 @@ All of our recipes support lower-precision optimizers from the `torchao <https:/
 For single device recipes, we also support `bitsandbytes <https://huggingface.co/docs/bitsandbytes/main/en/index>`_.
 
 A good place to start might be the :class:`torchao.prototype.low_bit_optim.torchao.AdamW8bit` and :class:`bitsandbytes.optim.PagedAdamW8bit` optimizers.
-Both reduce memory by quanting the optimizer state dict. The PagedAdam will also offload to CPU if there isn't enough GPU memory available. In practice,
+Both reduce memory by quantizing the optimizer state dict. Paged optimizers will also offload to CPU if there isn't enough GPU memory available. In practice,
 you can expect higher memory savings from bnb's PagedAdamW8bit but higher training speed from torchao's AdamW8bit.
 
 *Sounds great! How do I use it?*
