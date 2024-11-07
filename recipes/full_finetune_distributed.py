@@ -645,8 +645,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
-        cpu_state_dict = training.get_full_model_state_dict(
-            self._model,
+        cpu_state_dict = training.gather_cpu_state_dict(
+            self._model.state_dict(),
             self._is_rank_zero,
             device=self._device,
         )

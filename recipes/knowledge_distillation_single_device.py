@@ -23,6 +23,7 @@ from torchtune.data import padded_collate_sft
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     get_adapter_params,
+    get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
     load_dora_magnitudes,
@@ -586,10 +587,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
 
         # Construct the adapter weights
-        adapter_key_filter = lambda x: x in self.adapter_params
-        adapter_state_dict = {
-            k: v for k, v in self._model.state_dict().items() if adapter_key_filter(k)
-        }
+        adapter_state_dict = get_adapter_state_dict(self._model.state_dict())
         ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
         adapter_config = {
             "r": self._lora_rank,
