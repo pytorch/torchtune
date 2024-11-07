@@ -72,7 +72,7 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True  # True reduces memory
-custom_sharded_layers: ['decoder.tok_embeddings']  # Shard it separetely. Useful for large vocab size. Lower Memory, but lower speed
+custom_sharded_layers: ['decoder.tok_embeddings']  # Layers to shard separately (useful for large vocab size models). Lower Memory, but lower speed.
 dtype: bf16
 
 # Logging
