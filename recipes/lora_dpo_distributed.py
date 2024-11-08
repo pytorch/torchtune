@@ -505,8 +505,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         intermediate_checkpoint = epoch + 1 < self.total_epochs
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
+        state_dict = self._model.state_dict()
+        if self._save_adapter_weights_only:
+            state_dict = get_adapter_state_dict(state_dict, device=None)
+
         cpu_state_dict = training.gather_cpu_state_dict(
-            self._model.state_dict(),
+            state_dict,
             self._is_rank_zero,
             device=self._device,
         )
@@ -522,20 +526,21 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         # Now that we have the model and opt state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file
         if self._is_rank_zero:
+            if self._save_adapter_weights_only:
+                adapter_state_dict = cpu_state_dict
+            else:
+                # Filter out the adapter keys and weights from the model state dict. These will
+                # be saved separately
+                adapter_state_dict = get_adapter_state_dict(cpu_state_dict)
 
-            # Filter out the adapter keys and weights from the model state dict. These will
-            # be saved separately
-            adapter_state_dict = get_adapter_state_dict(cpu_state_dict)
-            checkpoint_dict.update({training.ADAPTER_KEY: adapter_state_dict})
-
-            # merge the adapter weights and base weights to create the model checkpoint
-            if not self._save_adapter_weights_only:
+                # merge the adapter weights and base weights to create the model checkpoint
                 merged_state_dict = get_merged_lora_ckpt(
                     cpu_state_dict,
                     rank=self._lora_rank,
                     alpha=self._lora_alpha,
                 )
                 checkpoint_dict.update({training.MODEL_KEY: merged_state_dict})
+            checkpoint_dict.update({training.ADAPTER_KEY: adapter_state_dict})
 
             # if training is in-progress, checkpoint the optimizer state and recipe state
             # as well.

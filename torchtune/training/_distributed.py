@@ -347,7 +347,6 @@ def gather_cpu_state_dict(
     sharded_sd: Dict[str, DTensor],  # noqa
     is_rank_zero: bool,
     device: Optional[torch.device] = None,
-    trainable_only: bool = False,
 ) -> Dict[str, Any]:
     """
     Converting sharded state dict into a full state dict on CPU
@@ -357,7 +356,6 @@ def gather_cpu_state_dict(
         sharded_sd (Dict[str, DTensor]): Sharded state dict of DTensors
         is_rank_zero (bool): flag to check if the process is on rank 0
         device (Optional[torch.device]): device to use for sharded tensors. Default: None
-        trainable_only (bool): flag to check if only trainable parameters should be returned. Default: False
 
     Returns:
         Dict[str, Any]: State dict on CPU
@@ -365,10 +363,8 @@ def gather_cpu_state_dict(
     cpu_state_dict = {}
     for param_name, sharded_param in sharded_sd.items():
         if sharded_param.is_cpu:
+            # Move back to device if offloaded to CPU
             sharded_param = sharded_param.to(device)
-        elif trainable_only and not sharded_param.requires_grad:
-            # skip non-trainable params when trainable_only is True
-            continue
         if isinstance(sharded_param._local_tensor, NF4Tensor):
             # NF4Tensor does not support all_gather from DTensor
             # so we need to manually all_gather
@@ -392,6 +388,7 @@ def gather_cpu_state_dict(
             # upcasting NF4 to original dtype
             full_param = full_param.to(full_param.dtype)
         else:
+            # Gather DTensor
             full_param = sharded_param.full_tensor()
         if is_rank_zero:
             cpu_state_dict[param_name] = full_param.cpu()
