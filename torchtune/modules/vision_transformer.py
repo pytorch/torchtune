@@ -252,6 +252,9 @@ class VisionTransformer(nn.Module):
             embed_dim, append_cls_token=append_cls_token
         )
 
+    def get_image_tokens_per_tile(self):
+        return self.patches_per_tile + 1  # +1 for CLS token
+
     def forward(
         self,
         images: torch.Tensor,
