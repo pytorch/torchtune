@@ -304,7 +304,7 @@ def load_from_full_model_state_dict(
     meta_sharded_sd = model.state_dict()
     sharded_sd = {}
     has_nf4 = any(
-        hasattr(param, "_local_tensor") and isinstance(param._local_tensor, NF4Tensor) 
+        hasattr(param, "_local_tensor") and isinstance(param._local_tensor, NF4Tensor)
         for param in model.parameters()
     )
     for param_name in full_sd.keys():
