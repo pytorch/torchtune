@@ -45,12 +45,24 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ``fsdp_reshard_after_forward`` to False (this corresponds to SHARD_GRAD_OP sharding strategy).
             DDP is currently not supported. Training on CPU is not supported.
 
-        - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
+        - Activation Checkpointing. This can be controlled using the ``enable_activation_checkpointing``
             flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
             activations in memory and instead recompute them during the backward pass. This is especially
             helpful for larger batch sizes when you're memory constrained. But these savings in memory
             come at the cost of training performance. In most cases training can slow-down quite a bit as
             a result of this activation recomputation.
+
+        - Activation Offloading. This can be controlled using the ``enable_activation_offloading``
+            flag. Activation offloading is a technique similar to activations checkpointing that helps
+            reduce the memory footprint to prevent OOMs on CUDA and enable bigger batches. Where activations
+            checkpointing drops the activation in the forward to recompute it later in the backward,
+            activations offloading will drop the activation in the forward to the CPU and bring it
+            back during the backward pass. As always, there is a tradeoff--these savings in memory can
+            come at the cost of training performance and CPU resources. To recover some runtime cost,
+            we've added an option to enable offloading on a different stream to permit overlapping with
+            the computation. This option is currently only available on PyTorch 2.5 or later and will
+            be enabled by default if an acceptable torch version is found. Activation offloading can be
+            used in conjunction with activation checkpointing.
 
         - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
             flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
@@ -97,6 +109,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         ValueError: If ``dtype`` is set to fp16.
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
         RuntimeError: If ``left_pad_sequence`` is set as the data collator.
+        RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
+        RuntimeError: If ``enable_activation_offloading`` is True and ``enable_activation_checkpointing`` is False.
     """
 
     def __init__(self, cfg: DictConfig) -> None:
@@ -137,6 +151,46 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
+        self._clip_grad_norm = cfg.get("clip_grad_norm", None)
+
+        # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
+        if self._optimizer_in_bwd:
+            if self._clip_grad_norm is not None:
+                raise RuntimeError(
+                    "Gradient clipping is not supported with optimizer in bwd."
+                    "Please set clip_grad_norm=None, or optimizer_in_bwd=False."
+                )
+            if self._gradient_accumulation_steps > 1:
+                raise RuntimeError(
+                    "Gradient accumulation is not supported with optimizer in bwd."
+                    "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
+                )
+
+        # activation checkpointing/offloading
+        self._enable_activation_checkpointing = cfg.get(
+            "enable_activation_checkpointing", False
+        )
+        self._enable_activation_offloading = cfg.get(
+            "enable_activation_offloading", False
+        )
+        if self._enable_activation_offloading:
+            if self._device.type != "cuda":
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when training on CUDA"
+                )
+            if not self._enable_activation_checkpointing:
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
+                )
+        elif (
+            self._enable_activation_checkpointing
+            and cfg.checkpointer.model_type != "LLAMA3_VISION"
+        ):
+            utils.log_rank_zero(
+                log,
+                "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
+                "Enabling activation offloading should reduce memory further.",
+            )
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -145,7 +199,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
-        self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -218,7 +271,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._compile = cfg.get("compile", False)
         self._model = self._setup_model(
             cfg_model=cfg.model,
-            enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            enable_activation_checkpointing=self._enable_activation_checkpointing,
+            enable_activation_offloading=self._enable_activation_offloading,
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
@@ -358,6 +412,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
+        enable_activation_offloading: bool,
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
         model_state_dict: Dict[str, Any],
@@ -433,6 +488,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._is_rank_zero,
             strict=True,
             cpu_offload=fsdp_cpu_offload,
+        )
+
+        # activation offloading
+        self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
+            model, enable_activation_offloading
         )
 
         # Ensure no params and buffers are on meta device
@@ -658,7 +718,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        _, rank = training.get_world_size_and_rank()
+        world_size, rank = training.get_world_size_and_rank()
 
         # zero out the gradients before starting training
         if not self._optimizer_in_bwd:
@@ -709,7 +769,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 # Shape [b, s], needed for the loss not the model
                 labels = batch.pop("labels")
 
-                logits = self._model(**batch)
+                with self.activations_handling_ctx:
+                    logits = self._model(**batch)
 
                 # Shift labels to compute loss
                 # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
@@ -724,32 +785,43 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 # Compute loss
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                running_loss += self._loss_fn(logits, labels) * current_num_tokens
+                current_loss = self._loss_fn(logits, labels) * current_num_tokens
 
                 # free logits otherwise it peaks backward memory
                 del logits
 
+                running_loss += current_loss
+
+                # For optimizer in backward, we need to normalize before calling backward
+                # This case and gradient accumulation are mutually exclusive
+                if self._optimizer_in_bwd:
+                    torch.distributed.all_reduce(num_tokens)
+                    torch.distributed.all_reduce(running_loss)
+                    current_loss = current_loss / num_tokens
+
+                current_loss.backward()
+
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    loss = running_loss / num_tokens
-                    loss.backward()
-                    if self._clip_grad_norm is not None:
-                        if self._optimizer_in_bwd:
-                            raise NotImplementedError(
-                                "Gradient clipping is not supported after optimizer-in-the-backward."
-                            )
-                        grad_norm = torch.nn.utils.clip_grad_norm_(
-                            self._model.parameters(),
-                            max_norm=float(self._clip_grad_norm),
-                        )
                     if not self._optimizer_in_bwd:
+                        # Get total number of tokens across all ranks to normalize gradients
+                        torch.distributed.all_reduce(num_tokens)
+                        # This will ensure that the logged loss matches what we're optimizing
+                        torch.distributed.all_reduce(running_loss)
+                        # Manually scale the gradients from unnormalized loss by total # of tokens
+                        training.scale_grads(self._model, 1 / num_tokens)
+                        if self._clip_grad_norm is not None:
+                            grad_norm = torch.nn.utils.clip_grad_norm_(
+                                self._model.parameters(),
+                                max_norm=float(self._clip_grad_norm),
+                            )
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
 
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
-                    loss_to_log = loss.item()
+                    loss_to_log = running_loss.item() / num_tokens
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
@@ -770,7 +842,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                                     else self._optim_ckpt_wrapper
                                 ),
                             ),
-                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                            "tokens_per_second_per_gpu": num_tokens
+                            / (time_per_step * world_size),
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(

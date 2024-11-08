@@ -33,6 +33,7 @@ class TestFullFinetuneDistributedRecipe:
         return [
             "dtype=fp32",
             "enable_activation_checkpointing=False",
+            "enable_activation_offloading=False",
             "dataset.train_on_input=False",
             "seed=9",
             "epochs=2",
@@ -44,21 +45,20 @@ class TestFullFinetuneDistributedRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "llama2": [10.5136, 10.4813, 10.5088, 10.5250],
-            "llama3": [12.0673, 11.9072, 11.9302, 11.9355],
+            "llama2": [10.5209, 10.5217, 10.4945, 10.5136],
+            "llama3": [11.9839, 11.9684, 11.9596, 11.93656],
         }
         return loss_values_map[model_type]
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize(
-        "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps",
+        "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, optim_in_bwd",
         [
-            ("llama2/7B_full", "llama2", "hf", 1, 4),
-            ("llama3/8B_full", "llama3", "tune", 1, 4),
-            ("llama3/8B_full", "llama3", "tune", 4, 1),
+            ("llama2/7B_full", "llama2", "hf", 1, 4, False),
+            ("llama3/8B_full", "llama3", "tune", 1, 4, False),
+            ("llama3/8B_full", "llama3", "tune", 4, 1, True),
         ],
     )
-    @pytest.mark.parametrize("optim_in_bwd", [True, False])
     @gpu_test(gpu_count=2)
     def test_loss(
         self,

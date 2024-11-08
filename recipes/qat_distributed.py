@@ -55,7 +55,7 @@ class QATRecipeDistributed(FTRecipeInterface):
             ``fsdp_reshard_after_forward`` to False (this corresponds to SHARD_GRAD_OP sharding strategy).
             DDP is currently not supported. Training on CPU is not supported.
 
-        - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
+        - Activation Checkpointing. This can be controlled using the ``enable_activation_checkpointing``
             flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
             activations in memory and instead recompute them during the backward pass. This is especially
             helpful for larger batch sizes when you're memory constrained. But these savings in memory
@@ -605,8 +605,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         """
         # clean up before training begins
         training.cleanup_before_training()
-
-        _, rank = training.get_world_size_and_rank()
+        world_size, rank = training.get_world_size_and_rank()
 
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
@@ -674,18 +673,16 @@ class QATRecipeDistributed(FTRecipeInterface):
 
                 # Calculate the number of unmasked tokens in the current batch
                 # and increment the total number of tokens seen in the step
+
+                utils.batch_to_device(batch, self._device)
+
                 current_num_tokens = (
                     batch["labels"] != self._loss_fn.ignore_index
                 ).sum()
                 num_tokens += current_num_tokens
+                labels = batch.pop("labels")
 
-                labels = labels.to(self._device)
-                mask = mask.to(self._device) if mask is not None else None
-                input_pos = (
-                    input_pos.to(self._device) if input_pos is not None else None
-                )
-
-                logits = self._model(tokens, mask=mask, input_pos=input_pos)
+                logits = self._model(**batch)
 
                 # Shift labels to compute loss
                 # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
@@ -698,14 +695,22 @@ class QATRecipeDistributed(FTRecipeInterface):
                     logits = logits.reshape(-1, logits.size(-1))
 
                 # Compute loss
-                running_loss += self._loss_fn(logits, labels) * current_num_tokens
+                current_loss = self._loss_fn(logits, labels) * current_num_tokens
+
                 # free logits otherwise it peaks backward memory
                 del logits
 
+                running_loss += current_loss
+                current_loss.backward()
+
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    loss = running_loss / num_tokens
-                    loss.backward()
+                    # Get total number of tokens across all ranks to normalize gradients
+                    torch.distributed.all_reduce(num_tokens)
+                    # This will ensure that the logged loss matches what we're optimizing
+                    torch.distributed.all_reduce(running_loss)
+                    # Manually scale the gradients from unnormalized loss by total # of tokens
+                    training.scale_grads(self._model, 1 / num_tokens)
 
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
@@ -713,7 +718,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
-                    loss_to_log = loss.item()
+                    loss_to_log = running_loss.item() / num_tokens
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
@@ -728,7 +733,9 @@ class QATRecipeDistributed(FTRecipeInterface):
                         log_dict = {
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
-                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                            "tokens_per_second_per_gpu": (
+                                num_tokens / time_per_step * world_size
+                            ),
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(

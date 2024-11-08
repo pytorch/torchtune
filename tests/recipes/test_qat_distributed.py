@@ -33,6 +33,7 @@ class TestQATDistributedRecipe:
         return [
             "dtype=fp32",
             "enable_activation_checkpointing=False",
+            "enable_activation_offloading=False",
             "dataset.train_on_input=False",
             "seed=9",
             "epochs=2",
@@ -44,8 +45,8 @@ class TestQATDistributedRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "llama2": [10.5164, 10.4830, 10.5138, 10.5199],
-            "llama3": [12.0672, 11.9067, 11.9304, 11.9351],
+            "llama2": [10.5211, 10.5217, 10.4944, 10.5134],
+            "llama3": [11.9836, 11.9683, 11.9594, 11.9366],
         }
         return loss_values_map[model_type]
 
@@ -55,7 +56,7 @@ class TestQATDistributedRecipe:
         [
             ("llama2/7B_qat_full", "llama2", "hf", 4, 1),
             ("llama3/8B_qat_full", "llama3", "tune", 4, 1),
-            ("llama3/8B_qat_full", "llama3", "tune", 4, 1),
+            ("llama3/8B_qat_full", "llama3", "tune", 1, 4),
         ],
     )
     @gpu_test(gpu_count=2)

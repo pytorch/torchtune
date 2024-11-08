@@ -36,6 +36,8 @@ class TestLoRA7BDistributedFinetuneEval:
         ft_cmd = f"""
         tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed
             --config llama2/7B_lora \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \
