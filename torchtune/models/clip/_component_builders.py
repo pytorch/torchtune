@@ -39,6 +39,8 @@ def clip_vision_encoder(
     activation: Callable = nn.SiLU,
     cls_output_dim: int = 512,
     attn_bias: bool = True,
+    rope_base: Optional[int] = None,
+    encoder_max_seq_len: Optional[int] = None,
     out_indices: Optional[List[int]] = None,
     output_cls_projection: bool = False,
     max_num_tiles: int = 4,
@@ -67,6 +69,11 @@ def clip_vision_encoder(
         activation (Callable): The activation function to use in the MLP layer.
         cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.
         attn_bias (bool): Boolean for if to use bias in the attention module. Default True.
+        rope_base (Optional[int]): base for the rotary positional embeddings. CLIP does not include rope by default,
+            if a value is passed in then rope will be added to multihead attention. Default: None
+        encoder_max_seq_len (Optional[int]): maximum sequence length the encoder will be run with, as used
+            by :func:`~torchtune.modules.RotaryPositionalEmbeddings`. This is required if ``rope_base``
+            is specified. Default: None.
         out_indices (Optional[List[int]]): The indices of hidden layers to return.
             If provided, it will return the intermediate results of the transformer layers
             before they go through a next layer. For example, ``out_indices=[0,3]`` will
@@ -85,11 +92,28 @@ def clip_vision_encoder(
     Raises:
         AssertionError: If ``embed_dim`` is not divisible by ``num_heads``.
     """
-    assert embed_dim % num_heads == 0, "embed_dim must be divisible by num_heads"
+    if embed_dim % num_heads != 0:
+        raise ValueError(
+            f"embed_dim must be divisible by num_heads, got {embed_dim} and {num_heads}"
+        )
+    if rope_base is not None and encoder_max_seq_len is None:
+        raise ValueError(
+            "encoder_max_seq_len must be provided if rope_base is specified. "
+            "This is used to determine the maximum sequence length for the rotary positional embeddings."
+        )
+
+    head_dim = embed_dim // num_heads
 
     cls_projection = (
         CLSProjection(embed_dim=embed_dim, cls_output_dim=cls_output_dim)
         if output_cls_projection
+        else None
+    )
+    rope = (
+        RotaryPositionalEmbeddings(
+            dim=head_dim, max_seq_len=encoder_max_seq_len, base=rope_base
+        )
+        if rope_base is not None
         else None
     )
 
@@ -98,12 +122,12 @@ def clip_vision_encoder(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_heads,
-        head_dim=embed_dim // num_heads,
+        head_dim=head_dim,
         q_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
         k_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
         v_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
         output_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
-        pos_embeddings=None,
+        pos_embeddings=rope,
         attn_dropout=0.0,
         is_causal=False,
     )
