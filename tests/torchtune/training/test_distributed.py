@@ -316,6 +316,7 @@ class TestFullyShardState(FSDPTest):
             fsdp_model_to_save, is_rank_zero
         )
         optim_full_sd = training.get_full_optimizer_state_dict(
+            fsdp_model_to_save,
             fsdp_optim_to_save,
             is_rank_zero,
         )
@@ -371,6 +372,7 @@ class TestFullyShardState(FSDPTest):
             fsdp_model_to_load.parameters(), weight_decay=0.01, lr=0.01
         )
         training.load_from_full_optimizer_state_dict(
+            fsdp_model_to_load,
             fsdp_optim_to_load,
             # mimic mmap=True where every rank see full SD
             copy.deepcopy(self._broadcast_full_state_dict(optim_full_sd)),

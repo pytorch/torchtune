@@ -238,6 +238,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
         self._optimizer = self._setup_optimizer(
+            model=self._model,
             cfg_optimizer=cfg.optimizer,
             opt_state_dict=(
                 checkpoint_dict[training.OPT_KEY]
@@ -470,11 +471,15 @@ class QATRecipeDistributed(FTRecipeInterface):
         return model
 
     def _setup_optimizer(
-        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
+        self,
+        model: nn.Module,
+        cfg_optimizer: DictConfig,
+        opt_state_dict: Optional[Dict[str, Any]] = None,
     ) -> Optimizer:
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
             training.load_from_full_optimizer_state_dict(
+                model,
                 optimizer,
                 opt_state_dict,
                 self._device,
@@ -562,6 +567,7 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         if intermediate_checkpoint:
             opt_state_dict = training.get_full_optimizer_state_dict(
+                self._model,
                 self._optimizer,
                 self._is_rank_zero,
             )

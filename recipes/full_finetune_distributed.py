@@ -538,6 +538,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 for param in opt_state_dict.keys():
                     try:
                         training.load_from_full_optimizer_state_dict(
+                            self._model,
                             self._optim_ckpt_wrapper.state_dict()[param],
                             opt_state_dict[param],
                             self._device,
@@ -554,6 +555,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
             if opt_state_dict:
                 training.load_from_full_optimizer_state_dict(
+                    self._model,
                     optimizer,
                     opt_state_dict,
                     self._device,
@@ -662,6 +664,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 log.info("Getting optimizer state dict...")
             if not self._optimizer_in_bwd:
                 opt_state_dict = training.get_full_optimizer_state_dict(
+                    self._model,
                     self._optimizer,
                     self._is_rank_zero,
                     device=self._device,
@@ -670,7 +673,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 opt_state_dict = {}
                 for param, opt in self._optim_ckpt_wrapper.optim_map.items():
                     opt_state_dict[param] = training.get_full_optimizer_state_dict(
-                        opt, self._is_rank_zero, device=self._device
+                        self._model, opt, self._is_rank_zero, device=self._device
                     )
             if self._is_rank_zero:
                 log.info(
@@ -900,7 +903,7 @@ def recipe_main(cfg: DictConfig) -> None:
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
-    init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
+    init_process_group(backend="cuda:nccl,cpu:gloo")
     if cfg.get("fsdp_cpu_offload", False):
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU
