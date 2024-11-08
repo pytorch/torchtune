@@ -9,11 +9,7 @@ from typing import Optional
 
 import torch
 from torch import nn
-from torchtune.modules.attention_utils import (
-    _MaskType,
-    _sdpa_or_flex_attention,
-    repeat_interleave,
-)
+from torchtune.modules.attention_utils import _MaskType, _sdpa_or_flex_attention
 from torchtune.modules.kv_cache import KVCache
 
 logger = logging.getLogger(__name__)
@@ -284,8 +280,9 @@ class MultiHeadAttention(nn.Module):
             # as the query tensor by copying values across the relevant dim
             # k,v shape: [b, n_h, s, h_d]
             if self.num_heads != self.num_kv_heads:
-                k = repeat_interleave(k, dim=1, repeat=q_per_kv)
-                v = repeat_interleave(v, dim=1, repeat=q_per_kv)
+                expand_shape = (-1, -1, q_per_kv, -1, -1)
+                k = k.unsqueeze(2).expand(expand_shape).flatten(1, 2)
+                v = v.unsqueeze(2).expand(expand_shape).flatten(1, 2)
 
             # Normalize k
             if self.k_norm is not None:

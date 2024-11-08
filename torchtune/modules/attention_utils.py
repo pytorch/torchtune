@@ -246,15 +246,3 @@ def _sdpa_or_flex_attention() -> Callable:
             )
 
     return _attention_call
-
-
-def repeat_interleave(x: torch.Tensor, *, dim: int, repeat: int) -> torch.Tensor:
-    if repeat == 1:
-        return x
-
-    dim = dim + x.ndim if dim < 0 else dim
-
-    shape = [-1] * (x.ndim + 1)
-    shape[dim + 1] = repeat
-
-    return x.unsqueeze(dim + 1).expand(shape).flatten(dim, dim + 1)
