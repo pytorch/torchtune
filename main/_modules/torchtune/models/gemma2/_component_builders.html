@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.models.gemma._component_builders &mdash; torchtune main documentation</title>
+  <title>torchtune.models.gemma2._component_builders &mdash; torchtune main documentation</title>
   
 
   
@@ -394,7 +394,7 @@
         
           <li><a href="../../../index.html">Module code</a> &gt;</li>
         
-      <li>torchtune.models.gemma._component_builders</li>
+      <li>torchtune.models.gemma2._component_builders</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -426,7 +426,7 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>Source code for torchtune.models.gemma._component_builders</h1><div class="highlight"><pre>
+  <h1>Source code for torchtune.models.gemma2._component_builders</h1><div class="highlight"><pre>
 <span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
 <span class="c1"># All rights reserved.</span>
 <span class="c1">#</span>
@@ -434,24 +434,26 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.common_utils</span> <span class="kn">import</span> <span class="n">_register_reparametrize_state_dict_hooks</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">MultiHeadAttention</span><span class="p">,</span>
-    <span class="n">FeedForward</span><span class="p">,</span>
     <span class="n">FrozenNF4Linear</span><span class="p">,</span>
     <span class="n">RotaryPositionalEmbeddings</span><span class="p">,</span>
     <span class="n">TransformerSelfAttentionLayer</span><span class="p">,</span>
 <span class="p">)</span>
 
+<span class="kn">from</span> <span class="nn">torchtune.models.gemma2._attention</span> <span class="kn">import</span> <span class="n">Gemma2Attention</span>
 <span class="kn">from</span> <span class="nn">torchtune.models.gemma.rms_norm</span> <span class="kn">import</span> <span class="n">GemmaRMSNorm</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">TransformerDecoder</span><span class="p">,</span> <span class="n">TiedLinear</span>
 <span class="kn">from</span> <span class="nn">torchtune.models.gemma.gemma_norm_embedding</span> <span class="kn">import</span> <span class="n">GemmaNormEmbeddings</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">DoRALinear</span><span class="p">,</span> <span class="n">LORA_ATTN_MODULES</span><span class="p">,</span> <span class="n">LoRALinear</span>
+<span class="kn">from</span> <span class="nn">torchtune.models.gemma._component_builders</span> <span class="kn">import</span> <span class="n">gemma_mlp</span><span class="p">,</span> <span class="n">lora_gemma_mlp</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Component builders for the Gemma 2B models and popular variants such as LoRA.</span>
+<span class="sd">Component builders for the Gemma2 2B, 9B models and popular variants such as LoRA.</span>
 
 <span class="sd">torchtune provides composable building blocks. Builder functions help</span>
 <span class="sd">stitch these building blocks into higher-level components. This design has</span>
@@ -462,8 +464,42 @@
 <span class="sd">the building blocks simple.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="k">class</span> <span class="nc">TanhSoftCapping</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">capping_value</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capping_value</span> <span class="o">=</span> <span class="n">capping_value</span>
 
-<div class="viewcode-block" id="gemma"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma.gemma.html#torchtune.models.gemma.gemma">[docs]</a><span class="k">def</span> <span class="nf">gemma</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attn_weights</span><span class="p">):</span>
+        <span class="n">attn_weights</span> <span class="o">=</span> <span class="n">attn_weights</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">capping_value</span>
+        <span class="n">attn_weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">attn_weights</span><span class="p">)</span>
+        <span class="n">attn_weights</span> <span class="o">=</span> <span class="n">attn_weights</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">capping_value</span>
+        <span class="k">return</span> <span class="n">attn_weights</span>
+
+<span class="k">class</span> <span class="nc">Gemma2FinalNorm</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Combines RMSNorm and SoftCapping</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">capping_value</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capping_value</span> <span class="o">=</span> <span class="n">capping_value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rms_norm</span> <span class="o">=</span> <span class="n">GemmaRMSNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logit_capping</span> <span class="o">=</span> <span class="n">TanhSoftCapping</span><span class="p">(</span><span class="n">capping_value</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rms_norm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logit_capping</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+
+<div class="viewcode-block" id="gemma2"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma2.gemma2.html#torchtune.models.gemma2.gemma2">[docs]</a><span class="k">def</span> <span class="nf">gemma2</span><span class="p">(</span>
     <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -475,16 +511,18 @@
     <span class="n">attn_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">norm_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-6</span><span class="p">,</span>
     <span class="n">rope_base</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
+    <span class="n">hidden_capping_value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">50.</span><span class="p">,</span>
+    <span class="n">final_capping_value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">30.</span><span class="p">,</span>
+    <span class="n">sliding_window_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4096</span><span class="p">,</span>
+    <span class="n">query_pre_attn_scalar</span><span class="p">:</span>  <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Build the decoder associated with the gemma model. This includes:</span>
+<span class="sd">    Build the decoder associated with the gemma2 model. This includes:</span>
 <span class="sd">    - Token embeddings</span>
 <span class="sd">    - num_layers number of TransformerSelfAttentionLayer blocks</span>
 <span class="sd">    - RMS Norm layer applied to the output of the transformer</span>
 <span class="sd">    - Final projection into token space</span>
 
-<span class="sd">    This does NOT currently include inference-time optimizations such as</span>
-<span class="sd">    sliding-window attention</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        vocab_size (int): number of tokens in vocabulary.</span>
@@ -505,58 +543,57 @@
 <span class="sd">        TransformerDecoder: Instantiation of gemma model.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">rope</span> <span class="o">=</span> <span class="n">RotaryPositionalEmbeddings</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="n">rope_base</span><span class="p">)</span>
-    <span class="n">self_att</span> <span class="o">=</span> <span class="n">MultiHeadAttention</span><span class="p">(</span>
-        <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
-        <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
-        <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_kv_heads</span><span class="p">,</span>
-        <span class="n">head_dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span>
-        <span class="n">q_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
-        <span class="n">k_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
-        <span class="n">v_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
-        <span class="n">output_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">num_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
-        <span class="n">pos_embeddings</span><span class="o">=</span><span class="n">rope</span><span class="p">,</span>
-        <span class="n">kv_cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
-        <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">mlp</span> <span class="o">=</span> <span class="n">gemma_mlp</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="n">intermediate_dim</span><span class="p">)</span>
-    <span class="n">layer</span> <span class="o">=</span> <span class="n">TransformerSelfAttentionLayer</span><span class="p">(</span>
-        <span class="n">attn</span><span class="o">=</span><span class="n">self_att</span><span class="p">,</span>
-        <span class="n">mlp</span><span class="o">=</span><span class="n">mlp</span><span class="p">,</span>
-        <span class="n">sa_norm</span><span class="o">=</span><span class="n">GemmaRMSNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
-        <span class="n">mlp_norm</span><span class="o">=</span><span class="n">GemmaRMSNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
-    <span class="p">)</span>
+    
+    <span class="n">layers</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+    
+    <span class="k">for</span> <span class="n">layer_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
+        
+        <span class="n">mlp</span> <span class="o">=</span> <span class="n">gemma_mlp</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="n">intermediate_dim</span><span class="p">)</span>
+        
+        <span class="n">self_att</span> <span class="o">=</span> <span class="n">Gemma2Attention</span><span class="p">(</span>
+            <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+            <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+            <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_kv_heads</span><span class="p">,</span>
+            <span class="n">head_dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span>
+            <span class="n">q_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">k_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">v_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">output_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">num_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">pos_embeddings</span><span class="o">=</span><span class="n">rope</span><span class="p">,</span>
+            <span class="n">kv_cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+            <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
+            <span class="c1"># perform sliding window on half of the layers only</span>
+            <span class="n">sliding_window_size</span><span class="o">=</span><span class="n">sliding_window_size</span> <span class="k">if</span> <span class="p">(</span><span class="n">layer_idx</span> <span class="o">%</span> <span class="mi">2</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">softcapping</span><span class="o">=</span><span class="n">hidden_capping_value</span><span class="p">,</span>
+            <span class="n">query_pre_attn_scalar</span><span class="o">=</span><span class="n">query_pre_attn_scalar</span>
+        <span class="p">)</span>
+        
+        <span class="n">layer</span> <span class="o">=</span> <span class="n">TransformerSelfAttentionLayer</span><span class="p">(</span>
+            <span class="n">attn</span><span class="o">=</span><span class="n">self_att</span><span class="p">,</span>
+            <span class="n">mlp</span><span class="o">=</span><span class="n">mlp</span><span class="p">,</span>
+            <span class="n">sa_norm</span><span class="o">=</span><span class="n">GemmaRMSNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
+            <span class="n">mlp_norm</span><span class="o">=</span><span class="n">GemmaRMSNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
+            <span class="n">sa_scale</span><span class="o">=</span><span class="n">GemmaRMSNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
+            <span class="n">mlp_scale</span><span class="o">=</span><span class="n">GemmaRMSNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
     <span class="n">tok_embeddings</span> <span class="o">=</span> <span class="n">GemmaNormEmbeddings</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
     <span class="n">output_proj</span> <span class="o">=</span> <span class="n">TiedLinear</span><span class="p">(</span><span class="n">tok_embeddings</span><span class="p">)</span>
     <span class="n">model</span> <span class="o">=</span> <span class="n">TransformerDecoder</span><span class="p">(</span>
         <span class="n">tok_embeddings</span><span class="o">=</span><span class="n">tok_embeddings</span><span class="p">,</span>
-        <span class="n">layers</span><span class="o">=</span><span class="n">layer</span><span class="p">,</span>
-        <span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span>
+        <span class="n">layers</span><span class="o">=</span><span class="n">layers</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
         <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
         <span class="n">output</span><span class="o">=</span><span class="n">output_proj</span><span class="p">,</span>
         <span class="n">head_dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span>
-        <span class="n">norm</span><span class="o">=</span><span class="n">GemmaRMSNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">)</span>
+        <span class="n">norm</span><span class="o">=</span><span class="n">Gemma2FinalNorm</span><span class="p">(</span><span class="n">final_capping_value</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">model</span></div>
 
 
-<span class="k">def</span> <span class="nf">gemma_mlp</span><span class="p">(</span><span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FeedForward</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Build the MLP layer associated with the Gemma model.</span>
 
-<span class="sd">    Args:</span>
-<span class="sd">        dim (int): input dimension to the MLP</span>
-<span class="sd">        hidden_dim (int): hidden dimension of the MLP</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">gate_proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">quantize_base</span> <span class="k">else</span> <span class="n">FrozenNF4Linear</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">down_proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">quantize_base</span> <span class="k">else</span> <span class="n">FrozenNF4Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">up_proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">quantize_base</span> <span class="k">else</span> <span class="n">FrozenNF4Linear</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">activation</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">GELU</span><span class="p">(</span><span class="n">approximate</span><span class="o">=</span><span class="s2">&quot;tanh&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">FeedForward</span><span class="p">(</span><span class="n">gate_proj</span><span class="o">=</span><span class="n">gate_proj</span><span class="p">,</span> <span class="n">down_proj</span><span class="o">=</span><span class="n">down_proj</span><span class="p">,</span> <span class="n">up_proj</span><span class="o">=</span><span class="n">up_proj</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">)</span>
-
-
-<div class="viewcode-block" id="lora_gemma"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma.lora_gemma.html#torchtune.models.gemma.lora_gemma">[docs]</a><span class="k">def</span> <span class="nf">lora_gemma</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_gemma2"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma2.lora_gemma2.html#torchtune.models.gemma2.lora_gemma2">[docs]</a><span class="k">def</span> <span class="nf">lora_gemma2</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -572,6 +609,10 @@
     <span class="n">attn_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">norm_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-6</span><span class="p">,</span>
     <span class="n">rope_base</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
+    <span class="n">hidden_capping_value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">50.</span><span class="p">,</span>
+    <span class="n">final_capping_value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">30.</span><span class="p">,</span>
+    <span class="n">sliding_window_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4096</span><span class="p">,</span>
+    <span class="n">query_pre_attn_scalar</span><span class="p">:</span>  <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="c1"># LoRA args</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -615,52 +656,63 @@
 <span class="sd">        TransformerDecoder: Instantiation of Gemma model with LoRA applied to</span>
 <span class="sd">        a subset of the attention projections in each layer.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">self_attn</span> <span class="o">=</span> <span class="n">lora_gemma_self_attention</span><span class="p">(</span>
-        <span class="n">lora_modules</span><span class="o">=</span><span class="n">lora_attn_modules</span><span class="p">,</span>
-        <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
-        <span class="n">head_dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span>
-        <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
-        <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_kv_heads</span><span class="p">,</span>
-        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
-        <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
-        <span class="n">rope_base</span><span class="o">=</span><span class="n">rope_base</span><span class="p">,</span>
-        <span class="n">lora_rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
-        <span class="n">lora_alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
-        <span class="n">lora_dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
-        <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
-        <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
-    <span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">apply_lora_to_mlp</span><span class="p">:</span>
-        <span class="n">mlp</span> <span class="o">=</span> <span class="n">lora_gemma_mlp</span><span class="p">(</span>
-            <span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
-            <span class="n">hidden_dim</span><span class="o">=</span><span class="n">intermediate_dim</span><span class="p">,</span>
+    <span class="n">tok_embeddings</span> <span class="o">=</span> <span class="n">GemmaNormEmbeddings</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
+    <span class="n">output_proj</span> <span class="o">=</span> <span class="n">TiedLinear</span><span class="p">(</span><span class="n">tok_embeddings</span><span class="p">)</span>
+    
+    <span class="n">layers</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+    
+    <span class="k">for</span> <span class="n">layer_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">apply_lora_to_mlp</span><span class="p">:</span>
+            <span class="n">mlp</span> <span class="o">=</span> <span class="n">lora_gemma_mlp</span><span class="p">(</span>
+                <span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+                <span class="n">hidden_dim</span><span class="o">=</span><span class="n">intermediate_dim</span><span class="p">,</span>
+                <span class="n">lora_rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
+                <span class="n">lora_alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
+                <span class="n">lora_dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
+                <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
+                <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mlp</span> <span class="o">=</span> <span class="n">gemma_mlp</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="n">intermediate_dim</span><span class="p">,</span> <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">)</span>
+        <span class="n">self_att</span> <span class="o">=</span> <span class="n">lora_gemma2_self_attention</span><span class="p">(</span>
+            <span class="n">lora_modules</span><span class="o">=</span><span class="n">lora_attn_modules</span><span class="p">,</span>
+            <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+            <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+            <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_kv_heads</span><span class="p">,</span>
+            <span class="n">head_dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span>
+            <span class="n">rope_base</span><span class="o">=</span><span class="n">rope_base</span><span class="p">,</span>
+            <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+            <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
+            <span class="c1"># perform sliding window on half of the layers only</span>
+            <span class="n">sliding_window_size</span><span class="o">=</span><span class="n">sliding_window_size</span> <span class="k">if</span> <span class="p">(</span><span class="n">layer_idx</span> <span class="o">%</span> <span class="mi">2</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">softcapping</span><span class="o">=</span><span class="n">hidden_capping_value</span><span class="p">,</span>
+            <span class="n">query_pre_attn_scalar</span><span class="o">=</span><span class="n">query_pre_attn_scalar</span><span class="p">,</span>
             <span class="n">lora_rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
             <span class="n">lora_alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
             <span class="n">lora_dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
-            <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
-            <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
+            <span class="n">use_dora</span> <span class="o">=</span> <span class="n">use_dora</span><span class="p">,</span>
+            <span class="n">quantize_base</span> <span class="o">=</span> <span class="n">quantize_base</span><span class="p">,</span>
         <span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">mlp</span> <span class="o">=</span> <span class="n">gemma_mlp</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="n">intermediate_dim</span><span class="p">,</span> <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">)</span>
-
-    <span class="n">layer</span> <span class="o">=</span> <span class="n">TransformerSelfAttentionLayer</span><span class="p">(</span>
-        <span class="n">attn</span><span class="o">=</span><span class="n">self_attn</span><span class="p">,</span>
-        <span class="n">mlp</span><span class="o">=</span><span class="n">mlp</span><span class="p">,</span>
-        <span class="n">sa_norm</span><span class="o">=</span><span class="n">GemmaRMSNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
-        <span class="n">mlp_norm</span><span class="o">=</span><span class="n">GemmaRMSNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
-    <span class="p">)</span>
-    <span class="n">tok_embeddings</span> <span class="o">=</span> <span class="n">GemmaNormEmbeddings</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
-    <span class="n">output_proj</span> <span class="o">=</span> <span class="n">TiedLinear</span><span class="p">(</span><span class="n">tok_embeddings</span><span class="p">)</span>
+        
+        <span class="n">layer</span> <span class="o">=</span> <span class="n">TransformerSelfAttentionLayer</span><span class="p">(</span>
+            <span class="n">attn</span><span class="o">=</span><span class="n">self_att</span><span class="p">,</span>
+            <span class="n">mlp</span><span class="o">=</span><span class="n">mlp</span><span class="p">,</span>
+            <span class="n">sa_norm</span><span class="o">=</span><span class="n">GemmaRMSNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
+            <span class="n">mlp_norm</span><span class="o">=</span><span class="n">GemmaRMSNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
+            <span class="n">sa_scale</span><span class="o">=</span><span class="n">GemmaRMSNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
+            <span class="n">mlp_scale</span><span class="o">=</span><span class="n">GemmaRMSNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
+        
     <span class="n">model</span> <span class="o">=</span> <span class="n">TransformerDecoder</span><span class="p">(</span>
         <span class="n">tok_embeddings</span><span class="o">=</span><span class="n">tok_embeddings</span><span class="p">,</span>
-        <span class="n">layers</span><span class="o">=</span><span class="n">layer</span><span class="p">,</span>
-        <span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span>
+        <span class="n">layers</span><span class="o">=</span><span class="n">layers</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
         <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
         <span class="n">output</span><span class="o">=</span><span class="n">output_proj</span><span class="p">,</span>
         <span class="n">head_dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span>
-        <span class="n">norm</span><span class="o">=</span><span class="n">GemmaRMSNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">)</span>
+        <span class="n">norm</span><span class="o">=</span><span class="n">Gemma2FinalNorm</span><span class="p">(</span><span class="n">final_capping_value</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">)</span>
     <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">quantize_base</span><span class="p">:</span>
@@ -673,7 +725,7 @@
     <span class="k">return</span> <span class="n">model</span></div>
 
 
-<span class="k">def</span> <span class="nf">lora_gemma_self_attention</span><span class="p">(</span>
+<span class="k">def</span> <span class="nf">lora_gemma2_self_attention</span><span class="p">(</span>
     <span class="n">lora_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="c1"># MultiHeadAttention args</span>
@@ -684,13 +736,17 @@
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">attn_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">rope_base</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
+    <span class="n">sliding_window_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">softcapping</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">50.</span><span class="p">,</span>
+    <span class="n">query_pre_attn_scalar</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
     <span class="c1"># LoRA args</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">use_dora</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MultiHeadAttention</span><span class="p">:</span>
+    
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Gemma2Attention</span><span class="p">:</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">lora_modules</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Must pass one or more of </span><span class="si">{</span><span class="n">LORA_ATTN_MODULES</span><span class="si">}</span><span class="s2"> as lora_modules&quot;</span>
@@ -765,60 +821,25 @@
     <span class="p">)</span>
 
     <span class="n">rope</span> <span class="o">=</span> <span class="n">RotaryPositionalEmbeddings</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="n">rope_base</span><span class="p">)</span>
-    <span class="n">self_attn</span> <span class="o">=</span> <span class="n">MultiHeadAttention</span><span class="p">(</span>
-        <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
-        <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
-        <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_kv_heads</span><span class="p">,</span>
-        <span class="n">head_dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span>
-        <span class="n">q_proj</span><span class="o">=</span><span class="n">q_proj</span><span class="p">,</span>
-        <span class="n">k_proj</span><span class="o">=</span><span class="n">k_proj</span><span class="p">,</span>
-        <span class="n">v_proj</span><span class="o">=</span><span class="n">v_proj</span><span class="p">,</span>
-        <span class="n">output_proj</span><span class="o">=</span><span class="n">output_proj</span><span class="p">,</span>
-        <span class="n">pos_embeddings</span><span class="o">=</span><span class="n">rope</span><span class="p">,</span>
-        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
-        <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="k">return</span> <span class="n">self_attn</span>
-
-
-<span class="k">def</span> <span class="nf">lora_gemma_mlp</span><span class="p">(</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">hidden_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-    <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
-    <span class="n">use_dora</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FeedForward</span><span class="p">:</span>
-    <span class="n">adapter_cls</span> <span class="o">=</span> <span class="n">DoRALinear</span> <span class="k">if</span> <span class="n">use_dora</span> <span class="k">else</span> <span class="n">LoRALinear</span>
-    <span class="n">gate_proj</span> <span class="o">=</span> <span class="n">adapter_cls</span><span class="p">(</span>
-        <span class="n">in_dim</span><span class="o">=</span><span class="n">dim</span><span class="p">,</span>
-        <span class="n">out_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
-        <span class="n">rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
-        <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
-        <span class="n">dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
-        <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">down_proj</span> <span class="o">=</span> <span class="n">adapter_cls</span><span class="p">(</span>
-        <span class="n">in_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
-        <span class="n">out_dim</span><span class="o">=</span><span class="n">dim</span><span class="p">,</span>
-        <span class="n">rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
-        <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
-        <span class="n">dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
-        <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">up_proj</span> <span class="o">=</span> <span class="n">adapter_cls</span><span class="p">(</span>
-        <span class="n">in_dim</span><span class="o">=</span><span class="n">dim</span><span class="p">,</span>
-        <span class="n">out_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
-        <span class="n">rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
-        <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
-        <span class="n">dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
-        <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">activation</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">GELU</span><span class="p">(</span><span class="n">approximate</span><span class="o">=</span><span class="s2">&quot;tanh&quot;</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">FeedForward</span><span class="p">(</span><span class="n">gate_proj</span><span class="o">=</span><span class="n">gate_proj</span><span class="p">,</span> <span class="n">down_proj</span><span class="o">=</span><span class="n">down_proj</span><span class="p">,</span> <span class="n">up_proj</span><span class="o">=</span><span class="n">up_proj</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">)</span>
+    
+    <span class="n">self_att</span> <span class="o">=</span> <span class="n">Gemma2Attention</span><span class="p">(</span>
+            <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+            <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+            <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_kv_heads</span><span class="p">,</span>
+            <span class="n">head_dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span>
+            <span class="n">q_proj</span><span class="o">=</span><span class="n">q_proj</span><span class="p">,</span>
+            <span class="n">k_proj</span><span class="o">=</span><span class="n">k_proj</span><span class="p">,</span>
+            <span class="n">v_proj</span><span class="o">=</span><span class="n">v_proj</span><span class="p">,</span>
+            <span class="n">output_proj</span><span class="o">=</span><span class="n">output_proj</span><span class="p">,</span>
+            <span class="n">pos_embeddings</span><span class="o">=</span><span class="n">rope</span><span class="p">,</span>
+            <span class="n">kv_cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+            <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
+            <span class="n">sliding_window_size</span><span class="o">=</span><span class="n">sliding_window_size</span><span class="p">,</span>
+            <span class="n">softcapping</span><span class="o">=</span><span class="n">softcapping</span><span class="p">,</span>
+            <span class="n">query_pre_attn_scalar</span><span class="o">=</span><span class="n">query_pre_attn_scalar</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">self_att</span>
 </pre></div>
 
              </article>

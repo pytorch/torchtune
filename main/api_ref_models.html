@@ -972,6 +972,55 @@
 </tbody>
 </table>
 </section>
+<section id="gemma2">
+<h2>gemma2 :<a class="headerlink" href="#gemma2" title="Permalink to this heading">¶</a></h2>
+<p>Models of size 2B, 9B, 27B from the <a class="reference external" href="https://blog.google/technology/developers/gemma-open-models/">Gemma family</a>.</p>
+<p>Important: You need to request access on <a class="reference external" href="https://huggingface.co/google/gemma-2-2b">Hugging Face</a> to use this model.</p>
+<p>To download the Gemma2 2B, 9B, 27B models :</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>google/gemma-2-&lt;MODEL_SIZE&gt;b<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;gemma-2-&lt;MODEL_SIZE&gt;b.gguf&quot;</span><span class="w">  </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
+</pre></div>
+</div>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.gemma2.gemma2.html#torchtune.models.gemma2.gemma2" title="torchtune.models.gemma2.gemma2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gemma2.gemma2</span></code></a></p></td>
+<td><p>Build the decoder associated with the gemma2 model.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.gemma2.lora_gemma2.html#torchtune.models.gemma2.lora_gemma2" title="torchtune.models.gemma2.lora_gemma2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gemma2.lora_gemma2</span></code></a></p></td>
+<td><p>Return a version of Gemma with LoRA applied based on the passed in configuration.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.gemma2.gemma2_2b.html#torchtune.models.gemma2.gemma2_2b" title="torchtune.models.gemma2.gemma2_2b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gemma2.gemma2_2b</span></code></a></p></td>
+<td><p>Builder for creating a Gemma2 2B model initialized w/ the default 2b parameter values from: <a class="reference external" href="https://github.com/google/gemma_pytorch/blob/main/gemma/config.py">https://github.com/google/gemma_pytorch/blob/main/gemma/config.py</a></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.gemma2.lora_gemma2_2b.html#torchtune.models.gemma2.lora_gemma2_2b" title="torchtune.models.gemma2.lora_gemma2_2b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gemma2.lora_gemma2_2b</span></code></a></p></td>
+<td><p>Builder for creating a Gemma2 2B model with LoRA enabled.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.gemma2.qlora_gemma2_2b.html#torchtune.models.gemma2.qlora_gemma2_2b" title="torchtune.models.gemma2.qlora_gemma2_2b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gemma2.qlora_gemma2_2b</span></code></a></p></td>
+<td><p>Builder for creating a Gemma2 model with QLoRA enabled.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.gemma2.gemma2_9b.html#torchtune.models.gemma2.gemma2_9b" title="torchtune.models.gemma2.gemma2_9b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gemma2.gemma2_9b</span></code></a></p></td>
+<td><p>Builder for creating a Gemma2 9B model initialized w/ the default 9b parameter values from: <a class="reference external" href="https://github.com/google/gemma_pytorch/blob/main/gemma/config.py">https://github.com/google/gemma_pytorch/blob/main/gemma/config.py</a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.gemma2.lora_gemma2_9b.html#torchtune.models.gemma2.lora_gemma2_9b" title="torchtune.models.gemma2.lora_gemma2_9b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gemma2.lora_gemma2_9b</span></code></a></p></td>
+<td><p>Builder for creating a Gemma 9B model with LoRA enabled.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.gemma2.qlora_gemma2_9b.html#torchtune.models.gemma2.qlora_gemma2_9b" title="torchtune.models.gemma2.qlora_gemma2_9b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gemma2.qlora_gemma2_9b</span></code></a></p></td>
+<td><p>Builder for creating a Gemma model with QLoRA enabled.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.gemma2.gemma2_27b.html#torchtune.models.gemma2.gemma2_27b" title="torchtune.models.gemma2.gemma2_27b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gemma2.gemma2_27b</span></code></a></p></td>
+<td><p>Builder for creating a Gemma2 27B model initialized w/ the default 27b parameter values from: <a class="reference external" href="https://github.com/google/gemma_pytorch/blob/main/gemma/config.py">https://github.com/google/gemma_pytorch/blob/main/gemma/config.py</a></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.gemma2.lora_gemma2_27b.html#torchtune.models.gemma2.lora_gemma2_27b" title="torchtune.models.gemma2.lora_gemma2_27b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gemma2.lora_gemma2_27b</span></code></a></p></td>
+<td><p>Builder for creating a Gemma2 27B model with LoRA enabled.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.gemma2.qlora_gemma2_27b.html#torchtune.models.gemma2.qlora_gemma2_27b" title="torchtune.models.gemma2.qlora_gemma2_27b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gemma2.qlora_gemma2_27b</span></code></a></p></td>
+<td><p>Builder for creating a Gemma model with QLoRA enabled.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.gemma.gemma_tokenizer.html#torchtune.models.gemma.gemma_tokenizer" title="torchtune.models.gemma.gemma_tokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gemma.gemma_tokenizer</span></code></a></p></td>
+<td><p>Tokenizer for Gemma.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
 <section id="clip">
 <h2>clip<a class="headerlink" href="#clip" title="Permalink to this heading">¶</a></h2>
 <p>Vision components to support multimodality using <a class="reference external" href="https://arxiv.org/abs/2103.00020">CLIP encoder</a>.</p>
@@ -1048,6 +1097,7 @@
 <li><a class="reference internal" href="#phi-3">phi-3</a></li>
 <li><a class="reference internal" href="#mistral">mistral</a></li>
 <li><a class="reference internal" href="#gemma">gemma</a></li>
+<li><a class="reference internal" href="#gemma2">gemma2 :</a></li>
 <li><a class="reference internal" href="#clip">clip</a></li>
 </ul>
 </li>

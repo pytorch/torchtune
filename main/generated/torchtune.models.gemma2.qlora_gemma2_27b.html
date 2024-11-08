@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>clip_vision_encoder &mdash; torchtune main documentation</title>
+  <title>qlora_gemma2_27b &mdash; torchtune main documentation</title>
   
 
   
@@ -40,8 +40,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="TokenPositionalEmbedding" href="torchtune.models.clip.TokenPositionalEmbedding.html" />
-    <link rel="prev" title="qlora_gemma2_27b" href="torchtune.models.gemma2.qlora_gemma2_27b.html" />
+    <link rel="next" title="clip_vision_encoder" href="torchtune.models.clip.clip_vision_encoder.html" />
+    <link rel="prev" title="lora_gemma2_27b" href="torchtune.models.gemma2.lora_gemma2_27b.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -397,13 +397,13 @@
         
           <li><a href="../api_ref_models.html">torchtune.models</a> &gt;</li>
         
-      <li>clip_vision_encoder</li>
+      <li>qlora_gemma2_27b</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.models.clip.clip_vision_encoder.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.models.gemma2.qlora_gemma2_27b.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -433,52 +433,14 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="clip-vision-encoder">
-<h1>clip_vision_encoder<a class="headerlink" href="#clip-vision-encoder" title="Permalink to this heading">¶</a></h1>
+  <section id="qlora-gemma2-27b">
+<h1>qlora_gemma2_27b<a class="headerlink" href="#qlora-gemma2-27b" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.models.clip.clip_vision_encoder">
-<span class="sig-prename descclassname"><span class="pre">torchtune.models.clip.</span></span><span class="sig-name descname"><span class="pre">clip_vision_encoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tile_size:</span> <span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size:</span> <span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">embed_dim:</span> <span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_layers:</span> <span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_heads:</span> <span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation:</span> <span class="pre">~typing.Callable</span> <span class="pre">=</span> <span class="pre">&lt;class</span> <span class="pre">'torch.nn.modules.activation.SiLU'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls_output_dim:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">512</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attn_bias:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_indices:</span> <span class="pre">~typing.Optional[~typing.List[int]]</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_cls_projection:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_num_tiles:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_channels:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intermediate_act:</span> <span class="pre">~torch.nn.modules.module.Module</span> <span class="pre">=</span> <span class="pre">SiLU()</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.modules.VisionTransformer.html#torchtune.modules.VisionTransformer" title="torchtune.modules.vision_transformer.VisionTransformer"><span class="pre">VisionTransformer</span></a></span></span><a class="reference internal" href="../_modules/torchtune/models/clip/_component_builders.html#clip_vision_encoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.clip.clip_vision_encoder" title="Permalink to this definition">¶</a></dt>
-<dd><p>Builds the vision encoder associated with the clip model. This includes:</p>
-<ul class="simple">
-<li><p>TransformerEncoderLayer</p></li>
-<li><p>positional embeddings</p></li>
-<li><p>CLS projection (optional)</p></li>
-</ul>
-<p>For details, please check the documentation of
-<a class="reference internal" href="torchtune.modules.VisionTransformer.html#torchtune.modules.VisionTransformer" title="torchtune.modules.vision_transformer.VisionTransformer"><code class="xref py py-class docutils literal notranslate"><span class="pre">torchtune.modules.vision_transformer.VisionTransformer</span></code></a>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>tile_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
-the size of the input image. In this case, the function will consider your image as a single tile.</p></li>
-<li><p><strong>patch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – The size of each patch. Used to divide the tiles into patches.
-E.g. for <code class="docutils literal notranslate"><span class="pre">patch_size=40</span></code>, a tile of shape (400, 400) will have 10x10 grid of patches
-with shape (40, 40) each.</p></li>
-<li><p><strong>embed_dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – The dimensionality of each patch embedding (token).</p></li>
-<li><p><strong>num_layers</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – The number of transformer layers.</p></li>
-<li><p><strong>num_heads</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – The number of attention heads in each transformer layer.</p></li>
-<li><p><strong>activation</strong> (<em>Callable</em>) – The activation function to use in the MLP layer.</p></li>
-<li><p><strong>cls_output_dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – The dimensionality of the output tensor from the CLS projection module.</p></li>
-<li><p><strong>attn_bias</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Boolean for if to use bias in the attention module. Default True.</p></li>
-<li><p><strong>out_indices</strong> (<em>Optional</em><em>[</em><em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>]</em><em>]</em>) – The indices of hidden layers to return.
-If provided, it will return the intermediate results of the transformer layers
-before they go through a next layer. For example, <code class="docutils literal notranslate"><span class="pre">out_indices=[0,3]</span></code> will
-return the tokens before they go through the first and fourth layers.</p></li>
-<li><p><strong>output_cls_projection</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – If True, only the CLS token projection will be outputted,
-instead of all tokens. Defaults to False.</p></li>
-<li><p><strong>max_num_tiles</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – The maximum number of tiles that can be processed. This is used to
-determine the size of the positional embeddings.</p></li>
-<li><p><strong>in_channels</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – The number of image input channels.</p></li>
-<li><p><strong>intermediate_act</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.5)"><em>torch.nn.Module</em></a>) – The activation function used in the intermediate layers in the transformer encoder.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A <cite>VisionTransformer</cite> object.</p>
-</dd>
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#AssertionError" title="(in Python v3.13)"><strong>AssertionError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">embed_dim</span></code> is not divisible by <code class="docutils literal notranslate"><span class="pre">num_heads</span></code>.</p>
-</dd>
-</dl>
+<dt class="sig sig-object py" id="torchtune.models.gemma2.qlora_gemma2_27b">
+<span class="sig-prename descclassname"><span class="pre">torchtune.models.gemma2.</span></span><span class="sig-name descname"><span class="pre">qlora_gemma2_27b</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lora_attn_modules</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.13)"><span class="pre">Literal</span></a><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'q_proj'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'k_proj'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'v_proj'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'output_proj'</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apply_lora_to_mlp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lora_rank</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lora_alpha</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">16</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lora_dropout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_dora</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantize_base</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.transformer.TransformerDecoder"><span class="pre">TransformerDecoder</span></a></span></span><a class="headerlink" href="#torchtune.models.gemma2.qlora_gemma2_27b" title="Permalink to this definition">¶</a></dt>
+<dd><p>Builder for creating a Gemma model with QLoRA enabled. Base model weights in linear layers
+that LoRA is applied to are quantized per the QLoRA paper: <a class="reference external" href="https://arxiv.org/abs/2305.14314">https://arxiv.org/abs/2305.14314</a>.
+Please see <cite>lora_gemma2_27b</cite> for full API arguments.</p>
 </dd></dl>
 
 </section>
@@ -491,10 +453,10 @@ determine the size of the positional embeddings.</p></li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.models.clip.TokenPositionalEmbedding.html" class="btn btn-neutral float-right" title="TokenPositionalEmbedding" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.models.clip.clip_vision_encoder.html" class="btn btn-neutral float-right" title="clip_vision_encoder" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.models.gemma2.qlora_gemma2_27b.html" class="btn btn-neutral" title="qlora_gemma2_27b" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.models.gemma2.lora_gemma2_27b.html" class="btn btn-neutral" title="lora_gemma2_27b" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -526,7 +488,7 @@ determine the size of the positional embeddings.</p></li>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">clip_vision_encoder</a></li>
+<li><a class="reference internal" href="#">qlora_gemma2_27b</a></li>
 </ul>
 
             </div>
