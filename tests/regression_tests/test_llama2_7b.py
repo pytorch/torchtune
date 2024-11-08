@@ -57,7 +57,7 @@ class TestLoRA7BDistributedFinetuneEval:
             checkpointer.checkpoint_files=[torchtune_model_0.pt] \
             checkpointer.output_dir={tmpdir} \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
-            tasks=['truthfulqa_mc2']
+            tasks=['truthfulqa_mc2'] \
             limit=10 \
             device=cuda \
         """.split()
