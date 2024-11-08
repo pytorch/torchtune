@@ -163,7 +163,7 @@ def lora_llama3(
     intermediate_dim: Optional[int] = None,
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-5,
-    rope_base: float = 500000.0,
+    rope_base: int = 500_000,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,
@@ -297,7 +297,7 @@ def lora_llama3_self_attention(
     num_kv_heads: int,
     max_seq_len: int,
     attn_dropout: float = 0.0,
-    rope_base: float = 500000.0,
+    rope_base: int = 500_000,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,

@@ -111,7 +111,7 @@ def llama3_2_vision_11b(
         embed_dim=4096,
         max_seq_len=131_072,
         encoder_max_seq_len=128_080,  # 20*6404
-        rope_base=500000.0,
+        rope_base=500_000,
         intermediate_dim=14336,
     )
     return DeepFusionModel(
@@ -209,7 +209,7 @@ def lora_llama3_2_vision_11b(
         embed_dim=4096,
         max_seq_len=131_072,
         encoder_max_seq_len=128_080,  # 20*6404
-        rope_base=500000.0,
+        rope_base=500_000,
         intermediate_dim=14336,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
@@ -266,7 +266,7 @@ def llama3_2_vision_90b(
         embed_dim=8192,
         max_seq_len=131_072,
         encoder_max_seq_len=128_080,  # 20*6404
-        rope_base=500000.0,
+        rope_base=500_000,
         intermediate_dim=28672,
     )
     return DeepFusionModel(
@@ -364,7 +364,7 @@ def lora_llama3_2_vision_90b(
         embed_dim=8192,
         max_seq_len=131_072,
         encoder_max_seq_len=128_080,  # 20*6404
-        rope_base=500000.0,
+        rope_base=500_000,
         intermediate_dim=28672,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
