@@ -20,7 +20,12 @@ from torch.distributed._tensor.placement_types import DTensorSpec, TensorMeta
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     _CHECKPOINT_WRAPPED_MODULE,
 )
-from torch.distributed.checkpoint.state_dict import _init_optim_state
+from torch.distributed.checkpoint.state_dict import (
+    _init_optim_state,
+    get_model_state_dict,
+    set_model_state_dict,
+    StateDictOptions,
+)
 from torch.distributed.fsdp import ShardingStrategy
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim import Optimizer
@@ -345,12 +350,13 @@ def load_from_full_model_state_dict(
         # choose `assign=True` since we cannot call `copy_` on meta tensor
         return model.load_state_dict(sharded_sd, strict=strict, assign=True)
     else:
-        options = torch.distributed.checkpoint.state_dict.StateDictOptions(
-            full_state_dict=True, broadcast_from_rank0=True, strict=strict
+        options = StateDictOptions(
+            full_state_dict=True,
+            broadcast_from_rank0=False,
+            strict=strict,
+            cpu_offload=cpu_offload,
         )
-        torch.distributed.checkpoint.state_dict.set_model_state_dict(
-            model=model, model_state_dict=full_sd, options=options
-        )
+        set_model_state_dict(model=model, model_state_dict=full_sd, options=options)
 
 
 def get_full_model_state_dict(
@@ -420,12 +426,8 @@ def get_full_model_state_dict(
                     cpu_state_dict[full_fqn] = param.cpu()
             module.reshard()
     else:
-        options = torch.distributed.checkpoint.state_dict.StateDictOptions(
-            full_state_dict=True, broadcast_from_rank0=True
-        )
-        cpu_state_dict = torch.distributed.checkpoint.state_dict.get_model_state_dict(
-            model=model, options=options
-        )
+        options = StateDictOptions(full_state_dict=True, broadcast_from_rank0=True)
+        cpu_state_dict = get_model_state_dict(model=model, options=options)
     return cpu_state_dict
 
 
