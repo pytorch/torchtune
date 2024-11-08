@@ -167,7 +167,7 @@ In addition to :ref:`reducing model and optimizer precision <glossary_precision>
 All of our recipes support lower-precision optimizers from the `torchao <https://github.com/pytorch/ao/tree/main/torchao/prototype/low_bit_optim>`_ library.
 For single device recipes, we also support `bitsandbytes <https://huggingface.co/docs/bitsandbytes/main/en/index>`_.
 
-A good place to start might be the :class:`torchao.prototype.low_bit_optim.torchao.AdamW8bit` and :class:`bitsandbytes.optim.PagedAdamW8bit` optimizers.
+A good place to start might be the :class:`torchao.prototype.low_bit_optim.AdamW8bit` and :class:`bitsandbytes.optim.PagedAdamW8bit` optimizers.
 Both reduce memory by quantizing the optimizer state dict. Paged optimizers will also offload to CPU if there isn't enough GPU memory available. In practice,
 you can expect higher memory savings from bnb's PagedAdamW8bit but higher training speed from torchao's AdamW8bit.
 
@@ -180,7 +180,7 @@ a low precision optimizer using the :ref:`cli_label`:
 .. code-block:: bash
 
   tune run <RECIPE> --config <CONFIG> \
-  optimizer=torchao.prototype.low_bit_optim.torchao.AdamW8bit
+  optimizer=torchao.prototype.low_bit_optim.AdamW8bit
 
 .. code-block:: bash
 
