@@ -159,6 +159,7 @@ class TestFullFinetuneDistributedRecipe:
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
+            clip_grad_norm=100 \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type]
@@ -176,7 +177,7 @@ class TestFullFinetuneDistributedRecipe:
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{tmpdir}' \
-            checkpointer.checkpoint_files=[{os.path.join(tmpdir, "torchtune_model_1.pt")}]\
+            checkpointer.checkpoint_files=[{os.path.join(tmpdir, "torchtune_model_0.pt")}]\
             checkpointer.recipe_checkpoint={os.path.join(tmpdir, "recipe_state.pt")}\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
@@ -184,6 +185,7 @@ class TestFullFinetuneDistributedRecipe:
             tokenizer.prompt_template=null \
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
+            clip_grad_norm=100 \
         """.split()
 
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
