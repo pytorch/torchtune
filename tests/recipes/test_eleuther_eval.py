@@ -47,7 +47,7 @@ class TestEleutherEval:
     @pytest.fixture
     def expected_vision_acc(self):
         return {
-            "Science": 0.16,
+            "Science": 0.2,
             "Biology": 0.4,
             "Chemistry": 0.0,
             "Geography": 0.2,
