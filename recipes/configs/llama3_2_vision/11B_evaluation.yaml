@@ -7,7 +7,7 @@
 #   pip install lm_eval==0.4.5
 #
 # To launch, run the following command from root torchtune directory:
-#    tune run eleuther_eval --config llama3_2_vision/evaluation
+#    tune run eleuther_eval --config llama3_2_vision/11B_evaluation
 
 # Model arguments
 model:

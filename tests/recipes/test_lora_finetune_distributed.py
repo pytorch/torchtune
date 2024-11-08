@@ -46,8 +46,8 @@ class TestLoRAFinetuneDistributedRecipe:
         # These values have been validated against single device recipe test via
         # https://gist.github.com/ebsmothers/f1c3db7c66655a23a91e0290360960c4
         loss_values_map = {
-            "llama2": [10.5136, 10.4856, 10.5292, 10.5345],
-            "llama3": [11.9325, 11.9325, 11.9325, 11.9369],
+            "llama2": [10.5209, 10.5269, 10.5130, 10.5242],
+            "llama3": [11.9839, 11.9691, 11.9617, 11.9383],
         }
         return loss_values_map[model_type]
 
@@ -75,6 +75,8 @@ class TestLoRAFinetuneDistributedRecipe:
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -146,6 +148,8 @@ class TestLoRAFinetuneDistributedRecipe:
             batch_size=4 \
             gradient_accumulation_steps=1 \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -171,6 +175,8 @@ class TestLoRAFinetuneDistributedRecipe:
             batch_size=4 \
             gradient_accumulation_steps=1 \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir={tmpdir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -220,6 +226,8 @@ class TestLoRAFinetuneDistributedRecipe:
             batch_size=4 \
             gradient_accumulation_steps=1 \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
             model=torchtune.models.lora_small_test_model \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \

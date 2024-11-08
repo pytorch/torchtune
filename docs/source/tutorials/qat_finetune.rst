@@ -136,7 +136,7 @@ used for inference or generation.
 QAT finetuning recipe in torchtune
 ----------------------------------
 
-Putting it all together, we can now fine-tune a model using torchtune’s `QAT recipe <qat_distributed_recipe_label>`.
+Putting it all together, we can now fine-tune a model using torchtune’s :ref:`QAT recipe<qat_distributed_recipe_label>`.
 Make sure that you have first downloaded the Llama3 weights and tokenizer by
 following :ref:`these instructions<download_llama_label>`. In this tutorial,
 we use the following settings to demonstrate QAT’s effectiveness in recovering

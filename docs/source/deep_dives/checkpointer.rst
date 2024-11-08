@@ -443,7 +443,7 @@ For this section we'll use the Llama2 13B model in HF format.
         checkpoint_dir=checkpoint_dir,
         checkpoint_files=pytorch_files,
         output_dir=checkpoint_dir,
-        model_type=ModelType.LLAMA2
+        model_type="LLAMA2"
     )
     torchtune_sd = checkpointer.load_checkpoint()
 

@@ -88,6 +88,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}] \
@@ -146,6 +148,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj','k_proj','output_proj'] \
+            model.apply_lora_to_mlp=True \
             checkpointer=torchtune.training.FullModelMetaCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -206,6 +210,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             batch_size=8 \
             gradient_accumulation_steps=1 \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj','k_proj','output_proj'] \
+            model.apply_lora_to_mlp=True \
             checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -259,8 +265,9 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
+    @pytest.mark.parametrize("use_dora", [False, True])
     @pytest.mark.integration_test
-    def test_save_and_load_merged_weights(self, tmpdir, monkeypatch):
+    def test_save_and_load_merged_weights(self, tmpdir, monkeypatch, use_dora):
         ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
@@ -269,6 +276,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         tune run lora_finetune_single_device \
             --config llama2/7B_lora_single_device \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj','k_proj','output_proj'] \
+            model.apply_lora_to_mlp=True \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -280,7 +289,10 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             enable_activation_offloading=False \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS["llama2_lora"]
+        if use_dora:
+            model_config = MODEL_TEST_CONFIGS["llama2_dora"]
+        else:
+            model_config = MODEL_TEST_CONFIGS["llama2_lora"]
 
         cmd = cmd + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd)

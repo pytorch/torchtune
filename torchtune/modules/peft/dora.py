@@ -79,6 +79,7 @@ class DoRALinear(nn.Module, AdapterModule):
         _lora_a_init_params(self.lora_a)
         _lora_b_init_params(self.lora_b)
 
+    @torch.no_grad()
     def initialize_dora_magnitude(self):
         """
         DoRA initializes the magnitude vector such that its outputs are initially
@@ -87,7 +88,7 @@ class DoRALinear(nn.Module, AdapterModule):
         base_weight = self.weight.to(self.lora_a.weight.dtype)
         lora_weight = self.lora_b.weight @ self.lora_a.weight
         weight_norm = self._get_weight_norm(base_weight, lora_weight)
-        self.magnitude = nn.Parameter(weight_norm, requires_grad=True)
+        self.magnitude.copy_(weight_norm)
 
     def _create_weight_and_bias(self):
         """
