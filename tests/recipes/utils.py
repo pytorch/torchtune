@@ -137,11 +137,6 @@ def llama3_2_vision_test_config() -> List[str]:
         "tokenizer.tile_size=18",
         "tokenizer.max_seq_len=4096",
     ]
-    return [
-        "model._component_=torchtune.modules.model_fusion.DeepFusionModel",
-        "model.encoder._component_=torchtune.models.llama3_2_vision._component_builders.llama3_2_vision_encoder",
-        "model.encoder._component_=torchtune.models.llama3_2_vision._component_builders.llama3_2_vision_decoder",
-    ]
 
 
 def dummy_vision_model():
@@ -259,16 +254,16 @@ def write_hf_ckpt_config(ckpt_dir: str):
 def write_hf_vision_ckpt_config(ckpt_dir: str):
     config = {
         "text_config": {
-            "num_attention_heads": 8,  # Ensure this matches your expectations
-            "num_key_value_heads": 4,  # This should match your expected key
-            "hidden_size": 128,  # Corresponds to dim
+            "num_attention_heads": 8,
+            "num_key_value_heads": 4,
+            "hidden_size": 128,
             "vocab_size": 128256,
             "cross_attention_layers": [1, 4],
         },
         "vision_config": {
-            "hidden_size": 128,  # Corresponds to encoder_dim
-            "image_size": 18,  # This corresponds to tile_size
-            "max_num_tiles": 2,  # Corresponds to num_tiles
+            "hidden_size": 128,
+            "image_size": 18,
+            "max_num_tiles": 2,
             "supported_aspect_ratios": [[1, 1], [1, 2], [2, 1]],
         },
     }

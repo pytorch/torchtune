@@ -246,10 +246,7 @@ class TestEleutherEval:
 
         pattern = r"^\|\s*(?:-\s*)?([^\|]+?)\s*\|\s*(\d+)\s*\|.*?\|.*?\|acc\s*\|\s*↑\s*\|\s*([\d.]+)"
 
-        # Find all matches in the table text
         matches = re.findall(pattern, out, re.MULTILINE)
-
-        # Print the task names and their corresponding accuracy scores
         for task_name, _, accuracy in matches:
             assert math.isclose(float(accuracy), expected_vision_acc[task_name])
 
@@ -291,9 +288,6 @@ class TestEleutherEval:
 
         pattern = r"^\|\s*(?:-\s*)?([^\|]+?)\s*\|\s*(\d+)\s*\|.*?\|.*?\|acc\s*\|\s*↑\s*\|\s*([\d.]+)"
 
-        # Find all matches in the table text
         matches = re.findall(pattern, out, re.MULTILINE)
-
-        # Print the task names and their corresponding accuracy scores
         for task_name, _, accuracy in matches:
             assert math.isclose(float(accuracy), expected_vision_acc[task_name])
