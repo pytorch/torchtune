@@ -45,9 +45,9 @@ def llama_vision_model():
     fixed_init_model(vision_encoder, min_val=-1, max_val=1)
     fixed_init_model(vision_decoder, min_val=-1, max_val=1)
     model = DeepFusionModel(
-        encoders={"image": vision_encoder},
+        encoder=vision_encoder,
         decoder=vision_decoder,
-        encoders_trainable=False,
+        encoder_trainable=False,
         decoder_trainable=False,
         fusion_trainable=False,
     )

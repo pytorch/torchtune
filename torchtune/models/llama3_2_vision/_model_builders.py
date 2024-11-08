@@ -115,9 +115,9 @@ def llama3_2_vision_11b(
         intermediate_dim=14336,
     )
     return DeepFusionModel(
-        encoders={"image": encoder},
+        encoder=encoder,
         decoder=decoder,
-        encoders_trainable=encoder_trainable,
+        encoder_trainable=encoder_trainable,
         decoder_trainable=decoder_trainable,
         fusion_trainable=fusion_trainable,
     )
@@ -218,9 +218,9 @@ def lora_llama3_2_vision_11b(
         quantize_base=quantize_base,
     )
     return DeepFusionModel(
-        encoders={"image": encoder},
+        encoder=encoder,
         decoder=decoder,
-        encoders_trainable=encoder_type != LoRATrainable.FROZEN,
+        encoder_trainable=encoder_type != LoRATrainable.FROZEN,
         decoder_trainable=decoder_type != LoRATrainable.FROZEN,
         fusion_trainable=fusion_type != LoRATrainable.FROZEN,
     )
@@ -270,9 +270,9 @@ def llama3_2_vision_90b(
         intermediate_dim=28672,
     )
     return DeepFusionModel(
-        encoders={"image": encoder},
+        encoder=encoder,
         decoder=decoder,
-        encoders_trainable=encoder_trainable,
+        encoder_trainable=encoder_trainable,
         decoder_trainable=decoder_trainable,
         fusion_trainable=fusion_trainable,
     )
@@ -373,9 +373,9 @@ def lora_llama3_2_vision_90b(
         quantize_base=quantize_base,
     )
     return DeepFusionModel(
-        encoders={"image": encoder},
+        encoder=encoder,
         decoder=decoder,
-        encoders_trainable=encoder_type != LoRATrainable.FROZEN,
+        encoder_trainable=encoder_type != LoRATrainable.FROZEN,
         decoder_trainable=decoder_type != LoRATrainable.FROZEN,
         fusion_trainable=fusion_type != LoRATrainable.FROZEN,
     )
