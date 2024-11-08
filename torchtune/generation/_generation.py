@@ -67,7 +67,7 @@ def generate_next_token(
     model: TransformerDecoder,
     input_pos: torch.Tensor,
     x: torch.Tensor,
-    q: torch.Tensor,
+    q: Optional[torch.Tensor] = None,
     *,
     mask: Optional[torch.Tensor] = None,
     temperature: float = 1.0,
@@ -82,7 +82,7 @@ def generate_next_token(
             with shape [bsz x seq_length].
         x (torch.Tensor): tensor with the token IDs associated with the given prompt,
             with shape [bsz x seq_length].
-        q (torch.Tensor): randomly sampled tensor for softmax sampling trick.
+        q (Optional[torch.Tensor]): randomly sampled tensor for softmax sampling trick.
             See https://github.com/pytorch-labs/gpt-fast/blob/32971d3129541c5bfb4f715abc33d1c5f408d204/generate.py#L40
         mask (Optional[torch.Tensor]): attention mask with shape [bsz x seq_length x seq_length],
             default None.
@@ -302,9 +302,11 @@ def generate(
         # tensors are of identical shape to the prompt
         curr_masks = masks[:, :prompt_length, :prompt_length]
 
-    q = torch.empty(
-        (bsz, model.tok_embeddings.num_embeddings), device=prompt.device
-    ).exponential_(1, generator=rng)
+    q = None
+    if rng is not None:
+        q = torch.empty(
+            (bsz, model.tok_embeddings.num_embeddings), device=prompt.device
+        ).exponential_(1, generator=rng)
     tokens, generated_logits = generate_next_token(
         model,
         input_pos=input_pos[:, :prompt_length].squeeze(),
@@ -360,9 +362,11 @@ def generate(
             curr_input_pos = input_pos[:, : curr_pos + 1]
             curr_masks = masks[:, : curr_pos + 1, : curr_pos + 1]
 
-        q = torch.empty(
-            (bsz, model.tok_embeddings.num_embeddings), device=prompt.device
-        ).exponential_(1, generator=rng)
+        q = None
+        if rng is not None:
+            q = torch.empty(
+                (bsz, model.tok_embeddings.num_embeddings), device=prompt.device
+            ).exponential_(1, generator=rng)
         tokens, logits = custom_generate_next_token(
             model,
             input_pos=curr_input_pos,
