@@ -99,7 +99,7 @@ class CLIPImageTransform:
         possible_resolutions: Optional[List[Tuple[int, int]]] = None,
         tile_size: int = 224,
         max_num_tiles: Optional[int] = 4,
-        dtype: torch.dtype = torch.float32,
+        dtype: torch.dtype = torch.bfloat16,
         resample: str = "bilinear",
         resize_to_max_canvas: bool = False,
     ) -> None:

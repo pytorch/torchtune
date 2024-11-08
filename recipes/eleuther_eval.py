@@ -189,7 +189,6 @@ class _VLMEvalWrapper(HFMultimodalLM):
             pad_max_images=self._max_images_per_sample,
             pad_max_tiles=self._transform.max_num_tiles,
         )
-
         utils.batch_to_device(tok_batch, self.device)
 
         # Convert the batch to the format expected by the HF
