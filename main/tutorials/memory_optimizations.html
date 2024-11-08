@@ -584,14 +584,14 @@ accumulating gradients might give you faster training speeds than using other me
 <p>In addition to <a class="reference internal" href="#glossary-precision"><span class="std std-ref">reducing model and optimizer precision</span></a> during training, we can further reduce precision in our optimizer states.
 All of our recipes support lower-precision optimizers from the <a class="reference external" href="https://github.com/pytorch/ao/tree/main/torchao/prototype/low_bit_optim">torchao</a> library.
 For single device recipes, we also support <a class="reference external" href="https://huggingface.co/docs/bitsandbytes/main/en/index">bitsandbytes</a>.</p>
-<p>A good place to start might be the <code class="xref py py-class docutils literal notranslate"><span class="pre">torchao.prototype.low_bit_optim.AdamW8bit</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">bitsandbytes.optim.PagedAdamW8bit</span></code> optimizers.
+<p>A good place to start might be the <code class="xref py py-class docutils literal notranslate"><span class="pre">torchao.prototype.low_bit_optim.torchao.AdamW8bit</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">bitsandbytes.optim.PagedAdamW8bit</span></code> optimizers.
 Both reduce memory by quantizing the optimizer state dict. Paged optimizers will also offload to CPU if there isn’t enough GPU memory available. In practice,
 you can expect higher memory savings from bnb’s PagedAdamW8bit but higher training speed from torchao’s AdamW8bit.</p>
 <p><em>Sounds great! How do I use it?</em></p>
 <p>To use this in your recipes, make sure you have installed torchao (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">torchao</span></code>) or bitsandbytes (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">bitsandbytes</span></code>). Then, enable
 a low precision optimizer using the <a class="reference internal" href="../tune_cli.html#cli-label"><span class="std std-ref">torchtune CLI</span></a>:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>&lt;RECIPE&gt;<span class="w"> </span>--config<span class="w"> </span>&lt;CONFIG&gt;<span class="w"> </span><span class="se">\</span>
-<span class="nv">optimizer</span><span class="o">=</span>torchao.prototype.low_bit_optim.AdamW8bit
+<span class="nv">optimizer</span><span class="o">=</span>torchao.prototype.low_bit_optim.torchao.AdamW8bit
 </pre></div>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>&lt;RECIPE&gt;<span class="w"> </span>--config<span class="w"> </span>&lt;CONFIG&gt;<span class="w"> </span><span class="se">\</span>
