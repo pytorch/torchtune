@@ -51,7 +51,7 @@ class KVCache(nn.Module):
 
     @property
     def size(self) -> int:
-        return int(self.cache_pos[0].item())
+        return self.cache_pos[0].item()
 
     def update(
         self, k_val: torch.Tensor, v_val: torch.Tensor

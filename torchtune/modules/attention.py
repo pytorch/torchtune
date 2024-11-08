@@ -270,7 +270,8 @@ class MultiHeadAttention(nn.Module):
                 k = self.pos_embeddings(k, input_pos=input_pos)
 
             # k,v shape: [b, n_kv, s_y, h_d]
-            k, v = k.transpose(1, 2), v.transpose(1, 2)
+            k = k.transpose(1, 2)
+            v = v.transpose(1, 2)
 
             # Update key-value cache
             if self.kv_cache is not None and self.cache_enabled:
