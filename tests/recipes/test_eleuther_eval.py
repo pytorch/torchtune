@@ -195,7 +195,7 @@ class TestEleutherEval:
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
             limit=1 \
-            dtype=bf16 \
+            dtype=fp32 \
             device=cpu \
             quantizer._component_=torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer \
             quantizer.groupsize=32\
@@ -276,7 +276,7 @@ class TestEleutherEval:
             tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
             tokenizer.prompt_template=null \
             limit=5 \
-            dtype=fp32 \
+            dtype=bf16 \
             device=cpu \
         """.split()
 
