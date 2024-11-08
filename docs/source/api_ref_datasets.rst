@@ -37,6 +37,7 @@ Image + Text datasets
 
     multimodal.llava_instruct_dataset
     multimodal.the_cauldron_dataset
+    multimodal.vqa_dataset
 
 .. _dataset_builders:
 

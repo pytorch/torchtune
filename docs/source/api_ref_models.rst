@@ -361,6 +361,37 @@ To download the Gemma 7B model:
     gemma.gemma_tokenizer
 
 
+gemma2 :
+--------
+
+Models of size 2B, 9B, 27B from the `Gemma family <https://blog.google/technology/developers/gemma-open-models/>`_.
+
+Important: You need to request access on `Hugging Face <https://huggingface.co/google/gemma-2-2b>`__ to use this model.
+
+To download the Gemma2 2B, 9B, 27B models :
+
+.. code-block:: bash
+
+    tune download google/gemma-2-<MODEL_SIZE>b --ignore-patterns "gemma-2-<MODEL_SIZE>b.gguf"  --hf-token <HF_TOKEN>
+
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    gemma2.gemma2
+    gemma2.lora_gemma2
+    gemma2.gemma2_2b
+    gemma2.lora_gemma2_2b
+    gemma2.qlora_gemma2_2b
+    gemma2.gemma2_9b
+    gemma2.lora_gemma2_9b
+    gemma2.qlora_gemma2_9b
+    gemma2.gemma2_27b
+    gemma2.lora_gemma2_27b
+    gemma2.qlora_gemma2_27b
+    gemma.gemma_tokenizer
+
 clip
 ----
 
