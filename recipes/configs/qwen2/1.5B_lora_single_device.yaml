@@ -19,10 +19,10 @@
 # Model Arguments
 model:
   _component_: torchtune.models.qwen2.lora_qwen2_1_5b
-  lora_attn_modules: ['q_proj', 'v_proj']
-  apply_lora_to_mlp: False
-  lora_rank: 32
-  lora_alpha: 64
+  lora_attn_modules: ['q_proj', 'v_proj', 'output_proj']
+  apply_lora_to_mlp: True
+  lora_rank: 32  # higher increases accuracy and memory
+  lora_alpha: 64  # usually alpha=2*rank
   lora_dropout: 0.0
 
 tokenizer:
@@ -44,8 +44,8 @@ resume_from_checkpoint: False
 
 # Dataset and Sampler
 dataset:
-  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.alpaca_cleaned_dataset
+  packed: False  # True increases speed
 seed: null
 shuffle: True
 batch_size: 2
@@ -66,8 +66,8 @@ loss:
 # Training
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 8
-compile: False
+gradient_accumulation_steps: 8  # Use to increase virtual batch size
+compile: False  # pytorch compile, set to true for better perf/memory
 
 # Logging
 output_dir: /tmp/Qwen2-1.5B-Instruct-lora-finetune
@@ -82,7 +82,7 @@ device: cuda
 dtype: bf16
 
 # Activations Memory
-enable_activation_checkpointing: True
+enable_activation_checkpointing: True  # True reduces memory
 enable_activation_offloading: False  # True reduces memory
 
 # Show case the usage of pytorch profiler

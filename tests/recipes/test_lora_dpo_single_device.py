@@ -73,6 +73,8 @@ class TestLoRADPOSingleDeviceRecipe:
         tune run lora_dpo_single_device \
             --config llama2/7B_lora_dpo_single_device \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
             checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -102,6 +104,8 @@ class TestLoRADPOSingleDeviceRecipe:
         tune run lora_dpo_single_device \
             --config llama2/7B_lora_dpo_single_device \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
             checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -138,6 +142,8 @@ class TestLoRADPOSingleDeviceRecipe:
         tune run lora_dpo_single_device \
             --config llama2/7B_lora_dpo_single_device \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
