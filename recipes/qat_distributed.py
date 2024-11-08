@@ -55,7 +55,7 @@ class QATRecipeDistributed(FTRecipeInterface):
             ``fsdp_reshard_after_forward`` to False (this corresponds to SHARD_GRAD_OP sharding strategy).
             DDP is currently not supported. Training on CPU is not supported.
 
-        - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
+        - Activation Checkpointing. This can be controlled using the ``enable_activation_checkpointing``
             flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
             activations in memory and instead recompute them during the backward pass. This is especially
             helpful for larger batch sizes when you're memory constrained. But these savings in memory
