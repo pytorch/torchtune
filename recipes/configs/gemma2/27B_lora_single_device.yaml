@@ -41,7 +41,7 @@ checkpointer:
   checkpoint_dir: /tmp/gemma-2-27b/
   checkpoint_files:
     filename_format: model-{}-of-{}.safetensors
-    max_filename: 00024
+    max_filename: "00024"
   recipe_checkpoint: null
   output_dir: /tmp/gemma-2-27b/
   model_type: GEMMA2

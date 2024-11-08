@@ -210,6 +210,12 @@ class Gemma2Attention(nn.Module):
             - d: embed dim
             - h_d: head dim
         """
+        #  until flex attention implementation exists, we do not accept block masks
+        if (mask is not None) and (type(mask) != torch.Tensor()):
+            raise NotImplementedError(
+                "Block masks are not implemeted yet, use packed=False"
+            )
+
         # x has shape [b, s_x, d]
         # y has shape [b, s_y, d]
         b, s_x, _ = x.shape

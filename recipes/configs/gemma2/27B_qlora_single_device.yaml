@@ -29,7 +29,7 @@ shuffle: True
 
 # Model Arguments
 model:
-  _component_: torchtune.models.gemma2.qlora_gemma_27b
+  _component_: torchtune.models.gemma2.qlora_gemma2_27b
   lora_attn_modules: ['q_proj', 'k_proj', 'v_proj']
   apply_lora_to_mlp: True
   lora_rank: 64
@@ -41,7 +41,7 @@ checkpointer:
   checkpoint_dir: /tmp/gemma-2-27b/
   checkpoint_files:
     filename_format: model-{}-of-{}.safetensors
-    max_filename: 00024
+    max_filename: "00024"
   recipe_checkpoint: null
   output_dir: /tmp/gemma-2-27b/
   model_type: GEMMA2

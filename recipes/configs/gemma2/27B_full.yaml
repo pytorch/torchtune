@@ -30,14 +30,14 @@ shuffle: True
 
 # Model Arguments
 model:
-  _component_: torchtune.models.gemma2.gemma_27b
+  _component_: torchtune.models.gemma2.gemma2_27b
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/gemma-2-27b/
   checkpoint_files:
     filename_format: model-{}-of-{}.safetensors
-    max_filename: 00024
+    max_filename: "00024"
   recipe_checkpoint: null
   output_dir: /tmp/gemma-2-27b
   model_type: GEMMA2
