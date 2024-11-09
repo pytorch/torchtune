@@ -56,6 +56,7 @@ Utilities for enabling and working with distributed training.
     get_world_size_and_rank
     get_full_finetune_fsdp_wrap_policy
     lora_fsdp_wrap_policy
+    gather_cpu_state_dict
 
 .. _ac_label:
 

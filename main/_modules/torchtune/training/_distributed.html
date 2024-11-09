@@ -446,9 +446,6 @@
 <span class="kn">from</span> <span class="nn">torch.distributed._composable.fsdp</span> <span class="kn">import</span> <span class="n">CPUOffloadPolicy</span><span class="p">,</span> <span class="n">fully_shard</span>
 <span class="kn">from</span> <span class="nn">torch.distributed._tensor</span> <span class="kn">import</span> <span class="n">distribute_tensor</span><span class="p">,</span> <span class="n">DTensor</span>
 <span class="kn">from</span> <span class="nn">torch.distributed._tensor.placement_types</span> <span class="kn">import</span> <span class="n">DTensorSpec</span><span class="p">,</span> <span class="n">TensorMeta</span>
-<span class="kn">from</span> <span class="nn">torch.distributed.algorithms._checkpoint.checkpoint_wrapper</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">_CHECKPOINT_WRAPPED_MODULE</span><span class="p">,</span>
-<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">torch.distributed.checkpoint.state_dict</span> <span class="kn">import</span> <span class="n">_init_optim_state</span>
 <span class="kn">from</span> <span class="nn">torch.distributed.fsdp</span> <span class="kn">import</span> <span class="n">ShardingStrategy</span>
 <span class="kn">from</span> <span class="nn">torch.distributed.fsdp.wrap</span> <span class="kn">import</span> <span class="n">ModuleWrapPolicy</span>
@@ -777,89 +774,59 @@
     <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">sharded_sd</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">,</span> <span class="n">assign</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">get_full_model_state_dict</span><span class="p">(</span>
-    <span class="n">model</span><span class="p">:</span> <span class="s2">&quot;FSDPModule&quot;</span><span class="p">,</span>  <span class="c1"># noqa</span>
+<div class="viewcode-block" id="gather_cpu_state_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.gather_cpu_state_dict.html#torchtune.training.gather_cpu_state_dict">[docs]</a><span class="k">def</span> <span class="nf">gather_cpu_state_dict</span><span class="p">(</span>
+    <span class="n">sharded_sd</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">DTensor</span><span class="p">],</span>  <span class="c1"># noqa</span>
     <span class="n">is_rank_zero</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">trainable_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converting sharded state dict into a full state dict on CPU</span>
-<span class="sd">    Returning non-empty result on rank0 to avoid peaking CPU memory</span>
+<span class="sd">    Returning non-empty result only on rank0 to avoid peaking CPU memory</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        model (FSDPModule): wrapped module</span>
+<span class="sd">        sharded_sd (Dict[str, DTensor]): Sharded state dict of DTensors</span>
 <span class="sd">        is_rank_zero (bool): flag to check if the process is on rank 0</span>
 <span class="sd">        device (Optional[torch.device]): device to use for sharded tensors. Default: None</span>
-<span class="sd">        trainable_only (bool): flag to check if only trainable parameters should be returned. Default: False</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">        AssertionError: if the model contains NF4Tensor and the model is not wrapped with FSDP</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Dict[str, Any]: State dict on CPU</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># [Warning] FSDPModel.state_dict converts all Parameter Tensors to DTensors</span>
-    <span class="n">sharded_sd</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
     <span class="n">cpu_state_dict</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="n">has_nf4</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span>
-        <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">_local_tensor</span><span class="p">,</span> <span class="n">NF4Tensor</span><span class="p">)</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">()</span>
-    <span class="p">)</span>
-    <span class="k">if</span> <span class="n">has_nf4</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">torch.distributed._composable.fsdp.fully_shard</span> <span class="kn">import</span> <span class="n">FSDPModule</span>
-
-        <span class="c1"># Iterating from lowerer modules to higher</span>
-        <span class="c1"># Unsharding lora adapters before unsharding transformer block</span>
-        <span class="k">for</span> <span class="n">module_name</span><span class="p">,</span> <span class="n">module</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">named_modules</span><span class="p">())):</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">FSDPModule</span><span class="p">):</span>
-                <span class="k">continue</span>
-            <span class="n">module</span><span class="o">.</span><span class="n">unshard</span><span class="p">(</span><span class="n">async_op</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">is_rank_zero</span><span class="p">:</span>
-                <span class="n">module_name</span> <span class="o">=</span> <span class="n">module_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="n">_CHECKPOINT_WRAPPED_MODULE</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">local_fqn</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">module</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">():</span>
-                    <span class="n">local_fqn</span> <span class="o">=</span> <span class="n">local_fqn</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="n">_CHECKPOINT_WRAPPED_MODULE</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">module_name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                        <span class="n">full_fqn</span> <span class="o">=</span> <span class="n">module_name</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="n">local_fqn</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">full_fqn</span> <span class="o">=</span> <span class="n">local_fqn</span>
-                    <span class="k">if</span> <span class="n">trainable_only</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">param</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
-                        <span class="c1"># skip trainable params when trainable_only is True</span>
-                        <span class="k">continue</span>
-                    <span class="k">if</span> <span class="n">full_fqn</span> <span class="ow">in</span> <span class="n">cpu_state_dict</span><span class="p">:</span>
-                        <span class="c1"># Iterate over every param in every module bottoms-up</span>
-                        <span class="c1"># When lower TransformerBlock gets unsharded,</span>
-                        <span class="c1"># we insert  (full_fqn, full_tensor) into cpu_state_dict.</span>
-                        <span class="c1"># When higher Transformer gets unsharded, we avoid updating</span>
-                        <span class="c1"># params from lower TransformerBlockonly again. Instead, only updating</span>
-                        <span class="c1"># tok_embeddings etc that belongs to Transformer</span>
-                        <span class="k">continue</span>
-                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">NF4Tensor</span><span class="p">):</span>
-                        <span class="c1"># upcasting NF4 to original dtype</span>
-                        <span class="n">param</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">DTensor</span><span class="p">):</span>
-                        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">&quot;Internal error: expect unsharded </span><span class="si">{</span><span class="n">full_fqn</span><span class="si">}</span><span class="s2"> in plain torch.Tensor but got DTensor.&quot;</span>
-                            <span class="s2">&quot; Might be a bug in get_full_model_state_dict&quot;</span>
-                        <span class="p">)</span>
-                    <span class="n">cpu_state_dict</span><span class="p">[</span><span class="n">full_fqn</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
-            <span class="n">module</span><span class="o">.</span><span class="n">reshard</span><span class="p">()</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">sharded_param</span> <span class="ow">in</span> <span class="n">sharded_sd</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="c1"># without this, it may hang forever for +70B models.</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">barrier</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">sharded_param</span><span class="o">.</span><span class="n">is_cpu</span><span class="p">:</span>
-                <span class="k">assert</span> <span class="n">device</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">,</span> <span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Expect cuda but got device=</span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">. &quot;</span>
-                    <span class="s2">&quot;Please call get_full_model_state_dict(..., device=self._device),&quot;</span>
-                    <span class="s2">&quot; so DTensor can communicate over NCCL.&quot;</span>
+    <span class="k">for</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">sharded_param</span> <span class="ow">in</span> <span class="n">sharded_sd</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">sharded_param</span><span class="o">.</span><span class="n">is_cpu</span><span class="p">:</span>
+            <span class="c1"># Move back to device if offloaded to CPU</span>
+            <span class="n">sharded_param</span> <span class="o">=</span> <span class="n">sharded_param</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sharded_param</span><span class="o">.</span><span class="n">_local_tensor</span><span class="p">,</span> <span class="n">NF4Tensor</span><span class="p">):</span>
+            <span class="c1"># NF4Tensor does not support all_gather from DTensor</span>
+            <span class="c1"># so we need to manually all_gather</span>
+            <span class="n">mesh</span> <span class="o">=</span> <span class="n">sharded_param</span><span class="o">.</span><span class="n">device_mesh</span>
+            <span class="n">nf4_tensor</span> <span class="o">=</span> <span class="n">sharded_param</span><span class="o">.</span><span class="n">_local_tensor</span>
+            <span class="n">quant_params</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">nf4_tensor</span><span class="o">.</span><span class="n">fsdp_pre_all_gather</span><span class="p">(</span><span class="n">mesh</span><span class="p">)</span>
+            <span class="n">full_quant_params</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">quant_param</span> <span class="ow">in</span> <span class="n">quant_params</span><span class="p">:</span>
+                <span class="n">d0</span><span class="p">,</span> <span class="o">*</span><span class="n">dn</span> <span class="o">=</span> <span class="n">quant_param</span><span class="o">.</span><span class="n">shape</span>
+                <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">d0</span> <span class="o">*</span> <span class="n">mesh</span><span class="o">.</span><span class="n">get_group</span><span class="p">()</span><span class="o">.</span><span class="n">size</span><span class="p">(),</span> <span class="o">*</span><span class="n">dn</span><span class="p">)</span>
+                <span class="n">full_quant_param</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+                    <span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">quant_param</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">quant_param</span><span class="o">.</span><span class="n">dtype</span>
                 <span class="p">)</span>
-                <span class="n">sharded_param</span> <span class="o">=</span> <span class="n">sharded_param</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+                <span class="n">dist</span><span class="o">.</span><span class="n">all_gather_into_tensor</span><span class="p">(</span>
+                    <span class="n">full_quant_param</span><span class="p">,</span> <span class="n">quant_param</span><span class="p">,</span> <span class="n">mesh</span><span class="o">.</span><span class="n">get_group</span><span class="p">(),</span> <span class="n">async_op</span><span class="o">=</span><span class="kc">False</span>
+                <span class="p">)</span>
+                <span class="n">full_quant_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">full_quant_param</span><span class="p">)</span>
+            <span class="n">full_param</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">nf4_tensor</span><span class="o">.</span><span class="n">fsdp_post_all_gather</span><span class="p">(</span>
+                <span class="n">full_quant_params</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span> <span class="n">nf4_tensor</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="p">)</span>
+            <span class="c1"># upcasting NF4 to original dtype</span>
+            <span class="n">full_param</span> <span class="o">=</span> <span class="n">full_param</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">full_param</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Gather DTensor</span>
             <span class="n">full_param</span> <span class="o">=</span> <span class="n">sharded_param</span><span class="o">.</span><span class="n">full_tensor</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">is_rank_zero</span><span class="p">:</span>
-                <span class="n">cpu_state_dict</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">full_param</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">del</span> <span class="n">full_param</span>
-    <span class="k">return</span> <span class="n">cpu_state_dict</span>
+        <span class="k">if</span> <span class="n">is_rank_zero</span><span class="p">:</span>
+            <span class="n">cpu_state_dict</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">full_param</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">full_param</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">barrier</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">cpu_state_dict</span></div>
 
 
 <span class="k">def</span> <span class="nf">get_full_optimizer_state_dict</span><span class="p">(</span>
