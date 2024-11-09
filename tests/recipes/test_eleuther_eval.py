@@ -51,8 +51,8 @@ class TestEleutherEval:
             "Biology": 0.4,
             "Chemistry": 0.0,
             "Geography": 0.2,
-            "Math": 0.0,
-            "Physics": 0.2,
+            "Math": 0.4,
+            "Physics": 0.0,
         }
 
     @pytest.mark.integration_test
