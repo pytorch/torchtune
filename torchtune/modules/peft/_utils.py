@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import contextlib
-from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set
+from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set, Union
 
 import torch
 from torch import nn
@@ -62,13 +62,15 @@ def get_adapter_params(model: nn.Module) -> Dict[str, nn.Parameter]:
     return adapter_params
 
 
-def set_trainable_params(model: nn.Module, adapter_params: Dict[str, Any]) -> None:
+def set_trainable_params(
+    model: nn.Module, adapter_params: Union[Dict[str, Any], Set]
+) -> None:
     """
     Set trainable parameters for an nn.Module based on a state dict of adapter parameters.
 
     Args:
         model (nn.Module): Instance of model class containing some adapter params.
-        adapter_params (Dict[str, Any]): State dict mapping adapter key names to their
+        adapter_params (Union[Dict[str, Any], Set]): State dict mapping adapter key names to their
             respective nn.Parameters (i.e. outputs of :func:`~torchtune.modules.peft.get_adapter_params`.)
 
     Returns:

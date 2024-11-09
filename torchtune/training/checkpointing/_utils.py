@@ -45,6 +45,7 @@ class ModelType(Enum):
 
     Attributes:
         GEMMA (str): Gemma family of models. See :func:`~torchtune.models.gemma.gemma`
+        GEMMA2 (str): Gemma 2 family of models. See :func:`~torchtune.models.gemma2.gemma2`
         LLAMA2 (str): Llama2 family of models. See :func:`~torchtune.models.llama2.llama2`
         LLAMA3 (str): Llama3 family of models. See :func:`~torchtune.models.llama3.llama3`
         LLAMA3_2 (str): Llama3.2 family of models. See :func:`~torchtune.models.llama3_2.llama3_2`
@@ -65,6 +66,7 @@ class ModelType(Enum):
     """
 
     GEMMA: str = "gemma"
+    GEMMA2: str = "gemma2"
     LLAMA2: str = "llama2"
     LLAMA3: str = "llama3"
     LLAMA3_2: str = "llama3_2"

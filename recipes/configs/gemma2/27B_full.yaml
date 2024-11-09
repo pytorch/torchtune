@@ -1,0 +1,74 @@
+# Config for multi-device full finetuning in full_finetune_distributed.py
+# using a gemma2 27B model
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download google/gemma-2-27b --ignore-patterns "gemma-2-27b.gguf"  --hf-token <HF_TOKEN>
+#
+# To launch on 4 devices, run the following command from root:
+#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config gemma2/27B_full
+#
+# You can add specific overrides through the command line. For example
+# to override the checkpointer directory while launching training
+# you can run:
+#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config gemma2/27B_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#
+# This config works only when the model is being fine-tuned on 2+ GPUs.
+
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.gemma.gemma_tokenizer
+  path: /tmp/gemma-2-27b/tokenizer.model
+
+# Dataset
+dataset:
+  packed: False # Set to true for great speed ups
+  _component_: torchtune.datasets.alpaca_dataset
+seed: null
+shuffle: True
+
+# Model Arguments
+model:
+  _component_: torchtune.models.gemma2.gemma2_27b
+
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/gemma-2-27b/
+  checkpoint_files:
+    filename_format: model-{}-of-{}.safetensors
+    max_filename: "00024"
+  recipe_checkpoint: null
+  output_dir: /tmp/gemma-2-27b
+  model_type: GEMMA2
+resume_from_checkpoint: False
+
+# Fine-tuning arguments
+batch_size: 1
+epochs: 1
+optimizer:
+  _component_: torch.optim.AdamW
+  fused: True
+  lr: 2e-5
+loss:
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+max_steps_per_epoch: null
+gradient_accumulation_steps: 1
+compile: False  # pytorch compile, set to true for perf/memory improvement
+
+# Training env
+device: cuda
+
+# Memory management
+enable_activation_checkpointing: True
+
+# Reduced precision
+dtype: bf16
+
+# Logging
+metric_logger:
+  _component_: torchtune.training.metric_logging.DiskLogger
+  log_dir: ${output_dir}
+output_dir: /tmp/alpaca-gemma2-27b-finetune
+log_every_n_steps: 1
+log_peak_memory_stats: True
