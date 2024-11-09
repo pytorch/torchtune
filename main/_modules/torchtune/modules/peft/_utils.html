@@ -434,7 +434,7 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">import</span> <span class="nn">contextlib</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Set</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
@@ -491,13 +491,15 @@
     <span class="k">return</span> <span class="n">adapter_params</span></div>
 
 
-<div class="viewcode-block" id="set_trainable_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.set_trainable_params.html#torchtune.modules.peft.set_trainable_params">[docs]</a><span class="k">def</span> <span class="nf">set_trainable_params</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">adapter_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="set_trainable_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.set_trainable_params.html#torchtune.modules.peft.set_trainable_params">[docs]</a><span class="k">def</span> <span class="nf">set_trainable_params</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">adapter_params</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Set</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Set trainable parameters for an nn.Module based on a state dict of adapter parameters.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        model (nn.Module): Instance of model class containing some adapter params.</span>
-<span class="sd">        adapter_params (Dict[str, Any]): State dict mapping adapter key names to their</span>
+<span class="sd">        adapter_params (Union[Dict[str, Any], Set]): State dict mapping adapter key names to their</span>
 <span class="sd">            respective nn.Parameters (i.e. outputs of :func:`~torchtune.modules.peft.get_adapter_params`.)</span>
 
 <span class="sd">    Returns:</span>

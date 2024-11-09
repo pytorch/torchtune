@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.modules.model_fusion._fusion &mdash; torchtune main documentation</title>
+  <title>torchtune.modules.model_fusion._fusion_layers &mdash; torchtune main documentation</title>
   
 
   
@@ -394,7 +394,7 @@
         
           <li><a href="../../../index.html">Module code</a> &gt;</li>
         
-      <li>torchtune.modules.model_fusion._fusion</li>
+      <li>torchtune.modules.model_fusion._fusion_layers</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -426,20 +426,17 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>Source code for torchtune.modules.model_fusion._fusion</h1><div class="highlight"><pre>
+  <h1>Source code for torchtune.modules.model_fusion._fusion_layers</h1><div class="highlight"><pre>
 <span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
 <span class="c1"># All rights reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">TransformerDecoder</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.model_fusion._fusion_utils</span> <span class="kn">import</span> <span class="n">get_fusion_params</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.peft._utils</span> <span class="kn">import</span> <span class="n">set_trainable_params</span>
 
 
 <div class="viewcode-block" id="FusionLayer"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer">[docs]</a><span class="k">class</span> <span class="nc">FusionLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
@@ -702,9 +699,9 @@
         <span class="c1"># num_fusion_tokens = (input &gt;= vocab_size).sum()</span>
         <span class="n">fusion_tokens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="o">~</span><span class="n">mask</span><span class="p">)</span> <span class="o">-</span> <span class="n">vocab_size</span>
 
-        <span class="c1"># [batch_size x num_tokens x embed_dim]</span>
+        <span class="c1"># [batch_size * num_tokens, embed_dim]</span>
         <span class="n">embeds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
-        <span class="c1"># [batch_size x num_fusion_tokens x embed_dim]</span>
+        <span class="c1"># [batch_size * num_fusion_tokens, embed_dim]</span>
         <span class="n">fusion_embeds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion_embedding</span><span class="p">(</span><span class="n">fusion_tokens</span><span class="p">)</span>
 
         <span class="c1"># [batch_size x seq_length x embed_dim]</span>
@@ -713,200 +710,6 @@
         <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">masked_scatter</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">embeds</span><span class="p">)</span>
         <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">masked_scatter</span><span class="p">(</span><span class="o">~</span><span class="n">mask</span><span class="p">,</span> <span class="n">fusion_embeds</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">out</span></div></div>
-
-
-<div class="viewcode-block" id="DeepFusionModel"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel">[docs]</a><span class="k">class</span> <span class="nc">DeepFusionModel</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;DeepFusion is a type of fused model architecture where a pretrained encoder is combined</span>
-<span class="sd">    with a pretrained decoder (LLM). This is a popular architecture for multimodal models, with</span>
-<span class="sd">    a full overview available in `The Evolution of Multimodal Model Architectures &lt;https://arxiv.org/abs/2405.17927&gt;`_.</span>
-
-<span class="sd">    This module has the same methods and forward signature as :class:`~torchtune.modules.TransformerDecoder` and can be used</span>
-<span class="sd">    interchangeably where :class:`~torchtune.modules.TransformerDecoder` is. It combines the encoder with the decoder as a</span>
-<span class="sd">    single module for checkpointing and finetuning. It is expected that the encoder and decoder</span>
-<span class="sd">    are already defined with any extra learnable ``fusion_params``: learnable parameters to help</span>
-<span class="sd">    adapt the pre-trained encoder to the pre-trained decoder.</span>
-
-<span class="sd">    Example:</span>
-<span class="sd">        &gt;&gt;&gt; # decoder is a TransformerDecoder (e.g. llama3_8b) with fused cross attention layers</span>
-<span class="sd">        &gt;&gt;&gt; embed = FusionEmbedding(...)</span>
-<span class="sd">        &gt;&gt;&gt; layer = FusionLayer(</span>
-<span class="sd">        ...     layer=TransformerSelfAttentionLayer(...),</span>
-<span class="sd">        ...     fusion_layer=TransformerCrossAttentionLayer(...),</span>
-<span class="sd">        ... )</span>
-<span class="sd">        &gt;&gt;&gt; decoder = TransformerDecoder(tok_embeddings=embed, layers=layer, num_layers=32, ...)</span>
-<span class="sd">        &gt;&gt;&gt;</span>
-<span class="sd">        &gt;&gt;&gt; # encoder is pre-trained encoder (e.g. clip_vit_224) with an added projection head</span>
-<span class="sd">        &gt;&gt;&gt; projection_head = FeedForward(...)</span>
-<span class="sd">        &gt;&gt;&gt; register_fusion_module(projection_head))</span>
-<span class="sd">        &gt;&gt;&gt; encoder = nn.Sequential(clip_vit_224(), projection_head)</span>
-<span class="sd">        &gt;&gt;&gt;</span>
-<span class="sd">        &gt;&gt;&gt; # DeepFusionModel combines the encoder and decoder</span>
-<span class="sd">        &gt;&gt;&gt; model = DeepFusionModel(decoder, encoder)</span>
-<span class="sd">        &gt;&gt;&gt;</span>
-<span class="sd">        &gt;&gt;&gt; # Load full fused checkpoints (e.g. a Flamingo checkpoint)</span>
-<span class="sd">        &gt;&gt;&gt; model.load_state_dict(...)</span>
-<span class="sd">        &gt;&gt;&gt;</span>
-<span class="sd">        &gt;&gt;&gt; # Or load pretrained individual models (fusion_params are not loaded)</span>
-<span class="sd">        &gt;&gt;&gt; model.encoder.load_state_dict(..., strict=False)</span>
-<span class="sd">        &gt;&gt;&gt; model.decoder.load_state_dict(..., strict=False)</span>
-<span class="sd">        &gt;&gt;&gt;</span>
-<span class="sd">        &gt;&gt;&gt; # Forward pass</span>
-<span class="sd">        &gt;&gt;&gt; output = model(tokens, mask, encoder_input, encoder_mask, input_pos)</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        decoder (TransformerDecoder): decoder module</span>
-<span class="sd">        encoder (nn.Module): encoder module</span>
-<span class="sd">        decoder_trainable (bool): whether to train or freeze the decoder. Default is False.</span>
-<span class="sd">        encoder_trainable (bool): whether to train or freeze the encoder. Default is False.</span>
-<span class="sd">        fusion_trainable (bool): whether to train the fusion parameters. Default is True.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">decoder</span><span class="p">:</span> <span class="n">TransformerDecoder</span><span class="p">,</span>
-        <span class="n">encoder</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">decoder_trainable</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="n">encoder_trainable</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="n">fusion_trainable</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">encoder</span>
-
-        <span class="n">trainable_params</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">encoder_trainable</span><span class="p">:</span>
-            <span class="n">trainable_params</span> <span class="o">|=</span> <span class="p">{</span>
-                <span class="sa">f</span><span class="s2">&quot;encoder.</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">()</span>
-            <span class="p">}</span>
-        <span class="k">if</span> <span class="n">decoder_trainable</span><span class="p">:</span>
-            <span class="n">trainable_params</span> <span class="o">|=</span> <span class="p">{</span>
-                <span class="sa">f</span><span class="s2">&quot;decoder.</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">()</span>
-            <span class="p">}</span>
-        <span class="k">if</span> <span class="n">fusion_trainable</span><span class="p">:</span>
-            <span class="n">trainable_params</span> <span class="o">|=</span> <span class="nb">set</span><span class="p">(</span><span class="n">get_fusion_params</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">trainable_params</span> <span class="o">-=</span> <span class="nb">set</span><span class="p">(</span><span class="n">get_fusion_params</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
-        <span class="n">set_trainable_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainable_params</span><span class="p">)</span>
-
-<div class="viewcode-block" id="DeepFusionModel.set_num_output_chunks"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.set_num_output_chunks">[docs]</a>    <span class="k">def</span> <span class="nf">set_num_output_chunks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_output_chunks</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.</span>
-<span class="sd">        This should be called before the first forward pass, in the recipe.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">set_num_output_chunks</span><span class="p">(</span><span class="n">num_output_chunks</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="DeepFusionModel.setup_caches"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.setup_caches">[docs]</a>    <span class="k">def</span> <span class="nf">setup_caches</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">encoder_max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">decoder_max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Sets up key-value attention caches for inference for ``self.decoder``.</span>
-<span class="sd">        For each layer in ``self.decoder.layers``:</span>
-<span class="sd">        - :class:`torchtune.modules.TransformerSelfAttentionLayer` will use ``decoder_max_seq_len``.</span>
-<span class="sd">        - :class:`torchtune.modules.TransformerCrossAttentionLayer` will use ``encoder_max_seq_len``.</span>
-<span class="sd">        - :class:`torchtune.modules.fusion.FusionLayer` will use both ``decoder_max_seq_len`` and ``encoder_max_seq_len``.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            batch_size (int): batch size for the caches.</span>
-<span class="sd">            dtype (torch.dtype): dtype for the caches.</span>
-<span class="sd">            encoder_max_seq_len (int): maximum encoder cache sequence length.</span>
-<span class="sd">            decoder_max_seq_len (int): maximum decoder cache sequence length.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">setup_caches</span><span class="p">(</span>
-            <span class="n">batch_size</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="p">,</span>
-            <span class="n">encoder_max_seq_len</span><span class="o">=</span><span class="n">encoder_max_seq_len</span><span class="p">,</span>
-            <span class="n">decoder_max_seq_len</span><span class="o">=</span><span class="n">decoder_max_seq_len</span><span class="p">,</span>
-        <span class="p">)</span></div>
-
-<div class="viewcode-block" id="DeepFusionModel.caches_are_setup"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.caches_are_setup">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_setup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Check if the key value caches are setup. This means ``setup_caches`` has been called, and</span>
-<span class="sd">        the relevant attention modules in the model have created their ``KVCache``.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">caches_are_setup</span><span class="p">()</span></div>
-
-<div class="viewcode-block" id="DeepFusionModel.caches_are_enabled"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.caches_are_enabled">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Checks if the key value caches are enabled. Once KV-caches have been setup, the relevant</span>
-<span class="sd">        attention modules will be &quot;enabled&quot; and all forward passes will update the caches. This behaviour</span>
-<span class="sd">        can be disabled without altering the state of the KV-caches by &quot;disabling&quot; the KV-caches</span>
-<span class="sd">        using :func:`~torchtune.modules.common_utils.disable_kv_cache`, upon which ``caches_are_enabled`` would return False.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">()</span></div>
-
-<div class="viewcode-block" id="DeepFusionModel.reset_caches"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.reset_caches">[docs]</a>    <span class="k">def</span> <span class="nf">reset_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Resets KV-cache buffers on relevant attention modules to zero, and reset cache positions to zero,</span>
-<span class="sd">        without deleting or reallocating cache tensors.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">reset_caches</span><span class="p">()</span></div>
-
-<div class="viewcode-block" id="DeepFusionModel.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">tokens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">encoder_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">encoder_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Args:</span>
-<span class="sd">            tokens (torch.Tensor): input tensor with shape ``[b x s]``</span>
-<span class="sd">            mask (Optional[torch.Tensor]): Optional boolean tensor which contains the attention mask</span>
-<span class="sd">                with shape ``[b x s x s]``. This is applied after the query-key multiplication and</span>
-<span class="sd">                before the softmax. A value of True in row i and column j means token i attends</span>
-<span class="sd">                to token j. A value of False means token i does not attend to token j. If no</span>
-<span class="sd">                mask is specified, a causal mask is used by default. Default is None.</span>
-<span class="sd">            encoder_input (Optional[Dict]): Optional input for the encoder.</span>
-<span class="sd">            encoder_mask (Optional[torch.Tensor]):  Boolean tensor defining a relational matrix between</span>
-<span class="sd">                tokens and encoder embeddings. A True value at position i,j means token i can attend</span>
-<span class="sd">                to embedding j in the decoder. Mask has shape ``[b x s x s_e]``. Default is None.</span>
-<span class="sd">            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids</span>
-<span class="sd">                of each token. During training, this is used to indicate the positions</span>
-<span class="sd">                of each token relative to its sample when packed, shape ``[b x s]``.</span>
-<span class="sd">                During inference, this indicates the position of the current token.</span>
-<span class="sd">                If none, assume the index of the token is its position id. Default is None.</span>
-
-<span class="sd">        Note: At the very first step of inference, when the model is provided with a prompt,</span>
-<span class="sd">        ``input_pos`` would contain the positions of all of the tokens in the prompt</span>
-<span class="sd">        (eg: ``torch.arange(prompt_length)``). This is because we will need to compute the</span>
-<span class="sd">        KV values for each position.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            Tensor: output tensor with shape ``[b x s x v]`` or a list of layer \</span>
-<span class="sd">                output tensors defined by ``output_hidden_states`` with the \</span>
-<span class="sd">                final output tensor appended to the list.</span>
-
-<span class="sd">        Notation used for tensor shapes:</span>
-<span class="sd">            - b: batch size</span>
-<span class="sd">            - s: token sequence length</span>
-<span class="sd">            - s_e: encoder sequence length</span>
-<span class="sd">            - v: vocab size</span>
-<span class="sd">            - d: token embed dim</span>
-<span class="sd">            - d_e: encoder embed dim</span>
-<span class="sd">            - m_s: max seq len</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># During decoding, encoder_input will only be provided</span>
-        <span class="c1"># for new inputs. Previous encoder outputs are cached</span>
-        <span class="c1"># in the decoder cache.</span>
-        <span class="n">encoder_embed</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="n">encoder_input</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">encoder_embed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="o">**</span><span class="n">encoder_input</span><span class="p">)</span>
-
-        <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span>
-            <span class="n">tokens</span><span class="o">=</span><span class="n">tokens</span><span class="p">,</span>
-            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
-            <span class="n">encoder_input</span><span class="o">=</span><span class="n">encoder_embed</span><span class="p">,</span>
-            <span class="n">encoder_mask</span><span class="o">=</span><span class="n">encoder_mask</span><span class="p">,</span>
-            <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="k">return</span> <span class="n">output</span></div></div>
 </pre></div>
 
              </article>
