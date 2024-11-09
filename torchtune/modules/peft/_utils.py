@@ -109,6 +109,27 @@ def get_lora_module_names(
     return lora_module_keys
 
 
+def get_adapter_state_dict(
+    state_dict: Dict[str, Any], device: Optional[str] = "cpu"
+) -> Dict[str, Any]:
+    """
+    Return the subset of the full state_dict from a model that correspond to an adapter.
+    Assumes that "lora" and "magnitude" are unique names for adapter parameters, and
+    that the state_dict is not sharded. All returned parameters are moved to CPU.
+
+    Args:
+        state_dict (Dict[str, Any]): Full model state dict.
+        device (Optional[str]): device to move adapter parameters to. Default: 'cpu'
+
+    Returns:
+        Dict[str, Any]: the subset of model's state dict containing
+        only adapter parameters.
+
+    """
+    adapter_key_filter = lambda x: "lora" in x or "magnitude" in x
+    return {k: v.to(device) for k, v in state_dict.items() if adapter_key_filter(k)}
+
+
 def validate_state_dict_for_lora(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool,

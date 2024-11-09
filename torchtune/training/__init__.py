@@ -12,8 +12,8 @@ from torchtune.training._compile import compile_loss, compile_model
 from torchtune.training._distributed import (
     contains_fsdp,
     FSDPPolicyType,
+    gather_cpu_state_dict,
     get_full_finetune_fsdp_wrap_policy,
-    get_full_model_state_dict,
     get_full_optimizer_state_dict,
     get_shard_conditions,
     get_world_size_and_rank,
@@ -120,7 +120,7 @@ __all__ = [
     "FSDPPolicyType",
     "get_full_finetune_fsdp_wrap_policy",
     "lora_fsdp_wrap_policy",
-    "get_full_model_state_dict",
+    "gather_cpu_state_dict",
     "get_full_optimizer_state_dict",
     "load_from_full_model_state_dict",
     "load_from_full_optimizer_state_dict",
