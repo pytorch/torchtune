@@ -446,9 +446,7 @@
 <span class="sd">    Args:</span>
 <span class="sd">        batch_size (int): batch size model will be run with</span>
 <span class="sd">        max_seq_len (int): maximum sequence length model will be run with</span>
-<span class="sd">        num_heads (int): number of heads. We take num_heads instead of num_kv_heads because</span>
-<span class="sd">            the cache is created after we&#39;ve expanded the key and value tensors to have the</span>
-<span class="sd">            same shape as the query tensor. See attention.py for more details</span>
+<span class="sd">        num_kv_heads (int): number of key/value heads.</span>
 <span class="sd">        head_dim (int): per-attention head embedding dimension</span>
 <span class="sd">        dtype (torch.dtype): dtype for the caches</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -457,12 +455,12 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">num_kv_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">head_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="n">cache_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">,</span> <span class="n">head_dim</span><span class="p">)</span>
+        <span class="n">cache_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_kv_heads</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">,</span> <span class="n">head_dim</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span>
             <span class="s2">&quot;k_cache&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">cache_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span> <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span>
         <span class="p">)</span>
@@ -495,7 +493,7 @@
 <span class="sd">            already been filled, use ``.reset()``, which will reset the cache to the zero-th position.</span>
 
 <span class="sd">        Example:</span>
-<span class="sd">            &gt;&gt;&gt; cache = KVCache(batch_size=2, max_seq_len=16, num_heads=4, head_dim=32, dtype=torch.bfloat16)</span>
+<span class="sd">            &gt;&gt;&gt; cache = KVCache(batch_size=2, max_seq_len=16, num_kv_heads=4, head_dim=32, dtype=torch.bfloat16)</span>
 <span class="sd">            &gt;&gt;&gt; keys, values = torch.ones((2, 4, 8, 32)), torch.ones((2, 4, 8, 32))</span>
 <span class="sd">            &gt;&gt;&gt; cache.update(keys, values)</span>
 <span class="sd">            &gt;&gt;&gt; # now positions 0 through 7 are filled</span>

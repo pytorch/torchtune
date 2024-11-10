@@ -593,7 +593,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">kv_cache</span> <span class="o">=</span> <span class="n">KVCache</span><span class="p">(</span>
                 <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
                 <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
-                <span class="n">num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
+                <span class="n">num_kv_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_kv_heads</span><span class="p">,</span>
                 <span class="n">head_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span><span class="p">,</span>
                 <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
             <span class="p">)</span>
@@ -687,46 +687,36 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Update k and v shape, positional embeddings, and normalization</span>
 
-            <span class="c1"># k has shape [b, s_y, num_kv_heads * head_dim]</span>
-            <span class="c1"># v has shape [b, s_y, num_kv_heads * head_dim]</span>
+            <span class="c1"># k,v shape [b, s_y, num_kv_heads * head_dim]</span>
             <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_proj</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
             <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">v_proj</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
 
             <span class="c1"># Apply positional embeddings</span>
-            <span class="c1"># k: [b, s_y, n_kv, h_d]</span>
+            <span class="c1"># k,v shape: [b, s_y, n_kv, h_d]</span>
             <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">s_y</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span><span class="p">)</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">s_y</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_embeddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_embeddings</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">)</span>
 
-            <span class="c1"># View + expand + reshape bring num_kv_heads to num_heads for k and v</span>
-            <span class="c1"># to match q.</span>
-
-            <span class="c1"># k: [b, s_y, n_kv, 1, h_d]</span>
-            <span class="c1"># v: [b, s_y, n_kv, 1, h_d]</span>
-            <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">s_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_kv_heads</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span><span class="p">)</span>
-            <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">s_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_kv_heads</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span><span class="p">)</span>
-
-            <span class="c1"># If needed, expand the key and value tensors to have the same shape</span>
-            <span class="c1"># as the query tensor by copying values across the relevant dim</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_kv_heads</span><span class="p">:</span>
-                <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">s_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_kv_heads</span><span class="p">,</span> <span class="n">q_per_kv</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span><span class="p">)</span>
-                <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">s_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_kv_heads</span><span class="p">,</span> <span class="n">q_per_kv</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span><span class="p">)</span>
-
-            <span class="c1"># [b, s, n_h, h_d]</span>
-            <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">s_y</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span><span class="p">)</span>
-            <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">s_y</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_dim</span><span class="p">)</span>
-
-            <span class="c1"># [b, n_h, s, h_d]</span>
+            <span class="c1"># k,v shape: [b, n_kv, s_y, h_d]</span>
             <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
             <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-
-            <span class="c1"># Normalize k</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_norm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_norm</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
 
             <span class="c1"># Update key-value cache</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kv_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_enabled</span><span class="p">:</span>
                 <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kv_cache</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+            <span class="c1"># If needed, expand the key and value tensors to have the same shape</span>
+            <span class="c1"># as the query tensor by copying values across the relevant dim</span>
+            <span class="c1"># k,v shape: [b, n_h, s, h_d]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_kv_heads</span><span class="p">:</span>
+                <span class="n">expand_shape</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">q_per_kv</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">expand_shape</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">expand_shape</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+            <span class="c1"># Normalize k</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_norm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_norm</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
 
         <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attention_call</span><span class="p">(</span>
             <span class="n">q</span><span class="p">,</span>
