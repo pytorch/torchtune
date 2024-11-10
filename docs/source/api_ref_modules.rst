@@ -75,7 +75,6 @@ PEFT Components
     peft.get_adapter_params
     peft.set_trainable_params
     peft.validate_missing_and_unexpected_for_lora
-    peft.validate_state_dict_for_lora
     peft.disable_adapter
 
 
