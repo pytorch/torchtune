@@ -23,6 +23,7 @@ from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     disable_adapter,
     get_adapter_params,
+    get_adapter_state_dict,
     get_merged_lora_ckpt,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
@@ -407,7 +408,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 }
             )
 
-        adapter_state_dict = {k: v.cpu() for k, v in self.adapter_params.items()}
+        adapter_state_dict = get_adapter_state_dict(self._model.state_dict())
         ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
         if not self._save_adapter_weights_only:
             # Construct the full state dict with LoRA weights merged into base LLM weights
