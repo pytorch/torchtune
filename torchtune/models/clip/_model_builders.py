@@ -31,7 +31,7 @@ def clip_tokenizer(
     return CLIPTokenizer(merges_path, max_seq_len=max_seq_len, truncate=truncate)
 
 
-def clip_text_encoder_large() -> CLIPTextEncoder:
+def clip_text_vit_large_patch14() -> CLIPTextEncoder:
     """
     Builder for the CLIP text encoder for CLIP-ViT-L/14.
 
