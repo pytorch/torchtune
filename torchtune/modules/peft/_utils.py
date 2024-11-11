@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import contextlib
-from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set
+from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set, Union
 
 import torch
 from torch import nn
@@ -62,13 +62,15 @@ def get_adapter_params(model: nn.Module) -> Dict[str, nn.Parameter]:
     return adapter_params
 
 
-def set_trainable_params(model: nn.Module, adapter_params: Dict[str, Any]) -> None:
+def set_trainable_params(
+    model: nn.Module, adapter_params: Union[Dict[str, Any], Set]
+) -> None:
     """
     Set trainable parameters for an nn.Module based on a state dict of adapter parameters.
 
     Args:
         model (nn.Module): Instance of model class containing some adapter params.
-        adapter_params (Dict[str, Any]): State dict mapping adapter key names to their
+        adapter_params (Union[Dict[str, Any], Set]): State dict mapping adapter key names to their
             respective nn.Parameters (i.e. outputs of :func:`~torchtune.modules.peft.get_adapter_params`.)
 
     Returns:
@@ -105,6 +107,27 @@ def get_lora_module_names(
     if apply_lora_to_output:
         lora_module_keys.append("output")
     return lora_module_keys
+
+
+def get_adapter_state_dict(
+    state_dict: Dict[str, Any], device: Optional[str] = "cpu"
+) -> Dict[str, Any]:
+    """
+    Return the subset of the full state_dict from a model that correspond to an adapter.
+    Assumes that "lora" and "magnitude" are unique names for adapter parameters, and
+    that the state_dict is not sharded. All returned parameters are moved to CPU.
+
+    Args:
+        state_dict (Dict[str, Any]): Full model state dict.
+        device (Optional[str]): device to move adapter parameters to. Default: 'cpu'
+
+    Returns:
+        Dict[str, Any]: the subset of model's state dict containing
+        only adapter parameters.
+
+    """
+    adapter_key_filter = lambda x: "lora" in x or "magnitude" in x
+    return {k: v.to(device) for k, v in state_dict.items() if adapter_key_filter(k)}
 
 
 def validate_state_dict_for_lora(

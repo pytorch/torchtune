@@ -18,11 +18,11 @@
 # Model arguments
 model:
   _component_: torchtune.models.phi3.lora_phi3_mini
-  lora_attn_modules: ['q_proj', 'v_proj']
-  apply_lora_to_mlp: False
+  lora_attn_modules: ['q_proj', 'v_proj', 'output_proj']
+  apply_lora_to_mlp: True
   apply_lora_to_output: False
-  lora_rank: 8
-  lora_alpha: 16
+  lora_rank: 8  # higher increases accuracy and memory
+  lora_alpha: 16  # usually alpha=2*rank
   lora_dropout: 0.0
 
 # Tokenizer
@@ -47,8 +47,8 @@ save_adapter_weights_only: False
 
 # Dataset
 dataset:
-  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.alpaca_cleaned_dataset
+  packed: False  # True increases speed
 seed: null
 shuffle: True
 
@@ -56,7 +56,7 @@ shuffle: True
 epochs: 1
 max_steps_per_epoch: null
 batch_size: 2
-gradient_accumulation_steps: 16
+gradient_accumulation_steps: 8  # Use to increase virtual batch size
 optimizer:
   _component_: torch.optim.AdamW
   fused: True
@@ -67,13 +67,13 @@ lr_scheduler:
   num_warmup_steps: 100
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
-compile: False
+compile: False  # pytorch compile, set to true for better perf/memory
 
 # Training env
 device: cuda
 
 # Memory management
-enable_activation_checkpointing: True
+enable_activation_checkpointing: True  # True reduces memory
 enable_activation_offloading: False  # True reduces memory
 
 # Reduced precision

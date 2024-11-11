@@ -12,11 +12,11 @@
 # Model Arguments
 model:
   _component_: torchtune.models.llama3.lora_llama3_70b
-  lora_attn_modules: ['q_proj', 'k_proj', 'v_proj']
-  apply_lora_to_mlp: False
+  lora_attn_modules: ['q_proj', 'v_proj', 'output_proj']
+  apply_lora_to_mlp: True
   apply_lora_to_output: False
-  lora_rank: 16
-  lora_alpha: 32
+  lora_rank: 16  # higher increases accuracy and memory
+  lora_alpha: 32  # usually alpha=2*rank
   lora_dropout: 0.0
 
 tokenizer:
@@ -67,8 +67,8 @@ save_adapter_weights_only: False
 
 # Dataset and Sampler
 dataset:
-  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.alpaca_dataset
+  packed: False  # True increases speed
 seed: null
 shuffle: True
 batch_size: 2
@@ -89,8 +89,8 @@ loss:
 # Training
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 1
-compile: False # pytorch compile, set to true for perf/memory improvement
+gradient_accumulation_steps: 1  # Use to increase virtual batch size
+compile: False  # pytorch compile, set to true for better perf/memory
 
 # Logging
 output_dir: /tmp/lora_finetune_output
@@ -103,5 +103,30 @@ log_peak_memory_stats: True
 # Environment
 device: cuda
 dtype: bf16
-enable_activation_checkpointing: True
+enable_activation_checkpointing: True  # True reduces memory
 enable_activation_offloading: False  # True reduces memory
+
+# Profiler (disabled)
+profiler:
+  _component_: torchtune.training.setup_torch_profiler
+  enabled: False
+
+  #Output directory of trace artifacts
+  output_dir: ${output_dir}/profiling_outputs
+
+  #`torch.profiler.ProfilerActivity` types to trace
+  cpu: True
+  cuda: True
+
+  #trace options passed to `torch.profiler.profile`
+  profile_memory: False
+  with_stack: False
+  record_shapes: True
+  with_flops: False
+
+  # `torch.profiler.schedule` options:
+  # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+  wait_steps: 5
+  warmup_steps: 3
+  active_steps: 2
+  num_cycles: 1

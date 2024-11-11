@@ -88,6 +88,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}] \
@@ -146,6 +148,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj','k_proj','output_proj'] \
+            model.apply_lora_to_mlp=True \
             checkpointer=torchtune.training.FullModelMetaCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -206,6 +210,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             batch_size=8 \
             gradient_accumulation_steps=1 \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj','k_proj','output_proj'] \
+            model.apply_lora_to_mlp=True \
             checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -270,6 +276,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         tune run lora_finetune_single_device \
             --config llama2/7B_lora_single_device \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj','k_proj','output_proj'] \
+            model.apply_lora_to_mlp=True \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\

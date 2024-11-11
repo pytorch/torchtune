@@ -26,6 +26,7 @@ from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     DoRALinear,
     get_adapter_params,
+    get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
     load_dora_magnitudes,
@@ -181,10 +182,14 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 raise RuntimeError(
                     "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
                 )
-        elif self._enable_activation_checkpointing:
-            log.info(
+        elif (
+            self._enable_activation_checkpointing
+            and cfg.checkpointer.model_type != "LLAMA3_VISION"
+        ):
+            utils.log_rank_zero(
+                log,
                 "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
-                "Enabling activation offloading should reduce memory further."
+                "Enabling activation offloading should reduce memory further.",
             )
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
@@ -448,8 +453,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
-        self.adapter_params = get_adapter_params(model)
-        set_trainable_params(model, self.adapter_params)
+        set_trainable_params(model, get_adapter_params(model))
 
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
@@ -660,11 +664,14 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
-        cpu_state_dict = training.get_full_model_state_dict(
-            self._model,
+        state_dict = self._model.state_dict()
+        if self._save_adapter_weights_only:
+            state_dict = get_adapter_state_dict(state_dict, device=None)
+
+        cpu_state_dict = training.gather_cpu_state_dict(
+            state_dict,
             self._is_rank_zero,
             device=self._device,
-            trainable_only=self._save_adapter_weights_only,
         )
         if self._is_rank_zero:
             log.info(
@@ -690,22 +697,22 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # to be sent to the checkpointer and ultimately written to file
         if self._is_rank_zero:
             start = time.perf_counter()
-            # Filter out the adapter keys and weights from the model state dict. These will
-            # be saved separately
-            adapter_key_filter = lambda x: x in self.adapter_params
-            adapter_state_dict = {
-                k: v for k, v in cpu_state_dict.items() if adapter_key_filter(k)
-            }
-            checkpoint_dict.update({training.ADAPTER_KEY: adapter_state_dict})
 
-            # merge the adapter weights and base weights to create the model checkpoint
-            if not self._save_adapter_weights_only:
+            if self._save_adapter_weights_only:
+                adapter_state_dict = cpu_state_dict
+            else:
+                # Filter out the adapter keys and weights from the model state dict. These will
+                # be saved separately
+                adapter_state_dict = get_adapter_state_dict(cpu_state_dict)
+
+                # merge the adapter weights and base weights to create the model checkpoint
                 merged_state_dict = get_merged_lora_ckpt(
                     cpu_state_dict,
                     rank=self._lora_rank,
                     alpha=self._lora_alpha,
                 )
                 checkpoint_dict.update({training.MODEL_KEY: merged_state_dict})
+            checkpoint_dict.update({training.ADAPTER_KEY: adapter_state_dict})
 
             # if training is in-progress, checkpoint the optimizer state and recipe state
             # as well.

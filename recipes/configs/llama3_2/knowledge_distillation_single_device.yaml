@@ -7,7 +7,6 @@
 #   tune download meta-llama/Meta-Llama-3.1-8B-Instruct --output-dir /tmp/Meta-Llama-3.1-8B-Instruct --ignore-patterns "original/consolidated.00.pth"
 #
 # You get better results using KD if the teacher model has already been fine-tuned on the target dataset:
-  packed: False # Set to true for great speed ups
 #   tune run lora_finetune_single_device --config llama3_1/8B_lora_single_device
 #
 # To launch on a single device, run the following command from root:
@@ -63,8 +62,8 @@ teacher_checkpointer:
 
 # Dataset and Sampler
 dataset:
-  packed: False # Set to true for great speed ups
   _component_: torchtune.datasets.alpaca_cleaned_dataset
+  packed: False  # True increases speed
 seed: null
 shuffle: True
 batch_size: 4
@@ -89,8 +88,8 @@ kd_ratio: 0.5
 # Training
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 32
-compile: False
+gradient_accumulation_steps: 8  # Use to increase virtual batch size
+compile: False  # pytorch compile, set to true for better perf/memory
 
 # Logging
 output_dir: /tmp/kd_output
@@ -105,7 +104,7 @@ device: cuda
 dtype: bf16
 
 # Activations Memory
-enable_activation_checkpointing: False
+enable_activation_checkpointing: False  # True reduces memory
 
 # Profiler (disabled)
 profiler:
@@ -128,6 +127,6 @@ profiler:
   # `torch.profiler.schedule` options:
   # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
   wait_steps: 5
-  warmup_steps: 5
+  warmup_steps: 3
   active_steps: 2
   num_cycles: 1

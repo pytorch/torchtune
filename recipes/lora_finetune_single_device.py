@@ -24,6 +24,7 @@ from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     get_adapter_params,
+    get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
     load_dora_magnitudes,
@@ -32,6 +33,7 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
+
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -169,10 +171,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 raise RuntimeError(
                     "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
                 )
-        elif self._enable_activation_checkpointing:
-            log.info(
+        elif (
+            self._enable_activation_checkpointing
+            and cfg.checkpointer.model_type != "LLAMA3_VISION"
+        ):
+            utils.log_rank_zero(
+                log,
                 "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
-                "Enabling activation offloading should reduce memory further."
+                "Enabling activation offloading should reduce memory further.",
             )
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
@@ -248,6 +254,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._metric_logger.log_config(cfg)
 
         self._compile = cfg.compile
+        if cfg.device == "npu" and cfg.compile:
+            raise ValueError(
+                "NPU does not support model compilation. Please set `compile: False` in the config."
+            )
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
         # hack to toggle to the low cpu ram version of the reparametrize_as_dtype
@@ -470,7 +480,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         log.info(f"Model is initialized with precision {self._dtype}.")
 
-        if self._device.type == "cuda":
+        if self._device.type != "cpu":
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
         return model
@@ -583,21 +593,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 }
             )
 
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Testing remove this !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        adapter_state_dict = {}
-        for k, v in self._model.named_modules():
-            if hasattr(v, "adapter_params") and callable(v.adapter_params):
-                import pdb
-
-                pdb.set_trace()
-                adapter_params = v.adapter_params()
-                for n, p in v.state_dict().items():
-                    if any(n.endswith(param) for param in adapter_params):
-                        full_key = f"{k}.{n}"
-                        adapter_state_dict[n] = p.cpu()
-
-        # adapter_state_dict = {k: v.cpu() for k, v in self.adapter_params.items()}
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! End Testing !!!!!!!! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        adapter_state_dict = get_adapter_state_dict(self._model.state_dict())
         ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
 
         if not self._save_adapter_weights_only:
@@ -636,7 +632,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
         # Shape [b, s], needed for the loss not the model
         labels = batch.pop("labels")
-
         # run model
         with self.activations_handling_ctx:
             logits = self._model(**batch)

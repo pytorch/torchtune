@@ -312,8 +312,8 @@ class TestFullyShardState(FSDPTest):
             fsdp_optim_to_save.zero_grad()
         expected_model_sd = base_model.state_dict()
         expected_optim_sd = base_optim.state_dict()
-        model_full_sd = training.get_full_model_state_dict(
-            fsdp_model_to_save, is_rank_zero
+        model_full_sd = training.gather_cpu_state_dict(
+            fsdp_model_to_save.state_dict(), is_rank_zero
         )
         optim_full_sd = training.get_full_optimizer_state_dict(
             fsdp_optim_to_save,
@@ -467,8 +467,8 @@ class TestFullyShardState(FSDPTest):
         fsdp_model_to_save(inp)
 
         expected_model_sd = {k: v.cpu() for k, v in base_model.state_dict().items()}
-        model_full_sd = training.get_full_model_state_dict(
-            fsdp_model_to_save, is_rank_zero
+        model_full_sd = training.gather_cpu_state_dict(
+            fsdp_model_to_save.state_dict(), is_rank_zero
         )
         if is_rank_zero:
             self.assertEqual(set(model_full_sd.keys()), set(expected_model_sd.keys()))
