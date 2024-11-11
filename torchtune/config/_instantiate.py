@@ -18,11 +18,11 @@ def _create_component(
     _component_: Callable[..., Any],
     args: Tuple[Any, ...],
     kwargs: Dict[str, Any],
-):
+) -> Any:
     return _component_(*args, **kwargs)
 
 
-def _instantiate_node(node: Dict[str, Any], *args: Tuple[Any, ...]):
+def _instantiate_node(node: Dict[str, Any], *args: Any) -> Any:
     """
     Creates the object specified in _component_ field with provided positional args
     and kwargs already merged. Raises an InstantiationError if _component_ is not specified.
@@ -40,8 +40,8 @@ def _instantiate_node(node: Dict[str, Any], *args: Tuple[Any, ...]):
 
 def instantiate(
     config: DictConfig,
-    *args: Tuple[Any, ...],
-    **kwargs: Dict[str, Any],
+    *args: Any,
+    **kwargs: Any,
 ) -> Any:
     """
     Given a DictConfig with a _component_ field specifying the object to instantiate and

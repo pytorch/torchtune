@@ -65,7 +65,7 @@ class TuneRecipeArgumentParser(argparse.ArgumentParser):
         return namespace, unknown_args
 
 
-def parse(recipe_main: Recipe) -> Callable[[Recipe], Any]:
+def parse(recipe_main: Recipe) -> Callable[[], Any]:
     """
     Decorator that handles parsing the config file and CLI overrides
     for a recipe. Use it on the recipe's main function.
