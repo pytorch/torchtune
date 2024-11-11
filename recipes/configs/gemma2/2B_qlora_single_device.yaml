@@ -64,7 +64,7 @@ loss:
 
 # Fine-tuning arguments
 batch_size: 4
-epochs: 3
+epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 4
 compile: False  # pytorch compile, set to true for perf/memory improvement
