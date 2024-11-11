@@ -23,14 +23,6 @@ from tests.test_utils import CKPT_MODEL_PATHS, gpu_test
 
 
 class TestEleutherEval:
-    @pytest.mark.parametrize(
-        "eval_name, expected_acc, bsz",
-        [
-            ("truthfulqa_gen", 0.1, 4),
-            ("truthfulqa_gen", 0.1, 1),
-            ("truthfulqa_mc2", 0.4, 4),
-        ],
-    )
     @pytest.fixture
     def hide_correct_version_number(self, monkeypatch):
         import importlib.metadata
@@ -55,6 +47,14 @@ class TestEleutherEval:
             "Physics": 0.0,
         }
 
+    @pytest.mark.parametrize(
+        "eval_name, expected_acc, bsz",
+        [
+            ("truthfulqa_gen", 0.1, 4),
+            ("truthfulqa_gen", 0.1, 1),
+            ("truthfulqa_mc2", 0.4, 4),
+        ],
+    )
     @pytest.mark.integration_test
     def test_torchtune_checkpoint_eval_results(
         self, caplog, monkeypatch, tmpdir, eval_name, expected_acc, bsz
