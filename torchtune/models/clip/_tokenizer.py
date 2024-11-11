@@ -3,11 +3,9 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-import html
 from os import PathLike
 from typing import List
 
-import ftfy
 import regex as re
 import torch
 
@@ -96,7 +94,7 @@ class CLIPTokenizer(BaseTokenizer):
         Returns:
             List[int]: The encoded list of token ids.
         """
-        text = _clean_text(text).lower()
+        text = text.lower()
 
         tokens = [self.sot_token]
         for token in re.findall(self.pat, text):
@@ -208,9 +206,3 @@ def _get_pairs(word):
         pairs.add((prev_char, char))
         prev_char = char
     return pairs
-
-
-def _clean_text(text):
-    text = ftfy.fix_text(text)
-    text = html.unescape(html.unescape(text)).strip()
-    return re.sub(r"\s+", " ", text).strip()

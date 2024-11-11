@@ -26,7 +26,6 @@ dependencies = [
     "tqdm",
     "omegaconf",
     "psutil",
-    "ftfy",
 
     # Multimodal
     "Pillow>=9.4.0",
