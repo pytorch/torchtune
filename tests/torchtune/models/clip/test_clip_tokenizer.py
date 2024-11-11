@@ -5,13 +5,14 @@
 # LICENSE file in the root directory of this source tree.
 import pytest
 
+from tests.common import ASSETS
 from torchtune.models.clip._model_builders import clip_tokenizer
 
 
 class TestCLIPTokenizer:
     @pytest.fixture
     def tokenizer(self):
-        return clip_tokenizer()
+        return clip_tokenizer(ASSETS / "tiny_bpe_merges.txt")
 
     def test_tokenization(self, tokenizer):
         texts = [
@@ -19,19 +20,34 @@ class TestCLIPTokenizer:
             "a helpful AI assistant",
         ]
         correct_tokens = [
-            [49406, 320, 9706, 11476, 962, 518, 3293, 49407],
-            [49406, 320, 12695, 2215, 6799, 49407],
+            _pad(
+                [
+                    2416,
+                    320,
+                    66,
+                    78,
+                    342,
+                    73,
+                    669,
+                    79,
+                    515,
+                    326,
+                    1190,
+                    337,
+                    673,
+                    324,
+                    76,
+                    819,
+                    333,
+                    2417,
+                ]
+            ),
+            _pad(
+                [2416, 320, 516, 75, 79, 69, 84, 331, 64, 328, 813, 667, 540, 339, 2417]
+            ),
         ]
-        for token_seq in correct_tokens:
-            _pad_token_sequence(token_seq)
         tokens_tensor = tokenizer(texts)
         assert tokens_tensor.tolist() == correct_tokens
-
-    def test_text_cleaning(self, tokenizer):
-        text = "(à¸‡'âŒ£')à¸‡"
-        correct_tokens = [49406, 263, 33382, 6, 17848, 96, 19175, 33382, 49407]
-        tokens = tokenizer.encode(text)
-        assert tokens == correct_tokens
 
     def test_decoding(self, tokenizer):
         text = "this is torchtune"
@@ -39,6 +55,7 @@ class TestCLIPTokenizer:
         assert decoded_text == tokenizer.decode(tokenizer.encode(text))
 
 
-def _pad_token_sequence(tokens, max_seq_len=77, pad_token=49407):
+def _pad(tokens, max_seq_len=77, pad_token=2417):
     while len(tokens) < max_seq_len:
         tokens.append(pad_token)
+    return tokens

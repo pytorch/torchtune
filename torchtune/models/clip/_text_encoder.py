@@ -104,6 +104,6 @@ class CLIPTextEncoder(nn.Module):
         # Select the output of the EOS token for each encoding in the batch
         # [b, s, d] -> [b, d]
         eos_token_positions = tokens.argmax(dim=-1)
-        x = x[torch.arange(bsz, device=x.device), eos_token_positions]
+        x = x.take_along_dim(eos_token_positions.view(-1, 1, 1), dim=1).squeeze(dim=1)
 
         return x
