@@ -37,6 +37,8 @@ class LoRALinear(nn.Module, AdapterModule):
             Default: False
         quantize_base (bool): Whether to quantize base linear weight or not.
             Default: False
+        **quantization_kwargs: Keyword arguments to pass to `to_nf4` when quantizing the base linear weight.
+            See `to_nf4` for more details. This is only used if `quantize_base` is True. Default None
     """
 
     def __init__(
