@@ -135,7 +135,7 @@ def llama3_2_vision_test_config() -> List[str]:
         "tokenizer.patch_size=9",
         "tokenizer.max_num_tiles=2",
         "tokenizer.tile_size=18",
-        "tokenizer.max_seq_len=1024",
+        "tokenizer.max_seq_len=4096",
     ]
 
 
