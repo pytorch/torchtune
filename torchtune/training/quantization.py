@@ -240,7 +240,9 @@ class Int8MixedPrecisionTrainingQuantizer:
 
             return False
 
-        quantize_(model, quantize_fn, filter_fn=filter_fn)
+        # don't set inductor config, otherwise compile will be very slow
+        # (it will affect global torch.compile() config)
+        quantize_(model, quantize_fn, filter_fn=filter_fn, set_inductor_config=False)
         return model
 
 
