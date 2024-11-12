@@ -45,7 +45,7 @@ resume_from_checkpoint: False
 
 # Fine-tuning arguments
 batch_size: 2
-epochs: 3
+epochs: 1
 optimizer:
   _component_: torch.optim.AdamW
   fused: True
@@ -67,7 +67,7 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True  # True reduces memory
-memory_efficient_fsdp_wrap: False
+enable_activation_offloading: False  # True reduces memory
 
 # Reduced precision
 dtype: bf16

@@ -17,9 +17,6 @@ from torch import nn
 from torch.distributed._composable.fsdp import CPUOffloadPolicy, fully_shard
 from torch.distributed._tensor import distribute_tensor, DTensor
 from torch.distributed._tensor.placement_types import DTensorSpec, TensorMeta
-from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
-    _CHECKPOINT_WRAPPED_MODULE,
-)
 from torch.distributed.checkpoint.state_dict import _init_optim_state
 from torch.distributed.fsdp import ShardingStrategy
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
@@ -300,7 +297,9 @@ def load_from_full_model_state_dict(
     for param_name, full_tensor in full_sd.items():
         sharded_meta_param = meta_sharded_sd.get(param_name)
         full_tensor = full_tensor.to(sharded_meta_param.dtype).to(device)
-        if isinstance(sharded_meta_param._local_tensor, NF4Tensor):
+        if hasattr(sharded_meta_param, "_local_tensor") and isinstance(
+            sharded_meta_param._local_tensor, NF4Tensor
+        ):
             full_tensor = to_nf4(full_tensor)
             # replicating logic from `_fsdp_param.py`` `_init_sharded_param`
             # otherwise `distribute_tensor(DTensor(local=NF4))`
@@ -346,88 +345,58 @@ def load_from_full_model_state_dict(
     return model.load_state_dict(sharded_sd, strict=strict, assign=True)
 
 
-def get_full_model_state_dict(
-    model: "FSDPModule",  # noqa
+def gather_cpu_state_dict(
+    sharded_sd: Dict[str, DTensor],  # noqa
     is_rank_zero: bool,
     device: Optional[torch.device] = None,
-    trainable_only: bool = False,
 ) -> Dict[str, Any]:
     """
     Converting sharded state dict into a full state dict on CPU
-    Returning non-empty result on rank0 to avoid peaking CPU memory
+    Returning non-empty result only on rank0 to avoid peaking CPU memory
 
     Args:
-        model (FSDPModule): wrapped module
+        sharded_sd (Dict[str, DTensor]): Sharded state dict of DTensors
         is_rank_zero (bool): flag to check if the process is on rank 0
         device (Optional[torch.device]): device to use for sharded tensors. Default: None
-        trainable_only (bool): flag to check if only trainable parameters should be returned. Default: False
-
-    Raises:
-        AssertionError: if the model contains NF4Tensor and the model is not wrapped with FSDP
 
     Returns:
         Dict[str, Any]: State dict on CPU
     """
-    # [Warning] FSDPModel.state_dict converts all Parameter Tensors to DTensors
-    sharded_sd = model.state_dict()
     cpu_state_dict = {}
-    has_nf4 = any(
-        isinstance(param._local_tensor, NF4Tensor) for param in model.parameters()
-    )
-    if has_nf4:
-        from torch.distributed._composable.fsdp.fully_shard import FSDPModule
-
-        # Iterating from lowerer modules to higher
-        # Unsharding lora adapters before unsharding transformer block
-        for module_name, module in reversed(list(model.named_modules())):
-            if not isinstance(module, FSDPModule):
-                continue
-            module.unshard(async_op=False)
-            if is_rank_zero:
-                module_name = module_name.replace(f".{_CHECKPOINT_WRAPPED_MODULE}", "")
-                for local_fqn, param in module.named_parameters():
-                    local_fqn = local_fqn.replace(f".{_CHECKPOINT_WRAPPED_MODULE}", "")
-                    if len(module_name) > 0:
-                        full_fqn = module_name + "." + local_fqn
-                    else:
-                        full_fqn = local_fqn
-                    if trainable_only and not param.requires_grad:
-                        # skip trainable params when trainable_only is True
-                        continue
-                    if full_fqn in cpu_state_dict:
-                        # Iterate over every param in every module bottoms-up
-                        # When lower TransformerBlock gets unsharded,
-                        # we insert  (full_fqn, full_tensor) into cpu_state_dict.
-                        # When higher Transformer gets unsharded, we avoid updating
-                        # params from lower TransformerBlockonly again. Instead, only updating
-                        # tok_embeddings etc that belongs to Transformer
-                        continue
-                    if isinstance(param, NF4Tensor):
-                        # upcasting NF4 to original dtype
-                        param = param.to(param.dtype)
-                    if isinstance(param, DTensor):
-                        raise AssertionError(
-                            f"Internal error: expect unsharded {full_fqn} in plain torch.Tensor but got DTensor."
-                            " Might be a bug in get_full_model_state_dict"
-                        )
-                    cpu_state_dict[full_fqn] = param.cpu()
-            module.reshard()
-    else:
-        for param_name, sharded_param in sharded_sd.items():
-            # without this, it may hang forever for +70B models.
-            torch.distributed.barrier()
-            if sharded_param.is_cpu:
-                assert device is not None and device.type == "cuda", (
-                    f"Expect cuda but got device={device}. "
-                    "Please call get_full_model_state_dict(..., device=self._device),"
-                    " so DTensor can communicate over NCCL."
+    for param_name, sharded_param in sharded_sd.items():
+        if sharded_param.is_cpu:
+            # Move back to device if offloaded to CPU
+            sharded_param = sharded_param.to(device)
+        if isinstance(sharded_param._local_tensor, NF4Tensor):
+            # NF4Tensor does not support all_gather from DTensor
+            # so we need to manually all_gather
+            mesh = sharded_param.device_mesh
+            nf4_tensor = sharded_param._local_tensor
+            quant_params, metadata = nf4_tensor.fsdp_pre_all_gather(mesh)
+            full_quant_params = []
+            for quant_param in quant_params:
+                d0, *dn = quant_param.shape
+                shape = (d0 * mesh.get_group().size(), *dn)
+                full_quant_param = torch.empty(
+                    shape, device=quant_param.device, dtype=quant_param.dtype
                 )
-                sharded_param = sharded_param.to(device)
+                dist.all_gather_into_tensor(
+                    full_quant_param, quant_param, mesh.get_group(), async_op=False
+                )
+                full_quant_params.append(full_quant_param)
+            full_param, _ = nf4_tensor.fsdp_post_all_gather(
+                full_quant_params, metadata, nf4_tensor.dtype
+            )
+            # upcasting NF4 to original dtype
+            full_param = full_param.to(full_param.dtype)
+        else:
+            # Gather DTensor
             full_param = sharded_param.full_tensor()
-            if is_rank_zero:
-                cpu_state_dict[param_name] = full_param.cpu()
-            else:
-                del full_param
+        if is_rank_zero:
+            cpu_state_dict[param_name] = full_param.cpu()
+        else:
+            del full_param
+        torch.distributed.barrier()
     return cpu_state_dict
 
 
