@@ -66,7 +66,14 @@ class TestLoRALinear:
 
     @pytest.fixture
     def qlora_linear(self):
-        def create_qlora_linear(use_bias, dtype, in_dim=512, out_dim=512):
+        def create_qlora_linear(
+            use_bias,
+            dtype,
+            in_dim=512,
+            out_dim=512,
+            quantize_base=True,
+            **quantization_kwargs,
+        ):
             with training.set_default_dtype(dtype):
                 qlora_linear = LoRALinear(
                     in_dim=in_dim,
@@ -74,7 +81,8 @@ class TestLoRALinear:
                     rank=RANK,
                     alpha=ALPHA,
                     use_bias=use_bias,
-                    quantize_base=True,
+                    quantize_base=quantize_base,
+                    **quantization_kwargs,
                 )
                 fixed_init_model(qlora_linear)
             return qlora_linear
@@ -112,6 +120,34 @@ class TestLoRALinear:
         if use_bias:
             assert not isinstance(qlora_linear.bias, NF4Tensor)
             assert qlora_linear.bias.dtype == torch.bfloat16
+
+    def test_lora_weight_nf4_when_quantized_with_quantization_kwargs(
+        self, qlora_linear
+    ):
+        qlora_linear = qlora_linear(
+            use_bias=True, dtype=torch.bfloat16, block_size=8, scaler_block_size=4
+        )
+        assert isinstance(qlora_linear.weight, NF4Tensor)
+        assert qlora_linear.weight.block_size == 8
+        assert qlora_linear.weight.scaler_block_size == 4
+        assert not isinstance(qlora_linear.bias, NF4Tensor)
+
+    def test_lora_weight_nf4_when_quantized_raises_value_error_with_bad_args(
+        self, qlora_linear
+    ):
+        """Ensure that if quantize_base is False, but we pass in quantization kwargs,
+        we raise a ValueError."""
+        with pytest.raises(
+            ValueError,
+            match="``quantize_base`` is False, but received the following quantization arguments",
+        ):
+            qlora_linear(
+                use_bias=True,
+                dtype=torch.bfloat16,
+                block_size=8,
+                scaler_block_size=4,
+                quantize_base=False,
+            )
 
     # Note: with bfloat16 F.linear(x, weight, bias) != F.linear(x, weight) + bias.
     # This means we would get different results (irrespective of QLoRA).
