@@ -26,8 +26,10 @@ class FrozenNF4Linear(nn.Linear):
         device (Optional[torch.device]): device to use for the underlying weight. If ``None``, uses the default
             device given by `torch.get_default_device()`.
         dtype (Optional[torch.dtype]): dtype to use for the underlying weight. If ``None``, uses the default
-        **quantization_kwargs:
-
+        **quantization_kwargs: Keyword arguments to pass to `to_nf4` when quantizing the base linear weight.
+            Examples of valid arguments are `block_size` and `scaler_block_size`, which control the granularity of
+            weight quantization and scaler quantization respectively. This is only used if `quantize_base` is True.
+            Default None
     """
 
     def __init__(
