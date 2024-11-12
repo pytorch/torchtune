@@ -16,6 +16,7 @@ from torchtune.modules.peft import (
     disable_adapter,
     DoRALinear,
     get_adapter_params,
+    get_adapter_state_dict,
     get_merged_lora_ckpt,
     LoRALinear,
     set_trainable_params,
@@ -38,30 +39,30 @@ ALPHA = 1
 class DummyAdapterModule(nn.Module, AdapterModule):
     def __init__(self, in_dim, out_dim):
         super().__init__()
-        self.adapter = nn.Linear(in_dim, out_dim, bias=False)
+        self.lora = nn.Linear(in_dim, out_dim, bias=False)
         self.linear = nn.Linear(in_dim, out_dim)
 
     def adapter_params(self):
-        return ["adapter.weight"]
+        return ["lora.weight"]
 
     def forward(self, x):
-        return self.adapter(x) + self.non_adapter(x)
+        return self.lora(x) + self.non_adapter(x)
 
 
 class DummyAdapterParentModel(nn.Module, AdapterModule):
     def __init__(self, in_dim, out_dim):
         super().__init__()
         self.dummy_adapter_module = DummyAdapterModule(in_dim, out_dim)
-        self.parent_adapter = nn.Linear(in_dim, out_dim)
+        self.parent_lora = nn.Linear(in_dim, out_dim)
         self.parent_base_model = nn.Linear(in_dim, out_dim)
 
     def adapter_params(self):
-        return ["parent_adapter.weight", "parent_adapter.bias"]
+        return ["parent_lora.weight", "parent_lora.bias"]
 
     def forward(self, x):
         return (
             self.dummy_adapter_module(x)
-            + self.parent_adapter(x)
+            + self.parent_lora(x)
             + self.parent_base_model(x)
         )
 
@@ -79,9 +80,9 @@ def dummy_model_expected_adapter_keys():
     for i in range(N_LAYERS):
         keys.extend(
             [
-                f"{i}.parent_adapter.weight",
-                f"{i}.parent_adapter.bias",
-                f"{i}.dummy_adapter_module.adapter.weight",
+                f"{i}.parent_lora.weight",
+                f"{i}.parent_lora.bias",
+                f"{i}.dummy_adapter_module.lora.weight",
             ]
         )
     return keys
@@ -203,6 +204,20 @@ class TestPeftUtils:
         adapter_params = get_adapter_params(model)
         expected = request.getfixturevalue(expected_keys)
         assert set(expected) == set(adapter_params.keys())
+
+    @pytest.mark.parametrize(
+        "model_name, expected_keys",
+        [
+            ("dummy_adapter_parent_model", "dummy_model_expected_adapter_keys"),
+            ("lora_llama2_model", "lora_llama2_expected_adapter_keys"),
+            ("dora_llama2_model", "dora_llama2_expected_adapter_keys"),
+        ],
+    )
+    def test_get_adapter_state_dict(self, request, model_name, expected_keys):
+        model = request.getfixturevalue(model_name)
+        adapter_state_dict = get_adapter_state_dict(model.state_dict())
+        expected = request.getfixturevalue(expected_keys)
+        assert set(expected) == set(adapter_state_dict.keys())
 
     @pytest.mark.parametrize(
         "model_name, expected_trainable_keys, expected_frozen_keys",
