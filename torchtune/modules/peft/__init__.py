@@ -8,6 +8,7 @@ from ._utils import (  # noqa
     AdapterModule,
     disable_adapter,
     get_adapter_params,
+    get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
     load_dora_magnitudes,
@@ -30,6 +31,7 @@ __all__ = [
     "validate_state_dict_for_lora",
     "load_dora_magnitudes",
     "disable_adapter",
+    "get_adapter_state_dict",
     "get_merged_lora_ckpt",
     "get_lora_module_names",
 ]

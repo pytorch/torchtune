@@ -50,7 +50,7 @@ shuffle: True
 
 # Fine-tuning arguments
 batch_size: 2
-epochs: 3
+epochs: 1
 optimizer:
   _component_: torch.optim.AdamW
   fused: True

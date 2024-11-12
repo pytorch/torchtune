@@ -69,7 +69,7 @@ loss:
 
 # Fine-tuning arguments
 batch_size: 4
-epochs: 3
+epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 8  # Use to increase virtual batch size
 compile: False  # pytorch compile, set to true for better perf/memory
