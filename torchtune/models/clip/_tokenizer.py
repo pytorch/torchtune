@@ -65,25 +65,6 @@ class CLIPTokenizer(BaseTokenizer):
             "<|endoftext|>": "<|endoftext|>",
         }
 
-    def __call__(self, texts: List[str]) -> torch.Tensor:
-        """
-        Returns a Tensor with the tokenized representation of given input strings
-
-        Args:
-            texts (List[str]): list of input strings to tokenize
-
-        Returns:
-            torch.Tensor: int tensor with shape [len(texts), max_seq_len]
-        """
-        assert isinstance(texts, list)
-        result = torch.full(
-            (len(texts), self.max_seq_len), self.pad_token, dtype=torch.int
-        )
-        for i, text in enumerate(texts):
-            tokens = self.encode(text)
-            result[i, : len(tokens)] = torch.tensor(tokens)
-        return result
-
     def encode(self, text: str) -> List[int]:
         """
         Given a string, return the encoded list of token ids.
@@ -132,6 +113,25 @@ class CLIPTokenizer(BaseTokenizer):
             .decode("utf-8", errors="replace")
             .replace("</w>", " ")
         )
+
+    def __call__(self, texts: List[str]) -> torch.Tensor:
+        """
+        Returns a Tensor with the tokenized representation of given input strings
+
+        Args:
+            texts (List[str]): list of input strings to tokenize
+
+        Returns:
+            torch.Tensor: int tensor with shape [len(texts), max_seq_len]
+        """
+        assert isinstance(texts, list)
+        result = torch.full(
+            (len(texts), self.max_seq_len), self.pad_token, dtype=torch.int
+        )
+        for i, text in enumerate(texts):
+            tokens = self.encode(text)
+            result[i, : len(tokens)] = torch.tensor(tokens)
+        return result
 
     def _bpe(self, token):
         if token in self.cache:
