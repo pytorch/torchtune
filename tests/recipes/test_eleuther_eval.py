@@ -234,7 +234,7 @@ class TestEleutherEval:
             limit=5 \
             dtype=bf16 \
             device=cuda \
-            max_seq_len=1024 \
+            max_seq_length=1024 \
         """.split()
 
         model_config = llama3_2_vision_test_config()
@@ -278,7 +278,7 @@ class TestEleutherEval:
             limit=5 \
             dtype=bf16 \
             device=cuda \
-            max_seq_len=1024 \
+            max_seq_length=1024 \
         """.split()
 
         model_config = llama3_2_vision_test_config()
