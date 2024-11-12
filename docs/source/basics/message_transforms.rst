@@ -35,10 +35,11 @@ column as the model response. Indeed, this is quite similar to :class:`~torchtun
     from torchtune.modules.transforms import Transform
     from torchtune.data import Message
     from typing import Any, Mapping
+    from pprint import pprint
 
     class MessageTransform(Transform):
         def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
-            return [
+            messages = [
                 Message(
                     role="user",
                     content=sample["input"],
@@ -52,17 +53,14 @@ column as the model response. Indeed, this is quite similar to :class:`~torchtun
                     eot=True,
                 ),
             ]
+            return {"messages": messages}
 
-    sample = {"input": "hello world", "output": "bye world"}
+    input_sample = {"input": "hello world", "output": "bye world"}
     transform = MessageTransform()
-    messages = transform(sample)
-    print(messages)
-    # [<torchtune.data._messages.Message at 0x7fb0a10094e0>,
-    # <torchtune.data._messages.Message at 0x7fb0a100a290>]
-    for msg in messages:
-        print(msg.role, msg.text_content)
-    # user hello world
-    # assistant bye world
+    output_sample = transform(input_sample)
+    pprint(output_sample)
+    # {'messages': [Message(role='user', content=['hello world']),
+    #               Message(role='assistant', content=['bye world'])]}
 
 See :ref:`creating_messages` for more details on how to manipulate :class:`~torchtune.data.Message` objects.
 
