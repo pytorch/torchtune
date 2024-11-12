@@ -748,7 +748,7 @@
         <span class="c1"># add cls token back in</span>
         <span class="n">local_pos_embed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">cls_token</span><span class="p">,</span> <span class="n">local_pos_embed</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">local_pos_embed</span>
+        <span class="k">return</span> <span class="n">local_pos_embed</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
 
     <span class="c1"># TODO: Switch to public method after 2.5 is stable</span>
     <span class="nd">@staticmethod</span>
@@ -865,7 +865,7 @@
         <span class="c1"># add cls token back in</span>
         <span class="n">global_pos_embed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">cls_embed</span><span class="p">,</span> <span class="n">pos_embed</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">global_pos_embed</span>
+        <span class="k">return</span> <span class="n">global_pos_embed</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
 
 <div class="viewcode-block" id="TiledTokenPositionalEmbedding.forward"><a class="viewcode-back" href="../../../../generated/torchtune.models.clip.TiledTokenPositionalEmbedding.html#torchtune.models.clip.TiledTokenPositionalEmbedding.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">aspect_ratio</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -1062,7 +1062,7 @@
         <span class="p">)</span>
         <span class="c1"># permute to the original shape</span>
         <span class="n">embedding</span> <span class="o">=</span> <span class="n">embedding</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">embedding</span>
+        <span class="k">return</span> <span class="n">embedding</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
 
 <div class="viewcode-block" id="TilePositionalEmbedding.forward"><a class="viewcode-back" href="../../../../generated/torchtune.models.clip.TilePositionalEmbedding.html#torchtune.models.clip.TilePositionalEmbedding.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">aspect_ratio</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
