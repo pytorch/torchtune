@@ -191,3 +191,49 @@ class TestLoRADPOSingleDeviceRecipe:
         llama2_model.load_state_dict(sd)
         merged_ckpt_out = llama2_model(inputs)
         torch.testing.assert_close(baseline_out, merged_ckpt_out, rtol=1e-5, atol=1e-5)
+
+    @pytest.mark.integration_test
+    def test_lr_scheduler_optional(self, tmpdir, monkeypatch):
+        """Check that lr_scheduler is not required."""
+
+        # Create a new config without lr_scheduler using tune cp
+        custom_config = os.path.join(tmpdir, "my_custom_config.yaml")
+        cmd_cp = f"tune cp llama2/7B_lora_dpo_single_device {custom_config}".split()
+        monkeypatch.setattr(sys, "argv", cmd_cp)
+        runpy.run_path(TUNE_PATH, run_name="__main__")
+        assert os.path.exists(custom_config)
+
+        dict_config = OmegaConf.load(custom_config)
+        del dict_config["lr_scheduler"]
+        OmegaConf.save(config=dict_config, f=custom_config)
+
+        # Run training without lr_scheduler
+        ckpt = "llama2_hf"
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        ckpt_dir = ckpt_path.parent
+        log_file = gen_log_file_name(tmpdir)
+
+        write_hf_ckpt_config(ckpt_dir)
+        write_hf_ckpt_config(tmpdir)
+
+        cmd_run = f"""
+        tune run lora_dpo_single_device \
+            --config {custom_config} \
+            output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
+            checkpointer=torchtune.training.FullModelHFCheckpointer \
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir} \
+            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
+            metric_logger.filename={log_file} \
+        """.split()
+
+        model_config = MODEL_TEST_CONFIGS["llama2_lora"]
+
+        cmd_run = cmd_run + self._get_test_config_overrides(epochs=1) + model_config
+        monkeypatch.setattr(sys, "argv", cmd_run)
+        with pytest.raises(SystemExit, match=""):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
