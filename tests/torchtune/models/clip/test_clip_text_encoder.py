@@ -7,7 +7,7 @@
 import pytest
 import torch
 
-from torchtune.models.clip._text_encoder import CLIPTextEncoder
+from torchtune.models.clip._component_builders import clip_text_encoder
 from torchtune.training.seed import set_seed
 
 VOCAB_SIZE = 512
@@ -24,7 +24,7 @@ def random():
 class TestClipTextEncoder:
     @pytest.fixture
     def model(self):
-        model = CLIPTextEncoder(
+        model = clip_text_encoder(
             vocab_size=VOCAB_SIZE,
             max_seq_len=MAX_SEQ_LEN,
             embed_dim=EMBED_DIM,
@@ -44,7 +44,7 @@ class TestClipTextEncoder:
     def test_forward(self, model, inputs):
         actual = model(inputs)
         expected = torch.tensor(
-            [[0.1850, 0.8112, 1.4308, 0.0021], [0.1903, 0.8700, 1.3892, -0.6564]]
+            [[0.2195, 1.3941, 0.6295, -0.1026], [0.2418, 1.4928, 0.6177, -0.0863]]
         )
         assert actual.shape == (BSZ, EMBED_DIM)
         torch.testing.assert_close(actual, expected, atol=1e-4, rtol=1e-4)

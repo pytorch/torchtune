@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 from os import PathLike
 
+from torchtune.models.clip._component_builders import clip_text_encoder
 from torchtune.models.clip._text_encoder import CLIPTextEncoder
 from torchtune.models.clip._tokenizer import CLIPTokenizer
 from torchtune.models.clip._transform import CLIPImageTransform
@@ -38,7 +39,7 @@ def clip_text_vit_large_patch14() -> CLIPTextEncoder:
     Returns:
         CLIPTextEncoder: Instantiation of the CLIP text encoder
     """
-    return CLIPTextEncoder(
+    return clip_text_encoder(
         vocab_size=49408,
         max_seq_len=77,
         embed_dim=768,
