@@ -206,7 +206,7 @@ class TestTransformerCrossAttentionLayer:
                 encoder_input=input_y,
                 encoder_mask=mask,
             )
-            # the second pass should retrieve the cached inputs and produce
+            # the second pass should just retrieve from the kv-cache and produce
             # identical outputs
             output = transformer_layer(
                 input_x,
