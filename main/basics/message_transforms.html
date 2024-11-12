@@ -454,10 +454,11 @@ column as the model response. Indeed, this is quite similar to <a class="referen
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
 <span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Mapping</span>
+<span class="kn">from</span> <span class="nn">pprint</span> <span class="kn">import</span> <span class="n">pprint</span>
 
 <span class="k">class</span> <span class="nc">MessageTransform</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">[</span>
+        <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">Message</span><span class="p">(</span>
                 <span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
                 <span class="n">content</span><span class="o">=</span><span class="n">sample</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">],</span>
@@ -471,17 +472,14 @@ column as the model response. Indeed, this is quite similar to <a class="referen
                 <span class="n">eot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="p">),</span>
         <span class="p">]</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">messages</span><span class="p">}</span>
 
-<span class="n">sample</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="s2">&quot;hello world&quot;</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="s2">&quot;bye world&quot;</span><span class="p">}</span>
+<span class="n">input_sample</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="s2">&quot;hello world&quot;</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="s2">&quot;bye world&quot;</span><span class="p">}</span>
 <span class="n">transform</span> <span class="o">=</span> <span class="n">MessageTransform</span><span class="p">()</span>
-<span class="n">messages</span> <span class="o">=</span> <span class="n">transform</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
-<span class="c1"># [&lt;torchtune.data._messages.Message at 0x7fb0a10094e0&gt;,</span>
-<span class="c1"># &lt;torchtune.data._messages.Message at 0x7fb0a100a290&gt;]</span>
-<span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">role</span><span class="p">,</span> <span class="n">msg</span><span class="o">.</span><span class="n">text_content</span><span class="p">)</span>
-<span class="c1"># user hello world</span>
-<span class="c1"># assistant bye world</span>
+<span class="n">output_sample</span> <span class="o">=</span> <span class="n">transform</span><span class="p">(</span><span class="n">input_sample</span><span class="p">)</span>
+<span class="n">pprint</span><span class="p">(</span><span class="n">output_sample</span><span class="p">)</span>
+<span class="c1"># {&#39;messages&#39;: [Message(role=&#39;user&#39;, content=[&#39;hello world&#39;]),</span>
+<span class="c1">#               Message(role=&#39;assistant&#39;, content=[&#39;bye world&#39;])]}</span>
 </pre></div>
 </div>
 <p>See <a class="reference internal" href="messages.html#creating-messages"><span class="std std-ref">Creating Messages</span></a> for more details on how to manipulate <a class="reference internal" href="../generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> objects.</p>
