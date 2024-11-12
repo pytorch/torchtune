@@ -19,10 +19,18 @@ from tests.recipes.utils import (
     write_hf_ckpt_config,
     write_hf_vision_ckpt_config,
 )
-from tests.test_utils import CKPT_MODEL_PATHS, gpu_test
+from tests.test_utils import CKPT_MODEL_PATHS
 
 
 class TestEleutherEval:
+    @pytest.mark.parametrize(
+        "eval_name, expected_acc, bsz",
+        [
+            ("truthfulqa_gen", 0.1, 4),
+            ("truthfulqa_gen", 0.1, 1),
+            ("truthfulqa_mc2", 0.4, 4),
+        ],
+    )
     @pytest.fixture
     def hide_correct_version_number(self, monkeypatch):
         import importlib.metadata
@@ -39,22 +47,14 @@ class TestEleutherEval:
     @pytest.fixture
     def expected_vision_acc(self):
         return {
-            "Science": 0.35,
-            "Biology": 0.25,
-            "Chemistry": 0.25,
-            "Geography": 0.5,
-            "Math": 0.0,
-            "Physics": 0.75,
+            "Science": 0.2,
+            "Biology": 0.4,
+            "Chemistry": 0.0,
+            "Geography": 0.2,
+            "Math": 0.4,
+            "Physics": 0.0,
         }
 
-    @pytest.mark.parametrize(
-        "eval_name, expected_acc, bsz",
-        [
-            ("truthfulqa_gen", 0.1, 4),
-            ("truthfulqa_gen", 0.1, 1),
-            ("truthfulqa_mc2", 0.4, 4),
-        ],
-    )
     @pytest.mark.integration_test
     def test_torchtune_checkpoint_eval_results(
         self, caplog, monkeypatch, tmpdir, eval_name, expected_acc, bsz
@@ -212,7 +212,6 @@ class TestEleutherEval:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
     @pytest.mark.integration_test
-    @gpu_test(gpu_count=1)
     def test_meta_eval_vision(self, caplog, monkeypatch, tmpdir, expected_vision_acc):
         ckpt = "llama3_2_vision_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -231,9 +230,9 @@ class TestEleutherEval:
             checkpointer.model_type=LLAMA3_VISION \
             tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
             tokenizer.prompt_template=null \
-            limit=4 \
+            limit=5 \
             dtype=bf16 \
-            device=cuda \
+            device=cpu \
         """.split()
 
         model_config = llama3_2_vision_test_config()
@@ -252,7 +251,6 @@ class TestEleutherEval:
             assert math.isclose(float(accuracy), expected_vision_acc[task_name])
 
     @pytest.mark.integration_test
-    @gpu_test(gpu_count=1)
     def test_hf_eval_vision(self, caplog, monkeypatch, tmpdir, expected_vision_acc):
         ckpt = "llama3_2_vision_hf"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -274,9 +272,9 @@ class TestEleutherEval:
             checkpointer.model_type=LLAMA3_VISION \
             tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
             tokenizer.prompt_template=null \
-            limit=4 \
+            limit=5 \
             dtype=bf16 \
-            device=cuda \
+            device=cpu \
         """.split()
 
         model_config = llama3_2_vision_test_config()
