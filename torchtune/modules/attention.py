@@ -255,6 +255,14 @@ class MultiHeadAttention(nn.Module):
                 )
             k = self.kv_cache.k_cache
             v = self.kv_cache.v_cache
+
+            # If needed, expand the key and value tensors to have the same shape
+            # as the query tensor by copying values across the relevant dim
+            # k,v shape: [b, n_kv, s, h_d] -> [b, n_h, s, h_d]
+            if self.num_heads != self.num_kv_heads:
+                expand_shape = (-1, -1, q_per_kv, -1, -1)
+                k = k.unsqueeze(2).expand(expand_shape).flatten(1, 2)
+                v = v.unsqueeze(2).expand(expand_shape).flatten(1, 2)
         else:
             # Update k and v shape, positional embeddings, and normalization
 
