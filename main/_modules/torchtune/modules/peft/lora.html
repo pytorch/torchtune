@@ -466,6 +466,13 @@
 <span class="sd">            Default: False</span>
 <span class="sd">        quantize_base (bool): Whether to quantize base linear weight or not.</span>
 <span class="sd">            Default: False</span>
+<span class="sd">        **quantization_kwargs: Keyword arguments to pass to `to_nf4` when quantizing the base linear weight.</span>
+<span class="sd">            Examples of valid arguments are `block_size` and `scaler_block_size`, which control the granularity of</span>
+<span class="sd">            weight quantization and scaler quantization respectively. This is only used if `quantize_base` is True.</span>
+<span class="sd">            Default None</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If ``quantize_base`` is False, but quantization kwargs are provided.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -477,15 +484,30 @@
         <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">use_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">quantization_kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">in_dim</span> <span class="o">=</span> <span class="n">in_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="n">rank</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">out_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">use_bias</span> <span class="o">=</span> <span class="n">use_bias</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_quantize_base</span> <span class="o">=</span> <span class="n">quantize_base</span>
-        <span class="n">weight</span><span class="p">,</span> <span class="n">bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_weight_and_bias</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_quantize_base</span> <span class="ow">and</span> <span class="n">quantization_kwargs</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;``quantize_base`` is False, but received the following quantization arguments: </span><span class="si">{</span><span class="n">quantization_kwargs</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Setup weight and bias</span>
+        <span class="n">linear</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="n">out_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_bias</span><span class="p">)</span>
+        <span class="n">weight</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">linear</span><span class="o">.</span><span class="n">weight</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_quantize_base</span>
+            <span class="k">else</span> <span class="n">to_nf4</span><span class="p">(</span><span class="n">linear</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="o">**</span><span class="n">quantization_kwargs</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="n">linear</span><span class="o">.</span><span class="n">bias</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_bias</span> <span class="k">else</span> <span class="kc">None</span>
+
         <span class="c1"># &#39;self.disabled&#39; is a flag showing whether to turn off LoRA adapters,</span>
         <span class="c1"># this can be used in DPO for treating the lora adapters as the policy model</span>
         <span class="c1"># and disabling it to treat the base model as the reference model</span>
@@ -513,19 +535,6 @@
         <span class="c1"># https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119</span>
         <span class="n">_lora_a_init_params</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lora_a</span><span class="p">)</span>
         <span class="n">_lora_b_init_params</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lora_b</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">_create_weight_and_bias</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Creates a linear weight and bias tensor, using NF4 dtype if we&#39;re quantizing</span>
-<span class="sd">        (indicated via quantize_base=True).</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">in_dim</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">,</span> <span class="n">use_bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_bias</span>
-        <span class="n">linear</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="n">out_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">use_bias</span><span class="p">)</span>
-        <span class="n">weight</span> <span class="o">=</span> <span class="n">linear</span><span class="o">.</span><span class="n">weight</span> <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_quantize_base</span> <span class="k">else</span> <span class="n">to_nf4</span><span class="p">(</span><span class="n">linear</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
-        <span class="n">bias</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
-            <span class="n">bias</span> <span class="o">=</span> <span class="n">linear</span><span class="o">.</span><span class="n">bias</span>
-        <span class="k">return</span> <span class="n">weight</span><span class="p">,</span> <span class="n">bias</span>
 
 <div class="viewcode-block" id="LoRALinear.adapter_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear.adapter_params">[docs]</a>    <span class="k">def</span> <span class="nf">adapter_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
