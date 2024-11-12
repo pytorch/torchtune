@@ -115,9 +115,15 @@ fine-tuned checkpoints from torchtune with any post-training tool (quantization,
 which supports the source format, without any code changes OR conversion scripts. This is one of the
 ways in which torchtune interoperates with the surrounding ecosystem.
 
-To be "state-dict invariant", the ``load_checkpoint`` and
-``save_checkpoint`` methods make use of the weight convertors available
-`here <https://github.com/pytorch/torchtune/blob/main/torchtune/models/convert_weights.py>`_.
+.. note::
+
+  To be state-dict "invariant" in this way, the ``load_checkpoint`` and ``save_checkpoint`` methods of each checkpointer
+  make use of weight converters which correctly map weights between checkpoint formats. For example, when loading weights
+  from Hugging Face, we apply a permutation to certain weights on load and save to ensure checkpoints behave exactly the same.
+  To further illustrate this, the Llama family of models uses a
+  `generic weight converter function <https://github.com/pytorch/torchtune/blob/898670f0eb58f956b5228e5a55ccac4ea0efaff8/torchtune/models/convert_weights.py#L113>`_
+  whilst some other models like Phi3 have their own `conversion functions <https://github.com/pytorch/torchtune/blob/main/torchtune/models/phi3/_convert_weights.py>`_
+  which can be found within their model folders.
 
 |
 
@@ -125,11 +131,12 @@ Handling different Checkpoint Formats
 -------------------------------------
 
 torchtune supports three different
-`checkpointers <https://github.com/pytorch/torchtune/blob/main/torchtune/utils/_checkpointing/_checkpointer.py>`_,
+:ref:`checkpointers<checkpointing_label>`,
 each of which supports a different checkpoint format.
 
 
-**HFCheckpointer**
+:class:`HFCheckpointer <torchtune.training.FullModelHFCheckpointer>`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This checkpointer reads and writes checkpoints in a format which is compatible with the transformers
 framework from Hugging Face. As mentioned above, this is the most popular format within the Hugging Face
@@ -160,7 +167,7 @@ The following snippet explains how the HFCheckpointer is setup in torchtune conf
     checkpointer:
 
         # checkpointer to use
-        _component_: torchtune.utils.FullModelHFCheckpointer
+        _component_: torchtune.training.FullModelHFCheckpointer
 
         # directory with the checkpoint files
         # this should match the output_dir above
@@ -195,12 +202,11 @@ The following snippet explains how the HFCheckpointer is setup in torchtune conf
     read directly from the ``config.json`` file. This helps ensure we either load the weights
     correctly or error out in case of discrepancy between the HF checkpoint file and torchtune's
     model implementations. This json file is downloaded from the hub along with the model checkpoints.
-    More details on how these are used during conversion can be found
-    `here <https://github.com/pytorch/torchtune/blob/main/torchtune/models/convert_weights.py>`_.
 
 |
 
-**MetaCheckpointer**
+:class:`MetaCheckpointer <torchtune.training.FullModelMetaCheckpointer>`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This checkpointer reads and writes checkpoints in a format which is compatible with the original meta-llama
 github repository.
@@ -231,7 +237,7 @@ The following snippet explains how the MetaCheckpointer is setup in torchtune co
     checkpointer:
 
         # checkpointer to use
-        _component_: torchtune.utils.FullModelMetaCheckpointer
+        _component_: torchtune.training.FullModelMetaCheckpointer
 
         # directory with the checkpoint files
         # this should match the output_dir above
@@ -259,7 +265,8 @@ The following snippet explains how the MetaCheckpointer is setup in torchtune co
 
 |
 
-**TorchTuneCheckpointer**
+:class:`TorchTuneCheckpointer <torchtune.training.FullModelTorchTuneCheckpointer>`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This checkpointer reads and writes checkpoints in a format that is compatible with torchtune's
 model definition. This does not perform any state_dict conversions and is currently used either
@@ -328,7 +335,7 @@ to the config file
     checkpointer:
 
         # checkpointer to use
-        _component_: torchtune.utils.FullModelHFCheckpointer
+        _component_: torchtune.training.FullModelHFCheckpointer
 
         checkpoint_dir: <checkpoint_dir>
 
@@ -361,7 +368,7 @@ Checkpointing for LoRA
 In torchtune, we output both the adapter weights and the full model "merged" weights
 for LoRA. The "merged" checkpoint can be used just like you would use the source
 checkpoint with any post-training tools. For more details, take a look at our
-:ref:`LoRA Finetuning Tutorial <lora_finetune_label>`.
+:ref:`LoRA Finetuning Tutorial <lora_finetune_label>`.Additionally, by setting the option "save_adapter_weights_only" to True when saving a checkpoint, you can choose to save only the adapter weights.
 
 The primary difference between the two use cases is when you want to resume training
 from a checkpoint. In this case, the checkpointer needs access to both the initial frozen
@@ -374,7 +381,7 @@ looks something like this:
     checkpointer:
 
         # checkpointer to use
-        _component_: torchtune.utils.FullModelHFCheckpointer
+        _component_: torchtune.training.FullModelHFCheckpointer
 
         # directory with the checkpoint files
         # this should match the output_dir above
@@ -404,6 +411,9 @@ looks something like this:
     # set to True if restarting training
     resume_from_checkpoint: True
 
+    # Set to True to save only the adapter weights
+    save_adapter_weights_only: False
+
 |
 
 Putting this all together
@@ -417,7 +427,7 @@ For this section we'll use the Llama2 13B model in HF format.
 .. code-block:: python
 
     import torch
-    from torchtune.utils import FullModelHFCheckpointer, ModelType
+    from torchtune.training import FullModelHFCheckpointer, ModelType
     from torchtune.models.llama2 import llama2_13b
 
     # Set the right directory and files
@@ -433,7 +443,7 @@ For this section we'll use the Llama2 13B model in HF format.
         checkpoint_dir=checkpoint_dir,
         checkpoint_files=pytorch_files,
         output_dir=checkpoint_dir,
-        model_type=ModelType.LLAMA2
+        model_type="LLAMA2"
     )
     torchtune_sd = checkpointer.load_checkpoint()
 
@@ -460,8 +470,7 @@ For this section we'll use the Llama2 13B model in HF format.
 
 
 You can do this with any model supported by torchtune. You can find a full list
-of models and model builders
-`here <https://github.com/pytorch/torchtune/tree/main/torchtune/models>`__.
+of models and model builders :ref:`here <models>`.
 
 We hope this deep-dive provided a deeper insight into the checkpointer and
 associated utilities in torchtune. Happy tuning!

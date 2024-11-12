@@ -14,7 +14,7 @@ from tests.test_utils import fixed_init_model
 from torch import nn
 
 from torchtune.models.llama2._lora_llama2_builders import _lora_llama_self_attention
-from torchtune.modules import CausalSelfAttention, KVCache, RotaryPositionalEmbeddings
+from torchtune.modules import KVCache, MultiHeadAttention, RotaryPositionalEmbeddings
 
 try:
     from peft import inject_adapter_in_model, LoraConfig
@@ -33,7 +33,6 @@ def compare_lora_attention(
     lora_rank: int,
     lora_alpha: float,
 ) -> None:
-
     # make sure we have the right seed for generating outputs
     # this should match up the seed value set in the corresponding
     # unit test
@@ -68,14 +67,15 @@ def compare_lora_attention(
         KVCache(
             batch_size=batch_size,
             max_seq_len=max_seq_len,
-            n_kv_heads=num_heads,
+            num_kv_heads=num_kv_heads,
             head_dim=head_dim,
+            dtype=x.dtype,
         )
         if batch_size is not None
         else None
     )
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
-    llama_attn_ref = CausalSelfAttention(
+    llama_attn_ref = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,

@@ -4,12 +4,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
-from torchtune.data import truncate
-from torchtune.modules.tokenizers import Tokenizer
+from torchtune.data._utils import truncate
+from torchtune.datasets._packed import PackedDataset
+from torchtune.modules.tokenizers import ModelTokenizer
 
 
 class TextCompletionDataset(Dataset):
@@ -18,34 +19,41 @@ class TextCompletionDataset(Dataset):
     from Hugging Face or local disk and tokenize it for your model.
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
-        source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
+        source (str): path to dataset repository on Hugging Face. For local datasets,
+            define source as the data file type (e.g. "json", "csv", "text") and pass
+            in the filepath in ``data_files``. See Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
+            for more details.
         column (str): name of column in the sample that contains the text data. This is typically required
-            for Hugging Face datasets or tabular data. For local datasets with a single column, use the default "text",
-            which is what is assigned by Hugging Face datasets when loaded into memory. Default is "text".
-        max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
-            Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
-            and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
+            for Hugging Face datasets or tabular data. For local datasets with a single column
+            (e.g. unstructured txt files), use the default "text" which is used by Hugging Face datasets
+            when loaded into memory. Default is "text".
+        add_eos (bool): Whether to add an EOS token to the end of the sequence. Default is True.
+        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
+            the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
+            details.
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
+            Face's `API ref <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset>`_
+            for more details.
     """
 
     def __init__(
         self,
-        tokenizer: Tokenizer,
+        tokenizer: ModelTokenizer,
         source: str,
         column: str = "text",
-        max_seq_len: Optional[int] = None,
-        num_samples: Optional[int] = None,
+        add_eos: bool = True,
+        filter_fn: Optional[Callable] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._tokenizer = tokenizer
         self._data = load_dataset(source, **load_dataset_kwargs)
-        self.max_seq_len = max_seq_len
         self._column = column
-        self._num_samples = num_samples
-        self._streaming = load_dataset_kwargs["streaming"] if "streaming" in load_dataset_kwargs else False
-        self._data_itr = iter(self._data) if self._streaming else None
+        self.add_eos = add_eos
+
+        if filter_fn is not None:
+            self._data = self._data.filter(filter_fn)
 
     def __len__(self):
         if self._num_samples is None or not self._streaming:
@@ -62,11 +70,12 @@ class TextCompletionDataset(Dataset):
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
         prompt = sample[self._column]
-        tokens = self._tokenizer.encode(text=prompt, add_bos=True, add_eos=True)
+
+        tokens = self._tokenizer.encode(text=prompt, add_bos=True, add_eos=self.add_eos)
 
         # Truncate if needed, but don't coerce EOS id
-        if self.max_seq_len is not None:
-            tokens = truncate(tokens, self.max_seq_len - 1)
+        if self._tokenizer.max_seq_len is not None:
+            tokens = truncate(tokens, self._tokenizer.max_seq_len - 1)
 
         # No need to offset labels by 1 - happens in the recipe
         labels = tokens.copy()
@@ -75,26 +84,45 @@ class TextCompletionDataset(Dataset):
 
 
 def text_completion_dataset(
-    tokenizer: Tokenizer,
+    tokenizer: ModelTokenizer,
     source: str,
-    column: Optional[str] = None,
-    max_seq_len: Optional[int] = None,
+    column: str = "text",
+    add_eos: bool = True,
+    packed: bool = False,
+    split_across_pack: bool = True,
+    split: str = "train",
+    filter_fn: Optional[Callable] = None,
     **load_dataset_kwargs: Dict[str, Any],
-) -> TextCompletionDataset:
+) -> Union[TextCompletionDataset, PackedDataset]:
     """
-    Build a configurable freeform text dataset with instruction prompts. This method should be
+    Build a configurable dataset from a freeform, unstructured text corpus similar
+    to datasets used in pre-training. This method should be
     used to configure a custom text dataset from the yaml config instead of
-    using `TextDataset` directly, as it is made to be config friendly.
+    using :class:`~torchtune.datasets.TextCompletionDataset` directly, as it is made to be config friendly.
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
-        source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
+        source (str): path to dataset repository on Hugging Face. For local datasets,
+            define source as the data file type (e.g. "json", "csv", "text") and pass
+            in the filepath in ``data_files``. See Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
-        column (Optional[str]): name of column in the sample that contains the text data. This is typically required
-            for Hugging Face datasets or tabular data, but can be omitted for local datasets. Default is None.
-        max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
-            Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
-            and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
+            for more details.
+        column (str): name of column in the sample that contains the text data. This is typically required
+            for Hugging Face datasets or tabular data. For local datasets with a single column
+            (e.g. unstructured txt files), use the default "text" which is used by Hugging Face datasets
+            when loaded into memory. Default is "text".
+        add_eos (bool): Whether to add an EOS token to the end of the sequence. Default is True.
+        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
+        split_across_pack (bool): if the last sample in a pack does not fit in ``max_seq_len``,
+            split the sample into the next pack, or move it entirely to the beginning of the next pack.
+            For pre-training, typically this is set to True for general text completion. For
+            fine-tuning, typically this is set to False to avoid truncating sentences in instruct
+            tuning. This argument is ignored if ``packed=False``. Default is True.
+        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
+            of a given split, e.g. ``split="train[:10%]"``. Default is "train".
+        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
+            the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
+            details.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
     Examples:
@@ -103,8 +131,9 @@ def text_completion_dataset(
         ...   tokenizer=tokenizer,
         ...   source="allenai/c4",
         ...   column="text",
-        ...   max_seq_len=2096,
         ...   data_dir="realnewslike",
+        ...   packed=False,
+        ...   split="train",
         ... )
 
     This can also be accomplished via the yaml config::
@@ -113,16 +142,32 @@ def text_completion_dataset(
             _component_: torchtune.datasets.text_completion_dataset
             source: allenai/c4
             column: text
-            max_seq_len: 2096
             data_dir: realnewslike
+            packed: False
+            split: train
 
     Returns:
-        TextCompletionDataset: the configured :class:`~torchtune.datasets.TextCompletionDataset`
+        Union[TextCompletionDataset, PackedDataset]: the configured :class:`~torchtune.datasets.TextCompletionDataset`
+            or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``
+
+    Raises:
+        ValueError: If ``packed=True`` and ``tokenizer.max_seq_len`` is not set.
     """
-    return TextCompletionDataset(
+    ds = TextCompletionDataset(
         tokenizer=tokenizer,
         source=source,
         column=column,
-        max_seq_len=max_seq_len,
+        add_eos=add_eos,
+        split=split,
+        filter_fn=filter_fn,
         **load_dataset_kwargs,
     )
+    if packed:
+        if tokenizer.max_seq_len is None:
+            raise ValueError(
+                "PackedDataset requires a max_seq_len to be set on the tokenizer."
+            )
+        return PackedDataset(
+            ds, max_seq_len=tokenizer.max_seq_len, split_across_pack=split_across_pack
+        )
+    return ds

@@ -13,14 +13,14 @@ import torch
 from torch.utils.data import Dataset
 
 CKPT_COMPONENT_MAP = {
-    "tune": "torchtune.utils.FullModelTorchTuneCheckpointer",
-    "meta": "torchtune.utils.FullModelMetaCheckpointer",
-    "hf": "torchtune.utils.FullModelHFCheckpointer",
+    "tune": "torchtune.training.FullModelTorchTuneCheckpointer",
+    "meta": "torchtune.training.FullModelMetaCheckpointer",
+    "hf": "torchtune.training.FullModelHFCheckpointer",
 }
 
 
 class DummyDataset(Dataset):
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         self._data = torch.LongTensor(
             [
                 [0, 2, 4, 2, 5, 6, 7, 8, 9, 1, 2, 4, 3, 3, 5, 6, 8, 2, 1, 1],
@@ -49,14 +49,41 @@ def get_assets_path():
     return Path(__file__).parent.parent / "assets"
 
 
+def dummy_stack_exchange_dataset_config():
+    data_files = os.path.join(get_assets_path(), "stack_exchange_paired_tiny.json")
+    out = [
+        "dataset._component_=torchtune.datasets.stack_exchange_paired_dataset",
+        "dataset.source='json'",
+        f"dataset.data_files={data_files}",
+        "dataset.split='train'",
+    ]
+    return out
+
+
 def dummy_alpaca_dataset_config():
     data_files = os.path.join(get_assets_path(), "alpaca_tiny.json")
     out = [
-        "dataset._component_=torchtune.datasets.instruct_dataset",
+        "dataset._component_=torchtune.datasets.alpaca_dataset",
         "dataset.source='json'",
         f"dataset.data_files={data_files}",
-        "dataset.template=torchtune.data.AlpacaInstructTemplate",
         "dataset.split='train'",
+    ]
+    return out
+
+
+def dummy_text_completion_alpaca_dataset_config():
+    """
+    Constructs a minimal text-completion-style dataset from ``alpaca_tiny.json``.
+    This is used for testing PPO fine-tuning.
+    """
+    data_files = os.path.join(get_assets_path(), "alpaca_tiny.json")
+    out = [
+        "dataset._component_=torchtune.datasets.text_completion_dataset",
+        "dataset.source='json'",
+        f"dataset.data_files={data_files}",
+        "dataset.column='instruction'",
+        "dataset.split='train[:10%]'",  # 10% of the dataset gets us 8 batches
+        "dataset.add_eos=False",
     ]
     return out
 
@@ -64,6 +91,20 @@ def dummy_alpaca_dataset_config():
 def llama2_test_config() -> List[str]:
     return [
         "model._component_=torchtune.models.llama2.llama2",
+        "model.vocab_size=32_000",
+        "model.num_layers=4",
+        "model.num_heads=16",
+        "model.embed_dim=256",
+        "model.max_seq_len=2048",
+        "model.norm_eps=1e-5",
+        "model.num_kv_heads=8",
+    ]
+
+
+def llama2_classifier_test_config() -> List[str]:
+    return [
+        "model._component_=torchtune.models.llama2.llama2_classifier",
+        "model.num_classes=1",
         "model.vocab_size=32_000",
         "model.num_layers=4",
         "model.num_heads=16",
@@ -94,8 +135,8 @@ def lora_llama2_test_config(
     lora_rank: int = 8,
     lora_alpha: float = 16,
     quantize_base: bool = False,
+    use_dora: bool = False,
 ) -> List[str]:
-    lora_attn_modules_str = "['" + "','".join([x for x in lora_attn_modules]) + "']"
     return [
         # Note: we explicitly use _component_ so that we can also call
         # config.instantiate directly for easier comparison
@@ -114,6 +155,7 @@ def lora_llama2_test_config(
         f"model.lora_alpha={lora_alpha}",
         "model.lora_dropout=0.0",
         f"model.quantize_base={quantize_base}",
+        f"model.use_dora={use_dora}",
     ]
 
 
@@ -125,7 +167,6 @@ def lora_llama3_test_config(
     lora_alpha: float = 16,
     quantize_base: bool = False,
 ) -> List[str]:
-    lora_attn_modules_str = "['" + "','".join([x for x in lora_attn_modules]) + "']"
     return [
         # Note: we explicitly use _component_ so that we can also call
         # config.instantiate directly for easier comparison
@@ -167,6 +208,14 @@ MODEL_TEST_CONFIGS = {
         apply_lora_to_output=False,
         lora_rank=8,
         lora_alpha=16,
+    ),
+    "llama2_dora": lora_llama2_test_config(
+        lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"],
+        apply_lora_to_mlp=False,
+        apply_lora_to_output=False,
+        lora_rank=8,
+        lora_alpha=16,
+        use_dora=True,
     ),
     "llama2_qlora": lora_llama2_test_config(
         lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"],

@@ -1,7 +1,7 @@
 .. _qlora_finetune_label:
 
 =============================
-Finetuning Llama2 with QLoRA
+Fine-Tuning Llama2 with QLoRA
 =============================
 
 In this tutorial, we'll learn about `QLoRA <https://arxiv.org/abs/2305.14314>`_, an enhancement on top of
@@ -31,10 +31,10 @@ What is QLoRA?
 QLoRA builds on top of LoRA to enable further
 memory savings. In LoRA, model parameters can be thought of as existing in two partitions: adapters, which are
 low-rank matrices added to different layers of a neural network, and base model parameters, which are parameters that are part of
-the original model. In vanilla LoRA-style training, both these parameters are held in the same precision (typically fp32 or bf16), and
+the original model. In vanilla LoRA-style training, both these parameters are held in the same precision (typically fp32 or `bf16 <https://en.wikipedia.org/wiki/Bfloat16_floating-point_format#bfloat16_floating-point_format>`_.), and
 therefore activations and intermediate gradients computed are in fp32/bf16.
 
-QLoRA further quantizes the base model parameters into a bespoke 4-bit NormalFloat (NF4) data type, resulting in 4-8x less parameter memory usage while
+QLoRA further quantizes the base model parameters into a bespoke 4-bit NormalFloat (`NF4 <https://www.youtube.com/watch?v=TPcXVJ1VSRI&t=563s>`_) data type, resulting in 4-8x less parameter memory usage while
 largely retaining model accuracy. As a result, the vast majority of parameters only take up 4 bits (as opposed to 16 or 32 bits by bf16/fp32 dtypes). This
 quantization is done through the method highlighted in the original `QLoRA paper <https://arxiv.org/abs/2305.14314>`_. Adapter
 parameters are still held in the original precision, and activations, gradients, and optimizer states still exist in the higher precision to preserve
@@ -86,7 +86,7 @@ Using QLoRA in torchtune
 We'll now cover how you can initialize a QLoRA-enabled Llama2-7b model as well as some details around
 checkpointing with QLoRA.
 
-With torchtune, you can use a simple builder similar to the LoRA builder (:code:`lora_llama_2_7b`) to apply QLoRA to Llama2 models. Here's a simple example of
+With torchtune, you can use a simple builder similar to the LoRA builder (:func:`lora_llama_2_7b <torchtune.models.llama2.lora_llama2_7b>`) to apply QLoRA to Llama2 models. Here's a simple example of
 initializing a Llama2-7b model with QLoRA enabled:
 
 .. code-block:: python
@@ -113,17 +113,19 @@ original precision (generally fp32/bf16). This allows QLoRA-trained checkpoints 
 torchtune and beyond (e.g. post-training quantization, evaluation, inference). This conversion process also allows LoRA adapter weights to be merged back into the base model as done
 in a typical LoRA training flow.
 
-To achieve this, when using torchtune's ``qlora_llama2_7b`` builder, we automatically register a hook, :code:`reparametrize_as_dtype_state_dict_post_hook`,
+To achieve this, when using torchtune's :func:`lora_llama_2_7b <torchtune.models.llama2.lora_llama2_7b>` builder, we automatically register a hook,
+:func:`reparametrize_as_dtype_state_dict_post_hook <torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook>`,
 that runs after calling ``.state_dict()`` on the top level model. This hook converts ``NF4Tensors`` back to their original precision, while also offloading these
 converted tensors to the CPU. This offloading is to avoid peaking memory; if we did not, we would have to maintain an entire bf16/fp32 copy of the ``state_dict``
 on GPU.
 
 
+.. _qlora_compile_label:
 
 Putting it all together: QLoRA finetune
 -----------------------------------------
 
-Putting it all together, we can now finetune a model using torchtune's `LoRA recipe <https://github.com/pytorch/torchtune/blob/48626d19d2108f92c749411fbd5f0ff140023a25/recipes/lora_finetune.py>`_,
+Putting it all together, we can now finetune a model using torchtune's :ref:`LoRA single-device finetuning <lora_finetune_recipe_label>` recipe,
 with a `QLoRA configuration <https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_qlora_single_device.yaml>`_.
 
 Make sure that you have first downloaded the Llama2 weights and tokenizer by following :ref:`these instructions<download_llama_label>`.
@@ -136,7 +138,7 @@ You can then run the following command to perform a QLoRA finetune of Llama2-7B 
 .. note::
     Make sure to correctly point to the location of your Llama2 weights and tokenizer. This can be done
     either by adding :code:`checkpointer.checkpoint_files=[my_model_checkpoint_path] tokenizer_checkpoint=my_tokenizer_checkpoint_path`
-    or by directly modifying the :code:`7B_qlora_single_device.yaml` file. See our :ref:`config_tutorial_label`
+    or by directly modifying the :code:`7B_qlora_single_device.yaml` file. See our ":ref:`config_tutorial_label`" recipe
     for more details on how you can easily clone and modify torchtune configs.
 
 By default, this run should log peak memory stats at model initialization time and every 100
@@ -173,7 +175,7 @@ second:
 
   1|149|Loss: 0.9157477021217346:   1%|          | 149/25880 [02:08<6:14:19,  1.15it/s
 
-To speed things up, we can leverage ``torch.compile`` to compile our model and run the compiled result. To work with
+To speed things up, we can leverage `torch.compile <https://pytorch.org/tutorials/intermediate/torch_compile_tutorial.html>`_ to compile our model and run the compiled result. To work with
 QLoRA training, a nightly build of PyTorch must be used. To update PyTorch to the latest nightly,
 please see `the installation instructions <https://pytorch.org/get-started/locally/>`_. Once updated,
 you can specify the compile flag as ``True`` via a config override:
@@ -193,8 +195,9 @@ A comparison of the smoothed loss curves between QLoRA and LoRA can be seen belo
 .. image:: /_static/img/qlora_exp.png
 
 .. note::
-    The above figure was generated with W&B. You can use torchtune's :class:`~torchtune.utils.metric_logging.WandBLogger`
-    to generate similar loss curves, but you will need to install W&B and setup an account separately.
+    The above figure was generated with W&B. You can use torchtune's :class:`~torchtune.training.metric_logging.WandBLogger`
+    to generate similar loss curves, but you will need to install W&B and setup an account separately. For more details on
+    using W&B in torchtune, see our ":ref:`wandb_logging`" recipe.
 
 As an exercise, you can also try running some evaluation tasks or manually inspecting generations
 output by your saved checkpoints (which can be found in :code:`output_dir`).
@@ -214,7 +217,8 @@ a vanilla minimal LoRA layer, taken from :ref:`the LoRA tutorial <lora_finetune_
 .. code-block:: python
   :emphasize-lines: 3, 13, 19, 20, 39, 40, 41
 
-  from torch import nn, Tensor
+  import torch
+  from torch import nn
   import torch.nn.functional as F
   from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
 
@@ -250,7 +254,7 @@ a vanilla minimal LoRA layer, taken from :ref:`the LoRA tutorial <lora_finetune_
       self.lora_a.weight.requires_grad = True
       self.lora_b.weight.requires_grad = True
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
       # frozen_out would be the output of the original model
       if quantize_base:
         # Call into torchao's linear_nf4 to run linear forward pass w/quantized weight.

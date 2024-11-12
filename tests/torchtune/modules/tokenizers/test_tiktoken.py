@@ -4,34 +4,35 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from pathlib import Path
-
 import pytest
-from torchtune.data._types import Message
-from torchtune.modules.tokenizers import TikTokenTokenizer
 
-ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
+from tests.common import ASSETS
+from torchtune.models.llama3._tokenizer import CL100K_PATTERN
+from torchtune.modules.tokenizers import TikTokenBaseTokenizer
 
 
-class TestTikTokenTokenizer:
+class TestTikTokenBaseTokenizer:
     @pytest.fixture
     def tokenizer(self):
         # Pretrained tiktoken model generated via the script in
         # https://gist.github.com/ebsmothers/54b133dd87db6679b14318545aaa2de4
-        return TikTokenTokenizer(str(ASSETS / "tiktoken_small.model"))
+        return TikTokenBaseTokenizer(
+            path=str(ASSETS / "tiktoken_small.model"),
+            name="test_tiktoken",
+            pattern=CL100K_PATTERN,
+            bos_id=0,
+            eos_id=-1,
+            special_tokens={
+                "<|test_token_0|>": 2000,
+                "<|test_token_1|>": 2001,
+            },
+        )
 
     @pytest.fixture
     def texts(self):
         return [
             "I can see the sun. But even if I cannot see the sun, I know that it exists.",
             "And to know that the sun is there - that is living.",
-        ]
-
-    @pytest.fixture
-    def messages(self, texts):
-        return [
-            Message(role="user", content=texts[0], masked=True),
-            Message(role="assistant", content=texts[1], masked=False),
         ]
 
     @pytest.fixture
@@ -64,129 +65,56 @@ class TestTikTokenTokenizer:
             46,
         ]
 
-    @pytest.fixture
-    def tokenized_messages(self, token_ids):
-        return (
-            [2000, 2006, 477, 273, 2007, 10, 10]
-            + token_ids
-            + [
-                2009,
-                2006,
-                520,
-                511,
-                446,
-                2007,
-                10,
-                10,
-                65,
-                269,
-                277,
-                686,
-                334,
-                262,
-                376,
-                110,
-                351,
-                443,
-                32,
-                45,
-                334,
-                351,
-                1955,
-                46,
-                2009,
-                2001,
-            ],
-            [
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                True,
-            ],
-        )
-
     def test_encode(self, tokenizer, texts, token_ids):
         assert tokenizer.encode(texts[0], add_bos=True, add_eos=True) == [
-            tokenizer.bos_id
-        ] + token_ids + [tokenizer.eos_id]
-        assert tokenizer.encode(texts[0], add_bos=False, add_eos=False) == token_ids
+            0
+        ] + token_ids + [-1]
 
     def test_decode(self, tokenizer, texts, token_ids):
         assert tokenizer.decode(token_ids) == texts[0]
 
     def test_encode_and_decode(self, tokenizer, texts):
-        token_ids = tokenizer.encode(texts[0], add_bos=True, add_eos=True)
+        token_ids = tokenizer.encode(texts[0], add_bos=False, add_eos=False)
         decoded_text = tokenizer.decode(token_ids)
         assert texts[0] == decoded_text
 
-    def test_token_ids(self, tokenizer):
-        assert tokenizer.bos_id == 2000
-        assert tokenizer.eos_id == 2001
-        assert tokenizer.pad_id == -1
-        assert tokenizer.step_id == 2005
-        assert tokenizer.start_header_id == 2006
-        assert tokenizer.end_header_id == 2007
-        assert tokenizer.eom_id == 2008
-        assert tokenizer.eot_id == 2009
-        assert tokenizer.python_tag == 2255
-
     def test_tokenizer_vocab_size(self, tokenizer):
         assert tokenizer.base_vocab_size == 2000
-        assert tokenizer.vocab_size == 2256
+        assert tokenizer.vocab_size == 2002
 
-    def test_tokenize_messages(self, tokenizer, messages, tokenized_messages):
-        assert tokenizer.tokenize_messages(messages) == tokenized_messages
+    def test_split_long_repetitions(self, tokenizer):
+        normal_str = "Here is a normal string"
+        ten_spaces = "".join(10 * [" "])
+        space_str = ten_spaces.join(
+            ["Here", "is", "a", "string", "with", "long", "spaces"]
+        )
+        no_space_str = "".join(10 * ["ab"])
+
+        actual_split = tokenizer._split_long_repetitions(normal_str, 5)
+        expected_split = ["Here is a norma", "l strin", "g"]
+        for actual_substr, expected_substr in zip(actual_split, expected_split):
+            assert actual_substr == expected_substr
+        with pytest.raises(StopIteration):
+            next(actual_split)
+
+        actual_split = tokenizer._split_long_repetitions(space_str, 9)
+        expected_split = [
+            "Here" + ten_spaces[:-1],
+            " is" + ten_spaces[:-1],
+            " a" + ten_spaces[:-1],
+            " string" + ten_spaces[:-1],
+            " with" + ten_spaces[:-1],
+            " long" + ten_spaces[:-1],
+            " spaces",
+        ]
+        for actual_substr, expected_substr in zip(actual_split, expected_split):
+            assert actual_substr == expected_substr
+        with pytest.raises(StopIteration):
+            next(actual_split)
+
+        actual_split = tokenizer._split_long_repetitions(no_space_str, 4)
+        expected_split = ["abab"] * 5
+        for actual_substr, expected_substr in zip(actual_split, expected_split):
+            assert actual_substr == expected_substr
+        with pytest.raises(StopIteration):
+            next(actual_split)

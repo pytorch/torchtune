@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Union
 from omegaconf import DictConfig, OmegaConf
 
 from torchtune.config._errors import InstantiationError
-from torchtune.utils import get_logger, get_world_size_and_rank
+from torchtune.utils._logging import get_logger, log_rank_zero
 
 
 def log_config(recipe_name: str, cfg: DictConfig) -> None:
@@ -23,14 +23,11 @@ def log_config(recipe_name: str, cfg: DictConfig) -> None:
         recipe_name (str): name of the recipe to display
         cfg (DictConfig): parsed config object
     """
-    # Log the config only on rank 0
-    _, rank = get_world_size_and_rank()
-    if rank != 0:
-        return
-
     logger = get_logger("DEBUG")
     cfg_str = OmegaConf.to_yaml(cfg, resolve=True, sort_keys=True)
-    logger.info(msg=f"Running {recipe_name} with resolved config:\n\n{cfg_str}")
+    log_rank_zero(
+        logger=logger, msg=f"Running {recipe_name} with resolved config:\n\n{cfg_str}"
+    )
 
 
 def _has_component(node: Union[Dict[str, Any], DictConfig]) -> bool:
@@ -176,6 +173,16 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictC
         # key string to reflect this
         if k in yaml_kwargs and _has_component(yaml_kwargs[k]):
             k += "._component_"
+
+        # None passed via CLI will be parsed as string, but we really want OmegaConf null
+        if v == "None":
+            v = "!!null"
+
+        # TODO: this is a hack but otherwise we can't pass strings with leading zeroes
+        # to define the checkpoint file format. We manually override OmegaConf behavior
+        # by prepending the value with !!str to force a string type
+        if "max_filename" in k:
+            v = "!!str " + v
         cli_dotlist.append(f"{k}={v}")
 
     # Merge the args
@@ -192,7 +199,7 @@ def _remove_key_by_dotpath(nested_dict: Dict[str, Any], dotpath: str) -> None:
     the calling function.
 
     Args:
-        d (Dict[str, Any]): Dict to remove key from
+        nested_dict (Dict[str, Any]): Dict to remove key from
         dotpath (str): dotpath of key to remove, e.g., "a.b.c"
     """
     path = dotpath.split(".")

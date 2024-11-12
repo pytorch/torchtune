@@ -6,13 +6,14 @@
 import math
 from typing import List
 
+import torch
 import torch.nn.functional as F
 
-from torch import nn, Tensor
+from torch import nn
 
 from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
 from torchtune.modules.low_precision import _register_nf4_dispatch_ops  # noqa: F401
-from torchtune.modules.peft.peft_utils import AdapterModule
+from torchtune.modules.peft import AdapterModule
 
 
 class LoRALinear(nn.Module, AdapterModule):
@@ -36,6 +37,13 @@ class LoRALinear(nn.Module, AdapterModule):
             Default: False
         quantize_base (bool): Whether to quantize base linear weight or not.
             Default: False
+        **quantization_kwargs: Keyword arguments to pass to `to_nf4` when quantizing the base linear weight.
+            Examples of valid arguments are `block_size` and `scaler_block_size`, which control the granularity of
+            weight quantization and scaler quantization respectively. This is only used if `quantize_base` is True.
+            Default None
+
+    Raises:
+        ValueError: If ``quantize_base`` is False, but quantization kwargs are provided.
     """
 
     def __init__(
@@ -47,15 +55,30 @@ class LoRALinear(nn.Module, AdapterModule):
         dropout: float = 0.0,
         use_bias: bool = False,
         quantize_base: bool = False,
+        **quantization_kwargs,
     ):
         super().__init__()
         self.in_dim = in_dim
+        self.out_dim = out_dim
         self.rank = rank
         self.alpha = alpha
-        self.out_dim = out_dim
         self.use_bias = use_bias
         self._quantize_base = quantize_base
-        weight, bias = self._create_weight_and_bias()
+
+        if not self._quantize_base and quantization_kwargs:
+            raise ValueError(
+                f"``quantize_base`` is False, but received the following quantization arguments: {quantization_kwargs}"
+            )
+
+        # Setup weight and bias
+        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=self.use_bias)
+        weight = (
+            linear.weight
+            if not self._quantize_base
+            else to_nf4(linear.weight, **quantization_kwargs)
+        )
+        bias = linear.bias if self.use_bias else None
+
         # 'self.disabled' is a flag showing whether to turn off LoRA adapters,
         # this can be used in DPO for treating the lora adapters as the policy model
         # and disabling it to treat the base model as the reference model
@@ -64,7 +87,7 @@ class LoRALinear(nn.Module, AdapterModule):
         self.register_parameter(
             "bias", nn.Parameter(bias) if bias is not None else None
         )
-        self.dropout = nn.Dropout(p=dropout)
+        self.dropout = nn.Dropout(p=dropout) if dropout > 0.0 else nn.Identity()
         self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=False)
         self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=False)
         self.merged = False
@@ -73,7 +96,7 @@ class LoRALinear(nn.Module, AdapterModule):
         # params are initialized, as is done in initialize_parameters below).
         # For that reason, we patch reset_parameters directly on lora_a and lora_b submodules
         # when using meta device. This is done in
-        # torchtune.utils.prepare_model_for_fsdp_with_meta_device.
+        # torchtune.training.prepare_model_for_fsdp_with_meta_device.
         # See this issue for more details: https://github.com/pytorch/pytorch/issues/104187.
         # Without meta device, we only need the following:
         self.initialize_parameters()
@@ -83,23 +106,6 @@ class LoRALinear(nn.Module, AdapterModule):
         # https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119
         _lora_a_init_params(self.lora_a)
         _lora_b_init_params(self.lora_b)
-
-    def _create_weight_and_bias(self):
-        """
-        Creates a linear weight and bias tensor, using NF4 dtype if we're quantizing
-        (indicated via quantize_base=True).
-        """
-        in_dim, out_dim, use_bias = self.in_dim, self.out_dim, self.use_bias
-        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
-        weight = linear.weight if not self._quantize_base else to_nf4(linear.weight)
-        bias = None
-        if self.use_bias:
-            if self._quantize_base:
-                raise NotImplementedError(
-                    "Quantized LoRALinear does not support bias at the moment."
-                )
-            bias = linear.bias
-        return weight, bias
 
     def adapter_params(self) -> List[str]:
         """
@@ -111,17 +117,19 @@ class LoRALinear(nn.Module, AdapterModule):
         adapter_params = ["lora_a.weight", "lora_b.weight"]
         return adapter_params
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            x (Tensor): input tensor with shape ``(..., in_dim)``
+            x (torch.Tensor): input tensor with shape ``(..., in_dim)``
 
         Returns:
-            Tensor: output tensor with shape ``(..., out_dim)``
+            torch.Tensor: output tensor with shape ``(..., out_dim)``
 
         """
         if self._quantize_base:
             out = linear_nf4(input=x, weight=self.weight)
+            if self.use_bias:
+                out = out + self.bias
         else:
             out = F.linear(x, self.weight, self.bias)
         if self.disabled:

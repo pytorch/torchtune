@@ -14,8 +14,12 @@ import pytest
 import torch
 from torchtune.utils._device import (
     _get_device_type_from_env,
-    _setup_cuda_device,
+    _setup_device,
+    batch_to_device,
+    DeviceSupport,
     get_device,
+    get_device_support,
+    get_torch_device_namespace,
 )
 
 
@@ -36,6 +40,24 @@ class TestDevice:
             assert device == expected_device
             assert device.index is None
 
+    def test_batch_to_device(self):
+        batch = {
+            "a": torch.ones(1),
+            "b": {
+                "c": torch.ones(1),
+                "d": torch.ones(1),
+            },
+        }
+        device = torch.device("meta")
+        batch_to_device(batch, device)
+        assert batch["a"].device == device
+        assert batch["b"]["c"].device == device
+        assert batch["b"]["d"].device == device
+
+        batch["e"] = 0
+        with pytest.raises(ValueError):
+            batch_to_device(batch, device)
+
     @pytest.mark.skipif(not cuda_available, reason="The test requires GPUs to run.")
     def test_get_gpu_device(self) -> None:
         device_idx = torch.cuda.device_count() - 1
@@ -50,7 +72,10 @@ class TestDevice:
             if device_idx > 0:
                 with pytest.raises(
                     RuntimeError,
-                    match=f"Device specified is cuda:0 but was assigned cuda:{device_idx}",
+                    match=(
+                        f"You can't specify a device index when using distributed training. "
+                        f"Device specified is cuda:0 but local rank is:{device_idx}"
+                    ),
                 ):
                     device = get_device("cuda:0")
 
@@ -64,7 +89,24 @@ class TestDevice:
 
         # Test that we fall back to 0 if LOCAL_RANK is not specified
         device = torch.device(_get_device_type_from_env())
-        device = _setup_cuda_device(device)
+        device = _setup_device(device)
         assert device.type == "cuda"
         assert device.index == 0
         assert device.index == torch.cuda.current_device()
+
+    @pytest.mark.skipif(not cuda_available, reason="The test requires GPUs to run.")
+    @patch("torch.cuda.is_available", return_value=True)
+    def test_cuda_available(self, mock_cuda):
+        # Test if CUDA is available, get_device_support should return DeviceSupport.CUDA
+        device_support = get_device_support()
+        assert device_support == DeviceSupport.CUDA
+        assert device_support.device_type == "cuda"
+        assert device_support.device_name == "GPU"
+        assert device_support.communication_backend == "nccl"
+
+    @pytest.mark.skipif(not cuda_available, reason="The test requires GPUs to run.")
+    @patch("torch.cuda.is_available", return_value=True)
+    def test_get_torch_device_for_cuda(self, mock_cuda):
+        # Test if get_torch_device returns the correct torch.cuda module
+        torch_device = get_torch_device_namespace()
+        assert torch_device == torch.cuda

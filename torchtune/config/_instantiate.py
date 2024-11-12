@@ -5,6 +5,8 @@
 # LICENSE file in the root directory of this source tree.
 
 import copy
+import os
+import sys
 from typing import Any, Callable, Dict, Tuple
 
 from omegaconf import DictConfig, OmegaConf
@@ -20,7 +22,7 @@ def _create_component(
     return _component_(*args, **kwargs)
 
 
-def _instantiate_node(node: DictConfig, *args: Tuple[Any, ...]):
+def _instantiate_node(node: Dict[str, Any], *args: Tuple[Any, ...]):
     """
     Creates the object specified in _component_ field with provided positional args
     and kwargs already merged. Raises an InstantiationError if _component_ is not specified.
@@ -89,6 +91,10 @@ def instantiate(
     if not OmegaConf.is_dict(config):
         raise ValueError(f"instantiate only supports DictConfigs, got {type(config)}")
 
+    # Ensure local imports are able to be instantiated
+    if os.getcwd() not in sys.path:
+        sys.path.append(os.getcwd())
+
     config_copy = copy.deepcopy(config)
     config_copy._set_flag(
         flags=["allow_objects", "struct", "readonly"], values=[True, False, False]
@@ -103,4 +109,4 @@ def instantiate(
     # Resolve all interpolations, or references to other fields within the same config
     OmegaConf.resolve(config)
 
-    return _instantiate_node(config, *args)
+    return _instantiate_node(OmegaConf.to_object(config), *args)

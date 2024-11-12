@@ -9,12 +9,12 @@ from typing import Tuple
 import pytest
 import torch
 
-from tests.test_utils import assert_expected
+from tests.test_utils import assert_expected, mps_ignored_test
 from torch import tensor
 from torchtune.models.phi3 import Phi3RotaryPositionalEmbeddings
 
 from torchtune.modules.position_embeddings import RotaryPositionalEmbeddings
-from torchtune.utils.seed import set_seed
+from torchtune.training.seed import set_seed
 
 
 @pytest.fixture(autouse=True)
@@ -56,6 +56,7 @@ class TestRotaryPositionEmbedding:
         _, _, head_dim, _, max_seq_len = input_params
         return RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
 
+    @mps_ignored_test()
     def test_forward(self, input: tensor, rope: RotaryPositionalEmbeddings) -> None:
         x_out = rope(input)
 
@@ -67,6 +68,7 @@ class TestRotaryPositionEmbedding:
         # check shapes
         assert_expected(x_out.shape, input.shape)
 
+    @mps_ignored_test()
     def test_forward_with_curr_pos(
         self, input: tensor, rope: RotaryPositionalEmbeddings
     ) -> None:
@@ -89,6 +91,7 @@ class TestRotaryPositionEmbedding:
         # check shapes
         assert_expected(x_out.shape, input.shape)
 
+    @mps_ignored_test()
     def test_forward_with_packed_pos(
         self, input: tensor, rope: RotaryPositionalEmbeddings
     ) -> None:
@@ -128,7 +131,7 @@ class TestRotaryPositionEmbedding:
                 dim=head_dim, max_seq_len=max_seq_len
             )
 
-        meta_rope._rope_init()
+        meta_rope.rope_init()
         for p1, p2 in zip(rope_on_device.buffers(), meta_rope.buffers()):
             torch.testing.assert_close(p1, p2)
 
@@ -162,6 +165,7 @@ class TestPhi3RotaryPositionalEmbeddings:
         _, _, head_dim, _, max_seq_len = input_params
         return Phi3RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
 
+    @mps_ignored_test()
     def test_forward(
         self, input: tensor, rope_phi3: Phi3RotaryPositionalEmbeddings
     ) -> None:

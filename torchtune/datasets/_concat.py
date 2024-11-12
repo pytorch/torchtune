@@ -10,6 +10,8 @@ from torch.utils.data import Dataset
 
 from torchtune import utils
 
+from torchtune.datasets._packed import PackedDataset
+
 log = utils.get_logger("DEBUG")
 
 
@@ -24,8 +26,8 @@ class ConcatDataset(Dataset):
     very large datasets.
 
     Upon initialization, this class computes the cumulative length of all datasets and maintains an internal mapping
-    of indices to the respective datasets. This approach allows the `ConcatDataset` to delegate data retrieval to
-    the appropriate sub-dataset transparently when a particular index is accessed.
+    of indices to the respective datasets. This approach allows the :class:`~torchtune.datasets.ConcatDataset`
+    to delegate data retrieval to the appropriate sub-dataset transparently when a particular index is accessed.
 
     Note:
         Using this class with very large datasets can lead to high memory consumption, as it requires all datasets to
@@ -33,29 +35,46 @@ class ConcatDataset(Dataset):
 
     Args:
         datasets (List[Dataset]): A list of datasets to concatenate. Each dataset must be an instance of a class
-            derived from `torch.utils.data.Dataset`.
+            derived from :class:`~torch.utils.data.Dataset`.
 
-    Attributes:
-        _datasets (List[Dataset]): Stores the list of datasets passed during initialization.
-        _len (int): The total combined length of all datasets.
-        _indexes (List[Tuple[int, int, int]]): A list of tuples where each tuple contains the starting index, the
-            ending index, and the dataset index for quick lookup and access during indexing operations.
+    Raises:
+        ValueError: if instanse of `PackedDataset` is in `datasets`
 
-    Example:
+    Examples:
         >>> dataset1 = MyCustomDataset(params1)
         >>> dataset2 = MyCustomDataset(params2)
         >>> concat_dataset = ConcatDataset([dataset1, dataset2])
         >>> print(len(concat_dataset))  # Total length of both datasets
         >>> data_point = concat_dataset[1500]  # Accesses an element from the appropriate dataset
 
+    This can also be accomplished by passing in a list of datasets to the YAML config::
+
+        dataset:
+          - _component_: torchtune.datasets.instruct_dataset
+            source: vicgalle/alpaca-gpt4
+            split: train
+            train_on_input: True
+          - _component_: torchtune.datasets.instruct_dataset
+            source: samsum
+            column_map: {"output": "summary"}
+            split: train
+            train_on_input: False
+
     This class primarily focuses on providing a unified interface to access elements from multiple datasets,
     enhancing the flexibility in handling diverse data sources for training machine learning models.
     """
 
     def __init__(self, datasets: List[Dataset]):
-        self._datasets = datasets
-        self._len = sum(len(dataset) for dataset in datasets)
-        self._indexes = []
+        self._datasets: List[Dataset] = datasets
+
+        for dataset in self._datasets:
+            if isinstance(dataset, PackedDataset):
+                raise ValueError(
+                    "ConcatDataset can't process instances of PackedDataset."
+                )
+
+        self._len: int = sum(len(dataset) for dataset in datasets)
+        self._indexes: List[Tuple[int, int, int]] = []
 
         # Calculate distribution of indexes in all datasets
         cumulative_index = 0
@@ -63,9 +82,6 @@ class ConcatDataset(Dataset):
             next_cumulative_index = cumulative_index + len(dataset)
             self._indexes.append((cumulative_index, next_cumulative_index, idx))
             cumulative_index = next_cumulative_index
-
-        log.debug(f"Datasets summary length: {self._len}")
-        log.debug(f"Datasets indexes: {self._indexes}")
 
     def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
         for start, stop, dataset_index in self._indexes:

@@ -5,43 +5,53 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
-from torchtune.modules.tokenizers._utils import _split_long_repetitions
+
+from tests.test_utils import DummyTokenizer
+from torchtune.data import Message
+
+from torchtune.modules.tokenizers import tokenize_messages_no_special_tokens
 
 
-class TestUtils:
-    def test_split_long_repetitions(self):
-        normal_str = "Here is a normal string"
-        ten_spaces = "".join(10 * [" "])
-        space_str = ten_spaces.join(
-            ["Here", "is", "a", "string", "with", "long", "spaces"]
-        )
-        no_space_str = "".join(10 * ["ab"])
+class TestTokenizerUtils:
+    @pytest.fixture
+    def tokenizer(self):
+        return DummyTokenizer(max_seq_len=100)
 
-        actual_split = _split_long_repetitions(normal_str, 5)
-        expected_split = ["Here is a norma", "l strin", "g"]
-        for actual_substr, expected_substr in zip(actual_split, expected_split):
-            assert actual_substr == expected_substr
-        with pytest.raises(StopIteration):
-            next(actual_split)
-
-        actual_split = _split_long_repetitions(space_str, 9)
-        expected_split = [
-            "Here" + ten_spaces[:-1],
-            " is" + ten_spaces[:-1],
-            " a" + ten_spaces[:-1],
-            " string" + ten_spaces[:-1],
-            " with" + ten_spaces[:-1],
-            " long" + ten_spaces[:-1],
-            " spaces",
+    @pytest.fixture
+    def messages(self):
+        return [
+            Message(role="user", content="hello world!", masked=True),
+            Message(role="assistant", content="hello back!"),
         ]
-        for actual_substr, expected_substr in zip(actual_split, expected_split):
-            assert actual_substr == expected_substr
-        with pytest.raises(StopIteration):
-            next(actual_split)
 
-        actual_split = _split_long_repetitions(no_space_str, 4)
-        expected_split = ["abab"] * 5
-        for actual_substr, expected_substr in zip(actual_split, expected_split):
-            assert actual_substr == expected_substr
-        with pytest.raises(StopIteration):
-            next(actual_split)
+    @pytest.mark.parametrize(
+        "add_bos, add_eos",
+        [
+            (True, True),
+            (False, False),
+        ],
+    )
+    def test_tokenize_no_special_tokens(self, tokenizer, messages, add_bos, add_eos):
+        tokens, mask = tokenize_messages_no_special_tokens(
+            tokenizer,
+            messages,
+            bos_id=tokenizer.bos_id if add_bos else None,
+            eos_id=tokenizer.eos_id if add_eos else None,
+        )
+
+        assert len(tokens) == len(mask)
+
+        # User message should be masked
+        assert mask[0] is True
+        # Assistant message should not be masked
+        assert mask[-1] is False
+
+        if add_bos:
+            assert tokens[0] == tokenizer.bos_id
+        else:
+            assert tokens[0] != tokenizer.bos_id
+
+        if add_eos:
+            assert tokens[-1] == tokenizer.eos_id
+        else:
+            assert tokens[-1] != tokenizer.eos_id

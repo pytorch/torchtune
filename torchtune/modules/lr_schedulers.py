@@ -8,8 +8,13 @@ import math
 
 import torch
 from torch.optim.lr_scheduler import LambdaLR
+from torchtune.utils._logging import deprecated
 
 
+@deprecated(
+    msg="Please use get_cosine_schedule_with_warmup from torchtune.training.lr_schedulers instead. \
+        "
+)
 def get_cosine_schedule_with_warmup(
     optimizer: torch.optim.Optimizer,
     num_warmup_steps: int,
@@ -19,8 +24,8 @@ def get_cosine_schedule_with_warmup(
 ) -> LambdaLR:
     """
     Create a learning rate schedule that linearly increases the learning rate from
-    0.0 to lr over num_warmup_steps, then decreases to 0.0 on a cosine schedule over
-    the remaining num_training_steps-num_warmup_steps (assuming num_cycles = 0.5).
+    0.0 to lr over ``num_warmup_steps``, then decreases to 0.0 on a cosine schedule over
+    the remaining ``num_training_steps-num_warmup_steps`` (assuming ``num_cycles`` = 0.5).
 
     This is based on the Hugging Face implementation
     https://github.com/huggingface/transformers/blob/v4.23.1/src/transformers/optimization.py#L104.
@@ -38,12 +43,16 @@ def get_cosine_schedule_with_warmup(
         torch.optim.lr_scheduler.LambdaLR with the appropriate schedule.
     """
 
-    def lr_lambda(current_step):
+    def lr_lambda(current_step: int) -> float:
+        # linear warmup phase
         if current_step < num_warmup_steps:
             return current_step / max(1, num_warmup_steps)
+
+        # cosine
         progress = (current_step - num_warmup_steps) / max(
             1, num_training_steps - num_warmup_steps
         )
+
         cosine_lr_multiple = 0.5 * (
             1.0 + math.cos(math.pi * num_cycles * 2.0 * progress)
         )

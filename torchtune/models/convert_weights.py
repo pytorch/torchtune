@@ -6,7 +6,7 @@
 
 import re
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import torch
 
@@ -47,7 +47,8 @@ _FROM_HF = {
 
 def get_mapped_key(key: str, mapping_dict: Dict[str, str]) -> str:
     try:
-        if "layers" in key:
+        # Checks if there is a layer # in the key
+        if any(k.isdigit() for k in key.split(".")):
             # Replace layer number with "{}" to create key for lookup
             abstract_key = re.sub(r"(\.\d+)", ".{}", key)
             layer_num = re.search(r"\d+", key).group(0)
@@ -176,6 +177,7 @@ def tune_to_hf(
         num_heads (int): Number of heads in the model.
         num_kv_heads (int): Number of heads in the key/value projection layers.
         dim (int): Dimension of the model.
+        head_dim (int): Dimension of model attention heads. Default None.
 
     Returns:
         Dict[str, torch.Tensor]: State dict in HF's format.
@@ -208,6 +210,7 @@ def tune_to_hf(
 _TO_PEFT_KEYS = {
     "lora_a": "lora_A",
     "lora_b": "lora_B",
+    "magnitude": "lora_magnitude_vector",
 }
 
 # Mapping from torchtune module names to target modules for PEFT adapter config
@@ -249,24 +252,31 @@ def tune_to_peft_adapter_weights(
     num_heads: int = 32,
     num_kv_heads: int = 32,
     dim: int = 4096,
+    head_dim: Optional[int] = None,
 ):
     converted_state_dict = {}
     full_mapping = {}
-    # Rather than recreate a separate mapping for LoRA adapter weights, we just
-    # re-use the _FROM_HF mapping for base model weights. We iterate over it twice:
-    # once to add mappings for LoRA A matrices and once to add mappings for LoRA B matrices.
-    for k, v in _TO_PEFT_KEYS.items():
-        full_mapping.update(
-            {
-                vv.replace(".weight", f".{k}.weight"): kk.replace(
-                    ".weight", f".{v}.weight"
-                )
-                for kk, vv in _FROM_HF.items()
-                if vv is not None
-            }
-        )
+    # Rather than recreate a separate mapping for LoRA adapter weights, we re-use the
+    # _FROM_HF mapping for base model weights. The mapping is adapted to account for:
+    # LoRA A matrices, LoRA B matrices and the dora magnitude parameter.
+    for peft_key, peft_val in _TO_PEFT_KEYS.items():
+        for hf_key, hf_val in _FROM_HF.items():
+            if hf_val is None:
+                continue
 
-    head_dim = dim // num_heads
+            if peft_key == "magnitude":
+                # e.g. attn.q_proj.magnitude -> attn.q_proj.lora_magnitude_vector
+                adapter_key = hf_val.replace(".weight", f".{peft_key}")
+                adapter_val = hf_key.replace(".weight", f".{peft_val}")
+            else:
+                # e.g. attn.q_proj.lora_a.weight -> attn.q_proj.lora_A.weight
+                adapter_key = hf_val.replace(".weight", f".{peft_key}.weight")
+                adapter_val = hf_key.replace(".weight", f".{peft_val}.weight")
+
+            full_mapping.update({adapter_key: adapter_val})
+
+    if head_dim is None:
+        head_dim = dim // num_heads
 
     def _permute_lora_matrix(t, n_heads):
         rank = t.shape[-1]

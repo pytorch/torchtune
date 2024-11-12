@@ -9,10 +9,11 @@ from typing import Optional, Tuple
 import torch
 from tests.test_utils import fixed_init_model
 from torch import nn, Tensor
-from torchtune.modules import CausalSelfAttention, KVCache, RotaryPositionalEmbeddings
+from torchtune.modules import KVCache, MultiHeadAttention, RotaryPositionalEmbeddings
+
 
 # Copy-paste of fused attention for comparison
-class FusedCausalSelfAttention(nn.Module):
+class FusedMultiHeadAttention(nn.Module):
     """Multi-headed grouped query self-attention (GQA) layer introduced
     in https://arxiv.org/pdf/2305.13245v1.pdf.
 
@@ -49,9 +50,9 @@ class FusedCausalSelfAttention(nn.Module):
         embed_dim (int): embedding dimension for the model
         num_heads (int): number of query heads. For MHA this is also the
             number of heads for key and value
-        num_kv_heads (int): number of key and value heads. If specified,
-            user should ensure `num_heads` % `num_kv_heads` == 0. Default value is
-            `None`, in which case this is the same as MHA
+        num_kv_heads (int): number of key and value heads. User should ensure
+            `num_heads` % `num_kv_heads` == 0. For standard MHA set `num_kv_heads` == `num_heads`,
+            for GQA `num_kv_heads` < `num_heads`, and for MQA set `num_kv_heads` == 1.
         head_dim (int): dimension of each head, calculated by ``embed_dim`` // ``num_heads``.
         qkv_proj (nn.Module): projection layer for query, key and value.
         output_proj (nn.Module): projection layer for output.
@@ -115,15 +116,15 @@ class FusedCausalSelfAttention(nn.Module):
 
     def forward(
         self,
-        x: Tensor,
-        mask: Optional[Tensor] = None,
+        x: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
         curr_pos: int = 0,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         """
         Args:
             x (Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
-            mask (Optional[Tensor]): boolean mask, defaults to None.
+            mask (Optional[torch.Tensor]): boolean mask, defaults to None.
             curr_pos (int): current position in the sequence, defaults to 0.
 
         Returns:
@@ -241,7 +242,7 @@ def map_state_dict(
     return mapped_sd
 
 
-def _get_mask(inpt: Tensor) -> Tensor:
+def _get_mask(inpt: torch.Tensor) -> torch.Tensor:
     seq_len = inpt.shape[1]
     mask = torch.full((1, 1, seq_len, seq_len), float("-inf"), device=inpt.device)
     mask = torch.triu(mask, diagonal=1).type_as(inpt)
@@ -255,7 +256,6 @@ def compare_attn(
     max_seq_len: int,
     use_kv_cache: bool,
 ):
-
     torch.manual_seed(16)
     inputs = torch.randn(4, 2048, 4096)
 
@@ -268,13 +268,14 @@ def compare_attn(
         kv_cache = KVCache(
             batch_size=4,
             max_seq_len=max_seq_len,
-            n_kv_heads=num_heads,
+            num_kv_heads=num_kv_heads,
             head_dim=head_dim,
+            dtype=inputs.dtype,
         )
     else:
         kv_cache = None
 
-    attn_ref = FusedCausalSelfAttention(
+    attn_ref = FusedMultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -288,7 +289,7 @@ def compare_attn(
     fixed_init_model(attn_ref)
     attn_ref.eval()
 
-    attn = CausalSelfAttention(
+    attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -329,7 +330,6 @@ def compare_attn(
 
 
 if __name__ == "__main__":
-
     # compare mha
     mha = {
         "num_heads": 32,

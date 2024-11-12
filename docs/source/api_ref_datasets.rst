@@ -6,13 +6,13 @@ torchtune.datasets
 
 .. currentmodule:: torchtune.datasets
 
-For a detailed general usage guide, please see our :ref:`datasets tutorial <dataset_tutorial_label>`.
+For a detailed general usage guide, please see :ref:`datasets_overview`.
 
 
-Example datasets
-----------------
+Text datasets
+-------------
 
-torchtune supports several widely used datasets to help quickly bootstrap your fine-tuning.
+torchtune supports several widely used text-only datasets to help quickly bootstrap your fine-tuning.
 
 .. autosummary::
     :toctree: generated/
@@ -21,11 +21,25 @@ torchtune supports several widely used datasets to help quickly bootstrap your f
     alpaca_dataset
     alpaca_cleaned_dataset
     grammar_dataset
+    hh_rlhf_helpful_dataset
     samsum_dataset
     slimorca_dataset
-    stack_exchanged_paired_dataset
+    stack_exchange_paired_dataset
     cnn_dailymail_articles_dataset
     wikitext_dataset
+
+Image + Text datasets
+---------------------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    multimodal.llava_instruct_dataset
+    multimodal.the_cauldron_dataset
+    multimodal.vqa_dataset
+
+.. _dataset_builders:
 
 Generic dataset builders
 ------------------------
@@ -39,6 +53,7 @@ These are especially useful for specifying from a YAML config.
 
     instruct_dataset
     chat_dataset
+    preference_dataset
     text_completion_dataset
 
 Generic dataset classes
@@ -50,9 +65,8 @@ Class representations for the above dataset builders.
     :toctree: generated/
     :nosignatures:
 
-    InstructDataset
-    ChatDataset
     TextCompletionDataset
     ConcatDataset
     PackedDataset
     PreferenceDataset
+    SFTDataset

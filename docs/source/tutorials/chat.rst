@@ -1,25 +1,26 @@
+.. _chat_tutorial_label:
+
 =================================
-Fine-tuning Llama3 with Chat Data
+Fine-Tuning Llama3 with Chat Data
 =================================
 
-Llama3 introduced a new prompt template for fine-tuning with chat data. In this tutorial,
+Llama3 Instruct introduced a new prompt template for fine-tuning with chat data. In this tutorial,
 we'll cover what you need to know to get you quickly started on preparing your own
-custom chat dataset for fine-tuning Llama3.
+custom chat dataset for fine-tuning Llama3 Instruct.
 
 .. grid:: 2
 
     .. grid-item-card:: :octicon:`mortar-board;1em;` You will learn:
 
-      * How the Llama3 format differs from Llama2
+      * How the Llama3 Instruct format differs from Llama2
       * All about prompt templates and special tokens
-      * How to use your own chat dataset to fine-tune Llama3
+      * How to use your own chat dataset to fine-tune Llama3 Instruct
 
     .. grid-item-card:: :octicon:`list-unordered;1em;` Prerequisites
 
-      * Be familiar with :ref:`configuring datasets<dataset_tutorial_label>`
-      * Know how to :ref:`download Llama3 weights <llama3_label>`
+      * Be familiar with :ref:`configuring datasets<chat_dataset_usage_label>`
+      * Know how to :ref:`download Llama3 Instruct weights <llama3_label>`
 
-Note: this tutorial requires a version of torchtune > 0.1.1
 
 Template changes from Llama2 to Llama3
 --------------------------------------
@@ -42,9 +43,9 @@ for the Llama2 chat model, we can see that special tags are added:
 
     Hi! I am a human. [/INST] Hello there! Nice to meet you! I'm Meta AI, your friendly AI assistant </s>
 
-Llama3 `overhauled <https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3>`_
+Llama3 Instruct `overhauled <https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3>`_
 the template from Llama2 to better support multiturn conversations. The same text
-in the Llama3 format would look like this:
+in the Llama3 Instruct format would look like this:
 
 .. code-block:: text
 
@@ -60,6 +61,16 @@ The tags are entirely different, and they are actually encoded differently than 
 Llama2. Let's walk through tokenizing an example with the Llama2 template and the
 Llama3 template to understand how.
 
+.. note::
+    The Llama3 Base model uses a `different prompt template
+    <https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3>`_ than Llama3 Instruct
+    because it has not yet been instruct tuned and the extra special tokens are untrained. If you
+    are running inference on the Llama3 Base model without fine-tuning we recommend the base
+    template for optimal performance. Generally, for instruct and chat data, we recommend using
+    Llama3 Instruct with its prompt template. The rest of this tutorial assumes you are using
+    Llama3 Instruct.
+
+.. _prompt_template_vs_special_tokens:
 
 Tokenizing prompt templates & special tokens
 --------------------------------------------
@@ -85,16 +96,16 @@ prompt:
         },
     ]
 
-Now, let's format this with the :class:`~torchtune.data.Llama2ChatFormat` class and
-see how it gets tokenized. The Llama2ChatFormat is an example of a **prompt template**,
+Now, let's format this with the :class:`~torchtune.models.llama2.Llama2ChatTemplate` class and
+see how it gets tokenized. The Llama2ChatTemplate is an example of a **prompt template**,
 which simply structures a prompt with flavor text to indicate a certain task.
 
 .. code-block:: python
 
-    from torchtune.data import Llama2ChatFormat, Message
+    from torchtune.data import Llama2ChatTemplate, Message
 
     messages = [Message.from_dict(msg) for msg in sample]
-    formatted_messages = Llama2ChatFormat.format(messages)
+    formatted_messages = Llama2ChatTemplate.format(messages)
     print(formatted_messages)
     # [
     #     Message(
@@ -110,19 +121,19 @@ which simply structures a prompt with flavor text to indicate a certain task.
     # ]
 
 There are also special tokens used by Llama2, which are not in the prompt template.
-If you look at our :class:`~torchtune.data.Llama2ChatFormat` class, you'll notice that
+If you look at our :class:`~torchtune.models.llama2.Llama2ChatTemplate` class, you'll notice that
 we don't include the :code:`<s>` and :code:`</s>` tokens. These are the beginning-of-sequence
 (BOS) and end-of-sequence (EOS) tokens that are represented differently in the tokenizer
 than the rest of the prompt template. Let's tokenize this example with the
-:class:`~torchtune.modules.tokenizers.SentencePieceTokenizer` used by Llama2 to see
+:func:`~torchtune.models.llama2.llama2_tokenizer` used by Llama2 to see
 why.
 
 .. code-block:: python
 
-    from torchtune.modules.tokenizers import SentencePieceTokenizer
+    from torchtune.models.llama2 import llama2_tokenizer
 
-    tokenizer = SentencePieceTokenizer("/tmp/Llama-2-7b-hf/tokenizer.model")
-    user_message = formatted_messages[0].content
+    tokenizer = llama2_tokenizer("/tmp/Llama-2-7b-hf/tokenizer.model")
+    user_message = formatted_messages[0].text_content
     tokens = tokenizer.encode(user_message, add_bos=True, add_eos=True)
     print(tokens)
     # [1, 518, 25580, 29962, 3532, 14816, 29903, 6778, ..., 2]
@@ -132,9 +143,9 @@ as IDs 1 and 2. We can verify that these are our BOS and EOS tokens.
 
 .. code-block:: python
 
-    print(tokenizer.spm_model.piece_to_id("<s>"))
+    print(tokenizer._spm_model.spm_model.piece_to_id("<s>"))
     # 1
-    print(tokenizer.spm_model.piece_to_id("</s>"))
+    print(tokenizer._spm_model.spm_model.piece_to_id("</s>"))
     # 2
 
 The BOS and EOS tokens are what we call special tokens, because they have their own
@@ -167,9 +178,9 @@ than Llama2.
 
 .. code-block:: python
 
-    from torchtune.modules.tokenizers import TikTokenTokenizer
+    from torchtune.models.llama3 import llama3_tokenizer
 
-    tokenizer = TikTokenTokenizer("/tmp/Meta-Llama-3-8B/original/tokenizer.model")
+    tokenizer = llama3_tokenizer("/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model")
     messages = [Message.from_dict(msg) for msg in sample]
     tokens, mask = tokenizer.tokenize_messages(messages)
     print(tokenizer.decode(tokens))
@@ -191,9 +202,9 @@ as their own token IDs.
 
 .. code-block:: python
 
-    print(tokenizer._encode_special_token("<|begin_of_text|>"))
+    print(tokenizer.special_tokens["<|begin_of_text|>"])
     # 128000
-    print(tokenizer._encode_special_token("<|eot_id|>"))
+    print(tokenizer.special_tokens["<|eot_id|>"])
     # 128009
 
 The best part is - all these special tokens are handled purely by the tokenizer.
@@ -218,7 +229,7 @@ This would wrap around the user message, with the assistant message untouched.
     f"Summarize this dialogue:\n{dialogue}\n---\nSummary:\n"
 
 You can fine-tune Llama2 with this template even though the model was originally pre-trained
-with the :class:`~torchtune.data.Llama2ChatFormat`, as long as this is what the model
+with the :class:`~torchtune.models.llama2.Llama2ChatTemplate`, as long as this is what the model
 sees during inference. The model should be robust enough to adapt to a new template.
 
 
@@ -229,98 +240,89 @@ Let's test our understanding by trying to fine-tune the Llama3-8B instruct model
 chat dataset. We'll walk through how to set up our data so that it can be tokenized
 correctly and fed into our model.
 
-Let's say we have a local dataset saved as a CSV file that contains questions
-and answers from an online forum. How can we get something like this into a format
+Let's say we have a local dataset saved as a JSON file that contains conversations
+with an AI model. How can we get something like this into a format
 Llama3 understands and tokenizes correctly?
 
 .. code-block:: python
 
-    import pandas as pd
+    # data/my_data.json
+    [
+        {
+            "dialogue": [
+                {
+                    "from": "human",
+                    "value": "What is your name?"
+                },
+                {
+                    "from": "gpt",
+                    "value": "I am an AI assistant, I don't have a name."
+                },
+                {
+                    "from": "human",
+                    "value": "Pretend you have a name."
+                },
+                {
+                    "from": "gpt",
+                    "value": "My name is Mark Zuckerberg."
+                }
+            ]
+        },
+    ]
 
-    df = pd.read_csv('your_file.csv', nrows=1)
-    print("Header:", df.columns.tolist())
-    # ['input', 'output']
-    print("First row:", df.iloc[0].tolist())
-    # [
-    #     "How do GPS receivers communicate with satellites?",
-    #     "The first thing to know is the communication is one-way...",
-    # ]
-
-The Llama3 tokenizer class, :class:`~torchtune.modules.tokenizers.TikTokenTokenizer`,
-expects the input to be in the :class:`~torchtune.data.Message` format. Let's
-quickly write a function that can parse a single row from our csv file into
-the Message dataclass. The function also needs to have a train_on_input parameter.
-
-.. code-block:: python
-
-    def message_converter(sample: Mapping[str, Any], train_on_input: bool) -> List[Message]:
-        input_msg = sample["input"]
-        output_msg = sample["output"]
-
-        user_message = Message(
-            role="user",
-            content=input_msg,
-            masked=not train_on_input,  # Mask if not training on prompt
-        )
-        assistant_message = Message(
-            role="assistant",
-            content=output_msg,
-            masked=False,
-        )
-        # A single turn conversation
-        messages = [user_message, assistant_message]
-
-        return messages
-
-Since we're fine-tuning Llama3, the tokenizer will handle formatting the prompt for
-us. But if we were fine-tuning a model that requires a template, for example the
-Mistral-7B model which uses the :class:`~torchtune.modules.tokenizers.SentencePieceTokenizer`,
-we would need to use a chat format like :class:`~torchtune.data.MistralChatFormat` to format
-all messages according to their `recommendations <https://docs.mistral.ai/getting-started/open_weight_models/#chat-template>`_.
-
-Now let's create a builder function for our dataset that loads in our local file,
-converts to a list of Messages using our function, and creates a :class:`~torchtune.datasets.ChatDataset`
-object.
+Let's first take a look at the :ref:`dataset_builders` and see which fits our use case. Since we
+have conversational data, :func:`~torchtune.datasets.chat_dataset` seems to be a good fit. For any
+custom local dataset we always need to specify ``source``, ``data_files``, and ``split`` for any dataset
+builder in torchtune. For :func:`~torchtune.datasets.chat_dataset`, we additionally need to specify
+``conversation_column`` and ``conversation_style``. Our data follows the ``"sharegpt"`` format, so
+we can specify that here. Altogether, our :func:`~torchtune.datasets.chat_dataset` call should
+look like so:
 
 .. code-block:: python
 
-    def custom_dataset(
-        *,
-        tokenizer: Tokenizer,
-        max_seq_len: int = 2048,  # You can expose this if you want to experiment
-    ) -> ChatDataset:
+    from torchtune.datasets import chat_dataset
+    from torchtune.models.llama3 import llama3_tokenizer
 
-        return ChatDataset(
-            tokenizer=tokenizer,
-            # For local csv files, we specify "csv" as the source, just like in
-            # load_dataset
-            source="csv",
-            # Default split of "train" is required for local files
-            split="train",
-            convert_to_messages=message_converter,
-            # Llama3 does not need a chat format
-            chat_format=None,
-            max_seq_len=max_seq_len,
-            # To load a local file we specify it as data_files just like in
-            # load_dataset
-            data_files="your_file.csv",
-        )
+    tokenizer = llama3_tokenizer("/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model")
+    ds = chat_dataset(
+        tokenizer=tokenizer,
+        source="json",
+        data_files="data/my_data.json",
+        split="train",
+        conversation_column="dialogue",
+        conversation_style="sharegpt",
+    )
+
+.. code-block:: yaml
+
+    # In config
+    tokenizer:
+      _component_: torchtune.models.llama3.llama3_tokenizer
+      path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
+
+    dataset:
+      _component_: torchtune.datasets.chat_dataset
+      source: json
+      data_files: data/my_data.json
+      split: train
+      conversation_column: dialogue
+      conversation_style: sharegpt
 
 .. note::
-    You can pass in any keyword argument for :code:`load_dataset` into all our
+    You can pass in any keyword argument for `load_dataset <https://huggingface.co/docs/datasets/v2.20.0/en/package_reference/loading_methods#datasets.load_dataset>`_ into all our
     Dataset classes and they will honor them. This is useful for common parameters
     such as specifying the data split with :code:`split` or configuration with
     :code:`name`
 
+If you needed to add a prompt template, you would simply pass it into the tokenizer.
+Since we're fine-tuning Llama3, the tokenizer will handle all formatting for
+us and prompt templates are optional. Other models such as Mistral's :class:`~torchtune.models.mistral._tokenizer.MistralTokenizer`,
+use a chat template by default (:class:`~torchtune.models.mistral.MistralChatTemplate`) to format
+all messages according to their `recommendations <https://docs.mistral.ai/getting-started/open_weight_models/#chat-template>`_.
+
 Now we're ready to start fine-tuning! We'll use the built-in LoRA single device recipe.
-Use the :code:`tune cp` command to get a copy of the :code:`8B_lora_single_device.yaml`
-config and update it to use your new dataset.
-
-.. code-block:: yaml
-
-    dataset:
-      _component_: path.to.my.custom_dataset
-      max_seq_len: 2048
+Use the :ref:`tune cp <tune_cp_cli_label>` command to get a copy of the :code:`8B_lora_single_device.yaml`
+config and update it with your dataset configuration.
 
 Launch the fine-tune!
 

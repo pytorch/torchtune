@@ -29,7 +29,9 @@ def code_llama2_7b() -> TransformerDecoder:
         embed_dim=4096,
         max_seq_len=16384,
         attn_dropout=0.0,
+        intermediate_dim=11008,
         norm_eps=1e-5,
+        rope_base=1_000_000,
     )
 
 
@@ -39,7 +41,8 @@ def lora_code_llama2_7b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
-    lora_dropout: float = 0.05,
+    lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
@@ -59,6 +62,7 @@ def lora_code_llama2_7b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for LoRA linear layers. Default: 0.0
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
@@ -79,6 +83,7 @@ def lora_code_llama2_7b(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 
@@ -110,6 +115,7 @@ def code_llama2_13b() -> TransformerDecoder:
         max_seq_len=16384,
         attn_dropout=0.0,
         norm_eps=1e-5,
+        rope_base=1_000_000,
     )
 
 
@@ -119,7 +125,8 @@ def lora_code_llama2_13b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
-    lora_dropout: float = 0.05,
+    lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
@@ -139,10 +146,13 @@ def lora_code_llama2_13b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): LoRA dropout probability. Default: 0.0
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        TransformerDecoder: Instantiation of Code-Llama2 7B model with LoRA applied
+        TransformerDecoder: Instantiation of Code-Llama2 13B model with LoRA applied
     """
     return lora_llama2(
         lora_attn_modules=lora_attn_modules,
@@ -160,6 +170,7 @@ def lora_code_llama2_13b(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 
@@ -191,6 +202,7 @@ def code_llama2_70b() -> TransformerDecoder:
         max_seq_len=16384,
         attn_dropout=0.0,
         norm_eps=1e-5,
+        rope_base=1_000_000,
     )
 
 
@@ -200,7 +212,8 @@ def lora_code_llama2_70b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
-    lora_dropout: float = 0.05,
+    lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
@@ -220,6 +233,9 @@ def lora_code_llama2_70b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): LoRA dropout probability. Default: 0.0
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
@@ -241,5 +257,15 @@ def lora_code_llama2_70b(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
+
+
+qlora_code_llama2_70b = partial(lora_code_llama2_70b, quantize_base=True)
+
+qlora_code_llama2_70b.__doc__ = """
+Builder for creating a Code-Llama2 70B model with QLoRA enabled. Base model weights in linear layers
+that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.
+Please see `lora_code_llama2_70b` for full API arguments.
+"""

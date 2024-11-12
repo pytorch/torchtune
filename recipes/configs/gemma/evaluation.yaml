@@ -1,0 +1,39 @@
+# Config for EleutherEvalRecipe in eleuther_eval.py
+#
+# To launch, run the following command:
+#    tune run eleuther_eval --config gemma/evaluation
+
+# Model Arguments
+model:
+  _component_: torchtune.models.gemma.gemma_2b
+
+# Checkpointer
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/gemma-2b
+  checkpoint_files: [
+    model-00001-of-00002.safetensors,
+    model-00002-of-00002.safetensors,
+  ]
+  output_dir: ./ # Not needed
+  model_type: GEMMA
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.gemma.gemma_tokenizer
+  path: /tmp/gemma-2b/tokenizer.model
+
+# Environment
+device: cuda
+dtype: bf16
+seed: 1234 # It is not recommended to change this seed, b/c it matches EleutherAI's default seed
+
+# EleutherAI specific eval args
+tasks: ["truthfulqa_mc2"]
+limit: null
+max_seq_length: 4096
+batch_size: 8
+enable_kv_cache: True
+
+# Quantization specific args
+quantizer: null

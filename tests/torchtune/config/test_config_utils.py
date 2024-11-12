@@ -11,6 +11,7 @@ from unittest import mock
 
 import pytest
 from omegaconf import OmegaConf
+from torchtune.config._parse import TuneRecipeArgumentParser
 from torchtune.config._utils import (
     _get_component_from_path,
     _merge_yaml_and_cli_args,
@@ -18,7 +19,6 @@ from torchtune.config._utils import (
     InstantiationError,
     log_config,
 )
-from torchtune.utils.argparse import TuneRecipeArgumentParser
 
 _CONFIG = {
     "a": 1,
@@ -50,7 +50,7 @@ class TestUtils:
         ):
             _ = _get_component_from_path("torchtune.models.dummy")
 
-    @mock.patch("torchtune.utils.argparse.OmegaConf.load", return_value=_CONFIG)
+    @mock.patch("torchtune.config._parse.OmegaConf.load", return_value=_CONFIG)
     def test_merge_yaml_and_cli_args(self, mock_load):
         parser = TuneRecipeArgumentParser("test parser")
         yaml_args, cli_args = parser.parse_known_args(
@@ -128,11 +128,17 @@ class TestUtils:
         handler = logging.StreamHandler(stream)
         logger.addHandler(handler)
 
-        with mock.patch("torchtune.config._utils.get_logger", return_value=logger):
+        with mock.patch(
+            "torchtune.config._utils.get_logger", return_value=logger
+        ), mock.patch(
+            "torchtune.utils._logging.dist.is_available", return_value=True
+        ), mock.patch(
+            "torchtune.utils._logging.dist.is_initialized", return_value=True
+        ):
             # Make sure rank 0 logs as expected
             with mock.patch(
-                "torchtune.config._utils.get_world_size_and_rank",
-                return_value=(None, 0),
+                "torchtune.utils._logging.dist.get_rank",
+                return_value=0,
             ):
                 log_config("test", cfg)
                 output = stream.getvalue().strip()
@@ -147,8 +153,8 @@ class TestUtils:
 
             # Make sure all other ranks do not log anything
             with mock.patch(
-                "torchtune.config._utils.get_world_size_and_rank",
-                return_value=(None, 1),
+                "torchtune.utils._logging.dist.get_rank",
+                return_value=1,
             ):
                 log_config("test", cfg)
                 output = stream.getvalue().strip()

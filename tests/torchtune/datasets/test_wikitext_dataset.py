@@ -7,18 +7,15 @@ from unittest.mock import patch
 
 import pytest
 
-from tests.test_utils import get_assets_path
+from tests.test_utils import DummyTokenizer
 
 from torchtune.datasets import wikitext_dataset
-from torchtune.modules.tokenizers import SentencePieceTokenizer
 
 
 class TestWikiTextDataset:
     @pytest.fixture
     def tokenizer(self):
-        # m.model is a pretrained Sentencepiece model using the following command:
-        # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
-        return SentencePieceTokenizer(str(get_assets_path() / "m.model"))
+        return DummyTokenizer()
 
     @patch("torchtune.datasets._text_completion.load_dataset")
     @pytest.mark.parametrize("max_seq_len", [128, 512, 1024, 4096])
@@ -26,7 +23,7 @@ class TestWikiTextDataset:
         # Sample data from wikitext dataset
         load_dataset.return_value = [
             {
-                "text": "Bart , like the rest of his family , has yellow skin . "
+                "page": "Bart , like the rest of his family , has yellow skin . "
                 "Bart usually wears a red T @-@ shirt , blue shorts and blue trainers . "
                 "When the Simpson family goes to church in the episodes , or to school "
                 "events or shows , Bart wears a blue suit with a white shirt , a purple "

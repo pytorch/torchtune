@@ -14,9 +14,6 @@ This deep-dive will walk you through the design of training-recipes in torchtune
       * What are the core components that make up a recipe?
       * How should I structure a new recipe?
 
-
-What are Recipes?
------------------
 Recipes are the primary entry points for torchtune users. These can be thought of
 as "targeted" end-to-end pipelines for training and optionally evaluating LLMs.
 Each recipe implements a training method (eg: full fine-tuning) with a set of meaningful
@@ -67,6 +64,8 @@ For a complete working example, refer to the
 `full finetuning recipe <https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune_distributed.py>`_
 in torchtune and the associated
 `config <https://github.com/pytorch/torchtune/blob/main/recipes/configs/7B_full.yaml>`_.
+
+.. TODO (SalmanMohammadi) ref to full finetune recipe doc
 
 |
 
@@ -137,7 +136,7 @@ Initialize recipe state including seed, device, dtype, metric loggers, relevant 
     def __init__(...):
 
         self._device = utils.get_device(device=params.device)
-        self._dtype = utils.get_dtype(dtype=params.dtype)
+        self._dtype = training.get_dtype(dtype=params.dtype, device=self._device)
         ...
 
 Load checkpoint, update recipe state from checkpoint, initialize components and load state dicts from checkpoint
@@ -209,7 +208,7 @@ You can learn all about configs in our :ref:`config deep-dive<config_tutorial_la
 Config and CLI parsing using :code:`parse`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 We provide a convenient decorator :func:`~torchtune.config.parse` that wraps
-your recipe to enable running from the command-line with :code:`tune` with config
+your recipe to enable running from the command-line with :ref:`tune <cli_label>` with config
 and CLI override parsing.
 
 .. code-block:: python
@@ -225,7 +224,7 @@ and CLI override parsing.
 Running your recipe
 ^^^^^^^^^^^^^^^^^^^
 You should be able to run your recipe by providing the direct paths to your custom
-recipe and custom config using the :code:`tune` command with any CLI overrides:
+recipe and custom config using the :ref:`tune <cli_label>` command with any CLI overrides:
 
 .. code-block:: bash
 
