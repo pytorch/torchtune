@@ -19,7 +19,7 @@ from tests.recipes.utils import (
     write_hf_ckpt_config,
     write_hf_vision_ckpt_config,
 )
-from tests.test_utils import CKPT_MODEL_PATHS
+from tests.test_utils import CKPT_MODEL_PATHS, gpu_test
 
 
 class TestEleutherEval:
@@ -212,6 +212,7 @@ class TestEleutherEval:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
     @pytest.mark.integration_test
+    @gpu_test(gpu_count=1)
     def test_meta_eval_vision(self, caplog, monkeypatch, tmpdir, expected_vision_acc):
         ckpt = "llama3_2_vision_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -232,8 +233,7 @@ class TestEleutherEval:
             tokenizer.prompt_template=null \
             limit=5 \
             dtype=bf16 \
-            device=cpu \
-            max_seq_length=1024 \
+            device=cuda \
         """.split()
 
         model_config = llama3_2_vision_test_config()
@@ -252,6 +252,7 @@ class TestEleutherEval:
             assert math.isclose(float(accuracy), expected_vision_acc[task_name])
 
     @pytest.mark.integration_test
+    @gpu_test(gpu_count=1)
     def test_hf_eval_vision(self, caplog, monkeypatch, tmpdir, expected_vision_acc):
         ckpt = "llama3_2_vision_hf"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -275,8 +276,7 @@ class TestEleutherEval:
             tokenizer.prompt_template=null \
             limit=5 \
             dtype=bf16 \
-            device=cpu \
-            max_seq_length=1024 \
+            device=cuda \
         """.split()
 
         model_config = llama3_2_vision_test_config()
