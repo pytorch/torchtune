@@ -60,8 +60,8 @@ def instantiate(
         config (DictConfig): a single field in the OmegaConf object parsed from the yaml file.
             This is expected to have a _component_ field specifying the path of the object
             to instantiate.
-        *args (Tuple[Any, ...]): positional arguments to pass to the object to instantiate.
-        **kwargs (Dict[str, Any]): keyword arguments to pass to the object to instantiate.
+        *args (Any): positional arguments to pass to the object to instantiate.
+        **kwargs (Any): keyword arguments to pass to the object to instantiate.
 
     Examples:
         >>> config.yaml:
