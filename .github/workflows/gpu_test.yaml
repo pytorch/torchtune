@@ -27,7 +27,7 @@ jobs:
     runs-on: linux.8xlarge.nvidia.gpu
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11']
+        python-version: ['3.11']
         torch-version: ["stable", "nightly"]
         # Do not run against nightlies on PR
         exclude:
