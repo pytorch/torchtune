@@ -1210,7 +1210,7 @@
             <span class="nb">isinstance</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">TransformerCrossAttentionLayer</span><span class="p">)</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">()</span>
         <span class="p">)</span>
         <span class="n">has_decoder_layers</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span>
-            <span class="nb">isinstance</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">TransformerSelfAttentionLayer</span><span class="p">)</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">TransformerSelfAttentionLayer</span><span class="p">)</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">()</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">has_encoder_layers</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">encoder_max_seq_len</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
