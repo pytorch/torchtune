@@ -193,6 +193,9 @@ def lora_llama3_2_vision_11b(
         lora_dropout=lora_dropout,
         use_dora=use_dora,
         quantize_base=quantize_base,
+        # Update scaler block size to ensure that weights can be quantized evenly across 1, 2, 4, 6, 8 GPUs.
+        # This is dependent on ``clip_embed_dim`` so if that is updated, this variable should be as well
+        scaler_block_size=200 if quantize_base else None,
     )
     decoder = lora_llama3_2_vision_decoder(
         decoder_lora=decoder_type == LoRATrainable.LORA,
@@ -348,6 +351,9 @@ def lora_llama3_2_vision_90b(
         lora_dropout=lora_dropout,
         use_dora=use_dora,
         quantize_base=quantize_base,
+        # Update scaler block size to ensure that weights can be quantized evenly across 1, 2, 4, 6, 8 GPUs.
+        # This is dependent on ``clip_embed_dim`` so if that is updated, this variable should be as well
+        scaler_block_size=200 if quantize_base else None,
     )
     decoder = lora_llama3_2_vision_decoder(
         decoder_lora=decoder_type == LoRATrainable.LORA,
