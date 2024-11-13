@@ -7,7 +7,7 @@
 import copy
 import os
 import sys
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict
 
 from omegaconf import DictConfig, OmegaConf
 from torchtune.config._errors import InstantiationError
