@@ -32,8 +32,7 @@ from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
 
-
-class FullFinetuneRecipeDistributed(FTRecipeInterface):
+class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
     """
     Full finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe supports
     distributed training and can be run on a single node (1 to 8 GPUs).
@@ -199,6 +198,18 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
+
+        cfg_early_exit = cfg.get("early_exit", None)
+        # TODO: create a "setup" function similar to setup_model?
+        # TODO: rename "early_exit" to "early_exit_loss"
+        if cfg_early_exit:
+            self.early_exit_layers = cfg_early_exit.get("layers", ":")
+            self.early_exit_curriculum = cfg_early_exit.get("curriculum", "none")
+            self.early_exit_scale = cfg_early_exit.get("scale", 1.0)
+        else:
+            self.early_exit_layers = None
+            self.early_exit_curriculum = None
+            self.early_exit_scale = None
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -906,9 +917,9 @@ def recipe_main(cfg: DictConfig) -> None:
         # speed up when benchmarking fused AdamW on CPU
         training.set_torch_num_threads()
 
-    config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
+    config.log_config(recipe_name="EarlyExitFinetuneRecipeDistributed", cfg=cfg)
 
-    recipe = FullFinetuneRecipeDistributed(cfg=cfg)
+    recipe = EarlyExitFinetuneRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()

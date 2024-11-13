@@ -14,8 +14,6 @@ from torchtune.modules import MultiHeadAttention
 from torchtune.modules.attention_utils import _MaskType
 from torchtune.utils._logging import deprecated
 
-from torchtune.modules import LayerDropout, create_layer_dropout_modules
-
 class TransformerSelfAttentionLayer(nn.Module):
     """
     Transformer layer derived from the Llama2 model. Normalization is applied before the attention **and** FF layer.
@@ -343,8 +341,6 @@ class TransformerDecoder(nn.Module):
             before final MLP.
         output (Union[nn.Linear, Callable]): Callable that applies a linear transformation to the output of
             the decoder.
-        layer_dropout_prob (float): Probability of skipping samples in the transformer
-            layer.
         num_layers (Optional[int]): Number of Transformer Decoder layers, only define when
             layers is not a list.
         output_hidden_states (Optional[List[int]]): List of layers (indices) to include in the output
@@ -371,9 +367,6 @@ class TransformerDecoder(nn.Module):
         output: Union[nn.Linear, Callable],
         num_layers: Optional[int] = None,
         output_hidden_states: Optional[List[int]] = None,
-        layer_dropout_prob: float = 0.0,
-        layer_dropout_prob_layer_scale: str = "exp",
-        layer_dropout_str: str = ":",
     ) -> None:
         super().__init__()
         if isinstance(layers, nn.ModuleList):
@@ -401,8 +394,6 @@ class TransformerDecoder(nn.Module):
         # attributes for KV caches during inference
         self.encoder_max_cache_seq_len = None
         self.decoder_max_cache_seq_len = None
-
-        self.layer_dropouts = create_layer_dropout_modules(num_layers, layer_dropout_prob, layer_dropout_prob_layer_scale, layer_dropout_str)
 
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.

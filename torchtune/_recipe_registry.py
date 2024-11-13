@@ -412,6 +412,14 @@ _ALL_RECIPES = [
         supports_distributed=False,
     ),
     Recipe(
+        name="dev/early_exit_finetune_distributed",
+        file_path="dev/early_exit_finetune_distributed.py",
+        configs=[
+            Config(name="llama2/7B_full", file_path="llama2/7B_full.yaml"),
+        ],
+        supports_distributed=True,
+    ),
+    Recipe(
         name="eleuther_eval",
         file_path="eleuther_eval.py",
         configs=[
