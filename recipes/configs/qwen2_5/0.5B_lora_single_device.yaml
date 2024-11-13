@@ -13,7 +13,7 @@
 #
 # This config works only for training on single device.
 
-# Model 1rguments
+# Model arguments
 model:
   _component_: torchtune.models.qwen2_5.lora_qwen2_5_0_5b
   lora_attn_modules: ['q_proj', 'v_proj', 'output_proj']
