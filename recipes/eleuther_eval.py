@@ -146,6 +146,17 @@ class _VLMEvalWrapper(HFMultimodalLM):
     def tok_decode(self, tokens, skip_special_tokens=True) -> str:
         if isinstance(tokens, int):
             tokens = [tokens]
+
+        for i, t in enumerate(tokens):
+            try:
+                self._transform.tokenizer.decode(
+        [t], skip_special_tokens=skip_special_tokens
+    )   
+            except:
+                print("---------------------FAILED----------------------")
+                print(i, t)
+                import pdb
+                pdb.set_trace()
         return self._transform.tokenizer.decode(
             tokens, skip_special_tokens=skip_special_tokens
         )
@@ -161,7 +172,6 @@ class _VLMEvalWrapper(HFMultimodalLM):
         # Eleuther already parses out the text and images, so we just need to get
         # it into a Message format for our tokenizer
         all_encoded_messages = []
-
         for text, images in zip(all_texts, all_images):
             # Ensure images are all RGB
             proper_images = []

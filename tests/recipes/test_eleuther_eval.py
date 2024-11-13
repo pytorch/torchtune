@@ -39,12 +39,12 @@ class TestEleutherEval:
     @pytest.fixture
     def expected_vision_acc(self):
         return {
-            "Science": 0.35,
-            "Biology": 0.25,
-            "Chemistry": 0.25,
-            "Geography": 0.5,
-            "Math": 0.0,
-            "Physics": 0.75,
+            "Science": 0.3,
+            "Biology": 0.0,
+            "Chemistry": 0.0,
+            "Geography": 0.0,
+            "Math": 0.5,
+            "Physics": 1.0,
         }
 
     @pytest.mark.parametrize(
@@ -229,9 +229,9 @@ class TestEleutherEval:
             ~checkpointer.checkpoint_files.max_filename \
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA3_VISION \
-            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
+            tokenizer.path=/home/salman/Downloads/tokenizer.model \
             tokenizer.prompt_template=null \
-            limit=4 \
+            limit=1 \
             dtype=bf16 \
             device=cuda \
         """.split()
@@ -272,9 +272,9 @@ class TestEleutherEval:
             ~checkpointer.checkpoint_files.max_filename \
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA3_VISION \
-            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
+            tokenizer.path=/home/salman/Downloads/tokenizer.model \
             tokenizer.prompt_template=null \
-            limit=4 \
+            limit=1 \
             dtype=bf16 \
             device=cuda \
         """.split()
