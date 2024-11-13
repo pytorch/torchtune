@@ -359,6 +359,7 @@ def lora_llama3_2_vision_encoder(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
+    **quantization_kwargs,
 ) -> Llama3VisionEncoder:
     """
     Build the Llama 3.2 vision encoder by combining the CLIP image model with an additional
@@ -417,6 +418,7 @@ def lora_llama3_2_vision_encoder(
         "lora_dropout": lora_dropout,
         "use_dora": use_dora,
         "quantize_base": quantize_base,
+        **quantization_kwargs,
     }
 
     # clip encoder
@@ -683,6 +685,7 @@ def lora_llama3_2_vision_projection_head(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
+    **quantization_kwargs,
 ) -> Llama3VisionProjectionHead:
     """
     Build the Llama 3.2 Vision Projection Head with LoRA applied to a subset of the layers.
@@ -729,6 +732,7 @@ def lora_llama3_2_vision_projection_head(
             lora_dropout=lora_dropout,
             use_dora=use_dora,
             quantize_base=quantize_base,
+            **quantization_kwargs,
         )
 
         if apply_lora_to_mlp:
@@ -742,6 +746,7 @@ def lora_llama3_2_vision_projection_head(
                 quantize_base=quantize_base,
                 lora_dropout=lora_dropout,
                 use_dora=use_dora,
+                **quantization_kwargs,
             )
         else:
             mlp = clip_mlp(
@@ -750,6 +755,7 @@ def lora_llama3_2_vision_projection_head(
                 out_dim=clip_embed_dim,
                 activation=nn.GELU(),
                 quantize_base=quantize_base,
+                **quantization_kwargs,
             )
 
         layer = TransformerSelfAttentionLayer(
