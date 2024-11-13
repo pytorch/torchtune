@@ -99,6 +99,49 @@ If you are interested in running on different hardware or with different models,
 
 &nbsp;
 
+### Optimization flags
+
+The following table demonstrates the impact of sequentially applying various optimization techniques available on torchtune to the Llama 3B model. Each technique is added on top of the previous one, except for LoRA and QLoRA, which do not use `opt_in_bwd` or `Adamw8bit`.
+
+**Baseline:**
+- **Model:** Llama 3B
+- **Batch size:** 5
+- **Max seq len:** 2048
+- **Precision:** bf16
+- **Hardware:** A100
+
+| Technique | Peak Memory Active (GiB) | % Change Memory vs Previous | Tokens Per Second | % Change Tokens/sec vs Previous|
+|:--|:-:|:-:|:-:|:-:|
+| Baseline | 25.57 | - | 2979 | - |
+| [+ Packed Dataset](https://pytorch.org/torchtune/main/basics/packing.html) | 70.52 | 175.8% | 7203 | 141.8% |
+| [+ Compile](https://pytorch.org/tutorials/intermediate/torch_compile_tutorial.html) | 59.33 | -15.9% | 9200 | 27.7% |
+| [+ Chunked Cross Entropy](https://pytorch.org/torchtune/main/generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html) | 48.69 | -17.9% | 9415 | 2.3% |
+| [+ Activation Ceheckpointing](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#activation-checkpointing) | 25.28 | -48.1% | 7394 | -21.5% |
+| [+ Optimizer in bwd](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#fusing-optimizer-step-into-backward-pass) | 23.92 | -5.4% | 7489 | 1.3% |
+| [+ Activation Offloading](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#activation-offloading) | 22.34 | -6.6% | 7479 | -0.1% |
+| [+ Adamw8bit](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#lower-precision-optimizers) | 17.57 | -21.4% | 7187 | -3.9% |
+| [LoRA](https://pytorch.org/torchtune/main/tutorials/lora_finetune.html) | 9.16 | -47.8% | 8355 | 16.2% |
+| [QLoRA](https://pytorch.org/torchtune/main/tutorials/qlora_finetune.html) | 5.28 | -42.4% | 8228 | -1.5% |
+
+To reproduce QLoRA:
+```
+tune run lora_finetune_single_device --config llama3_2/3B_qlora_single_device \
+optimizer_in_bwd=False \
+enable_activation_checkpointing=True \
+enable_activation_offloading=True \
+optimizer._component_=torch.optim.AdamW \
+compile=True \
+dataset.packed=True \
+dataset.split=train[:5%] \
+tokenizer.max_seq_len=2048 \
+gradient_accumulation_steps=1 \
+epochs=1 \
+batch_size=5 \
+loss=torchtune.modules.loss.CEWithChunkedOutputLoss
+```
+
+&nbsp;
+
 ## Installation
 
 torchtune is tested with the latest stable PyTorch release as well as the preview nightly version. torchtune leverages
