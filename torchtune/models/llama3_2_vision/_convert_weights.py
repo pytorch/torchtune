@@ -508,8 +508,6 @@ def llama3_vision_tune_to_peft_adapter_weights(
         )
 
     for key, value in state_dict.items():
-        # if key == "decoder.layers.3.layer.attn.q_proj.lora_a.weight":
-        #    import pdb; pdb.set_trace()
         new_key = get_mapped_key(key, inverted_mapping_dict)
         if "decoder" in key:
             if "layers" in key:  # Update layer numbers
