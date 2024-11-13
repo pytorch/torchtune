@@ -622,6 +622,9 @@
         <span class="n">lora_dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
         <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
         <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
+        <span class="c1"># Update scaler block size to ensure that weights can be quantized evenly across 1, 2, 4, 6, 8 GPUs.</span>
+        <span class="c1"># This is dependent on ``clip_embed_dim`` so if that is updated, this variable should be as well</span>
+        <span class="n">scaler_block_size</span><span class="o">=</span><span class="mi">200</span> <span class="k">if</span> <span class="n">quantize_base</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">decoder</span> <span class="o">=</span> <span class="n">lora_llama3_2_vision_decoder</span><span class="p">(</span>
         <span class="n">decoder_lora</span><span class="o">=</span><span class="n">decoder_type</span> <span class="o">==</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
@@ -777,6 +780,9 @@
         <span class="n">lora_dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
         <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
         <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
+        <span class="c1"># Update scaler block size to ensure that weights can be quantized evenly across 1, 2, 4, 6, 8 GPUs.</span>
+        <span class="c1"># This is dependent on ``clip_embed_dim`` so if that is updated, this variable should be as well</span>
+        <span class="n">scaler_block_size</span><span class="o">=</span><span class="mi">200</span> <span class="k">if</span> <span class="n">quantize_base</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">decoder</span> <span class="o">=</span> <span class="n">lora_llama3_2_vision_decoder</span><span class="p">(</span>
         <span class="n">decoder_lora</span><span class="o">=</span><span class="n">decoder_type</span> <span class="o">==</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>

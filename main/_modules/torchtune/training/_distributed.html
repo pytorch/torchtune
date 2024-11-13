@@ -729,7 +729,11 @@
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">sharded_meta_param</span><span class="p">,</span> <span class="s2">&quot;_local_tensor&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span>
             <span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">_local_tensor</span><span class="p">,</span> <span class="n">NF4Tensor</span>
         <span class="p">):</span>
-            <span class="n">full_tensor</span> <span class="o">=</span> <span class="n">to_nf4</span><span class="p">(</span><span class="n">full_tensor</span><span class="p">)</span>
+            <span class="n">block_size</span> <span class="o">=</span> <span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">_local_tensor</span><span class="o">.</span><span class="n">block_size</span>
+            <span class="n">scaler_block_size</span> <span class="o">=</span> <span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">_local_tensor</span><span class="o">.</span><span class="n">scaler_block_size</span>
+            <span class="n">full_tensor</span> <span class="o">=</span> <span class="n">to_nf4</span><span class="p">(</span>
+                <span class="n">full_tensor</span><span class="p">,</span> <span class="n">block_size</span><span class="o">=</span><span class="n">block_size</span><span class="p">,</span> <span class="n">scaler_block_size</span><span class="o">=</span><span class="n">scaler_block_size</span>
+            <span class="p">)</span>
             <span class="c1"># replicating logic from `_fsdp_param.py`` `_init_sharded_param`</span>
             <span class="c1"># otherwise `distribute_tensor(DTensor(local=NF4))`</span>
             <span class="c1"># requires dispatching `c10d.scatter_``</span>
