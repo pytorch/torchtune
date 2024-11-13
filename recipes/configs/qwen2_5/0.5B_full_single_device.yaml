@@ -57,7 +57,7 @@ loss:
 # Training env
 device: cuda
 
-# Memory management / performace
+# Memory management / performance
 enable_activation_checkpointing: False  # True reduces memory
 enable_activation_offloading: False  # True reduces memory
 dtype: bf16
