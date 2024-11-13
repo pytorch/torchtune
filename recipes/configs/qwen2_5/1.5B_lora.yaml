@@ -11,8 +11,7 @@
 # to override the checkpointer directory while launching training:
 #   tune run --nproc_per_node 2 lora_finetune_distributed --config qwen2_5/1.5B_lora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
-# This config works best when the model is being fine-tuned on 2+ GPUs.
-# For single device LoRA finetuning please use 1.5B_lora_single_device.yaml
+# This config is for fine-tuning on 2+ GPUs.
 
 # Model arguments
 model:
