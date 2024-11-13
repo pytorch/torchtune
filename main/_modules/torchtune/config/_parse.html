@@ -494,7 +494,7 @@
         <span class="k">return</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">unknown_args</span>
 
 
-<div class="viewcode-block" id="parse"><a class="viewcode-back" href="../../../generated/torchtune.config.parse.html#torchtune.config.parse">[docs]</a><span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="n">recipe_main</span><span class="p">:</span> <span class="n">Recipe</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Recipe</span><span class="p">],</span> <span class="n">Any</span><span class="p">]:</span>
+<div class="viewcode-block" id="parse"><a class="viewcode-back" href="../../../generated/torchtune.config.parse.html#torchtune.config.parse">[docs]</a><span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="n">recipe_main</span><span class="p">:</span> <span class="n">Recipe</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Decorator that handles parsing the config file and CLI overrides</span>
 <span class="sd">    for a recipe. Use it on the recipe&#39;s main function.</span>
@@ -512,7 +512,7 @@
 <span class="sd">        &gt;&gt;&gt; tune my_recipe --config config.yaml foo=bar</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Callable[[Recipe], Any]: the decorated main</span>
+<span class="sd">        Callable[..., Any]: the decorated main</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">recipe_main</span><span class="p">)</span>

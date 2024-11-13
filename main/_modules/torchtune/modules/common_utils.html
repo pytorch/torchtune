@@ -438,7 +438,7 @@
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Optional</span>
 <span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -453,10 +453,10 @@
 <div class="viewcode-block" id="reparametrize_as_dtype_state_dict_post_hook"><a class="viewcode-back" href="../../../generated/torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.html#torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook">[docs]</a><span class="k">def</span> <span class="nf">reparametrize_as_dtype_state_dict_post_hook</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
     <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-    <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+    <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">,</span>
     <span class="n">offload_to_cpu</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A state_dict hook that replaces NF4 tensors with their restored</span>
@@ -476,10 +476,10 @@
 <span class="sd">    Args:</span>
 <span class="sd">        model (nn.Module): the model to take ``state_dict()`` on</span>
 <span class="sd">        state_dict (Dict[str, Any]): the state dict to modify</span>
-<span class="sd">        *args (Tuple[Any, ...]): Unused args passed when running this as a state_dict hook.</span>
+<span class="sd">        *args (Any): Unused args passed when running this as a state_dict hook.</span>
 <span class="sd">        dtype (torch.dtype): the dtype to restore the weight to. Default is ``torch.bfloat16``.</span>
 <span class="sd">        offload_to_cpu (bool): whether to offload the restored weight to CPU. Default is ``True``.</span>
-<span class="sd">        **kwargs (Dict[Any, Any]): Unused keyword args passed when running this as a state_dict hook.</span>
+<span class="sd">        **kwargs (Any): Unused keyword args passed when running this as a state_dict hook.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">NF4Tensor</span><span class="p">):</span>
@@ -491,10 +491,10 @@
 <span class="k">def</span> <span class="nf">_low_ram_reparametrize_as_dtype_state_dict_post_hook</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
     <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-    <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+    <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">,</span>
     <span class="n">offload_to_cpu</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A state_dict hook that replaces NF4 tensors with their restored</span>
@@ -517,10 +517,10 @@
 <span class="sd">    Args:</span>
 <span class="sd">        model (nn.Module): the model to take ``state_dict()`` on</span>
 <span class="sd">        state_dict (Dict[str, Any]): the state dict to modify</span>
-<span class="sd">        *args (Tuple[Any, ...]): Unused args passed when running this as a state_dict hook.</span>
+<span class="sd">        *args (Any): Unused args passed when running this as a state_dict hook.</span>
 <span class="sd">        dtype (torch.dtype): the dtype to restore the weight to. Default is ``torch.bfloat16``.</span>
 <span class="sd">        offload_to_cpu (bool): whether to offload the restored weight to CPU. Default is ``True``.</span>
-<span class="sd">        **kwargs (Dict[Any, Any]): Unused keyword args passed when running this as a state_dict hook.</span>
+<span class="sd">        **kwargs (Any): Unused keyword args passed when running this as a state_dict hook.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Create a state dict of FakeTensors that matches the state_dict</span>
     <span class="n">mode</span> <span class="o">=</span> <span class="n">FakeTensorMode</span><span class="p">()</span>
