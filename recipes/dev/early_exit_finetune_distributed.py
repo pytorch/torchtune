@@ -28,6 +28,9 @@ from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.activations import apply_selective_activation_checkpointing
 from torchtune.training.lr_schedulers import get_lr
 
+from torchtune.modules.early_exit_loss import early_exit_loss, build_early_exit_curriculum
+from torchtune.modules.common_utils import slice_str_to_array
+
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -740,6 +743,18 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         running_loss = 0
         num_tokens = 0
 
+        # Early exit loss settings
+        # TODO: move to _init_() or setup()
+        if self.early_exit_layers:
+            output_hidden_states = slice_str_to_array(self.early_exit_layers, len(self._model.layers))
+            if True: # TODO: add cli option
+                output_hidden_states[len(self._model.layers) - 1] = True
+        else:
+            output_hidden_states = False
+
+        if self.early_exit_curriculum:
+            self.early_exit_curriculum = build_early_exit_curriculum(self.early_exit_curriculum, output_hidden_states, self.total_epochs*self._steps_per_epoch)
+
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
@@ -778,7 +793,10 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                 labels = batch.pop("labels")
 
                 with self.activations_handling_ctx:
-                    logits = self._model(**batch)
+                    if self.early_exit_layers:
+                        logits, hidden_states = self._model(**batch)
+                    else:
+                        logits = self._model(**batch)
 
                 # Shift labels to compute loss
                 # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
@@ -793,7 +811,10 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                 # Compute loss
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                current_loss = self._loss_fn(logits, labels) * current_num_tokens
+                if self.early_exit_layers:
+                    current_loss = early_exit_loss(self._model, hidden_states, labels, self._loss_fn) * current_num_tokens
+                else:
+                    current_loss = self._loss_fn(logits, labels) * current_num_tokens
 
                 # free logits otherwise it peaks backward memory
                 del logits
@@ -868,6 +889,13 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                     running_loss = 0
                     num_tokens = 0
                     t0 = time.perf_counter()
+
+                    # Update Early Exit Layers/Scales
+                    if self.early_exit_curriculum:
+                        self.early_exit_curriculum.step()
+                        output_hidden_states = self.early_exit_curriculum.get()
+                        if True: # TODO: add cli option
+                            output_hidden_states[len(self._model.layers) - 1] = True
 
                     # Stop tracking CUDA memory now that active steps are complete
                     if (
