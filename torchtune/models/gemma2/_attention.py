@@ -240,7 +240,7 @@ class Gemma2Attention(nn.Module):
             q = self.q_norm(q)
 
         if y is None:
-            if self.kv_cache is None:
+            if self.kv_cache is None or not self.cache_enabled:
                 raise ValueError(
                     "Must provide y input or use kv_cache to enable streaming decoding"
                 )
