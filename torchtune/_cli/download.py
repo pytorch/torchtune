@@ -62,7 +62,8 @@ class Download(Subcommand):
                 /tmp/llama-3.2/pytorch/1b/consolidated.00.pth
                 ...
 
-            For a list of all models, visit the Hugging Face Hub https://huggingface.co/models or Kaggle Model Hub https://kaggle.com/models.
+            For a list of all models, visit the Hugging Face Hub
+            https://huggingface.co/models or Kaggle Model Hub https://kaggle.com/models.
             """
             ),
             formatter_class=argparse.RawTextHelpFormatter,
@@ -129,7 +130,8 @@ class Download(Subcommand):
             "--kaggle-api-key",
             type=str,
             required=False,
-            help="Kaggle API key. Needed for private models or gated models like Llama2. You can find your API key at https://kaggle.com/settings.",
+            help="Kaggle API key. Needed for private models or gated models like Llama2. You can find your "
+            "API key at https://kaggle.com/settings.",
         )
 
     def _download_cmd(self, args: argparse.Namespace) -> None:
@@ -264,11 +266,13 @@ class Download(Subcommand):
                 and parsed_handle.owner != "metaresearch"
             ):
                 warn(
-                    f"Requested PyTorch model {handle} was not published from Meta, and therefore may not be compatible with torchtune."
+                    f"Requested PyTorch model {handle} was not published from Meta, and therefore "
+                    "may not be compatible with torchtune."
                 )
             if parsed_handle.framework not in {"pytorch", "transformers"}:
                 warn(
-                    f"Requested model {handle} is neither a PyTorch nor a Transformers model, and therefore may not be compatible with torchtune."
+                    f"Requested model {handle} is neither a PyTorch nor a Transformers model, and "
+                    "therefore may not be compatible with torchtune."
                 )
         except Exception as e:
             msg = f"Failed to validate {handle} with error {e}."
