@@ -781,7 +781,7 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
             isinstance(l, TransformerCrossAttentionLayer) for l in self.modules()
         )
         has_decoder_layers = any(
-            isinstance(l, TransformerSelfAttentionLayer) for l in self.layers
+            isinstance(l, TransformerSelfAttentionLayer) for l in self.modules()
         )
         if has_encoder_layers:
             if encoder_max_seq_len is not None:

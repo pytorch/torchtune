@@ -300,7 +300,11 @@ def load_from_full_model_state_dict(
         if hasattr(sharded_meta_param, "_local_tensor") and isinstance(
             sharded_meta_param._local_tensor, NF4Tensor
         ):
-            full_tensor = to_nf4(full_tensor)
+            block_size = sharded_meta_param._local_tensor.block_size
+            scaler_block_size = sharded_meta_param._local_tensor.scaler_block_size
+            full_tensor = to_nf4(
+                full_tensor, block_size=block_size, scaler_block_size=scaler_block_size
+            )
             # replicating logic from `_fsdp_param.py`` `_init_sharded_param`
             # otherwise `distribute_tensor(DTensor(local=NF4))`
             # requires dispatching `c10d.scatter_``
