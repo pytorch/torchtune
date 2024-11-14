@@ -195,7 +195,7 @@ class MultiHeadAttention(nn.Module):
                 and before the softmax. Either:
 
                 A boolean tensor with shape ``[b x s x s]``, ``[b x s x self.encoder_max_cache_seq_len]``,
-                or ``[b x s x self.encoder_max_cache_seq_len]`` if using KV-cacheing with encoder/decoder layers.
+                or ``[b x s x self.decoder_max_cache_seq_len]`` if using KV-cacheing with encoder/decoder layers.
                 A value of True in row ``i`` and column ``j`` means token ``i`` attends to token ``j``. A value of False means
                 token ``i`` does not attend to token ``j``. If no mask is specified, a causal mask
                 is used by default.
@@ -249,7 +249,7 @@ class MultiHeadAttention(nn.Module):
             q = self.q_norm(q)
 
         if y is None:
-            if self.kv_cache is None:
+            if self.kv_cache is None or not self.cache_enabled:
                 raise ValueError(
                     "Must provide y input or use kv_cache to enable streaming decoding"
                 )
@@ -273,21 +273,21 @@ class MultiHeadAttention(nn.Module):
             k = k.transpose(1, 2)
             v = v.transpose(1, 2)
 
+            # Normalize k
+            if self.k_norm is not None:
+                k = self.k_norm(k)
+
             # Update key-value cache
             if self.kv_cache is not None and self.cache_enabled:
                 k, v = self.kv_cache.update(k, v)
 
-            # If needed, expand the key and value tensors to have the same shape
-            # as the query tensor by copying values across the relevant dim
-            # k,v shape: [b, n_h, s, h_d]
-            if self.num_heads != self.num_kv_heads:
-                expand_shape = (-1, -1, q_per_kv, -1, -1)
-                k = k.unsqueeze(2).expand(expand_shape).flatten(1, 2)
-                v = v.unsqueeze(2).expand(expand_shape).flatten(1, 2)
-
-            # Normalize k
-            if self.k_norm is not None:
-                k = self.k_norm(k)
+        # If needed, expand the key and value tensors to have the same shape
+        # as the query tensor by copying values across the relevant dim
+        # k,v shape: [b, n_kv, s, h_d] -> [b, n_h, s, h_d]
+        if self.num_heads != self.num_kv_heads:
+            expand_shape = (b, self.num_kv_heads, q_per_kv, -1, self.head_dim)
+            k = k.unsqueeze(2).expand(expand_shape).flatten(1, 2)
+            v = v.unsqueeze(2).expand(expand_shape).flatten(1, 2)
 
         output = self._attention_call(
             q,

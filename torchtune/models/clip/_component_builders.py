@@ -216,6 +216,7 @@ def clip_mlp(
     hidden_dim: int,
     activation: nn.Module,
     quantize_base: bool = False,
+    **quantization_kwargs,
 ) -> FeedForward:
     """
     Build the MLP layer associated with the clip model.
@@ -223,12 +224,12 @@ def clip_mlp(
     gate_proj = (
         nn.Linear(in_dim, hidden_dim)
         if not quantize_base
-        else FrozenNF4Linear(in_dim, hidden_dim, bias=True)
+        else FrozenNF4Linear(in_dim, hidden_dim, bias=True, **quantization_kwargs)
     )
     down_proj = (
         nn.Linear(hidden_dim, out_dim)
         if not quantize_base
-        else FrozenNF4Linear(hidden_dim, out_dim, bias=True)
+        else FrozenNF4Linear(hidden_dim, out_dim, bias=True, **quantization_kwargs)
     )
     return FeedForward(
         gate_proj=gate_proj, down_proj=down_proj, up_proj=None, activation=activation
@@ -263,6 +264,7 @@ def lora_clip_vision_encoder(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
+    **quantization_kwargs,
 ) -> VisionTransformer:
     """
     Build a LoRA implementation of the CLIP vision encoder.
@@ -330,6 +332,7 @@ def lora_clip_vision_encoder(
         lora_dropout=lora_dropout,
         use_dora=use_dora,
         quantize_base=quantize_base,
+        **quantization_kwargs,
     )
     if apply_lora_to_mlp:
         mlp = lora_clip_mlp(
@@ -342,6 +345,7 @@ def lora_clip_vision_encoder(
             quantize_base=quantize_base,
             lora_dropout=lora_dropout,
             use_dora=use_dora,
+            **quantization_kwargs,
         )
     else:
         mlp = clip_mlp(
@@ -350,6 +354,7 @@ def lora_clip_vision_encoder(
             out_dim=embed_dim,
             activation=activation(),
             quantize_base=quantize_base,
+            **quantization_kwargs,
         )
     transformer_layer = TransformerSelfAttentionLayer(
         attn=self_attn,
@@ -420,6 +425,7 @@ def lora_clip_attention(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
+    **quantization_kwargs,
 ) -> MultiHeadAttention:
     """
     Return an instance of :func:`~torchtune.modules.MultiHeadAttention` with LoRA
@@ -467,12 +473,15 @@ def lora_clip_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            **quantization_kwargs,
         )
         if "q_proj" in lora_modules
         else (
             nn.Linear(embed_dim, num_heads * head_dim, bias=False)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, num_heads * head_dim, bias=False)
+            else FrozenNF4Linear(
+                embed_dim, num_heads * head_dim, bias=False, **quantization_kwargs
+            )
         )
     )
     k_proj = (
@@ -483,12 +492,15 @@ def lora_clip_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            **quantization_kwargs,
         )
         if "k_proj" in lora_modules
         else (
             nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+            else FrozenNF4Linear(
+                embed_dim, num_kv_heads * head_dim, bias=False, **quantization_kwargs
+            )
         )
     )
     v_proj = (
@@ -499,12 +511,15 @@ def lora_clip_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            **quantization_kwargs,
         )
         if "v_proj" in lora_modules
         else (
             nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+            else FrozenNF4Linear(
+                embed_dim, num_kv_heads * head_dim, bias=False, **quantization_kwargs
+            )
         )
     )
     output_proj = (
@@ -515,12 +530,15 @@ def lora_clip_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            **quantization_kwargs,
         )
         if "output_proj" in lora_modules
         else (
             nn.Linear(embed_dim, embed_dim, bias=False)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, embed_dim, bias=False)
+            else FrozenNF4Linear(
+                embed_dim, embed_dim, bias=False, **quantization_kwargs
+            )
         )
     )
 
@@ -550,6 +568,7 @@ def lora_clip_mlp(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
+    **quantization_kwargs,
 ) -> FeedForward:
     """
     Build the MLP layer with LoRA applied to the gate and down projections.
@@ -563,6 +582,7 @@ def lora_clip_mlp(
         dropout=lora_dropout,
         quantize_base=quantize_base,
         use_bias=True,
+        **quantization_kwargs,
     )
     down_proj = adapter_cls(
         in_dim=hidden_dim,
@@ -572,6 +592,7 @@ def lora_clip_mlp(
         dropout=lora_dropout,
         quantize_base=quantize_base,
         use_bias=True,
+        **quantization_kwargs,
     )
     return FeedForward(
         gate_proj=gate_proj, down_proj=down_proj, up_proj=None, activation=activation

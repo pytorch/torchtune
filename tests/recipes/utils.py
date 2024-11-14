@@ -128,6 +128,58 @@ def llama3_test_config() -> List[str]:
     ]
 
 
+def llama3_2_vision_test_config() -> List[str]:
+    return [
+        "model=tests.recipes.utils.dummy_vision_model",
+        "tokenizer._component_=torchtune.models.llama3_2_vision._transform.Llama3VisionTransform",
+        "tokenizer.patch_size=9",
+        "tokenizer.max_num_tiles=2",
+        "tokenizer.tile_size=18",
+        "tokenizer.max_seq_len=4096",
+    ]
+
+
+def dummy_vision_model():
+    from torchtune.models.llama3_2_vision._component_builders import (
+        llama3_2_vision_decoder,
+        llama3_2_vision_encoder,
+    )
+    from torchtune.modules.model_fusion import DeepFusionModel
+
+    vision_encoder = llama3_2_vision_encoder(
+        clip_embed_dim=128,
+        clip_num_layers=4,
+        num_heads=4,
+        tile_size=18,
+        patch_size=9,
+        max_num_tiles=2,
+        in_channels=3,
+        clip_hidden_states=[0, 1],
+        num_layers_projection=2,
+        decoder_embed_dim=128,
+    )
+    vision_decoder = llama3_2_vision_decoder(
+        vocab_size=128256,
+        num_layers=4,
+        fusion_interval=2,
+        num_special_tokens=2,
+        num_heads=8,
+        num_kv_heads=4,
+        embed_dim=128,
+        max_seq_len=4096,
+        encoder_max_seq_len=4096,
+    )
+
+    model = DeepFusionModel(
+        encoder=vision_encoder,
+        decoder=vision_decoder,
+        encoder_trainable=False,
+        decoder_trainable=False,
+        fusion_trainable=False,
+    )
+    return model
+
+
 def lora_llama2_test_config(
     lora_attn_modules,
     apply_lora_to_mlp: bool = False,
@@ -193,6 +245,27 @@ def write_hf_ckpt_config(ckpt_dir: str):
         "hidden_size": 256,
         "num_attention_heads": 16,
         "num_key_value_heads": 8,
+    }
+    config_file = Path.joinpath(Path(ckpt_dir), "config.json")
+    with config_file.open("w") as f:
+        json.dump(config, f)
+
+
+def write_hf_vision_ckpt_config(ckpt_dir: str):
+    config = {
+        "text_config": {
+            "num_attention_heads": 8,
+            "num_key_value_heads": 4,
+            "hidden_size": 128,
+            "vocab_size": 128256,
+            "cross_attention_layers": [1, 4],
+        },
+        "vision_config": {
+            "hidden_size": 128,
+            "image_size": 18,
+            "max_num_tiles": 2,
+            "supported_aspect_ratios": [[1, 1], [1, 2], [2, 1]],
+        },
     }
     config_file = Path.joinpath(Path(ckpt_dir), "config.json")
     with config_file.open("w") as f:
