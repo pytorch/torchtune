@@ -50,7 +50,7 @@ resume_from_checkpoint: False
 
 # Fine-tuning arguments
 batch_size: 4
-epochs: 3
+epochs: 1
 optimizer:
   _component_: bitsandbytes.optim.PagedAdamW8bit
   lr: 2e-5
