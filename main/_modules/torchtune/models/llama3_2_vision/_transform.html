@@ -433,7 +433,7 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">PromptTemplate</span>
 
@@ -464,9 +464,9 @@
 <span class="sd">            This will be used to generate possible_resolutions,</span>
 <span class="sd">            e.g. [(224, 224), (224, 448), (448, 224)] if max_num_tiles = 2 and tile_size = 224.</span>
 <span class="sd">            Default 4.</span>
-<span class="sd">        special_tokens (Optional[Dict[str, int]]): mapping containing special text tokens and</span>
-<span class="sd">            their registered token IDs. If left as None, this will be set to the canonical</span>
-<span class="sd">            Llama3 special tokens.</span>
+<span class="sd">        special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face</span>
+<span class="sd">            model files that contains all registered special tokens, or a local json file</span>
+<span class="sd">            structured similarly. Default is None to use the canonical Llama3 special tokens.</span>
 <span class="sd">        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,</span>
 <span class="sd">            after which the input will be truncated. Default is None.</span>
 <span class="sd">        image_mean (Optional[Tuple[float, float, float]]): Mean values of each channel, used for normalization.</span>
@@ -497,7 +497,7 @@
         <span class="n">tile_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">patch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">max_num_tiles</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
-        <span class="n">special_tokens</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">special_tokens_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">image_mean</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">image_std</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -505,7 +505,7 @@
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">llama3_tokenizer</span><span class="p">(</span>
             <span class="n">path</span><span class="p">,</span>
-            <span class="n">special_tokens_path</span><span class="o">=</span><span class="n">special_tokens</span><span class="p">,</span>
+            <span class="n">special_tokens_path</span><span class="o">=</span><span class="n">special_tokens_path</span><span class="p">,</span>
             <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
             <span class="n">prompt_template</span><span class="o">=</span><span class="n">prompt_template</span><span class="p">,</span>
         <span class="p">)</span>

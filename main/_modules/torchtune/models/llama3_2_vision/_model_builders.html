@@ -479,17 +479,12 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        Llama3VisionTransform: Instantiation of the Llama 3.2 vision transform</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">special_tokens</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">parse_hf_tokenizer_json</span><span class="p">(</span><span class="n">special_tokens_path</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">special_tokens_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="k">else</span> <span class="kc">None</span>
-    <span class="p">)</span>
     <span class="n">template</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">_get_prompt_template</span><span class="p">(</span><span class="n">prompt_template</span><span class="p">)</span> <span class="k">if</span> <span class="n">prompt_template</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">Llama3VisionTransform</span><span class="p">(</span>
         <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span>
-        <span class="n">special_tokens</span><span class="o">=</span><span class="n">special_tokens</span><span class="p">,</span>
+        <span class="n">special_tokens_path</span><span class="o">=</span><span class="n">special_tokens_path</span><span class="p">,</span>
         <span class="n">tile_size</span><span class="o">=</span><span class="n">image_size</span><span class="p">,</span>
         <span class="n">patch_size</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
         <span class="n">max_num_tiles</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
