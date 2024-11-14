@@ -12,7 +12,7 @@ from torchtune.models.clip._transform import CLIPImageTransform
 
 
 def clip_tokenizer(
-    merges_path: PathLike,
+    path: PathLike,
     max_seq_len: int = 77,
     truncate: bool = True,
 ) -> CLIPTokenizer:
@@ -20,7 +20,7 @@ def clip_tokenizer(
     Builder for the CLIP text tokenizer.
 
     Args:
-        merges_path (PathLike): Path to the CLIP merges file
+        path (PathLike): Path to the CLIP merges file
         max_seq_len (bool): Context length
             Default: 77
         truncate (bool): Truncate the token sequence if it exceeds max_seq_len (otherwise raises AssertionError)
@@ -29,7 +29,7 @@ def clip_tokenizer(
     Returns:
         CLIPTokenizer: Instantiation of the CLIP text tokenizer
     """
-    return CLIPTokenizer(merges_path, max_seq_len=max_seq_len, truncate=truncate)
+    return CLIPTokenizer(path, max_seq_len=max_seq_len, truncate=truncate)
 
 
 def clip_text_vit_large_patch14() -> CLIPTextEncoder:

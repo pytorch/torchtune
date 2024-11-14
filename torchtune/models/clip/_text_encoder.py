@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import copy
-from typing import List, Optional, Union
+from typing import Optional
 
 import torch
 from torch import nn, Tensor
@@ -18,23 +18,18 @@ class CLIPTextEncoder(nn.Module):
     Text encoder for CLIP.
 
     Args:
-        layers (Union[nn.Module, List[nn.Module], nn.ModuleList]): A single encoder layer, an
-            nn.ModuleList of layers, or a list of layers.
+        layer (nn.Module): A single encoder layer.
         final_norm (nn.Module): Callable that applies normalization to the output of the encoder
         vocab_size (int): size of the vocabulary, default 49408
         max_seq_len (int): context size, default 77
         embed_dim (int): embedding/model dimension size, default 768
         num_layers (int): number of transformer layers, default 12
-
-    Raises:
-        AssertionError: num_layers is set and layer is a list
-        AssertionError: num_layers is not set and layer is an nn.Module
     """
 
     def __init__(
         self,
         *,
-        layers: Union[nn.Module, List[nn.Module], nn.ModuleList],
+        layer: nn.Module,
         final_norm: nn.Module,
         vocab_size: int = 49408,
         max_seq_len: int = 77,
@@ -42,18 +37,7 @@ class CLIPTextEncoder(nn.Module):
         num_layers: int = 12,
     ):
         super().__init__()
-        if isinstance(layers, nn.ModuleList):
-            pass
-        elif isinstance(layers, list):
-            layers = nn.ModuleList(layers)
-        else:
-            if not isinstance(layers, nn.Module):
-                raise AssertionError("num_layers is defined, layers must be a module")
-            if num_layers is None:
-                raise AssertionError("num_layers is not defined, layers must be a list")
-            layers = nn.ModuleList([copy.deepcopy(layers) for i in range(num_layers)])
-
-        self.layers = layers
+        self.layers = nn.ModuleList([copy.deepcopy(layer) for i in range(num_layers)])
         self.final_norm = final_norm
         self.max_seq_len = max_seq_len
 

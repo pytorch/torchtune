@@ -20,14 +20,12 @@ class CLIPTokenizer(BaseTokenizer):
     https://github.com/openai/CLIP/blob/main/clip/simple_tokenizer.py
 
     Args:
-        merges_path (PathLike): the path to the CLIP merges file
+        path (PathLike): the path to the CLIP merges file
         max_seq_len (int): the context length (all CLIP models use 77)
         truncate (bool): whether to truncate the text when longer than max_seq_len
     """
 
-    def __init__(
-        self, merges_path: PathLike, max_seq_len: int = 77, truncate: bool = True
-    ):
+    def __init__(self, path: PathLike, max_seq_len: int = 77, truncate: bool = True):
         self.max_seq_len = max_seq_len
         self.truncate = truncate
 
@@ -35,7 +33,7 @@ class CLIPTokenizer(BaseTokenizer):
         self.byte_decoder = {v: k for k, v in self.byte_encoder.items()}
 
         merges = []
-        with open(merges_path, encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             for i, line in enumerate(f):
                 line = line.strip()
                 if (i == 0 and line.startswith("#version:")) or not line:

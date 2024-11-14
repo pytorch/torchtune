@@ -23,7 +23,6 @@ from torchtune.modules import (
     MultiHeadAttention,
     TransformerSelfAttentionLayer,
 )
-from torchtune.modules.activations import QuickGELU
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 from torchtune.modules.peft import LORA_ATTN_MODULES, DoRALinear, LoRALinear
 from torchtune.modules.vision_transformer import CLSProjection, VisionTransformer
@@ -202,7 +201,7 @@ def clip_text_encoder(
     )
     final_norm = nn.LayerNorm(embed_dim, eps=norm_eps)
     return CLIPTextEncoder(
-        layers=encoder_layer,
+        layer=encoder_layer,
         final_norm=final_norm,
         vocab_size=vocab_size,
         max_seq_len=max_seq_len,
@@ -577,3 +576,12 @@ def lora_clip_mlp(
     return FeedForward(
         gate_proj=gate_proj, down_proj=down_proj, up_proj=None, activation=activation
     )
+
+
+class QuickGELU(nn.Module):
+    """
+    Fast approximation of GELU.
+    """
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x * torch.sigmoid(1.702 * x)
