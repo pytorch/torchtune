@@ -94,3 +94,12 @@ class CLIPTextEncoder(nn.Module):
         x = x.take_along_dim(eos_token_positions.view(-1, 1, 1), dim=1).squeeze(dim=1)
 
         return x
+
+
+class QuickGELU(nn.Module):
+    """
+    Fast approximation of GELU.
+    """
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x * torch.sigmoid(1.702 * x)

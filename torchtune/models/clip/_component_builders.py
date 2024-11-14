@@ -15,7 +15,7 @@ from torchtune.models.clip._position_embeddings import (
     TilePositionalEmbedding,
     TokenPositionalEmbedding,
 )
-from torchtune.models.clip._text_encoder import CLIPTextEncoder
+from torchtune.models.clip._text_encoder import CLIPTextEncoder, QuickGELU
 from torchtune.modules import (
     FeedForward,
     Fp32LayerNorm,
@@ -597,12 +597,3 @@ def lora_clip_mlp(
     return FeedForward(
         gate_proj=gate_proj, down_proj=down_proj, up_proj=None, activation=activation
     )
-
-
-class QuickGELU(nn.Module):
-    """
-    Fast approximation of GELU.
-    """
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return x * torch.sigmoid(1.702 * x)
