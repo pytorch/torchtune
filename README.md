@@ -10,6 +10,7 @@
 [**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) |  [**Documentation**](https://pytorch.org/torchtune/main/index.html) | [**Community**](#community) | [**License**](#license) | [**Citing torchtune**](#citing-torchtune)
 
 ### 📣 Recent updates 📣
+* *November 2024*: torchtune has released [v0.4.0](https://github.com/pytorch/torchtune/releases/tag/v0.4.0) which includes stable support for exciting features like activation offloading and multimodal QLoRA
 * *November 2024*: torchtune has added [Gemma2](recipes/configs/gemma2) to its models!
 * *October 2024*: torchtune added support for Qwen2.5 models - find the recipes [here](recipes/configs/qwen2_5/)
 * *September 2024*: torchtune has support for **Llama 3.2 11B Vision**, **Llama 3.2 3B**, and **Llama 3.2 1B** models! Try them out by following our installation instructions [here](#Installation), then run any of the text configs [here](recipes/configs/llama3_2) or vision configs [here](recipes/configs/llama3_2_vision).
