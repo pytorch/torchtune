@@ -17,7 +17,7 @@ from torchtune.modules import (
 )
 from torchtune.modules.loss import CEWithChunkedOutputLoss
 from torchtune.modules.model_fusion import DeepFusionModel
-from torchtune.utils import get_logger, torch_version_ge
+from torchtune.utils import get_logger
 
 log = get_logger("INFO")
 
@@ -50,13 +50,6 @@ def compile_model(
             m, TransformerCrossAttentionLayer
         ):
             m.compile(backend=backend)
-    # Fallback for models that can't be per-layer compiled
-    if not torch_version_ge("2.5.0"):
-        if verbose:
-            log.warning(
-                "Per-layer compilation may not be fully optimized in PyTorch versions < 2.5.0. "
-                "Consider upgrading for improved performance."
-            )
 
 
 def compile_loss(loss: nn.Module, verbose: bool = True) -> None:
