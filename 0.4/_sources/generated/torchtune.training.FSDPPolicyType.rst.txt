@@ -1,0 +1,6 @@
+﻿torchtune.training.FSDPPolicyType
+=================================
+
+.. currentmodule:: torchtune.training
+
+.. autodata:: FSDPPolicyType

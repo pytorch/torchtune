@@ -1,0 +1,1329 @@
+
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>torchtune.data._collate &mdash; torchtune 0.4 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-T8XT4PS');</script>
+    <!-- End Google Tag Manager -->
+  
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+  <!-- Preload the theme fonts -->
+
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+<!-- Preload the katex fonts -->
+
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Main-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size1-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size4-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size2-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size3-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Caligraphic-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.2/css/all.css" integrity="sha384-vSIIfh2YWi9wW0r9iZe7RJPrKwp6bG+s9QZMoITbCckVJqGCCRhc+ccxNcdpHuYu" crossorigin="anonymous">
+</head>
+
+<div class="container-fluid header-holder tutorials-header" id="header-holder">
+  <div class="container">
+    <div class="header-container">
+      <a class="header-logo" href="https://pytorch.org/" aria-label="PyTorch"></a>
+
+      <div class="main-menu">
+        <ul>
+
+          <li class="main-menu-item">
+          <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Learn
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/get-started">
+                  <span class=dropdown-title>Get Started</span>
+                  <p>Run PyTorch locally or get started quickly with one of the supported cloud platforms</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials">
+                  <span class="dropdown-title">Tutorials</span>
+                  <p>Whats new in PyTorch tutorials</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials/beginner/basics/intro.html">
+                  <span class="dropdown-title">Learn the Basics</span>
+                  <p>Familiarize yourself with PyTorch concepts and modules</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials/recipes/recipes_index.html">
+                  <span class="dropdown-title">PyTorch Recipes</span>
+                  <p>Bite-size, ready-to-deploy PyTorch code examples</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials/beginner/introyt.html">
+                  <span class="dropdown-title">Intro to PyTorch - YouTube Series</span>
+                  <p>Master PyTorch basics with our engaging YouTube tutorial series</p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li>
+          <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Ecosystem
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/ecosystem">
+                  <span class="dropdown-title">Tools</span>
+                  <p>Learn about the tools and frameworks in the PyTorch Ecosystem</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/#community-module">
+                  <span class=dropdown-title>Community</span>
+                  <p>Join the PyTorch developer community to contribute, learn, and get your questions answered</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://discuss.pytorch.org/" target="_blank">
+                  <span class=dropdown-title>Forums</span>
+                  <p>A place to discuss PyTorch code, issues, install, research</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/resources">
+                  <span class=dropdown-title>Developer Resources</span>
+                  <p>Find resources and get questions answered</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/ecosystem/contributor-awards-2023">
+                  <span class="dropdown-title">Contributor Awards - 2023</span>
+                  <p>Award winners announced at this year's PyTorch Conference</p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li>
+          <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Edge
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/edge">
+                  <span class="dropdown-title">About PyTorch Edge</span>
+                  <p>Build innovative and privacy-aware AI experiences for edge devices</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/executorch-overview">
+                  <span class="dropdown-title">ExecuTorch</span>
+                  <p>End-to-end solution for enabling on-device inference capabilities across mobile and edge devices</p>
+                </a>
+              </div>
+            </div>  
+          </li>
+
+          <li class="main-menu-item">
+            <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Docs
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/docs/stable/index.html">
+                  <span class="dropdown-title">PyTorch</span>
+                  <p>Explore the documentation for comprehensive guidance on how to use PyTorch</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/pytorch-domains">
+                  <span class="dropdown-title">PyTorch Domains</span>
+                  <p>Read the PyTorch Domains documentation to learn more about domain-specific libraries</p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li>
+            <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Blogs & News 
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/blog/">
+                  <span class="dropdown-title">PyTorch Blog</span>
+                  <p>Catch up on the latest technical news and happenings</p>
+                </a>
+                 <a class="nav-dropdown-item" href="https://pytorch.org/community-blog">
+                  <span class="dropdown-title">Community Blog</span>
+                  <p>Stories from the PyTorch ecosystem</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/videos">
+                  <span class="dropdown-title">Videos</span>
+                  <p>Learn about the latest PyTorch tutorials, new, and more </p>
+                <a class="nav-dropdown-item" href="https://pytorch.org/community-stories">
+                  <span class="dropdown-title">Community Stories</span>
+                  <p>Learn how our community solves real, everyday machine learning problems with PyTorch</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/events">
+                  <span class="dropdown-title">Events</span>
+                  <p>Find events, webinars, and podcasts</p>
+                </a>
+            </div>
+          </li>
+
+          <li>
+            <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                About
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/foundation">
+                  <span class="dropdown-title">PyTorch Foundation</span>
+                  <p>Learn more about the PyTorch Foundation</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/governing-board">
+                  <span class="dropdown-title">Governing Board</span>
+                  <p></p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li class="main-menu-item">
+            <div class="no-dropdown">
+              <a href="https://pytorch.org/join" data-cta="join">
+                Become a Member
+              </a>
+            </div>
+          </li>
+          <li>
+           <div class="main-menu-item">
+             <a href="https://github.com/pytorch/pytorch" class="github-icon">
+             </a>
+           </div>
+          </li>
+          <!--- TODO: This block adds the search icon to the nav bar. We will enable it later. 
+          <li>
+            <div class="main-menu-item">
+             <a href="https://github.com/pytorch/pytorch" class="search-icon">
+             </a>
+            </div>
+          </li>
+          --->
+        </ul>
+      </div>
+
+      <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a>
+    </div>
+  </div>
+</div>
+
+<body class="pytorch-body">
+
+   
+
+    
+
+    <div class="table-of-contents-link-wrapper">
+      <span>Table of Contents</span>
+      <a href="#" class="toggle-table-of-contents" data-behavior="toggle-table-of-contents"></a>
+    </div>
+
+    <nav data-toggle="wy-nav-shift" class="pytorch-left-menu" id="pytorch-left-menu">
+      <div class="pytorch-side-scroll">
+        <div class="pytorch-menu pytorch-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          <div class="pytorch-left-menu-search">
+            
+    <div class="version">
+        <a href='https://pytorch.org/torchtune/versions.html'>0.4 &#x25BC</a>
+      </div>
+    
+
+
+  
+
+
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search Docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          </div>
+
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">torchtune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tune_cli.html">torchtune CLI</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Finetuning Recipes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../recipes/recipes_overview.html">Recipes Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/prompt_templates.html">Prompt Templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/packing.html">Sample packing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../basics/custom_components.html">Custom Components and Recipes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/configs.html">All About Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_data.html">torchtune.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_generation.html">torchtune.generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_models.html">torchtune.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_rlhf.html">torchtune.rlhf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_training.html">torchtune.training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_utilities.html">torchtune.utils</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <div class="pytorch-container">
+      <div class="pytorch-page-level-bar" id="pytorch-page-level-bar">
+        <div class="pytorch-breadcrumbs-wrapper">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="pytorch-breadcrumbs">
+    
+      <li>
+        <a href="../../../index.html">
+          
+            Docs
+          
+        </a> &gt;
+      </li>
+
+        
+          <li><a href="../../index.html">Module code</a> &gt;</li>
+        
+      <li>torchtune.data._collate</li>
+    
+    
+      <li class="pytorch-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+</div>
+        </div>
+
+        <div class="pytorch-shortcuts-wrapper" id="pytorch-shortcuts-wrapper">
+          Shortcuts
+        </div>
+      </div>
+
+      <section data-toggle="wy-nav-shift" id="pytorch-content-wrap" class="pytorch-content-wrap">
+        <div class="pytorch-content-left">
+
+        
+          <!-- Google Tag Manager (noscript) -->
+          <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T8XT4PS"
+          height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+          <!-- End Google Tag Manager (noscript) -->
+          
+          <div class="rst-content">
+          
+            <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
+             <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
+              
+  <h1>Source code for torchtune.data._collate</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
+<span class="c1"># All rights reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># This source code is licensed under the BSD-style license found in the</span>
+<span class="c1"># LICENSE file in the root directory of this source tree.</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">from</span> <span class="nn">torch.nn.utils.rnn</span> <span class="kn">import</span> <span class="n">pad_sequence</span>
+<span class="kn">from</span> <span class="nn">torchtune.data._common</span> <span class="kn">import</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">PACK_TYPE</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules.attention_utils</span> <span class="kn">import</span> <span class="n">packed_block_causal_mask</span>
+
+
+<div class="viewcode-block" id="left_pad_sequence"><a class="viewcode-back" href="../../../generated/torchtune.data.left_pad_sequence.html#torchtune.data.left_pad_sequence">[docs]</a><span class="k">def</span> <span class="nf">left_pad_sequence</span><span class="p">(</span>
+    <span class="n">sequences</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+    <span class="n">batch_first</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">padding_value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function is identical to :func:`torch.nn.utils.rnn.pad_sequence`, but</span>
+<span class="sd">    instead pads a list of variable length Tensors from the left to the length</span>
+<span class="sd">    of the longest sequence.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        This function returns a Tensor of size ``T x B x *`` or ``B x T x *``</span>
+<span class="sd">        where `T` is the length of the longest sequence. This function assumes</span>
+<span class="sd">        trailing dimensions and type of all the Tensors in sequences are same.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sequences (List[torch.Tensor]): list of variable length sequences.</span>
+<span class="sd">        batch_first (bool): if ``True``, the output will be in ``B x T x *``</span>
+<span class="sd">            format, ``T x B x *`` otherwise. Default False.</span>
+<span class="sd">        padding_value (float): value for padded elements. Default: 0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tensor of size ``T x B x *`` if :attr:`batch_first` is ``False``.</span>
+<span class="sd">        Tensor of size ``B x T x *`` otherwise</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; a = torch.tensor([1, 2, 3])</span>
+<span class="sd">        &gt;&gt;&gt; b = torch.tensor([4, 5, 6, 7])</span>
+<span class="sd">        &gt;&gt;&gt; c = torch.tensor([8, 9, 10, 11, 12])</span>
+<span class="sd">        &gt;&gt;&gt; left_pad_sequence([a, b, c], batch_first=True, padding_value=0)</span>
+<span class="sd">        tensor([[ 0,  0,  1,  2,  3],</span>
+<span class="sd">                [ 0,  4,  5,  6,  7],</span>
+<span class="sd">                [ 8,  9, 10, 11, 12]])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">pad_sequence</span><span class="p">(</span>
+        <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">sequences</span><span class="p">),</span>
+        <span class="n">batch_first</span><span class="o">=</span><span class="n">batch_first</span><span class="p">,</span>
+        <span class="n">padding_value</span><span class="o">=</span><span class="n">padding_value</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">batch_first</span><span class="p">)])</span></div>
+
+
+<div class="viewcode-block" id="padded_collate"><a class="viewcode-back" href="../../../generated/torchtune.data.padded_collate.html#torchtune.data.padded_collate">[docs]</a><span class="k">def</span> <span class="nf">padded_collate</span><span class="p">(</span>
+    <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">pad_direction</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">keys_to_pad</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">padding_idx</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]],</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A generic padding collation function which pads ``keys_to_pad`` entries in a</span>
+<span class="sd">    batch of sequences from the given ``pad_direction`` to the maximum sequence length for</span>
+<span class="sd">    each entry in the batch.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        This function assumes all batch elements which are not in ``keys_to_pad`` do not require</span>
+<span class="sd">        any collation (see example below).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        batch (List[Dict[str, List[int]]]): A list of dictionaries containing inputs.</span>
+<span class="sd">        pad_direction (str): whether to pad entries from the left, or right. If ``pad_direction=&quot;right&quot;``, we use</span>
+<span class="sd">            :func:`torch.nn.utils.rnn.pad_sequence`, otherwise if ``pad_direction=&quot;left&quot;``,</span>
+<span class="sd">            we use :func:`torchtune.data.left_pad_sequence`.</span>
+<span class="sd">        keys_to_pad (List[str]): Batch element keys to apply padding to. Should be a subset</span>
+<span class="sd">            of keys in the batch.</span>
+<span class="sd">        padding_idx (Union[int, Dict[str, int]]): Either a single integer padding value to apply to all</span>
+<span class="sd">            ``keys_to_pad`` elements, or a mapping with keys identical to ``keys_to_pad`` with per-key</span>
+<span class="sd">            padding values.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: The padded tensor of input ids with shape [batch_size, max_seq_len].</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: if ``pad_direction`` is not one of &quot;left&quot; or &quot;right&quot;.</span>
+<span class="sd">        ValueError: if ``keys_to_pad`` is empty, or is not a list, or is not a subset of keys in the batch.</span>
+<span class="sd">        ValueError: if ``padding_idx`` is provided as a dictionary, but the keys are not identical to</span>
+<span class="sd">            ``keys_to_pad``.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; a = [1, 2, 3]</span>
+<span class="sd">        &gt;&gt;&gt; b = [4, 5, 6, 7]</span>
+<span class="sd">        &gt;&gt;&gt; c = [8, 9, 10, 11, 12]</span>
+<span class="sd">        &gt;&gt;&gt; batch = [</span>
+<span class="sd">        &gt;&gt;&gt;     {&quot;tokens&quot;: a, &quot;labels&quot;: 1},</span>
+<span class="sd">        &gt;&gt;&gt;     {&quot;tokens&quot;: b, &quot;labels&quot;: 3},</span>
+<span class="sd">        &gt;&gt;&gt;     {&quot;tokens&quot;: c, &quot;labels&quot;: 0},</span>
+<span class="sd">        &gt;&gt;&gt; ]</span>
+<span class="sd">        &gt;&gt;&gt; padded_collate(</span>
+<span class="sd">        &gt;&gt;&gt;     batch,</span>
+<span class="sd">        &gt;&gt;&gt;     pad_direction=&quot;left&quot;,</span>
+<span class="sd">        &gt;&gt;&gt;     keys_to_pad=[&quot;tokens&quot;],</span>
+<span class="sd">        &gt;&gt;&gt;     padding_idx=-10</span>
+<span class="sd">        &gt;&gt;&gt; )</span>
+<span class="sd">        {</span>
+<span class="sd">            &#39;labels&#39;: tensor([1, 3, 0]),</span>
+<span class="sd">            &#39;tokens&#39;: tensor([[-10, -10,   1,   2,   3],</span>
+<span class="sd">                              [-10,   4,   5,   6,   7],</span>
+<span class="sd">                              [  8,   9,  10,  11,  12]])</span>
+<span class="sd">        }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">pad_direction</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="s2">&quot;right&quot;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;pad_direction should be one of &#39;left&#39; or &#39;right&#39; but found </span><span class="si">{</span><span class="n">pad_direction</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">keys_to_pad</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">keys_to_pad</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;keys_to_pad should be a list of strings with at least one element, but found </span><span class="si">{</span><span class="n">keys_to_pad</span><span class="si">}</span><span class="s2">!&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">keys_to_pad</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">keys_to_pad</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">padding_idx</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">padding_idx</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="n">keys_to_pad</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;padding_idx was provided as a dictionary, but the keys (</span><span class="si">{</span><span class="n">padding_idx</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">) &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;are not the same as keys_to_pad (</span><span class="si">{</span><span class="n">keys_to_pad</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">keys_to_pad</span> <span class="o">&lt;=</span> <span class="nb">set</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;keys_to_pad should be a subset of keys in the batch, but found &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">keys_to_pad</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="nb">set</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">, respectively.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="c1"># let&#39;s pull out any batch elements which don&#39;t need any padding</span>
+    <span class="c1"># and convert to tensors</span>
+    <span class="n">batch_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">keys_to_pad</span><span class="p">]</span>
+    <span class="n">output_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">batch_keys</span><span class="p">}</span>
+
+    <span class="c1"># now pad the remaining keys</span>
+    <span class="n">pad_fn</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">rnn</span><span class="o">.</span><span class="n">pad_sequence</span>
+        <span class="k">if</span> <span class="n">pad_direction</span> <span class="o">==</span> <span class="s2">&quot;right&quot;</span>
+        <span class="k">else</span> <span class="n">left_pad_sequence</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys_to_pad</span><span class="p">:</span>
+        <span class="n">output_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">pad_fn</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">],</span>
+            <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">padding_value</span><span class="o">=</span><span class="n">padding_idx</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">padding_idx</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">padding_idx</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">output_dict</span></div>
+
+
+<div class="viewcode-block" id="padded_collate_sft"><a class="viewcode-back" href="../../../generated/torchtune.data.padded_collate_sft.html#torchtune.data.padded_collate_sft">[docs]</a><span class="k">def</span> <span class="nf">padded_collate_sft</span><span class="p">(</span>
+    <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span>
+    <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">ignore_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Pad a batch of sequences to the longest sequence length in the batch, and</span>
+<span class="sd">    convert integer lists to tensors.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        batch (List[Dict[str, List[int]]]): A list of dictionaries containing input, label pairs.</span>
+<span class="sd">        padding_idx (int): Padding index for input ids. Defaults to 0.</span>
+<span class="sd">        ignore_idx (int): Padding index for labels. Defaults to -100.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, torch.Tensor]: Collated input and label tensors.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; token_pairs = [</span>
+<span class="sd">        &gt;&gt;&gt;    {&quot;tokens&quot;: [1, 2, 3], &quot;labels&quot;: [4, 5, 6]},</span>
+<span class="sd">        &gt;&gt;&gt;    {&quot;tokens&quot;: [7,], &quot;labels&quot;: [10,]},</span>
+<span class="sd">        &gt;&gt;&gt; ]</span>
+<span class="sd">        &gt;&gt;&gt; collated = padded_collate(</span>
+<span class="sd">        &gt;&gt;&gt;    batch=token_pairs,</span>
+<span class="sd">        &gt;&gt;&gt;    padding_idx=padding_idx,</span>
+<span class="sd">        &gt;&gt;&gt;    ignore_idx=ignore_idx,</span>
+<span class="sd">        &gt;&gt;&gt; )</span>
+<span class="sd">        &gt;&gt;&gt; collated[&quot;tokens&quot;]</span>
+<span class="sd">        &gt;&gt;&gt; tensor([[1, 2, 3], [7, 0, 0]])</span>
+<span class="sd">        &gt;&gt;&gt; collated[&quot;labels&quot;]</span>
+<span class="sd">        &gt;&gt;&gt; tensor([[4, 5, 6], [10, -100, -100]])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">input_ids</span> <span class="o">=</span> <span class="n">pad_sequence</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">],</span>
+        <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">padding_value</span><span class="o">=</span><span class="n">padding_idx</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">pad_sequence</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">],</span>
+        <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">padding_value</span><span class="o">=</span><span class="n">ignore_idx</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">input_ids_seq_len</span> <span class="o">=</span> <span class="n">input_ids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">labels_seq_len</span> <span class="o">=</span> <span class="n">labels</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># Hack to pad correctly and not use max_seq_len, which is costly</span>
+    <span class="k">if</span> <span class="n">input_ids_seq_len</span> <span class="o">&gt;</span> <span class="n">labels_seq_len</span><span class="p">:</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+            <span class="n">labels</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">input_ids_seq_len</span> <span class="o">-</span> <span class="n">labels_seq_len</span><span class="p">),</span> <span class="n">value</span><span class="o">=</span><span class="n">ignore_idx</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">labels_seq_len</span> <span class="o">&gt;</span> <span class="n">input_ids_seq_len</span><span class="p">:</span>
+        <span class="n">input_ids</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+            <span class="n">input_ids</span><span class="p">,</span>
+            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">labels_seq_len</span> <span class="o">-</span> <span class="n">input_ids_seq_len</span><span class="p">),</span>
+            <span class="n">value</span><span class="o">=</span><span class="n">padding_idx</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">input_ids</span><span class="o">.</span><span class="n">long</span><span class="p">(),</span> <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="o">.</span><span class="n">long</span><span class="p">()}</span></div>
+
+
+<span class="c1"># TODO: Generalize this to support any type of encoder input, right now this assumes</span>
+<span class="c1"># a specific encoder_input signature</span>
+<div class="viewcode-block" id="padded_collate_tiled_images_and_mask"><a class="viewcode-back" href="../../../generated/torchtune.data.padded_collate_tiled_images_and_mask.html#torchtune.data.padded_collate_tiled_images_and_mask">[docs]</a><span class="k">def</span> <span class="nf">padded_collate_tiled_images_and_mask</span><span class="p">(</span>
+    <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">ignore_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
+    <span class="n">pad_direction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;right&quot;</span><span class="p">,</span>
+    <span class="n">pad_max_tiles</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">pad_max_images</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Pad a batch of text sequences, tiled image tensors, aspect ratios,</span>
+<span class="sd">    and cross attention masks. This can be used for both training and inference.</span>
+
+<span class="sd">    ``batch`` is expected to be a list of sample dicts containing the following::</span>
+<span class="sd">        - &quot;tokens&quot;: List[int] of length text_seq_len, varies across samples</span>
+<span class="sd">        - &quot;labels&quot;: List[int] of length text_seq_len, varies across samples</span>
+<span class="sd">        - &quot;encoder_input&quot;: Dict[str, List[torch.Tensor]]</span>
+<span class="sd">            - &quot;images&quot;: List[torch.Tensor], each with shape (n_tiles, c, h, w)</span>
+<span class="sd">            - &quot;aspect_ratio&quot;: List[torch.Tensor], each with shape (2, ) to indicate h_ratio, w_ratio</span>
+<span class="sd">        - &quot;encoder_mask&quot;: List[Tensor], each with shape (text_seq_len, image_seq_len)</span>
+
+<span class="sd">    Shape notation:</span>
+<span class="sd">        - c = channel dim</span>
+<span class="sd">        - h = height dim</span>
+<span class="sd">        - w = weight dim</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        For each element in the batch, ``len(images) == len(encoder_mask) == len(aspect_ratio)``.</span>
+
+<span class="sd">    This collater does the following:</span>
+<span class="sd">        (1) Pad text sequence and encoder mask to the longest sequence length in the batch</span>
+<span class="sd">        (2) Pad image tensors in the tile dimension with zeros to the largest number</span>
+<span class="sd">            of tiles in the batch</span>
+<span class="sd">        (3) Add empty images of zeros to samples up to max number of images in the batch</span>
+<span class="sd">        (4) Pad aspect ratios with (1,1) for all added padding images</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        batch (List[Dict[str, Any]]): A list of sample dicts containing tokens,</span>
+<span class="sd">            labels, images, encoder_mask, and aspect_ratio.</span>
+<span class="sd">        padding_idx (int): Padding index for input token ids. Defaults to 0.</span>
+<span class="sd">        ignore_idx (int): Padding index for labels. Defaults to -100.</span>
+<span class="sd">        pad_direction (str): whether to pad entries from the left, or right. If ``pad_direction=&quot;right&quot;``, we use</span>
+<span class="sd">            :func:`torch.nn.utils.rnn.pad_sequence`, otherwise if ``pad_direction=&quot;left&quot;``,</span>
+<span class="sd">            we use :func:`torchtune.data.left_pad_sequence`. For training, we typically want to pad from the right.</span>
+<span class="sd">            For inference, we typically want to pad from the left. Defaults to &quot;right&quot;.</span>
+<span class="sd">        pad_max_tiles (Optional[int]): Maximum number of tiles to pad to. If None, will pad to the largest number of tiles</span>
+<span class="sd">            in the batch. Defaults to None.</span>
+<span class="sd">        pad_max_images (Optional[int]): Maximum number of images to pad to. If None, will pad to the largest number of images</span>
+<span class="sd">            in the batch. Defaults to None.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, Tensor]: Collated tokens, labels, images, encoder_mask, aspect_ratio tensors.</span>
+<span class="sd">            - tokens: Tensor of shape (bsz, max_seq_len)</span>
+<span class="sd">            - labels: Tensor of shape (bsz, max_seq_len)</span>
+<span class="sd">            - images: Tensor of shape (bsz, max_num_images, max_num_tiles, c, h, w)</span>
+<span class="sd">            - encoder_mask: Tensor of shape (bsz, max_seq_len, tokens_per_tile * max_num_tiles * max_num_images)</span>
+<span class="sd">            - aspect_ratio: Tensor of shape (bsz, max_num_images, 2)</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: if ``pad_direction`` is not one of &quot;left&quot; or &quot;right&quot;.</span>
+<span class="sd">        ValueError: if pad_max_tiles is set to a value less than the largest number of tiles in an image.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; image_id = 1</span>
+<span class="sd">        &gt;&gt;&gt; tokens_per_tile = 5</span>
+<span class="sd">        &gt;&gt;&gt; c, h, w = 1, 1, 1</span>
+<span class="sd">        &gt;&gt;&gt; batch = [</span>
+<span class="sd">        ...     {</span>
+<span class="sd">        ...         &quot;tokens&quot;: [1, 2, 1, 3], &quot;labels&quot;: [4, 5, 6, 7],</span>
+<span class="sd">        ...         &quot;encoder_input&quot;: {</span>
+<span class="sd">        ...             # One image with two tiles, one image with three tiles</span>
+<span class="sd">        ...             &quot;images&quot;: [torch.ones(2, c, h, w), torch.ones(3, c, h, w)],</span>
+<span class="sd">        ...             &quot;aspect_ratio&quot;: [torch.tensor([1, 2]), torch.tensor([1, 3])],</span>
+<span class="sd">        ...         },</span>
+<span class="sd">        ...         # Mask is shape (text_seq_len, tokens_per_tile * n_tiles)</span>
+<span class="sd">        ...         &quot;encoder_mask&quot;: [torch.ones(4, 5 * 2), torch.ones(4, 5 * 3)],</span>
+<span class="sd">        ...     },</span>
+<span class="sd">        ...     {</span>
+<span class="sd">        ...         &quot;tokens&quot;: [1, 4], &quot;labels&quot;: [8, 9],</span>
+<span class="sd">        ...         &quot;encoder_input&quot;: {</span>
+<span class="sd">        ...             # One image with four tiles</span>
+<span class="sd">        ...             &quot;images&quot;: [torch.ones(4, c, h, w)],</span>
+<span class="sd">        ...             &quot;aspect_ratio&quot;: [torch.tensor([2, 2])],</span>
+<span class="sd">        ...         },</span>
+<span class="sd">        ...         # Mask is shape (text_seq_len, tokens_per_tile * n_tiles)</span>
+<span class="sd">        ...         &quot;encoder_mask&quot;: [torch.ones(2, 5 * 4)],</span>
+<span class="sd">        ...     },</span>
+<span class="sd">        ... ]</span>
+<span class="sd">        &gt;&gt;&gt; model_inputs = padded_collate_tiled_images_and_mask(batch=batch)</span>
+<span class="sd">        &gt;&gt;&gt; print(model_inputs[&quot;tokens&quot;])</span>
+<span class="sd">        tensor([[1, 2, 1, 3],</span>
+<span class="sd">                [1, 4, 0, 0]])</span>
+<span class="sd">        &gt;&gt;&gt; print(model_inputs[&quot;labels&quot;])</span>
+<span class="sd">        tensor([[4, 5, 6, 7],</span>
+<span class="sd">                [8, 9, -100, -100]])</span>
+<span class="sd">        &gt;&gt;&gt; print(model_inputs[&quot;encoder_input&quot;][&quot;images&quot;].shape)  # (bsz, max_num_images, max_num_tiles, c, h, w)</span>
+<span class="sd">        torch.Size([2, 2, 4, 1, 1, 1])</span>
+<span class="sd">        &gt;&gt;&gt; print(model_inputs[&quot;encoder_mask&quot;].shape)  # (bsz, max_text_seq_len, tokens_per_tile * max_num_tiles * max_num_images)</span>
+<span class="sd">        torch.Size([2, 4, 40])</span>
+<span class="sd">        &gt;&gt;&gt; print(model_inputs[&quot;encoder_input&quot;][&quot;aspect_ratio&quot;].shape)  # (bsz, max_num_images, 2)</span>
+<span class="sd">        torch.Size([2, 2, 2])</span>
+<span class="sd">        &gt;&gt;&gt; print(model_inputs[&quot;encoder_input&quot;][&quot;images&quot;][0, 0, ...])  # Image with two tiles got padded to four</span>
+<span class="sd">        tensor([[[[1.]]], [[[1.]]], [[[0.]]], [[[0.]]]])</span>
+<span class="sd">        &gt;&gt;&gt; print(model_inputs[&quot;encoder_input&quot;][&quot;images&quot;][0, 1, ...])  # Image with three tiles got padded to four</span>
+<span class="sd">        tensor([[[[1.]]], [[[1.]]], [[[1.]]], [[[0.]]]])</span>
+<span class="sd">        &gt;&gt;&gt; print(model_inputs[&quot;encoder_input&quot;][&quot;images&quot;][1, 0, ...])  # Image with four tiles did not get padded</span>
+<span class="sd">        tensor([[[[1.]]], [[[1.]]], [[[1.]]], [[[1.]]]])</span>
+<span class="sd">        &gt;&gt;&gt; print(model_inputs[&quot;encoder_input&quot;][&quot;images&quot;][1, 1, ...])  # Extra padding image was added to second sample</span>
+<span class="sd">        tensor([[[[0.]]], [[[0.]]], [[[0.]]], [[[0.]]]])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">pad_direction</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="s2">&quot;right&quot;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;pad_direction should be one of &#39;left&#39; or &#39;right&#39; but found </span><span class="si">{</span><span class="n">pad_direction</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Text tokens can be handled independently by existing collaters</span>
+    <span class="k">if</span> <span class="n">pad_direction</span> <span class="o">==</span> <span class="s2">&quot;right&quot;</span><span class="p">:</span>
+        <span class="n">text_only</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span><span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">],</span> <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">]}</span> <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">batch</span>
+        <span class="p">]</span>
+        <span class="n">collated_text</span> <span class="o">=</span> <span class="n">padded_collate_sft</span><span class="p">(</span><span class="n">text_only</span><span class="p">,</span> <span class="n">padding_idx</span><span class="p">,</span> <span class="n">ignore_idx</span><span class="p">)</span>
+    <span class="c1"># For inference, we don&#39;t need to handle labels</span>
+    <span class="k">elif</span> <span class="n">pad_direction</span> <span class="o">==</span> <span class="s2">&quot;left&quot;</span><span class="p">:</span>
+        <span class="n">collated_text</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">left_pad_sequence</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">],</span>
+                <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">padding_value</span><span class="o">=</span><span class="n">padding_idx</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">}</span>
+
+    <span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">collated_text</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">bsz</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+
+    <span class="c1"># TODO: Figure out how to make this more efficient or vectorized. Setting</span>
+    <span class="c1"># max_num_tiles beforehand will save one nested for loop but may incur more</span>
+    <span class="c1"># memory and compute costs in attention if max_num_tiles &gt; batch_max_num_tiles</span>
+
+    <span class="c1"># First loop: get max number of tiles in batch</span>
+    <span class="n">max_num_tiles</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+        <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">batch</span>
+        <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">][</span><span class="s2">&quot;images&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">pad_max_tiles</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">pad_max_tiles</span> <span class="o">&lt;</span> <span class="n">max_num_tiles</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;More tiles in image </span><span class="si">{</span><span class="n">max_num_tiles</span><span class="si">}</span><span class="s2">, than pad_max_tiles </span><span class="si">{</span><span class="n">pad_max_tiles</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="n">max_num_tiles</span> <span class="o">=</span> <span class="n">pad_max_tiles</span>
+
+    <span class="c1"># Second loop: pad images and masks to max number of tiles, max text seq len in batch</span>
+    <span class="n">batch_images</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">batch_masks</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">batch_aspect_ratios</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">:</span>
+        <span class="n">sample_images</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">sample_masks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">image</span><span class="p">,</span> <span class="n">mask</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">][</span><span class="s2">&quot;images&quot;</span><span class="p">],</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;encoder_mask&quot;</span><span class="p">]</span>
+        <span class="p">):</span>
+            <span class="c1"># Single image in each sample has shape (n_tiles, c, h, w)</span>
+            <span class="n">n_tiles</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="c1"># Single mask in each sample corresponds to a single image and has shape (text_seq_len, image_seq_len)</span>
+            <span class="c1"># where image_seq_len = n_tiles * tokens_per_tile</span>
+            <span class="n">text_seq_len</span><span class="p">,</span> <span class="n">image_seq_len</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">tokens_per_tile</span> <span class="o">=</span> <span class="n">image_seq_len</span> <span class="o">//</span> <span class="n">n_tiles</span>
+            <span class="n">padding_tiles</span> <span class="o">=</span> <span class="n">max_num_tiles</span> <span class="o">-</span> <span class="n">n_tiles</span>
+            <span class="n">right_padding_text</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">max_seq_len</span> <span class="o">-</span> <span class="n">text_seq_len</span> <span class="k">if</span> <span class="n">pad_direction</span> <span class="o">==</span> <span class="s2">&quot;right&quot;</span> <span class="k">else</span> <span class="mi">0</span>
+            <span class="p">)</span>
+            <span class="n">left_padding_text</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">max_seq_len</span> <span class="o">-</span> <span class="n">text_seq_len</span> <span class="k">if</span> <span class="n">pad_direction</span> <span class="o">==</span> <span class="s2">&quot;left&quot;</span> <span class="k">else</span> <span class="mi">0</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Image should now have shape (max_num_tiles, c, h, w)</span>
+            <span class="n">padded_image</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">padding_tiles</span><span class="p">),</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="c1"># Mask should now have shape (max_seq_len, max_image_seq_len), where</span>
+            <span class="c1"># max_image_seq_len = max_num_tiles * tokens_per_tile</span>
+            <span class="n">padded_mask</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                <span class="n">mask</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="mi">0</span><span class="p">,</span>
+                    <span class="n">padding_tiles</span> <span class="o">*</span> <span class="n">tokens_per_tile</span><span class="p">,</span>
+                    <span class="n">left_padding_text</span><span class="p">,</span>
+                    <span class="n">right_padding_text</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">sample_images</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">padded_image</span><span class="p">)</span>
+            <span class="n">sample_masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">padded_mask</span><span class="p">)</span>
+        <span class="c1"># Stack multiple images and masks per sample in num_images dimension</span>
+        <span class="n">batch_images</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">sample_images</span><span class="p">))</span>
+        <span class="n">batch_masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">sample_masks</span><span class="p">))</span>
+        <span class="n">batch_aspect_ratios</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">][</span><span class="s2">&quot;aspect_ratio&quot;</span><span class="p">]))</span>
+    <span class="c1"># Finally, pad images, masks, aspect ratios to max number of images in batch</span>
+    <span class="c1"># (bsz, max_num_images, max_num_tiles, c, h, w)</span>
+    <span class="n">collated_images</span> <span class="o">=</span> <span class="n">pad_sequence</span><span class="p">(</span><span class="n">batch_images</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># (bsz, max_num_images, max_seq_len, max_image_seq_len)</span>
+    <span class="n">collated_masks</span> <span class="o">=</span> <span class="n">pad_sequence</span><span class="p">(</span><span class="n">batch_masks</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># (bsz, max_num_images, 2)</span>
+    <span class="n">collated_aspect_ratios</span> <span class="o">=</span> <span class="n">pad_sequence</span><span class="p">(</span>
+        <span class="n">batch_aspect_ratios</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="mi">1</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Concatenate masks for multiple images across image_seq_len dimension</span>
+    <span class="n">concat_masks</span> <span class="o">=</span> <span class="n">collated_masks</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">bsz</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">pad_max_images</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">img_seq</span> <span class="o">=</span> <span class="n">concat_masks</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">concat_masks</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+            <span class="n">concat_masks</span><span class="p">,</span>
+            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pad_max_images</span> <span class="o">*</span> <span class="n">max_num_tiles</span> <span class="o">*</span> <span class="n">tokens_per_tile</span> <span class="o">-</span> <span class="n">img_seq</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="n">batch_dict</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">collated_text</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;encoder_input&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;images&quot;</span><span class="p">:</span> <span class="n">collated_images</span><span class="p">,</span>
+            <span class="s2">&quot;aspect_ratio&quot;</span><span class="p">:</span> <span class="n">collated_aspect_ratios</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;encoder_mask&quot;</span><span class="p">:</span> <span class="n">concat_masks</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="s2">&quot;labels&quot;</span> <span class="ow">in</span> <span class="n">collated_text</span><span class="p">:</span>
+        <span class="n">batch_dict</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">collated_text</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">batch_dict</span></div>
+
+
+<span class="k">def</span> <span class="nf">padded_collate_packed</span><span class="p">(</span>
+    <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">PACK_TYPE</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Collate packed sequences into a batch. Only convert the seq lens into</span>
+<span class="sd">    a block mask for use with attention. Tokens, labels, and input_pos are</span>
+<span class="sd">    already padded to the same length within :class:`~torchtune.datasets.PackedDataset`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        batch (List[PACK_TYPE]): A list of pack dictionaries containing the following keys:</span>
+<span class="sd">            - tokens: input token ids</span>
+<span class="sd">            - labels: label token ids</span>
+<span class="sd">            - input_pos: relative position ids for each sequence in pack</span>
+<span class="sd">            - seq_lens: lengths of each sample within the pack</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, torch.Tensor]: Collated input, label, input_pos, mask tensors.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; token_pairs = [</span>
+<span class="sd">        &gt;&gt;&gt;    {&quot;tokens&quot;: [1, 2, 3, 4, 5, 6], &quot;labels&quot;: [7, 8, 9, 10, 11, 12],</span>
+<span class="sd">        &gt;&gt;&gt;     &quot;input_pos&quot;: [0, 1, 2, 0, 1, 0], &quot;seq_lens&quot;: [3, 2, 1]},</span>
+<span class="sd">        &gt;&gt;&gt;    {&quot;tokens&quot;: [13, 14, 15, 16, 17, 18], &quot;labels&quot;: [19, 20, 21, 22, 23, 24],</span>
+<span class="sd">        &gt;&gt;&gt;     &quot;input_pos&quot;: [0, 1, 0, 1, 0, 1], &quot;seq_lens&quot;: [2, 2, 2]},</span>
+<span class="sd">        &gt;&gt;&gt; ]</span>
+<span class="sd">        &gt;&gt;&gt; collated = padded_collate_packed(</span>
+<span class="sd">        &gt;&gt;&gt;    batch=token_pairs,</span>
+<span class="sd">        &gt;&gt;&gt;    device=device,</span>
+<span class="sd">        &gt;&gt;&gt; )</span>
+<span class="sd">        &gt;&gt;&gt; collated[&quot;mask&quot;]</span>
+<span class="sd">        &gt;&gt;&gt; tensor([</span>
+<span class="sd">        &gt;&gt;&gt; [[1, 0, 0, 0, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt;  [1, 1, 0, 0, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt;  [1, 1, 1, 0, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt;  [0, 0, 0, 1, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt;  [0, 0, 0, 1, 1, 0],</span>
+<span class="sd">        &gt;&gt;&gt;  [0, 0, 0, 0, 0, 1]],</span>
+<span class="sd">        &gt;&gt;&gt; [[1, 0, 0, 0, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt;  [1, 1, 0, 0, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt;  [0, 0, 1, 0, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt;  [0, 0, 1, 1, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt;  [0, 0, 0, 0, 1, 0],</span>
+<span class="sd">        &gt;&gt;&gt;  [0, 0, 0, 0, 1, 1]])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">tokens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">])</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">])</span>
+    <span class="n">input_pos</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;input_pos&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">])</span>
+    <span class="n">seq_lens</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;seq_lens&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
+
+    <span class="n">block_mask</span> <span class="o">=</span> <span class="n">packed_block_causal_mask</span><span class="p">(</span>
+        <span class="n">seq_lens</span><span class="o">=</span><span class="n">seq_lens</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">tokens</span><span class="p">,</span>
+        <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="p">,</span>
+        <span class="s2">&quot;input_pos&quot;</span><span class="p">:</span> <span class="n">input_pos</span><span class="p">,</span>
+        <span class="s2">&quot;mask&quot;</span><span class="p">:</span> <span class="n">block_mask</span><span class="p">,</span>
+    <span class="p">}</span>
+
+
+<div class="viewcode-block" id="padded_collate_dpo"><a class="viewcode-back" href="../../../generated/torchtune.data.padded_collate_dpo.html#torchtune.data.padded_collate_dpo">[docs]</a><span class="k">def</span> <span class="nf">padded_collate_dpo</span><span class="p">(</span>
+    <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span>
+    <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">ignore_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Pad a batch of sequences for Direct Preference Optimization (DPO).</span>
+
+<span class="sd">    This function takes a batch of sequences, where each sequence is represented</span>
+<span class="sd">    as a dictionary with multiple key-value pairs. Each key corresponds to a different</span>
+<span class="sd">    sequence component, such as input_ids or labels.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        batch (List[Dict[str, List[int]]]): A list of dictionaries, where each dictionary</span>
+<span class="sd">            represents a sequence with multiple components, &#39;chosen_input_ids&#39;,</span>
+<span class="sd">            &#39;chosen_labels&#39;, &#39;rejected_input_ids&#39;, and &#39;rejected_labels&#39; are required.</span>
+<span class="sd">        padding_idx (int): Padding index for input ids. Defaults to 0.</span>
+<span class="sd">        ignore_idx (int): Padding index for labels. Defaults to -100.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple[torch.Tensor, torch.Tensor]: A tuple containing concatenated and padded</span>
+<span class="sd">        input ids and labels.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; batch = [</span>
+<span class="sd">        &gt;&gt;&gt;    {&#39;chosen_input_ids&#39;: [1, 2, 3], &#39;rejected_input_ids&#39;: [4, 5],</span>
+<span class="sd">        &gt;&gt;&gt;      &#39;chosen_labels&#39;: [6, 7, 8], &#39;rejected_labels&#39;: [9, 10]},</span>
+<span class="sd">        &gt;&gt;&gt;    {&#39;chosen_input_ids&#39;: [11, 12], &#39;rejected_input_ids&#39;: [13, 14, 15],</span>
+<span class="sd">        &gt;&gt;&gt;      &#39;chosen_labels&#39;: [16, 17], &#39;rejected_labels&#39;: [18, 19, 20]},</span>
+<span class="sd">        &gt;&gt;&gt; ]</span>
+<span class="sd">        &gt;&gt;&gt; padded_collate_dpo(batch)</span>
+<span class="sd">        &gt;&gt;&gt; (tensor([[ 1,  2,  3],</span>
+<span class="sd">        &gt;&gt;&gt;          [11, 12,  0],</span>
+<span class="sd">        &gt;&gt;&gt;          [ 4,  5,  0],</span>
+<span class="sd">        &gt;&gt;&gt;          [13, 14, 15]]),</span>
+<span class="sd">        &gt;&gt;&gt;  tensor([[ 6,  7,  8],</span>
+<span class="sd">        &gt;&gt;&gt;          [16, 17, -100],</span>
+<span class="sd">        &gt;&gt;&gt;          [ 9, 10, -100],</span>
+<span class="sd">        &gt;&gt;&gt;          [18, 19, 20]]))</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">chosen_input_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">ex</span><span class="p">[</span><span class="s2">&quot;chosen_input_ids&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">ex</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
+    <span class="n">rejected_input_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">ex</span><span class="p">[</span><span class="s2">&quot;rejected_input_ids&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">ex</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
+    <span class="n">chosen_labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">ex</span><span class="p">[</span><span class="s2">&quot;chosen_labels&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">ex</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
+    <span class="n">rejected_labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">ex</span><span class="p">[</span><span class="s2">&quot;rejected_labels&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">ex</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
+
+    <span class="n">to_pad_input_ids</span> <span class="o">=</span> <span class="n">chosen_input_ids</span> <span class="o">+</span> <span class="n">rejected_input_ids</span>
+    <span class="n">to_pad_labels</span> <span class="o">=</span> <span class="n">chosen_labels</span> <span class="o">+</span> <span class="n">rejected_labels</span>
+
+    <span class="n">concatenated_input_ids</span> <span class="o">=</span> <span class="n">pad_sequence</span><span class="p">(</span>
+        <span class="n">to_pad_input_ids</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="n">padding_idx</span>
+    <span class="p">)</span>
+    <span class="n">concatenated_labels</span> <span class="o">=</span> <span class="n">pad_sequence</span><span class="p">(</span>
+        <span class="n">to_pad_labels</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="n">ignore_idx</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">concatenated_input_ids</span><span class="p">,</span> <span class="n">concatenated_labels</span></div>
+</pre></div>
+
+             </article>
+             
+            </div>
+            <footer>
+  
+
+  
+
+    <hr>
+
+  
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2023-present, torchtune Contributors.
+
+    </p>
+  </div>
+    
+      <div>
+        Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+      </div>
+     
+
+</footer>
+
+          </div>
+        </div>
+
+        <div class="pytorch-content-right" id="pytorch-content-right">
+          <div class="pytorch-right-menu" id="pytorch-right-menu">
+            <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
+              
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  
+
+
+  
+
+     
+       <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+         <script src="../../../_static/jquery.js"></script>
+         <script src="../../../_static/underscore.js"></script>
+         <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../../../_static/doctools.js"></script>
+         <script src="../../../_static/clipboard.min.js"></script>
+         <script src="../../../_static/copybutton.js"></script>
+         <script src="../../../_static/design-tabs.js"></script>
+     
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../../../_static/js/vendor/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+<!-- Disabling "auto-collapsing" of sections on the left side bar. Replace script with commented out sections to reenable. -->
+<!--  
+<script script type="text/javascript">
+    var collapsedSections = ['Introduction', 'Getting Started', 'Tutorials']
+</script> -->
+
+<script type="text/javascript">
+    var collapsedSections = []
+</script>
+ 
+<script type="text/javascript">
+    $(document).ready(function() {
+        $(".main-menu-item a[href='https://github.com/pytorch/pytorch']").attr("href", "https://github.com/pytorch/torchtune");
+    });
+</script>
+
+
+  <!-- Begin Footer -->
+
+  <div class="container-fluid docs-tutorials-resources" id="docs-tutorials-resources">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-4 text-center">
+          <h2>Docs</h2>
+          <p>Access comprehensive developer documentation for PyTorch</p>
+          <a class="with-right-arrow" href="https://pytorch.org/docs/stable/index.html">View Docs</a>
+        </div>
+
+        <div class="col-md-4 text-center">
+          <h2>Tutorials</h2>
+          <p>Get in-depth tutorials for beginners and advanced developers</p>
+          <a class="with-right-arrow" href="https://pytorch.org/tutorials">View Tutorials</a>
+        </div>
+
+        <div class="col-md-4 text-center">
+          <h2>Resources</h2>
+          <p>Find development resources and get your questions answered</p>
+          <a class="with-right-arrow" href="https://pytorch.org/resources">View Resources</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-logo-wrapper">
+        <a href="https://pytorch.org/" class="footer-logo"></a>
+      </div>
+
+      <div class="footer-links-wrapper">
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch.org/">PyTorch</a></li>
+            <li><a href="https://pytorch.org/get-started">Get Started</a></li>
+            <li><a href="https://pytorch.org/features">Features</a></li>
+            <li><a href="https://pytorch.org/ecosystem">Ecosystem</a></li>
+            <li><a href="https://pytorch.org/blog/">Blog</a></li>
+            <li><a href="https://github.com/pytorch/pytorch/blob/master/CONTRIBUTING.md">Contributing</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch.org/resources">Resources</a></li>
+            <li><a href="https://pytorch.org/tutorials">Tutorials</a></li>
+            <li><a href="https://pytorch.org/docs/stable/index.html">Docs</a></li>
+            <li><a href="https://discuss.pytorch.org" target="_blank">Discuss</a></li>
+            <li><a href="https://github.com/pytorch/pytorch/issues" target="_blank">Github Issues</a></li>
+            <li><a href="https://pytorch.org/assets/brand-guidelines/PyTorch-Brand-Guidelines.pdf" target="_blank">Brand Guidelines</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title">Stay up to date</li>
+            <li><a href="https://www.facebook.com/pytorch" target="_blank">Facebook</a></li>
+            <li><a href="https://twitter.com/pytorch" target="_blank">Twitter</a></li>
+            <li><a href="https://www.youtube.com/pytorch" target="_blank">YouTube</a></li>
+            <li><a href="https://www.linkedin.com/company/pytorch" target="_blank">LinkedIn</a></li>
+          </ul>  
+          </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title">PyTorch Podcasts</li>
+            <li><a href="https://open.spotify.com/show/6UzHKeiy368jKfQMKKvJY5" target="_blank">Spotify</a></li>
+            <li><a href="https://podcasts.apple.com/us/podcast/pytorch-developer-podcast/id1566080008" target="_blank">Apple</a></li>
+            <li><a href="https://www.google.com/podcasts?feed=aHR0cHM6Ly9mZWVkcy5zaW1wbGVjYXN0LmNvbS9PQjVGa0lsOA%3D%3D" target="_blank">Google</a></li>
+            <li><a href="https://music.amazon.com/podcasts/7a4e6f0e-26c2-49e9-a478-41bd244197d0/PyTorch-Developer-Podcast?" target="_blank">Amazon</a></li>
+          </ul>
+         </div>
+        </div>
+        
+        <div class="privacy-policy">
+          <ul>
+            <li class="privacy-policy-links"><a href="https://www.linuxfoundation.org/terms/" target="_blank">Terms</a></li>
+            <li class="privacy-policy-links">|</li>
+            <li class="privacy-policy-links"><a href="https://www.linuxfoundation.org/privacy-policy/" target="_blank">Privacy</a></li>
+          </ul>
+        </div>
+        <div class="copyright">
+        <p>© Copyright The Linux Foundation. The PyTorch Foundation is a project of The Linux Foundation.
+          For web site terms of use, trademark policy and other policies applicable to The PyTorch Foundation please see
+          <a href="https://www.linuxfoundation.org/policies/">www.linuxfoundation.org/policies/</a>. The PyTorch Foundation supports the PyTorch open source
+          project, which has been established as PyTorch Project a Series of LF Projects, LLC. For policies applicable to the PyTorch Project a Series of LF Projects, LLC,
+          please see <a href="https://www.lfprojects.org/policies/">www.lfprojects.org/policies/</a>.</p>
+      </div>
+     </div>
+
+  </footer>
+
+  <div class="cookie-banner-wrapper">
+  <div class="container">
+    <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
+    <img class="close-button" src="../../../_static/images/pytorch-x.svg">
+  </div>
+</div>
+
+  <!-- End Footer -->
+
+  <!-- Begin Mobile Menu -->
+
+  <div class="mobile-main-menu">
+    <div class="container-fluid">
+      <div class="container">
+        <div class="mobile-main-menu-header-container">
+          <a class="header-logo" href="https://pytorch.org/" aria-label="PyTorch"></a>
+          <a class="main-menu-close-button" href="#" data-behavior="close-mobile-menu"></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-main-menu-links-container">
+      <div class="main-menu">
+        <ul>
+           <li class="resources-mobile-menu-title">
+             <a>Learn</a>
+           </li>
+           <ul class="resources-mobile-menu-items">
+             <li>
+               <a href="https://pytorch.org/get-started">Get Started</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials">Tutorials</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials/beginner/basics/intro.html">Learn the Basics</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials/recipes/recipes_index.html">PyTorch Recipes</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials/beginner/introyt.html">Introduction to PyTorch - YouTube Series</a>
+             </li>
+           </ul>
+           <li class="resources-mobile-menu-title">
+             <a>Ecosystem</a>
+           </li>
+           <ul class="resources-mobile-menu-items">
+             <li>
+               <a href="https://pytorch.org/ecosystem">Tools</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/#community-module">Community</a>
+             </li>
+             <li>
+               <a href="https://discuss.pytorch.org/">Forums</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/resources">Developer Resources</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/ecosystem/contributor-awards-2023">Contributor Awards - 2023</a>
+             </li>
+           </ul>
+
+           <li class="resources-mobile-menu-title">
+             <a>Edge</a>
+           </li>
+
+           <ul class="resources-mobile-menu-items">
+             <li>
+               <a href="https://pytorch.org/edge">About PyTorch Edge</a>
+             </li>
+             
+             <li>
+               <a href="https://pytorch.org/executorch-overview">ExecuTorch</a>
+             </li>
+           </ul>
+
+           <li class="resources-mobile-menu-title">
+             <a>Docs</a>
+           </li>
+
+           <ul class="resources-mobile-menu-items">
+            <li>
+              <a href="https://pytorch.org/docs/stable/index.html">PyTorch</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/pytorch-domains">PyTorch Domains</a>
+            </li>
+          </ul>
+
+          <li class="resources-mobile-menu-title">
+            <a>Blog & News</a>
+          </li>
+            
+           <ul class="resources-mobile-menu-items">
+            <li>
+              <a href="https://pytorch.org/blog/">PyTorch Blog</a>
+            </li>
+            <li>
+              <a href="https://pytorch.org/community-blog">Community Blog</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/videos">Videos</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/community-stories">Community Stories</a>
+            </li>
+            <li>
+              <a href="https://pytorch.org/events">Events</a>
+            </li>
+          </ul>
+          
+          <li class="resources-mobile-menu-title">
+            <a>About</a>
+          </li>
+
+          <ul class="resources-mobile-menu-items">
+            <li>
+              <a href="https://pytorch.org/foundation">PyTorch Foundation</a>
+            </li>
+            <li>
+              <a href="https://pytorch.org/governing-board">Governing Board</a>
+            </li>
+          </ul>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- End Mobile Menu -->
+
+  <script type="text/javascript" src="../../../_static/js/vendor/anchor.min.js"></script>
+
+  <script type="text/javascript">
+    $(document).ready(function() {
+      mobileMenu.bind();
+      mobileTOC.bind();
+      pytorchAnchors.bind();
+      sideMenus.bind();
+      scrollToAnchor.bind();
+      highlightNavigation.bind();
+      mainMenuDropdown.bind();
+      filterTags.bind();
+
+      // Add class to links that have code blocks, since we cannot create links in code blocks
+      $("article.pytorch-article a span.pre").each(function(e) {
+        $(this).closest("a").addClass("has-code");
+      });
+    })
+  </script>
+</body>
+</html>
