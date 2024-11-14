@@ -9,21 +9,25 @@ from typing import Callable, List, Optional
 
 import torch
 from torch import nn
-
-from torchtune.modules.vision_transformer import VisionTransformer, CLSProjection
-from torchtune.models.clip._position_embeddings import TokenPositionalEmbedding, TiledTokenPositionalEmbedding, TilePositionalEmbedding
+from torchtune.models.clip._position_embeddings import (
+    TiledTokenPositionalEmbedding,
+    TilePositionalEmbedding,
+    TokenPositionalEmbedding,
+)
 
 from torchtune.modules import (
-    TransformerSelfAttentionLayer,
-    MultiHeadAttention,
-    TanhGate,
     FeedForward,
-    Fp32LayerNorm
+    Fp32LayerNorm,
+    FrozenNF4Linear,
+    MultiHeadAttention,
+    TransformerSelfAttentionLayer,
 )
 
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
+
+from torchtune.modules.vision_transformer import CLSProjection, VisionTransformer
 
 
 def clip_vision_encoder(
@@ -43,7 +47,7 @@ def clip_vision_encoder(
 ) -> VisionTransformer:
     """
     Builds the vision encoder associated with the clip model. This includes:
-    
+
     - TransformerEncoderLayer
     - positional embeddings
     - CLS projection (optional)
@@ -82,21 +86,25 @@ def clip_vision_encoder(
     """
     assert embed_dim % num_heads == 0, "embed_dim must be divisible by num_heads"
 
-    cls_projection = CLSProjection(embed_dim=embed_dim, cls_output_dim=cls_output_dim) if output_cls_projection else None
+    cls_projection = (
+        CLSProjection(embed_dim=embed_dim, cls_output_dim=cls_output_dim)
+        if output_cls_projection
+        else None
+    )
 
     # transformer layer
     self_attn = MultiHeadAttention(
-            embed_dim=embed_dim,
-            num_heads=num_heads,
-            num_kv_heads=num_heads,
-            head_dim=embed_dim // num_heads,
-            q_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
-            k_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
-            v_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
-            output_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
-            pos_embeddings=None,
-            attn_dropout=0.0,
-            is_causal=False,
+        embed_dim=embed_dim,
+        num_heads=num_heads,
+        num_kv_heads=num_heads,
+        head_dim=embed_dim // num_heads,
+        q_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
+        k_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
+        v_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
+        output_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
+        pos_embeddings=None,
+        attn_dropout=0.0,
+        is_causal=False,
     )
     mlp = clip_mlp(
         in_dim=embed_dim,
@@ -107,8 +115,8 @@ def clip_vision_encoder(
     transformer_layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
-        sa_norm= Fp32LayerNorm(embed_dim, eps=1e-5),
-        mlp_norm= Fp32LayerNorm(embed_dim, eps=1e-5),
+        sa_norm=Fp32LayerNorm(embed_dim, eps=1e-5),
+        mlp_norm=Fp32LayerNorm(embed_dim, eps=1e-5),
         sa_scale=None,
         mlp_scale=None,
     )
@@ -118,17 +126,21 @@ def clip_vision_encoder(
         pre_tile_pos_embed = None
         post_tile_pos_embed = None
         token_pos_embedding = TokenPositionalEmbedding(
-            embed_dim=embed_dim, 
-            patch_size=patch_size, 
-            tile_size=tile_size)
+            embed_dim=embed_dim, patch_size=patch_size, tile_size=tile_size
+        )
     else:
-        pre_tile_pos_embed = TilePositionalEmbedding(max_num_tiles=max_num_tiles, embed_dim=embed_dim)
-        post_tile_pos_embed = TilePositionalEmbedding(max_num_tiles=max_num_tiles, embed_dim=embed_dim)
+        pre_tile_pos_embed = TilePositionalEmbedding(
+            max_num_tiles=max_num_tiles, embed_dim=embed_dim
+        )
+        post_tile_pos_embed = TilePositionalEmbedding(
+            max_num_tiles=max_num_tiles, embed_dim=embed_dim
+        )
         token_pos_embedding = TiledTokenPositionalEmbedding(
-            max_num_tiles=max_num_tiles, 
-            embed_dim=embed_dim, 
-            patch_size=patch_size, 
-            tile_size=tile_size)
+            max_num_tiles=max_num_tiles,
+            embed_dim=embed_dim,
+            patch_size=patch_size,
+            tile_size=tile_size,
+        )
 
     return VisionTransformer(
         num_layers=num_layers,
@@ -145,13 +157,30 @@ def clip_vision_encoder(
     )
 
 
-def clip_mlp(in_dim: int, out_dim: int, hidden_dim: int, activation: nn.Module, quantize_base: bool = False) -> FeedForward:
+def clip_mlp(
+    in_dim: int,
+    out_dim: int,
+    hidden_dim: int,
+    activation: nn.Module,
+    quantize_base: bool = False,
+    **quantization_kwargs,
+) -> FeedForward:
     """
     Build the MLP layer associated with the clip model.
     """
-    gate_proj = nn.Linear(in_dim, hidden_dim) if not quantize_base else FrozenNF4Linear(in_dim, hidden_dim)
-    down_proj = nn.Linear(hidden_dim, out_dim) if not quantize_base else FrozenNF4Linear(hidden_dim, out_dim)
-    return FeedForward(gate_proj=gate_proj, down_proj=down_proj, up_proj=None, activation=activation)
+    gate_proj = (
+        nn.Linear(in_dim, hidden_dim)
+        if not quantize_base
+        else FrozenNF4Linear(in_dim, hidden_dim, bias=True, **quantization_kwargs)
+    )
+    down_proj = (
+        nn.Linear(hidden_dim, out_dim)
+        if not quantize_base
+        else FrozenNF4Linear(hidden_dim, out_dim, bias=True, **quantization_kwargs)
+    )
+    return FeedForward(
+        gate_proj=gate_proj, down_proj=down_proj, up_proj=None, activation=activation
+    )
 
 
 # ------------------ LoRA CLIP ------------------
@@ -182,6 +211,7 @@ def lora_clip_vision_encoder(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
+    **quantization_kwargs,
 ) -> VisionTransformer:
     """
     Build a LoRA implementation of the CLIP vision encoder.
@@ -222,7 +252,7 @@ def lora_clip_vision_encoder(
         quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
-        
+
 
     Returns:
         VisionTransformer: Instantiation of VisionTransformer model.
@@ -230,34 +260,40 @@ def lora_clip_vision_encoder(
     assert embed_dim % num_heads == 0, "embed_dim must be divisible by num_heads"
 
     # TODO: add support for quantizing and LoRA for the final output projection
-    cls_projection = CLSProjection(embed_dim=embed_dim, cls_output_dim=cls_output_dim) if output_cls_projection else None
+    cls_projection = (
+        CLSProjection(embed_dim=embed_dim, cls_output_dim=cls_output_dim)
+        if output_cls_projection
+        else None
+    )
 
     # transformer layer
     self_attn = lora_clip_attention(
-            lora_modules=lora_modules,
-            embed_dim=embed_dim,
-            num_heads=num_heads,
-            num_kv_heads=num_heads,
-            head_dim=embed_dim // num_heads,
-            attn_dropout=0.0,
-            lora_rank=lora_rank,
-            lora_alpha=lora_alpha,
-            lora_dropout=lora_dropout,
-            use_dora=use_dora,
-            quantize_base=quantize_base,
+        lora_modules=lora_modules,
+        embed_dim=embed_dim,
+        num_heads=num_heads,
+        num_kv_heads=num_heads,
+        head_dim=embed_dim // num_heads,
+        attn_dropout=0.0,
+        lora_rank=lora_rank,
+        lora_alpha=lora_alpha,
+        lora_dropout=lora_dropout,
+        use_dora=use_dora,
+        quantize_base=quantize_base,
+        **quantization_kwargs,
     )
     if apply_lora_to_mlp:
         mlp = lora_clip_mlp(
-                in_dim=embed_dim,
-                hidden_dim=4 * embed_dim,
-                out_dim=embed_dim,
-                activation=activation(),
-                lora_rank=lora_rank,
-                lora_alpha=lora_alpha,
-                quantize_base=quantize_base,
-                lora_dropout=lora_dropout,
-                use_dora=use_dora,
-            )
+            in_dim=embed_dim,
+            hidden_dim=4 * embed_dim,
+            out_dim=embed_dim,
+            activation=activation(),
+            lora_rank=lora_rank,
+            lora_alpha=lora_alpha,
+            quantize_base=quantize_base,
+            lora_dropout=lora_dropout,
+            use_dora=use_dora,
+            **quantization_kwargs,
+        )
     else:
         mlp = clip_mlp(
             in_dim=embed_dim,
@@ -265,12 +301,13 @@ def lora_clip_vision_encoder(
             out_dim=embed_dim,
             activation=activation(),
             quantize_base=quantize_base,
+            **quantization_kwargs,
         )
     transformer_layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
-        sa_norm= Fp32LayerNorm(embed_dim, eps=1e-5),
-        mlp_norm= Fp32LayerNorm(embed_dim, eps=1e-5),
+        sa_norm=Fp32LayerNorm(embed_dim, eps=1e-5),
+        mlp_norm=Fp32LayerNorm(embed_dim, eps=1e-5),
         sa_scale=None,
         mlp_scale=None,
     )
@@ -280,17 +317,21 @@ def lora_clip_vision_encoder(
         pre_tile_pos_embed = None
         post_tile_pos_embed = None
         token_pos_embedding = TokenPositionalEmbedding(
-            embed_dim=embed_dim, 
-            patch_size=patch_size, 
-            tile_size=tile_size)
+            embed_dim=embed_dim, patch_size=patch_size, tile_size=tile_size
+        )
     else:
-        pre_tile_pos_embed = TilePositionalEmbedding(max_num_tiles=max_num_tiles, embed_dim=embed_dim)
-        post_tile_pos_embed = TilePositionalEmbedding(max_num_tiles=max_num_tiles, embed_dim=embed_dim)
+        pre_tile_pos_embed = TilePositionalEmbedding(
+            max_num_tiles=max_num_tiles, embed_dim=embed_dim
+        )
+        post_tile_pos_embed = TilePositionalEmbedding(
+            max_num_tiles=max_num_tiles, embed_dim=embed_dim
+        )
         token_pos_embedding = TiledTokenPositionalEmbedding(
-            max_num_tiles=max_num_tiles, 
-            embed_dim=embed_dim, 
-            patch_size=patch_size, 
-            tile_size=tile_size)
+            max_num_tiles=max_num_tiles,
+            embed_dim=embed_dim,
+            patch_size=patch_size,
+            tile_size=tile_size,
+        )
 
     model = VisionTransformer(
         num_layers=num_layers,
@@ -331,6 +372,7 @@ def lora_clip_attention(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
+    **quantization_kwargs,
 ) -> MultiHeadAttention:
     """
     Return an instance of :func:`~torchtune.modules.MultiHeadAttention` with LoRA
@@ -378,12 +420,15 @@ def lora_clip_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            **quantization_kwargs,
         )
         if "q_proj" in lora_modules
         else (
             nn.Linear(embed_dim, num_heads * head_dim, bias=False)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, num_heads * head_dim, bias=False)
+            else FrozenNF4Linear(
+                embed_dim, num_heads * head_dim, bias=False, **quantization_kwargs
+            )
         )
     )
     k_proj = (
@@ -394,12 +439,15 @@ def lora_clip_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            **quantization_kwargs,
         )
         if "k_proj" in lora_modules
         else (
             nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+            else FrozenNF4Linear(
+                embed_dim, num_kv_heads * head_dim, bias=False, **quantization_kwargs
+            )
         )
     )
     v_proj = (
@@ -410,12 +458,15 @@ def lora_clip_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            **quantization_kwargs,
         )
         if "v_proj" in lora_modules
         else (
             nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+            else FrozenNF4Linear(
+                embed_dim, num_kv_heads * head_dim, bias=False, **quantization_kwargs
+            )
         )
     )
     output_proj = (
@@ -426,12 +477,15 @@ def lora_clip_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            **quantization_kwargs,
         )
         if "output_proj" in lora_modules
         else (
             nn.Linear(embed_dim, embed_dim, bias=False)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, embed_dim, bias=False)
+            else FrozenNF4Linear(
+                embed_dim, embed_dim, bias=False, **quantization_kwargs
+            )
         )
     )
 
@@ -461,25 +515,32 @@ def lora_clip_mlp(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
+    **quantization_kwargs,
 ) -> FeedForward:
     """
     Build the MLP layer with LoRA applied to the gate and down projections.
     """
     adapter_cls = DoRALinear if use_dora else LoRALinear
     gate_proj = adapter_cls(
-        in_dim=dim,
+        in_dim=in_dim,
         out_dim=hidden_dim,
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
+        use_bias=True,
+        **quantization_kwargs,
     )
     down_proj = adapter_cls(
         in_dim=hidden_dim,
-        out_dim=dim,
+        out_dim=out_dim,
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
+        use_bias=True,
+        **quantization_kwargs,
     )
-    return FeedForward(gate_proj=gate_proj, down_proj=down_proj, up_proj=None, activation=activation)
+    return FeedForward(
+        gate_proj=gate_proj, down_proj=down_proj, up_proj=None, activation=activation
+    )

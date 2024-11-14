@@ -23,6 +23,7 @@ from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     disable_adapter,
     get_adapter_params,
+    get_adapter_state_dict,
     get_merged_lora_ckpt,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
@@ -94,6 +95,12 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+
+        if self._log_peak_memory_stats and self._device.type != "cuda":
+            log.info(
+                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+            )
+            self._log_peak_memory_stats = False
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -401,7 +408,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 }
             )
 
-        adapter_state_dict = {k: v.cpu() for k, v in self.adapter_params.items()}
+        adapter_state_dict = get_adapter_state_dict(self._model.state_dict())
         ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
         if not self._save_adapter_weights_only:
             # Construct the full state dict with LoRA weights merged into base LLM weights

@@ -23,6 +23,7 @@ from torchtune.data import padded_collate_sft
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     get_adapter_params,
+    get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
     load_dora_magnitudes,
@@ -119,6 +120,12 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+
+        if self._log_peak_memory_stats and self._device.type != "cuda":
+            log.info(
+                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+            )
+            self._log_peak_memory_stats = False
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -580,10 +587,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
 
         # Construct the adapter weights
-        adapter_key_filter = lambda x: x in self.adapter_params
-        adapter_state_dict = {
-            k: v for k, v in self._model.state_dict().items() if adapter_key_filter(k)
-        }
+        adapter_state_dict = get_adapter_state_dict(self._model.state_dict())
         ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
         adapter_config = {
             "r": self._lora_rank,
@@ -687,17 +691,25 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                         torch.cuda.memory._record_memory_history()
 
                     batch = {k: v.to(self._device) for k, v in batch.items()}
-                    num_tokens += batch["tokens"].numel()
+
+                    # Calculate the number of unmasked tokens in the current batch
+                    # and increment the total number of tokens seen in the step
+                    current_num_tokens = (
+                        batch["labels"] != self._loss_fn.ignore_index
+                    ).sum()
+                    num_tokens += current_num_tokens
 
                     class_loss, kd_loss = self._loss_step(batch)
-                    loss = (1 - self._kd_ratio) * class_loss + self._kd_ratio * kd_loss
-                    loss = loss / self._gradient_accumulation_steps
-                    running_class_loss += class_loss / self._gradient_accumulation_steps
-                    running_kd_loss += kd_loss / self._gradient_accumulation_steps
-                    loss.backward()
+                    running_class_loss += class_loss * current_num_tokens
+                    running_kd_loss += kd_loss * current_num_tokens
+                    current_loss = (
+                        1 - self._kd_ratio
+                    ) * class_loss + self._kd_ratio * kd_loss
+                    current_loss.backward()
 
                     # Step with optimizer
                     if (idx + 1) % self._gradient_accumulation_steps == 0:
+                        training.scale_grads(self._model, 1 / num_tokens)
                         if self._clip_grad_norm is not None:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(),
@@ -709,8 +721,8 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                         # Update the number of steps when the weights are updated
                         self.global_step += 1
 
-                        class_loss_to_log = running_class_loss.item()
-                        kd_loss_to_log = running_kd_loss.item()
+                        class_loss_to_log = running_class_loss.item() / num_tokens
+                        kd_loss_to_log = running_kd_loss.item() / num_tokens
                         loss_to_log = (
                             1 - self._kd_ratio
                         ) * class_loss_to_log + self._kd_ratio * kd_loss_to_log

@@ -173,6 +173,11 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictC
         # key string to reflect this
         if k in yaml_kwargs and _has_component(yaml_kwargs[k]):
             k += "._component_"
+
+        # None passed via CLI will be parsed as string, but we really want OmegaConf null
+        if v == "None":
+            v = "!!null"
+
         # TODO: this is a hack but otherwise we can't pass strings with leading zeroes
         # to define the checkpoint file format. We manually override OmegaConf behavior
         # by prepending the value with !!str to force a string type

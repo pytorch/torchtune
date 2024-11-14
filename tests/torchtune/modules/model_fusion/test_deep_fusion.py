@@ -22,7 +22,7 @@ class DummyModel(nn.Module):
     def __init__(self, dim, vocab_size):
         super().__init__()
         self.cache_enabled = False
-        self.embed = nn.Embedding(vocab_size, dim)
+        self.tok_embeddings = nn.Embedding(vocab_size, dim)
         self.q = nn.Linear(dim, dim)
         self.k = nn.Linear(dim, dim)
         self.v = nn.Linear(dim, dim)
@@ -38,14 +38,22 @@ class DummyModel(nn.Module):
     def reset_caches(self):
         self.cache_enabled = False
 
-    def forward(self, tokens, mask, encoder_input, encoder_mask, input_pos):
-        x = self.embed(tokens)
+    def forward(
+        self,
+        tokens,
+        *,
+        mask=None,
+        encoder_input=None,
+        encoder_mask=None,
+        input_pos=None,
+    ):
+        x = self.tok_embeddings(tokens)
         if encoder_input is not None:
             q = self.q(x)
-            k = self.k(encoder_input)
-            v = self.v(encoder_input)
+            k = self.k(encoder_input) if encoder_input is not None else self.k(x)
+            v = self.v(encoder_input) if encoder_input is not None else self.v(x)
             x += nn.functional.scaled_dot_product_attention(
-                q, k, v, attn_mask=encoder_mask
+                q, k, v, attn_mask=encoder_mask if encoder_mask is not None else mask
             )
         x = self.output(x)
         return x
@@ -85,7 +93,7 @@ class TestDeepFusionModel:
         return model
 
     @pytest.fixture
-    def inputs(self, dim, vocab_size):
+    def inputs(self, vocab_size):
         batch_size = 2
         seq_len = 10
         tokens = torch.randint(0, vocab_size, (batch_size, seq_len))
@@ -183,5 +191,5 @@ class TestDeepFusionModel:
             "decoder.k.bias",
             "decoder.v.weight",
             "decoder.v.bias",
-            "decoder.embed.weight",
+            "decoder.tok_embeddings.weight",
         }

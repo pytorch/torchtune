@@ -127,16 +127,16 @@ batch_size: 64
 num_steps: 10000
 ppo_epochs: 2
 ppo_batch_size: 32
-gradient_accumulation_steps: 1
+gradient_accumulation_steps: 1  # Use to increase virtual batch size
 
 # Memory management and performance
-compile: True
+compile: True  # pytorch compile, set to true for better perf/memory
 optimizer:
   _component_: bitsandbytes.optim.PagedAdamW
   lr: 3e-6
-optimizer_in_bwd: True
-log_peak_memory_stats: False
-enable_activation_checkpointing: True
+optimizer_in_bwd: True  # True saves memory. Requires gradient_accumulation_steps=1
+log_peak_memory_stats: True
+enable_activation_checkpointing: True  # True reduces memory
 
 # Reduced precision
 dtype: bf16

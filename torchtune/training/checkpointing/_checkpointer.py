@@ -111,7 +111,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         checkpoint_dir (str): Directory containing the checkpoint files
         checkpoint_files (List[str]): List of checkpoint files to load. Since the checkpointer takes care
             of sorting by file ID, the order in this list does not matter
-        model_type (ModelType): Model type of the model for which the checkpointer is being loaded
+        model_type (str): Model type of the model for which the checkpointer is being loaded
         output_dir (str): Directory to save the checkpoint files
         adapter_checkpoint (Optional[str]): Path to the adapter weights. Default is None
         recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. Default is None
@@ -130,7 +130,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         self,
         checkpoint_dir: str,
         checkpoint_files: List[str],
-        model_type: ModelType,
+        model_type: str,
         output_dir: str,
         adapter_checkpoint: Optional[str] = None,
         recipe_checkpoint: Optional[str] = None,
@@ -159,7 +159,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         )
 
         self._resume_from_checkpoint = resume_from_checkpoint
-        self._model_type = model_type
+        self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
 
         # recipe_checkpoint contains the recipe state. This should be available if
@@ -277,7 +277,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
 
         # If the recipe state needs to be output, first remove the model state dict
         if intermediate_checkpoint:
-            _ = state_dict.pop(training.MODEL_KEY)
+            _ = state_dict.pop(training.MODEL_KEY, None)
             _ = state_dict.pop(training.ADAPTER_KEY, None)
             _ = state_dict.pop(training.ADAPTER_CONFIG, None)
             output_path = Path.joinpath(self._output_dir, "recipe_state.pt")
@@ -322,7 +322,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         checkpoint_dir (str): Directory containing the checkpoint files
         checkpoint_files (Union[List[str], Dict[str, str]]): List of checkpoint files to load. Since the checkpointer takes care
             of sorting by file ID, the order in this list does not matter. TODO: update this
-        model_type (ModelType): Model type of the model for which the checkpointer is being loaded
+        model_type (str): Model type of the model for which the checkpointer is being loaded
         output_dir (str): Directory to save the checkpoint files
         adapter_checkpoint (Optional[str]): Path to the adapter weights. Default is None
         recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. Default is None
@@ -338,7 +338,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         self,
         checkpoint_dir: str,
         checkpoint_files: Union[List[str], Dict[str, str]],
-        model_type: ModelType,
+        model_type: str,
         output_dir: str,
         adapter_checkpoint: Optional[str] = None,
         recipe_checkpoint: Optional[str] = None,
@@ -488,6 +488,16 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     "supported_aspect_ratios", None
                 ),
             )
+        elif self._model_type == ModelType.GEMMA2:
+            from torchtune.models.gemma2._convert_weights import gemma2_hf_to_tune
+
+            converted_state_dict[training.MODEL_KEY] = gemma2_hf_to_tune(
+                merged_state_dict,
+                num_heads=self._config["num_attention_heads"],
+                num_kv_heads=self._config["num_key_value_heads"],
+                dim=self._config["hidden_size"],
+                head_dim=self._config.get("head_dim", None),
+            )
         else:
             converted_state_dict[training.MODEL_KEY] = convert_weights.hf_to_tune(
                 merged_state_dict,
@@ -578,6 +588,16 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                         "supported_aspect_ratios", None
                     ),
                 )
+            elif self._model_type == ModelType.GEMMA2:
+                from torchtune.models.gemma2._convert_weights import gemma2_tune_to_hf
+
+                state_dict[training.MODEL_KEY] = gemma2_tune_to_hf(
+                    state_dict[training.MODEL_KEY],
+                    num_heads=self._config["num_attention_heads"],
+                    num_kv_heads=self._config["num_key_value_heads"],
+                    dim=self._config["hidden_size"],
+                    head_dim=self._config.get("head_dim", None),
+                )
             else:
                 state_dict[training.MODEL_KEY] = convert_weights.tune_to_hf(
                     state_dict[training.MODEL_KEY],
@@ -631,6 +651,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 logger.warning(
                     "Saving Phi-3 Mini adapter weights to PEFT format is not supported, saving to torchtune format instead"
                 )
+            elif self._model_type == ModelType.LLAMA3_VISION:
+                logger.warning(
+                    "Saving Llama3.2 Vision adapter weights to PEFT format is not supported, saving to torchtune format instead"
+                )
             else:
                 state_dict[
                     training.ADAPTER_KEY
@@ -659,6 +683,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             if self._model_type == ModelType.PHI3_MINI:
                 logger.warning(
                     "PEFT integration for Phi-3 Mini is not supported, skipping adapter config save"
+                )
+            elif self._model_type == ModelType.LLAMA3_VISION:
+                logger.warning(
+                    "PEFT integration for Llama3.2 Vision is not supported, skipping adapter config save"
                 )
             else:
                 state_dict[
@@ -715,7 +743,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         checkpoint_dir (str): Directory containing the checkpoint files
         checkpoint_files (List[str]): List of checkpoint files to load. Currently this checkpointer only
             supports loading a single checkpoint file.
-        model_type (ModelType): Model type of the model for which the checkpointer is being loaded
+        model_type (str): Model type of the model for which the checkpointer is being loaded
         output_dir (str): Directory to save the checkpoint files
         adapter_checkpoint (Optional[str]): Path to the adapter weights. Default is None
         recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. Default is None
@@ -731,7 +759,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         self,
         checkpoint_dir: str,
         checkpoint_files: List[str],
-        model_type: ModelType,
+        model_type: str,
         output_dir: str,
         adapter_checkpoint: Optional[str] = None,
         recipe_checkpoint: Optional[str] = None,
@@ -881,7 +909,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         # If the recipe state needs to be output, first remove the model state dict
         # and if it exists, remove the adapter state dict as well
         if intermediate_checkpoint:
-            _ = state_dict.pop(training.MODEL_KEY)
+            _ = state_dict.pop(training.MODEL_KEY, None)
             _ = state_dict.pop(training.ADAPTER_KEY, None)
             _ = state_dict.pop(training.ADAPTER_CONFIG, None)
             output_path = Path.joinpath(self._output_dir, "recipe_state.pt")

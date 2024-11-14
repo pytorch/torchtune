@@ -63,6 +63,7 @@ teacher_checkpointer:
 # Dataset and Sampler
 dataset:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
+  packed: False  # True increases speed
 seed: null
 shuffle: True
 batch_size: 4
@@ -87,8 +88,8 @@ kd_ratio: 0.5
 # Training
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 32
-compile: False
+gradient_accumulation_steps: 8  # Use to increase virtual batch size
+compile: False  # pytorch compile, set to true for better perf/memory
 
 # Logging
 output_dir: /tmp/kd_output
@@ -96,15 +97,14 @@ metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True
 
 # Environment
 device: cuda
 dtype: bf16
 
 # Activations Memory
-enable_activation_checkpointing: False
-enable_activation_offloading: False
+enable_activation_checkpointing: False  # True reduces memory
 
 # Profiler (disabled)
 profiler:
@@ -127,6 +127,6 @@ profiler:
   # `torch.profiler.schedule` options:
   # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
   wait_steps: 5
-  warmup_steps: 5
+  warmup_steps: 3
   active_steps: 2
   num_cycles: 1

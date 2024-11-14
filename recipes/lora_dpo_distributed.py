@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from warnings import warn
 
 import torch
@@ -25,6 +25,7 @@ from torchtune.modules.peft import (
     disable_adapter,
     DoRALinear,
     get_adapter_params,
+    get_adapter_state_dict,
     get_merged_lora_ckpt,
     load_dora_magnitudes,
     LoRALinear,
@@ -129,6 +130,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+
+        if self._log_peak_memory_stats and self._device.type != "cuda":
+            log.info(
+                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+            )
+            self._log_peak_memory_stats = False
 
         # training attributes
         self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
@@ -290,6 +297,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
         base_model_state_dict: Dict[str, Any],
+        custom_sharded_layers: Optional[List[str]] = None,
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
     ) -> nn.Module:
         """
@@ -323,28 +331,16 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
-        # For FSDP sharding, we can condition on either the module or its name
-        # Shard conditions should be callables taking name (relative to model root)
-        # and the module itself and returning a bool on whether to shard the given module
-
-        # Shard transformer decoder layers (or AC-wrapped versions)
-        # Alternatively we could condition on the module type (TransformerDecoder or CheckpointWrapper)
-        # But directly using the name is more concise
-        def _is_layer_name(name: str, module: nn.Module) -> bool:
-            """
-            Return True for layers.i and False for all other module names
-            Covers sharding for both AC-wrapped and non-AC-wrapped modules in one shot
-            """
-            name_list = name.split(".")
-            return (
-                len(name_list) == 2
-                and name_list[0] == "layers"
-                and str.isdigit(name_list[1])
+        # For FSDP sharding
+        fsdp_shard_conditions = [
+            partial(
+                training.get_shard_conditions,
+                names_to_match=custom_sharded_layers,
             )
-
+        ]
         training.shard_model(
             model=model,
-            shard_conditions=[_is_layer_name],
+            shard_conditions=fsdp_shard_conditions,
             cpu_offload=fsdp_cpu_offload,
             reshard_after_forward=reshard_after_forward,
         )
@@ -509,8 +505,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         intermediate_checkpoint = epoch + 1 < self.total_epochs
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
-        cpu_state_dict = training.get_full_model_state_dict(
-            self._model,
+        state_dict = self._model.state_dict()
+        if self._save_adapter_weights_only:
+            state_dict = get_adapter_state_dict(state_dict, device=None)
+
+        cpu_state_dict = training.gather_cpu_state_dict(
+            state_dict,
             self._is_rank_zero,
             device=self._device,
         )
@@ -526,23 +526,21 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         # Now that we have the model and opt state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file
         if self._is_rank_zero:
+            if self._save_adapter_weights_only:
+                adapter_state_dict = cpu_state_dict
+            else:
+                # Filter out the adapter keys and weights from the model state dict. These will
+                # be saved separately
+                adapter_state_dict = get_adapter_state_dict(cpu_state_dict)
 
-            # Filter out the adapter keys and weights from the model state dict. These will
-            # be saved separately
-            adapter_key_filter = lambda x: x in self.adapter_params
-            adapter_state_dict = {
-                k: v for k, v in cpu_state_dict.items() if adapter_key_filter(k)
-            }
-            checkpoint_dict.update({training.ADAPTER_KEY: adapter_state_dict})
-
-            # merge the adapter weights and base weights to create the model checkpoint
-            if not self._save_adapter_weights_only:
+                # merge the adapter weights and base weights to create the model checkpoint
                 merged_state_dict = get_merged_lora_ckpt(
                     cpu_state_dict,
                     rank=self._lora_rank,
                     alpha=self._lora_alpha,
                 )
                 checkpoint_dict.update({training.MODEL_KEY: merged_state_dict})
+            checkpoint_dict.update({training.ADAPTER_KEY: adapter_state_dict})
 
             # if training is in-progress, checkpoint the optimizer state and recipe state
             # as well.

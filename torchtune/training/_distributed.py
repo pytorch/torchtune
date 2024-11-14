@@ -17,9 +17,6 @@ from torch import nn
 from torch.distributed._composable.fsdp import CPUOffloadPolicy, fully_shard
 from torch.distributed._tensor import distribute_tensor, DTensor
 from torch.distributed._tensor.placement_types import DTensorSpec, TensorMeta
-from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
-    _CHECKPOINT_WRAPPED_MODULE,
-)
 from torch.distributed.checkpoint.state_dict import _init_optim_state
 from torch.distributed.fsdp import ShardingStrategy
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
@@ -300,8 +297,14 @@ def load_from_full_model_state_dict(
     for param_name, full_tensor in full_sd.items():
         sharded_meta_param = meta_sharded_sd.get(param_name)
         full_tensor = full_tensor.to(sharded_meta_param.dtype).to(device)
-        if isinstance(sharded_meta_param._local_tensor, NF4Tensor):
-            full_tensor = to_nf4(full_tensor)
+        if hasattr(sharded_meta_param, "_local_tensor") and isinstance(
+            sharded_meta_param._local_tensor, NF4Tensor
+        ):
+            block_size = sharded_meta_param._local_tensor.block_size
+            scaler_block_size = sharded_meta_param._local_tensor.scaler_block_size
+            full_tensor = to_nf4(
+                full_tensor, block_size=block_size, scaler_block_size=scaler_block_size
+            )
             # replicating logic from `_fsdp_param.py`` `_init_sharded_param`
             # otherwise `distribute_tensor(DTensor(local=NF4))`
             # requires dispatching `c10d.scatter_``
@@ -346,86 +349,58 @@ def load_from_full_model_state_dict(
     return model.load_state_dict(sharded_sd, strict=strict, assign=True)
 
 
-def get_full_model_state_dict(
-    model: "FSDPModule",  # noqa
+def gather_cpu_state_dict(
+    sharded_sd: Dict[str, DTensor],  # noqa
     is_rank_zero: bool,
     device: Optional[torch.device] = None,
-    trainable_only: bool = False,
 ) -> Dict[str, Any]:
     """
     Converting sharded state dict into a full state dict on CPU
-    Returning non-empty result on rank0 to avoid peaking CPU memory
+    Returning non-empty result only on rank0 to avoid peaking CPU memory
 
     Args:
-        model (FSDPModule): wrapped module
+        sharded_sd (Dict[str, DTensor]): Sharded state dict of DTensors
         is_rank_zero (bool): flag to check if the process is on rank 0
         device (Optional[torch.device]): device to use for sharded tensors. Default: None
-        trainable_only (bool): flag to check if only trainable parameters should be returned. Default: False
-
-    Raises:
-        AssertionError: if the model contains NF4Tensor and the model is not wrapped with FSDP
 
     Returns:
         Dict[str, Any]: State dict on CPU
     """
-    # [Warning] FSDPModel.state_dict converts all Parameter Tensors to DTensors
-    sharded_sd = model.state_dict()
     cpu_state_dict = {}
-    has_nf4 = any(
-        isinstance(param._local_tensor, NF4Tensor) for param in model.parameters()
-    )
-    if has_nf4:
-        from torch.distributed._composable.fsdp.fully_shard import FSDPModule
-
-        # Iterating from lowerer modules to higher
-        # Unsharding lora adapters before unsharding transformer block
-        for module_name, module in reversed(list(model.named_modules())):
-            if not isinstance(module, FSDPModule):
-                continue
-            module.unshard(async_op=False)
-            if is_rank_zero:
-                module_name = module_name.replace(f".{_CHECKPOINT_WRAPPED_MODULE}", "")
-                for local_fqn, param in module.named_parameters():
-                    local_fqn = local_fqn.replace(f".{_CHECKPOINT_WRAPPED_MODULE}", "")
-                    if len(module_name) > 0:
-                        full_fqn = module_name + "." + local_fqn
-                    else:
-                        full_fqn = local_fqn
-                    if trainable_only and not param.requires_grad:
-                        # skip trainable params when trainable_only is True
-                        continue
-                    if full_fqn in cpu_state_dict:
-                        # Iterate over every param in every module bottoms-up
-                        # When lower TransformerBlock gets unsharded,
-                        # we insert  (full_fqn, full_tensor) into cpu_state_dict.
-                        # When higher Transformer gets unsharded, we avoid updating
-                        # params from lower TransformerBlockonly again. Instead, only updating
-                        # tok_embeddings etc that belongs to Transformer
-                        continue
-                    if isinstance(param, NF4Tensor):
-                        # upcasting NF4 to original dtype
-                        param = param.to(param.dtype)
-                    if isinstance(param, DTensor):
-                        raise AssertionError(
-                            f"Internal error: expect unsharded {full_fqn} in plain torch.Tensor but got DTensor."
-                            " Might be a bug in get_full_model_state_dict"
-                        )
-                    cpu_state_dict[full_fqn] = param.cpu()
-            module.reshard()
-    else:
-        for param_name, sharded_param in sharded_sd.items():
-            if sharded_param.is_cpu:
-                assert device is not None and device.type == "cuda", (
-                    f"Expect cuda but got device={device}. "
-                    "Please call get_full_model_state_dict(..., device=self._device),"
-                    " so DTensor can communicate over NCCL."
+    for param_name, sharded_param in sharded_sd.items():
+        if sharded_param.is_cpu:
+            # Move back to device if offloaded to CPU
+            sharded_param = sharded_param.to(device)
+        if isinstance(sharded_param._local_tensor, NF4Tensor):
+            # NF4Tensor does not support all_gather from DTensor
+            # so we need to manually all_gather
+            mesh = sharded_param.device_mesh
+            nf4_tensor = sharded_param._local_tensor
+            quant_params, metadata = nf4_tensor.fsdp_pre_all_gather(mesh)
+            full_quant_params = []
+            for quant_param in quant_params:
+                d0, *dn = quant_param.shape
+                shape = (d0 * mesh.get_group().size(), *dn)
+                full_quant_param = torch.empty(
+                    shape, device=quant_param.device, dtype=quant_param.dtype
                 )
-                sharded_param = sharded_param.to(device)
+                dist.all_gather_into_tensor(
+                    full_quant_param, quant_param, mesh.get_group(), async_op=False
+                )
+                full_quant_params.append(full_quant_param)
+            full_param, _ = nf4_tensor.fsdp_post_all_gather(
+                full_quant_params, metadata, nf4_tensor.dtype
+            )
+            # upcasting NF4 to original dtype
+            full_param = full_param.to(full_param.dtype)
+        else:
+            # Gather DTensor
             full_param = sharded_param.full_tensor()
-            if is_rank_zero:
-                cpu_state_dict[param_name] = full_param.cpu()
-            else:
-                del full_param
+        if is_rank_zero:
+            cpu_state_dict[param_name] = full_param.cpu()
+        else:
+            del full_param
+        torch.distributed.barrier()
     return cpu_state_dict
 
 
@@ -446,6 +421,8 @@ def get_full_optimizer_state_dict(
     for group_id, sharded_group in sharded_state.items():
         group_state = {}
         for attr, sharded_tensor in sharded_group.items():
+            # without this, it may hang forever for +70B models.
+            torch.distributed.barrier()
             # "exp_avg" in AdamW is `DTensor`
             if isinstance(sharded_tensor, DTensor):
                 if sharded_tensor.is_cpu:
@@ -583,6 +560,55 @@ def _memory_efficient_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
     return llama3_wrap
 
 
+def get_shard_conditions(
+    name: str,
+    module: nn.Module,
+    names_to_match: Optional[List[str]] = None,
+    *args,
+    **kwargs,
+) -> bool:
+    """
+    Returs True for layers named {}.layers.i or layers that exactly match names_to_match, otherwise,
+    returns False. This is a helper function for sharding a model with FSDP.
+    In :func:`~torchtune.training.shard_model`, we iterate over the model's named modules
+    and apply fully_shard using this condition.
+
+    As part of our sharding strategy, we want each layer to be sharded separately, as this is
+    generally efficient. We may also want to shard certain modules that are not layers, such as
+    the embedding module.
+
+    #TODO: a more robust way would be to shard on the module type, not the name.
+
+    Args:
+        name (str): Name of the module.
+        module (nn.Module): Module to be sharded.
+        names_to_match (Optional[List[str]]): List of names to match, if any.
+        *args: Variable length argument list to be passed to the Embedding module.
+        **kwargs: Arbitrary keyword arguments to be passed to the Embedding module.
+
+    Returns:
+        bool: True if the module name matches the condition, False otherwise.
+
+    Examples:
+        >>> names_to_match = ["embedding"]
+        >>> layer_names = ["layers.0", "decoder.layers.1", "encoder.layers.2.attention",
+            "my_wrapper.layer.1.something", "embedding"]
+        >>> matches = []
+        >>> for name in layer_names:
+        >>>     if shard_condition_is_layer_or_match(name, None): matches.append(name)
+        >>> print(matches)
+        >>> ["layers.0", "decoder.layers.1", "embedding"]
+    """
+    if names_to_match and name in names_to_match:
+        return True
+
+    name_list = name.split(".")
+    if len(name_list) >= 2:
+        return name_list[-2] == "layers" and str.isdigit(name_list[-1])
+
+    return False
+
+
 def shard_model(
     model: TransformerDecoder,
     shard_conditions: List[Callable[[str, nn.Module], bool]],
@@ -608,6 +634,8 @@ def shard_model(
             the forward pass. Setting this to True corresponds to the FULL_SHARD sharding strategy
             from FSDP1, while setting it to False corresponds to the SHARD_GRAD_OP sharding strategy.
 
+    Raises:
+        ValueError: If no layer modules were sharded, indicating that no shard_condition was triggered.
     """
     fsdp_kwargs = {"reshard_after_forward": reshard_after_forward}
     if cpu_offload:
@@ -615,9 +643,16 @@ def shard_model(
 
     # Shard the model with FSDP, iterating in reverse to start with
     # lowest-level modules first
+    num_layers_sharded = 0
     for n, m in reversed(list(model.named_modules())):
         if any([shard_condition(n, m) for shard_condition in shard_conditions]):
             fully_shard(m, **fsdp_kwargs)
+            num_layers_sharded += 1
+
+    if num_layers_sharded == 0:
+        raise ValueError(
+            "No layer modules were sharded. Please check if shard conditions are working as expected."
+        )
 
     # Finally shard the entire model to account for any stragglers
     fully_shard(model, **fsdp_kwargs)

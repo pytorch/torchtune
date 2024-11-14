@@ -426,7 +426,8 @@ def padded_collate_tiled_images_and_mask(
     if pad_max_images is not None:
         _, _, img_seq = concat_masks.shape
         concat_masks = F.pad(
-            concat_masks, (0, pad_max_images * image_seq_len - img_seq)
+            concat_masks,
+            (0, pad_max_images * max_num_tiles * tokens_per_tile - img_seq),
         )
 
     batch_dict = {
