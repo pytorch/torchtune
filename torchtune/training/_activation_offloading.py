@@ -95,10 +95,6 @@ class OffloadActivations(saved_tensors_hooks):
 
         # for streaming
         if self.use_streams:
-            if torch.__version__ < "2.5.0.dev20240907":
-                raise RuntimeError(
-                    "OffloadActivations with use_streams=True requires PyTorch 2.5.0.dev20240907 or later."
-                )
             self.s1 = torch.cuda.Stream()  # comms stream
             self.fwd_stash = {}  # tensor_id => (activation, ev1)
             if max_fwd_stash_size < 1:
