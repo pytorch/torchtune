@@ -50,17 +50,12 @@ def llama3_2_vision_transform(
     Returns:
         Llama3VisionTransform: Instantiation of the Llama 3.2 vision transform
     """
-    special_tokens = (
-        parse_hf_tokenizer_json(special_tokens_path)
-        if special_tokens_path is not None
-        else None
-    )
     template = (
         _get_prompt_template(prompt_template) if prompt_template is not None else None
     )
     return Llama3VisionTransform(
         path=path,
-        special_tokens=special_tokens,
+        special_tokens_path=special_tokens_path,
         tile_size=image_size,
         patch_size=14,
         max_num_tiles=4,
