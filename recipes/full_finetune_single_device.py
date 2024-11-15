@@ -314,16 +314,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             collate_fn=collate_name,  # TODO: check if this is correct
         )
 
-        # NOTE: added by us
-        # validation dataloader
-        cfg["validation_dataset"] = deepcopy(cfg.dataset)
-        cfg["validation_dataset"]["split"] = "validation"
-        self._sampler_validation, self._dataloader_validation = self._setup_data(
-            cfg_dataset=cfg["validation_dataset"],
-            shuffle=cfg.shuffle,
-            batch_size=cfg.batch_size,
-        )
-
         # Finally update the recipe state which can only be correctly set after all of the
         # other components have been initialized and updated.
         #
@@ -596,15 +586,15 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
-            collate_fn=(
-                partial(
-                    utils.padded_collate,
-                    padding_idx=self._tokenizer.pad_id,
-                    ignore_idx=self._loss_fn.ignore_index,
-                )
-                if not packed
-                else None
-            ),
+            # collate_fn=(
+            #     partial(
+            #         utils.padded_collate,
+            #         padding_idx=self._tokenizer.pad_id,
+            #         ignore_idx=self._loss_fn.ignore_index,
+            #     )
+            #     if not packed
+            #     else None
+            # ),
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
             collate_fn=(
@@ -622,17 +612,18 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         return sampler, dataloader
 
-    def save_checkpoint(self, epoch: int) -> None:
+    def _save_checkpoint(self, epoch: int) -> None:
         """
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
         """
 
         if self.save_checkpoints:
-            if self.save_checkpoint == -1:
-                if epoch + 1 != self.total_epochs:
-                    return
-            elif epoch % self.save_checkpoints != 0:
+            if epoch + 1 == self.total_epochs:
+                pass
+            elif self.save_checkpoints > 0 and epoch % self.save_checkpoints == 0:
+                pass
+            else:
                 return
         else:
             return
@@ -682,6 +673,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         return loss
 
+    def _skip_max_seq_len_samples(self, batch: Dict[str, torch.Tensor]) -> bool:
+        """
+        Skip samples that are too long. This is needed for the training loop to handle
+        samples that are too long to fit in the model.
+        """
+        return len(batch["tokens"][0]) > self._model.max_seq_len
+
     def train(self) -> None:
         """
         The core training loop. Supports training on subsets of the dataset using the
@@ -712,8 +710,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     if self._max_validation_steps is not None
                     else len(self._dataloader_validation)
                 )
+                # start a counter for samples that are too long
+                max_len_samples = 0
                 pbar_val = tqdm(total=num_eval_steps, desc="Validation")
                 for idx, batch in enumerate(self._dataloader_validation):
+                    if self._skip_max_seq_len_samples(batch):
+                        max_len_samples += 1
+                        continue
                     utils.batch_to_device(batch, self._device)
                     val_loss = self._loss_step(batch)
                     cum_val_loss += val_loss
@@ -734,6 +737,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     step=self.global_step,
                 )
                 pbar_val.close()
+                print("Number of samples that were too long: ", max_len_samples)
 
             # ------ Training Epoch ------ #
             # Initialize tokens count and running loss (for grad accumulation)
@@ -750,6 +754,12 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     == self.max_steps_per_epoch
                 ):
                     break
+
+                if self._skip_max_seq_len_samples(batch):
+                    max_len_samples += 1
+                    # TODO: will this break the num_tokens normalization?
+                    # maybe we could decrement idx?
+                    continue
 
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
@@ -847,7 +857,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
             self.epochs_run += 1
             # TODO: update self.save_checkpoint with new logic
-            self.save_checkpoint(epoch=curr_epoch)
+            self._save_checkpoint(epoch=curr_epoch)
 
         self._profiler.stop()
 
