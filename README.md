@@ -101,7 +101,7 @@ If you are interested in running on different hardware or with different models,
 
 ### Optimization flags
 
-The following table demonstrates the impact of sequentially applying various optimization techniques available on torchtune to the Llama 3B model. Each technique is added on top of the previous one, except for LoRA and QLoRA, which do not use `opt_in_bwd` or `Adamw8bit`.
+torchtune exposes a number of levers for memory efficiency and performance. The table below demonstrates the effects of applying some of these techniques sequentially to the Llama 3B model. Each technique is added on top of the previous one, except for LoRA and QLoRA, which do not use `optimizer_in_bwd` or `AdamW8bit` optimizer.
 
 **Baseline:**
 - **Model:** Llama 3B
