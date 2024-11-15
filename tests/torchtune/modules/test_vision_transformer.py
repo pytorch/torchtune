@@ -210,3 +210,27 @@ class TestVisionTransformer:
         ), f"Expected shape {expected_shape}, but got {output.shape}"
 
         assert_expected(output.mean(), torch.tensor(0.5458), atol=1e-3, rtol=1e-3)
+
+    @torch.no_grad()
+    def test_vision_transformer_append_cls_token(self, transformer_config):
+        transformer_config = transformer_config.copy()
+        transformer_config["append_cls_token"] = True
+
+        model_append_cls = clip_vision_encoder(**transformer_config).eval()
+        fixed_init_model(model_append_cls, min_val=-1, max_val=1)
+        output, _ = model_append_cls(self.image, self.aspect_ratio)
+
+        # assertion
+        expected_shape = (
+            self.batch_size,
+            self.n_imgs,
+            self.num_tiles,
+            model_append_cls.get_image_tokens_per_tile(),
+            transformer_config["embed_dim"],
+        )
+
+        assert (
+            output.shape == expected_shape
+        ), f"Expected shape {expected_shape}, but got {output.shape}"
+
+        assert_expected(output.mean(), torch.tensor(1.0172), atol=1e-3, rtol=1e-3)

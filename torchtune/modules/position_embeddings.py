@@ -142,6 +142,8 @@ class VisionRotaryPositionalEmbeddings(nn.Module):
             ``embed_dim // num_heads // 2``. The divide by 2 accounts for x and y positions.
         base (int): The base for the geometric progression used to compute
             the rotation angles
+        append_cls_token (bool): Set to True if CLS token embedding is at the end of the sequence in the vision transformer,
+            False if is in the beginning of the sequence. RoPE is zeroed out for the CLS token. Default is True.
     """
 
     def __init__(
@@ -150,11 +152,13 @@ class VisionRotaryPositionalEmbeddings(nn.Module):
         tile_size: int,
         dim: int,
         base: int = 10_000,
+        append_cls_token: bool = True,
     ) -> None:
         super().__init__()
         self.patch_grid_size = tile_size // patch_size
         self.dim = dim
         self.base = base
+        self.append_cls_token = append_cls_token
         self.rope_init()
 
     def rope_init(self):
@@ -172,12 +176,20 @@ class VisionRotaryPositionalEmbeddings(nn.Module):
             patches_per_tile, dtype=self.theta.dtype, device=self.theta.device
         )
         # Add a placeholder index for CLS token - will not be used in RoPE
-        patch_idx = torch.cat(
-            [
-                patch_idx,
-                -1 * torch.ones(1, dtype=patch_idx.dtype, device=patch_idx.device),
-            ]
-        )
+        if self.append_cls_token:
+            patch_idx = torch.cat(
+                [
+                    patch_idx,
+                    -1 * torch.ones(1, dtype=patch_idx.dtype, device=patch_idx.device),
+                ]
+            )
+        else:
+            patch_idx = torch.cat(
+                [
+                    -1 * torch.ones(1, dtype=patch_idx.dtype, device=patch_idx.device),
+                    patch_idx,
+                ]
+            )
         # Encode x and y positions of each patch in the tile
         patch_x_pos = patch_idx % self.patch_grid_size
         patch_y_pos = patch_idx // self.patch_grid_size

@@ -91,6 +91,10 @@ def clip_vision_encoder(
         raise ValueError(
             f"embed_dim must be divisible by num_heads, got {embed_dim} and {num_heads}"
         )
+    if use_rope and max_num_tiles != 1:
+        raise ValueError(
+            f"2D RoPE is only supported for max_num_tiles = 1, got {max_num_tiles}"
+        )
 
     head_dim = embed_dim // num_heads
 
@@ -101,7 +105,11 @@ def clip_vision_encoder(
     )
     rope = (
         VisionRotaryPositionalEmbeddings(
-            patch_size=patch_size, tile_size=tile_size, dim=head_dim // 2, base=10_000
+            patch_size=patch_size,
+            tile_size=tile_size,
+            dim=head_dim // 2,
+            base=10_000,
+            append_cls_token=append_cls_token,
         )
         if use_rope
         else None
