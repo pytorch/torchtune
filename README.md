@@ -119,7 +119,7 @@ The following table demonstrates the impact of sequentially applying various opt
 | [+ Activation Ceheckpointing](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#activation-checkpointing) | 25.28 | -48.1% | 7394 | -21.5% |
 | [+ Optimizer in bwd](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#fusing-optimizer-step-into-backward-pass) | 23.92 | -5.4% | 7489 | 1.3% |
 | [+ Activation Offloading](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#activation-offloading) | 22.34 | -6.6% | 7479 | -0.1% |
-| [+ Adamw8bit](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#lower-precision-optimizers) | 17.57 | -21.4% | 7187 | -3.9% |
+| [+ 8-bit AdamW](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#lower-precision-optimizers) | 17.57 | -21.4% | 7187 | -3.9% |
 | [LoRA](https://pytorch.org/torchtune/main/tutorials/lora_finetune.html) | 9.16 | -47.8% | 8355 | 16.2% |
 | [QLoRA](https://pytorch.org/torchtune/main/tutorials/qlora_finetune.html) | 5.28 | -42.4% | 8228 | -1.5% |
 
