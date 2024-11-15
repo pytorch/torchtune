@@ -47,6 +47,21 @@ class TestNF4Linear:
         assert len(params) == 1
         assert isinstance(params[0], NF4Tensor)
 
+    def test_quantization_kwargs(self):
+        """Test that passing in non-default quantization kwargs works as expected."""
+        quantization_kwargs = {
+            "block_size": 16,
+            "scaler_block_size": 256,
+        }
+        nf4_linear = FrozenNF4Linear(
+            512, 512, device="cpu", dtype=torch.bfloat16, **quantization_kwargs
+        )
+        params = list(nf4_linear.parameters())
+        assert len(params) == 1
+        assert isinstance(params[0], NF4Tensor)
+        assert params[0].block_size == quantization_kwargs["block_size"]
+        assert params[0].scaler_block_size == quantization_kwargs["scaler_block_size"]
+
     @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
     def test_state_dict(self, dtype):
         nf4_linear = FrozenNF4Linear(512, 512, device="cpu", dtype=dtype)
