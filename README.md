@@ -116,7 +116,7 @@ The following table demonstrates the impact of sequentially applying various opt
 | [+ Packed Dataset](https://pytorch.org/torchtune/main/basics/packing.html) | 70.52 | 175.8% | 7203 | 141.8% |
 | [+ Compile](https://pytorch.org/tutorials/intermediate/torch_compile_tutorial.html) | 59.33 | -15.9% | 9200 | 27.7% |
 | [+ Chunked Cross Entropy](https://pytorch.org/torchtune/main/generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html) | 48.69 | -17.9% | 9415 | 2.3% |
-| [+ Activation Ceheckpointing](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#activation-checkpointing) | 25.28 | -48.1% | 7394 | -21.5% |
+| [+ Activation Checkpointing](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#activation-checkpointing) | 25.28 | -48.1% | 7394 | -21.5% |
 | [+ Optimizer in bwd](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#fusing-optimizer-step-into-backward-pass) | 23.92 | -5.4% | 7489 | 1.3% |
 | [+ Activation Offloading](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#activation-offloading) | 22.34 | -6.6% | 7479 | -0.1% |
 | [+ 8-bit AdamW](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#lower-precision-optimizers) | 17.57 | -21.4% | 7187 | -3.9% |
