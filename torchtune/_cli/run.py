@@ -88,6 +88,11 @@ For a list of all possible recipes, run `tune ls`."""
         # Have to reset the argv so that the recipe can be run with the correct arguments
         args.training_script = args.recipe
         args.training_script_args = args.recipe_args
+
+        # We default to letting torchrun choose a random free port
+        args.rdzv_backend = "c10d"
+        args.rdzv_endpoint = "localhost:0"
+
         # torchtune built-in recipes are specified with an absolute posix path, but
         # custom recipes are specified as a relative module dot path and need to be
         # run with python -m
