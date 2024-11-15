@@ -7,7 +7,6 @@
 from functools import partial
 from typing import Callable, List, Optional
 
-import torch
 from torch import nn
 from torchtune.models.clip._position_embeddings import (
     TiledTokenPositionalEmbedding,
@@ -21,6 +20,7 @@ from torchtune.modules import (
     FrozenNF4Linear,
     MultiHeadAttention,
     TransformerSelfAttentionLayer,
+    VisionRotaryPositionalEmbeddings,
 )
 
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
@@ -39,8 +39,7 @@ def clip_vision_encoder(
     activation: Callable = nn.SiLU,
     cls_output_dim: int = 512,
     attn_bias: bool = True,
-    rope_base: Optional[int] = None,
-    encoder_max_seq_len: Optional[int] = None,
+    use_rope: bool = False,
     out_indices: Optional[List[int]] = None,
     output_cls_projection: bool = False,
     max_num_tiles: int = 4,
@@ -69,11 +68,7 @@ def clip_vision_encoder(
         activation (Callable): The activation function to use in the MLP layer.
         cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.
         attn_bias (bool): Boolean for if to use bias in the attention module. Default True.
-        rope_base (Optional[int]): base for the rotary positional embeddings. CLIP does not include rope by default,
-            if a value is passed in then rope will be added to multihead attention. Default: None
-        encoder_max_seq_len (Optional[int]): maximum sequence length the encoder will be run with, as used
-            by :func:`~torchtune.modules.RotaryPositionalEmbeddings`. This is required if ``rope_base``
-            is specified. Default: None.
+        use_rope (bool): If True, include 2D rope in attention in each transformer layer. Default: False
         out_indices (Optional[List[int]]): The indices of hidden layers to return.
             If provided, it will return the intermediate results of the transformer layers
             before they go through a next layer. For example, ``out_indices=[0,3]`` will
@@ -96,11 +91,6 @@ def clip_vision_encoder(
         raise ValueError(
             f"embed_dim must be divisible by num_heads, got {embed_dim} and {num_heads}"
         )
-    if rope_base is not None and encoder_max_seq_len is None:
-        raise ValueError(
-            "encoder_max_seq_len must be provided if rope_base is specified. "
-            "This is used to determine the maximum sequence length for the rotary positional embeddings."
-        )
 
     head_dim = embed_dim // num_heads
 
@@ -110,10 +100,10 @@ def clip_vision_encoder(
         else None
     )
     rope = (
-        RotaryPositionalEmbeddings(
-            dim=head_dim, max_seq_len=encoder_max_seq_len, base=rope_base
+        VisionRotaryPositionalEmbeddings(
+            patch_size=patch_size, tile_size=tile_size, dim=head_dim // 2, base=10_000
         )
-        if rope_base is not None
+        if use_rope
         else None
     )
 
