@@ -1,9 +1,0 @@
-﻿.. role:: hidden
-    :class: hidden-section
-.. currentmodule:: torchtune.training
-
-
-get_full_finetune_fsdp_wrap_policy
-==================================
-
-.. autofunction:: get_full_finetune_fsdp_wrap_policy

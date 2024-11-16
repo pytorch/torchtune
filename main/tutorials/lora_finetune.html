@@ -630,8 +630,7 @@ model without any wrappers or custom checkpoint conversion logic.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Whenever loading weights with <code class="code docutils literal notranslate"><span class="pre">strict=False</span></code>, you should verify that any missing or extra keys in
-the loaded <code class="code docutils literal notranslate"><span class="pre">state_dict</span></code> are as expected. torchtune’s LoRA recipes do this by default via e.g.
-<a class="reference internal" href="../generated/torchtune.modules.peft.validate_state_dict_for_lora.html#torchtune.modules.peft.validate_state_dict_for_lora" title="torchtune.modules.peft.validate_state_dict_for_lora"><code class="xref py py-func docutils literal notranslate"><span class="pre">validate_state_dict_for_lora()</span></code></a> or
+the loaded <code class="code docutils literal notranslate"><span class="pre">state_dict</span></code> are as expected. torchtune’s LoRA recipes do this by default via
 <a class="reference internal" href="../generated/torchtune.modules.peft.validate_missing_and_unexpected_for_lora.html#torchtune.modules.peft.validate_missing_and_unexpected_for_lora" title="torchtune.modules.peft.validate_missing_and_unexpected_for_lora"><code class="xref py py-func docutils literal notranslate"><span class="pre">validate_missing_and_unexpected_for_lora()</span></code></a>.</p>
 </div>
 <p>Once we’ve loaded the base model weights, we also want to set only LoRA parameters to trainable.</p>

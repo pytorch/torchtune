@@ -437,7 +437,7 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.distributed</span> <span class="k">as</span> <span class="nn">dist</span>
@@ -448,45 +448,15 @@
 <span class="kn">from</span> <span class="nn">torch.distributed._tensor.placement_types</span> <span class="kn">import</span> <span class="n">DTensorSpec</span><span class="p">,</span> <span class="n">TensorMeta</span>
 <span class="kn">from</span> <span class="nn">torch.distributed.checkpoint.state_dict</span> <span class="kn">import</span> <span class="n">_init_optim_state</span>
 <span class="kn">from</span> <span class="nn">torch.distributed.fsdp</span> <span class="kn">import</span> <span class="n">ShardingStrategy</span>
-<span class="kn">from</span> <span class="nn">torch.distributed.fsdp.wrap</span> <span class="kn">import</span> <span class="n">ModuleWrapPolicy</span>
 <span class="kn">from</span> <span class="nn">torch.optim</span> <span class="kn">import</span> <span class="n">Optimizer</span>
 <span class="kn">from</span> <span class="nn">torchao.dtypes.nf4tensor</span> <span class="kn">import</span> <span class="n">NF4Tensor</span><span class="p">,</span> <span class="n">to_nf4</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">TransformerDecoder</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">DoRALinear</span><span class="p">,</span> <span class="n">LoRALinear</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.peft.lora</span> <span class="kn">import</span> <span class="n">_lora_a_init_params</span><span class="p">,</span> <span class="n">_lora_b_init_params</span>
 <span class="kn">from</span> <span class="nn">torchtune.utils</span> <span class="kn">import</span> <span class="n">get_logger</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.utils._device</span> <span class="kn">import</span> <span class="n">get_device</span>
 
 <span class="n">_log</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">()</span>
 
-
-<span class="n">FSDPPolicyType</span><span class="p">:</span> <span class="n">Type</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]</span>
-
-<span class="n">FSDPPolicyType</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
-
-<span class="s2">A datatype for a function that can be used as an FSDP wrapping policy.</span>
-<span class="s2">In particular, this type denotes a function that can accept an nn.Module, a boolean flag, and an integer</span>
-<span class="s2">and return a boolean indicating whether the module should be wrapped with FSDP. Objects of this type can</span>
-<span class="s2">be directly passed into PyTorch FSDP&#39;s ``auto_wrap_policy`` argument to specify how FSDP wraps submodules.</span>
-
-<span class="s2">The below function serves as an example of creating and returning a function that obeys the contract of</span>
-<span class="s2">``FSDPPolicyType``::</span>
-
-<span class="s2">    def get_fsdp_policy(module: nn.Module, modules_to_wrap: Set[Type], min_num_params: int):</span>
-
-<span class="s2">        def my_fsdp_policy(module: nn.Module, modules_to_wrap: Set[Type], recurse: bool, min_num_params: int) -&gt; bool:</span>
-<span class="s2">            if recurse:</span>
-<span class="s2">                return True</span>
-<span class="s2">            # Wrap layers that are of type in ``modules_to_wrap`` and layers with more than min_num_params</span>
-
-<span class="s2">            return isinstance(module, tuple(modules_to_wrap)) or sum(p.numel() for p in module.parameters()) &gt; 1000</span>
-
-<span class="s2">        return functools.partial(my_fsdp_policy, modules_to_wrap=modules_to_wrap)</span>
-
-<span class="s2">Please see documentation of ``auto_wrap_policy`` at https://pytorch.org/docs/stable/fsdp.html for additional details.</span>
-
-<span class="s2">&quot;&quot;&quot;</span>
 
 <span class="n">_valid_distributed_single_node_nnodes</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;1:1&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">]</span>
 
@@ -604,105 +574,6 @@
     <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">chain</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">(),</span> <span class="n">model</span><span class="o">.</span><span class="n">named_buffers</span><span class="p">()):</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_meta</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unexpected param or buffer </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> on meta device.&quot;</span><span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">contains_fsdp</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Checks if the model contains FSDP.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        model (nn.Module): Model to check.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        bool: True if the model contains FSDP, False otherwise.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="nb">any</span><span class="p">(</span>
-        <span class="nb">isinstance</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">fsdp</span><span class="o">.</span><span class="n">FullyShardedDataParallel</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">modules</span><span class="p">()</span>
-    <span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">_dummy_reset_params</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Dummy method for patching no-op reset_parameters() when using</span>
-<span class="sd">    FSDP with meta device.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span>
-
-
-<span class="k">def</span> <span class="nf">prepare_model_for_fsdp_with_meta_device</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Dynamically define reset_parameters on every submodule of the model. For LoRA models,</span>
-<span class="sd">    ensure that the FSDP contract of reset_parameters only modifying a module&#39;s directly-owned</span>
-<span class="sd">    parameters is satisfied. More details here: https://github.com/pytorch/pytorch/issues/104187.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        model (nn.Module): model class to prepare for usage with FSDP and meta device.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        nn.Module: Model with reset_parameters defined on every submodule.</span>
-<span class="sd">        In the case of a LoRA model, we override the default reset_parameters of nn.Linear.</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">        RuntimeError: if model contains submodule with non-callable attribute reset_parameters</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_modules</span><span class="p">():</span>
-        <span class="c1"># If the module does not have reset_parameters defined, we define</span>
-        <span class="c1"># a no-op reset_parameters method to satisfy FSDP&#39;s contract.</span>
-        <span class="n">reset_params</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s2">&quot;reset_parameters&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">reset_params</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">callable</span><span class="p">(</span><span class="n">reset_params</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Cannot override existing reset_parameters variable for FSDP init in </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">reset_params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">v</span><span class="o">.</span><span class="n">reset_parameters</span> <span class="o">=</span> <span class="n">_dummy_reset_params</span><span class="o">.</span><span class="fm">__get__</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-
-        <span class="c1"># This will define reset_parameters for LoRA weight initialization</span>
-        <span class="c1"># directly on any LoRALinear submodules lora_a and lora_b.</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">LoRALinear</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">DoRALinear</span><span class="p">):</span>
-            <span class="n">v</span><span class="o">.</span><span class="n">lora_a</span><span class="o">.</span><span class="n">reset_parameters</span> <span class="o">=</span> <span class="n">_lora_a_init_params</span><span class="o">.</span><span class="fm">__get__</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">lora_a</span><span class="p">)</span>
-            <span class="n">v</span><span class="o">.</span><span class="n">lora_b</span><span class="o">.</span><span class="n">reset_parameters</span> <span class="o">=</span> <span class="n">_lora_b_init_params</span><span class="o">.</span><span class="fm">__get__</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">lora_b</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">model</span>
-
-
-<div class="viewcode-block" id="lora_fsdp_wrap_policy"><a class="viewcode-back" href="../../../generated/torchtune.training.lora_fsdp_wrap_policy.html#torchtune.training.lora_fsdp_wrap_policy">[docs]</a><span class="k">def</span> <span class="nf">lora_fsdp_wrap_policy</span><span class="p">(</span><span class="n">modules_to_wrap</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="n">Type</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">FSDPPolicyType</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    A default policy for wrapping models trained with LoRA using FSDP.</span>
-
-<span class="sd">    FSDP&#39;s default behavior is to allocate gradients at the level of FSDP-wrapped modules.</span>
-<span class="sd">    This means that if any parameter in a given FSDP-wrapped module requires gradients, then memory will be</span>
-<span class="sd">    allocated for gradients for the entire module.</span>
-
-<span class="sd">    In the case of LoRA, where only the adapters are trainable, this means that</span>
-<span class="sd">    we need to wrap the adapter submodules in their own FSDP units to</span>
-<span class="sd">    maximize memory savings. After this is done, model will also be hierarchically wrapped</span>
-<span class="sd">    based on nn.Module types specified in ``modules_to_wrap``.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        modules_to_wrap (Set[Type]): nn.Module types to recursively wrap</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``. Please see</span>
-<span class="sd">        documentation for :const:`~torchtune.utils.FSDPPolicyType` for additional details.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="nf">lora_wrap_fsdp</span><span class="p">(</span><span class="n">module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">recurse</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">recurse</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">True</span>
-
-        <span class="c1"># Assumes lora_a and lora_b are nn.Linears that are the</span>
-        <span class="c1"># only trainable modules in the entire network. Wraps</span>
-        <span class="c1"># these in separate FSDP unit to work around FSDP allocating</span>
-        <span class="c1"># extra gradient memory when wrapped with other modules.</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">&quot;weight&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">module</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">True</span>
-
-        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">modules_to_wrap</span><span class="p">))</span>
-
-    <span class="k">return</span> <span class="n">lora_wrap_fsdp</span></div>
 
 
 <span class="k">def</span> <span class="nf">load_from_full_model_state_dict</span><span class="p">(</span>
@@ -927,66 +798,6 @@
             <span class="s2">&quot;state&quot;</span><span class="p">:</span> <span class="n">state</span><span class="p">,</span>
         <span class="p">}</span>
     <span class="p">)</span>
-
-
-<div class="viewcode-block" id="get_full_finetune_fsdp_wrap_policy"><a class="viewcode-back" href="../../../generated/torchtune.training.get_full_finetune_fsdp_wrap_policy.html#torchtune.training.get_full_finetune_fsdp_wrap_policy">[docs]</a><span class="k">def</span> <span class="nf">get_full_finetune_fsdp_wrap_policy</span><span class="p">(</span>
-    <span class="n">memory_efficient_fsdp_wrap</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">modules_to_wrap</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="n">Type</span><span class="p">]</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FSDPPolicyType</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Retrieves an FSDP wrapping policy based on the specified flags ``memory_efficient_fsdp_wrap`` and</span>
-<span class="sd">    ``modules_to_wrap``. Specifically, if ``memory_efficient_fsdp_wrap`` is set to ``True``, the returned</span>
-<span class="sd">    policy will wrap the model&#39;s token embedding and output projection in addition to the modules specified</span>
-<span class="sd">    to maximize memory savings.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        memory_efficient_fsdp_wrap (bool): If ``True``, will also wrap embedding and output projection layers with FSDP.</span>
-<span class="sd">        modules_to_wrap (Set[Type]): Set of module types to wrap.</span>
-
-<span class="sd">    Note:</span>
-<span class="sd">        ``memory_efficient_fsdp_wrap`` memory improvements have currently only been verified on llama3 workloads</span>
-<span class="sd">        where they provide ~15% memory improvement (when used alongside AC memory efficient wrapping). Other workloads</span>
-<span class="sd">        have not been verified and may not see the same improvements.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel`` as the ``auto_wrap_policy``</span>
-<span class="sd">        argument. Please see documentation for :const:`~torchtune.utils.FSDPPolicyType` for additional details.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">memory_efficient_fsdp_wrap</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">_memory_efficient_wrap_policy</span><span class="p">(</span><span class="n">modules_to_wrap</span><span class="o">=</span><span class="n">modules_to_wrap</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">ModuleWrapPolicy</span><span class="p">(</span><span class="n">modules_to_wrap</span><span class="p">)</span></div>
-
-
-<span class="k">def</span> <span class="nf">_memory_efficient_wrap_policy</span><span class="p">(</span><span class="n">modules_to_wrap</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="n">Type</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">FSDPPolicyType</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    A default policy for memory efficient wrapping for full finetuning using FSDP. Specifically,</span>
-<span class="sd">    this will wrap the model&#39;s token embedding and output projection into their own FSDP units to</span>
-<span class="sd">    maximize memory savings. This helps especially if these layers are particularly large,</span>
-<span class="sd">    such as due to a large embedding size.</span>
-<span class="sd">    After this is done, model will also be hierarchically wrapped</span>
-<span class="sd">    based on nn.Module types specified in ``modules_to_wrap``. This function assumes that the</span>
-<span class="sd">    input model has an attribute ``output`` that is a nn.Linear which is the model&#39;s output projection.</span>
-<span class="sd">    Args:</span>
-<span class="sd">        modules_to_wrap (Set[Type]): nn.Module types to recursively wrap</span>
-<span class="sd">    Returns:</span>
-<span class="sd">        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">modules_to_wrap</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">llama3_wrap</span><span class="p">(</span><span class="n">module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">recurse</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="c1"># Label that output_proj should be wrapped individually.</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">TransformerDecoder</span><span class="p">):</span>
-            <span class="n">module</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">_wrap</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="k">if</span> <span class="n">recurse</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">True</span>
-
-        <span class="c1"># Wrap output_proj individually.</span>
-        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">&quot;_wrap&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
-            <span class="k">return</span> <span class="kc">True</span>
-
-        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">modules_to_wrap</span><span class="p">))</span>
-
-    <span class="k">return</span> <span class="n">llama3_wrap</span>
 
 
 <span class="k">def</span> <span class="nf">get_shard_conditions</span><span class="p">(</span>

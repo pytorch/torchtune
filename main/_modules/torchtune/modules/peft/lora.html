@@ -520,14 +520,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">lora_a</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lora_b</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="n">out_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">merged</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="c1"># Note: FSDP&#39;s meta device initialization contract assumes that a module&#39;s</span>
-        <span class="c1"># reset_parameters method only initializes its own parameters (i.e. no child</span>
-        <span class="c1"># params are initialized, as is done in initialize_parameters below).</span>
-        <span class="c1"># For that reason, we patch reset_parameters directly on lora_a and lora_b submodules</span>
-        <span class="c1"># when using meta device. This is done in</span>
-        <span class="c1"># torchtune.training.prepare_model_for_fsdp_with_meta_device.</span>
-        <span class="c1"># See this issue for more details: https://github.com/pytorch/pytorch/issues/104187.</span>
-        <span class="c1"># Without meta device, we only need the following:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">initialize_parameters</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">initialize_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

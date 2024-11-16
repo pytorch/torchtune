@@ -559,91 +559,6 @@
     <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">adapter_key_filter</span><span class="p">(</span><span class="n">k</span><span class="p">)}</span></div>
 
 
-<div class="viewcode-block" id="validate_state_dict_for_lora"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.validate_state_dict_for_lora.html#torchtune.modules.peft.validate_state_dict_for_lora">[docs]</a><span class="k">def</span> <span class="nf">validate_state_dict_for_lora</span><span class="p">(</span>
-    <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
-    <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-    <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-    <span class="n">full_model_state_dict_keys</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">lora_state_dict_keys</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">base_model_state_dict_keys</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Validate that the state dict keys for a LoRA model are as expected.</span>
-
-<span class="sd">    (1) If lora_state_dict_keys are passed, this function will confirm that they match exactly the</span>
-<span class="sd">        LoRA param names from the full model (as determined by lora_modules).</span>
-<span class="sd">    (2) If base_model_state_dict_keys are passed, this function will confirm that they are exactly the</span>
-<span class="sd">        complement of the LoRA param names from the full model.</span>
-<span class="sd">    (3) If both lora_state_dict_keys and base_model_state_dict_keys are passed, this function will</span>
-<span class="sd">        confirm that the full model&#39;s params are exactly their disjoint union.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers</span>
-<span class="sd">            LoRA should be applied to in each self-attention block. Options are</span>
-<span class="sd">            ``{&quot;q_proj&quot;, &quot;k_proj&quot;, &quot;v_proj&quot;, &quot;output_proj&quot;}``.</span>
-<span class="sd">        apply_lora_to_mlp (bool): whether LoRA is applied to each MLP linear.</span>
-<span class="sd">        apply_lora_to_output (bool): whether LoRA is applied to the final output projection.</span>
-<span class="sd">        full_model_state_dict_keys (List[str]): List of keys in the full model state dict.</span>
-<span class="sd">        lora_state_dict_keys (Optional[List[str]]): List of keys in the LoRA state dict.</span>
-<span class="sd">            If none, LoRA state dict keys will not be validated.</span>
-<span class="sd">        base_model_state_dict_keys (Optional[List[str]]): List of keys in the base model state dict.</span>
-<span class="sd">            If none, base model keys will not be validated.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        None</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">        AssertionError: If base model state dict is missing any non-LoRA params from the full model.</span>
-<span class="sd">        AssertionError: If LoRA state dict is missing any LoRA params from the full model.</span>
-<span class="sd">        AssertionError: If base model state dict has any LoRA params.</span>
-<span class="sd">        AssertionError: If LoRA state dict has any non-LoRA params.</span>
-<span class="sd">        AssertionError: If base model and LoRA state dicts have overlapping keys.</span>
-<span class="sd">        AssertionError: If full model state dict is missing keys from either base model or LoRA state dict.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">lora_modules</span> <span class="o">=</span> <span class="n">get_lora_module_names</span><span class="p">(</span>
-        <span class="n">lora_attn_modules</span><span class="p">,</span> <span class="n">apply_lora_to_mlp</span><span class="p">,</span> <span class="n">apply_lora_to_output</span>
-    <span class="p">)</span>
-    <span class="n">is_lora_param</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">any</span><span class="p">(</span>
-        <span class="p">[</span>
-            <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">k</span><span class="p">,</span> <span class="s2">&quot;lora&quot;</span><span class="p">])</span> <span class="ow">in</span> <span class="n">x</span> <span class="ow">or</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">k</span><span class="p">,</span> <span class="s2">&quot;magnitude&quot;</span><span class="p">])</span> <span class="ow">in</span> <span class="n">x</span>
-            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">lora_modules</span>
-        <span class="p">]</span>
-    <span class="p">)</span>
-    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">full_model_state_dict_keys</span><span class="p">:</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_lora_param</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">base_model_state_dict_keys</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">base_model_state_dict_keys</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;Missing non-LoRA key </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> from base model state dict&quot;</span>
-                    <span class="p">)</span>
-            <span class="k">if</span> <span class="n">lora_state_dict_keys</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">lora_state_dict_keys</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Non-LoRA key </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> found in LoRA state dict&quot;</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">base_model_state_dict_keys</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">base_model_state_dict_keys</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;LoRA key </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> found in base model state dict&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">lora_state_dict_keys</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">lora_state_dict_keys</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Missing LoRA key </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> From LoRA state dict&quot;</span><span class="p">)</span>
-
-    <span class="c1"># Full model is disjoint union of base model and LoRA weights</span>
-    <span class="k">if</span> <span class="n">lora_state_dict_keys</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">base_model_state_dict_keys</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">combined_state_dict_keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">lora_state_dict_keys</span><span class="p">)</span><span class="o">.</span><span class="n">union</span><span class="p">(</span>
-            <span class="n">base_model_state_dict_keys</span>
-        <span class="p">)</span>
-        <span class="n">shared_state_dict_keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">lora_state_dict_keys</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span>
-            <span class="n">base_model_state_dict_keys</span>
-        <span class="p">)</span>
-        <span class="k">assert</span> <span class="p">(</span>
-            <span class="n">shared_state_dict_keys</span> <span class="o">==</span> <span class="nb">set</span><span class="p">()</span>
-        <span class="p">),</span> <span class="s2">&quot;Base model and LoRA state dict have overlapping keys&quot;</span>
-        <span class="k">assert</span> <span class="n">combined_state_dict_keys</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span>
-            <span class="n">full_model_state_dict_keys</span>
-        <span class="p">),</span> <span class="s2">&quot;Extra keys not present in full model&quot;</span></div>
-
-
 <span class="k">def</span> <span class="nf">_get_lora_modules</span><span class="p">(</span><span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get the keys from a state dict that correspond to LoRALinear modules.</span>
@@ -774,10 +689,9 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A more memory-efficient way to validate that LoRA state dict loading was done properly.</span>
 
-<span class="sd">    Similar to :func:`validate_state_dict_for_lora`, this function uses a model&#39;s LoRA config to</span>
-<span class="sd">    check that LoRA and/or base model weights are loaded into the full model correctly.</span>
-<span class="sd">    Unlike that function, this method relies only on the values of missing and unexpected</span>
-<span class="sd">    as returned by the load_state_dict API with strict=False. This allows us to do the</span>
+<span class="sd">    This function uses a model&#39;s LoRA config to check that LoRA and/or base model weights</span>
+<span class="sd">    are loaded into the full model correctly. This function relies only on the values of missing and</span>
+<span class="sd">    unexpected as returned by the load_state_dict API with strict=False. This allows us to do the</span>
 <span class="sd">    validation without any additional calls to .state_dict(), which use additional memory.</span>
 
 <span class="sd">    Args:</span>
