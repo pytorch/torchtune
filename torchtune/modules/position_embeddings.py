@@ -135,8 +135,7 @@ class VisionRotaryPositionalEmbeddings(nn.Module):
         patch_size (int): The size of each patch. Used to divide the tiles into patches.
             E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches.
         tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
-            the size of the input image. In this case, the function will consider your image as a single tile.
-            with shape (40, 40) each.
+            the size of the full input image. In this case, the function will consider your image as a single tile.
         dim (int): Embedding dimension. Unlike :class:`~torchtune.modules.RotaryPositionalEmbeddings`, this is
             usually set to the dim of each head in the attention module divided by 2, computed as
             ``embed_dim // num_heads // 2``. The divide by 2 accounts for x and y positions.
