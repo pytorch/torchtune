@@ -71,9 +71,11 @@ PEFT Components
     :nosignatures:
 
     peft.LoRALinear
+    peft.DoRALinear
     peft.AdapterModule
     peft.get_adapter_params
     peft.set_trainable_params
+    peft.get_adapter_state_dict
     peft.validate_missing_and_unexpected_for_lora
     peft.disable_adapter
 

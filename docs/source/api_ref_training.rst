@@ -53,6 +53,7 @@ Utilities for enabling and working with distributed training.
     init_distributed
     is_distributed
     get_world_size_and_rank
+    gather_cpu_state_dict
 
 .. _ac_label:
 

@@ -187,6 +187,7 @@ class _VLMEvalWrapper(HFMultimodalLM):
             all_encoded_messages,
             pad_direction="left",
             pad_max_images=self._max_images_per_sample,
+            pad_max_tiles=self._transform.max_num_tiles,
         )
         utils.batch_to_device(tok_batch, self.device)
 

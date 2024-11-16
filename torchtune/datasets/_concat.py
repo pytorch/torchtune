@@ -52,14 +52,11 @@ class ConcatDataset(Dataset):
         dataset:
           - _component_: torchtune.datasets.instruct_dataset
             source: vicgalle/alpaca-gpt4
-            template: torchtune.data.AlpacaInstructTemplate
             split: train
             train_on_input: True
           - _component_: torchtune.datasets.instruct_dataset
             source: samsum
-            template: torchtune.data.SummarizeTemplate
             column_map: {"output": "summary"}
-            output: summary
             split: train
             train_on_input: False
 

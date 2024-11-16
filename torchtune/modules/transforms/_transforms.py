@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, List, Mapping, Optional, Protocol
+from typing import Any, List, Mapping, Protocol
 
 import torch
 
@@ -57,8 +57,6 @@ class VisionCrossAttentionMask(Transform):
             E.g. for patch_size = 40, a tile of shape (400, 400) will have 10x10 grid of patches
             with shape (40, 40) each.
         image_token_id (int): Token ID of the image special token.
-        max_num_tiles (Optional[int]): Maximum number of tiles in an image, used to
-            pad mask during inference. Defaults to None
     """
 
     def __init__(
@@ -66,12 +64,10 @@ class VisionCrossAttentionMask(Transform):
         tile_size: int,
         patch_size: int,
         image_token_id: int,
-        max_num_tiles: Optional[int] = None,
     ):
         patch_grid_size = tile_size // patch_size
         self.patches_per_tile = patch_grid_size**2
         self.image_token_id = image_token_id
-        self.max_num_tiles = max_num_tiles
 
     def _get_image_attention_intervals(self, tokens: List[int]) -> List[List[int]]:
         """
@@ -163,9 +159,6 @@ class VisionCrossAttentionMask(Transform):
         # which can vary based on number of tiles since they are not yet tile padded.
         # The masks are padded and concatenated together in the batch collator
         text_seq_len = len(tokens)
-        max_image_size = None
-        if inference and self.max_num_tiles is not None:
-            max_image_size = self.max_num_tiles * (self.patches_per_tile + 1)
         masks = []
         for image_num, interval in enumerate(intervals):
             # Identify what part of text sequence should be attended
@@ -178,9 +171,7 @@ class VisionCrossAttentionMask(Transform):
             # to a single image, so text tokens attend to all the image's tokens.
             # The mask is text_seq_len x mask_image_size if defined, otherwise
             # it uses current text/image sequence lengths.
-            mask = torch.zeros(
-                text_seq_len, max_image_size or image_seq_len, dtype=torch.bool
-            )
+            mask = torch.zeros(text_seq_len, image_seq_len, dtype=torch.bool)
             mask[start:end, :image_seq_len] = True
             masks.append(mask)
 
