@@ -16,7 +16,6 @@ from .feed_forward import FeedForward  # noqa
 from .kv_cache import KVCache  # noqa
 from .layer_norm import Fp32LayerNorm  # noqa
 from .low_precision import FrozenNF4Linear  # noqa
-from .lr_schedulers import get_cosine_schedule_with_warmup  # noqa
 from .position_embeddings import RotaryPositionalEmbeddings  # noqa
 from .rms_norm import RMSNorm  # noqa
 from .tanh_gate import TanhGate  # noqa
@@ -50,5 +49,4 @@ __all__ = [
     "local_kv_cache",
     "delete_kv_caches",
     "disable_kv_cache",
-    "get_cosine_schedule_with_warmup",
 ]
