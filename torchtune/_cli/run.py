@@ -89,9 +89,10 @@ For a list of all possible recipes, run `tune ls`."""
         args.training_script = args.recipe
         args.training_script_args = args.recipe_args
 
-        # We default to letting torchrun choose a random free port
-        args.rdzv_backend = "c10d"
-        args.rdzv_endpoint = "localhost:0"
+        # If the user does not explicitly pass a rendezvous endpoint, run in standalone mode.
+        # This allows running multiple distributed training jobs simultaneously.
+        if not args.rdzv_endpoint:
+            args.standalone = True
 
         # torchtune built-in recipes are specified with an absolute posix path, but
         # custom recipes are specified as a relative module dot path and need to be
