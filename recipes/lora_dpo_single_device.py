@@ -27,7 +27,6 @@ from torchtune.modules.peft import (
     get_merged_lora_ckpt,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
-    validate_state_dict_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 
@@ -270,19 +269,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
-
-        validate_state_dict_for_lora(
-            lora_attn_modules=cfg_model.lora_attn_modules,
-            apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
-            apply_lora_to_output=getattr(cfg_model, "apply_lora_to_output", False),
-            full_model_state_dict_keys=model.state_dict().keys(),
-            lora_state_dict_keys=(
-                lora_weights_state_dict.keys()
-                if lora_weights_state_dict is not None
-                else None
-            ),
-            base_model_state_dict_keys=base_model_state_dict.keys(),
-        )
 
         base_missing, base_unexpected = model.load_state_dict(
             base_model_state_dict, strict=False
