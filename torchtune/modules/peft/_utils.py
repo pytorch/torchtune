@@ -260,10 +260,9 @@ def validate_missing_and_unexpected_for_lora(
     """
     A more memory-efficient way to validate that LoRA state dict loading was done properly.
 
-    Similar to :func:`validate_state_dict_for_lora`, this function uses a model's LoRA config to
-    check that LoRA and/or base model weights are loaded into the full model correctly.
-    Unlike that function, this method relies only on the values of missing and unexpected
-    as returned by the load_state_dict API with strict=False. This allows us to do the
+    This function uses a model's LoRA config to check that LoRA and/or base model weights
+    are loaded into the full model correctly. This function relies only on the values of missing and
+    unexpected as returned by the load_state_dict API with strict=False. This allows us to do the
     validation without any additional calls to .state_dict(), which use additional memory.
 
     Args:
