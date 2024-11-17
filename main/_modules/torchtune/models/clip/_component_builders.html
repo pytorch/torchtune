@@ -436,7 +436,6 @@
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
 <span class="kn">from</span> <span class="nn">torchtune.models.clip._position_embeddings</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">TiledTokenPositionalEmbedding</span><span class="p">,</span>
@@ -450,6 +449,7 @@
     <span class="n">FrozenNF4Linear</span><span class="p">,</span>
     <span class="n">MultiHeadAttention</span><span class="p">,</span>
     <span class="n">TransformerSelfAttentionLayer</span><span class="p">,</span>
+    <span class="n">VisionRotaryPositionalEmbeddings</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.modules.common_utils</span> <span class="kn">import</span> <span class="n">reparametrize_as_dtype_state_dict_post_hook</span>
@@ -468,11 +468,12 @@
     <span class="n">activation</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">SiLU</span><span class="p">,</span>
     <span class="n">cls_output_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span>
     <span class="n">attn_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">use_rope</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">out_indices</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">output_cls_projection</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">max_num_tiles</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
     <span class="n">in_channels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
-    <span class="n">intermediate_act</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">SiLU</span><span class="p">(),</span>
+    <span class="n">append_cls_token</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VisionTransformer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builds the vision encoder associated with the clip model. This includes:</span>
@@ -496,6 +497,7 @@
 <span class="sd">        activation (Callable): The activation function to use in the MLP layer.</span>
 <span class="sd">        cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.</span>
 <span class="sd">        attn_bias (bool): Boolean for if to use bias in the attention module. Default True.</span>
+<span class="sd">        use_rope (bool): If True, include 2D rope in attention in each transformer layer. Default: False</span>
 <span class="sd">        out_indices (Optional[List[int]]): The indices of hidden layers to return.</span>
 <span class="sd">            If provided, it will return the intermediate results of the transformer layers</span>
 <span class="sd">            before they go through a next layer. For example, ``out_indices=[0,3]`` will</span>
@@ -505,7 +507,8 @@
 <span class="sd">        max_num_tiles (int): The maximum number of tiles that can be processed. This is used to</span>
 <span class="sd">            determine the size of the positional embeddings.</span>
 <span class="sd">        in_channels (int): The number of image input channels.</span>
-<span class="sd">        intermediate_act (torch.nn.Module): The activation function used in the intermediate layers in the transformer encoder.</span>
+<span class="sd">        append_cls_token (bool): If True, adds CLS token embedding to the end of the sequence in the vision transformer.</span>
+<span class="sd">            Default is False, which adds CLS token to the beginning of the sequence.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        A `VisionTransformer` object.</span>
@@ -513,11 +516,31 @@
 <span class="sd">    Raises:</span>
 <span class="sd">        AssertionError: If ``embed_dim`` is not divisible by ``num_heads``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">embed_dim</span> <span class="o">%</span> <span class="n">num_heads</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;embed_dim must be divisible by num_heads&quot;</span>
+    <span class="k">if</span> <span class="n">embed_dim</span> <span class="o">%</span> <span class="n">num_heads</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;embed_dim must be divisible by num_heads, got </span><span class="si">{</span><span class="n">embed_dim</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">num_heads</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">use_rope</span> <span class="ow">and</span> <span class="n">max_num_tiles</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;2D RoPE is only supported for max_num_tiles = 1, got </span><span class="si">{</span><span class="n">max_num_tiles</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">head_dim</span> <span class="o">=</span> <span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads</span>
 
     <span class="n">cls_projection</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">CLSProjection</span><span class="p">(</span><span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">cls_output_dim</span><span class="o">=</span><span class="n">cls_output_dim</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">output_cls_projection</span>
+        <span class="k">else</span> <span class="kc">None</span>
+    <span class="p">)</span>
+    <span class="n">rope</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">VisionRotaryPositionalEmbeddings</span><span class="p">(</span>
+            <span class="n">patch_size</span><span class="o">=</span><span class="n">patch_size</span><span class="p">,</span>
+            <span class="n">tile_size</span><span class="o">=</span><span class="n">tile_size</span><span class="p">,</span>
+            <span class="n">dim</span><span class="o">=</span><span class="n">head_dim</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">base</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
+            <span class="n">append_cls_token</span><span class="o">=</span><span class="n">append_cls_token</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">use_rope</span>
         <span class="k">else</span> <span class="kc">None</span>
     <span class="p">)</span>
 
@@ -526,12 +549,12 @@
         <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
         <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
         <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
-        <span class="n">head_dim</span><span class="o">=</span><span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads</span><span class="p">,</span>
+        <span class="n">head_dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span>
         <span class="n">q_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">),</span>
         <span class="n">k_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">),</span>
         <span class="n">v_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">),</span>
         <span class="n">output_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">),</span>
-        <span class="n">pos_embeddings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pos_embeddings</span><span class="o">=</span><span class="n">rope</span><span class="p">,</span>
         <span class="n">attn_dropout</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
         <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span>
@@ -583,6 +606,7 @@
         <span class="n">patch_size</span><span class="o">=</span><span class="n">patch_size</span><span class="p">,</span>
         <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
         <span class="n">in_channels</span><span class="o">=</span><span class="n">in_channels</span><span class="p">,</span>
+        <span class="n">append_cls_token</span><span class="o">=</span><span class="n">append_cls_token</span><span class="p">,</span>
     <span class="p">)</span></div>
 
 
@@ -618,7 +642,6 @@
 <span class="k">def</span> <span class="nf">lora_clip_vision_encoder</span><span class="p">(</span>
     <span class="n">lora_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="c1"># clip encoder parameters</span>
     <span class="n">tile_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -628,12 +651,11 @@
     <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">activation</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">SiLU</span><span class="p">,</span>
     <span class="n">cls_output_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span>
-    <span class="n">attn_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">attn_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">out_indices</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">output_cls_projection</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">max_num_tiles</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
     <span class="n">in_channels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
-    <span class="n">intermediate_act</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">SiLU</span><span class="p">(),</span>
     <span class="c1"># LoRA parameters</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
     <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
@@ -651,8 +673,6 @@
 <span class="sd">            ``{&quot;q_proj&quot;, &quot;k_proj&quot;, &quot;v_proj&quot;, &quot;output_proj&quot;}``.</span>
 <span class="sd">        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.</span>
 <span class="sd">            Default: False</span>
-<span class="sd">        apply_lora_to_output (bool): whether to apply LoRA to the model&#39;s final output projection.</span>
-<span class="sd">            Default: False</span>
 <span class="sd">        tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,</span>
 <span class="sd">            the size of the input image. In this case, the function will consider your image as a single tile.</span>
 <span class="sd">        patch_size (int): The size of each patch. Used to divide the tiles into patches.</span>
@@ -663,7 +683,7 @@
 <span class="sd">        num_heads (int): The number of attention heads in each transformer layer.</span>
 <span class="sd">        activation (Callable): The activation function to use in the MLP layer.</span>
 <span class="sd">        cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.</span>
-<span class="sd">        attn_bias (bool): Boolean for if to use bias in the attention module. Default True.</span>
+<span class="sd">        attn_bias (bool): Boolean for if to use bias in the attention module. Default False.</span>
 <span class="sd">        out_indices (Optional[List[int]]): The indices of hidden layers to return.</span>
 <span class="sd">            If provided, it will return the intermediate results of the transformer layers</span>
 <span class="sd">            before they go through a next layer. For example, ``out_indices=[0,3]`` will</span>
@@ -673,7 +693,6 @@
 <span class="sd">        max_num_tiles (int): The maximum number of tiles that can be processed. This is used to</span>
 <span class="sd">            determine the size of the positional embeddings.</span>
 <span class="sd">        in_channels (int): The number of image input channels.</span>
-<span class="sd">        intermediate_act (torch.nn.Module): The activation function used in the intermediate layers in the transformer encoder.</span>
 <span class="sd">        lora_rank (int): rank of each low-rank approximation</span>
 <span class="sd">        lora_alpha (float): scaling factor for the low-rank approximation</span>
 <span class="sd">        lora_dropout (float): LoRA dropout probability. Default: 0.0</span>
@@ -708,6 +727,7 @@
         <span class="n">lora_dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
         <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
         <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
+        <span class="n">attn_bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">,</span>
         <span class="o">**</span><span class="n">quantization_kwargs</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">apply_lora_to_mlp</span><span class="p">:</span>
@@ -795,6 +815,7 @@
     <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_kv_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">attn_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">attn_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="c1"># LoRA args</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -853,10 +874,10 @@
         <span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;q_proj&quot;</span> <span class="ow">in</span> <span class="n">lora_modules</span>
         <span class="k">else</span> <span class="p">(</span>
-            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">quantize_base</span>
             <span class="k">else</span> <span class="n">FrozenNF4Linear</span><span class="p">(</span>
-                <span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">quantization_kwargs</span>
+                <span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">,</span> <span class="o">**</span><span class="n">quantization_kwargs</span>
             <span class="p">)</span>
         <span class="p">)</span>
     <span class="p">)</span>
@@ -872,10 +893,13 @@
         <span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;k_proj&quot;</span> <span class="ow">in</span> <span class="n">lora_modules</span>
         <span class="k">else</span> <span class="p">(</span>
-            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">quantize_base</span>
             <span class="k">else</span> <span class="n">FrozenNF4Linear</span><span class="p">(</span>
-                <span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">quantization_kwargs</span>
+                <span class="n">embed_dim</span><span class="p">,</span>
+                <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span>
+                <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">quantization_kwargs</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">)</span>
     <span class="p">)</span>
@@ -891,10 +915,13 @@
         <span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;v_proj&quot;</span> <span class="ow">in</span> <span class="n">lora_modules</span>
         <span class="k">else</span> <span class="p">(</span>
-            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">quantize_base</span>
             <span class="k">else</span> <span class="n">FrozenNF4Linear</span><span class="p">(</span>
-                <span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">quantization_kwargs</span>
+                <span class="n">embed_dim</span><span class="p">,</span>
+                <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span>
+                <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">quantization_kwargs</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">)</span>
     <span class="p">)</span>
@@ -910,10 +937,10 @@
         <span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;output_proj&quot;</span> <span class="ow">in</span> <span class="n">lora_modules</span>
         <span class="k">else</span> <span class="p">(</span>
-            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">quantize_base</span>
             <span class="k">else</span> <span class="n">FrozenNF4Linear</span><span class="p">(</span>
-                <span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">quantization_kwargs</span>
+                <span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">,</span> <span class="o">**</span><span class="n">quantization_kwargs</span>
             <span class="p">)</span>
         <span class="p">)</span>
     <span class="p">)</span>

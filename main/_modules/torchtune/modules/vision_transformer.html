@@ -615,6 +615,8 @@
 <span class="sd">            before they go through a next layer. For example, ``out_indices=[0,3]`` will</span>
 <span class="sd">            return the tokens before they go through the first and fourth layers.</span>
 <span class="sd">        in_channels (int): The number of image input channels.</span>
+<span class="sd">        append_cls_token (bool): If True, adds CLS token to the end of the sequence.</span>
+<span class="sd">            Default is False, which adds CLS token to the beginning of the sequence.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If `tile_size` is not greater than 0.</span>
@@ -635,6 +637,7 @@
         <span class="n">cls_projection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">out_indices</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">in_channels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">append_cls_token</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
@@ -674,7 +677,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">ln_post</span> <span class="o">=</span> <span class="n">Fp32LayerNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ln_pre</span> <span class="o">=</span> <span class="n">Fp32LayerNorm</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">cls_token_embedding</span> <span class="o">=</span> <span class="n">CLSEmbedding</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cls_token_embedding</span> <span class="o">=</span> <span class="n">CLSEmbedding</span><span class="p">(</span>
+            <span class="n">embed_dim</span><span class="p">,</span> <span class="n">append_cls_token</span><span class="o">=</span><span class="n">append_cls_token</span>
+        <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">get_image_tokens_per_tile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">patches_per_tile</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># +1 for CLS token</span>
@@ -844,20 +849,27 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        embed_dim (int): The dimensionality of the input patch embedding.</span>
+<span class="sd">        append_cls_token (bool): If True, adds CLS token to the end of the sequence.</span>
+<span class="sd">            Default is False, which adds CLS token to the beginning of the sequence.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">append_cls_token</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="n">scale</span> <span class="o">=</span> <span class="n">embed_dim</span><span class="o">**-</span><span class="mf">0.5</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">scale</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">append_cls_token</span> <span class="o">=</span> <span class="n">append_cls_token</span>
 
     <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 
         <span class="c1"># add 1 CLS token to every tile</span>
         <span class="n">bsz_and_n_imgs</span><span class="p">,</span> <span class="n">n_tiles</span><span class="p">,</span> <span class="n">n_tokens</span><span class="p">,</span> <span class="n">embed_dim</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
         <span class="n">cls_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">bsz_and_n_imgs</span><span class="p">,</span> <span class="n">n_tiles</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">cls_emb</span><span class="p">,</span> <span class="n">x</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">cls_emb</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">append_cls_token</span>
+            <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">cls_emb</span><span class="p">,</span> <span class="n">x</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">CLSProjection</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>

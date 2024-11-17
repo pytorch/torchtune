@@ -472,11 +472,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">max_seq_len</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rope_init</span><span class="p">()</span>
 
-    <span class="c1"># TODO: delete this once all our recipes are moved off of FSDP1 since we</span>
-    <span class="c1"># no longer need to explicitly name our param init method reset_parameters</span>
-    <span class="k">def</span> <span class="nf">reset_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">rope_init</span><span class="p">()</span>
-
     <span class="k">def</span> <span class="nf">rope_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">theta</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">base</span>
@@ -554,6 +549,148 @@
         <span class="c1"># tensor has shape [b, s, n_h, h_d]</span>
         <span class="n">x_out</span> <span class="o">=</span> <span class="n">x_out</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">x_out</span><span class="o">.</span><span class="n">type_as</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">VisionRotaryPositionalEmbeddings</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class implements two-dimensional Rotary Positional Embeddings (RoPE) for images</span>
+<span class="sd">    based on the axial frequency 2D RoPE described in https://arxiv.org/pdf/2403.13298.</span>
+
+<span class="sd">    The position embedding is simply applied to the x-axis and y-axis separately.</span>
+
+<span class="sd">    Note: This module assumes the CLS token embedding is appended at the end of the sequence.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        patch_size (int): The size of each patch. Used to divide the tiles into patches.</span>
+<span class="sd">            E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches.</span>
+<span class="sd">        tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,</span>
+<span class="sd">            the size of the full input image. In this case, the function will consider your image as a single tile.</span>
+<span class="sd">        dim (int): Embedding dimension. Unlike :class:`~torchtune.modules.RotaryPositionalEmbeddings`, this is</span>
+<span class="sd">            usually set to the dim of each head in the attention module divided by 2, computed as</span>
+<span class="sd">            ``embed_dim // num_heads // 2``. The divide by 2 accounts for x and y positions.</span>
+<span class="sd">        base (int): The base for the geometric progression used to compute</span>
+<span class="sd">            the rotation angles</span>
+<span class="sd">        append_cls_token (bool): Set to True if CLS token embedding is at the end of the sequence in the vision transformer,</span>
+<span class="sd">            False if is in the beginning of the sequence. RoPE is zeroed out for the CLS token. Default is True.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">patch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">tile_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">base</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
+        <span class="n">append_cls_token</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">patch_grid_size</span> <span class="o">=</span> <span class="n">tile_size</span> <span class="o">//</span> <span class="n">patch_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">=</span> <span class="n">dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">base</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">append_cls_token</span> <span class="o">=</span> <span class="n">append_cls_token</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rope_init</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">rope_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base</span>
+            <span class="o">**</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="mi">2</span><span class="p">)[:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)]</span><span class="o">.</span><span class="n">float</span><span class="p">()</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;theta&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build_rope_cache</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">build_rope_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Create position indices for each patch in the tile</span>
+        <span class="n">patches_per_tile</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_grid_size</span><span class="o">**</span><span class="mi">2</span>
+        <span class="n">patch_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+            <span class="n">patches_per_tile</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="c1"># Add a placeholder index for CLS token - will not be used in RoPE</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">append_cls_token</span><span class="p">:</span>
+            <span class="n">patch_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="n">patch_idx</span><span class="p">,</span>
+                    <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">patch_idx</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">patch_idx</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">patch_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">patch_idx</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">patch_idx</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                    <span class="n">patch_idx</span><span class="p">,</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+        <span class="c1"># Encode x and y positions of each patch in the tile</span>
+        <span class="n">patch_x_pos</span> <span class="o">=</span> <span class="n">patch_idx</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_grid_size</span>
+        <span class="n">patch_y_pos</span> <span class="o">=</span> <span class="n">patch_idx</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_grid_size</span>
+
+        <span class="c1"># Outer product of theta and position index; output tensor has</span>
+        <span class="c1"># a shape of [patches_per_tile + 1, dim // 2]</span>
+        <span class="n">x_theta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;i, j -&gt; ij&quot;</span><span class="p">,</span> <span class="n">patch_x_pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="n">y_theta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;i, j -&gt; ij&quot;</span><span class="p">,</span> <span class="n">patch_y_pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+
+        <span class="c1"># Shape: [patches_per_tile + 1, dim]</span>
+        <span class="n">freqs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">x_theta</span><span class="p">,</span> <span class="n">y_theta</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># Zero out CLS token position frequencies</span>
+        <span class="n">freqs</span> <span class="o">=</span> <span class="n">freqs</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span><span class="n">patch_idx</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># cache includes both the cos and sin components and so the output shape is</span>
+        <span class="c1"># [patches_per_tile + 1, dim, 2]</span>
+        <span class="n">cache</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">freqs</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">freqs</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;cache&quot;</span><span class="p">,</span> <span class="n">cache</span><span class="p">,</span> <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            x (torch.Tensor): input tensor with shape</span>
+<span class="sd">                ``[b, s, n_h, h_d]``</span>
+<span class="sd">            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids</span>
+<span class="sd">                of each token. During training, this is used to indicate the positions</span>
+<span class="sd">                of each token relative to its sample when packed, shape [b, s].</span>
+<span class="sd">                During inference, this indicates the position of the current token.</span>
+<span class="sd">                If none, assume the index of the token is its position id. Default is None.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor: output tensor with shape ``[b, s, n_h, h_d]``</span>
+
+<span class="sd">        Notation used for tensor shapes:</span>
+<span class="sd">            - b: batch size</span>
+<span class="sd">            - s: sequence length</span>
+<span class="sd">            - n_h: num heads</span>
+<span class="sd">            - h_d: head dim</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># input tensor has shape [b, s, n_h, h_d]</span>
+        <span class="n">seq_len</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># extract the values based on whether input_pos is set or not</span>
+        <span class="n">rope_cache</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[:</span><span class="n">seq_len</span><span class="p">]</span> <span class="k">if</span> <span class="n">input_pos</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">input_pos</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># reshape input; the last dimension is used for computing the output.</span>
+        <span class="c1"># Cast to float to match the reference implementation</span>
+        <span class="c1"># tensor has shape [b, s, n_h, h_d // 2, 2]</span>
+        <span class="n">xshaped</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">*</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># reshape the cache for broadcasting</span>
+        <span class="c1"># tensor has shape [b, s, 1, h_d // 2, 2] if packed samples,</span>
+        <span class="c1"># otherwise has shape [1, s, 1, h_d // 2, 2]</span>
+        <span class="n">rope_cache</span> <span class="o">=</span> <span class="n">rope_cache</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">xshaped</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="n">xshaped</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># tensor has shape [b, s, n_h, h_d // 2, 2]</span>
+        <span class="n">x_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">xshaped</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">rope_cache</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+                <span class="o">-</span> <span class="n">xshaped</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">rope_cache</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                <span class="n">xshaped</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">rope_cache</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+                <span class="o">+</span> <span class="n">xshaped</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">rope_cache</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="p">],</span>
+            <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># tensor has shape [b, s, n_h, h_d]</span>
+        <span class="n">x_out</span> <span class="o">=</span> <span class="n">x_out</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x_out</span><span class="o">.</span><span class="n">type_as</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 </pre></div>
 
              </article>
