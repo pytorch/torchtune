@@ -415,7 +415,7 @@ _ALL_RECIPES = [
         name="dev/early_exit_finetune_distributed",
         file_path="dev/early_exit_finetune_distributed.py",
         configs=[
-            Config(name="llama2/7B_full", file_path="llama2/7B_full.yaml"),
+            Config(name="llama2/7B_full_early_exit", file_path="dev/7B_full_early_exit.yaml"),
         ],
         supports_distributed=True,
     ),
