@@ -792,10 +792,12 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                 labels = batch.pop("labels")
 
                 with self.activations_handling_ctx:
+                    outputs = self._model(**batch)
                     if self.early_exit_layers:
-                        logits, hidden_states = self._model(**batch)
+                        logits = outputs.pop(-1)
+                        hidden_states = {i:h for i,h in zip(self._model.output_hidden_states, outputs)}
                     else:
-                        logits = self._model(**batch)
+                        logits = outputs
 
                 # Shift labels to compute loss
                 # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
