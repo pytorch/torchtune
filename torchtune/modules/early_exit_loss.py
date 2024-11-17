@@ -33,11 +33,14 @@ def early_exit_loss(model, hidden_states_dict, labels, loss_fn, e_scale: float=1
     # Shape: [e, b, s, d]
     hidden_states_stacked = torch.stack(hidden_states)
     # Shape: [e, b, s, out_dim]
-    logits_early = model.output(model.norm(hidden_states_stacked))
-    logits_early = logits_early[..., :-1, :].contiguous()
+    logits_early = model.unembed(hidden_states_stacked)
+    if not isinstance(logits_early, list):
+        labels = labels.reshape(-1)
+        logits_early = logits_early.reshape(-1, logits_early.size(-1))
+    ###### logits_early = logits_early[..., :-1, :].contiguous()
     # Shape: [e*b, s, out_dim]
     logits_early = logits_early.flatten(0, 1)
-    logits_early = logits_early.transpose(1, 2)
+    ###### logits_early = logits_early.transpose(1, 2)
     # Shape: [e, b*s]
     labels_repeated = labels.repeat(e, 1)
     # Compute early losses: Shape: [e*b, s]
