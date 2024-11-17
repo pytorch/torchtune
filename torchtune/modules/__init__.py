@@ -16,7 +16,10 @@ from .feed_forward import FeedForward  # noqa
 from .kv_cache import KVCache  # noqa
 from .layer_norm import Fp32LayerNorm  # noqa
 from .low_precision import FrozenNF4Linear  # noqa
-from .position_embeddings import RotaryPositionalEmbeddings  # noqa
+from .position_embeddings import (  # noqa
+    RotaryPositionalEmbeddings,
+    VisionRotaryPositionalEmbeddings,
+)
 from .rms_norm import RMSNorm  # noqa
 from .tanh_gate import TanhGate  # noqa
 from .tied_linear import TiedLinear  # noqa
@@ -35,6 +38,7 @@ __all__ = [
     "FrozenNF4Linear",
     "KVCache",
     "RotaryPositionalEmbeddings",
+    "VisionRotaryPositionalEmbeddings",
     "RMSNorm",
     "TiedLinear",
     "Fp32LayerNorm",
