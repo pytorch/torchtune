@@ -746,14 +746,13 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         # Early exit loss settings
         # TODO: move to _init_() or setup()
         if self.early_exit_layers:
-            output_hidden_states = slice_str_to_array(self.early_exit_layers, len(self._model.layers))
+            do_output_hidden_states = slice_str_to_array(self.early_exit_layers, len(self._model.layers))
             if True: # TODO: add cli option
-                output_hidden_states[len(self._model.layers) - 1] = True
-        else:
-            output_hidden_states = False
+                do_output_hidden_states[len(self._model.layers) - 1] = True
+            self._model.output_hidden_states = [i for i in range(len(do_output_hidden_states)) if do_output_hidden_states[i]]
 
         if self.early_exit_curriculum:
-            self.early_exit_curriculum = build_early_exit_curriculum(self.early_exit_curriculum, output_hidden_states, self.total_epochs*self._steps_per_epoch)
+            self.early_exit_curriculum = build_early_exit_curriculum(self.early_exit_curriculum, self._model.output_hidden_states, self.total_epochs*self._steps_per_epoch)
 
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
@@ -893,9 +892,10 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                     # Update Early Exit Layers/Scales
                     if self.early_exit_curriculum:
                         self.early_exit_curriculum.step()
-                        output_hidden_states = self.early_exit_curriculum.get()
+                        do_output_hidden_states = self.early_exit_curriculum.get()
                         if True: # TODO: add cli option
-                            output_hidden_states[len(self._model.layers) - 1] = True
+                            do_output_hidden_states[len(self._model.layers) - 1] = True
+                        self._model.output_hidden_states = do_output_hidden_states
 
                     # Stop tracking CUDA memory now that active steps are complete
                     if (
