@@ -61,8 +61,8 @@ dataset:
    Respond with a compliance evaluation starting with 'Compliance Evaluation':, followed by a numbered list corresponding to the policies, with the value for each policy being PASS or FAIL.\
    Output PASS for a policy if the conversation between the agent and the user was compliant with the policy.\
    Output FAIL for a policy if the agent at any time responded in a manner that violated the policy.
-   In the case of outputting FAIL, you must also provide a brief explanation of how the chatbot violated the policy. Cite specific examples of how the policy was violated.\
-   Your output must adhere to this following format:\n1. [PASS or FAIL]\n2. [PASS or FAIL]\n and so on, for each policy."
+   After outputting PASS or FAIL, you must also provide a brief explanation of how the chatbot either followed or violated the policy. Cite specific examples of how the policy was followed or violated.\
+   Your output must adhere to this following format:\n1. [PASS or FAIL] [explanation]\n2. [PASS or FAIL] [explanation]\n and so on, for each policy."
 seed: null
 shuffle: True
 batch_size: 2
