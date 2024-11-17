@@ -30,6 +30,16 @@ model:
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
   path: /fs/class-projects/fall2024/cmsc473/c473g002/models/Meta-Llama-3.1-8B-Instruct/original/tokenizer.model
+  prompt_template:
+    system:
+      - "System:\n"
+      - "\n"
+    user:
+      - "Evaluate policy compliance for this conversation:\n"
+      - "\n"
+    assistant:
+      - "Compliance Evaluation:\n"
+      - "\n"
   max_seq_len: null
 
 checkpointer:
@@ -42,7 +52,7 @@ checkpointer:
     model-00004-of-00004.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /fs/class-projects/fall2024/cmsc473/c473g002/models/Meta-Llama-3.1-8B-Instruct/
+  output_dir: /fs/class-projects/fall2024/cmsc473/c473g002/models/Meta-Llama-3.1-8B-Instruct/checkpoints/
   model_type: LLAMA3
 resume_from_checkpoint: False
 save_adapter_weights_only: False
@@ -84,7 +94,7 @@ loss:
 epochs: 100
 max_steps_per_epoch: null
 gradient_accumulation_steps: 16
-compile: True # set it to True for better memory and performance
+compile: False # set it to True for better memory and performance
 
 # Logging
 output_dir: /fs/class-projects/fall2024/cmsc473/c473g002/lora_finetune_output

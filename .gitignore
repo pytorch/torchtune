@@ -187,3 +187,6 @@ cover/
 
 # wandb
 wandb/
+
+# SLURM output
+slurm-*.out
