@@ -539,8 +539,9 @@ to hide the extra runtime. As the communication workload is variable depending o
 offloaded, we do not recommend using it unless <a class="reference internal" href="#glossary-act-ckpt"><span class="std std-ref">Activation Checkpointing</span></a> is also enabled, in which case only the checkpointed
 tensors will be offloaded.</p>
 <p><em>Sounds great! How do I use it?</em></p>
-<p>To enable activation offloading, use <code class="docutils literal notranslate"><span class="pre">enable_activation_offloading=True</span></code>. If you are on torch
-version later than PyTorch 2.5.0, it will allow the usage of multiple CUDA streams automatically.</p>
+<p>To enable activation offloading, use the <code class="docutils literal notranslate"><span class="pre">enable_activation_offloading</span></code> config entry or flag
+in our lora finetuning single device recipe, e.g. <code class="docutils literal notranslate"><span class="pre">enable_activation_offloading=True</span></code>. To allow
+usage of streams, make sure you are on a torch version equal to or later than PyTorch.</p>
 </section>
 <section id="gradient-accumulation">
 <span id="glossary-grad-accm"></span><h2>Gradient Accumulation<a class="headerlink" href="#gradient-accumulation" title="Permalink to this heading">¶</a></h2>
