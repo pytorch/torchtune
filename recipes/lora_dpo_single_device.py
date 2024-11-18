@@ -242,7 +242,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
         self._lr_scheduler = self._setup_lr_scheduler(
-            cfg_lr_scheduler=cfg.lr_scheduler,
+            cfg_lr_scheduler=cfg.get("lr_scheduler", None),
             num_training_steps=self.total_epochs * self._steps_per_epoch,
             last_epoch=self.global_step - 1,
         )
@@ -311,10 +311,16 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
     def _setup_lr_scheduler(
         self,
-        cfg_lr_scheduler: DictConfig,
+        cfg_lr_scheduler: Optional[DictConfig],
         num_training_steps: int,
         last_epoch: int,
-    ) -> Optimizer:
+    ) -> Optional[Optimizer]:
+        if cfg_lr_scheduler is None:
+            log.info(
+                "No learning rate scheduler configured. Using constant learning rate."
+            )
+            return None
+
         lr_scheduler = config.instantiate(
             cfg_lr_scheduler,
             self._optimizer,
@@ -529,7 +535,9 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
-                    self._lr_scheduler.step()
+
+                    if self._lr_scheduler is not None:
+                        self._lr_scheduler.step()
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
