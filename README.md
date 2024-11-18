@@ -128,7 +128,7 @@ torchtune exposes a number of levers for memory efficiency and performance. The 
 | [LoRA](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#glossary-lora) | 8.5 | -51.61% | 8210 | +17.96% |
 | [QLoRA](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#quantized-low-rank-adaptation-qlora) | 4.6 | -45.71% | 8035 | -2.13% |
 
-The final row in the table vs baseline + Packed Dataset uses 81.9% less memory with a 284.3% increase in tokens per second. It can be run via the command:
+The final row in the table vs baseline + Packed Dataset uses **81.9%** less memory with a **284.3%** increase in tokens per second. It can be run via the command:
 ```
 tune run lora_finetune_single_device --config llama3_2/3B_qlora_single_device \
 dataset.packed=True \
