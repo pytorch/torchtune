@@ -232,7 +232,7 @@ class TestEleutherEval:
             tokenizer.prompt_template=null \
             limit=1 \
             dtype=bf16 \
-            device=cuda \
+            device=cpu \
         """.split()
 
         model_config = llama3_2_vision_test_config()
@@ -274,7 +274,7 @@ class TestEleutherEval:
             tokenizer.prompt_template=null \
             limit=1 \
             dtype=bf16 \
-            device=cuda \
+            device=cpu \
         """.split()
 
         model_config = llama3_2_vision_test_config()
