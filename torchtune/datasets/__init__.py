@@ -23,6 +23,10 @@ from torchtune.datasets._text_completion import (
     TextCompletionDataset,
 )
 from torchtune.datasets._wikitext import wikitext_dataset
+from torchtune.datasets._inception import inc_ar_hc3, inc_ar_botim_qa, inc_ar_alpaca_manual, inc_ar_baize_mult_turn, \
+    inc_ar_dolly_15k, inc_ar_hh_rlhf_mult_turn, inc_ar_internal, inc_ar_natural_question, inc_ar_supernatural, \
+    inc_ar_unnatural, inc_ar_cahya, inc_ar_climate_chatgpt, inc_ar_instruct_wild, inc_ar_lmsys, inc_ar_bactrian, \
+    inc_ar_raft, inc_ar_school_hack, inc_ar_en_school_hack
 
 __all__ = [
     "alpaca_dataset",
@@ -44,4 +48,22 @@ __all__ = [
     "SFTDataset",
     "hh_rlhf_helpful_dataset",
     "multimodal",
+    "inc_ar_hc3",
+    "inc_ar_botim_qa",
+    "inc_ar_alpaca_manual",
+    "inc_ar_baize_mult_turn",
+    "inc_ar_dolly_15k",
+    "inc_ar_hh_rlhf_mult_turn",
+    "inc_ar_internal",
+    "inc_ar_natural_question",
+    "inc_ar_supernatural",
+    "inc_ar_unnatural",
+    "inc_ar_cahya",
+    "inc_ar_climate_chatgpt",
+    "inc_ar_instruct_wild",
+    "inc_ar_lmsys",
+    "inc_ar_bactrian",
+    "inc_ar_raft",
+    "inc_ar_school_hack",
+    "inc_ar_en_school_hack",
 ]
