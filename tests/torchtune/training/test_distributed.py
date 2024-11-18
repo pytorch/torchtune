@@ -7,26 +7,22 @@
 # (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 
 import copy
-from itertools import chain
 
 import pytest
 import torch
 import torch.nn as nn
 from packaging import version
-from tests.test_utils import gpu_test, single_box_init
+from tests.test_utils import gpu_test
 from torch.distributed import launcher
 
 from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     CheckpointWrapper,
 )
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-
 from torch.testing._internal.common_fsdp import FSDPTest, MLP
 from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune import modules, training
-from torchtune.models.llama2._component_builders import llama2, lora_llama2
-from torchtune.models.llama3._component_builders import llama3
+from torchtune.models.llama2._component_builders import lora_llama2
 from torchtune.modules import TransformerSelfAttentionLayer
 from torchtune.modules.peft import (
     DoRALinear,
@@ -110,51 +106,6 @@ class TestDistributed:
         with pytest.raises(RuntimeError, match="Unexpected param or buffer"):
             training.validate_no_params_on_meta_device(model)
 
-    def test_get_fsdp_wrap_policies(self) -> None:
-        with single_box_init():
-            llama3_policy = training.get_full_finetune_fsdp_wrap_policy(
-                memory_efficient_fsdp_wrap=True,
-                modules_to_wrap={modules.TransformerSelfAttentionLayer},
-            )
-            l3 = llama3(
-                vocab_size=64,
-                num_layers=1,
-                num_heads=4,
-                num_kv_heads=4,
-                embed_dim=64,
-                max_seq_len=128,
-            )
-            wrapped_l3 = FSDP(
-                l3, auto_wrap_policy=llama3_policy, device_id=torch.device("cpu")
-            )
-            # Ensure embedding, output proj, and transformer decoder blocks are wrapped
-            assert isinstance(wrapped_l3.tok_embeddings, FSDP)
-            assert isinstance(wrapped_l3.output, FSDP)
-            for layer in wrapped_l3.layers:
-                assert isinstance(layer, FSDP)
-
-            llama2_policy = training.get_full_finetune_fsdp_wrap_policy(
-                memory_efficient_fsdp_wrap=False,
-                modules_to_wrap={modules.TransformerSelfAttentionLayer},
-            )
-            l2 = llama2(
-                vocab_size=64,
-                num_layers=1,
-                num_heads=4,
-                num_kv_heads=4,
-                embed_dim=64,
-                max_seq_len=128,
-            )
-            wrapped_l2 = FSDP(
-                l2, auto_wrap_policy=llama2_policy, device_id=torch.device("cpu")
-            )
-            # Ensure embedding, output proj, and transformer decoder blocks are not wrapped
-            assert not isinstance(wrapped_l2.tok_embeddings, FSDP)
-            assert not isinstance(wrapped_l2.output, FSDP)
-            # Ensure transformer decoder blocks are wrapped
-            for layer in wrapped_l2.layers:
-                assert isinstance(layer, FSDP)
-
 
 N_LAYERS = 3
 IN_DIM = 5
@@ -179,84 +130,6 @@ def _get_n_lora_and_tformer_layers(model):
             num_transformer_layers += 1
 
     return num_lora_ab, num_transformer_layers
-
-
-# TODO: figure out a permanent home for FSDP + LoRA code
-class TestLoRAFSDP:
-    def test_lora_fsdp_wrap(self):
-        with torch.device("meta"):
-            model = lora_llama2(
-                lora_attn_modules=["q_proj", "v_proj"],
-                vocab_size=VOCAB_SIZE,
-                num_layers=N_LAYERS,
-                num_heads=NUM_HEADS,
-                num_kv_heads=NUM_KV_HEADS,
-                embed_dim=EMBED_DIM,
-                max_seq_len=MAX_SEQ_LEN,
-                lora_rank=4,
-                lora_alpha=1.0,
-            )
-
-        adapter_params = get_adapter_params(model)
-        set_trainable_params(model, adapter_params)
-        num_lora_ab, num_transformer_layers = _get_n_lora_and_tformer_layers(model)
-        with single_box_init():
-            lora_wrap_policy = training.lora_fsdp_wrap_policy(
-                modules_to_wrap={TransformerSelfAttentionLayer}
-            )
-            training.prepare_model_for_fsdp_with_meta_device(model)
-            wrapped_lora = FSDP(
-                model,
-                auto_wrap_policy=lora_wrap_policy,
-                device_id=torch.device("cpu"),
-            )
-
-            # After FSDP wrap, nothing should be left on meta device, and LoRA params
-            # should be initialized.
-            for p in chain(wrapped_lora.parameters(), wrapped_lora.buffers()):
-                assert not p.is_meta
-
-            for m in wrapped_lora.modules():
-                if isinstance(m, LoRALinear) or isinstance(m, DoRALinear):
-                    torch.testing.assert_close(
-                        m.lora_b.weight, torch.zeros_like(m.lora_b.weight)
-                    )
-            # Total # FSDP modules should be num_transformer + num_lora_ab + 1
-            total_fsdp_submodules = len([m for m in FSDP.fsdp_modules(wrapped_lora)])
-            assert total_fsdp_submodules == (num_lora_ab + num_transformer_layers + 1)
-            # LoRA a & b linears should be individually wrapped.
-            # And TransformerSelfAttentionLayers should be individually wrapped.
-            for fsdp_submodule in FSDP.fsdp_modules(wrapped_lora):
-                if isinstance(fsdp_submodule.module, nn.Linear):
-                    num_lora_ab -= 1
-                elif isinstance(fsdp_submodule.module, TransformerSelfAttentionLayer):
-                    num_transformer_layers -= 1
-            assert num_lora_ab == 0
-            assert num_transformer_layers == 0
-
-    def test_lora_meta_device_init_fsdp(self):
-        with torch.device("meta"):
-            lora = lora_llama2(
-                lora_attn_modules=["q_proj", "v_proj"],
-                vocab_size=VOCAB_SIZE,
-                num_layers=N_LAYERS,
-                num_heads=NUM_HEADS,
-                num_kv_heads=NUM_KV_HEADS,
-                embed_dim=EMBED_DIM,
-                max_seq_len=MAX_SEQ_LEN,
-                lora_rank=4,
-                lora_alpha=8,
-            )
-        training.prepare_model_for_fsdp_with_meta_device(lora)
-        for m in lora.modules():
-            m.to_empty(device=torch.device("cpu"), recurse=False)
-            m.reset_parameters()
-        # No params should be left on meta device
-        for n, p in lora.named_parameters():
-            assert not p.is_meta, f"parameter {n} is still on meta device!"
-        # Neither should buffers
-        for n, b in lora.named_buffers():
-            assert not b.is_meta, f"buffer {n} is still on meta device!"
 
 
 class TestFullyShardState(FSDPTest):
@@ -312,8 +185,8 @@ class TestFullyShardState(FSDPTest):
             fsdp_optim_to_save.zero_grad()
         expected_model_sd = base_model.state_dict()
         expected_optim_sd = base_optim.state_dict()
-        model_full_sd = training.get_full_model_state_dict(
-            fsdp_model_to_save, is_rank_zero
+        model_full_sd = training.gather_cpu_state_dict(
+            fsdp_model_to_save.state_dict(), is_rank_zero
         )
         optim_full_sd = training.get_full_optimizer_state_dict(
             fsdp_optim_to_save,
@@ -467,8 +340,8 @@ class TestFullyShardState(FSDPTest):
         fsdp_model_to_save(inp)
 
         expected_model_sd = {k: v.cpu() for k, v in base_model.state_dict().items()}
-        model_full_sd = training.get_full_model_state_dict(
-            fsdp_model_to_save, is_rank_zero
+        model_full_sd = training.gather_cpu_state_dict(
+            fsdp_model_to_save.state_dict(), is_rank_zero
         )
         if is_rank_zero:
             self.assertEqual(set(model_full_sd.keys()), set(expected_model_sd.keys()))
@@ -487,8 +360,10 @@ class TestFullyShardState(FSDPTest):
             )
         # init rope since it's not covered in state dict
         for m in fsdp_model_to_load.modules():
-            if isinstance(m, modules.RotaryPositionalEmbeddings):
-                m.reset_parameters()
+            if isinstance(m, modules.RotaryPositionalEmbeddings) or isinstance(
+                m, modules.VisionRotaryPositionalEmbeddings
+            ):
+                m.rope_init()
         for m in fsdp_model_to_load.modules():
             if enable_activation_checkpointing:
                 if isinstance(m, CheckpointWrapper):

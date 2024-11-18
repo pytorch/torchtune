@@ -34,6 +34,8 @@ CKPT_MODEL_PATHS = {
     "llama2_reward_hf": "/tmp/test-artifacts/small-ckpt-hf-reward-07122024.pt",
     "llama3_tune": "/tmp/test-artifacts/small-ckpt-tune-llama3-05052024.pt",
     "llama2_7b": "/tmp/test-artifacts/llama2-7b-torchtune.pt",
+    "llama3_2_vision_hf": "/tmp/test-artifacts/small-ckpt-hf-vision-10172024.pt",
+    "llama3_2_vision_meta": "/tmp/test-artifacts/small-ckpt-meta-vision-10172024.pt",
 }
 
 TOKENIZER_PATHS = {
@@ -166,32 +168,6 @@ class DummyTokenizer(ModelTokenizer, Transform):
     @property
     def image_id(self):
         return -2
-
-
-class DummyChatFormat:
-
-    B_SYS, E_SYS = "System:\n", "\n"
-    B_INST, E_INST = "User:\n", "\nAssistant:\n"
-    B_ASST, E_ASST = "", ""
-    system = f"{B_SYS}{{content}}{E_SYS}"
-    user = f"{B_INST}{{content}}{E_INST}"
-    assistant = f"{B_ASST}{{content}}{E_ASST}"
-
-    @classmethod
-    def format(
-        cls,
-        messages,
-    ):
-        formats = {"system": cls.system, "user": cls.user, "assistant": cls.assistant}
-        formatted_dialogue = []
-        for message in messages:
-            content = formats.get(message.role).format(
-                content=message.content[0]["content"]
-            )
-            formatted_dialogue.append(
-                Message(role=message.role, content=content, masked=message.masked),
-            )
-        return formatted_dialogue
 
 
 DummyPromptTemplate = partial(

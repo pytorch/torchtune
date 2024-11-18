@@ -24,16 +24,17 @@ tokenizer:
 # Dataset
 dataset:
   _component_: torchtune.datasets.alpaca_dataset
+  packed: False  # True increases speed
 seed: null
 shuffle: True
 
 # Model Arguments
 model:
   _component_: torchtune.models.gemma.lora_gemma_7b
-  lora_attn_modules: ['q_proj', 'k_proj', 'v_proj']
+  lora_attn_modules: ['q_proj', 'v_proj', 'output_proj']
   apply_lora_to_mlp: True
-  lora_rank: 64
-  lora_alpha: 128
+  lora_rank: 64  # higher increases accuracy and memory
+  lora_alpha: 128  # usually alpha=2*rank
   lora_dropout: 0.0
 
 checkpointer:
@@ -65,15 +66,17 @@ loss:
 
 # Fine-tuning arguments
 batch_size: 4
-epochs: 3
+epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 1
+gradient_accumulation_steps: 1  # Use to increase virtual batch size
+compile: False  # pytorch compile, set to true for better perf/memory
 
 # Training env
 device: cuda
 
 # Memory management
-enable_activation_checkpointing: True
+enable_activation_checkpointing: True  # True reduces memory
+enable_activation_offloading: False  # True reduces memory
 
 # Reduced precision
 dtype: bf16
@@ -84,4 +87,29 @@ metric_logger:
   log_dir: ${output_dir}
 output_dir: /tmp/alpaca-gemma-lora
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True
+
+# Profiler (disabled)
+profiler:
+  _component_: torchtune.training.setup_torch_profiler
+  enabled: False
+
+  #Output directory of trace artifacts
+  output_dir: ${output_dir}/profiling_outputs
+
+  #`torch.profiler.ProfilerActivity` types to trace
+  cpu: True
+  cuda: True
+
+  #trace options passed to `torch.profiler.profile`
+  profile_memory: False
+  with_stack: False
+  record_shapes: True
+  with_flops: False
+
+  # `torch.profiler.schedule` options:
+  # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+  wait_steps: 5
+  warmup_steps: 3
+  active_steps: 2
+  num_cycles: 1

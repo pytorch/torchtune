@@ -70,7 +70,7 @@ class MultiHeadAttention(nn.Module):
             This is needed to compute the RoPE Cache. Default: 4096.
         is_causal (bool): sets the default mask to causal when no mask is provided
         attn_dropout (float): dropout value passed onto the scaled_dot_product_attention function.
-            This argument is ignored if self.training is False. Default value is 0.0.
+            Default value is 0.0.
 
     Raises:
         ValueError: If ``num_heads % num_kv_heads != 0``
@@ -139,6 +139,11 @@ class MultiHeadAttention(nn.Module):
         # Use flex attention if supported and we are sample packing
         self._attention_call = _sdpa_or_flex_attention()
 
+        # this flag indicates whether to update the kv-cache during forward
+        # passes. when disabled, we can have the cache setup but still
+        # perform normal forward passes
+        self.cache_enabled = False
+
     def setup_cache(
         self, batch_size: int, dtype: torch.dtype, max_seq_len: int
     ) -> None:
@@ -159,10 +164,11 @@ class MultiHeadAttention(nn.Module):
             self.kv_cache = KVCache(
                 batch_size=batch_size,
                 max_seq_len=max_seq_len,
-                num_heads=self.num_heads,
+                num_kv_heads=self.num_kv_heads,
                 head_dim=self.head_dim,
                 dtype=dtype,
             )
+            self.cache_enabled = True
 
     def reset_cache(self):
         """Reset the key value caches."""
@@ -189,7 +195,7 @@ class MultiHeadAttention(nn.Module):
                 and before the softmax. Either:
 
                 A boolean tensor with shape ``[b x s x s]``, ``[b x s x self.encoder_max_cache_seq_len]``,
-                or ``[b x s x self.encoder_max_cache_seq_len]`` if using KV-cacheing with encoder/decoder layers.
+                or ``[b x s x self.decoder_max_cache_seq_len]`` if using KV-cacheing with encoder/decoder layers.
                 A value of True in row ``i`` and column ``j`` means token ``i`` attends to token ``j``. A value of False means
                 token ``i`` does not attend to token ``j``. If no mask is specified, a causal mask
                 is used by default.
@@ -243,7 +249,7 @@ class MultiHeadAttention(nn.Module):
             q = self.q_norm(q)
 
         if y is None:
-            if self.kv_cache is None:
+            if self.kv_cache is None or not self.cache_enabled:
                 raise ValueError(
                     "Must provide y input or use kv_cache to enable streaming decoding"
                 )
@@ -252,36 +258,18 @@ class MultiHeadAttention(nn.Module):
         else:
             # Update k and v shape, positional embeddings, and normalization
 
-            # k has shape [b, s_y, num_kv_heads * head_dim]
-            # v has shape [b, s_y, num_kv_heads * head_dim]
+            # k,v shape [b, s_y, num_kv_heads * head_dim]
             k = self.k_proj(y)
             v = self.v_proj(y)
 
             # Apply positional embeddings
-            # k: [b, s_y, n_kv, h_d]
+            # k,v shape: [b, s_y, n_kv, h_d]
             k = k.view(b, s_y, -1, self.head_dim)
+            v = v.view(b, s_y, -1, self.head_dim)
             if self.pos_embeddings is not None:
                 k = self.pos_embeddings(k, input_pos=input_pos)
 
-            # View + expand + reshape bring num_kv_heads to num_heads for k and v
-            # to match q.
-
-            # k: [b, s_y, n_kv, 1, h_d]
-            # v: [b, s_y, n_kv, 1, h_d]
-            k = k.view(b, s_y, self.num_kv_heads, 1, self.head_dim)
-            v = v.view(b, s_y, self.num_kv_heads, 1, self.head_dim)
-
-            # If needed, expand the key and value tensors to have the same shape
-            # as the query tensor by copying values across the relevant dim
-            if self.num_heads != self.num_kv_heads:
-                k = k.expand(b, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
-                v = v.expand(b, s_y, self.num_kv_heads, q_per_kv, self.head_dim)
-
-            # [b, s, n_h, h_d]
-            k = k.reshape(b, s_y, -1, self.head_dim)
-            v = v.reshape(b, s_y, -1, self.head_dim)
-
-            # [b, n_h, s, h_d]
+            # k,v shape: [b, n_kv, s_y, h_d]
             k = k.transpose(1, 2)
             v = v.transpose(1, 2)
 
@@ -290,8 +278,16 @@ class MultiHeadAttention(nn.Module):
                 k = self.k_norm(k)
 
             # Update key-value cache
-            if self.kv_cache is not None:
+            if self.kv_cache is not None and self.cache_enabled:
                 k, v = self.kv_cache.update(k, v)
+
+        # If needed, expand the key and value tensors to have the same shape
+        # as the query tensor by copying values across the relevant dim
+        # k,v shape: [b, n_kv, s, h_d] -> [b, n_h, s, h_d]
+        if self.num_heads != self.num_kv_heads:
+            expand_shape = (b, self.num_kv_heads, q_per_kv, -1, self.head_dim)
+            k = k.unsqueeze(2).expand(expand_shape).flatten(1, 2)
+            v = v.unsqueeze(2).expand(expand_shape).flatten(1, 2)
 
         output = self._attention_call(
             q,

@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any, List, Mapping, Optional, Tuple
 
 from torchtune.data import Message, PromptTemplate
 
@@ -35,9 +35,9 @@ class Llama3VisionTransform(ModelTokenizer, Transform):
             This will be used to generate possible_resolutions,
             e.g. [(224, 224), (224, 448), (448, 224)] if max_num_tiles = 2 and tile_size = 224.
             Default 4.
-        special_tokens (Optional[Dict[str, int]]): mapping containing special text tokens and
-            their registered token IDs. If left as None, this will be set to the canonical
-            Llama3 special tokens.
+        special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
+            model files that contains all registered special tokens, or a local json file
+            structured similarly. Default is None to use the canonical Llama3 special tokens.
         max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
             after which the input will be truncated. Default is None.
         image_mean (Optional[Tuple[float, float, float]]): Mean values of each channel, used for normalization.
@@ -68,7 +68,7 @@ class Llama3VisionTransform(ModelTokenizer, Transform):
         tile_size: int,
         patch_size: int,
         max_num_tiles: int = 4,
-        special_tokens: Optional[Dict[str, int]] = None,
+        special_tokens_path: Optional[str] = None,
         max_seq_len: Optional[int] = None,
         image_mean: Optional[Tuple[float, float, float]] = None,
         image_std: Optional[Tuple[float, float, float]] = None,
@@ -76,7 +76,7 @@ class Llama3VisionTransform(ModelTokenizer, Transform):
     ):
         self.tokenizer = llama3_tokenizer(
             path,
-            special_tokens_path=special_tokens,
+            special_tokens_path=special_tokens_path,
             max_seq_len=max_seq_len,
             prompt_template=prompt_template,
         )
@@ -93,11 +93,11 @@ class Llama3VisionTransform(ModelTokenizer, Transform):
             tile_size=tile_size,
             patch_size=patch_size,
             image_token_id=self.tokenizer.image_id,
-            max_num_tiles=max_num_tiles,
         )
 
         self.stop_tokens = self.tokenizer.stop_tokens
         self.max_seq_len = max_seq_len
+        self.max_num_tiles = max_num_tiles
         self.image_seq_len = max_num_tiles * (self.xattn_mask.patches_per_tile + 1)
         self.prompt_template = prompt_template
         self.pad_id = self.tokenizer.pad_id

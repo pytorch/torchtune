@@ -44,6 +44,7 @@ see our documentation for the different PEFT training paradigms we support:
 
 * :ref:`glossary_lora`
 * :ref:`glossary_qlora`
+* :ref:`glossary_dora`
 
 Many of our other memory optimization features can be used in this recipe. You can learn more about all of our memory optimization features in our :ref:`memory optimization overview<memory_optimization_overview_label>`.
 
@@ -51,7 +52,6 @@ Interested in seeing this recipe in action? Check out some of our tutorials to s
 
 * :ref:`Finetuning Llama2 with LoRA<lora_finetune_label>`
 * :ref:`Finetuning Llama2 with QLoRA<qlora_finetune_label>`
-* :ref:`End-to-End Workflow with torchtune<dataset_tutorial_label>`
 * :ref:`Fine-tuning Llama3 with Chat Data<chat_tutorial_label>`
 * :ref:`Meta Llama3 in torchtune<llama3_label>`
 * :ref:`Fine-Tune Your First LLM<finetune_llama_label>`

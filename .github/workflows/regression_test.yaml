@@ -26,6 +26,8 @@ jobs:
         python-version: ['3.11']
         torch-version: ["stable", "nightly"]
       fail-fast: false
+    env:
+      PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
     steps:
       - name: Check out repo
         uses: actions/checkout@v3

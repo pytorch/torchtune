@@ -15,7 +15,10 @@ from torchtune.modules import (
     TransformerDecoder,
     TransformerSelfAttentionLayer,
 )
-from torchtune.modules.loss import CEWithChunkedOutputLoss
+from torchtune.modules.loss import (
+    CEWithChunkedOutputLoss,
+    ForwardKLWithChunkedOutputLoss,
+)
 from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.utils import get_logger, torch_version_ge
 
@@ -61,7 +64,7 @@ def compile_model(
         model.compile(backend=backend)
 
 
-def compile_loss(loss: nn.Module, verbose: bool = True) -> None:
+def compile_loss(loss: nn.Module, verbose: bool = True) -> nn.Module:
     """
     Utility to compile and return loss function. If the loss function is chunked cross-entropy,
     we only compile the upcast + cross-entropy calculation, not the chunking. For other losses
@@ -81,6 +84,8 @@ def compile_loss(loss: nn.Module, verbose: bool = True) -> None:
         loss.compute_cross_entropy = torch.compile(
             loss.compute_cross_entropy, backend=backend
         )
+    elif isinstance(loss, ForwardKLWithChunkedOutputLoss):
+        loss.fkl_loss = torch.compile(loss.fkl_loss, backend=backend)
     else:
         loss = torch.compile(loss, backend=backend)
     return loss

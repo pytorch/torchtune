@@ -319,7 +319,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
         # add cls token back in
         local_pos_embed = torch.cat([cls_token, local_pos_embed], dim=0)
 
-        return local_pos_embed
+        return local_pos_embed.contiguous()
 
     # TODO: Switch to public method after 2.5 is stable
     @staticmethod
@@ -436,7 +436,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
         # add cls token back in
         global_pos_embed = torch.cat([cls_embed, pos_embed], dim=2)
 
-        return global_pos_embed
+        return global_pos_embed.contiguous()
 
     def forward(self, x: torch.Tensor, aspect_ratio: torch.Tensor) -> torch.Tensor:
         """
@@ -570,7 +570,7 @@ class TilePositionalEmbedding(nn.Module):
             if inpt_num_tokens != tgt_num_tokens or inpt_emb != tgt_emb:
                 raise ValueError(
                     "Expected embedding shape to be (..., num_tokens, tgt_emb) to match"
-                    f" but found shapes {self.embedding.shape} and {state_dict[prefix+'embedding'].shape}"
+                    f" but found shapes {self.embedding.shape} and {state_dict[prefix + 'embedding'].shape}"
                 )
 
             if inpt_max_num_tiles_x != inpt_max_num_tiles_y:
@@ -633,7 +633,7 @@ class TilePositionalEmbedding(nn.Module):
         )
         # permute to the original shape
         embedding = embedding.permute(2, 3, 0, 1)
-        return embedding
+        return embedding.contiguous()
 
     def forward(self, x: torch.Tensor, aspect_ratio: torch.Tensor) -> torch.Tensor:
         """

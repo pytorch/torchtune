@@ -123,7 +123,7 @@ class TestMultiHeadAttention:
         kv_cache = KVCache(
             batch_size=4,
             max_seq_len=max_seq_len,
-            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
             head_dim=head_dim,
             dtype=torch.float32,
         )
@@ -141,6 +141,7 @@ class TestMultiHeadAttention:
             kv_cache=kv_cache,
             max_seq_len=max_seq_len,
         )
+        attn.cache_enabled = True
         fixed_init_model(attn)
         attn.eval()
         return attn
@@ -177,7 +178,7 @@ class TestMultiHeadAttention:
         kv_cache = KVCache(
             batch_size=4,
             max_seq_len=max_seq_len,
-            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
             head_dim=head_dim,
             dtype=torch.float32,
         )
@@ -195,6 +196,7 @@ class TestMultiHeadAttention:
             kv_cache=kv_cache,
             max_seq_len=max_seq_len,
         )
+        attn.cache_enabled = True
         fixed_init_model(attn)
         attn.eval()
         return attn
@@ -231,7 +233,7 @@ class TestMultiHeadAttention:
         kv_cache = KVCache(
             batch_size=4,
             max_seq_len=max_seq_len,
-            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
             head_dim=head_dim,
             dtype=torch.float32,
         )
@@ -249,6 +251,7 @@ class TestMultiHeadAttention:
             kv_cache=kv_cache,
             max_seq_len=max_seq_len,
         )
+        attn.cache_enabled = True
         fixed_init_model(attn)
         attn.eval()
         return attn
@@ -264,7 +267,6 @@ class TestMultiHeadAttention:
     def test_forward_gqa_kv_cache(
         self, input: torch.Tensor, gqa_kv_cache: MultiHeadAttention, attn_params_gqa
     ) -> None:
-
         _, _, _, max_seq_len = attn_params_gqa
         _, seq_len, _ = input.shape
 
@@ -290,7 +292,6 @@ class TestMultiHeadAttention:
     def test_forward_mha_kv_cache(
         self, input: torch.Tensor, mha_kv_cache: MultiHeadAttention, attn_params_mha
     ) -> None:
-
         _, _, _, max_seq_len = attn_params_mha
         _, seq_len, _ = input.shape
 
