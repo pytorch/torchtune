@@ -209,26 +209,13 @@ class Download(Subcommand):
         # Note: Kaggle doesn't actually use the "repository" terminology, but we still reuse args.repo_id here for simplicity
         model_handle = args.repo_id
         self._validate_kaggle_model_handle(model_handle)
+        self._set_kaggle_credentials(args)
 
         # kagglehub doesn't currently support `local_dir` and `ignore_patterns` like huggingface_hub
         if args.output_dir is not None:
             warn(
                 "--output-dir flag is not supported for Kaggle model downloads. "
                 "This argument will be ignored."
-            )
-
-        if args.kaggle_username is not None and args.kaggle_api_key is not None:
-
-            set_kaggle_credentials(args.kaggle_username, args.kaggle_api_key)
-        elif args.kaggle_username is not None and args.kaggle_api_key is None:
-            self._parser.error(
-                "Missing --kaggle-api-key. Please provide both your Kaggle username "
-                "and API key. Find your API key at https://kaggle.com/settings."
-            )
-        elif args.kaggle_username is None and args.kaggle_api_key is not None:
-            self._parser.error(
-                "Missing --kaggle-username. Please provide both your Kaggle username "
-                "and API key."
             )
 
         try:
@@ -281,3 +268,33 @@ class Download(Subcommand):
         except Exception as e:
             msg = f"Failed to validate {handle} with error {e}."
             self._parser.error(msg)
+
+    def _set_kaggle_credentials(self, args: argparse.Namespace):
+        try:
+            if args.kaggle_username or args.kaggle_api_key:
+                print(
+                    "TIP: you can avoid passing in the --kaggle-username and --kaggle-api-key "
+                    "arguments by storing them as the environment variables KAGGLE_USERNAME and "
+                    "KAGGLE_KEY, respectively. For more details, see "
+                    "https://github.com/Kaggle/kagglehub/blob/main/README.md#authenticate"
+                )
+
+                # Fallback to known Kaggle environment variables in case user omits one
+                #   of the CLI arguments. Note, there's no need to fallback when both
+                #   --kaggle-username and --kaggle-api-key are omitted since kagglehub
+                #   will check the environment variables itself.
+                kaggle_username = (
+                    args.kaggle_username
+                    if args.kaggle_username
+                    else os.environ.get("KAGGLE_USERNAME")
+                )
+                kaggle_api_key = (
+                    args.kaggle_api_key
+                    if args.kaggle_api_key
+                    else os.environ.get("KAGGLE_KEY")
+                )
+                set_kaggle_credentials(kaggle_username, kaggle_api_key)
+        except Exception as e:
+            msg = f"Failed to set Kaggle credentials with error: '{e}'"
+            # not all Kaggle downloads require credentials, so there's no need to terminate
+            warn(msg)

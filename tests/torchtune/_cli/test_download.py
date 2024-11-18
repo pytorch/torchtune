@@ -4,8 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import runpy
 import sys
+from unittest import mock
 
 import pytest
 from tests.common import TUNE_PATH
@@ -149,35 +151,83 @@ class TestTuneDownloadCommand:
         output = capsys.readouterr().out
         assert "Successfully downloaded model repo" in output
 
-    # passes partial credentials with just --kaggle-api-key (expect prompt for all necessary credentials)
-    def test_download_from_kaggle_partial_credentials_provided(
-        self, capsys, monkeypatch
+    # tests when --kaggle-username and --kaggle-api-key are provided as CLI args
+    def test_download_from_kaggle_when_credentials_provided(
+        self, capsys, monkeypatch, mocker
     ):
+        expected_username = "username"
+        expected_api_key = "api_key"
         model = "metaresearch/llama-3.2/pytorch/1b"
         testargs = (
-            f"tune download {model} --source kaggle --kaggle-api-key apikey".split()
-        )
+            f"tune download {model} "
+            f"--source kaggle --kaggle-username {expected_username} "
+            f"--kaggle-api-key {expected_api_key}"
+        ).split()
         monkeypatch.setattr(sys, "argv", testargs)
-
-        with pytest.raises(SystemExit, match="2"):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        out_err = capsys.readouterr()
-        assert "Missing --kaggle-username." in out_err.err
-        assert "Please provide both your Kaggle username and API key." in out_err.err
-
-        testargs = (
-            f"tune download {model} --source kaggle --kaggle-username username".split()
+        set_kaggle_credentials_spy = mocker.patch(
+            "torchtune._cli.download.set_kaggle_credentials"
         )
+
+        runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        set_kaggle_credentials_spy.assert_called_once_with(
+            expected_username, expected_api_key
+        )
+        output = capsys.readouterr().out
+        assert (
+            "TIP: you can avoid passing in the --kaggle-username and --kaggle-api-key"
+            in output
+        )
+        assert (
+            "For more details, see https://github.com/Kaggle/kagglehub/blob/main/README.md#authenticate"
+            in output
+        )
+
+    # passes partial credentials with just --kaggle-username (expect fallback to environment variables)
+    @mock.patch.dict(os.environ, {"KAGGLE_KEY": "env_api_key"})
+    def test_download_from_kaggle_when_partial_credentials_provided(
+        self, capsys, monkeypatch, mocker
+    ):
+        expected_username = "username"
+        expected_api_key = "env_api_key"
+        model = "metaresearch/llama-3.2/pytorch/1b"
+        testargs = f"tune download {model} --source kaggle --kaggle-username {expected_username}".split()
         monkeypatch.setattr(sys, "argv", testargs)
+        set_kaggle_credentials_spy = mocker.patch(
+            "torchtune._cli.download.set_kaggle_credentials"
+        )
 
-        with pytest.raises(SystemExit, match="2"):
+        runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        set_kaggle_credentials_spy.assert_called_once_with(
+            expected_username, expected_api_key
+        )
+        output = capsys.readouterr().out
+        assert (
+            "TIP: you can avoid passing in the --kaggle-username and --kaggle-api-key"
+            in output
+        )
+        assert (
+            "For more details, see https://github.com/Kaggle/kagglehub/blob/main/README.md#authenticate"
+            in output
+        )
+
+    def test_download_from_kaggle_when_set_kaggle_credentials_throws(
+        self, monkeypatch, mocker
+    ):
+        model = "metaresearch/llama-3.2/pytorch/1b"
+        testargs = f"tune download {model} --source kaggle --kaggle-username u --kaggle-api-key k".split()
+        monkeypatch.setattr(sys, "argv", testargs)
+        mocker.patch(
+            "torchtune._cli.download.set_kaggle_credentials",
+            side_effect=Exception("some error"),
+        )
+
+        with pytest.warns(
+            UserWarning,
+            match="Failed to set Kaggle credentials with error",
+        ):
             runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        out_err = capsys.readouterr()
-        assert "Missing --kaggle-api-key." in out_err.err
-        assert "Please provide both your Kaggle username and API key." in out_err.err
-        assert "Find your API key at https://kaggle.com/settings." in out_err.err
 
     # KaggleApiHTTPError::Unauthorized without --kaggle-username and --kaggle-api-key (expect prompt for credentials)
     def test_download_from_kaggle_unauthorized_credentials(
