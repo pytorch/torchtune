@@ -44,6 +44,7 @@ def compile_model(
     """
     backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
     if isinstance(model, DeepFusionModel):
+        # TODO: compile encoder too. Make sure to compile decoder.norm, etc..
         model = model.decoder
     if torch_version_ge("2.5.0"):
         if verbose:
@@ -53,6 +54,16 @@ def compile_model(
                 m, TransformerCrossAttentionLayer
             ):
                 m.compile(backend=backend)
+
+        if hasattr(model, "norm"):
+            model.norm.compile(backend=backend)
+
+        if hasattr(model, "chunked_output"):
+            model.chunked_output = torch.compile(model.chunked_output, backend=backend)
+
+        if hasattr(model, "token_embeddings"):
+            model.token_embeddings.compile(backend=backend)
+
     else:
         if verbose:
             log.info(
