@@ -444,7 +444,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             self.adapter_params.items(), dtype=self._dtype
         )
 
-        log.info(f"Model is initialized with precision {self._dtype}.")
+        log.info(f"Student model is initialized with precision {self._dtype}.")
 
         if self._device.type == "cuda":
             log.info("Memory stats initializing student model:")
