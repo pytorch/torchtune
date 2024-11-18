@@ -19,7 +19,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
-from torchtune.data import padded_collate_sft
+from torchtune.data import padded_collate_packed, padded_collate_sft
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     get_adapter_params,
@@ -444,11 +444,14 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             self.adapter_params.items(), dtype=self._dtype
         )
 
-        log.info(f"Model is initialized with precision {self._dtype}.")
+        log.info(f"Student model is initialized with precision {self._dtype}.")
 
         if self._device.type == "cuda":
+            log.info("Memory stats initializing student model:")
             memory_stats = training.get_memory_stats(device=self._device)
-            training.log_memory_stats(memory_stats)
+            training.log_memory_stats(
+                memory_stats, message="Memory stats after student model init:"
+            )
         return model
 
     def _setup_teacher_model(
@@ -471,6 +474,13 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             model.named_parameters(), dtype=self._dtype
         )
         log.info(f"Teacher model is initialized with precision {self._dtype}.")
+
+        if self._device.type == "cuda":
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(
+                memory_stats, message="Memory stats after teacher model init:"
+            )
+
         return model
 
     def _setup_optimizer(
@@ -541,7 +551,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                     ignore_idx=self._loss_fn.ignore_index,
                 )
                 if not packed
-                else None
+                else padded_collate_packed
             ),
         )
 
