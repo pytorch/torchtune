@@ -108,8 +108,9 @@ tensors will be offloaded.
 
 *Sounds great! How do I use it?*
 
-To enable activation offloading, use ``enable_activation_offloading=True``. If you are on torch
-version later than PyTorch 2.5.0, it will allow the usage of multiple CUDA streams automatically.
+To enable activation offloading, use the ``enable_activation_offloading`` config entry or flag
+in our lora finetuning single device recipe, e.g. ``enable_activation_offloading=True``. To allow
+usage of streams, make sure you are on a torch version equal to or later than PyTorch.
 
 .. _glossary_grad_accm:
 
