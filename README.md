@@ -109,26 +109,26 @@ torchtune exposes a number of levers for memory efficiency and performance. The 
 
 **Baseline:**
 - **Model:** Llama 3B
-- **Batch size:** 5
-- **Max seq len:** 2048
+- **Batch size:** 2
+- **Max seq len:** 4096
 - **Precision:** bf16
 - **Hardware:** A100
 - **Recipe:** full_finetune_single_device
 
 | Technique | Peak Memory Active (GiB) | % Change Memory vs Previous | Tokens Per Second | % Change Tokens/sec vs Previous|
 |:--|:-:|:-:|:-:|:-:|
-| Baseline | 25.57 | - | 2979 | - |
-| [+ Packed Dataset](https://pytorch.org/torchtune/main/basics/packing.html) | 70.52 | 175.8% | 7203 | 141.8% |
-| [+ Compile](https://pytorch.org/tutorials/intermediate/torch_compile_tutorial.html) | 59.33 | -15.9% | 9200 | 27.7% |
-| [+ Chunked Cross Entropy](https://pytorch.org/torchtune/main/generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html) | 48.69 | -17.9% | 9415 | 2.3% |
-| [+ Activation Checkpointing](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#activation-checkpointing) | 25.28 | -48.1% | 7394 | -21.5% |
-| [+ Fuse optimizer step into backward](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#fusing-optimizer-step-into-backward-pass) | 23.92 | -5.4% | 7489 | 1.3% |
-| [+ Activation Offloading](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#activation-offloading) | 22.34 | -6.6% | 7479 | -0.1% |
-| [+ 8-bit AdamW](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#lower-precision-optimizers) | 17.57 | -21.4% | 7187 | -3.9% |
-| [LoRA](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#glossary-lora) | 9.16 | -47.8% | 8355 | 16.2% |
-| [QLoRA](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#quantized-low-rank-adaptation-qlora) | 5.28 | -42.4% | 8228 | -1.5% |
+| Baseline | 25.5 | - | 2091 | - |
+| [+ Packed Dataset](https://pytorch.org/torchtune/main/basics/packing.html) | 60.0 | +135.16% | 7075 | +238.40% |
+| [+ Compile](https://pytorch.org/tutorials/intermediate/torch_compile_tutorial.html) | 51.0 | -14.93% | 8998 | +27.18% |
+| [+ Chunked Cross Entropy](https://pytorch.org/torchtune/main/generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html) | 42.9 | -15.83% | 9174 | +1.96% |
+| [+ Activation Checkpointing](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#activation-checkpointing) | 24.9 | -41.93% | 7210 | -21.41% |
+| [+ Fuse optimizer step into backward](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#fusing-optimizer-step-into-backward-pass) | 23.1 | -7.29% | 7309 | +1.38% |
+| [+ Activation Offloading](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#activation-offloading) | 21.8 | -5.48% | 7301 | -0.11% |
+| [+ 8-bit AdamW](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#lower-precision-optimizers) | 17.6 | -19.63% | 6960 | -4.67% |
+| [LoRA](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#glossary-lora) | 8.5 | -51.61% | 8210 | +17.96% |
+| [QLoRA](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#quantized-low-rank-adaptation-qlora) | 4.6 | -45.71% | 8035 | -2.13% |
 
-To reproduce QLoRA:
+The final row in the table vs baseline + Packed Dataset uses 92.3% less memory with a 13.57% increase in tokens per second. It can be run via the command:
 ```
 tune run lora_finetune_single_device --config llama3_2/3B_qlora_single_device \
 optimizer_in_bwd=False \
@@ -137,10 +137,10 @@ enable_activation_offloading=True \
 optimizer._component_=torch.optim.AdamW \
 compile=True \
 dataset.packed=True \
-tokenizer.max_seq_len=2048 \
+tokenizer.max_seq_len=4096 \
 gradient_accumulation_steps=1 \
 epochs=1 \
-batch_size=5 \
+batch_size=2 \
 loss=torchtune.modules.loss.CEWithChunkedOutputLoss
 ```
 
