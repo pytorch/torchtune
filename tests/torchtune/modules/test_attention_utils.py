@@ -84,7 +84,7 @@ class TestBlockCausalMask:
 
     @pytest.mark.skipif(
         not _SUPPORTS_FLEX_ATTENTION,
-        reason="Please install a nightly build of torch (>=2.5.0) to run this test.",
+        reason="Hardware does not support Flex Attention.",
     )
     @gpu_test(gpu_count=1)
     def test_packed_block_causal_mask_flex(self):
@@ -100,7 +100,7 @@ class TestBlockCausalMask:
 class TestSDPAOrFlexAttention:
     @pytest.mark.skipif(
         not _SUPPORTS_FLEX_ATTENTION,
-        reason="Please install a nightly build of torch (>=2.5.0) to run this test.",
+        reason="Hardware does not support Flex Attention.",
     )
     @mock.patch("torchtune.modules.attention_utils.compile_friendly_flex_attention")
     @mock.patch(
