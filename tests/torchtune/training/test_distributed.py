@@ -360,8 +360,10 @@ class TestFullyShardState(FSDPTest):
             )
         # init rope since it's not covered in state dict
         for m in fsdp_model_to_load.modules():
-            if isinstance(m, modules.RotaryPositionalEmbeddings):
-                m.reset_parameters()
+            if isinstance(m, modules.RotaryPositionalEmbeddings) or isinstance(
+                m, modules.VisionRotaryPositionalEmbeddings
+            ):
+                m.rope_init()
         for m in fsdp_model_to_load.modules():
             if enable_activation_checkpointing:
                 if isinstance(m, CheckpointWrapper):
