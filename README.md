@@ -109,6 +109,7 @@ torchtune exposes a number of levers for memory efficiency and performance. The 
 - **Max seq len:** 2048
 - **Precision:** bf16
 - **Hardware:** A100
+- **Recipe:** full_finetune_single_device
 
 | Technique | Peak Memory Active (GiB) | % Change Memory vs Previous | Tokens Per Second | % Change Tokens/sec vs Previous|
 |:--|:-:|:-:|:-:|:-:|
@@ -120,8 +121,8 @@ torchtune exposes a number of levers for memory efficiency and performance. The 
 | [+ Fuse optimizer step into backward](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#fusing-optimizer-step-into-backward-pass) | 23.92 | -5.4% | 7489 | 1.3% |
 | [+ Activation Offloading](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#activation-offloading) | 22.34 | -6.6% | 7479 | -0.1% |
 | [+ 8-bit AdamW](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#lower-precision-optimizers) | 17.57 | -21.4% | 7187 | -3.9% |
-| [LoRA](https://pytorch.org/torchtune/main/tutorials/lora_finetune.html) | 9.16 | -47.8% | 8355 | 16.2% |
-| [QLoRA](https://pytorch.org/torchtune/main/tutorials/qlora_finetune.html) | 5.28 | -42.4% | 8228 | -1.5% |
+| [LoRA](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#glossary-lora) | 9.16 | -47.8% | 8355 | 16.2% |
+| [QLoRA](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#quantized-low-rank-adaptation-qlora) | 5.28 | -42.4% | 8228 | -1.5% |
 
 To reproduce QLoRA:
 ```
@@ -132,7 +133,6 @@ enable_activation_offloading=True \
 optimizer._component_=torch.optim.AdamW \
 compile=True \
 dataset.packed=True \
-dataset.split=train[:5%] \
 tokenizer.max_seq_len=2048 \
 gradient_accumulation_steps=1 \
 epochs=1 \
