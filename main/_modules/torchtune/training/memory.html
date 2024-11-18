@@ -709,7 +709,12 @@
     <span class="k">return</span> <span class="n">memory_stats</span></div>
 
 
-<div class="viewcode-block" id="log_memory_stats"><a class="viewcode-back" href="../../../generated/torchtune.training.log_memory_stats.html#torchtune.training.log_memory_stats">[docs]</a><span class="k">def</span> <span class="nf">log_memory_stats</span><span class="p">(</span><span class="n">stats</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="n">DEFAULT_LOG_MESSAGE</span> <span class="o">=</span> <span class="s2">&quot;Memory stats after model init:&quot;</span>
+
+
+<div class="viewcode-block" id="log_memory_stats"><a class="viewcode-back" href="../../../generated/torchtune.training.log_memory_stats.html#torchtune.training.log_memory_stats">[docs]</a><span class="k">def</span> <span class="nf">log_memory_stats</span><span class="p">(</span>
+    <span class="n">stats</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_LOG_MESSAGE</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Logs a dict containing memory stats to the logger. ``stats`` should contain the fields</span>
 <span class="sd">    ``peak_memory_active``, ``peak_memory_alloc``, and ``peak_memory_reserved`` as</span>
@@ -718,10 +723,12 @@
 <span class="sd">    Args:</span>
 <span class="sd">        stats (Dict[str, float]): A dictionary containing the peak memory active, peak memory</span>
 <span class="sd">            allocated, and peak memory reserved stats.</span>
+<span class="sd">        message (str): An optional message to prepend to the log output.</span>
+<span class="sd">            Defaults to &quot;Memory stats after model init:&quot;</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">device_support</span> <span class="o">=</span> <span class="n">get_device_support</span><span class="p">()</span>
     <span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-        <span class="s2">&quot;Memory stats after model init:&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="si">{</span><span class="n">device_support</span><span class="o">.</span><span class="n">device_name</span><span class="si">}</span><span class="s2"> peak memory allocation: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;peak_memory_alloc&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB&quot;</span>
         <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="si">{</span><span class="n">device_support</span><span class="o">.</span><span class="n">device_name</span><span class="si">}</span><span class="s2"> peak memory reserved: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;peak_memory_reserved&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB&quot;</span>
         <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="si">{</span><span class="n">device_support</span><span class="o">.</span><span class="n">device_name</span><span class="si">}</span><span class="s2"> peak memory active: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;peak_memory_active&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB&quot;</span>
