@@ -269,9 +269,16 @@ def gather_cpu_state_dict(
             )
             # upcasting NF4 to original dtype
             full_param = full_param.to(full_param.dtype)
+        elif isinstance(sharded_param, NF4Tensor):
+            # upcasting NF4 to original dtype
+            full_param = sharded_param.to(sharded_param.dtype)
         else:
-            # Gather DTensor
-            full_param = sharded_param.full_tensor()
+            if hasattr(sharded_param, "full_tensor"):
+                # Gather DTensor
+                full_param = sharded_param.full_tensor()
+            else:
+                # In cases where parts of the model aren't sharded, some parameters will be plain tensors
+                full_param = sharded_param
         if is_rank_zero:
             cpu_state_dict[param_name] = full_param.cpu()
         else:
