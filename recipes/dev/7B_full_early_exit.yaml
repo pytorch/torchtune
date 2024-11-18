@@ -55,7 +55,7 @@ optimizer:
   fused: True
   lr: 2e-5
 loss:
-  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+  _component_: torch.nn.CrossEntropyLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1  # Use to increase virtual batch size
 compile: False  # pytorch compile, set to true for better perf/memory

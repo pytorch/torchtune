@@ -752,7 +752,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
             self._model.output_hidden_states = [i for i in range(len(do_output_hidden_states)) if do_output_hidden_states[i]]
 
         if self.early_exit_curriculum:
-            self.early_exit_curriculum = build_early_exit_curriculum(self.early_exit_curriculum, self._model.output_hidden_states, self.total_epochs*self._steps_per_epoch)
+            self.early_exit_curriculum = build_early_exit_curriculum(self.early_exit_curriculum, do_output_hidden_states, self.total_epochs*self._steps_per_epoch)
 
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint

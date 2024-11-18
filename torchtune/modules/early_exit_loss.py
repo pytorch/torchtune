@@ -22,6 +22,8 @@ class LossScaleType(str, Enum):
     SQRT_L = "sqrt_l"
     INV_SQRT_L = "inv_sqrt_l"
 
+# TODO: create docstring using other functions as template
+# TODO: add assert on type of loss_fn
 def early_exit_loss(model, hidden_states_dict, labels, loss_fn, e_scale: float=1.0, loss_scale_type=LossScaleType.SUM_L):
     batch_loss_fn = copy.deepcopy(loss_fn)
     batch_loss_fn.reduction = "none"
@@ -34,16 +36,12 @@ def early_exit_loss(model, hidden_states_dict, labels, loss_fn, e_scale: float=1
     hidden_states_stacked = torch.stack(hidden_states)
     # Shape: [e, b, s, out_dim]
     logits_early = model.unembed(hidden_states_stacked)
-    if not isinstance(logits_early, list):
-        labels = labels.reshape(-1)
-        logits_early = logits_early.reshape(-1, logits_early.size(-1))
-    ###### logits_early = logits_early[..., :-1, :].contiguous()
-    # Shape: [e*b, s, out_dim]
-    logits_early = logits_early.flatten(0, 1)
-    ###### logits_early = logits_early.transpose(1, 2)
-    # Shape: [e, b*s]
-    labels_repeated = labels.repeat(e, 1)
-    # Compute early losses: Shape: [e*b, s]
+    # Shape: [e*b*s, out_dim]
+    logits_early = logits_early.reshape(-1, logits_early.size(-1))
+    logits_early = logits_early.contiguous()
+    # Shape: [e*b*s]
+    labels_repeated = labels.repeat(e, 1).reshape(-1)
+    # Compute early losses: Shape: [e*b*s]
     losses_early = batch_loss_fn(logits_early, labels_repeated)
     # Shape: [e, b*s]
     losses_early = losses_early.view(e, -1)
@@ -103,9 +101,9 @@ def build_early_exit_curriculum(early_exit_curriculum: EarlyExitCurriculumType, 
 
 # TODO: create a base curriculum class that can be used for other aspects, e.g., dropout, datasets, etc.
 class EarlyExitCurriculum():
-    def __init__(self, output_hidden_states, max_steps, verbose=False):
-        self._init_output_hidden_states = output_hidden_states
-        self.output_hidden_states = output_hidden_states
+    def __init__(self, do_output_hidden_states, max_steps, verbose=False):
+        self._init_do_output_hidden_states = do_output_hidden_states
+        self.do_output_hidden_states = do_output_hidden_states
         self.verbose = verbose
         self.max_steps = max_steps
 
@@ -113,32 +111,32 @@ class EarlyExitCurriculum():
         pass
 
     def get(self):
-        return self.output_hidden_states
+        return self.do_output_hidden_states
 
 class RotationalEarlyExitCurriculum(EarlyExitCurriculum):
-    def __init__(self, output_hidden_states, max_steps, verbose=False):
-        super().__init__(output_hidden_states, max_steps, verbose)
+    def __init__(self, do_output_hidden_states, max_steps, verbose=False):
+        super().__init__(do_output_hidden_states, max_steps, verbose)
 
     def step(self):
-        self.output_hidden_states = np.roll(self.output_hidden_states, -1)
+        self.do_output_hidden_states = np.roll(self.do_output_hidden_states, -1)
         if self.verbose:
-            log.info(f"Updating self.output_hidden_states to {self.output_hidden_states}.")
+            log.info(f"Updating self.output_hidden_states to {self.do_output_hidden_states}.")
 
 class GradualEarlyExitCurriculum(EarlyExitCurriculum):
-    def __init__(self, output_hidden_states, max_steps, verbose=False):
-        super().__init__(output_hidden_states, max_steps, verbose)
+    def __init__(self, do_output_hidden_states, max_steps, verbose=False):
+        super().__init__(do_output_hidden_states, max_steps, verbose)
         self._step = 0
 
     def step(self):
         percent_trained = self._step / self.max_steps
-        n_layers = len(self.output_hidden_states)
-        for layer_index in range(len(self.output_hidden_states)):
+        n_layers = len(self.do_output_hidden_states)
+        for layer_index in range(len(self.do_output_hidden_states)):
             # TODO: replace 2 with an argument
             should_train = (percent_trained * 2) >= ((n_layers - 1 - layer_index) / (n_layers - 1))
-            self.output_hidden_states[layer_index] = should_train
+            self.do_output_hidden_states[layer_index] = should_train
 
         # TODO: move this to step() in parent class?
         # TODO: how to ensure we always call parent step() in derived class?
         self._step += 1
         if self.verbose:
-            log.info(f"Updating self.output_hidden_states to {self.output_hidden_states}.")
+            log.info(f"Updating self.do_output_hidden_states to {self.do_output_hidden_states}.")
