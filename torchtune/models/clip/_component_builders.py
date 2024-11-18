@@ -7,7 +7,6 @@
 from functools import partial
 from typing import Callable, List, Optional
 
-import torch
 from torch import nn
 from torchtune.models.clip._position_embeddings import (
     TiledTokenPositionalEmbedding,
@@ -21,6 +20,7 @@ from torchtune.modules import (
     FrozenNF4Linear,
     MultiHeadAttention,
     TransformerSelfAttentionLayer,
+    VisionRotaryPositionalEmbeddings,
 )
 
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
@@ -39,11 +39,12 @@ def clip_vision_encoder(
     activation: Callable = nn.SiLU,
     cls_output_dim: int = 512,
     attn_bias: bool = True,
+    use_rope: bool = False,
     out_indices: Optional[List[int]] = None,
     output_cls_projection: bool = False,
     max_num_tiles: int = 4,
     in_channels: int = 3,
-    intermediate_act: torch.nn.Module = torch.nn.SiLU(),
+    append_cls_token: bool = False,
 ) -> VisionTransformer:
     """
     Builds the vision encoder associated with the clip model. This includes:
@@ -67,6 +68,7 @@ def clip_vision_encoder(
         activation (Callable): The activation function to use in the MLP layer.
         cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.
         attn_bias (bool): Boolean for if to use bias in the attention module. Default True.
+        use_rope (bool): If True, include 2D rope in attention in each transformer layer. Default: False
         out_indices (Optional[List[int]]): The indices of hidden layers to return.
             If provided, it will return the intermediate results of the transformer layers
             before they go through a next layer. For example, ``out_indices=[0,3]`` will
@@ -76,7 +78,8 @@ def clip_vision_encoder(
         max_num_tiles (int): The maximum number of tiles that can be processed. This is used to
             determine the size of the positional embeddings.
         in_channels (int): The number of image input channels.
-        intermediate_act (torch.nn.Module): The activation function used in the intermediate layers in the transformer encoder.
+        append_cls_token (bool): If True, adds CLS token embedding to the end of the sequence in the vision transformer.
+            Default is False, which adds CLS token to the beginning of the sequence.
 
     Returns:
         A `VisionTransformer` object.
@@ -84,11 +87,31 @@ def clip_vision_encoder(
     Raises:
         AssertionError: If ``embed_dim`` is not divisible by ``num_heads``.
     """
-    assert embed_dim % num_heads == 0, "embed_dim must be divisible by num_heads"
+    if embed_dim % num_heads != 0:
+        raise ValueError(
+            f"embed_dim must be divisible by num_heads, got {embed_dim} and {num_heads}"
+        )
+    if use_rope and max_num_tiles != 1:
+        raise ValueError(
+            f"2D RoPE is only supported for max_num_tiles = 1, got {max_num_tiles}"
+        )
+
+    head_dim = embed_dim // num_heads
 
     cls_projection = (
         CLSProjection(embed_dim=embed_dim, cls_output_dim=cls_output_dim)
         if output_cls_projection
+        else None
+    )
+    rope = (
+        VisionRotaryPositionalEmbeddings(
+            patch_size=patch_size,
+            tile_size=tile_size,
+            dim=head_dim // 2,
+            base=10_000,
+            append_cls_token=append_cls_token,
+        )
+        if use_rope
         else None
     )
 
@@ -97,12 +120,12 @@ def clip_vision_encoder(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_heads,
-        head_dim=embed_dim // num_heads,
+        head_dim=head_dim,
         q_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
         k_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
         v_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
         output_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
-        pos_embeddings=None,
+        pos_embeddings=rope,
         attn_dropout=0.0,
         is_causal=False,
     )
@@ -154,6 +177,7 @@ def clip_vision_encoder(
         patch_size=patch_size,
         embed_dim=embed_dim,
         in_channels=in_channels,
+        append_cls_token=append_cls_token,
     )
 
 
@@ -189,7 +213,6 @@ def clip_mlp(
 def lora_clip_vision_encoder(
     lora_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
-    apply_lora_to_output: bool = False,
     *,
     # clip encoder parameters
     tile_size: int,
@@ -199,12 +222,11 @@ def lora_clip_vision_encoder(
     num_heads: int,
     activation: Callable = nn.SiLU,
     cls_output_dim: int = 512,
-    attn_bias: bool = True,
+    attn_bias: bool = False,
     out_indices: Optional[List[int]] = None,
     output_cls_projection: bool = False,
     max_num_tiles: int = 4,
     in_channels: int = 3,
-    intermediate_act: torch.nn.Module = torch.nn.SiLU(),
     # LoRA parameters
     lora_rank: int = 8,
     lora_alpha: float = 16,
@@ -222,8 +244,6 @@ def lora_clip_vision_encoder(
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
             Default: False
-        apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
-            Default: False
         tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
             the size of the input image. In this case, the function will consider your image as a single tile.
         patch_size (int): The size of each patch. Used to divide the tiles into patches.
@@ -234,7 +254,7 @@ def lora_clip_vision_encoder(
         num_heads (int): The number of attention heads in each transformer layer.
         activation (Callable): The activation function to use in the MLP layer.
         cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.
-        attn_bias (bool): Boolean for if to use bias in the attention module. Default True.
+        attn_bias (bool): Boolean for if to use bias in the attention module. Default False.
         out_indices (Optional[List[int]]): The indices of hidden layers to return.
             If provided, it will return the intermediate results of the transformer layers
             before they go through a next layer. For example, ``out_indices=[0,3]`` will
@@ -244,7 +264,6 @@ def lora_clip_vision_encoder(
         max_num_tiles (int): The maximum number of tiles that can be processed. This is used to
             determine the size of the positional embeddings.
         in_channels (int): The number of image input channels.
-        intermediate_act (torch.nn.Module): The activation function used in the intermediate layers in the transformer encoder.
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
@@ -279,6 +298,7 @@ def lora_clip_vision_encoder(
         lora_dropout=lora_dropout,
         use_dora=use_dora,
         quantize_base=quantize_base,
+        attn_bias=attn_bias,
         **quantization_kwargs,
     )
     if apply_lora_to_mlp:
@@ -366,6 +386,7 @@ def lora_clip_attention(
     num_heads: int,
     num_kv_heads: int,
     attn_dropout: float = 0.0,
+    attn_bias: bool = False,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,
@@ -424,10 +445,10 @@ def lora_clip_attention(
         )
         if "q_proj" in lora_modules
         else (
-            nn.Linear(embed_dim, num_heads * head_dim, bias=False)
+            nn.Linear(embed_dim, num_heads * head_dim, bias=attn_bias)
             if not quantize_base
             else FrozenNF4Linear(
-                embed_dim, num_heads * head_dim, bias=False, **quantization_kwargs
+                embed_dim, num_heads * head_dim, bias=attn_bias, **quantization_kwargs
             )
         )
     )
@@ -443,10 +464,13 @@ def lora_clip_attention(
         )
         if "k_proj" in lora_modules
         else (
-            nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+            nn.Linear(embed_dim, num_kv_heads * head_dim, bias=attn_bias)
             if not quantize_base
             else FrozenNF4Linear(
-                embed_dim, num_kv_heads * head_dim, bias=False, **quantization_kwargs
+                embed_dim,
+                num_kv_heads * head_dim,
+                bias=attn_bias,
+                **quantization_kwargs,
             )
         )
     )
@@ -462,10 +486,13 @@ def lora_clip_attention(
         )
         if "v_proj" in lora_modules
         else (
-            nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+            nn.Linear(embed_dim, num_kv_heads * head_dim, bias=attn_bias)
             if not quantize_base
             else FrozenNF4Linear(
-                embed_dim, num_kv_heads * head_dim, bias=False, **quantization_kwargs
+                embed_dim,
+                num_kv_heads * head_dim,
+                bias=attn_bias,
+                **quantization_kwargs,
             )
         )
     )
@@ -481,10 +508,10 @@ def lora_clip_attention(
         )
         if "output_proj" in lora_modules
         else (
-            nn.Linear(embed_dim, embed_dim, bias=False)
+            nn.Linear(embed_dim, embed_dim, bias=attn_bias)
             if not quantize_base
             else FrozenNF4Linear(
-                embed_dim, embed_dim, bias=False, **quantization_kwargs
+                embed_dim, embed_dim, bias=attn_bias, **quantization_kwargs
             )
         )
     )

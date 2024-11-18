@@ -72,12 +72,12 @@ _ALL_RECIPES = [
                 file_path="qwen2/1.5B_full_single_device.yaml",
             ),
             Config(
-                name="qwen2_5/0_5B_full_single_device",
-                file_path="qwen2_5/0_5B_full_single_device.yaml",
+                name="qwen2_5/0.5B_full_single_device",
+                file_path="qwen2_5/0.5B_full_single_device.yaml",
             ),
             Config(
-                name="qwen2_5/1_5B_full_single_device",
-                file_path="qwen2_5/1_5B_full_single_device.yaml",
+                name="qwen2_5/1.5B_full_single_device",
+                file_path="qwen2_5/1.5B_full_single_device.yaml",
             ),
             Config(
                 name="qwen2_5/3B_full_single_device",
@@ -116,8 +116,8 @@ _ALL_RECIPES = [
             Config(name="qwen2/7B_full", file_path="qwen2/7B_full.yaml"),
             Config(name="qwen2/0.5B_full", file_path="qwen2/0.5B_full.yaml"),
             Config(name="qwen2/1.5B_full", file_path="qwen2/1.5B_full.yaml"),
-            Config(name="qwen2_5/0_5B_full", file_path="qwen2_5/0_5B_full.yaml"),
-            Config(name="qwen2_5/1_5B_full", file_path="qwen2_5/1_5B_full.yaml"),
+            Config(name="qwen2_5/0.5B_full", file_path="qwen2_5/0.5B_full.yaml"),
+            Config(name="qwen2_5/1.5B_full", file_path="qwen2_5/1.5B_full.yaml"),
             Config(name="qwen2_5/3B_full", file_path="qwen2_5/3B_full.yaml"),
             Config(name="qwen2_5/7B_full", file_path="qwen2_5/7B_full.yaml"),
             Config(
@@ -264,12 +264,12 @@ _ALL_RECIPES = [
                 file_path="qwen2/1.5B_lora_single_device.yaml",
             ),
             Config(
-                name="qwen2_5/0_5B_lora_single_device",
-                file_path="qwen2_5/0_5B_lora_single_device.yaml",
+                name="qwen2_5/0.5B_lora_single_device",
+                file_path="qwen2_5/0.5B_lora_single_device.yaml",
             ),
             Config(
-                name="qwen2_5/1_5B_lora_single_device",
-                file_path="qwen2_5/1_5B_lora_single_device.yaml",
+                name="qwen2_5/1.5B_lora_single_device",
+                file_path="qwen2_5/1.5B_lora_single_device.yaml",
             ),
             Config(
                 name="qwen2_5/3B_lora_single_device",
@@ -363,8 +363,8 @@ _ALL_RECIPES = [
             Config(name="qwen2/7B_lora", file_path="qwen2/7B_lora.yaml"),
             Config(name="qwen2/0.5B_lora", file_path="qwen2/0.5B_lora.yaml"),
             Config(name="qwen2/1.5B_lora", file_path="qwen2/1.5B_lora.yaml"),
-            Config(name="qwen2_5/0_5B_lora", file_path="qwen2_5/0_5B_lora.yaml"),
-            Config(name="qwen2_5/1_5B_lora", file_path="qwen2_5/1_5B_lora.yaml"),
+            Config(name="qwen2_5/0.5B_lora", file_path="qwen2_5/0.5B_lora.yaml"),
+            Config(name="qwen2_5/1.5B_lora", file_path="qwen2_5/1.5B_lora.yaml"),
             Config(name="qwen2_5/3B_lora", file_path="qwen2_5/3B_lora.yaml"),
             Config(name="qwen2_5/7B_lora", file_path="qwen2_5/7B_lora.yaml"),
             Config(name="qwen2_5/32B_lora", file_path="qwen2_5/32B_lora.yaml"),
