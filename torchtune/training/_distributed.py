@@ -207,6 +207,9 @@ def load_from_full_model_state_dict(
                 requires_grad=sharded_meta_param.requires_grad,
             )
 
+        elif not hasattr(sharded_meta_param, "device_mesh"):
+            # In cases where parts of the model aren't sharded, some parameters will be plain tensors
+            sharded_tensor = full_tensor
         else:
             sharded_tensor = distribute_tensor(
                 full_tensor,
@@ -242,7 +245,9 @@ def gather_cpu_state_dict(
         if sharded_param.is_cpu:
             # Move back to device if offloaded to CPU
             sharded_param = sharded_param.to(device)
-        if isinstance(sharded_param._local_tensor, NF4Tensor):
+        if hasattr(sharded_param, "_local_tensor") and isinstance(
+            sharded_param._local_tensor, NF4Tensor
+        ):
             # NF4Tensor does not support all_gather from DTensor
             # so we need to manually all_gather
             mesh = sharded_param.device_mesh
