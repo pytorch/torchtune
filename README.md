@@ -133,7 +133,7 @@ The final row in the table vs baseline + Packed Dataset uses 81.9% less memory w
 tune run lora_finetune_single_device --config llama3_2/3B_qlora_single_device \
 dataset.packed=True \
 compile=True \
-loss=torchtune.modules.loss.CEWithChunkedOutputLoss
+loss=torchtune.modules.loss.CEWithChunkedOutputLoss \
 enable_activation_checkpointing=True \
 optimizer_in_bwd=False \
 enable_activation_offloading=True \
@@ -141,7 +141,7 @@ optimizer._component_=torch.optim.AdamW \
 tokenizer.max_seq_len=4096 \
 gradient_accumulation_steps=1 \
 epochs=1 \
-batch_size=2 \
+batch_size=2
 ```
 
 &nbsp;
