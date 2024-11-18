@@ -105,10 +105,10 @@ If you are interested in running on different hardware or with different models,
 
 ### Optimization flags
 
-torchtune exposes a number of levers for memory efficiency and performance. The table below demonstrates the effects of applying some of these techniques sequentially to the Llama 3B model. Each technique is added on top of the previous one, except for LoRA and QLoRA, which do not use `optimizer_in_bwd` or `AdamW8bit` optimizer.
+torchtune exposes a number of levers for memory efficiency and performance. The table below demonstrates the effects of applying some of these techniques sequentially to the Llama 3.2 3B model. Each technique is added on top of the previous one, except for LoRA and QLoRA, which do not use `optimizer_in_bwd` or `AdamW8bit` optimizer.
 
 **Baseline:**
-- **Model:** Llama 3B
+- **Model:** Llama 3.2 3B
 - **Batch size:** 2
 - **Max seq len:** 4096
 - **Precision:** bf16
@@ -128,20 +128,20 @@ torchtune exposes a number of levers for memory efficiency and performance. The 
 | [LoRA](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#glossary-lora) | 8.5 | -51.61% | 8210 | +17.96% |
 | [QLoRA](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#quantized-low-rank-adaptation-qlora) | 4.6 | -45.71% | 8035 | -2.13% |
 
-The final row in the table vs baseline + Packed Dataset uses 92.3% less memory with a 13.57% increase in tokens per second. It can be run via the command:
+The final row in the table vs baseline + Packed Dataset uses 81.9% less memory with a 284.3% increase in tokens per second. It can be run via the command:
 ```
 tune run lora_finetune_single_device --config llama3_2/3B_qlora_single_device \
-optimizer_in_bwd=False \
+dataset.packed=True \
+compile=True \
+loss=torchtune.modules.loss.CEWithChunkedOutputLoss
 enable_activation_checkpointing=True \
+optimizer_in_bwd=False \
 enable_activation_offloading=True \
 optimizer._component_=torch.optim.AdamW \
-compile=True \
-dataset.packed=True \
 tokenizer.max_seq_len=4096 \
 gradient_accumulation_steps=1 \
 epochs=1 \
 batch_size=2 \
-loss=torchtune.modules.loss.CEWithChunkedOutputLoss
 ```
 
 &nbsp;
