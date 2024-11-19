@@ -25,9 +25,17 @@ tokenizer:
   max_seq_len: null
 
 # Dataset
+# dataset:
+#   _component_: torchtune.datasets.alpaca_dataset
+#   packed: False  # True increases speed
 dataset:
-  _component_: torchtune.datasets.alpaca_dataset
-  packed: False  # True increases speed
+  _component_: torchtune.datasets.instruct_dataset
+  source: WillHeld/top_v2
+  split: train
+  column_map:
+    input: utterance
+    output: semantic_parse
+
 seed: null
 shuffle: True
 
