@@ -619,6 +619,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 self._apply_lora_to_output,
             ),
             "peft_type": "LORA",
+            "base_model_name_or_path": str(self._checkpointer._checkpoint_dir),
         }
         ckpt_dict.update({training.ADAPTER_CONFIG: adapter_config})
 
