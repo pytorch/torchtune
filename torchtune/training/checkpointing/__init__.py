@@ -6,6 +6,7 @@
 from typing import Union
 
 from torchtune.training.checkpointing._checkpointer import (
+    DistributedCheckpointer,
     FullModelHFCheckpointer,
     FullModelMetaCheckpointer,
     FullModelTorchTuneCheckpointer,
@@ -27,6 +28,7 @@ from torchtune.training.checkpointing._utils import (
 )
 
 Checkpointer = Union[
+    DistributedCheckpointer,
     FullModelHFCheckpointer,
     FullModelMetaCheckpointer,
     FullModelTorchTuneCheckpointer,
@@ -36,6 +38,7 @@ __all__ = [
     "FullModelHFCheckpointer",
     "FullModelMetaCheckpointer",
     "FullModelTorchTuneCheckpointer",
+    "DistributedCheckpointer",
     "ModelType",
     "Checkpointer",
     "update_state_dict_for_classifier",
