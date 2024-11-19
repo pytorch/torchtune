@@ -3,8 +3,6 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from os import PathLike
-
 from torchtune.models.clip._component_builders import clip_text_encoder
 from torchtune.models.clip._text_encoder import CLIPTextEncoder
 from torchtune.models.clip._tokenizer import CLIPTokenizer
@@ -12,7 +10,7 @@ from torchtune.models.clip._transform import CLIPImageTransform
 
 
 def clip_tokenizer(
-    path: PathLike,
+    path: str,
     max_seq_len: int = 77,
     truncate: bool = True,
 ) -> CLIPTokenizer:
@@ -20,7 +18,7 @@ def clip_tokenizer(
     Builder for the CLIP text tokenizer.
 
     Args:
-        path (PathLike): Path to the CLIP merges file
+        path (str): Path to the CLIP merges file
         max_seq_len (bool): Context length
             Default: 77
         truncate (bool): Truncate the token sequence if it exceeds max_seq_len (otherwise raises AssertionError)

@@ -3,13 +3,14 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from os import PathLike
 from typing import List
 
 import regex as re
 import torch
 
 from torchtune.modules.tokenizers._utils import BaseTokenizer
+
+WORD_BOUNDARY = "</w>"
 
 
 class CLIPTokenizer(BaseTokenizer):
@@ -20,28 +21,22 @@ class CLIPTokenizer(BaseTokenizer):
     https://github.com/openai/CLIP/blob/main/clip/simple_tokenizer.py
 
     Args:
-        path (PathLike): the path to the CLIP merges file
+        path (str): the path to the CLIP merges file
         max_seq_len (int): the context length (all CLIP models use 77)
         truncate (bool): whether to truncate the text when longer than max_seq_len
     """
 
-    def __init__(self, path: PathLike, max_seq_len: int = 77, truncate: bool = True):
+    def __init__(self, path: str, max_seq_len: int = 77, truncate: bool = True):
         self.max_seq_len = max_seq_len
         self.truncate = truncate
 
         self.byte_encoder = _bytes_to_unicode()
         self.byte_decoder = {v: k for k, v in self.byte_encoder.items()}
 
-        merges = []
-        with open(path, encoding="utf-8") as f:
-            for i, line in enumerate(f):
-                line = line.strip()
-                if (i == 0 and line.startswith("#version:")) or not line:
-                    continue
-                merges.append(tuple(line.split()))
+        merges = _load_merges(path)
 
         vocab = list(self.byte_encoder.values())
-        vocab.extend([v + "</w>" for v in vocab])
+        vocab.extend([v + WORD_BOUNDARY for v in vocab])
         vocab.extend(["".join(merge) for merge in merges])
         vocab.extend(["<|startoftext|>", "<|endoftext|>"])
 
@@ -73,7 +68,7 @@ class CLIPTokenizer(BaseTokenizer):
         Returns:
             List[int]: The encoded list of token ids.
         """
-        text = text.lower()
+        text = _clean_text(text).lower()
 
         tokens = [self.sot_token]
         for token in re.findall(self.pat, text):
@@ -109,7 +104,7 @@ class CLIPTokenizer(BaseTokenizer):
         return (
             bytearray([self.byte_decoder[c] for c in text])
             .decode("utf-8", errors="replace")
-            .replace("</w>", " ")
+            .replace(WORD_BOUNDARY, " ")
         )
 
     def __call__(self, texts: List[str]) -> torch.Tensor:
@@ -131,24 +126,44 @@ class CLIPTokenizer(BaseTokenizer):
             result[i, : len(tokens)] = torch.tensor(tokens)
         return result
 
-    def _bpe(self, token):
+    def _bpe(self, token: str) -> str:
+        """
+        Performs byte-pair encoding on a single token.
+
+        Args:
+            token (str): The input token to encode
+
+        Returns:
+            str: The encoded token with merge rules applied
+        """
         if token in self.cache:
             return self.cache[token]
 
-        word = tuple(token[:-1]) + (token[-1] + "</w>",)
+        if len(token) < 2:
+            return token + WORD_BOUNDARY
+
+        # create the initial "word" (seq of "symbols" i.e. characters and merged subwords)
+        # by converting the token to tuple of characters and add </w> to the last character
+        word = tuple(token[:-1]) + (token[-1] + WORD_BOUNDARY,)
+
+        # get all pairs of adjacent characters
         pairs = _get_pairs(word)
 
-        if not pairs:
-            return token + "</w>"
-
+        # merge symbol pairs until there are no possible merges left
         while True:
+            # find the pair with the lowest rank (highest priority to merge)
             bigram = min(pairs, key=lambda pair: self.bpe_ranks.get(pair, float("inf")))
+            # end if there are no pairs to merge
             if bigram not in self.bpe_ranks:
                 break
+
+            # create the next "word" by merging any adjacent symbols that match the bigram
             first, second = bigram
             new_word = []
             i = 0
             while i < len(word):
+                # find next potentially mergeable position and copy over any skipped characters
+                # if no more merge positions found, copy remaining characters and finish
                 try:
                     j = word.index(first, i)
                     new_word.extend(word[i:j])
@@ -157,6 +172,7 @@ class CLIPTokenizer(BaseTokenizer):
                     new_word.extend(word[i:])
                     break
 
+                # check if we can perform a merge
                 if word[i] == first and i < len(word) - 1 and word[i + 1] == second:
                     new_word.append(first + second)
                     i += 2
@@ -164,8 +180,12 @@ class CLIPTokenizer(BaseTokenizer):
                     new_word.append(word[i])
                     i += 1
             word = tuple(new_word)
+
+            # end if the new "word" is fully merged
             if len(word) == 1:
                 break
+
+            # get all pairs of adjacent symbols in the new word
             pairs = _get_pairs(word)
 
         word = " ".join(word)
@@ -204,3 +224,18 @@ def _get_pairs(word):
         pairs.add((prev_char, char))
         prev_char = char
     return pairs
+
+
+def _clean_text(text):
+    return text.replace("’", "'")
+
+
+def _load_merges(path):
+    merges = []
+    with open(path, encoding="utf-8") as f:
+        for i, line in enumerate(f):
+            line = line.strip()
+            if (i == 0 and line.startswith("#version:")) or not line:
+                continue
+            merges.append(tuple(line.split()))
+    return merges
