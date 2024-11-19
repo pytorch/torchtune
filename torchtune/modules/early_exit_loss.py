@@ -123,16 +123,16 @@ class RotationalEarlyExitCurriculum(EarlyExitCurriculum):
             log.info(f"Updating self.output_hidden_states to {self.do_output_hidden_states}.")
 
 class GradualEarlyExitCurriculum(EarlyExitCurriculum):
-    def __init__(self, do_output_hidden_states, max_steps, verbose=False):
+    def __init__(self, do_output_hidden_states, max_steps, percent_scale=2, verbose=False):
         super().__init__(do_output_hidden_states, max_steps, verbose)
         self._step = 0
+        self._percent_scale = percent_scale
 
     def step(self):
         percent_trained = self._step / self.max_steps
         n_layers = len(self.do_output_hidden_states)
         for layer_index in range(len(self.do_output_hidden_states)):
-            # TODO: replace 2 with an argument
-            should_train = (percent_trained * 2) >= ((n_layers - 1 - layer_index) / (n_layers - 1))
+            should_train = (percent_trained * self._percent_scale) >= (n_layers - layer_index) / n_layers
             self.do_output_hidden_states[layer_index] = should_train
 
         # TODO: move this to step() in parent class?
