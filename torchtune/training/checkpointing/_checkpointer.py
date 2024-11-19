@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol, Union
 
 import torch
+import torch.distributed as dist
 from safetensors.torch import save_file
 from torch.distributed.checkpoint import (
     async_save,
@@ -1140,12 +1141,17 @@ class DistributedCheckpointer(_CheckpointerInterface):
     Args:
         checkpoint_dir (str): Directory containing the checkpoint files
         output_dir (str): Directory to save the checkpoint files
+        process_group (Optional[dist.ProcessGroup]): Optional process group to use
+            for distributed saving/loading.
+            If None, the default process group will be used.
+            For checkpointing, gloo CPU-based backend is needed.
     """
 
     def __init__(
         self,
         checkpoint_dir: str,
         output_dir: str,
+        process_group: Optional[dist.ProcessGroup] = None,
     ) -> None:
         self._checkpoint_dir = Path(checkpoint_dir)
         self._output_dir = Path(output_dir)
@@ -1153,6 +1159,7 @@ class DistributedCheckpointer(_CheckpointerInterface):
         self._checkpoint_dir_prefix = "checkpoint"
         self._metadata_file = ".metadata"
         _, self._rank = training.get_world_size_and_rank()
+        self._process_group: Optional[dist.ProcessGroup] = process_group
 
     def _get_latest_intermediate_checkpoint(self) -> Optional[str]:
         """
@@ -1201,8 +1208,9 @@ class DistributedCheckpointer(_CheckpointerInterface):
         log_rank_zero(logger, msg=f"Loading checkpoint from {checkpoint_path}")
 
         load(
-            state_dict,
+            state_dict=state_dict,
             storage_reader=FileSystemReader(checkpoint_path),
+            process_group=self._process_group,
         )
 
         return state_dict
@@ -1267,13 +1275,14 @@ class DistributedCheckpointer(_CheckpointerInterface):
                     )
 
             self._checkpoint_future = async_save(
-                state_dict,
+                state_dict=state_dict,
                 storage_writer=FileSystemWriter(
                     checkpoint_path,
                     thread_count=16,
                     single_file_per_rank=False,
                     sync_files=False,
                 ),
+                process_group=self._process_group,
             )
 
             logger.info(
@@ -1289,13 +1298,14 @@ class DistributedCheckpointer(_CheckpointerInterface):
             )
 
             save(
-                state_dict,
+                state_dict=state_dict,
                 storage_writer=FileSystemWriter(
                     checkpoint_path,
                     thread_count=8,
                     single_file_per_rank=False,
                     sync_files=False,
                 ),
+                process_group=self._process_group,
             )
 
         log_rank_zero(
