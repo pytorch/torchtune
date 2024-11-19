@@ -189,6 +189,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.global_step = 0
         self.save_checkpoints = cfg.get("save_checkpoints", 1)
 
+        # NOTE: added by us
+        self.max_seq_len = cfg.get("max_seq_len", None)
+
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. If resume_from_checkpoint
@@ -428,6 +431,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
 
+        # NOTE: added by us
+        if self.max_seq_len is not None:
+            model.max_seq_len = self.max_seq_len
+
         if compile_model:
             training.compile_model(model)
 
@@ -618,6 +625,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         correctly creating the checkpoint dict and passing to the checkpointer.
         """
 
+        # NOTE: added by us
         if self.save_checkpoints:
             if epoch + 1 == self.total_epochs:
                 pass
@@ -731,7 +739,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     ):
                         break
 
-                mean_val_loss = cum_val_loss / (idx + 1)
+                mean_val_loss = cum_val_loss / (idx + 1 - max_len_samples)
                 self._metric_logger.log_dict(
                     {"val_loss": mean_val_loss},
                     step=self.global_step,

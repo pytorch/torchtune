@@ -61,7 +61,8 @@ loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
-compile: False
+#Removing this bc it's a dubplicated
+# compile: False
 
 # Training env
 device: cuda
