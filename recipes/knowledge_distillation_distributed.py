@@ -514,10 +514,12 @@ class KDRecipeDistributed(FTRecipeInterface):
 
         if self._is_rank_zero:
             log.info(
-                f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
+                f"Instantiating student model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
             )
             memory_stats = training.get_memory_stats(device=self._device)
-            training.log_memory_stats(memory_stats)
+            training.log_memory_stats(
+                memory_stats, message="Memory stats after student model init:"
+            )
 
         # synchronize before training begins
         torch.distributed.barrier()
@@ -599,7 +601,9 @@ class KDRecipeDistributed(FTRecipeInterface):
                 f"Instantiating teacher model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
             )
             memory_stats = training.get_memory_stats(device=self._device)
-            training.log_memory_stats(memory_stats)
+            training.log_memory_stats(
+                memory_stats, message="Memory stats after teacher model init:"
+            )
 
         # synchronize before training begins
         torch.distributed.barrier()

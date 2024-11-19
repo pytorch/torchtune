@@ -280,7 +280,12 @@ def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
     return memory_stats
 
 
-def log_memory_stats(stats: Dict[str, float]) -> None:
+DEFAULT_LOG_MESSAGE = "Memory stats after model init:"
+
+
+def log_memory_stats(
+    stats: Dict[str, float], message: str = DEFAULT_LOG_MESSAGE
+) -> None:
     """
     Logs a dict containing memory stats to the logger. ``stats`` should contain the fields
     ``peak_memory_active``, ``peak_memory_alloc``, and ``peak_memory_reserved`` as
@@ -289,10 +294,12 @@ def log_memory_stats(stats: Dict[str, float]) -> None:
     Args:
         stats (Dict[str, float]): A dictionary containing the peak memory active, peak memory
             allocated, and peak memory reserved stats.
+        message (str): An optional message to prepend to the log output.
+            Defaults to "Memory stats after model init:"
     """
     device_support = get_device_support()
     _log.info(
-        "Memory stats after model init:"
+        f"{message}"
         f"\n\t{device_support.device_name} peak memory allocation: {stats['peak_memory_alloc']:.2f} GiB"
         f"\n\t{device_support.device_name} peak memory reserved: {stats['peak_memory_reserved']:.2f} GiB"
         f"\n\t{device_support.device_name} peak memory active: {stats['peak_memory_active']:.2f} GiB"
