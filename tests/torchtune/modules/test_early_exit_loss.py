@@ -75,7 +75,13 @@ def test_rotational_early_exit_curriculum():
     curriculum = RotationalEarlyExitCurriculum([True, False, True], 100)
     curriculum.step()
     expected = np.array([False, True, True])
-    assert np.array_equal(curriculum.get(), expected), f"Expected {expected}, but got {curriculum.get()}"
+    assert np.array_equal(curriculum.get(), expected)
+    curriculum.step()
+    expected = np.array([True, True, False])
+    assert np.array_equal(curriculum.get(), expected)
+    curriculum.step()
+    expected = np.array([True, False, True])
+    assert np.array_equal(curriculum.get(), expected)
 
 def test_gradual_early_exit_curriculum():
     curriculum = GradualEarlyExitCurriculum([False, False, False, False], max_steps=4, percent_scale=1)
