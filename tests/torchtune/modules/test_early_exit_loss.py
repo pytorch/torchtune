@@ -120,8 +120,8 @@ def test_early_exit_loss_vs_manual(mock_model, hidden_states_dict, labels, loss_
     for i, hidden_state in hidden_states_dict.items():
         # Compute logits for the current hidden state
         logits = mock_model.unembed(hidden_state)
-        logits = logits.view(-1, logits.size(-1))  # Flatten for loss computation
-        labels = labels.view(-1)
+        labels = labels.reshape(-1)
+        logits = logits.reshape(-1, logits.size(-1))
         # Compute the loss for the current hidden state
         loss = loss_fn(logits, labels)
         total_loss += loss
