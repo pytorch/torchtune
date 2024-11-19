@@ -265,29 +265,21 @@ def gather_cpu_state_dict(
         Dict[str, Any]: State dict on CPU
     """
     cpu_state_dict = {}
-    for param_name, sharded_param in sharded_sd.items():
-        if sharded_param.is_cpu:
+    for param_name, param in sharded_sd.items():
+        if param.is_cpu:
             # Move back to device if offloaded to CPU
-            sharded_param = sharded_param.to(device)
-        if hasattr(sharded_param, "_local_tensor") and isinstance(
-            sharded_param._local_tensor, NF4Tensor
-        ):
-            full_param = _gather_nf4_tensor(sharded_param)
+            param = param.to(device)
+        if hasattr(param, "_local_tensor"):
+            if isinstance(param._local_tensor, NF4Tensor):
+                param = _gather_nf4_tensor(param)
+            else:
+                # Gather DTensor
+                param = param.full_tensor()
+        if isinstance(param, NF4Tensor):
             # upcasting NF4 to original dtype
-            full_param = full_param.to(full_param.dtype)
-        elif isinstance(sharded_param, NF4Tensor):
-            # upcasting NF4 to original dtype
-            full_param = sharded_param.to(sharded_param.dtype)
-        elif hasattr(sharded_param, "full_tensor"):
-            # Gather DTensor
-            full_param = sharded_param.full_tensor()
-        else:
-            # In cases where parts of the model aren't sharded, some parameters will be plain tensors
-            full_param = sharded_param
+            param = param.to(param.dtype)
         if is_rank_zero:
-            cpu_state_dict[param_name] = full_param.cpu()
-        else:
-            del full_param
+            cpu_state_dict[param_name] = param.cpu()
         torch.distributed.barrier()
     return cpu_state_dict
 
