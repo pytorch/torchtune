@@ -633,7 +633,9 @@ class TransformerDecoder(nn.Module):
         for i, layer in enumerate(self.layers):
             if i in self.output_hidden_states:
                 hidden.append(h)
+
             # shape: [b, s, d]
+            torch._dynamo.mark_dynamic(h, 1)  # avoid graph breaks
             h = layer(
                 h,
                 mask=mask,
