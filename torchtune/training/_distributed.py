@@ -223,6 +223,30 @@ def load_from_full_model_state_dict(
     return model.load_state_dict(sharded_sd, strict=strict, assign=True)
 
 
+def _gather_nf4_tensor(sharded_param: nn.Parameter) -> nn.Parameter:
+    """
+    Manually gather NF4Tensor parameter since it does not support all_gather
+    """
+    mesh = sharded_param.device_mesh
+    nf4_tensor = sharded_param._local_tensor
+    quant_params, metadata = nf4_tensor.fsdp_pre_all_gather(mesh)
+    full_quant_params = []
+    for quant_param in quant_params:
+        d0, *dn = quant_param.shape
+        shape = (d0 * mesh.get_group().size(), *dn)
+        full_quant_param = torch.empty(
+            shape, device=quant_param.device, dtype=quant_param.dtype
+        )
+        dist.all_gather_into_tensor(
+            full_quant_param, quant_param, mesh.get_group(), async_op=False
+        )
+        full_quant_params.append(full_quant_param)
+    full_param, _ = nf4_tensor.fsdp_post_all_gather(
+        full_quant_params, metadata, nf4_tensor.dtype
+    )
+    return full_param
+
+
 def gather_cpu_state_dict(
     sharded_sd: Dict[str, DTensor],  # noqa
     is_rank_zero: bool,
@@ -248,37 +272,18 @@ def gather_cpu_state_dict(
         if hasattr(sharded_param, "_local_tensor") and isinstance(
             sharded_param._local_tensor, NF4Tensor
         ):
-            # NF4Tensor does not support all_gather from DTensor
-            # so we need to manually all_gather
-            mesh = sharded_param.device_mesh
-            nf4_tensor = sharded_param._local_tensor
-            quant_params, metadata = nf4_tensor.fsdp_pre_all_gather(mesh)
-            full_quant_params = []
-            for quant_param in quant_params:
-                d0, *dn = quant_param.shape
-                shape = (d0 * mesh.get_group().size(), *dn)
-                full_quant_param = torch.empty(
-                    shape, device=quant_param.device, dtype=quant_param.dtype
-                )
-                dist.all_gather_into_tensor(
-                    full_quant_param, quant_param, mesh.get_group(), async_op=False
-                )
-                full_quant_params.append(full_quant_param)
-            full_param, _ = nf4_tensor.fsdp_post_all_gather(
-                full_quant_params, metadata, nf4_tensor.dtype
-            )
+            full_param = _gather_nf4_tensor(sharded_param)
             # upcasting NF4 to original dtype
             full_param = full_param.to(full_param.dtype)
         elif isinstance(sharded_param, NF4Tensor):
             # upcasting NF4 to original dtype
             full_param = sharded_param.to(sharded_param.dtype)
+        elif hasattr(sharded_param, "full_tensor"):
+            # Gather DTensor
+            full_param = sharded_param.full_tensor()
         else:
-            if hasattr(sharded_param, "full_tensor"):
-                # Gather DTensor
-                full_param = sharded_param.full_tensor()
-            else:
-                # In cases where parts of the model aren't sharded, some parameters will be plain tensors
-                full_param = sharded_param
+            # In cases where parts of the model aren't sharded, some parameters will be plain tensors
+            full_param = sharded_param
         if is_rank_zero:
             cpu_state_dict[param_name] = full_param.cpu()
         else:
