@@ -13,9 +13,13 @@ from warnings import warn
 
 import torch
 from omegaconf import DictConfig, ListConfig
-
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
+from torch.distributed.checkpoint.state_dict import (
+    _init_optim_state,
+    set_model_state_dict,
+    set_state_dict,
+)
 
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
@@ -24,10 +28,10 @@ from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training import DistributedCheckpointer, DummyProfiler, PROFILER_KEY
 from torchtune.training.activations import apply_selective_activation_checkpointing
 from torchtune.training.lr_schedulers import get_lr
-
+from torchtune.utils._logging import log_rank_zero
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -133,11 +137,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             )
             self._log_peak_memory_stats = False
 
-        _, rank = training.get_world_size_and_rank()
-        self._is_rank_zero = rank == 0
+        _, self._rank = training.get_world_size_and_rank()
+        self._is_rank_zero = self._rank == 0
 
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
@@ -191,18 +196,92 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
-        Extract the checkpoint state from file and validate. If resume_from_checkpoint
-        is True, this also includes the recipe state.
+        Extract the checkpoint state from file and validate.
+        If resume_from_checkpoint is True, this also includes the recipe state.
         """
+        # If async checkpointing is enabled, set the should_load_recipe_state as false for the checkpointer.
+        # We will use DistributedCheckpointer instead to load the intermediate checkpoints which includes the
+        # recipe state as well.
+        should_load_recipe_state: bool = (
+            False if self._enable_async_checkpointing else self._resume_from_checkpoint
+        )
+
         self._checkpointer = config.instantiate(
             cfg_checkpointer,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=should_load_recipe_state,
         )
-        checkpoint_dict = self._checkpointer.load_checkpoint()
 
-        if self._resume_from_checkpoint:
+        return self._checkpointer.load_checkpoint()
+
+    def resume_from_checkpoint(self, checkpoint_dict: Dict[str, any]) -> Dict[str, Any]:
+        """
+        Load the intermediate checkpoint to restore the training state.
+        If async checkpointing is enabled, user does not need to provide any recipe state.
+        DistributedCheckpoint loads the latest intermediate checkpoint state which includes the recipe state already.
+        Otherwise, update the recipe state as loaded in the checkpoint already via the load_checkpoint call.
+        """
+        if self._enable_async_checkpointing:
+            if self._is_rank_zero:
+                dcp_load_start = time.perf_counter()
+
+            model_state_dict = self._model.state_dict()
+
+            if not self._optimizer_in_bwd:
+                _init_optim_state(self._optimizer)
+                optim_state_dict = self._optimizer.state_dict()
+            else:
+                optim_state_dict = self._optim_ckpt_wrapper.state_dict()
+
+            state_dict: Dict[str:Any] = {}
+            state_dict.update(
+                {
+                    training.MODEL_KEY: model_state_dict,
+                    training.OPT_KEY: optim_state_dict,
+                    training.SEED_KEY: 0,
+                    training.EPOCHS_KEY: 0,
+                    training.TOTAL_EPOCHS_KEY: 0,
+                    training.MAX_STEPS_KEY: 0,
+                }
+            )
+
+            dcp_checkpointer = DistributedCheckpointer(
+                checkpoint_dir=self._checkpointer._checkpoint_dir,
+                output_dir=self._checkpointer._output_dir,
+            )
+
+            state_dict = dcp_checkpointer.load_checkpoint(state_dict)
+
+            if self._is_rank_zero:
+                log.info(
+                    f"DistributedCheckpointer loaded the checkpoint in {time.perf_counter() - dcp_load_start:.2f} seconds."
+                )
+
+            if not self._optimizer_in_bwd:
+                set_state_dict(
+                    self._model,
+                    self._optimizer,
+                    model_state_dict=model_state_dict,
+                    optim_state_dict=optim_state_dict,
+                )
+            else:
+                set_model_state_dict(
+                    model=self._model,
+                    model_state_dict=model_state_dict,
+                )
+                self._optim_ckpt_wrapper.load_state_dict(optim_state_dict)
+
+            # Update the recipe state from the loaded checkpoint
+            self._update_recipe_state(state_dict)
+            log_rank_zero(
+                log,
+                msg=f"Loaded intermediate distributed checkpoint for the epoch: {state_dict[training.EPOCHS_KEY]}",
+            )
+        else:
             self._update_recipe_state(checkpoint_dict)
-        return checkpoint_dict
+            log_rank_zero(
+                log,
+                msg=f"Loaded intermediate checkpoint for the epoch: {checkpoint_dict[training.EPOCHS_KEY]}",
+            )
 
     def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
         """
@@ -255,6 +334,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # log config with parameter override
             self._metric_logger.log_config(cfg)
 
+        # Load the base model
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
         self._compile = cfg.get("compile", False)
@@ -276,10 +356,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             optimizer_in_bwd=self._optimizer_in_bwd,
             opt_state_dict=(
                 checkpoint_dict[training.OPT_KEY]
-                if self._resume_from_checkpoint
+                if self._resume_from_checkpoint and not self._enable_async_checkpointing
                 else None
             ),
         )
+
+        if self._resume_from_checkpoint:
+            self.resume_from_checkpoint(checkpoint_dict)
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
@@ -661,6 +744,60 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         return sampler, dataloader
 
+    def save_checkpoint_async(
+        self,
+        epoch: int,
+    ) -> None:
+        """
+        Checkpoint the state of the recipe. The constructed checkpoint state dict
+        contains the following information:
+        - Model weights with key training.MODEL_KEY
+        - Relevant recipe state if training is not complete
+
+        Checkpointer will save the model weights and recipe state in an asynchrnous way
+        which unblocks the training sooner to continue. To correctly resume training from
+        an intermediate checkpoint, user needs to have both resume_from_checkpoint and
+        enable_async_checkpointing flags set to True in the config.
+        """
+
+        if self._is_rank_zero:
+            log.info("Saving checkpoint asynchronously. Retrieving full state dict...")
+            cp_start = time.perf_counter()
+
+        # Create the checkpoint dict to be sent to the checkpointer and ultimately persisted to storage
+        ckpt_dict = {
+            training.SEED_KEY: self.seed,
+            training.EPOCHS_KEY: self.epochs_run,
+            training.TOTAL_EPOCHS_KEY: self.total_epochs,
+            training.MAX_STEPS_KEY: self.max_steps_per_epoch,
+        }
+
+        model_state_dict = self._model.state_dict()
+        optim_state_dict = {}
+        if self._optimizer_in_bwd:
+            optim_state_dict = self._optim_ckpt_wrapper.state_dict()
+        else:
+            optim_state_dict = self._optimizer.state_dict()
+
+        ckpt_dict[training.MODEL_KEY] = model_state_dict
+        ckpt_dict[training.OPT_KEY] = optim_state_dict
+
+        dcp_saver = DistributedCheckpointer(
+            checkpoint_dir=self._checkpointer._checkpoint_dir,
+            output_dir=self._checkpointer._output_dir,
+        )
+
+        dcp_saver.save_checkpoint(
+            ckpt_dict,
+            epoch=epoch,
+            save_async=True,
+        )
+
+        if self._is_rank_zero:
+            log.info(
+                f"Saving asynchronous checkpoint took {time.perf_counter() - cp_start:.2f} secs"
+            )
+
     def save_checkpoint(
         self,
         epoch: int,
@@ -679,6 +816,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         checkpoint_dict = {}
 
         intermediate_checkpoint = epoch + 1 < self.total_epochs
+
+        # If async checkpointing is enabled, intermediate checkpoints will
+        # be saved asynchronously.
+        if intermediate_checkpoint and self._enable_async_checkpointing:
+            self.save_checkpoint_async(epoch)
+            return
 
         utils.log_rank_zero(
             log,
@@ -702,6 +845,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if intermediate_checkpoint:
             start = time.perf_counter()
             utils.log_rank_zero(log, "Getting optimizer state dict...")
+
             if not self._optimizer_in_bwd:
                 opt_state_dict = training.get_full_optimizer_state_dict(
                     self._optimizer,
@@ -714,6 +858,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     opt_state_dict[param] = training.get_full_optimizer_state_dict(
                         opt, self._is_rank_zero, device=self._device
                     )
+
             utils.log_rank_zero(
                 log,
                 f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs",
@@ -725,7 +870,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # to be sent to the checkpointer and ultimately written to file
 
         if self._is_rank_zero:
-            start = time.perf_counter()
             checkpoint_dict.update({training.MODEL_KEY: cpu_state_dict})
 
             # if training is in-progress, checkpoint the optimizer state and recipe state
@@ -746,6 +890,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 epoch=epoch,
                 intermediate_checkpoint=intermediate_checkpoint,
             )
+
             log.info(f"Saving checkpoint took {time.perf_counter() - start:.2f} secs")
 
         torch.distributed.barrier()
