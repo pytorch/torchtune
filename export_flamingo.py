@@ -356,7 +356,7 @@ def aoti_export_vision_encoder(llama3_2_dir):
     image = preprocess_outputs["encoder_input"]["images"].to(dtype=torch.float32)
     aspect_ratio = preprocess_outputs["encoder_input"]["aspect_ratio"]
     image_dynamic_dim = get_vision_encoder_dynamic_shapes()
-
+    breakpoint()
     model = get_flamingo(llama3_2_dir)
 
     print("Start to AOTI export vision encoder")
@@ -542,25 +542,29 @@ def validate_vision_encoder(llama3_2_dir):
     # eager model
     vision_encoder = get_vision_encoder().eval()
     # aoti export
-    aoti_export_vision_encoder(llama3_2_dir)
-    aoti = torch._export.aot_load(
-        os.path.join(llama3_2_dir, "vision_encoder.so"), device="cpu"
+    print("Start to load vision_encoder.pt2")
+    aoti = torch._inductor.aoti_load_package(
+        os.path.join(llama3_2_dir, "vision_encoder.pt2")
     )
-    # export
-    export = export_vision_encoder()
-    # results
-    eager_res = vision_encoder(image, aspect_ratio)
-    aoti_res = aoti(image, aspect_ratio)
-    export_res = export.module()(image, aspect_ratio)
+    print("Finished to load vision_encoder.pt2")
 
+    # export
+    # export = export_vision_encoder()
+    # results
+    # aoti_res = aoti(image, aspect_ratio)
+    # print("Finished aoti run, running eager")
+    # print(f"AOTInductor result: {aoti_res}")
+
+    eager_res = vision_encoder(image, aspect_ratio)
+    print(f"Eager result: {eager_res}")
+
+    # export_res = export.module()(image, aspect_ratio)
     print(
         f"AOTI close to eager? {torch.allclose(eager_res, aoti_res, atol=1e-3, rtol=1e-3)}"
     )
-    print(f"Export close to eager? {torch.allclose(eager_res, export_res)}")
+    # print(f"Export close to eager? {torch.allclose(eager_res, export_res)}")
 
-    print(f"Eager result: {eager_res}")
-    print(f"Export result: {export_res}")
-    print(f"AOTInductor result: {aoti_res}")
+    # print(f"Export result: {export_res}")
 
 
 def test_aoti(llama3_2_dir):
@@ -627,8 +631,8 @@ def test_aoti(llama3_2_dir):
 
 if __name__ == "__main__":
     llama3_2_dir = str(sys.argv[1])
-    aoti_export_vision_encoder(llama3_2_dir)
-    # validate_vision_encoder(llama3_2_dir)
+    # aoti_export_vision_encoder(llama3_2_dir)
+    validate_vision_encoder(llama3_2_dir)
     # aoti_export_text_decoder(llama3_2_dir)
     # test_aoti(llama3_2_dir)
     # validate_text_decoder(llama3_2_dir)
