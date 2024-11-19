@@ -209,10 +209,12 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
             self.early_exit_layers = cfg_early_exit.get("layers", ":")
             self.early_exit_curriculum = cfg_early_exit.get("curriculum", "none")
             self.early_exit_scale = cfg_early_exit.get("scale", 1.0)
+            self.early_exit_scale_type = cfg_early_exit.get("scale_type", "one")
         else:
             self.early_exit_layers = None
             self.early_exit_curriculum = None
             self.early_exit_scale = None
+            self.early_exit_scale_type = None
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -813,7 +815,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
                 if self.early_exit_layers:
-                    current_loss = early_exit_loss(self._model, hidden_states, labels, self._loss_fn) * current_num_tokens
+                    current_loss = early_exit_loss(self._model, hidden_states, labels, self._loss_fn, self.early_exit_scale, self.early_exit_scale_type) * current_num_tokens
                 else:
                     current_loss = self._loss_fn(logits, labels) * current_num_tokens
 
