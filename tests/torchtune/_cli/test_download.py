@@ -171,17 +171,20 @@ class TestTuneDownloadCommand:
 
     # tests when --kaggle-username and --kaggle-api-key are provided as CLI args
     def test_download_from_kaggle_when_credentials_provided(
-        self, capsys, monkeypatch, mocker
+        self, capsys, monkeypatch, mocker, tmpdir
     ):
         expected_username = "username"
         expected_api_key = "api_key"
         model = "metaresearch/llama-3.2/pytorch/1b"
         testargs = (
             f"tune download {model} "
-            f"--source kaggle --kaggle-username {expected_username} "
+            f"--source kaggle "
+            f"--kaggle-username {expected_username} "
             f"--kaggle-api-key {expected_api_key}"
         ).split()
         monkeypatch.setattr(sys, "argv", testargs)
+        # mock out kagglehub.model_download to get around key storage
+        mocker.patch("torchtune._cli.download.model_download", return_value=tmpdir)
         set_kaggle_credentials_spy = mocker.patch(
             "torchtune._cli.download.set_kaggle_credentials"
         )
@@ -204,13 +207,15 @@ class TestTuneDownloadCommand:
     # passes partial credentials with just --kaggle-username (expect fallback to environment variables)
     @mock.patch.dict(os.environ, {"KAGGLE_KEY": "env_api_key"})
     def test_download_from_kaggle_when_partial_credentials_provided(
-        self, capsys, monkeypatch, mocker
+        self, capsys, monkeypatch, mocker, tmpdir
     ):
         expected_username = "username"
         expected_api_key = "env_api_key"
         model = "metaresearch/llama-3.2/pytorch/1b"
         testargs = f"tune download {model} --source kaggle --kaggle-username {expected_username}".split()
         monkeypatch.setattr(sys, "argv", testargs)
+        # mock out kagglehub.model_download to get around key storage
+        mocker.patch("torchtune._cli.download.model_download", return_value=tmpdir)
         set_kaggle_credentials_spy = mocker.patch(
             "torchtune._cli.download.set_kaggle_credentials"
         )
@@ -231,11 +236,13 @@ class TestTuneDownloadCommand:
         )
 
     def test_download_from_kaggle_when_set_kaggle_credentials_throws(
-        self, monkeypatch, mocker
+        self, monkeypatch, mocker, tmpdir
     ):
         model = "metaresearch/llama-3.2/pytorch/1b"
         testargs = f"tune download {model} --source kaggle --kaggle-username u --kaggle-api-key k".split()
         monkeypatch.setattr(sys, "argv", testargs)
+        # mock out kagglehub.model_download to get around key storage
+        mocker.patch("torchtune._cli.download.model_download", return_value=tmpdir)
         mocker.patch(
             "torchtune._cli.download.set_kaggle_credentials",
             side_effect=Exception("some error"),
