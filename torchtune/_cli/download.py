@@ -212,9 +212,14 @@ class Download(Subcommand):
         self._set_kaggle_credentials(args)
 
         # kagglehub doesn't currently support `local_dir` and `ignore_patterns` like huggingface_hub
-        if args.output_dir is not None:
+        if args.output_dir:
             warn(
                 "--output-dir flag is not supported for Kaggle model downloads. "
+                "This argument will be ignored."
+            )
+        if args.ignore_patterns:
+            warn(
+                "--ignore-patterns flag is not supported for Kaggle model downloads. "
                 "This argument will be ignored."
             )
 

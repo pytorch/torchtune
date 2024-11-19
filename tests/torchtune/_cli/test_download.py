@@ -151,6 +151,24 @@ class TestTuneDownloadCommand:
         output = capsys.readouterr().out
         assert "Successfully downloaded model repo" in output
 
+    def test_download_from_kaggle_warn_when_ignore_patterns_provided(
+        self, capsys, monkeypatch, mocker, tmpdir
+    ):
+        model = "metaresearch/llama-3.2/pytorch/1b"
+        testargs = f'tune download {model} --source kaggle --ignore-patterns "*.glob-pattern"'.split()
+        monkeypatch.setattr(sys, "argv", testargs)
+        # mock out kagglehub.model_download to get around key storage
+        mocker.patch("torchtune._cli.download.model_download", return_value=tmpdir)
+
+        with pytest.warns(
+            UserWarning,
+            match="--ignore-patterns flag is not supported for Kaggle model downloads",
+        ):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        output = capsys.readouterr().out
+        assert "Successfully downloaded model repo" in output
+
     # tests when --kaggle-username and --kaggle-api-key are provided as CLI args
     def test_download_from_kaggle_when_credentials_provided(
         self, capsys, monkeypatch, mocker
