@@ -636,6 +636,9 @@
                 <span class="n">requires_grad</span><span class="o">=</span><span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">,</span>
             <span class="p">)</span>
 
+        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">sharded_meta_param</span><span class="p">,</span> <span class="s2">&quot;device_mesh&quot;</span><span class="p">):</span>
+            <span class="c1"># In cases where parts of the model aren&#39;t sharded, some parameters will be plain tensors</span>
+            <span class="n">sharded_tensor</span> <span class="o">=</span> <span class="n">full_tensor</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">sharded_tensor</span> <span class="o">=</span> <span class="n">distribute_tensor</span><span class="p">(</span>
                 <span class="n">full_tensor</span><span class="p">,</span>
@@ -647,6 +650,30 @@
         <span class="n">sharded_sd</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">sharded_tensor</span><span class="p">)</span>
     <span class="c1"># choose `assign=True` since we cannot call `copy_` on meta tensor</span>
     <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">sharded_sd</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">,</span> <span class="n">assign</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_gather_nf4_tensor</span><span class="p">(</span><span class="n">sharded_param</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Manually gather NF4Tensor parameter since it does not support all_gather</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mesh</span> <span class="o">=</span> <span class="n">sharded_param</span><span class="o">.</span><span class="n">device_mesh</span>
+    <span class="n">nf4_tensor</span> <span class="o">=</span> <span class="n">sharded_param</span><span class="o">.</span><span class="n">_local_tensor</span>
+    <span class="n">quant_params</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">nf4_tensor</span><span class="o">.</span><span class="n">fsdp_pre_all_gather</span><span class="p">(</span><span class="n">mesh</span><span class="p">)</span>
+    <span class="n">full_quant_params</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">quant_param</span> <span class="ow">in</span> <span class="n">quant_params</span><span class="p">:</span>
+        <span class="n">d0</span><span class="p">,</span> <span class="o">*</span><span class="n">dn</span> <span class="o">=</span> <span class="n">quant_param</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">d0</span> <span class="o">*</span> <span class="n">mesh</span><span class="o">.</span><span class="n">get_group</span><span class="p">()</span><span class="o">.</span><span class="n">size</span><span class="p">(),</span> <span class="o">*</span><span class="n">dn</span><span class="p">)</span>
+        <span class="n">full_quant_param</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+            <span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">quant_param</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">quant_param</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="p">)</span>
+        <span class="n">dist</span><span class="o">.</span><span class="n">all_gather_into_tensor</span><span class="p">(</span>
+            <span class="n">full_quant_param</span><span class="p">,</span> <span class="n">quant_param</span><span class="p">,</span> <span class="n">mesh</span><span class="o">.</span><span class="n">get_group</span><span class="p">(),</span> <span class="n">async_op</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="n">full_quant_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">full_quant_param</span><span class="p">)</span>
+    <span class="n">full_param</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">nf4_tensor</span><span class="o">.</span><span class="n">fsdp_post_all_gather</span><span class="p">(</span>
+        <span class="n">full_quant_params</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span> <span class="n">nf4_tensor</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">full_param</span>
 
 
 <div class="viewcode-block" id="gather_cpu_state_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.gather_cpu_state_dict.html#torchtune.training.gather_cpu_state_dict">[docs]</a><span class="k">def</span> <span class="nf">gather_cpu_state_dict</span><span class="p">(</span>
@@ -667,39 +694,21 @@
 <span class="sd">        Dict[str, Any]: State dict on CPU</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">cpu_state_dict</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">sharded_param</span> <span class="ow">in</span> <span class="n">sharded_sd</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="k">if</span> <span class="n">sharded_param</span><span class="o">.</span><span class="n">is_cpu</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">sharded_sd</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">is_cpu</span><span class="p">:</span>
             <span class="c1"># Move back to device if offloaded to CPU</span>
-            <span class="n">sharded_param</span> <span class="o">=</span> <span class="n">sharded_param</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sharded_param</span><span class="o">.</span><span class="n">_local_tensor</span><span class="p">,</span> <span class="n">NF4Tensor</span><span class="p">):</span>
-            <span class="c1"># NF4Tensor does not support all_gather from DTensor</span>
-            <span class="c1"># so we need to manually all_gather</span>
-            <span class="n">mesh</span> <span class="o">=</span> <span class="n">sharded_param</span><span class="o">.</span><span class="n">device_mesh</span>
-            <span class="n">nf4_tensor</span> <span class="o">=</span> <span class="n">sharded_param</span><span class="o">.</span><span class="n">_local_tensor</span>
-            <span class="n">quant_params</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">nf4_tensor</span><span class="o">.</span><span class="n">fsdp_pre_all_gather</span><span class="p">(</span><span class="n">mesh</span><span class="p">)</span>
-            <span class="n">full_quant_params</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">for</span> <span class="n">quant_param</span> <span class="ow">in</span> <span class="n">quant_params</span><span class="p">:</span>
-                <span class="n">d0</span><span class="p">,</span> <span class="o">*</span><span class="n">dn</span> <span class="o">=</span> <span class="n">quant_param</span><span class="o">.</span><span class="n">shape</span>
-                <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">d0</span> <span class="o">*</span> <span class="n">mesh</span><span class="o">.</span><span class="n">get_group</span><span class="p">()</span><span class="o">.</span><span class="n">size</span><span class="p">(),</span> <span class="o">*</span><span class="n">dn</span><span class="p">)</span>
-                <span class="n">full_quant_param</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
-                    <span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">quant_param</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">quant_param</span><span class="o">.</span><span class="n">dtype</span>
-                <span class="p">)</span>
-                <span class="n">dist</span><span class="o">.</span><span class="n">all_gather_into_tensor</span><span class="p">(</span>
-                    <span class="n">full_quant_param</span><span class="p">,</span> <span class="n">quant_param</span><span class="p">,</span> <span class="n">mesh</span><span class="o">.</span><span class="n">get_group</span><span class="p">(),</span> <span class="n">async_op</span><span class="o">=</span><span class="kc">False</span>
-                <span class="p">)</span>
-                <span class="n">full_quant_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">full_quant_param</span><span class="p">)</span>
-            <span class="n">full_param</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">nf4_tensor</span><span class="o">.</span><span class="n">fsdp_post_all_gather</span><span class="p">(</span>
-                <span class="n">full_quant_params</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span> <span class="n">nf4_tensor</span><span class="o">.</span><span class="n">dtype</span>
-            <span class="p">)</span>
+            <span class="n">param</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="s2">&quot;_local_tensor&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">_local_tensor</span><span class="p">,</span> <span class="n">NF4Tensor</span><span class="p">):</span>
+                <span class="n">param</span> <span class="o">=</span> <span class="n">_gather_nf4_tensor</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Gather DTensor</span>
+                <span class="n">param</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">full_tensor</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">NF4Tensor</span><span class="p">):</span>
             <span class="c1"># upcasting NF4 to original dtype</span>
-            <span class="n">full_param</span> <span class="o">=</span> <span class="n">full_param</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">full_param</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># Gather DTensor</span>
-            <span class="n">full_param</span> <span class="o">=</span> <span class="n">sharded_param</span><span class="o">.</span><span class="n">full_tensor</span><span class="p">()</span>
+            <span class="n">param</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">is_rank_zero</span><span class="p">:</span>
-            <span class="n">cpu_state_dict</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">full_param</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">del</span> <span class="n">full_param</span>
+            <span class="n">cpu_state_dict</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">barrier</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">cpu_state_dict</span></div>
 
