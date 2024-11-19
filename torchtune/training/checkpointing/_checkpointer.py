@@ -1187,12 +1187,15 @@ class DistributedCheckpointer(_CheckpointerInterface):
         return None
 
     def load_checkpoint(
-        self, state_dict: Dict[str, Any], checkpoint_path: Optional[str] = None
+        self, state_dict: Dict[str, Any] = None, checkpoint_path: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Load a Distributed checkpoint saved at the <checkpoint_path>
         If no path is provided, latest intermediate checkpoint is loaded.
         """
+
+        if state_dict is None:
+            raise ValueError("State dict must be provided to load the checkpoint into.")
 
         # If no checkpoint path is provided, load the latest intermediate checkpoint.
         if checkpoint_path is None:
