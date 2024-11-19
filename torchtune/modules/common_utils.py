@@ -149,11 +149,7 @@ def _register_reparametrize_state_dict_hooks(
         RuntimeError: If the low RAM reparametrize hook is used on Windows or an incompatible torch version.
     """
     if _use_low_cpu_ram:
-        if torch.__version__ < "2.5.0.dev20240906":
-            raise RuntimeError(
-                "Low RAM reparametrize_as_dtype_state_dict_post_hook requires PyTorch 2.5.0.dev20240906 or later."
-            )
-        elif sys.platform == "win32":
+        if sys.platform == "win32":
             # mmap.MAP_SHARED is not supported on Windows but this change targets colab.
             raise RuntimeError(
                 "Low RAM reparametrize_as_dtype_state_dict_post_hook is not supported on Windows."
