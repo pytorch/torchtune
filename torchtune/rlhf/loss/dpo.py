@@ -30,19 +30,25 @@ class DPOLoss(nn.Module):
     than using an additional reward model to provide feedback.
     This significantly simplifies training and reduces compute overhead.
 
+    Note, that we still add lambda penalty from DPOP here as an option,
+    but it will only provide some impact if it is bigger than 1e-5.
+
     Args:
         beta (float): Temperature parameter for the DPO loss, typically in the range of 0.1 to 0.5. Default is 0.1.
         label_smoothing (float): Parameter encoding uncertainty about the labels. Default is 0.
+        lambda_dpop (float): The weight penalty factor in DPOP method. Default is 0.0.
     """
 
     def __init__(
         self,
         beta: float = 0.1,
         label_smoothing: float = 0.0,
+        lambda_dpop: float = 0.0,
     ):
         super().__init__()
         self.beta = beta
         self.label_smoothing = label_smoothing
+        self.lambda_dpop = lambda_dpop
 
     def forward(
         self,
@@ -76,6 +82,13 @@ class DPOLoss(nn.Module):
 
         logits = pi_logratios - ref_logratios
 
+        penalty = torch.maximum(
+            torch.zeros(policy_chosen_logps.shape),
+            reference_chosen_logps - policy_chosen_logps,
+        )
+
+        logits += -self.lambda_dpop * penalty
+
         # The beta is a temperature parameter for the DPO loss, typically something in the range of 0.1 to 0.5.
         # We ignore the reference model as beta -> 0. The label_smoothing parameter encodes our uncertainty about the labels and
         # calculates a conservative DPO loss.
@@ -83,6 +96,168 @@ class DPOLoss(nn.Module):
             -F.logsigmoid(self.beta * logits) * (1 - self.label_smoothing)
             - F.logsigmoid(-self.beta * logits) * self.label_smoothing
         )
+
+        chosen_rewards = (
+            self.beta * (policy_chosen_logps - reference_chosen_logps).detach()
+        )
+        rejected_rewards = (
+            self.beta * (policy_rejected_logps - reference_rejected_logps).detach()
+        )
+
+        return losses, chosen_rewards, rejected_rewards
+
+
+class DPOPLoss(nn.Module):
+    """
+    DPO-Positive (DPOP) Loss module: https://arxiv.org/abs/2402.13228
+    Simply stated from the paper:
+
+    In this work, first we show theoretically that the standard DPO loss can lead to a reduction
+    of the model’s likelihood of the preferred examples, as long as the relative probability between the
+    preferred and dispreferred classes increases
+
+    DPOP is similar to DPO (https://arxiv.org/abs/2305.18290). The only difference is new lambda_dpop which helps to avoid
+    failure mode.
+
+    Args:
+        beta (float): Temperature parameter for the DPO loss, typically in the range of 0.1 to 0.5. Default is 0.1.
+        label_smoothing (float): Parameter encoding uncertainty about the labels. Default is 0.
+        lambda_dpop (float): The weight penalty factor in DPOP method. Default is 0.0.
+    """
+
+    def __init__(
+        self,
+        beta: float = 0.1,
+        label_smoothing: float = 0.0,
+        lambda_dpop: float = 0.0,
+    ):
+        super().__init__()
+        self.beta = beta
+        self.label_smoothing = label_smoothing
+        self.lambda_dpop = lambda_dpop
+
+    def forward(
+        self,
+        policy_chosen_logps: torch.Tensor,
+        policy_rejected_logps: torch.Tensor,
+        reference_chosen_logps: torch.Tensor,
+        reference_rejected_logps: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Сompute the DPOP loss for a batch of policy and reference model log probabilities.
+
+        Args:
+            policy_chosen_logps (torch.Tensor): Log probabilities of the policy model
+                for the chosen responses. Shape: (batch_size)
+            policy_rejected_logps (torch.Tensor): Log probabilities of the policy model
+                for the rejected responses. Shape: (batch_size)
+            reference_chosen_logps (torch.Tensor): Log probabilities of the reference model
+                for the chosen responses. Shape: (batch_size)
+            reference_rejected_logps (torch.Tensor): Log probabilities of the reference model
+                for the rejected responses. Shape: (batch_size)
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple of three tensors:
+                - losses: The DPO loss for each example in the batch.
+                - chosen_rewards: Rewards for the chosen responses.
+                - rejected_rewards: Rewards for the rejected responses.
+        """
+        pi_logratios = policy_chosen_logps - policy_rejected_logps
+        ref_logratios = reference_chosen_logps - reference_rejected_logps
+
+        logits = pi_logratios - ref_logratios
+        positive_reg = reference_chosen_logps - policy_chosen_logps
+
+        losses = -(
+            F.logsigmoid(self.beta * logits)
+            - self.lambda_dpop * torch.clamp(positive_reg, min=0)
+        )
+
+        chosen_rewards = (
+            self.beta * (policy_chosen_logps - reference_chosen_logps).detach()
+        )
+        rejected_rewards = (
+            self.beta * (policy_rejected_logps - reference_rejected_logps).detach()
+        )
+
+        return losses, chosen_rewards, rejected_rewards
+
+
+class RPOLoss(nn.Module):
+    """
+    Iterative Reasoning Preference Optimization(RPO) Loss module: https://arxiv.org/pdf/2404.19733
+    Simply stated from the paper:
+
+         We train using a modified DPO loss with an additional
+         negative log-likelihood term, which we find to be crucial. We show reasoning
+         improves across repeated iterations of this scheme
+
+    Based on the implementation in HF's TRL library:
+    https://github.com/huggingface/trl/blob/5d1deb1445828cfd0e947cb3a7925b1c03a283fc/trl/trainer/dpo_trainer.py#L844
+
+    RPO is similar to DPO (https://arxiv.org/abs/2305.18290). The only difference is new nll loss which we add to computed
+    loss with weighting coefficient rpo_alpha.
+
+    Args:
+        beta (float): Temperature parameter for the DPO loss, typically in the range of 0.1 to 0.5. Default is 0.1.
+        label_smoothing (float): Parameter encoding uncertainty about the labels. Default is 0.
+        rpo_alpha (float): Weighting coefficient to NLL loss. Default is 1.
+    """
+
+    def __init__(
+        self,
+        beta: float = 0.1,
+        label_smoothing: float = 0.0,
+        rpo_alpha: float = 1.0,
+    ):
+        super().__init__()
+        self.beta = beta
+        self.label_smoothing = label_smoothing
+        self.rpo_alpha = rpo_alpha
+
+    def forward(
+        self,
+        policy_chosen_logps: torch.Tensor,
+        policy_rejected_logps: torch.Tensor,
+        reference_chosen_logps: torch.Tensor,
+        reference_rejected_logps: torch.Tensor,
+        nll_loss: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Compute the DPO loss for a batch of policy and reference model log probabilities.
+
+        Args:
+            policy_chosen_logps (torch.Tensor): Log probabilities of the policy model
+                for the chosen responses. Shape: (batch_size)
+            policy_rejected_logps (torch.Tensor): Log probabilities of the policy model
+                for the rejected responses. Shape: (batch_size)
+            reference_chosen_logps (torch.Tensor): Log probabilities of the reference model
+                for the chosen responses. Shape: (batch_size)
+            reference_rejected_logps (torch.Tensor): Log probabilities of the reference model
+                for the rejected responses. Shape: (batch_size)
+            nll_loss (torch.Tensor): NLL Loss calculated from chosen labels. Shape: (batch_size)
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple of three tensors:
+                - losses: The DPO loss for each example in the batch.
+                - chosen_rewards: Rewards for the chosen responses.
+                - rejected_rewards: Rewards for the rejected responses.
+
+        """
+        pi_logratios = policy_chosen_logps - policy_rejected_logps
+        ref_logratios = reference_chosen_logps - reference_rejected_logps
+
+        logits = pi_logratios - ref_logratios
+
+        # The beta is a temperature parameter for the DPO loss, typically something in the range of 0.1 to 0.5.
+        # We ignore the reference model as beta -> 0. The label_smoothing parameter encodes our uncertainty about the labels and
+        # calculates a conservative DPO loss.
+        losses = (
+            -F.logsigmoid(self.beta * logits) * (1 - self.label_smoothing)
+            - F.logsigmoid(-self.beta * logits) * self.label_smoothing
+        )
+
+        losses = losses + self.rpo_alpha * nll_loss
 
         chosen_rewards = (
             self.beta * (policy_chosen_logps - reference_chosen_logps).detach()

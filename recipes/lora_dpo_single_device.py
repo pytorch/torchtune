@@ -12,6 +12,8 @@ from typing import Any, Dict, Optional, Tuple
 from warnings import warn
 
 import torch
+import torch.nn.functional as F
+
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
@@ -30,7 +32,7 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 
-from torchtune.rlhf.loss import SimPOLoss
+from torchtune.rlhf.loss import RPOLoss, SimPOLoss
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -425,7 +427,9 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
     def concatenated_forward(
         self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor] | Tuple[
+        torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor
+    ]:
         """
         Run forward pass of the model with chosen and rejected samples concatenated.
 
@@ -434,7 +438,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             batch (Tuple[torch.Tensor, torch.Tensor]): Tuple of input_ids and labels.
 
         Returns:
-            Tuple of chosen log probs, rejected log probs, chosen logits, rejected logits.
+            Tuple of chosen log probs, rejected log probs, chosen logits, rejected logits and in case of RPOLoss - nll loss.
         """
         concatenated_input_ids, concatenated_labels = batch
         concatenated_input_ids = concatenated_input_ids.to(self._device)
@@ -457,6 +461,23 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
         chosen_logits = all_logits[:len_chosen]
         rejected_logits = all_logits[len_chosen:]
+
+        chosen_labels = all_logits[:len_chosen]
+
+        if isinstance(self._loss_fn, RPOLoss):
+            nll_loss = F.cross_entropy(
+                torch.flatten(chosen_logits, end_dim=1),
+                torch.flatten(chosen_labels, end_dim=1),
+                ignore_index=0,
+            )
+
+            return (
+                chosen_log_probs,
+                rejected_log_probs,
+                chosen_logits,
+                rejected_logits,
+                nll_loss,
+            )
 
         return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits)
 
@@ -489,13 +510,23 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     break
 
                 # batch is input_ids, labels
-                num_tokens += batch[0].numel()
-                (
-                    policy_chosen_log_probs,
-                    policy_rejected_log_probs,
-                    policy_chosen_logits,
-                    policy_rejected_logits,
-                ) = self.concatenated_forward(self._model, batch)
+                if isinstance(self._loss_fn, RPOLoss):
+                    num_tokens += batch[0].numel()
+                    (
+                        policy_chosen_log_probs,
+                        policy_rejected_log_probs,
+                        policy_chosen_logits,
+                        policy_rejected_logits,
+                        nll_loss,
+                    ) = self.concatenated_forward(self._model, batch)
+                else:
+                    num_tokens += batch[0].numel()
+                    (
+                        policy_chosen_log_probs,
+                        policy_rejected_log_probs,
+                        policy_chosen_logits,
+                        policy_rejected_logits,
+                    ) = self.concatenated_forward(self._model, batch)
 
                 policy_chosen_logits_mean = policy_chosen_logits.detach().mean()
                 policy_rejected_logits_mean = policy_rejected_logits.detach().mean()
@@ -517,12 +548,14 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                             _,
                             _,
                         ) = self.concatenated_forward(self._model, batch)
-                    loss, chosen_rewards, rejected_rewards = self._loss_fn(
-                        policy_chosen_log_probs,
-                        policy_rejected_log_probs,
-                        reference_chosen_log_probs,
-                        reference_rejected_log_probs,
-                    )
+                    if isinstance(self._loss_fn, RPOLoss):
+                        loss, chosen_rewards, rejected_rewards = self._loss_fn(
+                            policy_chosen_log_probs,
+                            policy_rejected_log_probs,
+                            reference_chosen_log_probs,
+                            reference_rejected_log_probs,
+                            nll_loss,
+                        )
 
                 loss = loss.mean()
                 reward_accuracies = (chosen_rewards > rejected_rewards).float()
