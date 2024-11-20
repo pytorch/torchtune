@@ -31,6 +31,16 @@ from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
 
+"""
+Summary of changes made to the original code:
+    - added a validation loop, including a validation dataloader
+    - Added `max_seq_len` to the recipe (mind the new idx counter to keep track of samples that are too long)
+    - counting the total number of tokens, not just the output tokens
+    - added the `save_checkpoints` argument and according logic
+
+
+"""
+
 
 class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
@@ -313,8 +323,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._sampler_validation, self._dataloader_validation = self._setup_data(
             cfg_dataset=cfg["validation_dataset"],
             shuffle=cfg.shuffle,
-            batch_size=cfg.batch_size,
-            collate_fn=collate_name,  # TODO: check if this is correct
+            batch_size=cfg.batch_size,  # TODO: have a separate batch size for validation
+            collate_fn=collate_name,
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -708,6 +718,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
+            # NOTE: added by us
             # ------ Validation Step ------ #
             self._model.eval()
 
@@ -721,17 +732,26 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # start a counter for samples that are too long
                 max_len_samples = 0
                 pbar_val = tqdm(total=num_eval_steps, desc="Validation")
-                for idx, batch in enumerate(self._dataloader_validation):
+                # NOTE: added by us - counter to account for samples that are too long
+                idx = 0
+                for _, batch in enumerate(self._dataloader_validation):
                     if self._skip_max_seq_len_samples(batch):
                         max_len_samples += 1
                         continue
                     utils.batch_to_device(batch, self._device)
+                    # TODO: finish this feature
+                    # try:
                     val_loss = self._loss_step(batch)
+                    # except RuntimeError as e:
+                    #     log.error(f"Error in validation loss computation: {e}")
+                    #     val_loss = torch.tensor(0.0, device=self._device)
+                    #     continue
                     cum_val_loss += val_loss
                     pbar_val.update(1)
                     pbar_val.set_description(
                         f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {cum_val_loss / (idx + 1)}"
                     )
+                    idx += 1
 
                     if (
                         self._max_validation_steps is not None
@@ -755,19 +775,23 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._model.train()
 
             pbar = tqdm(total=self._steps_per_epoch, desc="Training")
-            for idx, batch in enumerate(self._dataloader):
+
+            # NOTE: added by us - counter to account for samples that are too long
+            idx = 0
+            for _, batch in enumerate(self._dataloader):
+
+                # NOTE: added by us
+                if self._skip_max_seq_len_samples(batch):
+                    max_len_samples += 1
+                    # TODO: eventually remove this
+                    continue
+
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)
                     == self.max_steps_per_epoch
                 ):
                     break
-
-                if self._skip_max_seq_len_samples(batch):
-                    max_len_samples += 1
-                    # TODO: will this break the num_tokens normalization?
-                    # maybe we could decrement idx?
-                    continue
 
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
@@ -781,16 +805,26 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 # Calculate the number of unmasked tokens in the current batch
                 # and increment the total number of tokens seen in the step
-                current_num_tokens = (
-                    batch["labels"] != self._loss_fn.ignore_index
-                ).sum()
+                # current_num_tokens = (
+                #     # batch["labels"] != self._loss_fn.ignore_index
+                # ).sum()
+                # NOTE: added by us
+                # let's monitor the total number of tokens
+                current_num_tokens = batch["labels"].numel()
                 num_tokens += current_num_tokens
 
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
                 current_loss = self._loss_step(batch) * current_num_tokens
                 running_loss += current_loss
+
+                # TODO: finish this feature
+                # try:
                 current_loss.backward()
+                # except RuntimeError as e:
+                #     log.error(f"Error in backward pass: {e}")
+                #     continue
+                # TODO adapt the counters
 
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
@@ -862,6 +896,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # Note we are stepping each batch, which might not include optimizer step in the trace
                 # if the schedule cycle doesn't align with gradient accumulation.
                 self._profiler.step()
+
+                idx += 1
 
             self.epochs_run += 1
             # TODO: update self.save_checkpoint with new logic
