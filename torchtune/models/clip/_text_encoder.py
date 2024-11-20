@@ -24,6 +24,7 @@ class CLIPTextEncoder(nn.Module):
         max_seq_len (int): context size, default 77
         embed_dim (int): embedding/model dimension size, default 768
         num_layers (int): number of transformer layers, default 12
+        eot_token (int): the id of the end-of-text token (for selecting the final output)
     """
 
     def __init__(
@@ -35,11 +36,13 @@ class CLIPTextEncoder(nn.Module):
         max_seq_len: int = 77,
         embed_dim: int = 768,
         num_layers: int = 12,
+        eot_token: int = 49407,
     ):
         super().__init__()
         self.layers = nn.ModuleList([copy.deepcopy(layer) for i in range(num_layers)])
         self.final_norm = final_norm
         self.max_seq_len = max_seq_len
+        self.eot_token = eot_token
 
         self.token_embedding = nn.Embedding(vocab_size, embed_dim)
         self.position_embedding = nn.Parameter(torch.empty(max_seq_len, embed_dim))
@@ -87,10 +90,9 @@ class CLIPTextEncoder(nn.Module):
             )
         x = self.final_norm(x)
 
-        # Select the output of the EOS token for each encoding in the batch
+        # Select the output of the EOT token for each encoding in the batch
         # [b, s, d] -> [b, d]
-        # TODO: handle the case when the EOS token is not the highest token ID
-        eos_token_positions = tokens.argmax(dim=-1)
+        eos_token_positions = (tokens == self.eot_token).int().argmax(dim=-1)
         x = x.take_along_dim(eos_token_positions.view(-1, 1, 1), dim=1).squeeze(dim=1)
 
         return x
