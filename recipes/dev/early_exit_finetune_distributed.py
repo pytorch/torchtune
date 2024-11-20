@@ -899,7 +899,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                         do_output_hidden_states = self.early_exit_curriculum.get()
                         if True: # TODO: add cli option
                             do_output_hidden_states[len(self._model.layers) - 1] = True
-                        self._model.output_hidden_states = do_output_hidden_states
+                        self._model.output_hidden_states = [i for i in range(len(do_output_hidden_states)) if do_output_hidden_states[i]]
 
                     # Stop tracking CUDA memory now that active steps are complete
                     if (

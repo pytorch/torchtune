@@ -133,6 +133,7 @@ class GradualEarlyExitCurriculum(EarlyExitCurriculum):
         n_layers = len(self.do_output_hidden_states)
         for layer_index in range(len(self.do_output_hidden_states)):
             should_train = (percent_trained * self._percent_scale) >= (n_layers - layer_index) / n_layers
+            # TODO: either handle if layers_str != ":", or add an assert statement layers_str == ":"
             self.do_output_hidden_states[layer_index] = should_train
 
         # TODO: move this to step() in parent class?
