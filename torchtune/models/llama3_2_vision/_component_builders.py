@@ -338,7 +338,6 @@ def lora_llama3_2_vision_encoder(
     fusion_lora: bool,
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
-    apply_lora_to_output: bool = False,
     *,
     # clip encoder parameters
     patch_size: int,
@@ -377,8 +376,6 @@ def lora_llama3_2_vision_encoder(
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
             Default: False
-        apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
-            Default: False
         patch_size (int): The size of each patch. Used to divide the tiles into patches.
             E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches
             with shape (40, 40) each.
@@ -412,7 +409,6 @@ def lora_llama3_2_vision_encoder(
     lora_options = {
         "lora_modules": lora_attn_modules,
         "apply_lora_to_mlp": apply_lora_to_mlp,
-        "apply_lora_to_output": apply_lora_to_output,
         "lora_rank": lora_rank,
         "lora_alpha": lora_alpha,
         "lora_dropout": lora_dropout,
@@ -679,7 +675,6 @@ def lora_llama3_2_vision_projection_head(
     num_hidden_inputs: int,
     # LoRA args
     apply_lora_to_mlp: bool,
-    apply_lora_to_output: bool,
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
@@ -700,8 +695,6 @@ def lora_llama3_2_vision_projection_head(
         clip_embed_dim (int): embedding dimension for the CLIP encoder.
         num_hidden_inputs (int): number of hidden inputs to the projection head.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
-            Default: False
-        apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
@@ -773,19 +766,7 @@ def lora_llama3_2_vision_projection_head(
     # cross encoding
     # TODO: quantize_base is not applied to final output_proj currently.
     proj_in = clip_embed_dim * (num_hidden_inputs + 1)
-    adapter_cls = DoRALinear if use_dora else LoRALinear
-    output_proj = (
-        adapter_cls(
-            proj_in,
-            decoder_embed_dim,
-            rank=lora_rank,
-            alpha=lora_alpha,
-            dropout=lora_dropout,
-            use_bias=True,
-        )
-        if apply_lora_to_output
-        else nn.Linear(proj_in, decoder_embed_dim)
-    )
+    output_proj = nn.Linear(proj_in, decoder_embed_dim)
     return Llama3VisionProjectionHead(
         layers=layers,
         output=output_proj,

@@ -628,11 +628,22 @@ class TransformerDecoder(nn.Module):
 
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
+        h.requires_grad = True  # avoid graph breaks when using LoRA
 
         hidden = []
         for i, layer in enumerate(self.layers):
             if i in self.output_hidden_states:
                 hidden.append(h)
+
+            # avoid graph breaks when seq_len is not constant in the batch
+            torch._dynamo.mark_dynamic(h, 1)
+            if mask is not None:
+                torch._dynamo.mark_dynamic(mask, 1)
+            if encoder_mask is not None:
+                torch._dynamo.mark_dynamic(encoder_mask, 1)
+            if input_pos is not None:
+                torch._dynamo.mark_dynamic(input_pos, 1)
+
             # shape: [b, s, d]
             h = layer(
                 h,

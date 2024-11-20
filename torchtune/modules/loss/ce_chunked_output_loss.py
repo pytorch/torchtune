@@ -78,6 +78,12 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
         # compute one chunk at a time
         total_loss = 0.0
         for logits_chunk, labels_chunk in zip(logits, labels):
+
+            # avoid graph breaks when seq_len is not constant in the batch
+            torch._dynamo.mark_dynamic(logits_chunk, 0)
+            torch._dynamo.mark_dynamic(labels_chunk, 0)
+
+            # CE
             total_loss += self.compute_cross_entropy(logits_chunk, labels_chunk)
 
         return total_loss / total_elements

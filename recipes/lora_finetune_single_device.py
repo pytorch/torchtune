@@ -664,6 +664,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             )
 
         # Initialize tokens count and running loss (for grad accumulation)
+        start = time.perf_counter()
         t0 = time.perf_counter()
         running_loss = 0
         num_tokens = 0
@@ -730,6 +731,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         # Log per-step metrics
                         if self.global_step % self._log_every_n_steps == 0:
                             time_per_step = time.perf_counter() - t0
+                            print(time_per_step)
                             log_dict = {
                                 "loss": loss_to_log,
                                 "lr": self._optimizer.param_groups[0]["lr"],
@@ -773,12 +775,16 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 self.epochs_run += 1
                 start_save_checkpoint = time.perf_counter()
                 log.info("Starting checkpoint save...")
-                self.save_checkpoint(epoch=curr_epoch)
+                # self.save_checkpoint(epoch=curr_epoch)
                 log.info(
                     "Checkpoint saved in {:.2f} seconds.".format(
                         time.perf_counter() - start_save_checkpoint
                     )
                 )
+
+        end = time.perf_counter()
+        time_total = end - start
+        print(f"{time_total=}")
 
     def cleanup(self) -> None:
         self._metric_logger.close()

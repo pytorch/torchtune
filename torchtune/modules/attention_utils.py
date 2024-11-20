@@ -191,11 +191,12 @@ def _sdpa_or_flex_attention() -> Callable:
             # This will use flash attention under the hood with support for custom masks.
             # Currently, it is used when sample packing is enabled (see torchtune.datasets.PackedDataset)
             if isinstance(mask, BlockMask):
-                log_once(
-                    _log,
-                    "Using flex attention for attention computation since a BlockMask was passed in.",
-                    level=logging.DEBUG,
-                )
+                if not torch.compiler.is_compiling():  # avoid graph break
+                    log_once(
+                        _log,
+                        "Using flex attention for attention computation since a BlockMask was passed in.",
+                        level=logging.DEBUG,
+                    )
                 if dropout_p > 0.0:
                     raise ValueError(
                         "Flex attention does not support dropout. Please set dropout to 0.0."
