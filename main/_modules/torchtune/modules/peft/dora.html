@@ -494,7 +494,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">use_bias</span> <span class="o">=</span> <span class="n">use_bias</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_quantize_base</span> <span class="o">=</span> <span class="n">quantize_base</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_quantize_base</span> <span class="ow">and</span> <span class="n">quantization_kwargs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_quantize_base</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">([</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">quantization_kwargs</span><span class="o">.</span><span class="n">values</span><span class="p">()]):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;``quantize_base`` is False, but received the following quantization arguments: </span><span class="si">{</span><span class="n">quantization_kwargs</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>

@@ -454,7 +454,7 @@ LoRA should be applied to in each self-attention block. Options are
 <code class="docutils literal notranslate"><span class="pre">{&quot;q_proj&quot;,</span> <span class="pre">&quot;k_proj&quot;,</span> <span class="pre">&quot;v_proj&quot;,</span> <span class="pre">&quot;output_proj&quot;}</span></code>.</p></li>
 <li><p><strong>apply_lora_to_mlp</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – whether to apply LoRA to the MLP in each transformer layer.
 Default: False</p></li>
-<li><p><strong>apply_lora_to_output</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – whether to apply LoRA to the model’s final output projection.
+<li><p><strong>apply_lora_to_output</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – whether to apply LoRA to the model’s decoder and encoder output projection.
 Default: False</p></li>
 <li><p><strong>patch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – The size of each patch. Used to divide the tiles into patches.
 E.g. for <code class="docutils literal notranslate"><span class="pre">patch_size=40</span></code>, a tile of shape (400, 400) will have 10x10 grid of patches

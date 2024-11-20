@@ -806,7 +806,7 @@
 <span class="sd">            ``{&quot;q_proj&quot;, &quot;k_proj&quot;, &quot;v_proj&quot;, &quot;output_proj&quot;}``.</span>
 <span class="sd">        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.</span>
 <span class="sd">            Default: False</span>
-<span class="sd">        apply_lora_to_output (bool): whether to apply LoRA to the model&#39;s final output projection.</span>
+<span class="sd">        apply_lora_to_output (bool): whether to apply LoRA to the model&#39;s decoder and encoder output projection.</span>
 <span class="sd">            Default: False</span>
 <span class="sd">        patch_size (int): The size of each patch. Used to divide the tiles into patches.</span>
 <span class="sd">            E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches</span>
@@ -841,7 +841,6 @@
     <span class="n">lora_options</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">&quot;lora_modules&quot;</span><span class="p">:</span> <span class="n">lora_attn_modules</span><span class="p">,</span>
         <span class="s2">&quot;apply_lora_to_mlp&quot;</span><span class="p">:</span> <span class="n">apply_lora_to_mlp</span><span class="p">,</span>
-        <span class="s2">&quot;apply_lora_to_output&quot;</span><span class="p">:</span> <span class="n">apply_lora_to_output</span><span class="p">,</span>
         <span class="s2">&quot;lora_rank&quot;</span><span class="p">:</span> <span class="n">lora_rank</span><span class="p">,</span>
         <span class="s2">&quot;lora_alpha&quot;</span><span class="p">:</span> <span class="n">lora_alpha</span><span class="p">,</span>
         <span class="s2">&quot;lora_dropout&quot;</span><span class="p">:</span> <span class="n">lora_dropout</span><span class="p">,</span>
@@ -879,7 +878,9 @@
     <span class="p">}</span>
     <span class="k">if</span> <span class="n">fusion_lora</span><span class="p">:</span>
         <span class="n">projection_head</span> <span class="o">=</span> <span class="n">lora_llama3_2_vision_projection_head</span><span class="p">(</span>
-            <span class="o">**</span><span class="n">projection_options</span><span class="p">,</span> <span class="o">**</span><span class="n">lora_options</span>
+            <span class="n">apply_lora_to_output</span><span class="o">=</span><span class="n">apply_lora_to_output</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">projection_options</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">lora_options</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">projection_head</span> <span class="o">=</span> <span class="n">lora_llama3_2_vision_projection_head</span><span class="p">(</span><span class="o">**</span><span class="n">projection_options</span><span class="p">)</span>
@@ -1129,9 +1130,7 @@
 <span class="sd">        clip_embed_dim (int): embedding dimension for the CLIP encoder.</span>
 <span class="sd">        num_hidden_inputs (int): number of hidden inputs to the projection head.</span>
 <span class="sd">        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.</span>
-<span class="sd">            Default: False</span>
 <span class="sd">        apply_lora_to_output (bool): whether to apply LoRA to the model&#39;s final output projection.</span>
-<span class="sd">            Default: False</span>
 <span class="sd">        lora_rank (int): rank of each low-rank approximation</span>
 <span class="sd">        lora_alpha (float): scaling factor for the low-rank approximation</span>
 <span class="sd">        lora_dropout (float): LoRA dropout probability. Default: 0.0</span>
@@ -1153,7 +1152,7 @@
             <span class="n">lora_modules</span><span class="o">=</span><span class="n">lora_modules</span><span class="p">,</span>
             <span class="n">embed_dim</span><span class="o">=</span><span class="n">clip_embed_dim</span><span class="p">,</span>
             <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
-            <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+            <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_kv_heads</span><span class="p">,</span>
             <span class="n">head_dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span>
             <span class="n">attn_dropout</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
             <span class="n">lora_rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
