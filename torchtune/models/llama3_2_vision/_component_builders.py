@@ -377,7 +377,7 @@ def lora_llama3_2_vision_encoder(
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
             Default: False
-        apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
+        apply_lora_to_output (bool): whether to apply LoRA to the model's decoder and encoder output projection.
             Default: False
         patch_size (int): The size of each patch. Used to divide the tiles into patches.
             E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches
@@ -412,7 +412,6 @@ def lora_llama3_2_vision_encoder(
     lora_options = {
         "lora_modules": lora_attn_modules,
         "apply_lora_to_mlp": apply_lora_to_mlp,
-        "apply_lora_to_output": apply_lora_to_output,
         "lora_rank": lora_rank,
         "lora_alpha": lora_alpha,
         "lora_dropout": lora_dropout,
@@ -450,7 +449,9 @@ def lora_llama3_2_vision_encoder(
     }
     if fusion_lora:
         projection_head = lora_llama3_2_vision_projection_head(
-            **projection_options, **lora_options
+            apply_lora_to_output=apply_lora_to_output,
+            **projection_options,
+            **lora_options,
         )
     else:
         projection_head = lora_llama3_2_vision_projection_head(**projection_options)
@@ -700,9 +701,7 @@ def lora_llama3_2_vision_projection_head(
         clip_embed_dim (int): embedding dimension for the CLIP encoder.
         num_hidden_inputs (int): number of hidden inputs to the projection head.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
-            Default: False
         apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
-            Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
@@ -724,7 +723,7 @@ def lora_llama3_2_vision_projection_head(
             lora_modules=lora_modules,
             embed_dim=clip_embed_dim,
             num_heads=num_heads,
-            num_kv_heads=num_heads,
+            num_kv_heads=num_kv_heads,
             head_dim=head_dim,
             attn_dropout=0.0,
             lora_rank=lora_rank,
