@@ -6,7 +6,6 @@
 
 import pytest
 import torch
-from torch.nn.functional import nll_loss
 from torchtune.rlhf.loss import DPOLoss, DPOPLoss, RPOLoss, RSOLoss, SimPOLoss
 
 
