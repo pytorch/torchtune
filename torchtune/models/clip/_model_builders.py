@@ -33,7 +33,9 @@ def clip_text_vit_large_patch14() -> CLIPTextEncoder:
     """
     Builder for the CLIP text encoder for CLIP-ViT-L/14.
 
-    https://arxiv.org/abs/2103.00020
+    CLIP is a model that encodes text and images into a shared vector space.
+    Blog post: https://openai.com/index/clip/
+    Paper: https://arxiv.org/abs/2103.00020
 
     Returns:
         CLIPTextEncoder: Instantiation of the CLIP text encoder

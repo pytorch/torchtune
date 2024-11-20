@@ -190,6 +190,10 @@ def clip_text_encoder(
     """
     Text encoder for CLIP.
 
+    CLIP is a model that encodes text and images into a shared vector space.
+    Blog post: https://openai.com/index/clip/
+    Paper: https://arxiv.org/abs/2103.00020
+
     Args:
         embed_dim (int): embedding/model dimension size
         num_heads (int): number of attention heads

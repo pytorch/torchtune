@@ -17,6 +17,10 @@ class CLIPTextEncoder(nn.Module):
     """
     Text encoder for CLIP.
 
+    CLIP is a model that encodes text and images into a shared vector space.
+    Blog post: https://openai.com/index/clip/
+    Paper: https://arxiv.org/abs/2103.00020
+
     Args:
         layer (nn.Module): A single encoder layer.
         final_norm (nn.Module): Callable that applies normalization to the output of the encoder
