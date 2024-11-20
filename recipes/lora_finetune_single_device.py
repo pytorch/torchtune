@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from copy import deepcopy
 import sys
 import time
 
@@ -175,6 +176,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 "Enabling activation offloading should reduce memory further."
             )
 
+        # NOTE: added by us
+        self.save_checkpoints = cfg.get("save_checkpoints", 1)
+        self.max_seq_len = cfg.get("max_seq_len", None)
+        self._max_validation_steps = cfg.get("max_validation_steps", None)
+
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. This includes the
@@ -293,11 +299,23 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # Dataloader depends on the tokenizer and loss_fn and should be
         # setup after all of these are setup
+        cfg.dataset["split"] = "train"  # NOTE: added by us
         collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
         self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
+            collate_fn=collate_name,
+        )
+
+        # NOTE: added by us
+        # validation dataloader
+        cfg["validation_dataset"] = deepcopy(cfg.dataset)
+        cfg["validation_dataset"]["split"] = "validation"
+        self._sampler_validation, self._dataloader_validation = self._setup_data(
+            cfg_dataset=cfg["validation_dataset"],
+            shuffle=cfg.shuffle,
+            batch_size=cfg.batch_size,  # TODO: have a separate batch size for validation
             collate_fn=collate_name,
         )
 
@@ -570,6 +588,20 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         ckpt_dict = {}
 
+        # NOTE: added by us
+        if self.save_checkpoints:
+            if epoch + 1 == self.total_epochs:
+                pass
+            elif self.save_checkpoints > 0 and epoch % self.save_checkpoints == 0:
+                pass
+            else:
+                return
+        else:
+            return
+
+        log.info("Starting checkpoint save...")
+        start_save_checkpoint = time.perf_counter()
+
         intermediate_checkpoint = epoch + 1 < self.total_epochs
         # if training is in-progress, checkpoint the optimizer state as well
         if intermediate_checkpoint:
@@ -619,6 +651,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             adapter_only=self._save_adapter_weights_only,
         )
 
+        log.info(
+            "Checkpoint saved in {:.2f} seconds.".format(
+                time.perf_counter() - start_save_checkpoint
+            )
+        )
+
     def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
         # Shape [b, s], needed for the loss not the model
         labels = batch.pop("labels")
@@ -644,6 +682,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         return loss
 
+    def _skip_max_seq_len_samples(self, batch: Dict[str, torch.Tensor]) -> bool:
+        """
+        Skip samples that are too long. This is needed for the training loop to handle
+        samples that are too long to fit in the model.
+        """
+        return len(batch["tokens"][0]) > self._model.max_seq_len
+
     def train(self) -> None:
         """
         The core training loop.
@@ -654,20 +699,89 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
             )
 
-        # Initialize tokens count and running loss (for grad accumulation)
-        t0 = time.perf_counter()
-        running_loss = 0
-        num_tokens = 0
-
         with self._profiler as prof:
             # self.epochs_run should be non-zero when we're resuming from a checkpoint
             for curr_epoch in range(self.epochs_run, self.total_epochs):
                 # Update the sampler to ensure data is correctly shuffled across epochs
                 # in case shuffle is True
                 self._sampler.set_epoch(curr_epoch)
+                self._sampler_validation.set_epoch(curr_epoch)  # NOTE: added by us
 
-                pbar = tqdm(total=self._steps_per_epoch)
-                for idx, batch in enumerate(self._dataloader):
+                # NOTE: added by us
+                # ------ Validation Step ------ #
+                self._model.eval()
+
+                with torch.no_grad():
+                    cum_val_loss = 0
+                    num_eval_steps = (
+                        min(
+                            self._max_validation_steps, len(self._dataloader_validation)
+                        )
+                        if self._max_validation_steps is not None
+                        else len(self._dataloader_validation)
+                    )
+                    # NOTE: added by us
+                    # start a counter for samples that are too long
+                    max_len_samples = 0
+
+                    pbar_val = tqdm(total=num_eval_steps, desc="Validation")
+                    # NOTE: added by us - counter to account for samples that are too long
+                    idx = 0
+                    for _, batch in enumerate(self._dataloader_validation):
+
+                        #
+                        if self._skip_max_seq_len_samples(batch):
+                            max_len_samples += 1
+                            continue
+
+                        utils.batch_to_device(batch, self._device)
+                        # TODO: finish this feature
+                        # try:
+                        val_loss = self._loss_step(batch)
+                        # except RuntimeError as e:
+                        #     log.error(f"Error in validation loss computation: {e}")
+                        #     val_loss = torch.tensor(0.0, device=self._device)
+                        #     continue
+                        cum_val_loss += val_loss
+                        pbar_val.update(1)
+                        pbar_val.set_description(
+                            f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {cum_val_loss / (idx + 1)}"
+                        )
+                        idx += 1
+
+                        if (
+                            self._max_validation_steps is not None
+                            and idx == self._max_validation_steps
+                        ):
+                            break
+
+                    mean_val_loss = cum_val_loss / (idx + 1 - max_len_samples)
+                    self._metric_logger.log_dict(
+                        {"val_loss": mean_val_loss},
+                        step=self.global_step,
+                    )
+                    pbar_val.close()
+                    print("Number of samples that were too long: ", max_len_samples)
+
+                # ------ Training Epoch ------ #
+                # Initialize tokens count and running loss (for grad accumulation)
+                t0 = time.perf_counter()
+                running_loss = 0
+                num_tokens = 0
+                real_num_tokens = 0  # NOTE: added by us
+                max_len_samples = 0  # NOTE: added by us
+                self._model.train()  # NOTE: added by us
+
+                pbar = tqdm(total=self._steps_per_epoch, desc="Training")
+                # NOTE: added by us - counter to account for samples that are too long
+                idx = 0
+                for _, batch in enumerate(self._dataloader):
+
+                    # NOTE: added by us
+                    if self._skip_max_seq_len_samples(batch):
+                        max_len_samples += 1
+                        # TODO: eventually remove this
+                        continue
                     if (
                         self.max_steps_per_epoch is not None
                         and (idx // self._gradient_accumulation_steps)
@@ -691,6 +805,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         batch["labels"] != self._loss_fn.ignore_index
                     ).sum()
                     num_tokens += current_num_tokens
+                    # NOTE: added by us
+                    # let's monitor the total number of tokens
+                    real_num_tokens += batch["labels"].numel()
 
                     # Loss is normalized by default so we multiply by the number of tokens
                     # This way we can normalize by the total number of tokens if we're accumulating gradients
@@ -743,6 +860,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         # Reset running stats for the next step
                         running_loss = 0
                         num_tokens = 0
+                        real_num_tokens = 0  # NOTE: added by us
                         t0 = time.perf_counter()
 
                     # Stop tracking CUDA memory now that active steps are complete
@@ -761,15 +879,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     # if the schedule cycle doesn't align with gradient accumulation.
                     prof.step()
 
+                    idx += 1  # NOTE: added by us
+
                 self.epochs_run += 1
-                start_save_checkpoint = time.perf_counter()
-                log.info("Starting checkpoint save...")
                 self.save_checkpoint(epoch=curr_epoch)
-                log.info(
-                    "Checkpoint saved in {:.2f} seconds.".format(
-                        time.perf_counter() - start_save_checkpoint
-                    )
-                )
 
     def cleanup(self) -> None:
         self._metric_logger.close()

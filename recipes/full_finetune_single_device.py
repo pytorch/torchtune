@@ -37,7 +37,10 @@ Summary of changes made to the original code:
     - Added `max_seq_len` to the recipe (mind the new idx counter to keep track of samples that are too long)
     - counting the total number of tokens, not just the output tokens
     - added the `save_checkpoints` argument and according logic
+    - added `max_validation_steps` to the recipe
 
+TODO:
+    - add try-except block to catch errors OOM
 
 """
 
@@ -141,7 +144,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
-        self._max_validation_steps = cfg.get("max_validation_steps", None)
 
         if self._log_peak_memory_stats and self._device.type != "cuda":
             log.info(
@@ -197,10 +199,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
-        self.save_checkpoints = cfg.get("save_checkpoints", 1)
 
         # NOTE: added by us
+        self.save_checkpoints = cfg.get("save_checkpoints", 1)
         self.max_seq_len = cfg.get("max_seq_len", None)
+        self._max_validation_steps = cfg.get("max_validation_steps", None)
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -717,6 +720,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
+            self._sampler_validation.set_epoch(curr_epoch)  # NOTE: added by us
 
             # NOTE: added by us
             # ------ Validation Step ------ #
@@ -729,15 +733,20 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     if self._max_validation_steps is not None
                     else len(self._dataloader_validation)
                 )
+                # NOTE: added by us
                 # start a counter for samples that are too long
                 max_len_samples = 0
+
                 pbar_val = tqdm(total=num_eval_steps, desc="Validation")
                 # NOTE: added by us - counter to account for samples that are too long
                 idx = 0
                 for _, batch in enumerate(self._dataloader_validation):
+
+                    # NOTE: added by us
                     if self._skip_max_seq_len_samples(batch):
                         max_len_samples += 1
                         continue
+
                     utils.batch_to_device(batch, self._device)
                     # TODO: finish this feature
                     # try:
@@ -772,7 +781,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             t0 = time.perf_counter()
             running_loss = 0
             num_tokens = 0
-            self._model.train()
+            real_num_tokens = 0
+            max_len_samples = 0
+            self._model.train()  # NOTE: added by us
 
             pbar = tqdm(total=self._steps_per_epoch, desc="Training")
 
@@ -805,13 +816,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 # Calculate the number of unmasked tokens in the current batch
                 # and increment the total number of tokens seen in the step
-                # current_num_tokens = (
-                #     # batch["labels"] != self._loss_fn.ignore_index
-                # ).sum()
+                current_num_tokens = (
+                    batch["labels"] != self._loss_fn.ignore_index
+                ).sum()
+                num_tokens += current_num_tokens
                 # NOTE: added by us
                 # let's monitor the total number of tokens
-                current_num_tokens = batch["labels"].numel()
-                num_tokens += current_num_tokens
+                real_num_tokens = batch["labels"].numel()
 
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
@@ -863,7 +874,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                                     else self._optim_ckpt_wrapper
                                 ),
                             ),
-                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                            "tokens_per_second_per_gpu": real_num_tokens
+                            / time_per_step,  # NOTE: added by us
                         }
                         if self._device.type == "cuda" and self._log_peak_memory_stats:
                             log_dict.update(
@@ -879,6 +891,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     # Reset running stats for the next step
                     running_loss = 0
                     num_tokens = 0
+                    real_num_tokens = 0  # NOTE: added by us
                     t0 = time.perf_counter()
 
                 # Stop tracking CUDA memory now that active steps are complete
@@ -897,10 +910,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # if the schedule cycle doesn't align with gradient accumulation.
                 self._profiler.step()
 
-                idx += 1
+                idx += 1  # NOTE: added by us
 
             self.epochs_run += 1
-            # TODO: update self.save_checkpoint with new logic
             self._save_checkpoint(epoch=curr_epoch)
 
         self._profiler.stop()
