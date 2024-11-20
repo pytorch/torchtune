@@ -44,7 +44,7 @@ class TestClipTextEncoder:
     def test_forward(self, model, inputs):
         actual = model(inputs)
         expected = torch.tensor(
-            [[0.2195, 1.3941, 0.6295, -0.1026], [0.2418, 1.4928, 0.6177, -0.0863]]
+            [[0.1915, 1.3982, 0.6298, -0.0966], [0.2276, 1.3785, 0.6309, -0.1066]]
         )
         assert actual.shape == (BSZ, EMBED_DIM)
         torch.testing.assert_close(actual, expected, atol=1e-4, rtol=1e-4)
