@@ -14,48 +14,45 @@ class TestCLIPTokenizer:
     def tokenizer(self):
         return clip_tokenizer(ASSETS / "tiny_bpe_merges.txt")
 
-    def test_tokenization(self, tokenizer):
+    def test_encoding(self, tokenizer):
         texts = [
             "a cow jumping over the moon",
             "a helpful AI assistant",
         ]
         correct_tokens = [
-            _pad(
-                [
-                    2416,
-                    320,
-                    66,
-                    78,
-                    342,
-                    73,
-                    669,
-                    79,
-                    515,
-                    326,
-                    1190,
-                    337,
-                    673,
-                    324,
-                    76,
-                    819,
-                    333,
-                    2417,
-                ]
-            ),
-            _pad(
-                [2416, 320, 516, 75, 79, 69, 84, 331, 64, 328, 813, 667, 540, 339, 2417]
-            ),
+            [
+                2416,
+                320,
+                66,
+                78,
+                342,
+                73,
+                669,
+                79,
+                515,
+                326,
+                1190,
+                337,
+                673,
+                324,
+                76,
+                819,
+                333,
+                2417,
+            ],
+            [2416, 320, 516, 75, 79, 69, 84, 331, 64, 328, 813, 667, 540, 339, 2417],
         ]
-        tokens_tensor = tokenizer(texts)
-        assert tokens_tensor.tolist() == correct_tokens
+        for text, correct in zip(texts, correct_tokens):
+            tokens = tokenizer.encode(text)
+            assert tokens == correct
 
     def test_decoding(self, tokenizer):
         text = "this is torchtune"
         decoded_text = "<|startoftext|>this is torchtune <|endoftext|>"
         assert decoded_text == tokenizer.decode(tokenizer.encode(text))
 
-
-def _pad(tokens, max_seq_len=77, pad_token=2417):
-    while len(tokens) < max_seq_len:
-        tokens.append(pad_token)
-    return tokens
+    def test_call(self, tokenizer):
+        sample = {"text": "hello world"}
+        sample = tokenizer(sample)
+        assert "text" not in sample
+        assert "tokens" in sample

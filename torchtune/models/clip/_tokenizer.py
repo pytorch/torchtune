@@ -3,10 +3,9 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import Dict, List, Set, Tuple
+from typing import Any, Dict, List, Mapping, Set, Tuple
 
 import regex as re
-import torch
 
 from torchtune.modules.tokenizers._utils import BaseTokenizer
 
@@ -107,24 +106,22 @@ class CLIPTokenizer(BaseTokenizer):
             .replace(WORD_BOUNDARY, " ")
         )
 
-    def __call__(self, texts: List[str]) -> torch.Tensor:
+    def __call__(
+        self, sample: Mapping[str, Any], inference: bool = False
+    ) -> Mapping[str, Any]:
         """
-        Returns a Tensor with the tokenized representation of given input strings
+        Tokenize the "text" field in the sample.
 
         Args:
-            texts (List[str]): list of input strings to tokenize
+            sample (Mapping[str, Any]): A sample with a "text" field containing a string to tokenize
+            inference (bool): Unused by this tokenizer
 
         Returns:
-            torch.Tensor: int tensor with shape [len(texts), max_seq_len]
+            Mapping[str, Any]: The sample with added "tokens" field and the "messages" field removed.
         """
-        assert isinstance(texts, list)
-        result = torch.full(
-            (len(texts), self.max_seq_len), self.pad_token, dtype=torch.int
-        )
-        for i, text in enumerate(texts):
-            tokens = self.encode(text)
-            result[i, : len(tokens)] = torch.tensor(tokens)
-        return result
+        text = sample.pop("text")
+        sample["tokens"] = self.encode(text)
+        return sample
 
     def _bpe(self, token: str) -> str:
         """
