@@ -1245,13 +1245,12 @@ class DistributedCheckpointer(_CheckpointerInterface):
             self._output_dir, f"{self._checkpoint_dir_prefix}_{epoch}"
         )
 
-        if self._checkpoint_future is not None:
+        if self._checkpoint_future and not self._checkpoint_future.done():
             # Previous checkpoint needs to finish before saving the next one.
             wait_start = time.perf_counter()
 
-            log_rank_zero(
-                logger,
-                msg="Previous checkpoint has not finished. Checkpointing frequency is too high. Waiting...",
+            logger.info(
+                f"Rank {self._rank}: previous checkpoint has not finished. Checkpointing frequency is too high. Waiting...",
             )
 
             self._checkpoint_future.result()
@@ -1259,6 +1258,7 @@ class DistributedCheckpointer(_CheckpointerInterface):
             logger.info(
                 f"Rank {self._rank}: waited {time.perf_counter() - wait_start:.2f} seconds for previous checkpoint to finish",
             )
+            self._checkpoint_future = None
 
         cp_start = time.perf_counter()
 
@@ -1304,7 +1304,7 @@ class DistributedCheckpointer(_CheckpointerInterface):
                 state_dict=state_dict,
                 storage_writer=FileSystemWriter(
                     checkpoint_path,
-                    thread_count=8,
+                    thread_count=16,
                     single_file_per_rank=False,
                     sync_files=False,
                 ),
