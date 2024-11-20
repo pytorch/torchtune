@@ -525,11 +525,10 @@ class QATRecipeDistributed(FTRecipeInterface):
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
 
-        utils.log_rank_zero(
-            log,
-            f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
-        )
         if self._is_rank_zero:
+            log.info(
+                f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
+            )
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
