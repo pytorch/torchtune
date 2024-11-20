@@ -430,8 +430,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             log,
             "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
         )
-        if self._is_rank_zero:
-            init_start = time.perf_counter()
+        init_start = time.perf_counter()
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
@@ -497,10 +496,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
 
+        utils.log_rank_zero(
+            log,
+            f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
+        )
         if self._is_rank_zero:
-            log.info(
-                f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
-            )
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
@@ -637,8 +637,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             log,
             "Saving checkpoint. This may take some time. Retrieving full model state dict...",
         )
-        if self._is_rank_zero:
-            start = time.perf_counter()
+        start = time.perf_counter()
 
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0

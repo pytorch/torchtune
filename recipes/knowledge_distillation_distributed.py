@@ -427,8 +427,7 @@ class KDRecipeDistributed(FTRecipeInterface):
             log,
             "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
         )
-        if self._is_rank_zero:
-            init_start = time.perf_counter()
+        init_start = time.perf_counter()
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
@@ -511,10 +510,11 @@ class KDRecipeDistributed(FTRecipeInterface):
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
 
+        utils.log_rank_zero(
+            log,
+            f"Instantiating student model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
+        )
         if self._is_rank_zero:
-            log.info(
-                f"Instantiating student model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
-            )
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(
                 memory_stats, message="Memory stats after student model init:"
@@ -545,8 +545,7 @@ class KDRecipeDistributed(FTRecipeInterface):
             log,
             "FSDP enabled. Instantiating teacher model and loading checkpoint on Rank 0 ...",
         )
-        if self._is_rank_zero:
-            init_start = time.perf_counter()
+        init_start = time.perf_counter()
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(model_cfg)
@@ -596,10 +595,11 @@ class KDRecipeDistributed(FTRecipeInterface):
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
 
+        utils.log_rank_zero(
+            log,
+            f"Instantiating teacher model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
+        )
         if self._is_rank_zero:
-            log.info(
-                f"Instantiating teacher model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
-            )
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(
                 memory_stats, message="Memory stats after teacher model init:"
