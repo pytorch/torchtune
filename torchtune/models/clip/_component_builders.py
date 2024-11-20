@@ -180,22 +180,22 @@ def clip_vision_encoder(
 
 
 def clip_text_encoder(
+    embed_dim: int,
+    num_heads: int,
+    num_layers: int,
     vocab_size: int = 49408,
     max_seq_len: int = 77,
-    embed_dim: int = 768,
-    num_heads: int = 12,
-    num_layers: int = 12,
     norm_eps: float = 1e-5,
 ):
     """
     Text encoder for CLIP.
 
     Args:
+        embed_dim (int): embedding/model dimension size
+        num_heads (int): number of attention heads
+        num_layers (int): number of transformer layers
         vocab_size (int): size of the vocabulary, default 49408
         max_seq_len (int): context size, default 77
-        embed_dim (int): embedding/model dimension size, default 768
-        num_heads (int): number of attention heads, default 12
-        num_layers (int): number of transformer layers, default 12
         norm_eps (float): small value added to denominator for numerical stability, default 1e-5
 
     Returns:

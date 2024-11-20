@@ -19,8 +19,7 @@ def clip_tokenizer(
 
     Args:
         path (str): Path to the CLIP merges file
-        max_seq_len (bool): Context length
-            Default: 77
+        max_seq_len (bool): Context length. Default: 77
         truncate (bool): Truncate the token sequence if it exceeds max_seq_len (otherwise raises AssertionError)
             Default: True
 
@@ -34,15 +33,17 @@ def clip_text_vit_large_patch14() -> CLIPTextEncoder:
     """
     Builder for the CLIP text encoder for CLIP-ViT-L/14.
 
+    https://arxiv.org/abs/2103.00020
+
     Returns:
         CLIPTextEncoder: Instantiation of the CLIP text encoder
     """
     return clip_text_encoder(
-        vocab_size=49408,
-        max_seq_len=77,
         embed_dim=768,
         num_heads=12,
         num_layers=12,
+        vocab_size=49408,
+        max_seq_len=77,
         norm_eps=1e-5,
     )
 
