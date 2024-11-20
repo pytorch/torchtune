@@ -193,6 +193,16 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
+        self._dcp_checkpointer = None
+
+    def get_dcp_checkpointer(self):
+        if not self._dcp_checkpointer:
+            self._dcp_checkpointer = DistributedCheckpointer(
+                checkpoint_dir=self._checkpointer._checkpoint_dir,
+                output_dir=self._checkpointer._output_dir,
+            )
+
+        return self._dcp_checkpointer
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -244,11 +254,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 }
             )
 
-            dcp_checkpointer = DistributedCheckpointer(
-                checkpoint_dir=self._checkpointer._checkpoint_dir,
-                output_dir=self._checkpointer._output_dir,
-            )
-
+            dcp_checkpointer = self.get_dcp_checkpointer()
             state_dict = dcp_checkpointer.load_checkpoint(state_dict)
 
             if self._is_rank_zero:
@@ -782,11 +788,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         ckpt_dict[training.MODEL_KEY] = model_state_dict
         ckpt_dict[training.OPT_KEY] = optim_state_dict
 
-        dcp_saver = DistributedCheckpointer(
-            checkpoint_dir=self._checkpointer._checkpoint_dir,
-            output_dir=self._checkpointer._output_dir,
-        )
-
+        dcp_saver = self.get_dcp_checkpointer()
         dcp_saver.save_checkpoint(
             ckpt_dict,
             epoch=epoch,
