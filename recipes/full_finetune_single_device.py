@@ -33,11 +33,21 @@ log = utils.get_logger("DEBUG")
 
 """
 Summary of changes made to the original code:
-    - added a validation loop, including a validation dataloader
-    - Added `max_seq_len` to the recipe (mind the new idx counter to keep track of samples that are too long)
-    - counting the total number of tokens, not just the output tokens
-    - added the `save_checkpoints` argument and according logic
-    - added `max_validation_steps` to the recipe
+    - init():
+        - added new args
+    - setup():
+        - added validation dataloader
+    - setup_model():
+        - added `max_seq_len` to the model 
+    - save_checkpoints(): 
+        - added the `save_checkpoints` argument and according logic
+    - _skip_max_seq_len_samples()
+        - added
+    - train():
+        - added a validation loop, including a validation dataloader (mind the data shuffling)
+        - Added `max_seq_len` to the recipe (mind the new idx counter to keep track of samples that are too long)
+        - added `max_validation_steps` to the recipe
+        - counting the `real_num_tokens`, not just the output tokens, for speed logging purposes
 
 TODO:
     - add try-except block to catch errors OOM
@@ -201,7 +211,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.global_step = 0
 
         # NOTE: added by us
-        self.save_checkpoints = cfg.get("save_checkpoints", 1)
+        self.save_checkpoints_interval = cfg.get("save_checkpoints", 1)
         self.max_seq_len = cfg.get("max_seq_len", None)
         self._max_validation_steps = cfg.get("max_validation_steps", None)
 
@@ -632,17 +642,20 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         return sampler, dataloader
 
-    def _save_checkpoint(self, epoch: int) -> None:
+    def save_checkpoint(self, epoch: int) -> None:
         """
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
         """
 
         # NOTE: added by us
-        if self.save_checkpoints:
+        if self.save_checkpoints_interval:
             if epoch + 1 == self.total_epochs:
                 pass
-            elif self.save_checkpoints > 0 and epoch % self.save_checkpoints == 0:
+            elif (
+                self.save_checkpoints_interval > 0
+                and epoch % self.save_checkpoints_interval == 0
+            ):
                 pass
             else:
                 return
@@ -694,6 +707,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         return loss
 
+    # NOTE: added by us
     def _skip_max_seq_len_samples(self, batch: Dict[str, torch.Tensor]) -> bool:
         """
         Skip samples that are too long. This is needed for the training loop to handle
@@ -727,7 +741,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._model.eval()
 
             with torch.no_grad():
-                cum_val_loss = 0
+                running_val_loss = 0
                 num_eval_steps = (
                     min(self._max_validation_steps, len(self._dataloader_validation))
                     if self._max_validation_steps is not None
@@ -742,33 +756,40 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 idx = 0
                 for _, batch in enumerate(self._dataloader_validation):
 
-                    # NOTE: added by us
-                    if self._skip_max_seq_len_samples(batch):
-                        max_len_samples += 1
-                        continue
-
-                    utils.batch_to_device(batch, self._device)
-                    # TODO: finish this feature
-                    # try:
-                    val_loss = self._loss_step(batch)
-                    # except RuntimeError as e:
-                    #     log.error(f"Error in validation loss computation: {e}")
-                    #     val_loss = torch.tensor(0.0, device=self._device)
-                    #     continue
-                    cum_val_loss += val_loss
-                    pbar_val.update(1)
-                    pbar_val.set_description(
-                        f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {cum_val_loss / (idx + 1)}"
-                    )
-                    idx += 1
-
                     if (
                         self._max_validation_steps is not None
                         and idx == self._max_validation_steps
                     ):
                         break
 
-                mean_val_loss = cum_val_loss / (idx + 1 - max_len_samples)
+                    # NOTE: added by us
+                    if self._skip_max_seq_len_samples(batch):
+                        max_len_samples += 1
+                        continue
+
+                    utils.batch_to_device(batch, self._device)
+
+                    # Calculate the number of unmasked tokens in the current batch
+                    # and increment the total number of tokens seen in the step
+                    current_num_tokens = (
+                        batch["labels"] != self._loss_fn.ignore_index
+                    ).sum()
+
+                    # TODO: finish this feature
+                    # try:
+                    current_loss = self._loss_step(batch) * current_num_tokens
+                    # except RuntimeError as e:
+                    #     log.error(f"Error in validation loss computation: {e}")
+                    #     val_loss = torch.tensor(0.0, device=self._device)
+                    #     continue
+                    running_val_loss += current_loss
+                    pbar_val.update(1)
+                    pbar_val.set_description(
+                        f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {current_loss / (idx + 1)}"
+                    )
+                    idx += 1
+
+                mean_val_loss = running_val_loss / (idx + 1 - max_len_samples)
                 self._metric_logger.log_dict(
                     {"val_loss": mean_val_loss},
                     step=self.global_step,
@@ -791,18 +812,18 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             idx = 0
             for _, batch in enumerate(self._dataloader):
 
-                # NOTE: added by us
-                if self._skip_max_seq_len_samples(batch):
-                    max_len_samples += 1
-                    # TODO: eventually remove this
-                    continue
-
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)
                     == self.max_steps_per_epoch
                 ):
                     break
+
+                # NOTE: added by us
+                if self._skip_max_seq_len_samples(batch):
+                    max_len_samples += 1
+                    # TODO: eventually remove this
+                    continue
 
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
@@ -913,7 +934,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 idx += 1  # NOTE: added by us
 
             self.epochs_run += 1
-            self._save_checkpoint(epoch=curr_epoch)
+            self.save_checkpoint(epoch=curr_epoch)
 
         self._profiler.stop()
 

@@ -177,7 +177,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             )
 
         # NOTE: added by us
-        self.save_checkpoints = cfg.get("save_checkpoints", 1)
+        self.save_checkpoints_interval = cfg.get("save_checkpoints", 1)
         self.max_seq_len = cfg.get("max_seq_len", None)
         self._max_validation_steps = cfg.get("max_validation_steps", None)
 
@@ -432,6 +432,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
 
+        # NOTE: added by us
+        if self.max_seq_len is not None:
+            model.max_seq_len = self.max_seq_len
+
         self._lora_rank = cfg_model.lora_rank
         self._lora_alpha = cfg_model.lora_alpha
         self._lora_attn_modules = list(cfg_model.lora_attn_modules)
@@ -589,10 +593,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         ckpt_dict = {}
 
         # NOTE: added by us
-        if self.save_checkpoints:
+        if self.save_checkpoints_interval:
             if epoch + 1 == self.total_epochs:
                 pass
-            elif self.save_checkpoints > 0 and epoch % self.save_checkpoints == 0:
+            elif (
+                self.save_checkpoints_interval > 0
+                and epoch % self.save_checkpoints_interval == 0
+            ):
                 pass
             else:
                 return
@@ -712,7 +719,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 self._model.eval()
 
                 with torch.no_grad():
-                    cum_val_loss = 0
+                    running_val_loss = 0
                     num_eval_steps = (
                         min(
                             self._max_validation_steps, len(self._dataloader_validation)
@@ -729,33 +736,40 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     idx = 0
                     for _, batch in enumerate(self._dataloader_validation):
 
-                        #
-                        if self._skip_max_seq_len_samples(batch):
-                            max_len_samples += 1
-                            continue
-
-                        utils.batch_to_device(batch, self._device)
-                        # TODO: finish this feature
-                        # try:
-                        val_loss = self._loss_step(batch)
-                        # except RuntimeError as e:
-                        #     log.error(f"Error in validation loss computation: {e}")
-                        #     val_loss = torch.tensor(0.0, device=self._device)
-                        #     continue
-                        cum_val_loss += val_loss
-                        pbar_val.update(1)
-                        pbar_val.set_description(
-                            f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {cum_val_loss / (idx + 1)}"
-                        )
-                        idx += 1
-
                         if (
                             self._max_validation_steps is not None
                             and idx == self._max_validation_steps
                         ):
                             break
 
-                    mean_val_loss = cum_val_loss / (idx + 1 - max_len_samples)
+                        # NOTE: added by us
+                        if self._skip_max_seq_len_samples(batch):
+                            max_len_samples += 1
+                            continue
+
+                        utils.batch_to_device(batch, self._device)
+
+                        # Calculate the number of unmasked tokens in the current batch
+                        # and increment the total number of tokens seen in the step
+                        current_num_tokens = (
+                            batch["labels"] != self._loss_fn.ignore_index
+                        ).sum()
+
+                        # TODO: finish this feature
+                        # try:
+                        current_loss = self._loss_step(batch) * current_num_tokens
+                        # except RuntimeError as e:
+                        #     log.error(f"Error in validation loss computation: {e}")
+                        #     val_loss = torch.tensor(0.0, device=self._device)
+                        #     continue
+                        running_val_loss += current_loss
+                        pbar_val.update(1)
+                        pbar_val.set_description(
+                            f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {current_loss / (idx + 1)}"
+                        )
+                        idx += 1
+
+                    mean_val_loss = running_val_loss / (idx + 1 - max_len_samples)
                     self._metric_logger.log_dict(
                         {"val_loss": mean_val_loss},
                         step=self.global_step,
@@ -841,7 +855,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                             log_dict = {
                                 "loss": loss_to_log,
                                 "lr": self._optimizer.param_groups[0]["lr"],
-                                "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                                "tokens_per_second_per_gpu": real_num_tokens
+                                / time_per_step,  # NOTE: added by us
                             }
                             if (
                                 self._device.type == "cuda"

@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from copy import deepcopy
 import sys
 import time
 
@@ -147,6 +148,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         _, rank = training.get_world_size_and_rank()
         self._is_rank_zero = rank == 0
 
+        # NOTE: added by us
+        self._is_rank_zero = True
+
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
@@ -195,6 +199,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
+
+        # NOTE: added by us
+        self.save_checkpoints_interval = cfg.get("save_checkpoints", 1)
+        self.max_seq_len = cfg.get("max_seq_len", None)
+        self._max_validation_steps = cfg.get("max_validation_steps", None)
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -304,10 +313,22 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
         collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
+        cfg.dataset["split"] = "train"  # NOTE: added by us
         self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
+            collate_fn=collate_name,
+        )
+
+        # NOTE: added by us
+        # validation dataloader
+        cfg["validation_dataset"] = deepcopy(cfg.dataset)
+        cfg["validation_dataset"]["split"] = "validation"
+        self._sampler_validation, self._dataloader_validation = self._setup_data(
+            cfg_dataset=cfg["validation_dataset"],
+            shuffle=cfg.shuffle,
+            batch_size=cfg.batch_size,  # TODO: have a separate batch size for validation
             collate_fn=collate_name,
         )
 
@@ -432,6 +453,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
+
+        # NOTE: added by us
+        if self.max_seq_len is not None:
+            model.max_seq_len = self.max_seq_len
 
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
@@ -628,6 +653,20 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         different checkpoint files. To correctly resume training from an intermediate checkpoint,
         the model weights and recipe state must be provided.
         """
+        # NOTE: added by us
+        if self.save_checkpoints_interval:
+            if epoch + 1 == self.total_epochs:
+                pass
+            elif (
+                self.save_checkpoints_interval > 0
+                and epoch % self.save_checkpoints_interval == 0
+            ):
+                pass
+            else:
+                return
+        else:
+            return
+
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
 
@@ -704,6 +743,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         torch.distributed.barrier()
 
+    # NOTE: added by us
+    def _skip_max_seq_len_samples(self, batch: Dict[str, torch.Tensor]) -> bool:
+        """
+        Skip samples that are too long. This is needed for the training loop to handle
+        samples that are too long to fit in the model.
+        """
+        return len(batch["tokens"][0]) > self._model.max_seq_len
+
     def train(self) -> None:
         """
         The core training loop.
@@ -731,15 +778,115 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
+            self._sampler_validation.set_epoch(curr_epoch)  # NOTE: added by us
 
-            pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
-            for idx, batch in enumerate(self._dataloader):
+            # NOTE: added by us
+            # ------ Validation Step ------ #
+            self._model.eval()
+
+            with torch.no_grad():
+                running_val_loss = 0
+                num_eval_steps = (
+                    min(self._max_validation_steps, len(self._dataloader_validation))
+                    if self._max_validation_steps is not None
+                    else len(self._dataloader_validation)
+                )
+                # NOTE: added by us
+                # start a counter for samples that are too long
+                max_len_samples = 0
+
+                pbar_val = tqdm(total=num_eval_steps, desc="Validation")
+                # NOTE: added by us - counter to account for samples that are too long
+                idx = 0
+                for _, batch in enumerate(self._dataloader_validation):
+
+                    if (
+                        self._max_validation_steps is not None
+                        and idx == self._max_validation_steps
+                    ):
+                        break
+
+                    # NOTE: added by us
+                    if self._skip_max_seq_len_samples(batch):
+                        max_len_samples += 1
+                        continue
+
+                    utils.batch_to_device(batch, self._device)
+
+                    # Calculate the number of unmasked tokens in the current batch
+                    # and increment the total number of tokens seen in the step
+                    current_num_tokens = (
+                        batch["labels"] != self._loss_fn.ignore_index
+                    ).sum()
+
+                    # Shape [b, s], needed for the loss not the model
+                    labels = batch.pop("labels")
+
+                    with self.activations_handling_ctx:
+                        logits = self._model(**batch)
+
+                    # Shift labels to compute loss
+                    # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
+                    # But this way we dont need to slice the logits. We just add an ignore index to labels.
+                    labels = torch.hstack(
+                        (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
+                    )
+                    if not isinstance(logits, list):
+                        labels = labels.reshape(-1)
+                        logits = logits.reshape(-1, logits.size(-1))
+
+                    # Compute loss
+                    # Loss is normalized by default so we multiply by the number of tokens
+                    # This way we can normalize by the total number of tokens if we're accumulating gradients
+                    current_loss = self._loss_fn(logits, labels) * current_num_tokens
+
+                    # free logits otherwise it peaks backward memory
+                    del logits
+
+                    running_val_loss += current_loss
+                    pbar_val.update(1)
+                    pbar_val.set_description(
+                        f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {current_loss / (idx + 1)}"
+                    )
+                    idx += 1
+
+                mean_val_loss = running_val_loss / (idx + 1 - max_len_samples)
+                self._metric_logger.log_dict(
+                    {"val_loss": mean_val_loss},
+                    step=self.global_step,
+                )
+                pbar_val.close()
+                print("Number of samples that were too long: ", max_len_samples)
+
+            # ------ Training Epoch ------ #
+            # Initialize tokens count and running loss (for grad accumulation)
+            t0 = time.perf_counter()
+            running_loss = 0
+            num_tokens = 0
+            real_num_tokens = 0
+            max_len_samples = 0
+            self._model.train()  # NOTE: added by us
+
+            pbar = tqdm(
+                total=self._steps_per_epoch, disable=not (rank == 0), desc="Training"
+            )
+
+            # NOTE: added by us - counter to account for samples that are too long
+            idx = 0
+            for _, batch in enumerate(self._dataloader):
+
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)
                     == self.max_steps_per_epoch
                 ):
                     break
+
+                # NOTE: added by us
+                if self._skip_max_seq_len_samples(batch):
+                    max_len_samples += 1
+                    # TODO: eventually remove this
+                    continue
 
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
@@ -758,6 +905,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     batch["labels"] != self._loss_fn.ignore_index
                 ).sum()
                 num_tokens += current_num_tokens
+                # NOTE: added by us
+                # let's monitor the total number of tokens
+                real_num_tokens = batch["labels"].numel()
 
                 # Shape [b, s], needed for the loss not the model
                 labels = batch.pop("labels")
@@ -835,7 +985,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                                     else self._optim_ckpt_wrapper
                                 ),
                             ),
-                            "tokens_per_second_per_gpu": num_tokens
+                            "tokens_per_second_per_gpu": real_num_tokens  # NOTE: added by us
                             / (time_per_step * world_size),
                         }
                         if self._log_peak_memory_stats:
@@ -852,6 +1002,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     # Reset running stats for the next step
                     running_loss = 0
                     num_tokens = 0
+                    real_num_tokens = 0  # NOTE: added by us
                     t0 = time.perf_counter()
 
                     # Stop tracking CUDA memory now that active steps are complete
@@ -870,6 +1021,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     # Note that this is called within gradient accumulation block, hence
                     # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
+
+                    idx += 1  # NOTE: added by us
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
