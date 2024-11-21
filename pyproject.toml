@@ -13,7 +13,7 @@ dependencies = [
 
     # Hugging Face integrations
     "datasets",
-    "huggingface_hub",
+    "huggingface_hub[hf_transfer]",
     "safetensors",
 
     # Kaggle Integrations
