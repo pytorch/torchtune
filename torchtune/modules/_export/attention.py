@@ -212,7 +212,7 @@ class MultiHeadAttention(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        y: Optional[torch.Tensor] = None,
+        y: torch.Tensor,
         *,
         mask: Optional[_MaskType] = None,
         input_pos: Optional[torch.Tensor] = None,
@@ -220,8 +220,8 @@ class MultiHeadAttention(nn.Module):
         """
         Args:
             x (torch.Tensor): input tensor with shape [b x s_x x d] for the query
-            y (Optional[torch.Tensor]): second input tensor with shape [b x s_y x d], is the input
-                for k and v. For self attention, x=y. Optional only with kv_cache enabled.
+            y (torch.Tensor): second input tensor with shape [b x s_y x d], is the input
+                for k and v. For self attention, x=y. If all values are NaN, we read from kv cache.
             mask (Optional[_MaskType]): Used to mask the scores after the query-key multiplication
                 and before the softmax. Either:
 
@@ -240,9 +240,6 @@ class MultiHeadAttention(nn.Module):
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
-
-        Raises:
-            ValueError: If no ``y`` input and ``kv_cache`` is not enabled.
 
         Returns:
             torch.Tensor: output tensor with attention applied
