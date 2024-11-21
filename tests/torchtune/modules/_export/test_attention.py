@@ -197,7 +197,8 @@ class AttentionTest(unittest.TestCase):
         torch_version_ge("2.6.0"), reason="torch.cond only works for 2.6.0"
     )
     def test_attention_torch_cond_eager(self):
-        # Different from vanilla torchtune MHA, we rewrite the if condition with torch.cond. We need to make sure they are giving the same results regarding the if condition.
+        # Different from vanilla torchtune MHA, we rewrite the if condition with torch.cond. We need to make sure they
+        # are giving the same results regarding the if condition.
         # For the first run of MHA we provide `y` (self.x) but for the second run it will be a tensor full of nan.
         self.et_mha.setup_cache(1, dtype=torch.float32, max_seq_len=self.max_seq_len)
         self.tt_mha.setup_cache(1, dtype=torch.float32, max_seq_len=self.max_seq_len)
