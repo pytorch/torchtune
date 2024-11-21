@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import contextlib
-from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set
+from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set, Union
 
 import torch
 from torch import nn
@@ -62,13 +62,15 @@ def get_adapter_params(model: nn.Module) -> Dict[str, nn.Parameter]:
     return adapter_params
 
 
-def set_trainable_params(model: nn.Module, adapter_params: Dict[str, Any]) -> None:
+def set_trainable_params(
+    model: nn.Module, adapter_params: Union[Dict[str, Any], Set]
+) -> None:
     """
     Set trainable parameters for an nn.Module based on a state dict of adapter parameters.
 
     Args:
         model (nn.Module): Instance of model class containing some adapter params.
-        adapter_params (Dict[str, Any]): State dict mapping adapter key names to their
+        adapter_params (Union[Dict[str, Any], Set]): State dict mapping adapter key names to their
             respective nn.Parameters (i.e. outputs of :func:`~torchtune.modules.peft.get_adapter_params`.)
 
     Returns:
@@ -107,89 +109,25 @@ def get_lora_module_names(
     return lora_module_keys
 
 
-def validate_state_dict_for_lora(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
-    apply_lora_to_mlp: bool,
-    apply_lora_to_output: bool,
-    full_model_state_dict_keys: List[str],
-    lora_state_dict_keys: Optional[List[str]] = None,
-    base_model_state_dict_keys: Optional[List[str]] = None,
-) -> None:
+def get_adapter_state_dict(
+    state_dict: Dict[str, Any], device: Optional[str] = "cpu"
+) -> Dict[str, Any]:
     """
-    Validate that the state dict keys for a LoRA model are as expected.
-
-    (1) If lora_state_dict_keys are passed, this function will confirm that they match exactly the
-        LoRA param names from the full model (as determined by lora_modules).
-    (2) If base_model_state_dict_keys are passed, this function will confirm that they are exactly the
-        complement of the LoRA param names from the full model.
-    (3) If both lora_state_dict_keys and base_model_state_dict_keys are passed, this function will
-        confirm that the full model's params are exactly their disjoint union.
+    Return the subset of the full state_dict from a model that correspond to an adapter.
+    Assumes that "lora" and "magnitude" are unique names for adapter parameters, and
+    that the state_dict is not sharded. All returned parameters are moved to CPU.
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
-            LoRA should be applied to in each self-attention block. Options are
-            ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
-        apply_lora_to_mlp (bool): whether LoRA is applied to each MLP linear.
-        apply_lora_to_output (bool): whether LoRA is applied to the final output projection.
-        full_model_state_dict_keys (List[str]): List of keys in the full model state dict.
-        lora_state_dict_keys (Optional[List[str]]): List of keys in the LoRA state dict.
-            If none, LoRA state dict keys will not be validated.
-        base_model_state_dict_keys (Optional[List[str]]): List of keys in the base model state dict.
-            If none, base model keys will not be validated.
+        state_dict (Dict[str, Any]): Full model state dict.
+        device (Optional[str]): device to move adapter parameters to. Default: 'cpu'
 
     Returns:
-        None
-
-    Raises:
-        AssertionError: If base model state dict is missing any non-LoRA params from the full model.
-        AssertionError: If LoRA state dict is missing any LoRA params from the full model.
-        AssertionError: If base model state dict has any LoRA params.
-        AssertionError: If LoRA state dict has any non-LoRA params.
-        AssertionError: If base model and LoRA state dicts have overlapping keys.
-        AssertionError: If full model state dict is missing keys from either base model or LoRA state dict.
+        Dict[str, Any]: the subset of model's state dict containing
+        only adapter parameters.
 
     """
-    lora_modules = get_lora_module_names(
-        lora_attn_modules, apply_lora_to_mlp, apply_lora_to_output
-    )
-    is_lora_param = lambda x: any(
-        [
-            ".".join([k, "lora"]) in x or ".".join([k, "magnitude"]) in x
-            for k in lora_modules
-        ]
-    )
-    for k in full_model_state_dict_keys:
-        if not is_lora_param(k):
-            if base_model_state_dict_keys is not None:
-                if k not in base_model_state_dict_keys:
-                    raise AssertionError(
-                        f"Missing non-LoRA key {k} from base model state dict"
-                    )
-            if lora_state_dict_keys is not None:
-                if k in lora_state_dict_keys:
-                    raise AssertionError(f"Non-LoRA key {k} found in LoRA state dict")
-        else:
-            if base_model_state_dict_keys is not None:
-                if k in base_model_state_dict_keys:
-                    raise AssertionError(f"LoRA key {k} found in base model state dict")
-            if lora_state_dict_keys is not None:
-                if k not in lora_state_dict_keys:
-                    raise AssertionError(f"Missing LoRA key {k} From LoRA state dict")
-
-    # Full model is disjoint union of base model and LoRA weights
-    if lora_state_dict_keys is not None and base_model_state_dict_keys is not None:
-        combined_state_dict_keys = set(lora_state_dict_keys).union(
-            base_model_state_dict_keys
-        )
-        shared_state_dict_keys = set(lora_state_dict_keys).intersection(
-            base_model_state_dict_keys
-        )
-        assert (
-            shared_state_dict_keys == set()
-        ), "Base model and LoRA state dict have overlapping keys"
-        assert combined_state_dict_keys == set(
-            full_model_state_dict_keys
-        ), "Extra keys not present in full model"
+    adapter_key_filter = lambda x: "lora" in x or "magnitude" in x
+    return {k: v.to(device) for k, v in state_dict.items() if adapter_key_filter(k)}
 
 
 def _get_lora_modules(state_dict: Dict[str, Any]) -> Set[str]:
@@ -322,10 +260,9 @@ def validate_missing_and_unexpected_for_lora(
     """
     A more memory-efficient way to validate that LoRA state dict loading was done properly.
 
-    Similar to :func:`validate_state_dict_for_lora`, this function uses a model's LoRA config to
-    check that LoRA and/or base model weights are loaded into the full model correctly.
-    Unlike that function, this method relies only on the values of missing and unexpected
-    as returned by the load_state_dict API with strict=False. This allows us to do the
+    This function uses a model's LoRA config to check that LoRA and/or base model weights
+    are loaded into the full model correctly. This function relies only on the values of missing and
+    unexpected as returned by the load_state_dict API with strict=False. This allows us to do the
     validation without any additional calls to .state_dict(), which use additional memory.
 
     Args:

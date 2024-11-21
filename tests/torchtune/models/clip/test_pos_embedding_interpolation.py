@@ -201,6 +201,7 @@ class TestPositionalEmbeddingsInterpolation:
             embedding, tgt_max_num_tiles
         )
 
+        assert resized_pos_embed.is_contiguous()
         assert_expected(resized_pos_embed, expected_output, atol=1e-3, rtol=1e-4)
 
     @pytest.mark.parametrize("params", local_pos_emb_test_cases)
@@ -215,6 +216,7 @@ class TestPositionalEmbeddingsInterpolation:
             )
         )
 
+        assert resized_pos_embed.is_contiguous()
         assert_expected(resized_pos_embed, expected_output, atol=1e-3, rtol=1e-4)
 
     @pytest.mark.parametrize("params", global_pos_emb_test_cases)
@@ -230,6 +232,7 @@ class TestPositionalEmbeddingsInterpolation:
             )
         )
 
+        assert resized_pos_embed.is_contiguous()
         assert_expected(resized_pos_embed, expected_output, atol=1e-3, rtol=1e-4)
 
     @pytest.mark.parametrize(

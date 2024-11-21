@@ -8,7 +8,7 @@
 import logging
 import os
 from itertools import chain
-from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type
+from typing import Any, Callable, cast, Dict, List, Optional, Tuple
 
 import torch
 import torch.distributed as dist
@@ -17,50 +17,17 @@ from torch import nn
 from torch.distributed._composable.fsdp import CPUOffloadPolicy, fully_shard
 from torch.distributed._tensor import distribute_tensor, DTensor
 from torch.distributed._tensor.placement_types import DTensorSpec, TensorMeta
-from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
-    _CHECKPOINT_WRAPPED_MODULE,
-)
 from torch.distributed.checkpoint.state_dict import _init_optim_state
 from torch.distributed.fsdp import ShardingStrategy
-from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
-from torchtune.modules.peft import DoRALinear, LoRALinear
-from torchtune.modules.peft.lora import _lora_a_init_params, _lora_b_init_params
 from torchtune.utils import get_logger
 
 from torchtune.utils._device import get_device
 
 _log: logging.Logger = get_logger()
 
-
-FSDPPolicyType: Type = Callable[[nn.Module, bool, int], bool]
-
-FSDPPolicyType.__doc__ = """
-
-A datatype for a function that can be used as an FSDP wrapping policy.
-In particular, this type denotes a function that can accept an nn.Module, a boolean flag, and an integer
-and return a boolean indicating whether the module should be wrapped with FSDP. Objects of this type can
-be directly passed into PyTorch FSDP's ``auto_wrap_policy`` argument to specify how FSDP wraps submodules.
-
-The below function serves as an example of creating and returning a function that obeys the contract of
-``FSDPPolicyType``::
-
-    def get_fsdp_policy(module: nn.Module, modules_to_wrap: Set[Type], min_num_params: int):
-
-        def my_fsdp_policy(module: nn.Module, modules_to_wrap: Set[Type], recurse: bool, min_num_params: int) -> bool:
-            if recurse:
-                return True
-            # Wrap layers that are of type in ``modules_to_wrap`` and layers with more than min_num_params
-
-            return isinstance(module, tuple(modules_to_wrap)) or sum(p.numel() for p in module.parameters()) > 1000
-
-        return functools.partial(my_fsdp_policy, modules_to_wrap=modules_to_wrap)
-
-Please see documentation of ``auto_wrap_policy`` at https://pytorch.org/docs/stable/fsdp.html for additional details.
-
-"""
 
 _valid_distributed_single_node_nnodes = ["1:1", "1"]
 
@@ -180,105 +147,6 @@ def validate_no_params_on_meta_device(model: nn.Module) -> None:
             raise RuntimeError(f"Unexpected param or buffer {n} on meta device.")
 
 
-def contains_fsdp(model: nn.Module) -> bool:
-    """
-    Checks if the model contains FSDP.
-
-    Args:
-        model (nn.Module): Model to check.
-
-    Returns:
-        bool: True if the model contains FSDP, False otherwise.
-    """
-    return any(
-        isinstance(m, torch.distributed.fsdp.FullyShardedDataParallel)
-        for m in model.modules()
-    )
-
-
-def _dummy_reset_params(x: nn.Module) -> None:
-    """
-    Dummy method for patching no-op reset_parameters() when using
-    FSDP with meta device.
-    """
-    return
-
-
-def prepare_model_for_fsdp_with_meta_device(model: nn.Module) -> nn.Module:
-    """
-    Dynamically define reset_parameters on every submodule of the model. For LoRA models,
-    ensure that the FSDP contract of reset_parameters only modifying a module's directly-owned
-    parameters is satisfied. More details here: https://github.com/pytorch/pytorch/issues/104187.
-
-    Args:
-        model (nn.Module): model class to prepare for usage with FSDP and meta device.
-
-    Returns:
-        nn.Module: Model with reset_parameters defined on every submodule.
-        In the case of a LoRA model, we override the default reset_parameters of nn.Linear.
-
-    Raises:
-        RuntimeError: if model contains submodule with non-callable attribute reset_parameters
-    """
-    for k, v in model.named_modules():
-        # If the module does not have reset_parameters defined, we define
-        # a no-op reset_parameters method to satisfy FSDP's contract.
-        reset_params = getattr(v, "reset_parameters", None)
-
-        if reset_params is not None and not callable(reset_params):
-            raise RuntimeError(
-                f"Cannot override existing reset_parameters variable for FSDP init in {k}"
-            )
-
-        if reset_params is None:
-            v.reset_parameters = _dummy_reset_params.__get__(v)
-
-        # This will define reset_parameters for LoRA weight initialization
-        # directly on any LoRALinear submodules lora_a and lora_b.
-        if isinstance(v, LoRALinear) or isinstance(v, DoRALinear):
-            v.lora_a.reset_parameters = _lora_a_init_params.__get__(v.lora_a)
-            v.lora_b.reset_parameters = _lora_b_init_params.__get__(v.lora_b)
-
-    return model
-
-
-def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
-    """
-    A default policy for wrapping models trained with LoRA using FSDP.
-
-    FSDP's default behavior is to allocate gradients at the level of FSDP-wrapped modules.
-    This means that if any parameter in a given FSDP-wrapped module requires gradients, then memory will be
-    allocated for gradients for the entire module.
-
-    In the case of LoRA, where only the adapters are trainable, this means that
-    we need to wrap the adapter submodules in their own FSDP units to
-    maximize memory savings. After this is done, model will also be hierarchically wrapped
-    based on nn.Module types specified in ``modules_to_wrap``.
-
-    Args:
-        modules_to_wrap (Set[Type]): nn.Module types to recursively wrap
-
-    Returns:
-        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``. Please see
-        documentation for :const:`~torchtune.utils.FSDPPolicyType` for additional details.
-    """
-
-    def lora_wrap_fsdp(module: nn.Module, recurse: bool, **kwargs):
-        if recurse:
-            return True
-
-        # Assumes lora_a and lora_b are nn.Linears that are the
-        # only trainable modules in the entire network. Wraps
-        # these in separate FSDP unit to work around FSDP allocating
-        # extra gradient memory when wrapped with other modules.
-        if hasattr(module, "weight") and module.weight.requires_grad:
-            return True
-
-        return isinstance(module, tuple(modules_to_wrap))
-
-    return lora_wrap_fsdp
-
-
 def load_from_full_model_state_dict(
     model: "FSDPModule",  # noqa
     full_sd: Dict[str, Any],
@@ -300,8 +168,14 @@ def load_from_full_model_state_dict(
     for param_name, full_tensor in full_sd.items():
         sharded_meta_param = meta_sharded_sd.get(param_name)
         full_tensor = full_tensor.to(sharded_meta_param.dtype).to(device)
-        if isinstance(sharded_meta_param._local_tensor, NF4Tensor):
-            full_tensor = to_nf4(full_tensor)
+        if hasattr(sharded_meta_param, "_local_tensor") and isinstance(
+            sharded_meta_param._local_tensor, NF4Tensor
+        ):
+            block_size = sharded_meta_param._local_tensor.block_size
+            scaler_block_size = sharded_meta_param._local_tensor.scaler_block_size
+            full_tensor = to_nf4(
+                full_tensor, block_size=block_size, scaler_block_size=scaler_block_size
+            )
             # replicating logic from `_fsdp_param.py`` `_init_sharded_param`
             # otherwise `distribute_tensor(DTensor(local=NF4))`
             # requires dispatching `c10d.scatter_``
@@ -333,6 +207,9 @@ def load_from_full_model_state_dict(
                 requires_grad=sharded_meta_param.requires_grad,
             )
 
+        elif not hasattr(sharded_meta_param, "device_mesh"):
+            # In cases where parts of the model aren't sharded, some parameters will be plain tensors
+            sharded_tensor = full_tensor
         else:
             sharded_tensor = distribute_tensor(
                 full_tensor,
@@ -346,88 +223,64 @@ def load_from_full_model_state_dict(
     return model.load_state_dict(sharded_sd, strict=strict, assign=True)
 
 
-def get_full_model_state_dict(
-    model: "FSDPModule",  # noqa
+def _gather_nf4_tensor(sharded_param: nn.Parameter) -> nn.Parameter:
+    """
+    Manually gather NF4Tensor parameter since it does not support all_gather
+    """
+    mesh = sharded_param.device_mesh
+    nf4_tensor = sharded_param._local_tensor
+    quant_params, metadata = nf4_tensor.fsdp_pre_all_gather(mesh)
+    full_quant_params = []
+    for quant_param in quant_params:
+        d0, *dn = quant_param.shape
+        shape = (d0 * mesh.get_group().size(), *dn)
+        full_quant_param = torch.empty(
+            shape, device=quant_param.device, dtype=quant_param.dtype
+        )
+        dist.all_gather_into_tensor(
+            full_quant_param, quant_param, mesh.get_group(), async_op=False
+        )
+        full_quant_params.append(full_quant_param)
+    full_param, _ = nf4_tensor.fsdp_post_all_gather(
+        full_quant_params, metadata, nf4_tensor.dtype
+    )
+    return full_param
+
+
+def gather_cpu_state_dict(
+    sharded_sd: Dict[str, DTensor],  # noqa
     is_rank_zero: bool,
     device: Optional[torch.device] = None,
-    trainable_only: bool = False,
 ) -> Dict[str, Any]:
     """
     Converting sharded state dict into a full state dict on CPU
-    Returning non-empty result on rank0 to avoid peaking CPU memory
+    Returning non-empty result only on rank0 to avoid peaking CPU memory
 
     Args:
-        model (FSDPModule): wrapped module
+        sharded_sd (Dict[str, DTensor]): Sharded state dict of DTensors
         is_rank_zero (bool): flag to check if the process is on rank 0
         device (Optional[torch.device]): device to use for sharded tensors. Default: None
-        trainable_only (bool): flag to check if only trainable parameters should be returned. Default: False
-
-    Raises:
-        AssertionError: if the model contains NF4Tensor and the model is not wrapped with FSDP
 
     Returns:
         Dict[str, Any]: State dict on CPU
     """
-    # [Warning] FSDPModel.state_dict converts all Parameter Tensors to DTensors
-    sharded_sd = model.state_dict()
     cpu_state_dict = {}
-    has_nf4 = any(
-        isinstance(param._local_tensor, NF4Tensor) for param in model.parameters()
-    )
-    if has_nf4:
-        from torch.distributed._composable.fsdp.fully_shard import FSDPModule
-
-        # Iterating from lowerer modules to higher
-        # Unsharding lora adapters before unsharding transformer block
-        for module_name, module in reversed(list(model.named_modules())):
-            if not isinstance(module, FSDPModule):
-                continue
-            module.unshard(async_op=False)
-            if is_rank_zero:
-                module_name = module_name.replace(f".{_CHECKPOINT_WRAPPED_MODULE}", "")
-                for local_fqn, param in module.named_parameters():
-                    local_fqn = local_fqn.replace(f".{_CHECKPOINT_WRAPPED_MODULE}", "")
-                    if len(module_name) > 0:
-                        full_fqn = module_name + "." + local_fqn
-                    else:
-                        full_fqn = local_fqn
-                    if trainable_only and not param.requires_grad:
-                        # skip trainable params when trainable_only is True
-                        continue
-                    if full_fqn in cpu_state_dict:
-                        # Iterate over every param in every module bottoms-up
-                        # When lower TransformerBlock gets unsharded,
-                        # we insert  (full_fqn, full_tensor) into cpu_state_dict.
-                        # When higher Transformer gets unsharded, we avoid updating
-                        # params from lower TransformerBlockonly again. Instead, only updating
-                        # tok_embeddings etc that belongs to Transformer
-                        continue
-                    if isinstance(param, NF4Tensor):
-                        # upcasting NF4 to original dtype
-                        param = param.to(param.dtype)
-                    if isinstance(param, DTensor):
-                        raise AssertionError(
-                            f"Internal error: expect unsharded {full_fqn} in plain torch.Tensor but got DTensor."
-                            " Might be a bug in get_full_model_state_dict"
-                        )
-                    cpu_state_dict[full_fqn] = param.cpu()
-            module.reshard()
-    else:
-        for param_name, sharded_param in sharded_sd.items():
-            # without this, it may hang forever for +70B models.
-            torch.distributed.barrier()
-            if sharded_param.is_cpu:
-                assert device is not None and device.type == "cuda", (
-                    f"Expect cuda but got device={device}. "
-                    "Please call get_full_model_state_dict(..., device=self._device),"
-                    " so DTensor can communicate over NCCL."
-                )
-                sharded_param = sharded_param.to(device)
-            full_param = sharded_param.full_tensor()
-            if is_rank_zero:
-                cpu_state_dict[param_name] = full_param.cpu()
+    for param_name, param in sharded_sd.items():
+        if param.is_cpu:
+            # Move back to device if offloaded to CPU
+            param = param.to(device)
+        if hasattr(param, "_local_tensor"):
+            if isinstance(param._local_tensor, NF4Tensor):
+                param = _gather_nf4_tensor(param)
             else:
-                del full_param
+                # Gather DTensor
+                param = param.full_tensor()
+        if isinstance(param, NF4Tensor):
+            # upcasting NF4 to original dtype
+            param = param.to(param.dtype)
+        if is_rank_zero:
+            cpu_state_dict[param_name] = param.cpu()
+        torch.distributed.barrier()
     return cpu_state_dict
 
 
@@ -525,66 +378,6 @@ def load_from_full_optimizer_state_dict(
             "state": state,
         }
     )
-
-
-def get_full_finetune_fsdp_wrap_policy(
-    memory_efficient_fsdp_wrap: bool, modules_to_wrap: Set[Type]
-) -> FSDPPolicyType:
-    """
-    Retrieves an FSDP wrapping policy based on the specified flags ``memory_efficient_fsdp_wrap`` and
-    ``modules_to_wrap``. Specifically, if ``memory_efficient_fsdp_wrap`` is set to ``True``, the returned
-    policy will wrap the model's token embedding and output projection in addition to the modules specified
-    to maximize memory savings.
-
-    Args:
-        memory_efficient_fsdp_wrap (bool): If ``True``, will also wrap embedding and output projection layers with FSDP.
-        modules_to_wrap (Set[Type]): Set of module types to wrap.
-
-    Note:
-        ``memory_efficient_fsdp_wrap`` memory improvements have currently only been verified on llama3 workloads
-        where they provide ~15% memory improvement (when used alongside AC memory efficient wrapping). Other workloads
-        have not been verified and may not see the same improvements.
-
-    Returns:
-        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel`` as the ``auto_wrap_policy``
-        argument. Please see documentation for :const:`~torchtune.utils.FSDPPolicyType` for additional details.
-    """
-    if memory_efficient_fsdp_wrap:
-        return _memory_efficient_wrap_policy(modules_to_wrap=modules_to_wrap)
-    else:
-        return ModuleWrapPolicy(modules_to_wrap)
-
-
-def _memory_efficient_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
-    """
-    A default policy for memory efficient wrapping for full finetuning using FSDP. Specifically,
-    this will wrap the model's token embedding and output projection into their own FSDP units to
-    maximize memory savings. This helps especially if these layers are particularly large,
-    such as due to a large embedding size.
-    After this is done, model will also be hierarchically wrapped
-    based on nn.Module types specified in ``modules_to_wrap``. This function assumes that the
-    input model has an attribute ``output`` that is a nn.Linear which is the model's output projection.
-    Args:
-        modules_to_wrap (Set[Type]): nn.Module types to recursively wrap
-    Returns:
-        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``.
-    """
-    modules_to_wrap.add(torch.nn.Embedding)
-
-    def llama3_wrap(module: nn.Module, recurse: bool, **kwargs):
-        # Label that output_proj should be wrapped individually.
-        if isinstance(module, TransformerDecoder):
-            module.output._wrap = True
-        if recurse:
-            return True
-
-        # Wrap output_proj individually.
-        if getattr(module, "_wrap", False):
-            return True
-
-        return isinstance(module, tuple(modules_to_wrap))
-
-    return llama3_wrap
 
 
 def get_shard_conditions(

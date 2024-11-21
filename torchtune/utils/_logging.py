@@ -98,4 +98,4 @@ def log_rank_zero(logger: logging.Logger, msg: str, level: int = logging.INFO) -
     rank = dist.get_rank() if dist.is_available() and dist.is_initialized() else 0
     if rank != 0:
         return
-    logger.log(level, msg)
+    logger.log(level, msg, stacklevel=2)

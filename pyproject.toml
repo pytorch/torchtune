@@ -16,6 +16,9 @@ dependencies = [
     "huggingface_hub",
     "safetensors",
 
+    # Kaggle Integrations
+    "kagglehub",
+
     # Tokenization
     "sentencepiece",
     "tiktoken",

@@ -45,6 +45,7 @@ class ModelType(Enum):
 
     Attributes:
         GEMMA (str): Gemma family of models. See :func:`~torchtune.models.gemma.gemma`
+        GEMMA2 (str): Gemma 2 family of models. See :func:`~torchtune.models.gemma2.gemma2`
         LLAMA2 (str): Llama2 family of models. See :func:`~torchtune.models.llama2.llama2`
         LLAMA3 (str): Llama3 family of models. See :func:`~torchtune.models.llama3.llama3`
         LLAMA3_2 (str): Llama3.2 family of models. See :func:`~torchtune.models.llama3_2.llama3_2`
@@ -55,6 +56,7 @@ class ModelType(Enum):
             to a single class for reward modelling.
             See :func:`~torchtune.models.mistral.mistral_reward_7b` or :func:`~torchtune.models.llama2.llama2_reward_7b`
         QWEN2 (str): Qwen2 family of models. See :func:`~torchtune.models.qwen2.qwen2`
+        CLIP_TEXT (str): CLIP text encoder. See :func:`~torchtune.models.clip.clip_text_encoder_large`
 
     Example:
         >>> # Usage in a checkpointer class
@@ -65,6 +67,7 @@ class ModelType(Enum):
     """
 
     GEMMA: str = "gemma"
+    GEMMA2: str = "gemma2"
     LLAMA2: str = "llama2"
     LLAMA3: str = "llama3"
     LLAMA3_2: str = "llama3_2"
@@ -73,6 +76,7 @@ class ModelType(Enum):
     PHI3_MINI: str = "phi3_mini"
     REWARD: str = "reward"
     QWEN2: str = "qwen2"
+    CLIP_TEXT: str = "clip_text"
 
 
 class FormattedCheckpointFiles:

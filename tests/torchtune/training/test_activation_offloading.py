@@ -10,6 +10,8 @@ from tests.test_utils import gpu_test
 from torch import nn
 from torchtune.training import OffloadActivations
 
+NUM_GPU_CYCLES_IN_ONE_SEC = 2000000000  # 2e9 is ~1s worth of GPU cycles
+
 
 @gpu_test(gpu_count=1)
 @pytest.mark.parametrize("use_streams", [True, False])
@@ -46,7 +48,8 @@ def test_offloading_is_same_as_without(use_streams) -> None:
 def test_offloading_works_with_view_outputs() -> None:
     """
     This test is quite contrived but tests against a very obscure situation where
-    any of the outputs of a backward node are a view of the unpacked tensor.
+    any of the outputs of a backward node are a view of the unpacked tensor. (See
+    the first line item under Note: [Track views of the unpacked]).
 
     We want to ensure that if an unpacked tensor may be used later that we do not
     free it too early.
@@ -98,7 +101,7 @@ def test_offloading_works_with_view_outputs() -> None:
 
         @staticmethod
         def backward(ctx, viewed_activation):
-            torch.cuda._sleep(2000000000)  # 2e9 is ~1s worth of GPU cycles
+            torch.cuda._sleep(NUM_GPU_CYCLES_IN_ONE_SEC)
             return viewed_activation == 1
 
     class InspectEarlierActivation(torch.autograd.Function):
@@ -129,3 +132,96 @@ def test_offloading_works_with_view_outputs() -> None:
     # delete the fwd stash to avoid our peek-in-fwd-stash heuristic in the bwd
     ctx.fwd_stash = {}
     loss_c.backward()
+
+
+@gpu_test(gpu_count=1)
+def test_offloading_works_with_view_ac_cached_buffers() -> None:
+    """
+    Similar to test_offloading_works_with_view_outputs, but for when AC stashes
+    a view of the unpacked tensor. See the second line item under Note: [Track
+    views of the unpacked].
+
+    For details on how the following custom autograd function was contrived,
+    please see the image attached to the PR description in #1936. The visual
+    is more helpful than me trying to write a blob of text here.
+    """
+
+    class A(torch.autograd.Function):
+        @staticmethod
+        def forward(ctx, ones):
+            ctx.save_for_backward(ones * 5)  # corruptedly saving 5s
+            return ones
+
+        @staticmethod
+        def backward(ctx, activation_is_ones):
+            fives = ctx.saved_tensors[0]
+            assert torch.all(activation_is_ones)
+            return activation_is_ones
+
+    class B(torch.autograd.Function):
+        @staticmethod
+        def forward(ctx, ones):
+            ctx.save_for_backward(ones.clone())
+            return ones.clone()  # important, a view of 1s will be saved in C
+
+        @staticmethod
+        def backward(ctx, activation_is_ones):
+            saved_tensor = ctx.saved_tensors[0]
+            return activation_is_ones.clone()
+
+    class C(torch.autograd.Function):
+        @staticmethod
+        def forward(ctx, ones):
+            ctx.save_for_backward(ones.t().t())
+            return ones.clone()
+
+        @staticmethod
+        def backward(ctx, grad):
+            saved_tensor = ctx.saved_tensors[0]
+            return saved_tensor == 1
+
+    class D(torch.autograd.Function):
+        @staticmethod
+        def forward(ctx, ones):
+            ctx.save_for_backward(torch.rand_like(ones))
+            return torch.rand_like(ones)
+
+        @staticmethod
+        def backward(ctx, grad):
+            saved_tensor = ctx.saved_tensors[0]
+            torch.cuda._sleep(NUM_GPU_CYCLES_IN_ONE_SEC)
+            return torch.rand_like(grad)
+
+    class E(torch.autograd.Function):
+        @staticmethod
+        def forward(ctx, ones):
+            ctx.save_for_backward(torch.rand_like(ones))
+            return torch.rand_like(ones)
+
+        @staticmethod
+        def backward(ctx, grad):
+            # It doesn't matter what E saves, but it needs to save something
+            # just to trigger AC recompute to fill in this tensor.
+            saved_tensor = ctx.saved_tensors[0]
+            return torch.rand_like(grad)
+
+    def checkpointed_region(b):
+        c = C.apply(b)
+        d = D.apply(c)
+        return E.apply(d)
+
+    def fwd(t):
+        a = A.apply(t)
+        b = B.apply(a)
+        e = torch.utils.checkpoint.checkpoint(
+            checkpointed_region, b, use_reentrant=False
+        )
+        return e.sum()
+
+    tensor = torch.ones(256, 1024, device="cuda", requires_grad=True)
+    ctx = OffloadActivations(use_streams=True)
+    with ctx:
+        loss = fwd(tensor)
+    # delete the fwd stash to avoid our peek-in-fwd-stash heuristic in the bwd
+    ctx.fwd_stash = {}
+    loss.backward()

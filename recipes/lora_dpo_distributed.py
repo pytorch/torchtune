@@ -25,6 +25,7 @@ from torchtune.modules.peft import (
     disable_adapter,
     DoRALinear,
     get_adapter_params,
+    get_adapter_state_dict,
     get_merged_lora_ckpt,
     load_dora_magnitudes,
     LoRALinear,
@@ -121,8 +122,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         _, rank = training.get_world_size_and_rank()
 
-        # _is_rank_zero is used primarily for logging. In the future, the logger
-        # should directly take care of this
         self._is_rank_zero = rank == 0
 
         # logging attributes
@@ -225,7 +224,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
             # log config with parameter override
             self._metric_logger.log_config(cfg)
-            log.info("_metric_logger is initialized.")
+
+        utils.log_rank_zero(log, "metric logger is initialized.")
 
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
@@ -253,8 +253,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
-        if self._is_rank_zero:
-            log.info("Loss is initialized.")
+
+        utils.log_rank_zero(log, "Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -313,11 +313,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._apply_lora_to_mlp = cfg_model.apply_lora_to_mlp
         self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
 
-        if self._is_rank_zero:
-            log.info(
-                "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ..."
-            )
-            init_start = time.perf_counter()
+        init_start = time.perf_counter()
+
+        utils.log_rank_zero(
+            log,
+            "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
+        )
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
@@ -396,10 +397,11 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         )
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
+        utils.log_rank_zero(
+            log,
+            f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
+        )
         if self._is_rank_zero:
-            log.info(
-                f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
-            )
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
@@ -419,8 +421,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 self._device,
             )
 
-        if self._is_rank_zero:
-            log.info("Optimizer and loss are initialized.")
+        utils.log_rank_zero(log, "Optimizer and loss are initialized.")
         return optimizer
 
     def _setup_lr_scheduler(
@@ -435,8 +436,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
         )
-        if self._is_rank_zero:
-            log.info("Learning rate scheduler is initialized.")
+
+        utils.log_rank_zero(log, "Learning rate scheduler is initialized.")
         return lr_scheduler
 
     def _setup_data(
@@ -478,8 +479,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             ),
         )
 
-        if self._is_rank_zero:
-            log.info("Dataset and Sampler are initialized.")
+        utils.log_rank_zero(log, "Dataset and Sampler are initialized.")
 
         return sampler, dataloader
 
@@ -504,8 +504,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         intermediate_checkpoint = epoch + 1 < self.total_epochs
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
-        cpu_state_dict = training.get_full_model_state_dict(
-            self._model,
+        state_dict = self._model.state_dict()
+        if self._save_adapter_weights_only:
+            state_dict = get_adapter_state_dict(state_dict, device=None)
+
+        cpu_state_dict = training.gather_cpu_state_dict(
+            state_dict,
             self._is_rank_zero,
             device=self._device,
         )
@@ -521,23 +525,21 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         # Now that we have the model and opt state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file
         if self._is_rank_zero:
+            if self._save_adapter_weights_only:
+                adapter_state_dict = cpu_state_dict
+            else:
+                # Filter out the adapter keys and weights from the model state dict. These will
+                # be saved separately
+                adapter_state_dict = get_adapter_state_dict(cpu_state_dict)
 
-            # Filter out the adapter keys and weights from the model state dict. These will
-            # be saved separately
-            adapter_key_filter = lambda x: x in self.adapter_params
-            adapter_state_dict = {
-                k: v for k, v in cpu_state_dict.items() if adapter_key_filter(k)
-            }
-            checkpoint_dict.update({training.ADAPTER_KEY: adapter_state_dict})
-
-            # merge the adapter weights and base weights to create the model checkpoint
-            if not self._save_adapter_weights_only:
+                # merge the adapter weights and base weights to create the model checkpoint
                 merged_state_dict = get_merged_lora_ckpt(
                     cpu_state_dict,
                     rank=self._lora_rank,
                     alpha=self._lora_alpha,
                 )
                 checkpoint_dict.update({training.MODEL_KEY: merged_state_dict})
+            checkpoint_dict.update({training.ADAPTER_KEY: adapter_state_dict})
 
             # if training is in-progress, checkpoint the optimizer state and recipe state
             # as well.

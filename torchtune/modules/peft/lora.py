@@ -37,6 +37,13 @@ class LoRALinear(nn.Module, AdapterModule):
             Default: False
         quantize_base (bool): Whether to quantize base linear weight or not.
             Default: False
+        **quantization_kwargs: Keyword arguments to pass to `to_nf4` when quantizing the base linear weight.
+            Examples of valid arguments are `block_size` and `scaler_block_size`, which control the granularity of
+            weight quantization and scaler quantization respectively. This is only used if `quantize_base` is True.
+            Default None
+
+    Raises:
+        ValueError: If ``quantize_base`` is False, but quantization kwargs are provided.
     """
 
     def __init__(
@@ -48,15 +55,30 @@ class LoRALinear(nn.Module, AdapterModule):
         dropout: float = 0.0,
         use_bias: bool = False,
         quantize_base: bool = False,
+        **quantization_kwargs,
     ):
         super().__init__()
         self.in_dim = in_dim
+        self.out_dim = out_dim
         self.rank = rank
         self.alpha = alpha
-        self.out_dim = out_dim
         self.use_bias = use_bias
         self._quantize_base = quantize_base
-        weight, bias = self._create_weight_and_bias()
+
+        if not self._quantize_base and any([v for v in quantization_kwargs.values()]):
+            raise ValueError(
+                f"``quantize_base`` is False, but received the following quantization arguments: {quantization_kwargs}"
+            )
+
+        # Setup weight and bias
+        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=self.use_bias)
+        weight = (
+            linear.weight
+            if not self._quantize_base
+            else to_nf4(linear.weight, **quantization_kwargs)
+        )
+        bias = linear.bias if self.use_bias else None
+
         # 'self.disabled' is a flag showing whether to turn off LoRA adapters,
         # this can be used in DPO for treating the lora adapters as the policy model
         # and disabling it to treat the base model as the reference model
@@ -69,14 +91,6 @@ class LoRALinear(nn.Module, AdapterModule):
         self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=False)
         self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=False)
         self.merged = False
-        # Note: FSDP's meta device initialization contract assumes that a module's
-        # reset_parameters method only initializes its own parameters (i.e. no child
-        # params are initialized, as is done in initialize_parameters below).
-        # For that reason, we patch reset_parameters directly on lora_a and lora_b submodules
-        # when using meta device. This is done in
-        # torchtune.training.prepare_model_for_fsdp_with_meta_device.
-        # See this issue for more details: https://github.com/pytorch/pytorch/issues/104187.
-        # Without meta device, we only need the following:
         self.initialize_parameters()
 
     def initialize_parameters(self):
@@ -84,19 +98,6 @@ class LoRALinear(nn.Module, AdapterModule):
         # https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119
         _lora_a_init_params(self.lora_a)
         _lora_b_init_params(self.lora_b)
-
-    def _create_weight_and_bias(self):
-        """
-        Creates a linear weight and bias tensor, using NF4 dtype if we're quantizing
-        (indicated via quantize_base=True).
-        """
-        in_dim, out_dim, use_bias = self.in_dim, self.out_dim, self.use_bias
-        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
-        weight = linear.weight if not self._quantize_base else to_nf4(linear.weight)
-        bias = None
-        if self.use_bias:
-            bias = linear.bias
-        return weight, bias
 
     def adapter_params(self) -> List[str]:
         """

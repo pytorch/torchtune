@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import contextlib
-from typing import Optional, Union
+from typing import Union
 from warnings import warn
 
 import psutil
@@ -38,9 +38,9 @@ class OffloadActivations(saved_tensors_hooks):
             memory on the CPU. Pinned memory allows the Tensor to be moved back onto GPU more quickly
             but is a limited resource. Default: True.
 
-        use_streams (Optional[bool]): Whether or not to use streams for performance optimization where
+        use_streams (bool): Whether or not to use streams for performance optimization where
             the communications get overlapped with the computation. Requires a torch build
-            after torch-2.5.0.dev20240907. Default: True if a later torch build is found, else False.
+            after torch-2.5.0.]. Default: True.
 
         max_fwd_stash_size (int): The maximum size of the forward stash, or the maximum number of
             consecutive activations to keep alive during the forward pass. This number must be at
@@ -67,15 +67,12 @@ class OffloadActivations(saved_tensors_hooks):
     def __init__(
         self,
         use_pin_memory: bool = True,
-        use_streams: Optional[bool] = None,
+        use_streams: bool = True,
         max_fwd_stash_size: int = 5,
         min_offload_size: int = 1024,
     ) -> None:
-        if use_streams is None:
-            # Default to True if an acceptable torch is installed (later nightly/version or from source)
-            self.use_streams = torch.__version__ >= "2.5.0.dev20240907"
-        else:
-            self.use_streams = use_streams
+
+        self.use_streams: bool = use_streams
 
         self.min_tensor_size_bytes = (
             min_offload_size  # we don't want to bother with small tensors
@@ -98,10 +95,6 @@ class OffloadActivations(saved_tensors_hooks):
 
         # for streaming
         if self.use_streams:
-            if torch.__version__ < "2.5.0.dev20240907":
-                raise RuntimeError(
-                    "OffloadActivations with use_streams=True requires PyTorch 2.5.0.dev20240907 or later."
-                )
             self.s1 = torch.cuda.Stream()  # comms stream
             self.fwd_stash = {}  # tensor_id => (activation, ev1)
             if max_fwd_stash_size < 1:
@@ -289,19 +282,43 @@ class OffloadActivations(saved_tensors_hooks):
                     # Stash the tensor to keep memory alive until compute stream is complete
                     self.bwd_tensor_stash[unpack_tensor_id] = maybe_gpu_tensor
 
+                    # Note: [Track views of the unpacked]
+                    # Why do we get the use count of the unpacked tensor here? We want an
+                    # initial count to compare to later, during the post-hook of the
+                    # backward node, when we need to decide whether we're allowed to free
+                    # the tensor yet. In what obscure cases must we delay freeing the
+                    # tensor (and thus call record_stream)?
+                    # 1. Any of the outputs of the backward node is a view of the unpacked
+                    #    tensor.
+                    # 2. In the case that this unpacked tensor will be used in a
+                    #    checkpointed region, if one of the recomputed saved tensors ends
+                    #    up as a view of the unpacked tensor.
+                    # 3. The user abuses the system somehow and manually relies on the
+                    #    unpacked tensor to exist after the backward node has executed.
+                    storage_refcount = torch._C._storage_Use_Count(
+                        maybe_gpu_tensor.untyped_storage()._cdata
+                    )
+
                 def hook(outputs, inputs):
                     # create events for the current node inputs/outputs if they were streamed in
                     if brought_back_from_cpu:
-                        # if any of the outputs is a view of the tensor, meaning the tensor might be used later,
-                        # we cannot presume to delete it after only the current node is done! So we use our frenemy,
-                        # record_stream, to ensure the Tensor stays unmessed with until it's done getting used
-                        # in the compute stream (s0 here). Note that the con here is we introduce non-deterministic
-                        # memory usage, but this case should not happen often.
+                        # See Note: [Track views of the unpacked]
+                        # IF any of the outputs is a view of the tensor, OR if a view of
+                        # the tensor has been saved as a part of checkpoint's recompute
+                        # process, OR the user has abusedly incurred a reference on the
+                        # unpacked tensor, THEN the tensor might be used later and we
+                        # cannot presume to delete it after only the current node is
+                        # done! So we use our frenemy, record_stream, to ensure the
+                        # Tensor stays unmessed with until it's done getting used in the
+                        # compute stream (s0 here). Note that the con here is we introduce
+                        # non-deterministic (thus higher) memory usage, but this case
+                        # should not happen often.
                         unpacked_tensor = self.bwd_tensor_stash[unpack_tensor_id]
-                        if any(
-                            o.untyped_storage() is unpacked_tensor.untyped_storage()
-                            for o in outputs
-                            if o is not None
+                        if (
+                            torch._C._storage_Use_Count(
+                                unpacked_tensor.untyped_storage()._cdata
+                            )
+                            > storage_refcount
                         ):
                             unpacked_tensor.record_stream(self.s0)
                             del self.bwd_tensor_stash[unpack_tensor_id]
