@@ -108,7 +108,6 @@ class Download(Subcommand):
             "--ignore-patterns",
             type=str,
             required=False,
-            default="*.safetensors",
             help="If provided, files matching any of the patterns are not downloaded. Example: '*.safetensors'",
         )
         self._parser.add_argument(
