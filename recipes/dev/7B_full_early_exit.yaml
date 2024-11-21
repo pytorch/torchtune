@@ -115,7 +115,7 @@ profiler:
 # early exit loss
 # TODO: rename this and variables to early exit loss
 early_exit:
-  layers: "0:10"
-  curriculum: "gradual"
-  scale_type: "one"
+  layers: "0::8"
+  curriculum: "rot"
+  scale_type: "sum_l"
   scale: 1.0
