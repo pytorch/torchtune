@@ -307,7 +307,7 @@ To download the Mistral 7B v0.1 model:
 
 .. code-block:: bash
 
-    tune download mistralai/Mistral-7B-v0.1 --output-dir /tmp/Mistral-7B-v0.2 --ignore-patterns "*.safetensors" --hf-token <HF_TOKEN>
+    tune download mistralai/Mistral-7B-v0.1 --output-dir /tmp/Mistral-7B-v0.1 --ignore-patterns "*.safetensors" --hf-token <HF_TOKEN>
 
 .. autosummary::
     :toctree: generated/
