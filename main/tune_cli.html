@@ -461,7 +461,7 @@ to download files using the CLI.</p>
 </section>
 <section id="download-a-model">
 <span id="tune-download-label"></span><h2>Download a model<a class="headerlink" href="#download-a-model" title="Permalink to this heading">¶</a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">download</span> <span class="pre">&lt;path&gt;</span></code> command downloads any model from the Hugging Face Hub.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">download</span> <span class="pre">&lt;path&gt;</span></code> command downloads any model from the Hugging Face or Kaggle Model Hub.</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 33%" />
@@ -469,7 +469,7 @@ to download files using the CLI.</p>
 </colgroup>
 <tbody>
 <tr class="row-odd"><td><p>--output-dir</p></td>
-<td><p>Directory in which to save the model.</p></td>
+<td><p>Directory in which to save the model. Note: this is option not yet supported when <cite>–source</cite> is set to <cite>kaggle</cite>.</p></td>
 </tr>
 <tr class="row-even"><td><p>--output-dir-use-symlinks</p></td>
 <td><p>To be used with <cite>output-dir</cite>. If set to ‘auto’, the cache directory will be used and the file will be either duplicated or symlinked to the local directory depending on its size. It set to <cite>True</cite>, a symlink will be created, no matter the file size. If set to <cite>False</cite>, the file will either be duplicated from cache (if already exists) or downloaded from the Hub and not cached.</p></td>
@@ -480,6 +480,15 @@ to download files using the CLI.</p>
 <tr class="row-even"><td><p>--ignore-patterns</p></td>
 <td><p>If provided, files matching any of the patterns are not downloaded. Defaults to ignoring safetensors files to avoid downloading duplicate weights.</p></td>
 </tr>
+<tr class="row-odd"><td><p>--source {huggingface,kaggle}</p></td>
+<td><p>If provided, downloads model weights from the provided &lt;path&gt; on the designated source hub.</p></td>
+</tr>
+<tr class="row-even"><td><p>--kaggle-username</p></td>
+<td><p>Kaggle username for authentication. Needed for private models or gated models like Llama2.</p></td>
+</tr>
+<tr class="row-odd"><td><p>--kaggle-api-key</p></td>
+<td><p>Kaggle API key. Needed for private models or gated models like Llama2. You can find your API key at <a class="reference external" href="https://kaggle.com/settings">https://kaggle.com/settings</a>.</p></td>
+</tr>
 </tbody>
 </table>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Meta-Llama-3-8B-Instruct
@@ -488,6 +497,13 @@ Successfully<span class="w"> </span>downloaded<span class="w"> </span>model<span
 ./model/README.md
 ./model/model-00001-of-00002.bin
 ...
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>download<span class="w"> </span>metaresearch/llama-3.2/pytorch/1b<span class="w"> </span>--source<span class="w"> </span>kaggle
+Successfully<span class="w"> </span>downloaded<span class="w"> </span>model<span class="w"> </span>repo<span class="w"> </span>and<span class="w"> </span>wrote<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>following<span class="w"> </span>locations:
+/tmp/llama-3.2/pytorch/1b/tokenizer.model
+/tmp/llama-3.2/pytorch/1b/params.json
+/tmp/llama-3.2/pytorch/1b/consolidated.00.pth
 </pre></div>
 </div>
 <p><strong>Download a gated model</strong></p>
