@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --ignore-patterns None --hf-token <HF_TOKEN>
+#   tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --hf-token <HF_TOKEN>
 #
 # To launch on 2 devices, run the following command from root:
 #   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config phi3/mini_lora
