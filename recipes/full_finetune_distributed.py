@@ -142,8 +142,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             )
             self._log_peak_memory_stats = False
 
-        # _is_rank_zero is used primarily for logging. In the future, the logger
-        # should directly take care of this
         _, rank = training.get_world_size_and_rank()
         self._is_rank_zero = rank == 0
 
@@ -258,7 +256,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
     def setup(self, cfg: DictConfig) -> None:
         """
         Setup the recipe. This includes training state (if resume_from_checkpoint is True),
-        model, tokenizer, loss, optimizer, sampler, and dataloader.
+        model, tokenizer, loss, optimizer, lr scheduler, sampler, and dataloader.
         """
         if self._is_rank_zero:
             self._metric_logger = config.instantiate(cfg.metric_logger)
@@ -302,8 +300,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # set num_output_chunks for model
             self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
 
-        if self._is_rank_zero:
-            log.info("Loss is initialized.")
+        utils.log_rank_zero(log, "Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
@@ -332,6 +329,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
 
+        # Setup lr scheduler
+        self._lr_scheduler = self._setup_lr_scheduler(
+            cfg_lr_scheduler=cfg.get("lr_scheduler", None),
+            num_training_steps=self.total_epochs * self._steps_per_epoch,
+            last_epoch=self.global_step - 1,
+        )
+
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
@@ -340,6 +344,55 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.ignore_labels_cache = torch.full(
             (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
         )
+
+    def _setup_lr_scheduler(
+        self,
+        cfg_lr_scheduler: Optional[DictConfig],
+        num_training_steps: int,
+        last_epoch: int,
+    ) -> Optional[Optimizer]:
+        """
+        Set up the learning rate scheduler based on the provided configuration.
+        It supports both standard optimization and optimizer-in-backward cases.
+
+        Args:
+            cfg_lr_scheduler (Optional[DictConfig]): The learning rate scheduler configuration.
+            num_training_steps (int): The total number of training steps.
+            last_epoch (int): The index of the last epoch.
+
+        Returns:
+            lr_scheduler (Optional[Optimizer]): The learning rate scheduler.
+        """
+        if cfg_lr_scheduler is None:
+            if self._is_rank_zero:
+                log.info(
+                    "No learning rate scheduler configured. Using constant learning rate."
+                )
+            return None
+
+        if self._optimizer_in_bwd:
+            # Use the first optimizer from the wrapper to represent the learning rate
+            optimizer = next(iter(self._optim_ckpt_wrapper.optim_map.values()))
+        else:
+            # Standard case: use the single optimizer
+            optimizer = self._optimizer
+
+        # Instantiate the learning rate scheduler
+        lr_scheduler = config.instantiate(
+            cfg_lr_scheduler,
+            optimizer,
+            num_training_steps=num_training_steps,
+            last_epoch=last_epoch,
+        )
+
+        if self._optimizer_in_bwd:
+            # Modify the scheduler for optimizer_in_bwd case
+            self._optim_ckpt_wrapper.set_lr_scheduler(lr_scheduler)
+
+        if self._is_rank_zero:
+            log.info("Learning rate scheduler is initialized.")
+
+        return lr_scheduler
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
@@ -397,9 +450,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
+        utils.log_rank_zero(
+            log, f" Profiler config after instantiation: {profiler_cfg}"
+        )
         if self._is_rank_zero:
-            log.info(f" Profiler config after instantiation: {profiler_cfg}")
-
             self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
             if profiler_cfg["enabled"]:
                 self.profiler_wait_steps = profiler_cfg["wait_steps"]
@@ -428,11 +482,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
               full state dicts are loaded with ``torch.load(mmap=True)``
         """
 
-        if self._is_rank_zero:
-            log.info(
-                "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ..."
-            )
-            init_start = time.perf_counter()
+        utils.log_rank_zero(
+            log,
+            "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
+        )
+        init_start = time.perf_counter()
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
@@ -498,10 +552,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
 
+        utils.log_rank_zero(
+            log,
+            f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
+        )
         if self._is_rank_zero:
-            log.info(
-                f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
-            )
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
@@ -547,8 +602,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                             "Failed loading in-backward optimizer checkpoints."
                             "Please make sure run being restored from was using in-backward optimizer."
                         ) from e
-            if self._is_rank_zero:
-                log.info("In-backward optimizers are set up.")
+            utils.log_rank_zero(log, "In-backward optimizers are set up.")
             return None
         else:
             optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
@@ -559,8 +613,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     self._device,
                 )
 
-            if self._is_rank_zero:
-                log.info("Optimizer is initialized.")
+            utils.log_rank_zero(log, "Optimizer is initialized.")
             return optimizer
 
     def _setup_data(
@@ -613,8 +666,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ),
         )
 
-        if self._is_rank_zero:
-            log.info("Dataset and Sampler are initialized.")
+        utils.log_rank_zero(log, "Dataset and Sampler are initialized.")
 
         return sampler, dataloader
 
@@ -637,11 +689,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         intermediate_checkpoint = epoch + 1 < self.total_epochs
 
-        if self._is_rank_zero:
-            log.info(
-                "Saving checkpoint. This may take some time. Retrieving full model state dict..."
-            )
-            start = time.perf_counter()
+        utils.log_rank_zero(
+            log,
+            "Saving checkpoint. This may take some time. Retrieving full model state dict...",
+        )
+        start = time.perf_counter()
 
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
@@ -651,15 +703,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             device=self._device,
         )
 
-        if self._is_rank_zero:
-            log.info(
-                f"Getting full model state dict took {time.perf_counter() - start:.2f} secs"
-            )
+        utils.log_rank_zero(
+            log,
+            f"Getting full model state dict took {time.perf_counter() - start:.2f} secs",
+        )
 
         if intermediate_checkpoint:
             start = time.perf_counter()
-            if self._is_rank_zero:
-                log.info("Getting optimizer state dict...")
+            utils.log_rank_zero(log, "Getting optimizer state dict...")
             if not self._optimizer_in_bwd:
                 opt_state_dict = training.get_full_optimizer_state_dict(
                     self._optimizer,
@@ -672,10 +723,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     opt_state_dict[param] = training.get_full_optimizer_state_dict(
                         opt, self._is_rank_zero, device=self._device
                     )
-            if self._is_rank_zero:
-                log.info(
-                    f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs"
-                )
+            utils.log_rank_zero(
+                log,
+                f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs",
+            )
         else:
             opt_state_dict = None
 
@@ -817,6 +868,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
+
+                    # Step the learning rate scheduler
+                    if self._lr_scheduler is not None:
+                        self._lr_scheduler.step()
 
                     loss_to_log = running_loss.item() / num_tokens
                     pbar.update(1)

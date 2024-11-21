@@ -65,7 +65,7 @@ class DoRALinear(nn.Module, AdapterModule):
         self.use_bias = use_bias
         self._quantize_base = quantize_base
 
-        if not self._quantize_base and quantization_kwargs:
+        if not self._quantize_base and any([v for v in quantization_kwargs.values()]):
             raise ValueError(
                 f"``quantize_base`` is False, but received the following quantization arguments: {quantization_kwargs}"
             )

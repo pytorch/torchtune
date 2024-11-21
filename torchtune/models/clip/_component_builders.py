@@ -8,12 +8,13 @@ from functools import partial
 from typing import Callable, List, Optional
 
 from torch import nn
+
 from torchtune.models.clip._position_embeddings import (
     TiledTokenPositionalEmbedding,
     TilePositionalEmbedding,
     TokenPositionalEmbedding,
 )
-
+from torchtune.models.clip._text_encoder import CLIPTextEncoder, QuickGELU
 from torchtune.modules import (
     FeedForward,
     Fp32LayerNorm,
@@ -22,11 +23,8 @@ from torchtune.modules import (
     TransformerSelfAttentionLayer,
     VisionRotaryPositionalEmbeddings,
 )
-
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
-
-from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
-
+from torchtune.modules.peft import LORA_ATTN_MODULES, DoRALinear, LoRALinear
 from torchtune.modules.vision_transformer import CLSProjection, VisionTransformer
 
 
@@ -178,6 +176,65 @@ def clip_vision_encoder(
         embed_dim=embed_dim,
         in_channels=in_channels,
         append_cls_token=append_cls_token,
+    )
+
+
+def clip_text_encoder(
+    embed_dim: int,
+    num_heads: int,
+    num_layers: int,
+    vocab_size: int = 49408,
+    max_seq_len: int = 77,
+    norm_eps: float = 1e-5,
+):
+    """
+    Text encoder for CLIP.
+
+    CLIP is a model that encodes text and images into a shared vector space.
+    Blog post: https://openai.com/index/clip/
+    Paper: https://arxiv.org/abs/2103.00020
+
+    Args:
+        embed_dim (int): embedding/model dimension size
+        num_heads (int): number of attention heads
+        num_layers (int): number of transformer layers
+        vocab_size (int): size of the vocabulary, default 49408
+        max_seq_len (int): context size, default 77
+        norm_eps (float): small value added to denominator for numerical stability, default 1e-5
+
+    Returns:
+        CLIPTextEncoder
+    """
+    attn = MultiHeadAttention(
+        embed_dim=embed_dim,
+        num_heads=num_heads,
+        num_kv_heads=num_heads,
+        head_dim=embed_dim // num_heads,
+        q_proj=nn.Linear(embed_dim, embed_dim),
+        k_proj=nn.Linear(embed_dim, embed_dim),
+        v_proj=nn.Linear(embed_dim, embed_dim),
+        output_proj=nn.Linear(embed_dim, embed_dim),
+    )
+    mlp = clip_mlp(
+        in_dim=embed_dim,
+        out_dim=embed_dim,
+        hidden_dim=embed_dim * 4,
+        activation=QuickGELU(),
+    )
+    encoder_layer = TransformerSelfAttentionLayer(
+        attn=attn,
+        mlp=mlp,
+        sa_norm=nn.LayerNorm(embed_dim, eps=norm_eps),
+        mlp_norm=nn.LayerNorm(embed_dim, eps=norm_eps),
+    )
+    final_norm = nn.LayerNorm(embed_dim, eps=norm_eps)
+    return CLIPTextEncoder(
+        layer=encoder_layer,
+        final_norm=final_norm,
+        vocab_size=vocab_size,
+        max_seq_len=max_seq_len,
+        embed_dim=embed_dim,
+        num_layers=num_layers,
     )
 
 
