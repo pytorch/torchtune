@@ -99,7 +99,7 @@ To download the Llama3.1-405B-Instruct model:
     tune download meta-llama/Meta-Llama-3.1-405B-Instruct --ignore-patterns "original/consolidated*" --hf-token <HF_TOKEN>
 
 To download the Llama3 weights of the above models, you can instead download from `Meta-Llama-3-8B-Instruct` and
-`Meta-Llama-3-70B-Instruct`.
+`Meta-Llama-3-70B-Instruct`, and switch to --ignore-patterns "\*.safetensors"
 
 .. autosummary::
     :toctree: generated/
@@ -307,7 +307,7 @@ To download the Mistral 7B v0.1 model:
 
 .. code-block:: bash
 
-    tune download mistralai/Mistral-7B-v0.1 --output-dir /tmp/Mistral-7B-v0.1 --hf-token <HF_TOKEN>
+    tune download mistralai/Mistral-7B-v0.1 --output-dir /tmp/Mistral-7B-v0.2 --ignore-patterns "*.safetensors" --hf-token <HF_TOKEN>
 
 .. autosummary::
     :toctree: generated/
