@@ -108,7 +108,8 @@ class Download(Subcommand):
             "--ignore-patterns",
             type=str,
             required=False,
-            help="If provided, files matching any of the patterns are not downloaded. Example: '*.safetensors'",
+            help="If provided, files matching any of the patterns are not downloaded. Example: '*.safetensors'. "
+            "Only supported for Hugging Face Hub models.",
         )
         self._parser.add_argument(
             "--source",
