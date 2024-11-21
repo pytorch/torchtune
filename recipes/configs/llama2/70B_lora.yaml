@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download meta-llama/Llama-2-70b-hf --output-dir /tmp/Llama-2-70b-hf --hf-token <HF_TOKEN>
+#   tune download meta-llama/Llama-2-70b-hf --output-dir /tmp/Llama-2-70b-hf --ignore-patterns "*.safetensors" --hf-token <HF_TOKEN>
 #
 # This config needs 8 GPUs to run
 #   # tune run --nproc_per_node 8 lora_finetune_distributed --config llama2/70B_lora

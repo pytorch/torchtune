@@ -34,7 +34,7 @@ class TestTuneDownloadCommand:
 
     def test_download_calls_snapshot(self, capsys, monkeypatch, snapshot_download):
         model = "meta-llama/Llama-2-7b"
-        testargs = f"tune download {model}".split()
+        testargs = f"tune download {model} --ignore-patterns *.safetensors".split()
         monkeypatch.setattr(sys, "argv", testargs)
 
         # Call the first time and get GatedRepoError

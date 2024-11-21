@@ -99,7 +99,7 @@ To download the Llama3.1-405B-Instruct model:
     tune download meta-llama/Meta-Llama-3.1-405B-Instruct --ignore-patterns "original/consolidated*" --hf-token <HF_TOKEN>
 
 To download the Llama3 weights of the above models, you can instead download from `Meta-Llama-3-8B-Instruct` and
-`Meta-Llama-3-70B-Instruct`.
+`Meta-Llama-3-70B-Instruct`, and remove the ignore patterns flag.
 
 .. autosummary::
     :toctree: generated/
@@ -217,7 +217,7 @@ To download the Qwen2.5 1.5B model, for example:
 
 .. code-block:: bash
 
-    tune download Qwen/Qwen2.5-1.5B-Instruct --output-dir /tmp/Qwen2_5-1_5B-Instruct --ignore-patterns None
+    tune download Qwen/Qwen2.5-1.5B-Instruct --output-dir /tmp/Qwen2_5-1_5B-Instruct
 
 .. autosummary::
     :toctree: generated/
@@ -258,7 +258,7 @@ To download the Qwen2 1.5B model, for example:
 
 .. code-block:: bash
 
-    tune download Qwen/Qwen2-1.5B-Instruct --output-dir /tmp/Qwen2-1.5B-Instruct --ignore-patterns None
+    tune download Qwen/Qwen2-1.5B-Instruct --output-dir /tmp/Qwen2-1.5B-Instruct
 
 .. autosummary::
     :toctree: generated/
@@ -283,7 +283,7 @@ To download the Phi-3 Mini 4k instruct model:
 
 .. code-block:: bash
 
-    tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --ignore-patterns None --hf-token <HF_TOKEN>
+    tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --hf-token <HF_TOKEN>
 
 .. autosummary::
     :toctree: generated/
@@ -307,7 +307,7 @@ To download the Mistral 7B v0.1 model:
 
 .. code-block:: bash
 
-    tune download mistralai/Mistral-7B-v0.1 --output-dir /tmp/Mistral-7B-v0.1 --hf-token <HF_TOKEN>
+    tune download mistralai/Mistral-7B-v0.1 --output-dir /tmp/Mistral-7B-v0.1 --ignore-patterns "*.safetensors" --hf-token <HF_TOKEN>
 
 .. autosummary::
     :toctree: generated/
