@@ -91,9 +91,7 @@ class Download(Subcommand):
             "--ignore-patterns",
             type=str,
             required=False,
-            default="*.safetensors",
-            help="If provided, files matching any of the patterns are not downloaded. Defaults to ignoring "
-            "safetensors files to avoid downloading duplicate weights.",
+            help="If provided, files matching any of the patterns are not downloaded. Example: '*.safetensors'",
         )
 
     def _download_cmd(self, args: argparse.Namespace) -> None:
