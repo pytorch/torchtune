@@ -99,7 +99,7 @@ To download the Llama3.1-405B-Instruct model:
     tune download meta-llama/Meta-Llama-3.1-405B-Instruct --ignore-patterns "original/consolidated*" --hf-token <HF_TOKEN>
 
 To download the Llama3 weights of the above models, you can instead download from `Meta-Llama-3-8B-Instruct` and
-`Meta-Llama-3-70B-Instruct`, and switch to --ignore-patterns "\*.safetensors"
+`Meta-Llama-3-70B-Instruct`, and remove the ignore patterns flag.
 
 .. autosummary::
     :toctree: generated/
