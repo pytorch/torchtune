@@ -23,6 +23,8 @@ except ImportError as e:
         """
     ) from e
 
+# Enables faster downloading. For more info: https://huggingface.co/docs/huggingface_hub/en/guides/download#faster-downloads
+# To disable, run `HF_HUB_ENABLE_HF_TRANSFER=0 tune download <model_config>`
 try:
     import os
 
