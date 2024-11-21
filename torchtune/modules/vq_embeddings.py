@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, List, Mapping, Optional, Tuple
+from typing import Tuple
 
 import torch
 from torch import nn, Tensor
@@ -129,29 +129,39 @@ class VectorQuantizedEmbeddings(nn.Module):
                 b is batch size, s is sequence length or time, and d is ``embedding_dim``.
 
         Returns:
-            An instance of :class:`~torchmultimodal.modules.layers.codebook.CodebookOutput`.
+            Tuple[Tensor, Tensor]: The quantized input and the embedding vector ids that were used.
+
+        Raises:
+            ValueError: if input embedding dimension does not match embedding dimension of module
         """
-        if z.shape[-1] != self.embedding_dim:
+        bsz, seq_len, z_embed_dim = z.shape
+        if z_embed_dim != self.embedding_dim:
             raise ValueError(
-                f"Expected last dimension of input tensor ({z.shape[-1]}) to be embedding size of {self.embedding_dim}"
+                f"Expected last dimension of input tensor ({z_embed_dim}) to be embedding size of {self.embedding_dim}"
             )
 
+        # Flatten into batch dimension
+        z_flat = z.view(-1, z_embed_dim)
         # Calculate distances from each encoder, E(x), output vector to each embedding vector, e, ||E(x) - e||^2
-        distances = torch.cdist(z, self.embedding, p=2.0) ** 2
+        distances = torch.cdist(z_flat, self.embedding, p=2.0) ** 2
 
-        # Encoding - select closest embedding vectors, shape [b, s]
-        token_ids = torch.argmin(distances, dim=1)
+        # Encoding - select closest embedding vectors, shape [b * s, ]
+        token_ids_flat = torch.argmin(distances, dim=1)
 
-        # Quantize - shape [b, s, d]
-        quantized = self.lookup(token_ids)
+        # Quantize - shape [b * s, d]
+        quantized_flat = self.lookup(token_ids_flat)
 
         # Use exponential moving average to update the embedding instead of a codebook loss,
         # as suggested by Oord et al. 2017 and Razavi et al. 2019.
         if self.training and self.learnable:
-            self._ema_update_embedding(z, token_ids)
+            self._ema_update_embedding(z_flat, token_ids_flat)
 
         # Straight through estimator
-        quantized = z + (quantized - z).detach()
+        quantized_flat = z_flat + (quantized_flat - z_flat).detach()
+
+        # Reshape to original - [b, s, d] and [b, s]
+        quantized = quantized_flat.view(bsz, seq_len, z_embed_dim)
+        token_ids = token_ids_flat.view(bsz, seq_len)
 
         return quantized, token_ids
 
