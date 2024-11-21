@@ -56,16 +56,10 @@ class TextCompletionDataset(Dataset):
             self._data = self._data.filter(filter_fn)
 
     def __len__(self):
-        if self._num_samples is None or not self._streaming:
-            return len(self._data)
-        else:
-            return self._num_samples
+        return len(self._data)
 
     def __getitem__(self, index: int) -> Dict[str, List[int]]:
-        if self._streaming:
-            sample = next(self._data_itr)
-        else:
-            sample = self._data[index]
+        sample = self._data[index]
         return self._prepare_sample(sample)
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
