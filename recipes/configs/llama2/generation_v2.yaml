@@ -1,7 +1,7 @@
 # Config for running the InferenceRecipe in generate_V2.py to generate output from an LLM
 #
 # This config assumes that you've run the following command before launching:
-#   tune download meta-llama/Llama-2-7b-chat-hf --output-dir /tmp/Llama-2-7b-chat-hf
+#   tune download meta-llama/Llama-2-7b-chat-hf --output-dir /tmp/Llama-2-7b-chat-hf --ignore-patterns "*.safetensors"
 #
 # To launch, run the following command:
 #    tune run dev/generate_v2 --config llama2/generation_v2
