@@ -539,7 +539,7 @@
 </pre></div>
 </div>
 <p>To download the Llama3 weights of the above models, you can instead download from <cite>Meta-Llama-3-8B-Instruct</cite> and
-<cite>Meta-Llama-3-70B-Instruct</cite>.</p>
+<cite>Meta-Llama-3-70B-Instruct</cite>, and remove the ignore patterns flag.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3.llama3.html#torchtune.models.llama3.llama3" title="torchtune.models.llama3.llama3"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3.llama3</span></code></a></p></td>
@@ -722,7 +722,7 @@
 <h2>qwen-2.5<a class="headerlink" href="#qwen-2-5" title="Permalink to this heading">¶</a></h2>
 <p>Models of size 0.5B, 1.5B, 3B, 7B, 14B, 32B, 72B from the <a class="reference external" href="https://huggingface.co/collections/Qwen/qwen25-66e81a666513e518adb90d9e">Qwen2.5 family</a>.</p>
 <p>To download the Qwen2.5 1.5B model, for example:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>Qwen/Qwen2.5-1.5B-Instruct<span class="w"> </span>--output-dir<span class="w"> </span>/tmp/Qwen2_5-1_5B-Instruct<span class="w"> </span>--ignore-patterns<span class="w"> </span>None
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>Qwen/Qwen2.5-1.5B-Instruct<span class="w"> </span>--output-dir<span class="w"> </span>/tmp/Qwen2_5-1_5B-Instruct
 </pre></div>
 </div>
 <table class="autosummary longtable docutils align-default">
@@ -809,7 +809,7 @@
 <h2>qwen-2<a class="headerlink" href="#qwen-2" title="Permalink to this heading">¶</a></h2>
 <p>Models of size 0.5B, 1.5B, and 7B from the <a class="reference external" href="https://huggingface.co/collections/Qwen/qwen2-6659360b33528ced941e557f">Qwen2 family</a>.</p>
 <p>To download the Qwen2 1.5B model, for example:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>Qwen/Qwen2-1.5B-Instruct<span class="w"> </span>--output-dir<span class="w"> </span>/tmp/Qwen2-1.5B-Instruct<span class="w"> </span>--ignore-patterns<span class="w"> </span>None
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>Qwen/Qwen2-1.5B-Instruct<span class="w"> </span>--output-dir<span class="w"> </span>/tmp/Qwen2-1.5B-Instruct
 </pre></div>
 </div>
 <table class="autosummary longtable docutils align-default">
@@ -848,7 +848,7 @@
 <h2>phi-3<a class="headerlink" href="#phi-3" title="Permalink to this heading">¶</a></h2>
 <p>Models from the <a class="reference external" href="https://news.microsoft.com/source/features/ai/the-phi-3-small-language-models-with-big-potential/">Phi-3 mini family</a>.</p>
 <p>To download the Phi-3 Mini 4k instruct model:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>microsoft/Phi-3-mini-4k-instruct<span class="w"> </span>--output-dir<span class="w"> </span>/tmp/Phi-3-mini-4k-instruct<span class="w"> </span>--ignore-patterns<span class="w"> </span>None<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>microsoft/Phi-3-mini-4k-instruct<span class="w"> </span>--output-dir<span class="w"> </span>/tmp/Phi-3-mini-4k-instruct<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
 </pre></div>
 </div>
 <table class="autosummary longtable docutils align-default">
@@ -884,7 +884,7 @@
 <p>All models from <a class="reference external" href="https://mistral.ai/technology/#models">Mistral AI family</a>.</p>
 <p>Important: You need to request access on <a class="reference external" href="https://huggingface.co/mistralai/Mistral-7B-v0.1">Hugging Face</a> to download this model.</p>
 <p>To download the Mistral 7B v0.1 model:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>mistralai/Mistral-7B-v0.1<span class="w"> </span>--output-dir<span class="w"> </span>/tmp/Mistral-7B-v0.1<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>mistralai/Mistral-7B-v0.1<span class="w"> </span>--output-dir<span class="w"> </span>/tmp/Mistral-7B-v0.1<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;*.safetensors&quot;</span><span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
 </pre></div>
 </div>
 <table class="autosummary longtable docutils align-default">
