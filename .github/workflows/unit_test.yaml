@@ -34,7 +34,9 @@ jobs:
         run: python -m pip install --upgrade pip
       - name: Install dependencies
         run: |
-          python -m pip install torch torchvision torchao
+          NIGHTLY_VERSION=dev20241121
+          python -m pip install torch=="2.6.0.${NIGHTLY_VERSION}" torchvision=="0.20.0.${NIGHTLY_VERSION}" --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+          python -m pip install torchao
           python -m pip install -e ".[dev]"
       - name: Run unit tests with coverage
         run: pytest tests --cov=. --cov-report=xml --durations=20 -vv
