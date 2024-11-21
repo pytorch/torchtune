@@ -766,7 +766,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                         # TODO: finish this feature
                         # try:
-                        current_loss = self._loss_step(batch) * current_num_tokens
+                        current_loss = self._loss_step(batch)
                         # except RuntimeError as e:
                         #     log.error(f"Error in validation loss computation: {e}")
                         #     val_loss = torch.tensor(0.0, device=self._device)

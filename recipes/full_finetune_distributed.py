@@ -893,7 +893,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     # Compute loss
                     # Loss is normalized by default so we multiply by the number of tokens
                     # This way we can normalize by the total number of tokens if we're accumulating gradients
-                    current_loss = self._loss_fn(logits, labels) * current_num_tokens
+                    current_loss = self._loss_fn(logits, labels)
 
                     # free logits otherwise it peaks backward memory
                     del logits
