@@ -18,6 +18,7 @@ from torchtune.models import convert_weights
 from torchtune.models.clip._convert_weights import clip_text_hf_to_tune
 from torchtune.models.phi3._convert_weights import phi3_hf_to_tune, phi3_tune_to_hf
 from torchtune.models.qwen2._convert_weights import qwen2_hf_to_tune, qwen2_tune_to_hf
+from torchtune.models.t5._convert_weights import t5_encoder_hf_to_tune
 from torchtune.rlhf.utils import reward_hf_to_tune, reward_tune_to_hf
 from torchtune.training.checkpointing._utils import (
     FormattedCheckpointFiles,
@@ -501,6 +502,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 num_kv_heads=self._config["num_key_value_heads"],
                 dim=self._config["hidden_size"],
                 head_dim=self._config.get("head_dim", None),
+            )
+        elif self._model_type == ModelType.T5_ENCODER:
+            converted_state_dict[training.MODEL_KEY] = t5_encoder_hf_to_tune(
+                merged_state_dict,
             )
         else:
             converted_state_dict[training.MODEL_KEY] = convert_weights.hf_to_tune(
