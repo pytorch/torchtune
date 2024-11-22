@@ -147,7 +147,9 @@ def set_default_dtype(dtype: torch.dtype) -> Generator[None, None, None]:
 
 
 def validate_expected_param_dtype(
-    named_params: Iterable[Tuple[str, torch.nn.Parameter]], dtype: torch.dtype, exclude_param_names: Optional[List[str]] = None,
+    named_params: Iterable[Tuple[str, torch.nn.Parameter]],
+    dtype: torch.dtype,
+    exclude_param_names: Optional[List[str]] = None,
 ) -> None:
     """
     Validates that all input parameters have the expected dtype.
@@ -162,7 +164,7 @@ def validate_expected_param_dtype(
     """
     for name, param in named_params:
         if exclude_param_names is not None:
-            if any(n in name for n in exclude_param_names): 
+            if any(n in name for n in exclude_param_names):
                 continue
         if param.dtype != dtype:
             raise ValueError(
