@@ -207,6 +207,7 @@ def safe_torch_load(
                 map_location="cpu",
                 mmap=mmap,
                 weights_only=weights_only,
+                # TODO: should we add assign=True?
             )
     except Exception as e:
         raise ValueError(f"Unable to load checkpoint from {checkpoint_path}. ") from e

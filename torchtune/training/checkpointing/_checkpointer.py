@@ -343,16 +343,24 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         adapter_checkpoint: Optional[str] = None,
         recipe_checkpoint: Optional[str] = None,
         resume_from_checkpoint: bool = False,
-        safe_serialization: bool = False,
+        safe_serialization: bool = True,
     ) -> None:
         self._checkpoint_dir = Path(checkpoint_dir)
 
+        # e.g.
+        # checkpoint_files:
+        #   filename_format: model-{}-of-{}.safetensors
+        #   max_filename: 00191
         if not isinstance(checkpoint_files, List):
             formatted_checkpoint_files = FormattedCheckpointFiles.from_dict(
                 checkpoint_files
             )
             checkpoint_files = formatted_checkpoint_files.build_checkpoint_filenames()
+
+        # e.g.checkpoint_files = [model-00001-of-00002.safetensors, model-00002-of-00002.safetensors]
         self._checkpoint_paths = self._validate_hf_checkpoint_files(checkpoint_files)
+
+        # TODO: add logic to look at the folder
         self._adapter_checkpoint = (
             get_path(self._checkpoint_dir, adapter_checkpoint)
             if adapter_checkpoint
@@ -380,6 +388,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         # recipe_checkpoint contains the recipe state. This should be available if
         # resume_from_checkpoint is True
         self._recipe_checkpoint = None
+
+        # TODO: add logic here to check inside of intermediate_checkpoints
         if self._resume_from_checkpoint:
             if recipe_checkpoint is None:
                 raise ValueError(
