@@ -120,7 +120,7 @@ class AttentionTest(unittest.TestCase):
         et_res = self.et_mha(self.x, self.x)  # Self attention.
         tt_res = self.tt_mha(self.x, self.x)  # Self attention.
 
-        self.assertTrue(torch.allclose(et_res, tt_res))
+        assert_close(et_res, tt_res)
         self.et_mha.reset_cache()
         self.tt_mha.reset_cache()
 
@@ -131,7 +131,7 @@ class AttentionTest(unittest.TestCase):
             self.x, self.x, input_pos=self.input_pos
         )  # Self attention with input pos.
 
-        self.assertTrue(torch.allclose(et_res, tt_res))
+        assert_close(et_res, tt_res)
 
         # test kv cache read. Input pos can be [10, 11, ..., 19]
         next_input_pos = torch.arange(10, 20).unsqueeze(0)
@@ -213,7 +213,7 @@ class AttentionTest(unittest.TestCase):
             self.x, self.x, mask=mask, input_pos=self.input_pos
         )  # Self attention with input pos.
 
-        self.assertTrue(torch.allclose(et_res, tt_res))
+        assert_close(et_res, tt_res)
 
         # Second run test kv cache read. Input pos is [10, 11, ..., 19]
         next_input_pos = torch.arange(10, 20).unsqueeze(0)
