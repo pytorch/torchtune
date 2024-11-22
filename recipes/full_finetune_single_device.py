@@ -37,8 +37,6 @@ Summary of changes made to the original code:
         - added new args
     - setup():
         - added validation dataloader
-    - setup_model():
-        - added `max_seq_len` to the model 
     - save_checkpoints(): 
         - added the `save_checkpoints` argument and according logic
     - _skip_max_seq_len_samples()
@@ -462,10 +460,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
 
-        # NOTE: added by us
-        if self.max_seq_len is not None:
-            model.max_seq_len = self.max_seq_len
-
         if compile_model:
             training.compile_model(model)
 
@@ -721,7 +715,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         Skip samples that are too long. This is needed for the training loop to handle
         samples that are too long to fit in the model.
         """
-        return len(batch["tokens"][0]) > self._model.max_seq_len
+        return len(batch["tokens"][0]) > self.max_seq_len
 
     def train(self) -> None:
         """

@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import logging
 from typing import Any, Callable, Dict, List, Mapping, Optional
 
 import numpy as np
@@ -297,6 +298,10 @@ def preference_dataset(
         column_map=column_map,
         new_system_prompt=new_system_prompt,
     )
+
+    # NOTE: added by us:
+    logging.info("adding a `packed` key to the dataset for compatibility purposes")
+    load_dataset_kwargs.pop("packed")
 
     return PreferenceDataset(
         source=source,

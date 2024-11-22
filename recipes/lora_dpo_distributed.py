@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from copy import deepcopy
 import sys
 import time
 
@@ -37,6 +38,14 @@ from torchtune.rlhf.loss import SimPOLoss
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
+
+"""
+Summary of changes:
+    - Same as usual
+    - no need to add a `real_num_tokens` variable this time: 
+            the `num_tokens` variable is already being updated correctly
+
+"""
 
 
 class LoRADPORecipeDistributed(FTRecipeInterface):
@@ -123,6 +132,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         _, rank = training.get_world_size_and_rank()
 
         self._is_rank_zero = rank == 0
+        print("\n\nrank = ", rank)
 
         # logging attributes
         self._output_dir = cfg.output_dir
@@ -148,6 +158,11 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+
+        # NOTE: added by us
+        self.save_checkpoints_interval = cfg.get("save_checkpoints", 1)
+        self.max_seq_len = cfg.get("max_seq_len", None)
+        self._max_validation_steps = cfg.get("max_validation_steps", None)
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -256,12 +271,25 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         utils.log_rank_zero(log, "Loss is initialized.")
 
+        # NOTE: no collate_func in this recipe
+
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
+        cfg.dataset["split"] = "train"  # NOTE: added by us
         self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
+        )
+
+        # NOTE: added by us
+        # validation dataloader
+        cfg["validation_dataset"] = deepcopy(cfg.dataset)
+        cfg["validation_dataset"]["split"] = "validation"
+        self._sampler_validation, self._dataloader_validation = self._setup_data(
+            cfg_dataset=cfg["validation_dataset"],
+            shuffle=cfg.shuffle,
+            batch_size=cfg.batch_size,  # TODO: have a separate batch size for validation
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -322,6 +350,10 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
+
+        # NOTE: added by us
+        if self.max_seq_len is not None:
+            model.max_seq_len = self.max_seq_len
 
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
@@ -498,6 +530,21 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         Checkpointer will save the merged weights, adapter weights and recipe state in
         different checkpoint files. To correctly resume from training, the adapter weights
         and recipe state must be provided along with the base model weights."""
+
+        # NOTE: added by us
+        if self.save_checkpoints_interval:
+            if epoch + 1 == self.total_epochs:
+                pass
+            elif (
+                self.save_checkpoints_interval > 0
+                and epoch % self.save_checkpoints_interval == 0
+            ):
+                pass
+            else:
+                return
+        else:
+            return
+
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
 
@@ -598,6 +645,14 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits)
 
+    # NOTE: added by us
+    def _skip_max_seq_len_samples(self, batch: Dict[str, torch.Tensor]) -> bool:
+        """
+        Skip samples that are too long. This is needed for the training loop to handle
+        samples that are too long to fit in the model.
+        """
+        return any(len(item) > self.max_seq_len for item in batch[0])
+
     def train(self) -> None:
         """
         The core training loop.
@@ -621,15 +676,122 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
+            self._sampler_validation.set_epoch(curr_epoch)  # NOTE: added by us
 
-            pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
-            for idx, batch in enumerate(self._dataloader):
+            # NOTE: added by us
+            # ------ Validation Step ------ #
+            self._model.eval()
+
+            with torch.no_grad():
+                running_val_loss = 0
+                num_eval_steps = (
+                    min(self._max_validation_steps, len(self._dataloader_validation))
+                    if self._max_validation_steps is not None
+                    else len(self._dataloader_validation)
+                )
+                # NOTE: added by us
+                # start a counter for samples that are too long
+                max_len_samples = 0
+
+                pbar_val = tqdm(total=num_eval_steps, desc="Validation")
+                # NOTE: added by us - counter to account for samples that are too long
+                idx = 0
+                for _, batch in enumerate(self._dataloader_validation):
+
+                    if (
+                        self._max_validation_steps is not None
+                        and idx == self._max_validation_steps
+                    ):
+                        break
+
+                    # NOTE: added by us
+                    if self._skip_max_seq_len_samples(batch):
+                        max_len_samples += 1
+                        continue
+
+                    # batch is input_ids, labels
+                    num_tokens += batch[0].numel()
+
+                    (
+                        policy_chosen_log_probs,
+                        policy_rejected_log_probs,
+                        policy_chosen_logits,
+                        policy_rejected_logits,
+                    ) = self.concatenated_forward(self._model, batch)
+
+                    policy_chosen_logits_mean = policy_chosen_logits.detach().mean()
+                    policy_rejected_logits_mean = policy_rejected_logits.detach().mean()
+
+                    # deleting logits here helps reduce (peak) memory usage - we only need them for metric logging
+                    del policy_chosen_logits, policy_rejected_logits
+
+                    if isinstance(self._loss_fn, SimPOLoss):
+                        loss, chosen_rewards, rejected_rewards = self._loss_fn(
+                            policy_chosen_log_probs, policy_rejected_log_probs
+                        )
+                    else:
+                        # reference based losses (e.g. DPO) explicitly regularize the objective fn based on
+                        # the reference model's output - reference-free losses (such as SimPO) don't require this.
+                        with torch.no_grad(), disable_adapter(self._model):
+                            (
+                                reference_chosen_log_probs,
+                                reference_rejected_log_probs,
+                                _,
+                                _,
+                            ) = self.concatenated_forward(self._model, batch)
+                        loss, chosen_rewards, rejected_rewards = self._loss_fn(
+                            policy_chosen_log_probs,
+                            policy_rejected_log_probs,
+                            reference_chosen_log_probs,
+                            reference_rejected_log_probs,
+                        )
+
+                    loss = loss.mean()
+                    reward_accuracies = (chosen_rewards > rejected_rewards).float()
+
+                    loss = loss
+                    running_val_loss += loss
+                    pbar_val.update(1)
+                    pbar_val.set_description(
+                        f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {loss / (idx + 1)}"
+                    )
+                    idx += 1
+
+                mean_val_loss = running_val_loss / (idx + 1 - max_len_samples)
+                if self._is_rank_zero:
+                    self._metric_logger.log_dict(
+                        {"val_loss": mean_val_loss},
+                        step=self.global_step,
+                    )
+                pbar_val.close()
+                print("Number of samples that were too long: ", max_len_samples)
+
+            # ------ Training Epoch ------ #
+            # Initialize tokens count and running loss (for grad accumulation)
+            t0 = time.perf_counter()
+            running_loss = 0
+            num_tokens = 0
+            max_len_samples = 0
+            self._model.train()  # NOTE: added by us
+
+            pbar = tqdm(
+                total=self._steps_per_epoch, disable=not (rank == 0), desc="Training"
+            )
+            # NOTE: added by us - counter to account for samples that are too long
+            idx = 0
+            for _, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)
                     == self.max_steps_per_epoch
                 ):
                     break
+
+                # NOTE: added by us
+                if self._skip_max_seq_len_samples(batch):
+                    max_len_samples += 1
+                    # TODO: eventually remove this
+                    continue
 
                 # batch is input_ids, labels
                 num_tokens += batch[0].numel()
@@ -728,6 +890,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     running_loss = 0
                     num_tokens = 0
                     t0 = time.perf_counter()
+
+                idx += 1  # NOTE: added by us
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)

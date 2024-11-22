@@ -442,10 +442,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
 
-        # NOTE: added by us
-        if self.max_seq_len is not None:
-            model.max_seq_len = self.max_seq_len
-
         self._lora_rank = cfg_model.lora_rank
         self._lora_alpha = cfg_model.lora_alpha
         self._lora_attn_modules = list(cfg_model.lora_attn_modules)
@@ -703,7 +699,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         Skip samples that are too long. This is needed for the training loop to handle
         samples that are too long to fit in the model.
         """
-        return len(batch["tokens"][0]) > self._model.max_seq_len
+        return len(batch["tokens"][0]) > self.max_seq_len
 
     def train(self) -> None:
         """

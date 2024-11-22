@@ -1,7 +1,31 @@
 
+## summary of changes
+
+* to the recipes:
+    - init():
+        - added new args
+    - setup():
+        - added validation dataloader
+    - setup_model():
+        - added `max_seq_len` to the model 
+    - save_checkpoints(): 
+        - added the `save_checkpoints` argument and according logic
+    - _skip_max_seq_len_samples()
+        - added
+    - train():
+        - added a validation loop, including a validation dataloader (mind the data shuffling)
+        - Added `max_seq_len` to the recipe (mind the new idx counter to keep track of samples that are too long)
+        - added `max_validation_steps` to the recipe
+        - counting the `real_num_tokens`, not just the output tokens, for speed logging purposes
+
+
+* update to `_preferences.py`
+  - poped the `packed` item in `load_dataset_kwargs`
 
 
 # torchtune
+
+
 
 [![Unit Test](https://github.com/pytorch/torchtune/actions/workflows/unit_test.yaml/badge.svg?branch=main)](https://github.com/pytorch/torchtune/actions/workflows/unit_test.yaml)
 ![Recipe Integration Test](https://github.com/pytorch/torchtune/actions/workflows/recipe_test.yaml/badge.svg)
