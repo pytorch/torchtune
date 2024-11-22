@@ -24,7 +24,6 @@ from .rms_norm import RMSNorm  # noqa
 from .tanh_gate import TanhGate  # noqa
 from .tied_linear import TiedLinear  # noqa
 from .transformer import (  # noqa
-    TiedEmbeddingTransformerDecoder,
     TransformerCrossAttentionLayer,
     TransformerDecoder,
     TransformerSelfAttentionLayer,
@@ -44,7 +43,6 @@ __all__ = [
     "Fp32LayerNorm",
     "VisionTransformer",
     "TransformerDecoder",
-    "TiedEmbeddingTransformerDecoder",
     "TransformerSelfAttentionLayer",
     "TransformerCrossAttentionLayer",
     "reparametrize_as_dtype_state_dict_post_hook",

@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --ignore-patterns None --hf-token <HF_TOKEN>
+#   tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --hf-token <HF_TOKEN>
 #
 # Run this config on 4 GPUs using the following:
 #  tune run --nproc_per_node 4 full_finetune_distributed --config phi3/mini_full

@@ -7,7 +7,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download mistralai/Mistral-7B-v0.1 --hf-token <HF_TOKEN> --output-dir /tmp/Mistral-7B-v0.1
+#   tune download mistralai/Mistral-7B-v0.1 --output-dir /tmp/Mistral-7B-v0.1 --ignore-patterns "*.safetensors" --hf-token <HF_TOKEN>
 #
 # To launch on a single device, run the following command from root:
 #   tune run lora_finetune_single_device --config mistral/7B_qlora_single_device

@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download meta-llama/Meta-Llama-3-8B-Instruct --output-dir /tmp/Meta-Llama-3-8B-Instruct --hf-token <HF_TOKEN>
+#   tune download meta-llama/Meta-Llama-3-8B-Instruct --output-dir /tmp/Meta-Llama-3-8B-Instruct --ignore-patterns "*.safetensors" --hf-token <HF_TOKEN>
 #
 # The default config uses an optimizer from bitsandbytes. If you do not have it installed,
 # you can install it with
