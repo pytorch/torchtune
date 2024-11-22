@@ -3,12 +3,12 @@ name: Export
 on:
   push:
     paths:
-      - 'torchtune/modules/_export/'
-      - 'tests/torchtune/modules/_export/'
+      - 'torchtune/modules/_export/**'
+      - 'tests/torchtune/modules/_export/**'
   pull_request:
     paths:
-      - 'torchtune/modules/_export/'
-      - 'tests/torchtune/modules/_export/'
+      - 'torchtune/modules/_export/**'
+      - 'tests/torchtune/modules/_export/**'
   schedule:
     # Runs at midnight evvery day
     - cron: '0 0 * * *'
