@@ -50,12 +50,10 @@ class VectorQuantizedEmbeddings(nn.Module):
         # will not be updated by the optimizer but are still model parameters.
         # code_usage and code_avg correspond with N and m, respectively, from Oord et al.
         randn_init_embedding = torch.randn(num_embeddings, embedding_dim)
+        self.register_buffer("embedding", randn_init_embedding.clone())
         if learnable:
-            self.register_buffer("embedding", randn_init_embedding.clone())
             self.register_buffer("code_usage", torch.zeros(num_embeddings))
             self.register_buffer("code_avg", randn_init_embedding.clone())
-        else:
-            self.register_parameter("embedding", nn.Parameter(randn_init_embedding))
 
         self.embedding_dim = embedding_dim
         self.num_embeddings = num_embeddings

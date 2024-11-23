@@ -24,26 +24,34 @@ class TestVectorQuantizedEmbeddings:
 
     @pytest.fixture
     def embedding_dim(self):
-        return 3
+        return 5
+
+    @pytest.fixture
+    def codebook(self, num_embeddings, embedding_dim):
+        def vq(learnable):
+            return VectorQuantizedEmbeddings(
+                num_embeddings=num_embeddings,
+                embedding_dim=embedding_dim,
+                decay=0.3,
+                learnable=learnable,
+            )
+
+        return vq
 
     @pytest.fixture
     def encoded(self):
-        # This is 2x5x3
+        # This is 2x3x5
         encoded = tensor(
             [
                 [
-                    [-1.0, 0.0, 1.0],
-                    [2.0, 1.0, 0.0],
-                    [0.0, -1.0, -1.0],
-                    [0.0, 2.0, -1.0],
-                    [-2.0, -1.0, 1.0],
+                    [-1.0, 2.0, 0.0, 0.0, -2.0],
+                    [0.0, 1.0, -1.0, 2.0, -1.0],
+                    [1.0, 0.0, -1.0, -1.0, 1.0],
                 ],
                 [
-                    [2.0, 2.0, -1.0],
-                    [1.0, -1.0, -2.0],
-                    [0.0, 0.0, 0.0],
-                    [1.0, 2.0, 1.0],
-                    [1.0, 0.0, 0.0],
+                    [2.0, 1.0, 0.0, 1.0, 1.0],
+                    [2.0, -1.0, 0.0, 2.0, 0.0],
+                    [-1.0, -2.0, 0.0, 1.0, 0.0],
                 ],
             ]
         )
@@ -53,51 +61,32 @@ class TestVectorQuantizedEmbeddings:
 
     @pytest.fixture
     def embedding_weights(self):
-        # This is 4x3
+        # This is 4x5
         return tensor(
             [
-                [1.0, 0.0, -1.0],
-                [2.0, -2.0, 0.0],
-                [2.0, 1.0, 0.0],
-                [-1.0, -2.0, 0.0],
+                [1.0, 0.0, -1.0, -1.0, 2.0],
+                [2.0, -2.0, 0.0, 0.0, 1.0],
+                [2.0, 1.0, 0.0, 1.0, 1.0],
+                [-1.0, -2.0, 0.0, 2.0, 0.0],
             ]
         )
 
-    @pytest.fixture
-    def input_tensor_flat(self):
-        # This is 4x3
-        return tensor(
-            [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]]
-        )
+    def test_quantized_output(self, codebook, encoded, embedding_weights):
+        vq = codebook(learnable=False)
+        vq.embedding = embedding_weights
+        actual = vq(encoded)
 
-    @pytest.fixture
-    def codebook(self, num_embeddings, embedding_dim):
-        return VectorQuantizedEmbeddings(
-            num_embeddings=num_embeddings,
-            embedding_dim=embedding_dim,
-            decay=0.3,
-        )
-
-    def test_quantized_output(self, codebook, embedding_weights, encoded):
-        codebook.embedding = embedding_weights
-        actual = codebook(encoded)
-
-        # This is shape (2,5,3)
         expected_quantized = tensor(
             [
                 [
-                    [2.0, 2.0, 1.0],
-                    [1.0, 1.0, 0.0],
-                    [0.0, 0.0, -1.0],
-                    [1.0, 1.0, -1.0],
-                    [1.0, 1.0, 2.0],
+                    [2.0, 1.0, 0.0, 1.0, 1.0],
+                    [2.0, 1.0, 0.0, 1.0, 1.0],
+                    [1.0, 0.0, -1.0, -1.0, 2.0],
                 ],
                 [
-                    [2.0, 2.0, -1.0],
-                    [1.0, -2.0, -2.0],
-                    [0.0, 0.0, 0.0],
-                    [1.0, 0.0, 2.0],
-                    [1.0, 1.0, 0.0],
+                    [2.0, 1.0, 0.0, 1.0, 1.0],
+                    [2.0, -2.0, 0.0, 0.0, 1.0],
+                    [-1.0, -2.0, 0.0, 2.0, 0.0],
                 ],
             ]
         )
@@ -108,54 +97,57 @@ class TestVectorQuantizedEmbeddings:
         assert_expected(actual[0], expected_quantized)
         assert_expected(actual[1], expected_token_ids)
 
-    def test_ema_update_embedding(self, num_embeddings, embedding_dim, encoded):
-        codebook = VectorQuantizedEmbeddings(
-            num_embeddings, embedding_dim, learnable=True
-        )
-        distances = torch.cdist(encoded, codebook.embedding, p=2.0) ** 2
+    def test_ema_update_embedding(self, codebook, encoded, embedding_weights):
+        vq = codebook(learnable=True)
+        vq.embedding = embedding_weights
+        encoded_flat = encoded.view(-1, encoded.shape[-1])
+        distances = torch.cdist(encoded_flat, vq.embedding, p=2.0) ** 2
         codebook_indices = torch.argmin(distances, dim=1)
-        codebook._ema_update_embedding(encoded, codebook_indices)
+        vq._ema_update_embedding(encoded_flat, codebook_indices)
 
-        actual_weight = codebook.embedding
+        actual_weight = vq.embedding
         expected_weight = tensor(
             [
-                [0.7647, -1.4118, 0.0000, 1.5882, 0.0000],
+                [2.0000, -1.0000, 0.0000, 2.0000, 0.0000],
                 [2.0000, 1.0000, 0.0000, 1.0000, 1.0000],
-                [-0.4118, 1.4118, -0.5882, 1.1765, -1.4118],
+                [0.5647, 1.3760, -0.3936, 1.1213, -0.7635],
                 [1.0000, 0.0000, -1.0000, -1.0000, 1.0000],
             ]
         )
         assert_expected(actual_weight, expected_weight, rtol=0.0, atol=1e-4)
 
-        actual_code_avg = codebook.code_avg
+        actual_code_avg = vq.code_avg
         expected_code_avg = tensor(
             [
-                [1.3000, -2.4000, 0.0000, 2.7000, 0.0000],
-                [2.0000, 1.0000, 0.0000, 1.0000, 1.0000],
-                [-0.7000, 2.4000, -1.0000, 2.0000, -2.4000],
-                [1.0000, 0.0000, -1.0000, -1.0000, 1.0000],
+                [0.4176, 0.3790, -0.7551, -0.6548, 1.0419],
+                [1.3309, -0.3437, 0.2303, 1.1865, 0.1305],
+                [1.1859, 2.8897, -0.8265, 2.3547, -1.6033],
+                [-0.9834, -0.7490, -0.3521, 0.5825, 0.4301],
             ]
         )
         assert_expected(actual_code_avg, expected_code_avg, rtol=0.0, atol=1e-4)
 
-        actual_code_usage = codebook.code_usage
-        expected_code_usage = tensor([1.7000, 1.0000, 1.7000, 1.0000])
+        actual_code_usage = vq.code_usage
+        expected_code_usage = tensor([0.7000, 0.7000, 2.1000, 0.7000])
         assert_expected(actual_code_usage, expected_code_usage, rtol=0.0, atol=1e-4)
 
-    def test_codebook_restart(self, codebook, encoded):
+    def test_codebook_restart(self, codebook, encoded, embedding_weights):
+        vq = codebook(learnable=True)
+        vq.embedding = embedding_weights
         # Use only embedding vector at index = 1 and force restarts.
         # Slightly modify encoded_flat to make sure vectors restart to something new
-        encoded_noise = encoded + torch.randn_like(encoded)
-        codebook_indices_low_usage = torch.ones(encoded.shape[0], dtype=torch.long)
-        codebook._ema_update_embedding(encoded_noise, codebook_indices_low_usage)
+        encoded_flat = encoded.view(-1, encoded.shape[-1])
+        encoded_noise = encoded_flat + torch.randn_like(encoded_flat)
+        codebook_indices_low_usage = torch.ones(encoded_flat.shape[0], dtype=torch.long)
+        vq._ema_update_embedding(encoded_noise, codebook_indices_low_usage)
 
         # Check if embedding contains restarts
-        for i, emb in enumerate(codebook.embedding):
+        for i, emb in enumerate(vq.embedding):
             # We used only emb vector with index = 1, so check it was not restarted
             if i == 1:
                 assert_expected(
                     emb,
-                    codebook.code_avg[1] / codebook.code_usage[1],
+                    vq.code_avg[1] / vq.code_usage[1],
                     rtol=0,
                     atol=1e-4,
                 )
@@ -170,11 +162,12 @@ class TestVectorQuantizedEmbeddings:
                 ), "embedding restarted from encoder output incorrectly"
 
     def test_lookup(self, codebook, embedding_weights):
-        codebook.embedding = embedding_weights
+        vq = codebook(learnable=False)
+        vq.embedding = embedding_weights
         indices_flat = tensor([[0, 1]])  # (b, seq_len)
         indices_shaped = tensor([[[0, 1], [2, 3]]])  # (b, shape)
-        actual_quantized_flat = codebook.lookup(indices_flat)
-        actual_quantized = codebook.lookup(indices_shaped)
+        actual_quantized_flat = vq.lookup(indices_flat)
+        actual_quantized = vq.lookup(indices_shaped)
         expected_quantized_flat = tensor(
             [[[1.0, 0.0, -1.0, -1.0, 2.0], [2.0, -2.0, 0.0, 0.0, 1.0]]]
         )
