@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from enum import Enum
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 import math
 import torch
 
@@ -44,6 +44,40 @@ class LayerDropout(torch.nn.Module):
             out[ind_selected] = out_selected
         return out
 
+class ModuleLayerDropoutWrapper(torch.nn.Module):
+    def __init__(self, module: torch.nn.Module, dropout: LayerDropout):
+        super().__init__()
+        self.module = module
+        self.dropout = dropout
+
+    def forward(self, input: torch.Tensor, *args, **kwargs):
+        return self.dropout(self.module, input, *args, **kwargs)
+
+    def __getattr__(self, name: str) -> Any:
+        """Forward missing attributes to wrapped module."""
+        try:
+            return super().__getattr__(name)  # defer to nn.Module's logic
+        except AttributeError:
+            return getattr(self.module, name)  # fallback to wrapped module
+
+    def __setattr__(self, name: str, value: Any) -> Any:
+        """Forward missing attributes to wrapped module."""
+        try:
+            return super().__setattr__(name, value)  # defer to nn.Module's logic
+        except AttributeError:
+            return setattr(self.module, name, value)  # fallback to wrapped module
+
+    def __getitem__(self, key: int) -> Any:
+        """Forward indexing calls in case the module is a nn.Sequential."""
+        return self.module.__getitem__(key)
+
+    def state_dict(self, *args, **kwargs):
+        return self.module.state_dict(*args, **kwargs)
+
+    def load_state_dict(self, state_dict, *args, **kwargs):
+        self.module.load_state_dict(state_dict, *args, **kwargs)
+        return
+
 class ScaleType(str, Enum):
     UNIFORM = "uniform"
     EXP = "exp"
@@ -67,11 +101,11 @@ def get_scale(scale_type: ScaleType, scale_period: int, val: int):
         ScaleType.SIGMOID: 1 / (1 + math.exp(-10 * (val / scale_period - 0.5))),
     }[scale_type]
 
-def create_layer_dropout_modules(num_layers: int, prob_max: float= 0.0, prob_layer_scale: ScaleType = ScaleType.EXP, layers_str: Optional[str] = None, disable_on_eval: bool = True):
-    layer_dropouts = torch.nn.ModuleList()
+# TODO: rename to prepare() just like quantizer()?
+def apply_layer_dropout_modules(model, prob_max: float= 0.0, prob_layer_scale: ScaleType = ScaleType.EXP, layers_str: Optional[str] = None, disable_on_eval: bool = True):
+    num_layers = len(model.layers)
     has_dropout = slice_str_to_array(layers_str, num_layers) if layers_str else [True] * num_layers
-
-    for layer_id in range(num_layers):
+    for layer_id in range(len(model.layers)):
         prob = prob_max * get_scale(
             scale_type = prob_layer_scale,
             scale_period = num_layers - 1,
@@ -80,6 +114,4 @@ def create_layer_dropout_modules(num_layers: int, prob_max: float= 0.0, prob_lay
         assert prob >= 0.0 and prob <= prob_max, f"prob={prob} should be between 0 and {prob_max}"
         # We would like each layer to have a different seed, so that we don't have the same samples skipped across layers. Hence, we use the layer_id as a seed for each layer's dropout.
         layer_dropout = LayerDropout(prob, disable_on_eval=disable_on_eval, seed=layer_id)
-        layer_dropouts.append(layer_dropout)
-
-    return layer_dropouts
+        model.layers[layer_id] = ModuleLayerDropoutWrapper(model.layers[layer_id], layer_dropout)

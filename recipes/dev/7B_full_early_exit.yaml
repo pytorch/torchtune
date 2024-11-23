@@ -118,3 +118,10 @@ early_exit_loss:
   curriculum: "gradual"
   scale_type: "sum_l"
   scale: 1.0
+
+# Layer Dropout
+layer_dropout:
+  prob: 0.5
+  layers: ":"
+  layers_scale: "exp"
+  disable_on_eval: True
