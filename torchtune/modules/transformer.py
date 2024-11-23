@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import copy
-from collections import OrderedDict
 from typing import Callable, Dict, List, Optional, Union
 
 import torch
@@ -839,7 +838,6 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
         encoder_input: Optional[torch.Tensor] = None,
         encoder_mask: Optional[torch.Tensor] = None,
         input_pos: Optional[torch.Tensor] = None,
-        output_hidden_states: Union[bool, List[bool]] = False,
     ) -> Union[torch.Tensor, List[torch.Tensor]]:
         """
         Args:
@@ -934,6 +932,18 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
                 input_pos=input_pos,
             )
 
+        # shape: [b, seq_len, out_dim]
+        output = self.unembed(h)
+
+        # Output list if hidden states are requested, otherwise just the output
+        # TODO: always output a list to have a consistent output type
+        output = output if not hidden else [*hidden, output]
+        return output
+
+    def unembed(self, h):
+        # shape: [b, s, d]
+        h = self.norm(h)
+
         # shape: [b, s, d]
         h = self.norm(h)
 
@@ -943,7 +953,4 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
             # shape: [b, seq_len, out_dim]
             output = F.linear(h, self.tok_embeddings.weight).float()
 
-        # Output list if hidden states are requested, otherwise just the output
-        # TODO: always output a list to have a consistent output type
-        output = output if not hidden else [*hidden, output]
         return output

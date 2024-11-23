@@ -68,7 +68,7 @@ def layer_ids_to_loss_scales(layer_ids, n_layers, loss_scale_type: LossScaleType
         case LossScaleType.INV_L:
             loss_scales = 1.0 / (layer_ids+1)
         case LossScaleType.INV_SQRT_L:
-            loss_scales = 1.0 / torch.sqrt(layer_ids+1)
+            loss_scales = torch.reciprocal(torch.sqrt(layer_ids+1))
         case _:
             raise ValueError(f"Unsupported loss_scale type {loss_scale_type}")
 

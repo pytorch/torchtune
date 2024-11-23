@@ -21,6 +21,7 @@ from .position_embeddings import RotaryPositionalEmbeddings  # noqa
 from .rms_norm import RMSNorm  # noqa
 from .tanh_gate import TanhGate  # noqa
 from .tied_linear import TiedLinear  # noqa
+from .layer_dropout import LayerDropout, create_layer_dropout_modules # noqa
 from .transformer import (  # noqa
     TiedEmbeddingTransformerDecoder,
     TransformerCrossAttentionLayer,
@@ -28,7 +29,6 @@ from .transformer import (  # noqa
     TransformerSelfAttentionLayer,
 )
 from .vision_transformer import VisionTransformer
-from .layer_dropout import LayerDropout, create_layer_dropout_modules # noqa
 
 
 __all__ = [
