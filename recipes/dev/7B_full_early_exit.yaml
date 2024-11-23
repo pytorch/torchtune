@@ -112,9 +112,8 @@ profiler:
   active_steps: 2
   num_cycles: 1
 
-# early exit loss
-# TODO: rename this and variables to early exit loss
-early_exit:
+# Early Exit Loss
+early_exit_loss:
   layers: "0::8"
   curriculum: "rot"
   scale_type: "sum_l"

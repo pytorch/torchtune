@@ -202,9 +202,8 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
 
-        cfg_early_exit = cfg.get("early_exit", None)
+        cfg_early_exit = cfg.get("early_exit_loss", None)
         # TODO: create a "setup" function similar to setup_model?
-        # TODO: rename "early_exit" to "early_exit_loss"
         if cfg_early_exit:
             self.early_exit_layers = cfg_early_exit.get("layers", ":")
             self.early_exit_curriculum = cfg_early_exit.get("curriculum", "none")
