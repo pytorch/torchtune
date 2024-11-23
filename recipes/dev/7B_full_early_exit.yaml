@@ -114,7 +114,7 @@ profiler:
 
 # Early Exit Loss
 early_exit_loss:
-  layers: "0::8"
-  curriculum: "rot"
+  layers: ":"
+  curriculum: "gradual"
   scale_type: "sum_l"
   scale: 1.0
