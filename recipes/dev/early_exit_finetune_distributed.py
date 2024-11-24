@@ -28,7 +28,7 @@ from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.activations import apply_selective_activation_checkpointing
 from torchtune.training.lr_schedulers import get_lr
 
-from torchtune.modules.early_exit_loss import early_exit_loss, build_early_exit_curriculum, EarlyExitCurriculum
+from torchtune.modules.early_exit_loss import early_exit_loss, setup_early_exit_loss_curriculum, EarlyExitCurriculum
 from torchtune.modules.layer_dropout import apply_layer_dropout_modules
 from torchtune.modules.common_utils import slice_str_to_array
 
@@ -359,7 +359,6 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         self._do_output_hidden_states, self._early_exit_loss_curriculum = self._setup_early_exit_loss(cfg.get("early_exit_loss", None))
 
         # Layer Dropout Setup
-        # TODO: move to a setup function?
         cfg_layer_dropout = cfg.get("layer_dropout", None)
         if cfg_layer_dropout:
             apply_layer_dropout_modules(self._model, prob_max=cfg_layer_dropout.get("prob", 0.0), prob_layer_scale=cfg_layer_dropout.get("layers_scale", "uniform"), layers_str=cfg_layer_dropout.get("layers", ":"), disable_on_eval=cfg_layer_dropout.get("disable_on_eval", True))
@@ -653,14 +652,12 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
 
         if cfg_early_exit_loss:
             do_output_hidden_states = slice_str_to_array(cfg_early_exit_loss.get("layers", ":"), len(self._model.layers))
-            # TODO: add cli option
-            # TODO: move this statement to inside curriculum
-            if True:
+            train_last_layer = cfg_early_exit_loss.get("include_last_layer", True)
+            if train_last_layer:
                 do_output_hidden_states[len(self._model.layers) - 1] = True
 
-            # TODO: rename build_early_exit_curriculum to setup_early_exit_loss_curriculum
             if cfg_early_exit_loss.curriculum:
-                early_exit_loss_curriculum = build_early_exit_curriculum(cfg_early_exit_loss.curriculum, do_output_hidden_states, self.total_epochs*self._steps_per_epoch)
+                early_exit_loss_curriculum = setup_early_exit_loss_curriculum(cfg_early_exit_loss.curriculum, do_output_hidden_states, self.total_epochs*self._steps_per_epoch, train_last_layer)
             else:
                 early_exit_loss_curriculum = None
 
@@ -924,8 +921,6 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                     if self._early_exit_loss_curriculum:
                         self._early_exit_loss_curriculum.step()
                         self._do_output_hidden_states = self._early_exit_loss_curriculum.get()
-                        if True: # TODO: add cli option
-                            self._do_output_hidden_states[len(self._model.layers) - 1] = True
                         self._model.output_hidden_states = [i for i in range(len(self._do_output_hidden_states)) if self._do_output_hidden_states[i]]
 
                     # Stop tracking CUDA memory now that active steps are complete

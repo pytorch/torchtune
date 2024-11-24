@@ -9,7 +9,7 @@ from torchtune.modules.early_exit_loss import (
     layer_ids_to_loss_scales,
     LossScaleType,
     EarlyExitCurriculumType,
-    build_early_exit_curriculum,
+    setup_early_exit_loss_curriculum,
     RotationalEarlyExitCurriculum,
     GradualEarlyExitCurriculum,
 )
@@ -64,11 +64,11 @@ def test_layer_ids_to_loss_scales():
     scales = layer_ids_to_loss_scales(layer_ids, n_layers, LossScaleType.SUM_L, 1.0)
     assert torch.isclose(scales.sum(), torch.tensor(1.0))
 
-def test_build_early_exit_curriculum():
-    curriculum = build_early_exit_curriculum(EarlyExitCurriculumType.ROTATIONAL, [True, False, True], 100)
+def test_setup_early_exit_loss_curriculum():
+    curriculum = setup_early_exit_loss_curriculum(EarlyExitCurriculumType.ROTATIONAL, [True, False, True], 100)
     assert isinstance(curriculum, RotationalEarlyExitCurriculum)
 
-    curriculum = build_early_exit_curriculum(EarlyExitCurriculumType.GRADUAL, [True, False, True], 100)
+    curriculum = setup_early_exit_loss_curriculum(EarlyExitCurriculumType.GRADUAL, [True, False, True], 100)
     assert isinstance(curriculum, GradualEarlyExitCurriculum)
 
 def test_rotational_early_exit_curriculum():

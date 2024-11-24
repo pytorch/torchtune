@@ -84,7 +84,7 @@ class EarlyExitCurriculumType(str, Enum):
     ROTATIONAL = "rot"
     GRADUAL = "gradual"
 
-def build_early_exit_curriculum(early_exit_curriculum: EarlyExitCurriculumType, *args, **kwargs):
+def setup_early_exit_loss_curriculum(early_exit_curriculum: EarlyExitCurriculumType, *args, **kwargs):
     match early_exit_curriculum:
         case EarlyExitCurriculumType.NONE:
             return None
@@ -101,9 +101,10 @@ def build_early_exit_curriculum(early_exit_curriculum: EarlyExitCurriculumType, 
 
 # TODO: create a base curriculum class that can be used for other aspects, e.g., dropout, datasets, etc.
 class EarlyExitCurriculum():
-    def __init__(self, do_output_hidden_states, max_steps, verbose=False):
+    def __init__(self, do_output_hidden_states, max_steps, train_last_layer=True, verbose=False):
         self._init_do_output_hidden_states = do_output_hidden_states
         self.do_output_hidden_states = do_output_hidden_states
+        self.train_last_layer = train_last_layer
         self.verbose = verbose
         self.max_steps = max_steps
 
@@ -114,17 +115,19 @@ class EarlyExitCurriculum():
         return self.do_output_hidden_states
 
 class RotationalEarlyExitCurriculum(EarlyExitCurriculum):
-    def __init__(self, do_output_hidden_states, max_steps, verbose=False):
-        super().__init__(do_output_hidden_states, max_steps, verbose)
+    def __init__(self, do_output_hidden_states, max_steps, train_last_layer=True, verbose=False):
+        super().__init__(do_output_hidden_states, max_steps, train_last_layer, verbose)
 
     def step(self):
         self.do_output_hidden_states = np.roll(self.do_output_hidden_states, -1)
+        if self.train_last_layer:
+            self.do_output_hidden_states[-1] = True
         if self.verbose:
-            log.info(f"Updating self.output_hidden_states to {self.do_output_hidden_states}.")
+            log.info(f"Updated self.output_hidden_states to {self.do_output_hidden_states}.")
 
 class GradualEarlyExitCurriculum(EarlyExitCurriculum):
-    def __init__(self, do_output_hidden_states, max_steps, percent_scale=2, verbose=False):
-        super().__init__(do_output_hidden_states, max_steps, verbose)
+    def __init__(self, do_output_hidden_states, max_steps, train_last_layer=True, percent_scale=2, verbose=False):
+        super().__init__(do_output_hidden_states, max_steps, train_last_layer, verbose)
         self._step = 0
         self._percent_scale = percent_scale
 
@@ -136,8 +139,10 @@ class GradualEarlyExitCurriculum(EarlyExitCurriculum):
             # TODO: either handle if layers_str != ":", or add an assert statement layers_str == ":"
             self.do_output_hidden_states[layer_index] = should_train
 
+        if self.train_last_layer:
+            self.do_output_hidden_states[-1] = True
         # TODO: move this to step() in parent class?
         # TODO: how to ensure we always call parent step() in derived class?
         self._step += 1
         if self.verbose:
-            log.info(f"Updating self.do_output_hidden_states to {self.do_output_hidden_states}.")
+            log.info(f"Updated self.do_output_hidden_states to {self.do_output_hidden_states}.")
