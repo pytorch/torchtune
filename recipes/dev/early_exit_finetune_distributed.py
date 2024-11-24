@@ -29,7 +29,7 @@ from torchtune.training.activations import apply_selective_activation_checkpoint
 from torchtune.training.lr_schedulers import get_lr
 
 from torchtune.modules.early_exit_loss import early_exit_loss, setup_early_exit_loss_curriculum, EarlyExitCurriculum
-from torchtune.modules.layer_dropout import apply_layer_dropout_modules
+from torchtune.modules.layer_dropout import prepare_layer_dropout
 from torchtune.modules.common_utils import slice_str_to_array
 
 from tqdm import tqdm
@@ -361,7 +361,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         # Layer Dropout Setup
         cfg_layer_dropout = cfg.get("layer_dropout", None)
         if cfg_layer_dropout:
-            apply_layer_dropout_modules(self._model, prob_max=cfg_layer_dropout.get("prob", 0.0), prob_layer_scale=cfg_layer_dropout.get("layers_scale", "uniform"), layers_str=cfg_layer_dropout.get("layers", ":"), disable_on_eval=cfg_layer_dropout.get("disable_on_eval", True))
+            prepare_layer_dropout(self._model, prob_max=cfg_layer_dropout.get("prob", 0.0), prob_layer_scale=cfg_layer_dropout.get("layers_scale", "uniform"), layers_str=cfg_layer_dropout.get("layers", ":"), disable_on_eval=cfg_layer_dropout.get("disable_on_eval", True))
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None

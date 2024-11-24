@@ -101,8 +101,8 @@ def get_scale(scale_type: ScaleType, scale_period: int, val: int):
         ScaleType.SIGMOID: 1 / (1 + math.exp(-10 * (val / scale_period - 0.5))),
     }[scale_type]
 
-# TODO: rename to prepare() just like quantizer()?
-def apply_layer_dropout_modules(model, prob_max: float= 0.0, prob_layer_scale: ScaleType = ScaleType.EXP, layers_str: Optional[str] = None, disable_on_eval: bool = True):
+
+def prepare_layer_dropout(model, prob_max: float= 0.0, prob_layer_scale: ScaleType = ScaleType.EXP, layers_str: Optional[str] = None, disable_on_eval: bool = True):
     num_layers = len(model.layers)
     has_dropout = slice_str_to_array(layers_str, num_layers) if layers_str else [True] * num_layers
     for layer_id in range(len(model.layers)):

@@ -23,7 +23,7 @@ from .position_embeddings import (  # noqa
 from .rms_norm import RMSNorm  # noqa
 from .tanh_gate import TanhGate  # noqa
 from .tied_linear import TiedLinear  # noqa
-from .layer_dropout import LayerDropout, apply_layer_dropout_modules # noqa
+from .layer_dropout import LayerDropout, prepare_layer_dropout # noqa
 from .transformer import (  # noqa
     TransformerCrossAttentionLayer,
     TransformerDecoder,
@@ -54,5 +54,5 @@ __all__ = [
     "delete_kv_caches",
     "disable_kv_cache",
     "LayerDropout",
-    "create_layer_dropout_modules",
+    "prepare_layer_dropout",
 ]
