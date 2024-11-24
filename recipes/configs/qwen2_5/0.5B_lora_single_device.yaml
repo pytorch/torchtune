@@ -1,92 +1,85 @@
 # Config for single device LoRA finetuning in lora_finetune_single_device.py
-# using a Qwen2.5 1.5B model
+# using a Qwen2.5 0.5B model
 #
 # This config assumes that you've run the following command before launching
-# this run:
-#   tune download Qwen/Qwen2.5-1.5B-Instruct --output-dir /tmp/Qwen2_5-1_5B-Instruct --ignore-patterns None
+#   tune download Qwen/Qwen2.5-0.5B-Instruct
 #
 # To launch on a single device, run the following command from root:
-#   tune run lora_finetune_single_device --config qwen2_5/1_5B_lora_single_device
+#   tune run lora_finetune_single_device --config qwen2_5/0.5B_lora_single_device
 #
 # You can add specific overrides through the command line. For example
-# to override the checkpointer directory while launching training
-# you can run:
-#   tune run lora_finetune_single_device --config qwen2_5/1_5B_lora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+# to override the checkpointer directory while launching training:
+#   tune run lora_finetune_single_device --config qwen2_5/0.5B_lora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works only for training on single device.
 
-
-# Model Arguments
+# Model arguments
 model:
-  _component_: torchtune.models.qwen2_5.lora_qwen2_5_1_5b_instruct
+  _component_: torchtune.models.qwen2_5.lora_qwen2_5_0_5b
   lora_attn_modules: ['q_proj', 'v_proj', 'output_proj']
   apply_lora_to_mlp: True
   lora_rank: 32  # higher increases accuracy and memory
   lora_alpha: 64  # usually alpha=2*rank
   lora_dropout: 0.0
 
+# Tokenizer
 tokenizer:
   _component_: torchtune.models.qwen2_5.qwen2_5_tokenizer
-  path: /tmp/Qwen2_5-1_5B-Instruct/vocab.json
-  merges_file: /tmp/Qwen2_5-1_5B-Instruct/merges.txt
+  path: /tmp/Qwen2.5-0.5B-Instruct/vocab.json
+  merges_file: /tmp/Qwen2.5-0.5B-Instruct/merges.txt
   max_seq_len: null
 
+# Checkpointer
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Qwen2_5-1_5B-Instruct
-  checkpoint_files: [
-    model.safetensors
-  ]
+  checkpoint_dir: /tmp/Qwen2.5-0.5B-Instruct
+  checkpoint_files: [model.safetensors]
   recipe_checkpoint: null
-  output_dir: /tmp/Qwen2_5-1_5B-Instruct-lora-finetune
+  output_dir: /tmp/Qwen2.5-0.5B-Instruct-lora-finetune
   model_type: QWEN2
 resume_from_checkpoint: False
 
-# Dataset and Sampler
+# Dataset
 dataset:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
   packed: False  # True increases speed
 seed: null
 shuffle: True
-batch_size: 2
 
-# Optimizer and Scheduler
+# Fine-tuning arguments
+epochs: 1
+max_steps_per_epoch: null
+batch_size: 2
+gradient_accumulation_steps: 8  # Use to increase virtual batch size
 optimizer:
   _component_: torch.optim.AdamW
   fused: True
+  weight_decay: 0.01
   lr: 2e-3
-
 lr_scheduler:
   _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
-
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
-# Training
-epochs: 1
-max_steps_per_epoch: null
-gradient_accumulation_steps: 8  # Use to increase virtual batch size
-compile: False  # pytorch compile, set to true for better perf/memory
+# Training env
+device: cuda
+
+# Memory management / performance
+enable_activation_checkpointing: False  # True reduces memory
+enable_activation_offloading: False  # True reduces memory
+dtype: bf16
+compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 
 # Logging
-output_dir: /tmp/Qwen2_5-1_5B-Instruct-lora-finetune
+output_dir: /tmp/Qwen2.5-0.5B-Instruct-lora-finetune
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
-  log_dir: ${output_dir}
+  log_dir: ${output_dir}/logs
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True
 
-# Environment
-device: cuda
-dtype: bf16
-
-# Activations Offloading
-enable_activation_checkpointing: True  # True reduces memory
-enable_activation_offloading: False  # True reduces memory
-
-# Show case the usage of pytorch profiler
-# Set enabled to False as it's only needed for debugging training
+# Profiler (disabled)
 profiler:
   _component_: torchtune.training.setup_torch_profiler
   enabled: False
@@ -107,6 +100,6 @@ profiler:
   # `torch.profiler.schedule` options:
   # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
   wait_steps: 5
-  warmup_steps: 5
+  warmup_steps: 3
   active_steps: 2
   num_cycles: 1

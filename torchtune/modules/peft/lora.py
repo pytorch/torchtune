@@ -65,7 +65,7 @@ class LoRALinear(nn.Module, AdapterModule):
         self.use_bias = use_bias
         self._quantize_base = quantize_base
 
-        if not self._quantize_base and quantization_kwargs:
+        if not self._quantize_base and any([v for v in quantization_kwargs.values()]):
             raise ValueError(
                 f"``quantize_base`` is False, but received the following quantization arguments: {quantization_kwargs}"
             )
@@ -91,14 +91,6 @@ class LoRALinear(nn.Module, AdapterModule):
         self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=False)
         self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=False)
         self.merged = False
-        # Note: FSDP's meta device initialization contract assumes that a module's
-        # reset_parameters method only initializes its own parameters (i.e. no child
-        # params are initialized, as is done in initialize_parameters below).
-        # For that reason, we patch reset_parameters directly on lora_a and lora_b submodules
-        # when using meta device. This is done in
-        # torchtune.training.prepare_model_for_fsdp_with_meta_device.
-        # See this issue for more details: https://github.com/pytorch/pytorch/issues/104187.
-        # Without meta device, we only need the following:
         self.initialize_parameters()
 
     def initialize_parameters(self):

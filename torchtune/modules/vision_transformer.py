@@ -186,6 +186,8 @@ class VisionTransformer(nn.Module):
             before they go through a next layer. For example, ``out_indices=[0,3]`` will
             return the tokens before they go through the first and fourth layers.
         in_channels (int): The number of image input channels.
+        append_cls_token (bool): If True, adds CLS token to the end of the sequence.
+            Default is False, which adds CLS token to the beginning of the sequence.
 
     Raises:
         ValueError: If `tile_size` is not greater than 0.
@@ -206,6 +208,7 @@ class VisionTransformer(nn.Module):
         cls_projection: Optional[nn.Module] = None,
         out_indices: Optional[List[int]] = None,
         in_channels: int = 3,
+        append_cls_token: bool = False,
     ) -> None:
         super().__init__()
 
@@ -245,7 +248,9 @@ class VisionTransformer(nn.Module):
         self.ln_post = Fp32LayerNorm(embed_dim)
         self.ln_pre = Fp32LayerNorm(embed_dim)
 
-        self.cls_token_embedding = CLSEmbedding(embed_dim)
+        self.cls_token_embedding = CLSEmbedding(
+            embed_dim, append_cls_token=append_cls_token
+        )
 
     def get_image_tokens_per_tile(self):
         return self.patches_per_tile + 1  # +1 for CLS token
@@ -415,20 +420,27 @@ class CLSEmbedding(nn.Module):
 
     Args:
         embed_dim (int): The dimensionality of the input patch embedding.
+        append_cls_token (bool): If True, adds CLS token to the end of the sequence.
+            Default is False, which adds CLS token to the beginning of the sequence.
     """
 
-    def __init__(self, embed_dim: int) -> None:
+    def __init__(self, embed_dim: int, append_cls_token: bool = False) -> None:
         super().__init__()
 
         scale = embed_dim**-0.5
         self.weight = nn.Parameter(scale * torch.randn(embed_dim))
+        self.append_cls_token = append_cls_token
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
         # add 1 CLS token to every tile
         bsz_and_n_imgs, n_tiles, n_tokens, embed_dim = x.shape
         cls_emb = self.weight.broadcast_to(bsz_and_n_imgs, n_tiles, 1, embed_dim)
-        return torch.cat([cls_emb, x], dim=2)
+        return (
+            torch.cat([x, cls_emb], dim=2)
+            if self.append_cls_token
+            else torch.cat([cls_emb, x], dim=2)
+        )
 
 
 class CLSProjection(nn.Module):

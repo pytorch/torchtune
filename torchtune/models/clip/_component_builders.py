@@ -7,26 +7,24 @@
 from functools import partial
 from typing import Callable, List, Optional
 
-import torch
 from torch import nn
+
 from torchtune.models.clip._position_embeddings import (
     TiledTokenPositionalEmbedding,
     TilePositionalEmbedding,
     TokenPositionalEmbedding,
 )
-
+from torchtune.models.clip._text_encoder import CLIPTextEncoder, QuickGELU
 from torchtune.modules import (
     FeedForward,
     Fp32LayerNorm,
     FrozenNF4Linear,
     MultiHeadAttention,
     TransformerSelfAttentionLayer,
+    VisionRotaryPositionalEmbeddings,
 )
-
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
-
-from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
-
+from torchtune.modules.peft import LORA_ATTN_MODULES, DoRALinear, LoRALinear
 from torchtune.modules.vision_transformer import CLSProjection, VisionTransformer
 
 
@@ -39,11 +37,12 @@ def clip_vision_encoder(
     activation: Callable = nn.SiLU,
     cls_output_dim: int = 512,
     attn_bias: bool = True,
+    use_rope: bool = False,
     out_indices: Optional[List[int]] = None,
     output_cls_projection: bool = False,
     max_num_tiles: int = 4,
     in_channels: int = 3,
-    intermediate_act: torch.nn.Module = torch.nn.SiLU(),
+    append_cls_token: bool = False,
 ) -> VisionTransformer:
     """
     Builds the vision encoder associated with the clip model. This includes:
@@ -67,6 +66,7 @@ def clip_vision_encoder(
         activation (Callable): The activation function to use in the MLP layer.
         cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.
         attn_bias (bool): Boolean for if to use bias in the attention module. Default True.
+        use_rope (bool): If True, include 2D rope in attention in each transformer layer. Default: False
         out_indices (Optional[List[int]]): The indices of hidden layers to return.
             If provided, it will return the intermediate results of the transformer layers
             before they go through a next layer. For example, ``out_indices=[0,3]`` will
@@ -76,7 +76,8 @@ def clip_vision_encoder(
         max_num_tiles (int): The maximum number of tiles that can be processed. This is used to
             determine the size of the positional embeddings.
         in_channels (int): The number of image input channels.
-        intermediate_act (torch.nn.Module): The activation function used in the intermediate layers in the transformer encoder.
+        append_cls_token (bool): If True, adds CLS token embedding to the end of the sequence in the vision transformer.
+            Default is False, which adds CLS token to the beginning of the sequence.
 
     Returns:
         A `VisionTransformer` object.
@@ -84,11 +85,31 @@ def clip_vision_encoder(
     Raises:
         AssertionError: If ``embed_dim`` is not divisible by ``num_heads``.
     """
-    assert embed_dim % num_heads == 0, "embed_dim must be divisible by num_heads"
+    if embed_dim % num_heads != 0:
+        raise ValueError(
+            f"embed_dim must be divisible by num_heads, got {embed_dim} and {num_heads}"
+        )
+    if use_rope and max_num_tiles != 1:
+        raise ValueError(
+            f"2D RoPE is only supported for max_num_tiles = 1, got {max_num_tiles}"
+        )
+
+    head_dim = embed_dim // num_heads
 
     cls_projection = (
         CLSProjection(embed_dim=embed_dim, cls_output_dim=cls_output_dim)
         if output_cls_projection
+        else None
+    )
+    rope = (
+        VisionRotaryPositionalEmbeddings(
+            patch_size=patch_size,
+            tile_size=tile_size,
+            dim=head_dim // 2,
+            base=10_000,
+            append_cls_token=append_cls_token,
+        )
+        if use_rope
         else None
     )
 
@@ -97,12 +118,12 @@ def clip_vision_encoder(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_heads,
-        head_dim=embed_dim // num_heads,
+        head_dim=head_dim,
         q_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
         k_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
         v_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
         output_proj=nn.Linear(embed_dim, embed_dim, bias=attn_bias),
-        pos_embeddings=None,
+        pos_embeddings=rope,
         attn_dropout=0.0,
         is_causal=False,
     )
@@ -154,6 +175,66 @@ def clip_vision_encoder(
         patch_size=patch_size,
         embed_dim=embed_dim,
         in_channels=in_channels,
+        append_cls_token=append_cls_token,
+    )
+
+
+def clip_text_encoder(
+    embed_dim: int,
+    num_heads: int,
+    num_layers: int,
+    vocab_size: int = 49408,
+    max_seq_len: int = 77,
+    norm_eps: float = 1e-5,
+):
+    """
+    Text encoder for CLIP.
+
+    CLIP is a model that encodes text and images into a shared vector space.
+    Blog post: https://openai.com/index/clip/
+    Paper: https://arxiv.org/abs/2103.00020
+
+    Args:
+        embed_dim (int): embedding/model dimension size
+        num_heads (int): number of attention heads
+        num_layers (int): number of transformer layers
+        vocab_size (int): size of the vocabulary, default 49408
+        max_seq_len (int): context size, default 77
+        norm_eps (float): small value added to denominator for numerical stability, default 1e-5
+
+    Returns:
+        CLIPTextEncoder
+    """
+    attn = MultiHeadAttention(
+        embed_dim=embed_dim,
+        num_heads=num_heads,
+        num_kv_heads=num_heads,
+        head_dim=embed_dim // num_heads,
+        q_proj=nn.Linear(embed_dim, embed_dim),
+        k_proj=nn.Linear(embed_dim, embed_dim),
+        v_proj=nn.Linear(embed_dim, embed_dim),
+        output_proj=nn.Linear(embed_dim, embed_dim),
+    )
+    mlp = clip_mlp(
+        in_dim=embed_dim,
+        out_dim=embed_dim,
+        hidden_dim=embed_dim * 4,
+        activation=QuickGELU(),
+    )
+    encoder_layer = TransformerSelfAttentionLayer(
+        attn=attn,
+        mlp=mlp,
+        sa_norm=nn.LayerNorm(embed_dim, eps=norm_eps),
+        mlp_norm=nn.LayerNorm(embed_dim, eps=norm_eps),
+    )
+    final_norm = nn.LayerNorm(embed_dim, eps=norm_eps)
+    return CLIPTextEncoder(
+        layer=encoder_layer,
+        final_norm=final_norm,
+        vocab_size=vocab_size,
+        max_seq_len=max_seq_len,
+        embed_dim=embed_dim,
+        num_layers=num_layers,
     )
 
 
@@ -163,6 +244,7 @@ def clip_mlp(
     hidden_dim: int,
     activation: nn.Module,
     quantize_base: bool = False,
+    **quantization_kwargs,
 ) -> FeedForward:
     """
     Build the MLP layer associated with the clip model.
@@ -170,12 +252,12 @@ def clip_mlp(
     gate_proj = (
         nn.Linear(in_dim, hidden_dim)
         if not quantize_base
-        else FrozenNF4Linear(in_dim, hidden_dim, bias=True)
+        else FrozenNF4Linear(in_dim, hidden_dim, bias=True, **quantization_kwargs)
     )
     down_proj = (
         nn.Linear(hidden_dim, out_dim)
         if not quantize_base
-        else FrozenNF4Linear(hidden_dim, out_dim, bias=True)
+        else FrozenNF4Linear(hidden_dim, out_dim, bias=True, **quantization_kwargs)
     )
     return FeedForward(
         gate_proj=gate_proj, down_proj=down_proj, up_proj=None, activation=activation
@@ -188,7 +270,6 @@ def clip_mlp(
 def lora_clip_vision_encoder(
     lora_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
-    apply_lora_to_output: bool = False,
     *,
     # clip encoder parameters
     tile_size: int,
@@ -198,18 +279,18 @@ def lora_clip_vision_encoder(
     num_heads: int,
     activation: Callable = nn.SiLU,
     cls_output_dim: int = 512,
-    attn_bias: bool = True,
+    attn_bias: bool = False,
     out_indices: Optional[List[int]] = None,
     output_cls_projection: bool = False,
     max_num_tiles: int = 4,
     in_channels: int = 3,
-    intermediate_act: torch.nn.Module = torch.nn.SiLU(),
     # LoRA parameters
     lora_rank: int = 8,
     lora_alpha: float = 16,
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
+    **quantization_kwargs,
 ) -> VisionTransformer:
     """
     Build a LoRA implementation of the CLIP vision encoder.
@@ -219,8 +300,6 @@ def lora_clip_vision_encoder(
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
-            Default: False
-        apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
             Default: False
         tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
             the size of the input image. In this case, the function will consider your image as a single tile.
@@ -232,7 +311,7 @@ def lora_clip_vision_encoder(
         num_heads (int): The number of attention heads in each transformer layer.
         activation (Callable): The activation function to use in the MLP layer.
         cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.
-        attn_bias (bool): Boolean for if to use bias in the attention module. Default True.
+        attn_bias (bool): Boolean for if to use bias in the attention module. Default False.
         out_indices (Optional[List[int]]): The indices of hidden layers to return.
             If provided, it will return the intermediate results of the transformer layers
             before they go through a next layer. For example, ``out_indices=[0,3]`` will
@@ -242,7 +321,6 @@ def lora_clip_vision_encoder(
         max_num_tiles (int): The maximum number of tiles that can be processed. This is used to
             determine the size of the positional embeddings.
         in_channels (int): The number of image input channels.
-        intermediate_act (torch.nn.Module): The activation function used in the intermediate layers in the transformer encoder.
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
@@ -277,6 +355,8 @@ def lora_clip_vision_encoder(
         lora_dropout=lora_dropout,
         use_dora=use_dora,
         quantize_base=quantize_base,
+        attn_bias=attn_bias,
+        **quantization_kwargs,
     )
     if apply_lora_to_mlp:
         mlp = lora_clip_mlp(
@@ -289,6 +369,7 @@ def lora_clip_vision_encoder(
             quantize_base=quantize_base,
             lora_dropout=lora_dropout,
             use_dora=use_dora,
+            **quantization_kwargs,
         )
     else:
         mlp = clip_mlp(
@@ -297,6 +378,7 @@ def lora_clip_vision_encoder(
             out_dim=embed_dim,
             activation=activation(),
             quantize_base=quantize_base,
+            **quantization_kwargs,
         )
     transformer_layer = TransformerSelfAttentionLayer(
         attn=self_attn,
@@ -361,12 +443,14 @@ def lora_clip_attention(
     num_heads: int,
     num_kv_heads: int,
     attn_dropout: float = 0.0,
+    attn_bias: bool = False,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
+    **quantization_kwargs,
 ) -> MultiHeadAttention:
     """
     Return an instance of :func:`~torchtune.modules.MultiHeadAttention` with LoRA
@@ -414,12 +498,15 @@ def lora_clip_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            **quantization_kwargs,
         )
         if "q_proj" in lora_modules
         else (
-            nn.Linear(embed_dim, num_heads * head_dim, bias=False)
+            nn.Linear(embed_dim, num_heads * head_dim, bias=attn_bias)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, num_heads * head_dim, bias=False)
+            else FrozenNF4Linear(
+                embed_dim, num_heads * head_dim, bias=attn_bias, **quantization_kwargs
+            )
         )
     )
     k_proj = (
@@ -430,12 +517,18 @@ def lora_clip_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            **quantization_kwargs,
         )
         if "k_proj" in lora_modules
         else (
-            nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+            nn.Linear(embed_dim, num_kv_heads * head_dim, bias=attn_bias)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+            else FrozenNF4Linear(
+                embed_dim,
+                num_kv_heads * head_dim,
+                bias=attn_bias,
+                **quantization_kwargs,
+            )
         )
     )
     v_proj = (
@@ -446,12 +539,18 @@ def lora_clip_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            **quantization_kwargs,
         )
         if "v_proj" in lora_modules
         else (
-            nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+            nn.Linear(embed_dim, num_kv_heads * head_dim, bias=attn_bias)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+            else FrozenNF4Linear(
+                embed_dim,
+                num_kv_heads * head_dim,
+                bias=attn_bias,
+                **quantization_kwargs,
+            )
         )
     )
     output_proj = (
@@ -462,12 +561,15 @@ def lora_clip_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            **quantization_kwargs,
         )
         if "output_proj" in lora_modules
         else (
-            nn.Linear(embed_dim, embed_dim, bias=False)
+            nn.Linear(embed_dim, embed_dim, bias=attn_bias)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, embed_dim, bias=False)
+            else FrozenNF4Linear(
+                embed_dim, embed_dim, bias=attn_bias, **quantization_kwargs
+            )
         )
     )
 
@@ -497,6 +599,7 @@ def lora_clip_mlp(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
+    **quantization_kwargs,
 ) -> FeedForward:
     """
     Build the MLP layer with LoRA applied to the gate and down projections.
@@ -510,6 +613,7 @@ def lora_clip_mlp(
         dropout=lora_dropout,
         quantize_base=quantize_base,
         use_bias=True,
+        **quantization_kwargs,
     )
     down_proj = adapter_cls(
         in_dim=hidden_dim,
@@ -519,6 +623,7 @@ def lora_clip_mlp(
         dropout=lora_dropout,
         quantize_base=quantize_base,
         use_bias=True,
+        **quantization_kwargs,
     )
     return FeedForward(
         gate_proj=gate_proj, down_proj=down_proj, up_proj=None, activation=activation

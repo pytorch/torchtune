@@ -122,8 +122,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         _, rank = training.get_world_size_and_rank()
 
-        # _is_rank_zero is used primarily for logging. In the future, the logger
-        # should directly take care of this
         self._is_rank_zero = rank == 0
 
         # logging attributes
@@ -226,7 +224,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
             # log config with parameter override
             self._metric_logger.log_config(cfg)
-            log.info("_metric_logger is initialized.")
+
+        utils.log_rank_zero(log, "metric logger is initialized.")
 
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
@@ -254,8 +253,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
-        if self._is_rank_zero:
-            log.info("Loss is initialized.")
+
+        utils.log_rank_zero(log, "Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -314,11 +313,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._apply_lora_to_mlp = cfg_model.apply_lora_to_mlp
         self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
 
-        if self._is_rank_zero:
-            log.info(
-                "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ..."
-            )
-            init_start = time.perf_counter()
+        init_start = time.perf_counter()
+
+        utils.log_rank_zero(
+            log,
+            "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
+        )
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
@@ -397,10 +397,11 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         )
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
+        utils.log_rank_zero(
+            log,
+            f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
+        )
         if self._is_rank_zero:
-            log.info(
-                f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
-            )
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
@@ -420,8 +421,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 self._device,
             )
 
-        if self._is_rank_zero:
-            log.info("Optimizer and loss are initialized.")
+        utils.log_rank_zero(log, "Optimizer and loss are initialized.")
         return optimizer
 
     def _setup_lr_scheduler(
@@ -436,8 +436,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
         )
-        if self._is_rank_zero:
-            log.info("Learning rate scheduler is initialized.")
+
+        utils.log_rank_zero(log, "Learning rate scheduler is initialized.")
         return lr_scheduler
 
     def _setup_data(
@@ -479,8 +479,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             ),
         )
 
-        if self._is_rank_zero:
-            log.info("Dataset and Sampler are initialized.")
+        utils.log_rank_zero(log, "Dataset and Sampler are initialized.")
 
         return sampler, dataloader
 

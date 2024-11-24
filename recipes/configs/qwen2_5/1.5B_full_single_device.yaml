@@ -1,30 +1,42 @@
 # Config for single device full finetuning in full_finetune_single_device.py
-# using a Qwen2.5 0.5B
+# using a Qwen2.5 1.5B
 #
-# This config assumes that you've run the following command before launching
-# this run:
-#   tune download Qwen/Qwen2.5-0.5B-Instruct --output-dir /tmp/Qwen2_5-0_5B-Instruct --ignore-patterns None
+# This config assumes that you've run the following command before launching:
+#   tune download Qwen/Qwen2.5-1.5B-Instruct
 #
 # The default config uses an optimizer from bitsandbytes. If you do not have it installed,
-# you can install it with
+# you can install it with:
 #   pip install bitsandbytes
 #
 # To launch on a single device, run the following command from root:
-#   tune run full_finetune_single_device --config qwen2_5/0_5B_full_single_device
+#   tune run full_finetune_single_device --config qwen2_5/1.5B_full_single_device
 #
 # You can add specific overrides through the command line. For example
-# to override the checkpointer directory while launching training
-# you can run:
-#   tune run full_finetune_single_device --config qwen2_5/0_5B_full_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+# to override the checkpointer directory while launching training:
+#   tune run full_finetune_single_device --config qwen2_5/1.5B_full_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works only for training on single device.
+
+# Model arguments
+model:
+  _component_: torchtune.models.qwen2_5.qwen2_5_1_5b_instruct
 
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.qwen2_5.qwen2_5_tokenizer
-  path: /tmp/Qwen2_5-0_5B-Instruct/vocab.json
-  merges_file: /tmp/Qwen2_5-0_5B-Instruct/merges.txt
+  path: /tmp/Qwen2.5-1.5B-Instruct/vocab.json
+  merges_file: /tmp/Qwen2.5-1.5B-Instruct/merges.txt
   max_seq_len: null
+
+# Checkpointer
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Qwen2.5-1.5B-Instruct
+  checkpoint_files: [model.safetensors]
+  recipe_checkpoint: null
+  output_dir: /tmp/Qwen2.5-1.5B-Instruct-finetune
+  model_type: QWEN2
+resume_from_checkpoint: False
 
 # Dataset
 dataset:
@@ -33,54 +45,34 @@ dataset:
 seed: null
 shuffle: True
 
-# Model Arguments
-model:
-  _component_: torchtune.models.qwen2_5.qwen2_5_0_5b
-
-checkpointer:
-  _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Qwen2_5-0_5B-Instruct
-  checkpoint_files: [
-    model.safetensors
-  ]
-  recipe_checkpoint: null
-  output_dir: /tmp/Qwen2_5-0_5B-Instruct-finetune
-  model_type: QWEN2
-resume_from_checkpoint: False
-
 # Fine-tuning arguments
-batch_size: 2
 epochs: 1
+max_steps_per_epoch: null
+batch_size: 4
+gradient_accumulation_steps: 1  # Use to increase virtual batch size
 optimizer:
-  _component_: torch.optim.AdamW
-  fused: True
+  _component_: bitsandbytes.optim.PagedAdamW
   lr: 2e-5
-
+optimizer_in_bwd: True  # True saves memory. Requires gradient_accumulation_steps=1
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
-optimizer_in_bwd: False  # True saves memory. Requires gradient_accumulation_steps=1
 
-max_steps_per_epoch: null
-gradient_accumulation_steps: 8  # Use to increase virtual batch size
-compile: False  # pytorch compile, set to true for better perf/memory
-
-# Training environment
+# Training env
 device: cuda
 
-# Memory management
+# Memory management / performance
 enable_activation_checkpointing: True  # True reduces memory
 enable_activation_offloading: False  # True reduces memory
-
-# Reduced precision
 dtype: bf16
+compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 
 # Logging
+output_dir: /tmp/Qwen2.5-1.5B-Instruct-finetune
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
-  log_dir: ${output_dir}
-output_dir: /tmp/Qwen2_5-0_5B-Instruct-finetune
+  log_dir: ${output_dir}/logs
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True
 
 # Profiler (disabled)
 profiler:
