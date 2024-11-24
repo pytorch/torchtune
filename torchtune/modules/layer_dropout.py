@@ -89,18 +89,20 @@ class ScaleType(str, Enum):
 
 def get_scale(scale_type: ScaleType, scale_period: int, val: int):
     if scale_period == 0:
-        return 1
+        return 1.0
 
     # all the equations below aim to make scale = 0 when val=0, and scale = 1 when val=scale_period
-    return {
-        ScaleType.UNIFORM: 1,
-        ScaleType.EXP: math.exp(val * math.log(2) / scale_period) - 1,
+    scale = {
+        ScaleType.UNIFORM: 1.0,
+        ScaleType.EXP: math.pow(2, val / scale_period) - 1,
         ScaleType.LINEAR: val / scale_period,
-        ScaleType.LOG: math.log(val + 1) / math.log(scale_period + 1),
+        ScaleType.LOG: math.log(val + 1, scale_period + 1),
         ScaleType.SIN: math.sin(0.5 * math.pi * val / scale_period),
         ScaleType.SIGMOID: 1 / (1 + math.exp(-10 * (val / scale_period - 0.5))),
     }[scale_type]
 
+    # after scale_period, scale should be 1
+    return min(scale, 1.0)
 
 def prepare_layer_dropout(model, prob_max: float= 0.0, prob_layer_scale: ScaleType = ScaleType.EXP, layers_str: Optional[str] = None, disable_on_eval: bool = True):
     num_layers = len(model.layers)
