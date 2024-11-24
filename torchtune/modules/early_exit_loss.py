@@ -49,7 +49,6 @@ def early_exit_loss(model, hidden_states_dict, labels, loss_fn, e_scale: float=1
     s_unpadded = (labels != loss_fn.ignore_index).sum()
     losses_early = losses_early.float().sum(-1) / s_unpadded
     # Shape: [e]
-    # losses_scales = 0.1 * torch.Tensor(hidden_layer_ids).to(losses_early) / len(model.layers)
     losses_scales = layer_ids_to_loss_scales(torch.Tensor(hidden_layer_ids).to(losses_early), len(model.layers), loss_scale_type, e_scale)
 
     return torch.sum(losses_scales * losses_early)
@@ -111,7 +110,11 @@ class EarlyExitCurriculum():
         pass
 
     def get(self):
-        return self.do_output_hidden_states
+        do_output_hidden_states = np.copy(self.do_output_hidden_states)
+        # Ensure last layer is trained
+        if self.train_last_layer:
+            do_output_hidden_states[-1] = True
+        return do_output_hidden_states
 
 class RotationalEarlyExitCurriculum(EarlyExitCurriculum):
     def __init__(self, do_output_hidden_states, max_steps, train_last_layer=True, verbose=False):
@@ -120,11 +123,7 @@ class RotationalEarlyExitCurriculum(EarlyExitCurriculum):
 
     def step(self):
         # Rotate layer enablement one step forward
-        self.do_output_hidden_states = np.roll(self.do_output_hidden_states, -1)
-
-        # Ensure last layer is trained
-        if self.train_last_layer:
-            self.do_output_hidden_states[-1] = True
+        self.do_output_hidden_states = np.roll(self.do_output_hidden_states, 1)
 
         if self.verbose:
             log.info(f"Updated self.output_hidden_states to {self.do_output_hidden_states}.")
@@ -150,10 +149,6 @@ class GradualEarlyExitCurriculum(EarlyExitCurriculum):
 
         # Only enable layers that are set by the user
         self.do_output_hidden_states = np.logical_and(self.do_output_hidden_states, self._final_do_output_hidden_states)
-
-        # Ensure last layer is trained
-        if self.train_last_layer:
-            self.do_output_hidden_states[-1] = True
 
         self._step += 1
         if self.verbose:

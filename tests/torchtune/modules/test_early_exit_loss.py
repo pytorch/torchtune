@@ -79,32 +79,46 @@ def test_setup_early_exit_loss_curriculum():
     curriculum = setup_early_exit_loss_curriculum(EarlyExitCurriculumType.GRADUAL, [True, False, True], 100)
     assert isinstance(curriculum, GradualEarlyExitCurriculum)
 
-def test_rotational_early_exit_curriculum():
-    curriculum = RotationalEarlyExitCurriculum([True, False, True], 100)
-    curriculum.step()
-    expected = np.array([False, True, True])
+
+@pytest.mark.parametrize("train_last_layer", [
+    True,
+    False,
+])
+def test_rotational_early_exit_curriculum(train_last_layer):
+    curriculum = RotationalEarlyExitCurriculum([True, False, False], max_steps=100, train_last_layer=train_last_layer)
+    expected = np.array([True, False, train_last_layer])
     assert np.array_equal(curriculum.get(), expected)
     curriculum.step()
-    expected = np.array([True, True, False])
+    expected = np.array([False, True, train_last_layer])
     assert np.array_equal(curriculum.get(), expected)
     curriculum.step()
-    expected = np.array([True, False, True])
+    expected = np.array([False, False, True])
+    assert np.array_equal(curriculum.get(), expected)
+    curriculum.step()
+    expected = np.array([True, False, train_last_layer])
     assert np.array_equal(curriculum.get(), expected)
 
-def test_gradual_early_exit_curriculum():
-    curriculum = GradualEarlyExitCurriculum([False, False, False, False], max_steps=4, percent_scale=1)
+
+@pytest.mark.parametrize("train_last_layer", [
+    True,
+    False,
+])
+def test_gradual_early_exit_curriculum(train_last_layer):
+    curriculum = GradualEarlyExitCurriculum([True, True, True, True], max_steps=4, train_last_layer=train_last_layer, percent_scale=1)
+    expected = np.array([False, False, False, train_last_layer])
+    assert np.array_equal(curriculum.get(), expected)
     curriculum.step()
-    assert curriculum.get() == [False, False, False, False]
+    assert np.array_equal(curriculum.get(), [False, False, False, train_last_layer])
     curriculum.step()
-    assert curriculum.get() == [False, False, False, True]
+    assert np.array_equal(curriculum.get(), [False, False, False, True])
     curriculum.step()
-    assert curriculum.get() == [False, False, True, True]
+    assert np.array_equal(curriculum.get(), [False, False, True, True])
     curriculum.step()
-    assert curriculum.get() == [False, True, True, True]
+    assert np.array_equal(curriculum.get(), [False, True, True, True])
     curriculum.step()
-    assert curriculum.get() == [True, True, True, True]
+    assert np.array_equal(curriculum.get(), [True, True, True, True])
     curriculum.step()
-    assert curriculum.get() == [True, True, True, True]
+    assert np.array_equal(curriculum.get(), [True, True, True, True])
 
 @pytest.fixture
 def hidden_states_dict():
