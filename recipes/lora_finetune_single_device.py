@@ -185,7 +185,20 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # NOTE: added by us
         self.save_checkpoints_interval = cfg.get("save_checkpoints", 1)
         self.max_seq_len = cfg.get("max_seq_len", None)
-        self._max_validation_steps = cfg.get("max_validation_steps", None)
+        self._max_validation_steps = int(
+            cfg.get("samples_per_validation_steps") / cfg.batch_size
+        )
+        log.info(
+            f"Setting max validation steps to {self._max_validation_steps} (samples_per_validation_steps / batch_size)"
+        )
+        assert self.max_steps_per_epoch is None
+        effective_batch_size = cfg.batch_size * cfg.gradient_accumulation_steps
+        self.max_steps_per_epoch = int(
+            cfg.get("samples_per_epoch") / effective_batch_size
+        )
+        log.info(
+            f"Setting max steps per epoch to {self.max_steps_per_epoch} (samples_per_epoch / effective_batch_size)"
+        )
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -699,6 +712,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         Skip samples that are too long. This is needed for the training loop to handle
         samples that are too long to fit in the model.
         """
+        if self.max_seq_len is None:
+            return False
         return len(batch["tokens"][0]) > self.max_seq_len
 
     def train(self) -> None:
