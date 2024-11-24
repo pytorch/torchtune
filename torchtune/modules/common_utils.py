@@ -105,6 +105,8 @@ def slice_str_to_array(slice_str: str, length: int) -> list[bool]:
 
     if len(parts) == 1 and parts[0] != '':
         start = int(parts[0])
+        end = start + 1
+        step = 1
     elif len(parts) == 2:
         start = int(parts[0]) if parts[0] != '' else None
         end = int(parts[1]) if parts[1] != '' else None
