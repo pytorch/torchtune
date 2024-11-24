@@ -58,7 +58,30 @@ def reparametrize_as_dtype_state_dict_post_hook(
             if offload_to_cpu:
                 state_dict[k] = state_dict[k].cpu()
 
+
 def slice_str_to_array(slice_str, length):
+    """
+    Convert a string representing a Python slice into a boolean array.
+    The resulting array will have the same length as the specified `length` parameter.
+    Each element in the array corresponds to an index in the original sequence,
+    with `True` indicating that the index is included in the slice and `False` otherwise.
+    Args:
+        slice_str (str): A string representing a Python slice, e.g. "1:3", ":5", "2::3".
+        length (int): The length of the original sequence.
+    Returns:
+        list[bool]: A boolean array representing the slice.
+    Examples:
+        >>> slice_str_to_array("1:3", 5)
+        [False, True, True, False, False]
+        >>> slice_str_to_array(":", 5)
+        [True, True, True, True, True]
+        >>> slice_str_to_array("::2", 5)
+        [True, False, True, False, True]
+        >>> slice_str_to_array("1::2", 5)
+        [False, True, False, True, False]
+        >>> slice_str_to_array("2:5:2", 6)
+        [False, False, True, False, True, False]
+    """
     # Parse the slice string
     parts = slice_str.split(':')
     start, end, step = None, None, None
