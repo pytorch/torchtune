@@ -14,6 +14,7 @@ from .common_utils import (
 )
 from .feed_forward import FeedForward  # noqa
 from .kv_cache import KVCache  # noqa
+from .layer_dropout import LayerDropout, prepare_layer_dropout  # noqa
 from .layer_norm import Fp32LayerNorm  # noqa
 from .low_precision import FrozenNF4Linear  # noqa
 from .position_embeddings import (  # noqa
@@ -23,7 +24,6 @@ from .position_embeddings import (  # noqa
 from .rms_norm import RMSNorm  # noqa
 from .tanh_gate import TanhGate  # noqa
 from .tied_linear import TiedLinear  # noqa
-from .layer_dropout import LayerDropout, prepare_layer_dropout # noqa
 from .transformer import (  # noqa
     TransformerCrossAttentionLayer,
     TransformerDecoder,

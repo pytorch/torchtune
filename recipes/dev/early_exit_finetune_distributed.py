@@ -23,22 +23,27 @@ from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
+from torchtune.modules.common_utils import slice_str_to_array
+
+from torchtune.modules.early_exit_loss import (
+    early_exit_loss,
+    EarlyExitCurriculum,
+    setup_early_exit_loss_curriculum,
+)
+from torchtune.modules.layer_dropout import prepare_layer_dropout
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.activations import apply_selective_activation_checkpointing
 from torchtune.training.lr_schedulers import get_lr
 
-from torchtune.modules.early_exit_loss import early_exit_loss, setup_early_exit_loss_curriculum, EarlyExitCurriculum
-from torchtune.modules.layer_dropout import prepare_layer_dropout
-from torchtune.modules.common_utils import slice_str_to_array
-
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
 
+
 class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
     """
-    Early exit and layer dropout full finetuning to make the model more robust to early exit and skipping 
+    Early exit and layer dropout full finetuning to make the model more robust to early exit and skipping
     intermediate layers for dense transformer-based LLMs such as Llama2. This recipe supports distributed
     training and can be run on a single node (1 to 8 GPUs).
 
@@ -213,7 +218,9 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         if cfg_early_exit_loss:
             self._do_early_exit_loss = True
             self._early_exit_loss_scale = cfg_early_exit_loss.get("scale", 1.0)
-            self._early_exit_loss_scale_type = cfg_early_exit_loss.get("scale_type", "one")
+            self._early_exit_loss_scale_type = cfg_early_exit_loss.get(
+                "scale_type", "one"
+            )
         else:
             self._do_early_exit_loss = False
             self._early_exit_loss_scale = None
@@ -361,12 +368,21 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         # Setup early exit loss
-        self._do_output_hidden_states, self._early_exit_loss_curriculum = self._setup_early_exit_loss(cfg.get("early_exit_loss", None))
+        (
+            self._do_output_hidden_states,
+            self._early_exit_loss_curriculum,
+        ) = self._setup_early_exit_loss(cfg.get("early_exit_loss", None))
 
         # Layer Dropout Setup
         cfg_layer_dropout = cfg.get("layer_dropout", None)
         if cfg_layer_dropout:
-            prepare_layer_dropout(self._model, prob_max=cfg_layer_dropout.get("prob", 0.0), prob_layer_scale=cfg_layer_dropout.get("layers_scale", "uniform"), layers_str=cfg_layer_dropout.get("layers", ":"), disable_on_eval=cfg_layer_dropout.get("disable_on_eval", True))
+            prepare_layer_dropout(
+                self._model,
+                prob_max=cfg_layer_dropout.get("prob", 0.0),
+                prob_layer_scale=cfg_layer_dropout.get("layers_scale", "uniform"),
+                layers_str=cfg_layer_dropout.get("layers", ":"),
+                disable_on_eval=cfg_layer_dropout.get("disable_on_eval", True),
+            )
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
@@ -656,7 +672,9 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         early_exit_loss_curriculum = None
 
         if cfg_early_exit_loss:
-            do_output_hidden_states = slice_str_to_array(cfg_early_exit_loss.get("layers", ":"), len(self._model.layers))
+            do_output_hidden_states = slice_str_to_array(
+                cfg_early_exit_loss.get("layers", ":"), len(self._model.layers)
+            )
             train_last_layer = cfg_early_exit_loss.get("include_last_layer", True)
             verbose = cfg_early_exit_loss.get("verbose", False)
 
@@ -664,7 +682,13 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                 do_output_hidden_states[len(self._model.layers) - 1] = True
 
             if cfg_early_exit_loss.curriculum:
-                early_exit_loss_curriculum = setup_early_exit_loss_curriculum(early_exit_curriculum=cfg_early_exit_loss.curriculum, do_output_hidden_states=do_output_hidden_states, max_steps=self.total_epochs*self._steps_per_epoch, train_last_layer=train_last_layer, verbose=verbose)
+                early_exit_loss_curriculum = setup_early_exit_loss_curriculum(
+                    early_exit_curriculum=cfg_early_exit_loss.curriculum,
+                    do_output_hidden_states=do_output_hidden_states,
+                    max_steps=self.total_epochs * self._steps_per_epoch,
+                    train_last_layer=train_last_layer,
+                    verbose=verbose,
+                )
                 do_output_hidden_states = early_exit_loss_curriculum.get()
             else:
                 early_exit_loss_curriculum = None
@@ -784,7 +808,11 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Initialize output hidden states
         if self._do_output_hidden_states:
-            self._model.output_hidden_states = [i for i in range(len(self._do_output_hidden_states)) if self._do_output_hidden_states[i]]
+            self._model.output_hidden_states = [
+                i
+                for i in range(len(self._do_output_hidden_states))
+                if self._do_output_hidden_states[i]
+            ]
 
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
@@ -827,7 +855,10 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                     outputs = self._model(**batch)
                     if self._model.output_hidden_states:
                         logits = outputs.pop(-1)
-                        hidden_states = {i:h for i,h in zip(self._model.output_hidden_states, outputs)}
+                        hidden_states = {
+                            i: h
+                            for i, h in zip(self._model.output_hidden_states, outputs)
+                        }
                     else:
                         logits = outputs
 
@@ -845,7 +876,17 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
                 if self._model.output_hidden_states:
-                    current_loss = early_exit_loss(self._model, hidden_states, labels, self._loss_fn, self._early_exit_loss_scale, self._early_exit_loss_scale_type) * current_num_tokens
+                    current_loss = (
+                        early_exit_loss(
+                            self._model,
+                            hidden_states,
+                            labels,
+                            self._loss_fn,
+                            self._early_exit_loss_scale,
+                            self._early_exit_loss_scale_type,
+                        )
+                        * current_num_tokens
+                    )
                 else:
                     current_loss = self._loss_fn(logits, labels) * current_num_tokens
 
@@ -926,8 +967,14 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                     # Update Early Exit Layers/Scales
                     if self._early_exit_loss_curriculum:
                         self._early_exit_loss_curriculum.step()
-                        self._do_output_hidden_states = self._early_exit_loss_curriculum.get()
-                        self._model.output_hidden_states = [i for i in range(len(self._do_output_hidden_states)) if self._do_output_hidden_states[i]]
+                        self._do_output_hidden_states = (
+                            self._early_exit_loss_curriculum.get()
+                        )
+                        self._model.output_hidden_states = [
+                            i
+                            for i in range(len(self._do_output_hidden_states))
+                            if self._do_output_hidden_states[i]
+                        ]
 
                     # Stop tracking CUDA memory now that active steps are complete
                     if (

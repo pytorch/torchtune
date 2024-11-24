@@ -4,12 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import math
 from enum import Enum
 from typing import Any, Callable, Optional
-import math
+
 import torch
 
 from torchtune.modules.common_utils import slice_str_to_array
+
 
 class LayerDropout(torch.nn.Module):
     def __init__(self, prob=0.0, dim=0, disable_on_eval=True, seed=None):
@@ -30,7 +32,11 @@ class LayerDropout(torch.nn.Module):
             self.inferred = 1.0
             return function(input, *args, **kwargs)
 
-        skip = torch.bernoulli(torch.Tensor((n) * [self.prob]), generator=self.generator).to(input.device).to(input.dtype)
+        skip = (
+            torch.bernoulli(torch.Tensor((n) * [self.prob]), generator=self.generator)
+            .to(input.device)
+            .to(input.dtype)
+        )
         self.inferred = 1 - torch.mean(skip)
         ind_selected = (skip == 0).nonzero().squeeze()
 
@@ -39,10 +45,13 @@ class LayerDropout(torch.nn.Module):
             out_selected = function(x_selected, *args, **kwargs)
 
         out = input.clone()
-        assert self.dim == 0, "Currently only supporting dropping elements along the 0th dimension"
+        assert (
+            self.dim == 0
+        ), "Currently only supporting dropping elements along the 0th dimension"
         if ind_selected.numel() > 0:
             out[ind_selected] = out_selected
         return out
+
 
 class ModuleLayerDropoutWrapper(torch.nn.Module):
     def __init__(self, module: torch.nn.Module, dropout: LayerDropout):
@@ -78,6 +87,7 @@ class ModuleLayerDropoutWrapper(torch.nn.Module):
         self.module.load_state_dict(state_dict, *args, **kwargs)
         return
 
+
 class ScaleType(str, Enum):
     UNIFORM = "uniform"
     EXP = "exp"
@@ -86,6 +96,7 @@ class ScaleType(str, Enum):
     SIN = "sin"
     SIGMOID = "sigmoid"
     STEP = "step"
+
 
 def get_scale(scale_type: ScaleType, scale_period: int, val: int):
     if scale_period == 0:
@@ -104,16 +115,39 @@ def get_scale(scale_type: ScaleType, scale_period: int, val: int):
     # after scale_period, scale should be 1
     return min(scale, 1.0)
 
-def prepare_layer_dropout(model, prob_max: float= 0.0, prob_layer_scale: ScaleType = ScaleType.EXP, layers_str: Optional[str] = None, disable_on_eval: bool = True):
+
+def prepare_layer_dropout(
+    model,
+    prob_max: float = 0.0,
+    prob_layer_scale: ScaleType = ScaleType.EXP,
+    layers_str: Optional[str] = None,
+    disable_on_eval: bool = True,
+):
     num_layers = len(model.layers)
-    has_dropout = slice_str_to_array(layers_str, num_layers) if layers_str else [True] * num_layers
+    has_dropout = (
+        slice_str_to_array(layers_str, num_layers)
+        if layers_str
+        else [True] * num_layers
+    )
     for layer_id in range(len(model.layers)):
-        prob = prob_max * get_scale(
-            scale_type = prob_layer_scale,
-            scale_period = num_layers - 1,
-            val = layer_id,
-        ) if has_dropout[layer_id] else 0.0
-        assert prob >= 0.0 and prob <= prob_max, f"prob={prob} should be between 0 and {prob_max}"
-        # We would like each layer to have a different seed, so that we don't have the same samples skipped across layers. Hence, we use the layer_id as a seed for each layer's dropout.
-        layer_dropout = LayerDropout(prob, disable_on_eval=disable_on_eval, seed=layer_id)
-        model.layers[layer_id] = ModuleLayerDropoutWrapper(model.layers[layer_id], layer_dropout)
+        prob = (
+            prob_max
+            * get_scale(
+                scale_type=prob_layer_scale,
+                scale_period=num_layers - 1,
+                val=layer_id,
+            )
+            if has_dropout[layer_id]
+            else 0.0
+        )
+        assert (
+            prob >= 0.0 and prob <= prob_max
+        ), f"prob={prob} should be between 0 and {prob_max}"
+        # We would like each layer to have a different seed, so that we don't have the same samples skipped across layers.
+        # Hence, we use the layer_id as a seed for each layer's dropout.
+        layer_dropout = LayerDropout(
+            prob, disable_on_eval=disable_on_eval, seed=layer_id
+        )
+        model.layers[layer_id] = ModuleLayerDropoutWrapper(
+            model.layers[layer_id], layer_dropout
+        )

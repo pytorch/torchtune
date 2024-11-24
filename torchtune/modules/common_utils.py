@@ -89,40 +89,42 @@ def slice_str_to_array(slice_str: str, length: int) -> list[bool]:
         [True, False, False, False, True, True, False]
     """
 
-    assert ',' not in slice_str or ':' not in slice_str, "Cannot mix commas and colons"
+    assert "," not in slice_str or ":" not in slice_str, "Cannot mix commas and colons"
 
-    if ',' in slice_str:
-        indices = [int(i) for i in slice_str.split(',')]
+    if "," in slice_str:
+        indices = [int(i) for i in slice_str.split(",")]
         assert all(0 <= i < length for i in indices), "Index out of range"
         result = [False] * length
         for i in indices:
             result[i] = True
         return result
 
-    parts = slice_str.split(':')
+    parts = slice_str.split(":")
     assert len(parts) <= 3, "Invalid slice format"
     start, end, step = None, None, None
 
-    if len(parts) == 1 and parts[0] != '':
+    if len(parts) == 1 and parts[0] != "":
         start = int(parts[0])
         end = start + 1
         step = 1
     elif len(parts) == 2:
-        start = int(parts[0]) if parts[0] != '' else None
-        end = int(parts[1]) if parts[1] != '' else None
+        start = int(parts[0]) if parts[0] != "" else None
+        end = int(parts[1]) if parts[1] != "" else None
     elif len(parts) == 3:
-        start = int(parts[0]) if parts[0] != '' else None
-        end = int(parts[1]) if parts[1] != '' else None
-        step = int(parts[2]) if parts[2] != '' else None
+        start = int(parts[0]) if parts[0] != "" else None
+        end = int(parts[1]) if parts[1] != "" else None
+        step = int(parts[2]) if parts[2] != "" else None
 
     assert start is None or 0 <= start < length, "Start index out of range"
     assert end is None or 0 <= end < length, "End index out of range"
     assert step is None or step != 0, "Step cannot be zero"
 
     result = [False] * length
-    slice_indices = range(start if start is not None else 0,
-                          end if end is not None else length,
-                          step if step is not None else 1)
+    slice_indices = range(
+        start if start is not None else 0,
+        end if end is not None else length,
+        step if step is not None else 1,
+    )
 
     for i in slice_indices:
         if 0 <= i < length:

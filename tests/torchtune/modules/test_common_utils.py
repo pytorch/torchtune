@@ -14,8 +14,9 @@ from torchtune.models.llama3_2_vision._component_builders import (
     llama3_2_vision_encoder,
 )
 from torchtune.modules import delete_kv_caches, disable_kv_cache, local_kv_cache
-from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.modules.common_utils import slice_str_to_array
+from torchtune.modules.model_fusion import DeepFusionModel
+
 
 @pytest.fixture
 def llama_vision_model():
@@ -191,6 +192,7 @@ class TestDisableKVCaches:
         with pytest.raises(ValueError, match="Model caches must be setup"):
             with disable_kv_cache(model):
                 pass
+
 
 class TestSliceStrToArray:
     def test_single_index(self):
