@@ -653,15 +653,16 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         if cfg_early_exit_loss:
             do_output_hidden_states = slice_str_to_array(cfg_early_exit_loss.get("layers", ":"), len(self._model.layers))
             train_last_layer = cfg_early_exit_loss.get("include_last_layer", True)
+            verbose = cfg_early_exit_loss.get("verbose", False)
+
             if train_last_layer:
                 do_output_hidden_states[len(self._model.layers) - 1] = True
 
             if cfg_early_exit_loss.curriculum:
-                early_exit_loss_curriculum = setup_early_exit_loss_curriculum(cfg_early_exit_loss.curriculum, do_output_hidden_states, self.total_epochs*self._steps_per_epoch, train_last_layer)
+                early_exit_loss_curriculum = setup_early_exit_loss_curriculum(early_exit_curriculum=cfg_early_exit_loss.curriculum, do_output_hidden_states=do_output_hidden_states, max_steps=self.total_epochs*self._steps_per_epoch, train_last_layer=train_last_layer, verbose=verbose)
+                do_output_hidden_states = early_exit_loss_curriculum.get()
             else:
                 early_exit_loss_curriculum = None
-
-            # TODO: get initial do_output_hidden_states from curriculum
 
         return do_output_hidden_states, early_exit_loss_curriculum
 
@@ -819,7 +820,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
 
                 with self.activations_handling_ctx:
                     outputs = self._model(**batch)
-                    if self._do_early_exit_loss:
+                    if self._model.output_hidden_states:
                         logits = outputs.pop(-1)
                         hidden_states = {i:h for i,h in zip(self._model.output_hidden_states, outputs)}
                     else:
@@ -838,7 +839,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                 # Compute loss
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                if self._do_early_exit_loss:
+                if self._model.output_hidden_states:
                     current_loss = early_exit_loss(self._model, hidden_states, labels, self._loss_fn, self._early_exit_loss_scale, self._early_exit_loss_scale_type) * current_num_tokens
                 else:
                     current_loss = self._loss_fn(logits, labels) * current_num_tokens

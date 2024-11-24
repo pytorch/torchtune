@@ -61,7 +61,6 @@ def layer_ids_to_loss_scales(layer_ids, n_layers, loss_scale_type: LossScaleType
         case LossScaleType.L:
             loss_scales = torch.Tensor(layer_ids+1)
         case LossScaleType.SUM_L:
-            # TODO: should we change to sum 0:i ? Perhaps create a new scale_type
             loss_scales = torch.cumsum(layer_ids+1, dim=0)
         case LossScaleType.SQRT_L:
             loss_scales = torch.sqrt(layer_ids+1)
@@ -117,32 +116,45 @@ class EarlyExitCurriculum():
 class RotationalEarlyExitCurriculum(EarlyExitCurriculum):
     def __init__(self, do_output_hidden_states, max_steps, train_last_layer=True, verbose=False):
         super().__init__(do_output_hidden_states, max_steps, train_last_layer, verbose)
+        self._initial_do_output_hidden_states = np.copy(do_output_hidden_states)
 
     def step(self):
+        # Rotate layer enablement one step forward
         self.do_output_hidden_states = np.roll(self.do_output_hidden_states, -1)
+
+        # Ensure last layer is trained
         if self.train_last_layer:
             self.do_output_hidden_states[-1] = True
+
         if self.verbose:
             log.info(f"Updated self.output_hidden_states to {self.do_output_hidden_states}.")
 
 class GradualEarlyExitCurriculum(EarlyExitCurriculum):
     def __init__(self, do_output_hidden_states, max_steps, train_last_layer=True, percent_scale=2, verbose=False):
         super().__init__(do_output_hidden_states, max_steps, train_last_layer, verbose)
+        self._final_do_output_hidden_states = np.copy(do_output_hidden_states)
         self._step = 0
         self._percent_scale = percent_scale
+
+        # Initialize all layers to False
+        for i in range(len(self.do_output_hidden_states)):
+            self.do_output_hidden_states[i] = False
 
     def step(self):
         percent_trained = self._step / self.max_steps
         n_layers = len(self.do_output_hidden_states)
+        # Enable each layer based on proportion of completed training steps
         for layer_index in range(len(self.do_output_hidden_states)):
             should_train = (percent_trained * self._percent_scale) >= (n_layers - layer_index) / n_layers
-            # TODO: either handle if layers_str != ":", or add an assert statement layers_str == ":"
             self.do_output_hidden_states[layer_index] = should_train
 
+        # Only enable layers that are set by the user
+        self.do_output_hidden_states = np.logical_and(self.do_output_hidden_states, self._final_do_output_hidden_states)
+
+        # Ensure last layer is trained
         if self.train_last_layer:
             self.do_output_hidden_states[-1] = True
-        # TODO: move this to step() in parent class?
-        # TODO: how to ensure we always call parent step() in derived class?
+
         self._step += 1
         if self.verbose:
             log.info(f"Updated self.do_output_hidden_states to {self.do_output_hidden_states}.")
