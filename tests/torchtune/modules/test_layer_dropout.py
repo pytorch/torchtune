@@ -10,7 +10,7 @@ import math
 import pytest
 import torch
 from tests.test_utils import assert_expected
-from torchtune.modules.layer_dropout import LayerDropout, get_scale, ScaleType
+from torchtune.modules.layer_dropout import LayerDropout, get_scale, ScaleType, prepare_layer_dropout
 
 
 class TestLayerDropout:
@@ -114,3 +114,67 @@ class TestLayerDropout:
         expected_scale = math.sin(0.5 * math.pi * 5 / 10)
         actual_scale = get_scale(scale_type, scale_period, val)
         assert_expected(actual_scale, expected_scale, atol=1e-7, rtol=1e-3)
+
+    @pytest.fixture(autouse=True)
+    def random(self):
+        torch.manual_seed(0)
+
+
+    def test_prepare_layer_dropout_uniform(self) -> None:
+        class MockModel(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.layers = torch.nn.ModuleList([torch.nn.Linear(10, 10) for _ in range(5)])
+        model = MockModel()
+        prob_max = 0.5
+        prob_layer_scale = ScaleType.UNIFORM
+        layers_str = "0:4"
+        prepare_layer_dropout(model, prob_max, prob_layer_scale, layers_str)
+        for i, layer in enumerate(model.layers):
+            assert hasattr(layer, "dropout")
+            if i in range(0, 4):
+                assert layer.dropout.prob == prob_max
+            else:
+                assert layer.dropout.prob == 0
+
+
+    def test_prepare_layer_dropout_exp(self) -> None:
+        class MockModel(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.layers = torch.nn.ModuleList([torch.nn.Linear(10, 10) for _ in range(5)])
+        model = MockModel()
+        prob_max = 0.5
+        prob_layer_scale = ScaleType.EXP
+        layers_str = ":"
+        prepare_layer_dropout(model, prob_max, prob_layer_scale, layers_str)
+        for i, layer in enumerate(model.layers):
+            assert hasattr(layer, "dropout")
+            if i == 0:
+                assert layer.dropout.prob == 0
+            elif i == len(model.layers) - 1:
+                assert layer.dropout.prob == prob_max
+            else:
+                assert layer.dropout.prob > 0 and layer.dropout.prob < prob_max
+
+
+    def test_prepare_layer_dropout_linear(self) -> None:
+        class MockModel(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.layers = torch.nn.ModuleList([torch.nn.Linear(10, 10) for _ in range(5)])
+        model = MockModel()
+        prob_max = 0.5
+        prob_layer_scale = ScaleType.LINEAR
+        layers_str = ":"
+        prepare_layer_dropout(model, prob_max, prob_layer_scale, layers_str)
+        for i, layer in enumerate(model.layers):
+            assert hasattr(layer, "dropout")
+            if i == 0:
+                assert layer.dropout.prob == 0
+            elif i == len(model.layers) - 1:
+                assert layer.dropout.prob == prob_max
+            elif i == len(model.layers)/2:
+                assert layer.dropout.prob == prob_max/2
+            else:
+                assert layer.dropout.prob >= 0.0 and layer.dropout.prob <= prob_max
