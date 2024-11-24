@@ -38,10 +38,15 @@ log = utils.get_logger("DEBUG")
 
 class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
     """
-    Full finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe supports
-    distributed training and can be run on a single node (1 to 8 GPUs).
+    Early exit and layer dropout full finetuning to make the model more robust to early exit and skipping 
+    intermediate layers for dense transformer-based LLMs such as Llama2. This recipe supports distributed
+    training and can be run on a single node (1 to 8 GPUs).
 
     Features:
+        - Early Exit Loss.
+
+        - Layer Dropout.
+
         - FSDP. Supported using PyTorch's FSDP APIs. CPU offload of parameters, gradients, and optimizer states
             is supported via ``fsdp_cpu_offload``. Resharding of parameters after the forward pass is
             done by default (corresponding to FULL_SHARD sharding strategy), but can be disabled by setting the config
