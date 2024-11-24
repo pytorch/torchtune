@@ -6,10 +6,11 @@
 
 
 from typing import Tuple
+import math
 import pytest
 import torch
 from tests.test_utils import assert_expected
-from torchtune.modules.layer_dropout import LayerDropout
+from torchtune.modules.layer_dropout import LayerDropout, get_scale, ScaleType
 
 
 class TestLayerDropout:
@@ -43,14 +44,14 @@ class TestLayerDropout:
         # With dropout probability = 1.0, we expect output to be the same as input
         layer_dropout.prob = 1.0
         output = layer_dropout.forward(lambda x: x**2, input)
-        assert torch.allclose(output, input, atol=1e-7, rtol=1e-3)
+        assert torch.allclose(output, input)
 
 
     def test_forward_train_prob_0(self, layer_dropout: LayerDropout, input: torch.Tensor) -> None:
         # With dropout probability = 1.0, we expect the operation to be applied on all elements in the input
         layer_dropout.prob = 0.0
         output = layer_dropout.forward(lambda x: x**2, input)
-        assert torch.allclose(output, input**2, atol=1e-7, rtol=1e-3)
+        assert torch.allclose(output, input**2)
 
 
     def test_forward_eval(self, layer_dropout: LayerDropout, input: torch.Tensor) -> None:
@@ -59,9 +60,57 @@ class TestLayerDropout:
 
         layer_dropout.disable_on_eval = True
         output = layer_dropout.forward(lambda x: x**2, input)
-        assert torch.allclose(output, input**2, atol=1e-7, rtol=1e-3)
+        assert torch.allclose(output, input**2)
 
         layer_dropout.disable_on_eval = False
         with torch.no_grad():
             output = layer_dropout.forward(lambda x: x**2, input)
-        assert torch.allclose(output, input, atol=1e-7, rtol=1e-3)
+        assert torch.allclose(output, input)
+
+
+    def test_get_scale_uniform(self) -> None:
+        scale_type = ScaleType.UNIFORM
+        scale_period = 10
+
+        assert_expected(get_scale(scale_type, scale_period, 0), 1.0)
+        assert_expected(get_scale(scale_type, scale_period, scale_period/2), 1.0)
+        assert_expected(get_scale(scale_type, scale_period, scale_period), 1.0)
+        assert_expected(get_scale(scale_type, scale_period, scale_period*2), 1.0)
+
+
+    def test_get_scale_linear(self) -> None:
+        scale_type = ScaleType.LINEAR
+        scale_period = 10
+
+        assert_expected(get_scale(scale_type, scale_period, 0), 0.0)
+        assert_expected(get_scale(scale_type, scale_period, scale_period/2), 1/2)
+        assert_expected(get_scale(scale_type, scale_period, scale_period), 1.0)
+        assert_expected(get_scale(scale_type, scale_period, scale_period*2), 1.0)
+
+
+    def test_get_scale_exp(self) -> None:
+        scale_type = ScaleType.EXP
+        scale_period = 10
+
+        assert_expected(get_scale(scale_type, scale_period, 0), 0.0)
+        assert_expected(get_scale(scale_type, scale_period, scale_period/2), math.pow(2, 1/2) - 1)
+        assert_expected(get_scale(scale_type, scale_period, scale_period), 1.0)
+        assert_expected(get_scale(scale_type, scale_period, scale_period*2), 1.0)
+
+    def test_get_scale_log(self) -> None:
+        scale_type = ScaleType.LOG
+        scale_period = 10
+
+        assert_expected(get_scale(scale_type, scale_period, 0), 0.0)
+        assert_expected(get_scale(scale_type, scale_period, scale_period/2), math.log(5 + 1, scale_period + 1))
+        assert_expected(get_scale(scale_type, scale_period, scale_period), 1.0)
+        assert_expected(get_scale(scale_type, scale_period, scale_period*2), 1.0)
+
+
+    def test_get_scale_sin(self) -> None:
+        scale_type = ScaleType.SIN
+        scale_period = 10
+        val = 5
+        expected_scale = math.sin(0.5 * math.pi * 5 / 10)
+        actual_scale = get_scale(scale_type, scale_period, val)
+        assert_expected(actual_scale, expected_scale, atol=1e-7, rtol=1e-3)
