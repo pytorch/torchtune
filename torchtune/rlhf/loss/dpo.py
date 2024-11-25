@@ -9,6 +9,7 @@ from typing import Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchtune.utils._logging import deprecated
 
 
 class DPOLoss(nn.Module):
@@ -160,6 +161,7 @@ class RSOLoss(nn.Module):
         return losses, chosen_rewards, rejected_rewards
 
 
+@deprecated("msg=SimPOLoss will be deprecated in an upcoming release.")
 class SimPOLoss(nn.Module):
     """
     SimPO: Simple Preference Optimization with a Reference-Free Reward: https://arxiv.org/abs/2405.14734.
