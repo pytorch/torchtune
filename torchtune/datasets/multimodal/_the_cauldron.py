@@ -4,10 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, Mapping, Optional
+from typing import Any, Callable, Dict, Literal, Mapping, Optional
 
 from torchtune.data._messages import Message
-from torchtune.datasets._sft import SFTDataset
+from torchtune.datasets._sft import requires_torchdata, SFTDataset, SFTDatasetNode
 from torchtune.modules.transforms import Transform
 
 
@@ -235,3 +235,46 @@ def the_cauldron_dataset(
     )
 
     return ds
+
+
+@requires_torchdata
+def the_cauldron_dataset_torchdata(
+    model_transform: Transform,
+    *,
+    subset: str,
+    source: str = "HuggingFaceM4/the_cauldron",
+    column_map: Optional[Dict[str, str]] = None,
+    new_system_prompt: Optional[str] = None,
+    packed: bool = False,
+    filter_fn: Optional[Callable] = None,
+    split: str = "train",
+    streaming: bool = False,
+    shuffle: bool = False,
+    seed: int = 0,
+    num_workers: int = 0,
+    parallel_method: Literal["process", "thread"] = "thread",
+    **load_dataset_kwargs: Dict[str, Any],
+):
+    if packed:
+        raise ValueError("Multimodal datasets don't support packing yet.")
+
+    message_transform = TheCauldronToMessages(
+        column_map=column_map,
+        new_system_prompt=new_system_prompt,
+    )
+
+    return SFTDatasetNode(
+        source=source,
+        message_transform=message_transform,
+        model_transform=model_transform,
+        filter_fn=filter_fn,
+        num_workers=num_workers,
+        parallel_method=parallel_method,
+        shuffle=shuffle,
+        seed=seed,
+        # dataset kwargs
+        name=subset,
+        split=split,
+        streaming=streaming,
+        **load_dataset_kwargs,
+    )
