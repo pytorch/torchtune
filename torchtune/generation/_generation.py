@@ -390,6 +390,6 @@ def generate(
     # mask out generated tokens in seqs that already hit a stop token
     if stop_tokens is not None:
         generated_tokens *= stop_token_mask
-        generated_logits *= stop_token_mask[:, -max_generated_tokens:, None]
+        generated_logits *= stop_token_mask[:, -generated_logits.shape[1] :, None]
 
     return generated_tokens, generated_logits

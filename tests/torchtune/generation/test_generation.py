@@ -466,7 +466,6 @@ class TestGenerate:
                 [0, 0, 2, 3, 4, 5, 6, 7, 8, 9, 3989, 0, 0],
             ]
         )
-
         assert torch.equal(outputs, expected_output)
 
 
