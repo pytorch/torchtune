@@ -7,12 +7,20 @@
 import argparse
 import os
 import textwrap
+import traceback
 
+from http import HTTPStatus
 from pathlib import Path
 from typing import Literal, Union
+from warnings import warn
 
 from huggingface_hub import snapshot_download
 from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
+
+from kagglehub import model_download
+from kagglehub.auth import set_kaggle_credentials
+from kagglehub.exceptions import KaggleApiHTTPError
+from kagglehub.handle import parse_model_handle
 from torchtune._cli.subcommand import Subcommand
 
 
@@ -25,8 +33,8 @@ class Download(Subcommand):
             "download",
             prog="tune download",
             usage="tune download <repo-id> [OPTIONS]",
-            help="Download a model from the Hugging Face Hub.",
-            description="Download a model from the Hugging Face Hub.",
+            help="Download a model from the Hugging Face Hub or Kaggle Model Hub.",
+            description="Download a model from the Hugging Face Hub or Kaggle Model Hub.",
             epilog=textwrap.dedent(
                 """\
             examples:
@@ -46,7 +54,16 @@ class Download(Subcommand):
                 /tmp/model/model-00001-of-00002.bin
                 ...
 
-            For a list of all models, visit the Hugging Face Hub https://huggingface.co/models.
+                # Download a model from the Kaggle Model Hub
+                $ tune download metaresearch/llama-3.2/pytorch/1b --source kaggle
+                Successfully downloaded model repo and wrote to the following locations:
+                /tmp/llama-3.2/pytorch/1b/tokenizer.model
+                /tmp/llama-3.2/pytorch/1b/params.json
+                /tmp/llama-3.2/pytorch/1b/consolidated.00.pth
+                ...
+
+            For a list of all models, visit the Hugging Face Hub
+            https://huggingface.co/models or Kaggle Model Hub https://kaggle.com/models.
             """
             ),
             formatter_class=argparse.RawTextHelpFormatter,
@@ -59,7 +76,7 @@ class Download(Subcommand):
         self._parser.add_argument(
             "repo_id",
             type=str,
-            help="Name of the repository on Hugging Face Hub.",
+            help="Name of the repository on Hugging Face Hub or model handle on Kaggle Model Hub.",
         )
         self._parser.add_argument(
             "--output-dir",
@@ -91,12 +108,39 @@ class Download(Subcommand):
             "--ignore-patterns",
             type=str,
             required=False,
-            default="*.safetensors",
-            help="If provided, files matching any of the patterns are not downloaded. Defaults to ignoring "
-            "safetensors files to avoid downloading duplicate weights.",
+            help="If provided, files matching any of the patterns are not downloaded. Example: '*.safetensors'. "
+            "Only supported for Hugging Face Hub models.",
+        )
+        self._parser.add_argument(
+            "--source",
+            type=str,
+            required=False,
+            default="huggingface",
+            choices=["huggingface", "kaggle"],
+            help="If provided, downloads model weights from the provided repo_id on the designated source hub.",
+        )
+        self._parser.add_argument(
+            "--kaggle-username",
+            type=str,
+            required=False,
+            help="Kaggle username for authentication. Needed for private models or gated models like Llama2.",
+        )
+        self._parser.add_argument(
+            "--kaggle-api-key",
+            type=str,
+            required=False,
+            help="Kaggle API key. Needed for private models or gated models like Llama2. You can find your "
+            "API key at https://kaggle.com/settings.",
         )
 
     def _download_cmd(self, args: argparse.Namespace) -> None:
+        # Note: we're relying on argparse to validate if the provided args.source is supported
+        if args.source == "huggingface":
+            return self._download_from_huggingface(args)
+        if args.source == "kaggle":
+            return self._download_from_kaggle(args)
+
+    def _download_from_huggingface(self, args: argparse.Namespace) -> None:
         """Downloads a model from the Hugging Face Hub."""
         # Download the tokenizer and PyTorch model files
 
@@ -148,8 +192,6 @@ class Download(Subcommand):
                 f"Repository '{args.repo_id}' not found on the Hugging Face Hub."
             )
         except Exception as e:
-            import traceback
-
             tb = traceback.format_exc()
             msg = f"Failed to download {args.repo_id} with error: '{e}' and traceback: {tb}"
             self._parser.error(msg)
@@ -159,3 +201,104 @@ class Download(Subcommand):
             *list(Path(true_output_dir).iterdir()),
             sep="\n",
         )
+
+    def _download_from_kaggle(self, args: argparse.Namespace) -> None:
+        """Downloads a model from the Kaggle Model Hub."""
+
+        # Note: Kaggle doesn't actually use the "repository" terminology, but we still reuse args.repo_id here for simplicity
+        model_handle = args.repo_id
+        self._validate_kaggle_model_handle(model_handle)
+        self._set_kaggle_credentials(args)
+
+        # kagglehub doesn't currently support `local_dir` and `ignore_patterns` like huggingface_hub
+        if args.output_dir:
+            warn(
+                "--output-dir flag is not supported for Kaggle model downloads. "
+                "This argument will be ignored."
+            )
+        if args.ignore_patterns:
+            warn(
+                "--ignore-patterns flag is not supported for Kaggle model downloads. "
+                "This argument will be ignored."
+            )
+
+        try:
+            output_dir = model_download(model_handle)
+            print(
+                "Successfully downloaded model repo and wrote to the following locations:",
+                *list(Path(output_dir).iterdir()),
+                sep="\n",
+            )
+        except KaggleApiHTTPError as e:
+            if e.response.status_code in {
+                HTTPStatus.UNAUTHORIZED,
+                HTTPStatus.FORBIDDEN,
+            }:
+                self._parser.error(
+                    "It looks like you are trying to access a gated model. Please ensure you "
+                    "have access to the model and have provided the proper Kaggle credentials "
+                    "using the options `--kaggle-username` and `--kaggle-api-key`. You can also "
+                    "set these to environment variables as detailed in "
+                    "https://github.com/Kaggle/kagglehub/blob/main/README.md#authenticate."
+                )
+            elif e.response.status_code == HTTPStatus.NOT_FOUND:
+                self._parser.error(
+                    f"'{model_handle}' not found on the Kaggle Model Hub."
+                )
+            tb = traceback.format_exc()
+            msg = f"Failed to download {model_handle} with error: '{e}' and traceback: {tb}"
+            self._parser.error(msg)
+        except Exception as e:
+            tb = traceback.format_exc()
+            msg = f"Failed to download {model_handle} with error: '{e}' and traceback: {tb}"
+            self._parser.error(msg)
+
+    def _validate_kaggle_model_handle(self, handle: str) -> None:
+        try:
+            parsed_handle = parse_model_handle(handle)
+            if (
+                parsed_handle.framework == "pytorch"
+                and parsed_handle.owner != "metaresearch"
+            ):
+                warn(
+                    f"Requested PyTorch model {handle} was not published from Meta, and therefore "
+                    "may not be compatible with torchtune."
+                )
+            if parsed_handle.framework not in {"pytorch", "transformers"}:
+                warn(
+                    f"Requested model {handle} is neither a PyTorch nor a Transformers model, and "
+                    "therefore may not be compatible with torchtune."
+                )
+        except Exception as e:
+            msg = f"Failed to validate {handle} with error {e}."
+            self._parser.error(msg)
+
+    def _set_kaggle_credentials(self, args: argparse.Namespace):
+        try:
+            if args.kaggle_username or args.kaggle_api_key:
+                print(
+                    "TIP: you can avoid passing in the --kaggle-username and --kaggle-api-key "
+                    "arguments by storing them as the environment variables KAGGLE_USERNAME and "
+                    "KAGGLE_KEY, respectively. For more details, see "
+                    "https://github.com/Kaggle/kagglehub/blob/main/README.md#authenticate"
+                )
+
+                # Fallback to known Kaggle environment variables in case user omits one
+                #   of the CLI arguments. Note, there's no need to fallback when both
+                #   --kaggle-username and --kaggle-api-key are omitted since kagglehub
+                #   will check the environment variables itself.
+                kaggle_username = (
+                    args.kaggle_username
+                    if args.kaggle_username
+                    else os.environ.get("KAGGLE_USERNAME")
+                )
+                kaggle_api_key = (
+                    args.kaggle_api_key
+                    if args.kaggle_api_key
+                    else os.environ.get("KAGGLE_KEY")
+                )
+                set_kaggle_credentials(kaggle_username, kaggle_api_key)
+        except Exception as e:
+            msg = f"Failed to set Kaggle credentials with error: '{e}'"
+            # not all Kaggle downloads require credentials, so there's no need to terminate
+            warn(msg)

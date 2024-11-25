@@ -39,19 +39,25 @@ to download files using the CLI.
 Download a model
 ----------------
 
-The ``tune download <path>`` command downloads any model from the Hugging Face Hub.
+The ``tune download <path>`` command downloads any model from the Hugging Face or Kaggle Model Hub.
 
 .. list-table::
    :widths: 30 60
 
    * - \--output-dir
-     - Directory in which to save the model.
+     - Directory in which to save the model. Note: this is option not yet supported when `--source` is set to `kaggle`.
    * - \--output-dir-use-symlinks
      - To be used with `output-dir`. If set to 'auto', the cache directory will be used and the file will be either duplicated or symlinked to the local directory depending on its size. It set to `True`, a symlink will be created, no matter the file size. If set to `False`, the file will either be duplicated from cache (if already exists) or downloaded from the Hub and not cached.
    * - \--hf-token
      - Hugging Face API token. Needed for gated models like Llama.
    * - \--ignore-patterns
      - If provided, files matching any of the patterns are not downloaded. Defaults to ignoring safetensors files to avoid downloading duplicate weights.
+   * - \--source {huggingface,kaggle}
+     - If provided, downloads model weights from the provided <path> on the designated source hub.
+   * - \--kaggle-username
+     - Kaggle username for authentication. Needed for private models or gated models like Llama2.
+   * - \--kaggle-api-key
+     - Kaggle API key. Needed for private models or gated models like Llama2. You can find your API key at https://kaggle.com/settings.
 
 .. code-block:: bash
 
@@ -62,6 +68,13 @@ The ``tune download <path>`` command downloads any model from the Hugging Face H
     ./model/model-00001-of-00002.bin
     ...
 
+.. code-block:: bash
+
+    $ tune download metaresearch/llama-3.2/pytorch/1b --source kaggle
+    Successfully downloaded model repo and wrote to the following locations:
+    /tmp/llama-3.2/pytorch/1b/tokenizer.model
+    /tmp/llama-3.2/pytorch/1b/params.json
+    /tmp/llama-3.2/pytorch/1b/consolidated.00.pth
 
 **Download a gated model**
 

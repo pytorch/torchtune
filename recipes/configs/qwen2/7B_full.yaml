@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download Qwen/Qwen2-7B-Instruct --output-dir /tmp/Qwen2-7B-Instruct --ignore-patterns None
+#   tune download Qwen/Qwen2-7B-Instruct --output-dir /tmp/Qwen2-7B-Instruct
 #
 # To launch on 4 devices, run the following command from root:
 #   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config qwen2/7B_full
