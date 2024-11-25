@@ -623,31 +623,23 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
             # split the state_dict into separate dicts, one for each output checkpoint file
             split_state_dicts: Dict[str, Dict[str, torch.Tensor]] = {}
-            total_size = 0
             for key, weight in state_dict[training.MODEL_KEY].items():
                 cpt_idx = self._weight_map[key]
                 if cpt_idx not in split_state_dicts:
                     split_state_dicts[cpt_idx] = {}
                 split_state_dicts[cpt_idx].update({key: weight})
-                total_size += weight.numel() * weight.element_size()
 
             # write the partitioned state dicts to the right checkpoint file
-            num_shards = len(split_state_dicts)
             for cpt_idx, model_state_dict in split_state_dicts.items():
                 if not self._safe_serialization:
-                    shard_name = (
-                        f"pytorch_model-{int(cpt_idx):05d}-of-{int(num_shards):05d}"
-                    )
                     output_path = Path.joinpath(
-                        self._output_dir, f"{shard_name}_{epoch}"
-                    ).with_suffix(".bin")
+                        self._output_dir, f"hf_model_{cpt_idx}_{epoch}"
+                    ).with_suffix(".pt")
                     torch.save(model_state_dict, output_path)
                 else:
-                    shard_name = (
-                        f"model-{int(cpt_idx):05d}-of-{int(num_shards):05d}_{epoch}"
-                    )
                     output_path = Path.joinpath(
-                        self._output_dir, shard_name
+                        self._output_dir,
+                        f"model-0{cpt_idx}-of-0{list(split_state_dicts.keys())[-1]}_{epoch}",
                     ).with_suffix(".safetensors")
                     save_file(model_state_dict, output_path, metadata={"format": "pt"})
                 logger.info(
@@ -655,31 +647,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
                     f"saved to {output_path}"
                 )
-
-            # Save the appropriate index file based on serialization format
-            if self._safe_serialization:
-                index_path = Path.joinpath(
-                    self._output_dir, "model.safetensors.index.json"
-                )
-                weight_map = {
-                    k: f"model-{int(v):05d}-of-{int(num_shards):05d}_{epoch}.safetensors"
-                    for k, v in self._weight_map.items()
-                }
-            else:
-                index_path = Path.joinpath(
-                    self._output_dir, "pytorch_model.bin.index.json"
-                )
-                weight_map = {
-                    k: f"pytorch_model-{int(v):05d}-of-{int(num_shards):05d}_{epoch}.bin"
-                    for k, v in self._weight_map.items()
-                }
-
-            index_data = {
-                "metadata": {"total_size": total_size},
-                "weight_map": weight_map,
-            }
-            with open(index_path, "w") as f:
-                json.dump(index_data, f, indent=2)
 
         if training.ADAPTER_KEY in state_dict:
             # Save torchtune format adapter weights even if we save PEFT format
