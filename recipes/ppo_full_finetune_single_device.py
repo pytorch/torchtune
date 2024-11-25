@@ -244,7 +244,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             if enable_kv_cache
             else contextlib.nullcontext()
         )
-        self.generate_next_token = generation.generate_next_token
 
         if self._resume_from_checkpoint:
             self._update_recipe_state(policy_model_checkpoint_dict)
@@ -786,7 +785,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 prompt=input_ids,
                 max_generated_tokens=self._max_generated_tokens,
                 temperature=self._temperature,
-                custom_generate_next_token=self.generate_next_token,
                 top_k=self._top_k,
                 pad_id=self._tokenizer.pad_id,
                 rng=self._rng,
