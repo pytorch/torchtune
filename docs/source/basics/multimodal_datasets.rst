@@ -72,7 +72,7 @@ in the text, ``"<image>"`` for where to place the image tokens. This will get re
 .. code-block:: yaml
 
     tokenizer:
-      tokenizer: torchtune.models.llama3_2_vision_transform
+      _component_: torchtune.models.llama3_2_vision_transform
       path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
       prompt_template: torchtune.data.QuestionAnswerTemplate
       max_seq_len: 8192
