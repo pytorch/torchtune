@@ -813,7 +813,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         num_tokens = 0
 
         # Initialize output hidden states
-        if self._do_output_hidden_states:
+        if self._do_output_hidden_states is not None:
             self._model.output_hidden_states = [
                 i
                 for i in range(len(self._do_output_hidden_states))
