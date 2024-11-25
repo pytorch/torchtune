@@ -356,9 +356,9 @@ class TiledTokenPositionalEmbedding(nn.Module):
                 )
 
             # update state dict
-            state_dict[prefix + "local_token_positional_embedding"] = (
-                inpt_local_pos_embed
-            )
+            state_dict[
+                prefix + "local_token_positional_embedding"
+            ] = inpt_local_pos_embed
             if (
                 inpt_local_pos_embed.shape
                 != self.local_token_positional_embedding.shape
@@ -418,9 +418,9 @@ class TiledTokenPositionalEmbedding(nn.Module):
                 )
 
             # update state dict
-            state_dict[prefix + "global_token_positional_embedding"] = (
-                inpt_global_pos_embed
-            )
+            state_dict[
+                prefix + "global_token_positional_embedding"
+            ] = inpt_global_pos_embed
             if (
                 inpt_global_pos_embed.shape
                 != self.global_token_positional_embedding.shape
@@ -724,9 +724,12 @@ def replace_tiled_token_positional_embedding(model: nn.Module) -> nn.Module:
             logging.info(
                 f"Replacing tiled token positional embedding in {name} with export-friendly one."
             )
-            max_num_tiles, _, n_tokens_per_tile, embed_dim = (
-                module.global_token_positional_embedding.shape
-            )
+            (
+                max_num_tiles,
+                _,
+                n_tokens_per_tile,
+                embed_dim,
+            ) = module.global_token_positional_embedding.shape
             mod = TiledTokenPositionalEmbedding(
                 max_num_tiles=max_num_tiles,
                 embed_dim=embed_dim,
