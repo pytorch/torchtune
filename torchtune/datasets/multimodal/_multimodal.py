@@ -161,8 +161,8 @@ def multimodal_chat_dataset(
           data_files: data/my_data.json
           split: train
           column_map:
-              dialogue: conversations
-              image_path: image
+            dialogue: conversations
+            image_path: image
           image_dir: /home/user/dataset/
           image_tag: "<image>"
           split: train
