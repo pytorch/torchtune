@@ -4,15 +4,46 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, Mapping, Optional
+import functools
+from typing import Any, Callable, Dict, Literal, Mapping, Optional
 
 import numpy as np
-
 from datasets import load_dataset
-from torch.utils.data import Dataset
+from datasets.distributed import split_dataset_by_node
+from torch.utils.data import Dataset, DistributedSampler
+
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._messages import validate_messages
 from torchtune.modules.transforms import Transform
+from torchtune.training._distributed import get_world_size_and_rank
+
+try:
+    import torchdata.nodes  # noqa
+
+    _TORCHDATA_INSTALLED = True
+except ImportError as e:
+    _TORCHDATA_INSTALLED = False
+
+
+def assert_torchdata_installed():
+    if not _TORCHDATA_INSTALLED:
+        raise ImportError(
+            "torchdata is not installed, or the current version is too old. "
+            "Please (re-)install it with `pip install torchdata>=0.10.0`"
+        )
+
+
+def requires_torchdata(func: Callable) -> Callable:
+    """
+    Decorator to check if torchdata is installed and raise an ImportError if not.
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        assert_torchdata_installed()
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
 class SFTDataset(Dataset):
@@ -110,6 +141,11 @@ class SFTDataset(Dataset):
         if filter_fn is not None:
             self._data = self._data.filter(filter_fn)
 
+        self._prepare_sample = PrepareSample(
+            message_transform=self._message_transform,
+            model_transform=self._model_transform,
+        )
+
     def __len__(self):
         return len(self._data)
 
@@ -117,7 +153,17 @@ class SFTDataset(Dataset):
         sample = self._data[index]
         return self._prepare_sample(sample)
 
-    def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, Any]:
+
+class PrepareSample:
+    def __init__(
+        self,
+        message_transform: Transform,
+        model_transform: Transform,
+    ):
+        self._message_transform = message_transform
+        self._model_transform = model_transform
+
+    def __call__(self, sample: Mapping[str, Any]) -> Dict[str, Any]:
         transformed_sample = self._message_transform(sample)
         if "messages" in transformed_sample:
             validate_messages(transformed_sample["messages"])
@@ -143,3 +189,60 @@ class SFTDataset(Dataset):
         assert len(tokenized_dict["tokens"]) == len(tokenized_dict["labels"])
 
         return tokenized_dict
+
+
+@requires_torchdata
+def SFTDatasetNode(  # noqa[N802]
+    source: str,
+    message_transform: Transform,
+    model_transform: Transform,
+    filter_fn: Optional[Callable] = None,
+    num_workers: int = 1,
+    parallel_method: Literal["process", "thread"] = "thread",
+    shuffle: bool = True,
+    seed: int = 0,
+    **load_dataset_kwargs: Dict[str, Any],
+) -> "BaseNode[Mapping[str, Any]]":
+
+    # Importing here to avoid "Possibly unbound" mypy errors
+    from torchdata.nodes import IterableWrapper, Mapper, ParallelMapper, SamplerWrapper
+
+    streaming = load_dataset_kwargs.get("streaming", False)
+    dataset = load_dataset(source, **load_dataset_kwargs)
+    if filter_fn is not None:
+        dataset = dataset.filter(filter_fn)
+
+    if num_workers == 0:
+        _Mapper = Mapper  # noqa[N806]
+    else:
+        _Mapper = functools.partial(  # noqa[N806]
+            ParallelMapper,
+            num_workers=num_workers,
+            method=parallel_method,
+        )
+    world_size, rank = get_world_size_and_rank()
+    if streaming:
+        dataset = split_dataset_by_node(dataset, rank=rank, world_size=world_size)
+        if shuffle:
+            dataset = dataset.shuffle(seed=seed)
+        node = IterableWrapper(dataset)
+    else:
+        sampler = DistributedSampler(
+            dataset,
+            num_replicas=world_size,
+            rank=rank,
+            shuffle=shuffle,
+            seed=seed,
+        )
+        node = SamplerWrapper(sampler)
+        node = _Mapper(node, map_fn=dataset.__getitem__)
+
+    node = _Mapper(
+        node,
+        PrepareSample(
+            message_transform=message_transform,
+            model_transform=model_transform,
+        ),
+    )
+
+    return node
