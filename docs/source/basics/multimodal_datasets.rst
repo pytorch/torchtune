@@ -71,12 +71,12 @@ in the text, ``"<image>"`` for where to place the image tokens. This will get re
 
 .. code-block:: yaml
 
-    # In config - model_transforms takes the place of the tokenizer
-    model_transform:
-      _component_: torchtune.models.llama3_2_vision_transform
+    tokenizer:
+      tokenizer: torchtune.models.llama3_2_vision_transform
       path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
       prompt_template: torchtune.data.QuestionAnswerTemplate
       max_seq_len: 8192
+      image_size: 560
 
     dataset:
       _component_: torchtune.datasets.multimodal.multimodal_chat_dataset
@@ -137,7 +137,7 @@ For most datasets, you will also need to specify the ``split`` and/or the subset
 .. code-block:: yaml
 
     # In config
-    model_transform:
+    tokenizer:
       _component_: torchtune.models.llama3_2_vision.llama3_2_vision_transform
       path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
       max_seq_len: 8192

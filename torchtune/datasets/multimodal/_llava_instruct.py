@@ -12,7 +12,6 @@ from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.transforms import Transform
 
 
-# TODO: point to Flamingo model transform as an example
 def llava_instruct_dataset(
     model_transform: Transform,
     *,

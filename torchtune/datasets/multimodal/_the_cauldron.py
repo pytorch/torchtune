@@ -56,7 +56,7 @@ class TheCauldronToMessages(Transform):
         ]
 
     Args:
-        column_map (Optional[Dict[str, str]]): a mapping to change the expected "texts"
+        column_map (Optional[Dict[str, str]]): a mapping to change the expected "texts" and "image"
             column names to the actual column names in the dataset. Default is None,
             keeping the default column names.
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
@@ -121,7 +121,6 @@ class TheCauldronToMessages(Transform):
         return {"messages": messages}
 
 
-# TODO: point to Flamingo model transform as an example
 def the_cauldron_dataset(
     model_transform: Transform,
     *,
