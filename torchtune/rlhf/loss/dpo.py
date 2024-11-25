@@ -161,7 +161,7 @@ class RSOLoss(nn.Module):
         return losses, chosen_rewards, rejected_rewards
 
 
-@deprecated("msg=SimPOLoss will be deprecated in an upcoming release.")
+@deprecated(msg="SimPOLoss will be deprecated in an upcoming release.")
 class SimPOLoss(nn.Module):
     """
     SimPO: Simple Preference Optimization with a Reference-Free Reward: https://arxiv.org/abs/2405.14734.
