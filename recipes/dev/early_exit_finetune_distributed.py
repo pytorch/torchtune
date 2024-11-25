@@ -672,6 +672,11 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         early_exit_loss_curriculum = None
 
         if cfg_early_exit_loss:
+            assert (
+                hasattr(self._loss_fn, "reduction")
+                and self._loss_fn.reduction == "mean"
+            ), "Currently early exit loss is only implemented for loss functions that apply a mean reduction."
+
             do_output_hidden_states = slice_str_to_array(
                 cfg_early_exit_loss.get("layers", ":"), len(self._model.layers)
             )
