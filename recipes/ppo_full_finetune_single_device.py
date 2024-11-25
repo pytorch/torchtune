@@ -779,6 +779,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 the current trajectory.
         """
 
+        # step 1: generate responses, and logits corresponding to the responses using the current policy
         with self.cache_ctx_manager(self.enable_kv_cache):
             query_responses, logits = generation.generate(
                 model=self._policy_model,
@@ -793,7 +794,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         responses = query_responses[:, context_length:].clone()
         query_response_padding_masks = query_responses != self._tokenizer.pad_id
 
-        # step 1 create attention masks and position IDs for any padding tokens in inputs, used for future forward passes
+        # step 1.1 create attention masks and position IDs for any padding tokens in inputs, used for future forward passes
         masks = generation.get_causal_mask_from_padding_mask(
             query_response_padding_masks
         )
