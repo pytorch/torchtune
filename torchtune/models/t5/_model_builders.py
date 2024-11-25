@@ -6,6 +6,7 @@
 
 from torchtune.models.t5._component_builders import t5_encoder
 from torchtune.models.t5._encoder import T5Encoder
+from torchtune.models.t5._tokenizer import T5Tokenizer
 
 
 def t5_v1p1_xxl_encoder(max_seq_len: int = 512) -> T5Encoder:
@@ -22,7 +23,7 @@ def t5_v1p1_xxl_encoder(max_seq_len: int = 512) -> T5Encoder:
             Default: 512
 
     Returns:
-        T5Encoder
+        T5Encoder: Instantiation of the T5 encoder
     """
     return t5_encoder(
         embed_dim=4096,
@@ -36,3 +37,18 @@ def t5_v1p1_xxl_encoder(max_seq_len: int = 512) -> T5Encoder:
         norm_eps=1e-6,
         max_seq_len=max_seq_len,
     )
+
+
+def t5_tokenizer(path: str, max_seq_len: int = 512, truncate: bool = True):
+    """
+    Builder for the T5 tokenizer.
+
+    Args:
+        path (str): the path to the T5 sentencepiece tokenizer file
+        max_seq_len (int): the context length
+        truncate (bool): whether to truncate the token sequence when longer than max_seq_len
+
+    Returns:
+        T5Tokenizer: Instantiation of the T5 tokenizer
+    """
+    return T5Tokenizer(path, max_seq_len=max_seq_len, truncate=truncate)
