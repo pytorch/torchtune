@@ -6,7 +6,6 @@
 
 import contextlib
 import math
-import os
 import sys
 import time
 from functools import partial
@@ -29,9 +28,8 @@ from torchtune.training import DummyProfiler, PROFILER_KEY
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
-
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
-torch._logging.set_logs(recompiles=True, graph_breaks=True, perf_hints=False)
+# enabling compile results in slightly more recompiles than the default cache limit (8)
+# so we set a higher limit here
 torch._dynamo.config.cache_size_limit = 16
 
 
