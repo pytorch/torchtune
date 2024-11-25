@@ -150,22 +150,22 @@ def multimodal_chat_dataset(
     .. code-block:: yaml
 
         tokenizer:
-            _component_: torchtune.models.llama3_2_vision_transform
-            path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
-            prompt_template: torchtune.data.QuestionAnswerTemplate
-            max_seq_len: 8192
+          _component_: torchtune.models.llama3_2_vision_transform
+          path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
+          prompt_template: torchtune.data.QuestionAnswerTemplate
+          max_seq_len: 8192
 
         dataset:
-            _component_: torchtune.datasets.multimodal.multimodal_chat_dataset
-            source: json
-            data_files: data/my_data.json
-            split: train
-            column_map:
-                dialogue: conversations
-                image_path: image
-            image_dir: /home/user/dataset/
-            image_tag: "<image>"
-            split: train
+          _component_: torchtune.datasets.multimodal.multimodal_chat_dataset
+          source: json
+          data_files: data/my_data.json
+          split: train
+          column_map:
+              dialogue: conversations
+              image_path: image
+          image_dir: /home/user/dataset/
+          image_tag: "<image>"
+          split: train
 
     Returns:
         SFTDataset: the configured :class:`~torchtune.datasets.SFTDataset`
