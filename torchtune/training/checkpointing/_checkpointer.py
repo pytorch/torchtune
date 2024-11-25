@@ -246,7 +246,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         Raises:
             ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
         """
-        self._output_dir.mkdir(exist_ok=True)
+        self._output_dir.mkdir(exist_ok=True, parents=True)
 
         # Output file is always a .pt file with the epoch number in the name
         if not adapter_only:
@@ -545,7 +545,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         Raises:
             ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
         """
-        self._output_dir.mkdir(exist_ok=True)
+        self._output_dir.mkdir(exist_ok=True, parents=True)
 
         # convert the state_dict back to hf format; do this inplace
         if not adapter_only:
@@ -858,7 +858,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         Raises:
             ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
         """
-        self._output_dir.mkdir(exist_ok=True)
+        self._output_dir.mkdir(exist_ok=True, parents=True)
 
         if not adapter_only:
             model_state_dict = state_dict[training.MODEL_KEY]

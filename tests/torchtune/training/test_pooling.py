@@ -7,7 +7,7 @@ import torch
 from torchtune.training.pooling import get_unmasked_sequence_lengths
 
 
-class TestGetLastUnmaskedTokenIdx:
+class TestGetUnmaskedSeqenceLengths:
     def test_get_last_unmasked_token_idx_multi_batch(self):
         """
         Tests that the last non-padding tokens are correctly selected for a multi-batch input.
