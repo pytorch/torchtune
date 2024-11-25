@@ -356,9 +356,9 @@ class TiledTokenPositionalEmbedding(nn.Module):
                 )
 
             # update state dict
-            state_dict[prefix + "local_token_positional_embedding"] = (
-                inpt_local_pos_embed
-            )
+            state_dict[
+                prefix + "local_token_positional_embedding"
+            ] = inpt_local_pos_embed
             if (
                 inpt_local_pos_embed.shape
                 != self.local_token_positional_embedding.shape
@@ -418,9 +418,9 @@ class TiledTokenPositionalEmbedding(nn.Module):
                 )
 
             # update state dict
-            state_dict[prefix + "global_token_positional_embedding"] = (
-                inpt_global_pos_embed
-            )
+            state_dict[
+                prefix + "global_token_positional_embedding"
+            ] = inpt_global_pos_embed
             if (
                 inpt_global_pos_embed.shape
                 != self.global_token_positional_embedding.shape
