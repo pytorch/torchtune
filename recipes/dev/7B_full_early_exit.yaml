@@ -1,21 +1,34 @@
-# Config for multi-device full finetuning in full_finetune_distributed.py
-# using a Llama2 7B model
+# Config for multi-device full finetuning with early exit loss and/or layer dropout
+# in dev/early_exit_finetune_distributed.py using a Llama2 7B model on a small TOPv2
+# instruction set.
 #
 # This config assumes that you've run the following command before launching
 # this run:
 #   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --hf-token <HF_TOKEN>
 #
 # To launch on 4 devices, run the following command from root:
-#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config llama2/7B_full
+#   tune run --nnodes 1 --nproc_per_node 4 dev/early_exit_finetune_distributed --config recipes/dev/7B_full_early_exit.yaml
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config llama2/7B_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run --nnodes 1 --nproc_per_node 4 dev/early_exit_finetune_distributed --config recipes/dev/7B_full_early_exit.yaml checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
-# This config works best when the model is being fine-tuned on 2+ GPUs.
-# Single device full finetuning requires more memory optimizations. It's
-# best to use 7B_full_single_device.yaml for those cases
+# To reproduce experiments of various papers that use early exit loss and/or layer dropout:
+# - LayerSkip (https://arxiv.org/abs/2404.16710) on TOPv2:
+#   tune run --nnodes 1 --nproc_per_node 4 dev/early_exit_finetune_distributed --config recipes/dev/7B_full_early_exit.yaml early_exit_loss.scale=1.0, early_exit_loss.curriculum=gradual early_exit_loss.scale_type=l layer_dropout.prob=0.2 layer_dropout.scale=exp
+#
+# - LITE (https://arxiv.org/abs/2310.18581):
+#   tune run --nnodes 1 --nproc_per_node 4 dev/early_exit_finetune_distributed --config recipes/dev/7B_full_early_exit.yaml layer_dropout=null early_exit_loss.layers=8,12,16,20,24,28 early_exit_loss.scale_type=one
+#
+# - LayerDrop (https://arxiv.org/abs/1909.11556):
+#   tune run --nnodes 1 --nproc_per_node 4 dev/early_exit_finetune_distributed --config recipes/dev/7B_full_early_exit.yaml early_exit_loss=null layer_dropout.prob=0.2 layer_dropout.layers=::2
+#
+# - Progressive Layer Dropping (https://arxiv.org/abs/2010.13369) (The paper also implements a curriculum for layer drop probability which is not yet implemented.):
+#   tune run --nnodes 1 --nproc_per_node 4 dev/early_exit_finetune_distributed --config recipes/dev/7B_full_early_exit.yaml early_exit_loss=null layer_dropout.prob=0.5 layer_dropout.scale=exp
+#
+# This config works best for distributed training, hence when the model is being fine-tuned on 2+ GPUs.
+#
 
 
 # Tokenizer

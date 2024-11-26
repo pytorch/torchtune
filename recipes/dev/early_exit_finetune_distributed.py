@@ -62,11 +62,10 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                 - ``early_exit_loss.curriculum`` depicts how the early exit loss layers change across training
                 iterations.
             See ``torchtune/modules/early_exit_loss.py` for more details of each argument.
-            To reproduce results of different papers that use early exit loss:
-                - LayerSkip (https://arxiv.org/abs/2404.16710) results on finetuning on TOPv2: set
-                ``early_exit_loss.scale=1.0, early_exit_loss.curriculum=gradual early_exit_loss.scale_type=l
-                early_exit_loss.layers="::"`,
-                - LITE (https://arxiv.org/abs/2310.18581) results on finetuning Llama2 7B on Alpaca you can set
+            To reproduce experiments of different papers that use early exit loss:
+                - LayerSkip (https://arxiv.org/abs/2404.16710) for finetuning on TOPv2: set
+                ``early_exit_loss.scale=1.0, early_exit_loss.curriculum=gradual early_exit_loss.scale_type=l``,
+                - LITE (https://arxiv.org/abs/2310.18581) for finetuning Llama2 7B on Alpaca you can set
                 ``early_exit_loss.layers=8,12,16,20,24,28 early_exit_loss.scale_type=one``.
 
         - Layer Dropout. (a.k.a. Stochastic Depth) This drops samples stochastically for each layer during training.
@@ -82,10 +81,13 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                 - ``disable_on_eval``: if True, will only apply layer dropout during training. If False, will
                     apply to both training and evaluation.
             To reproduce results of different papers that use layer dropout:
-                - LayerDrop(https://arxiv.org/abs/1909.11556) that applies dropout on every other layer, set
+                - LayerDrop (https://arxiv.org/abs/1909.11556) that applies dropout on every other layer, set
                     ``layer_dropout.prob=0.2 layer_dropout.layers=::2``.
                 - Progressive Layer Dropping (https://arxiv.org/abs/2010.13369) that increases dropout linearly
-                    across layers, set ``layer_dropout.prob=0.5 layer_dropout.layers="::" layer_dropout.layers_scale=linear``
+                    across layers, set ``layer_dropout.prob=0.5 layer_dropout.layers_scale=linear``.
+                    The paper also implements a curriculum for layer drop probability which is not yet implemented.
+                - LayerSkip (https://arxiv.org/abs/2404.16710) for finetuning on TOPv2: (in addition to early exit loss
+                    arguments above) set ``layer_dropout.prob=0.2 layer_dropout.scale=exp``.
 
         - FSDP. Supported using PyTorch's FSDP APIs. CPU offload of parameters, gradients, and optimizer states
             is supported via ``fsdp_cpu_offload``. Resharding of parameters after the forward pass is
