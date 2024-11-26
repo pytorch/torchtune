@@ -35,7 +35,9 @@ from torchtune.training._profiler import (
 from torchtune.training.activations import apply_selective_activation_checkpointing
 from torchtune.training.checkpointing import (
     ADAPTER_CONFIG,
+    ADAPTER_CONFIG_FILENAME,
     ADAPTER_KEY,
+    ADAPTER_MODEL_FILENAME,
     Checkpointer,
     EPOCHS_KEY,
     FormattedCheckpointFiles,
@@ -47,8 +49,11 @@ from torchtune.training.checkpointing import (
     ModelType,
     OPT_KEY,
     RNG_KEY,
+    SAFETENSOR_INDEX_FILENAME,
     SEED_KEY,
+    SHARD_FILENAME,
     STEPS_KEY,
+    TORCHTUNE_INDEX_FILENAME,
     TOTAL_EPOCHS_KEY,
     update_state_dict_for_classifier,
 )
@@ -84,6 +89,11 @@ __all__ = [
     "Checkpointer",
     "update_state_dict_for_classifier",
     "ADAPTER_CONFIG",
+    "ADAPTER_CONFIG_FILENAME",
+    "ADAPTER_MODEL_FILENAME",
+    "SHARD_FILENAME",
+    "SAFETENSOR_INDEX_FILENAME",
+    "TORCHTUNE_INDEX_FILENAME",
     "ADAPTER_KEY",
     "EPOCHS_KEY",
     "MAX_STEPS_KEY",

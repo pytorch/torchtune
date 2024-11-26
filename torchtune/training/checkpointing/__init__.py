@@ -12,7 +12,9 @@ from torchtune.training.checkpointing._checkpointer import (
 )
 from torchtune.training.checkpointing._utils import (
     ADAPTER_CONFIG,
+    ADAPTER_CONFIG_FILENAME,
     ADAPTER_KEY,
+    ADAPTER_MODEL_FILENAME,
     EPOCHS_KEY,
     FormattedCheckpointFiles,
     MAX_STEPS_KEY,
@@ -20,8 +22,11 @@ from torchtune.training.checkpointing._utils import (
     ModelType,
     OPT_KEY,
     RNG_KEY,
+    SAFETENSOR_INDEX_FILENAME,
     SEED_KEY,
+    SHARD_FILENAME,
     STEPS_KEY,
+    TORCHTUNE_INDEX_FILENAME,
     TOTAL_EPOCHS_KEY,
     update_state_dict_for_classifier,
 )
@@ -40,6 +45,11 @@ __all__ = [
     "Checkpointer",
     "update_state_dict_for_classifier",
     "ADAPTER_CONFIG",
+    "ADAPTER_CONFIG_FILENAME",
+    "ADAPTER_MODEL_FILENAME",
+    "SHARD_FILENAME",
+    "SAFETENSOR_INDEX_FILENAME",
+    "TORCHTUNE_INDEX_FILENAME",
     "ADAPTER_KEY",
     "EPOCHS_KEY",
     "MAX_STEPS_KEY",

@@ -20,19 +20,32 @@ Keys used during checkpoint load and checkpoint save.
 
 # adapter config containing info about LoRA modules, rank, alpha
 ADAPTER_CONFIG = "adapter_config"
+
+# default used by huggingface when looking for saved adapters
+# https://github.com/huggingface/peft/blob/d13d7a401ccf4808aaaf76480fea09a4cf4ac1f5/src/peft/config.py#L259C21-L259C32
+ADAPTER_CONFIG_FILENAME = "adapter_config"
+ADAPTER_MODEL_FILENAME = "adapter_model"
+SHARD_FILENAME = "model-{int(cpt_idx):05d}-of-{int(num_shards):05d}"
+SAFETENSOR_INDEX_FILENAME = "model.safetensors.index.json"
+TORCHTUNE_INDEX_FILENAME = "pytorch_model.bin.index.json"
+
 # key used for adapter weights such as LoRA weights
 ADAPTER_KEY = "adapter"
+
 # number of epochs completed thus far
 EPOCHS_KEY = "epochs_run"
 MAX_STEPS_KEY = "max_steps_per_epoch"
 MODEL_KEY = "model"
 OPT_KEY = "optimizer"
 SEED_KEY = "seed"
+
 # total number of epochs for training; resumed training runs for
 # (total_epochs - epochs_run) number of epochs
 TOTAL_EPOCHS_KEY = "total_epochs"
+
 # number of steps completed thus far - for PPO
 STEPS_KEY = "steps_run"
+
 # rng state for ensuring correct training resuming in PPO
 RNG_KEY = "rng_state"
 

@@ -622,37 +622,83 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 )
 
             # split the state_dict into separate dicts, one for each output checkpoint file
+            # e.g. split_state_dicts= {
+            #       "0001": {"key1": tensor1, "key2": tensor2},
+            #       "0002": {"key3": tensor3}
+            #       }
             split_state_dicts: Dict[str, Dict[str, torch.Tensor]] = {}
+            total_size = 0
             for key, weight in state_dict[training.MODEL_KEY].items():
                 cpt_idx = self._weight_map[key]
+
+                # initialize dict
                 if cpt_idx not in split_state_dicts:
                     split_state_dicts[cpt_idx] = {}
+
                 split_state_dicts[cpt_idx].update({key: weight})
+                total_size += weight.numel() * weight.element_size()
 
             # write the partitioned state dicts to the right checkpoint file
+            # e.g. model-00001-of-00004.safetensors, model-00002-of-00004.safetensors, etc
+            # TODO: We should probably create a new shard_name. As long as we dont overwrite
+            # the original ckpt, preserving the original shard name is better.
+            num_shards = len(split_state_dicts)
+            map_original_name_to_new_name = {}
             for cpt_idx, model_state_dict in split_state_dicts.items():
+                shard_name = training.SHARD_FILENAME.format(
+                    cpt_idx=cpt_idx, num_shards=num_shards
+                )
+                map_original_name_to_new_name[cpt_idx] = shard_name
+                output_path = Path.joinpath(
+                    self._output_dir, f"epoch_{epoch}", shard_name
+                )
                 if not self._safe_serialization:
-                    output_path = Path.joinpath(
-                        self._output_dir, f"hf_model_{cpt_idx}_{epoch}"
-                    ).with_suffix(".pt")
+                    output_path = output_path.with_suffix(".bin")
                     torch.save(model_state_dict, output_path)
                 else:
-                    output_path = Path.joinpath(
-                        self._output_dir,
-                        f"model-0{cpt_idx}-of-0{list(split_state_dicts.keys())[-1]}_{epoch}",
-                    ).with_suffix(".safetensors")
+                    output_path = output_path.with_suffix(".safetensors")
                     save_file(model_state_dict, output_path, metadata={"format": "pt"})
+
                 logger.info(
                     "Model checkpoint of size "
                     f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
                     f"saved to {output_path}"
                 )
 
+            # Save the appropriate index file based on serialization format
+            # e.g. {metadata: {total_size: 1234}, weight_map: {"key1": "model_0001.safetensors", "key2": "model_0002.safetensors"}}
+            if self._safe_serialization:
+                weight_map = {
+                    k: map_original_name_to_new_name[int(cpt_idx)] + ".safetensors"
+                    for k, cpt_idx in self._weight_map.items()
+                }
+                index_file_name = training.SAFETENSOR_INDEX_FILENAME
+            else:
+                weight_map = {
+                    k: map_original_name_to_new_name[int(cpt_idx)] + ".bin"
+                    for k, cpt_idx in self._weight_map.items()
+                }
+                index_file_name = training.TORCHTUNE_INDEX_FILENAME
+
+            index_path = Path.joinpath(
+                self._output_dir,
+                f"epoch_{epoch}",
+                index_file_name,
+            ).with_suffix(".json")
+
+            index_data = {
+                "metadata": {"total_size": total_size},
+                "weight_map": weight_map,
+            }
+            with open(index_path, "w") as f:
+                json.dump(index_data, f, indent=2)
+
         if training.ADAPTER_KEY in state_dict:
+            # TODO: no reason to save .pt and .bin. We can just load .bin.
             # Save torchtune format adapter weights even if we save PEFT format
             # This way we can resume no matter what (and memory footprint of adapter weights is small)
             output_path = Path.joinpath(
-                self._output_dir, f"adapter_{epoch}"
+                self._output_dir, f"epoch_{epoch}", f"adapter_{epoch}"
             ).with_suffix(".pt")
             torch.save(state_dict[training.ADAPTER_KEY], output_path)
             logger.info(
@@ -679,8 +725,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     dim=self._config["hidden_size"],
                     head_dim=self._config.get("head_dim", None),
                 )
+                # TODO: add "if self._safe_serialization:"
                 peft_output_path = Path.joinpath(
-                    self._output_dir, "adapter_model"
+                    self._output_dir, f"epoch_{epoch}", training.ADAPTER_MODEL_FILENAME
                 ).with_suffix(".bin")
                 torch.save(state_dict[training.ADAPTER_KEY], peft_output_path)
                 logger.info(
@@ -708,7 +755,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 ] = convert_weights.tune_to_peft_adapter_config(
                     state_dict[training.ADAPTER_CONFIG]
                 )
-                output_path = Path.joinpath(self._output_dir, "adapter_config.json")
+                output_path = Path.joinpath(
+                    self._output_dir, f"epoch_{epoch}", training.ADAPTER_CONFIG_FILENAME
+                ).with_suffix(".json")
                 with open(output_path, "w") as f:
                     json.dump(state_dict[training.ADAPTER_CONFIG], f)
                 logger.info(
@@ -723,7 +772,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             _ = state_dict.pop(training.MODEL_KEY, None)
             _ = state_dict.pop(training.ADAPTER_KEY, None)
             _ = state_dict.pop(training.ADAPTER_CONFIG, None)
-            output_path = Path.joinpath(self._output_dir, "recipe_state.pt")
+            output_path = Path.joinpath(
+                self._output_dir, "recipe_state", "recipe_state.pt"
+            )
             torch.save(state_dict, output_path)
             logger.info(
                 "Recipe checkpoint of size "
@@ -894,9 +945,13 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
                     model_state_dict
                 )
 
-            # Output file is always a .pt file with the epoch number in the name
+            # TODO: We should consider adding adapter/model config
+            # like we do for HF.
+
+            # Output file is always a .pt
+            model_filename = training.SHARD_FILENAME.format(cpt_idx=1, num_shards=1)
             checkpoint_file = Path.joinpath(
-                self._output_dir, f"meta_model_{epoch}"
+                self._output_dir, f"epoch_{epoch}", model_filename
             ).with_suffix(".pt")
             torch.save(state_dict[training.MODEL_KEY], checkpoint_file)
             logger.info(
@@ -907,7 +962,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
 
         if training.ADAPTER_KEY in state_dict:
             output_path = Path.joinpath(
-                self._output_dir, f"adapter_{epoch}"
+                self._output_dir, f"epoch_{epoch}", training.ADAPTER_MODEL_FILENAME
             ).with_suffix(".pt")
             torch.save(state_dict[training.ADAPTER_KEY], output_path)
             logger.info(
@@ -926,7 +981,9 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             _ = state_dict.pop(training.MODEL_KEY, None)
             _ = state_dict.pop(training.ADAPTER_KEY, None)
             _ = state_dict.pop(training.ADAPTER_CONFIG, None)
-            output_path = Path.joinpath(self._output_dir, "recipe_state.pt")
+            output_path = Path.joinpath(
+                self._output_dir, "recipe_state", "recipe_state.pt"
+            )
             torch.save(state_dict, output_path)
             logger.info(
                 "Recipe checkpoint of size "
