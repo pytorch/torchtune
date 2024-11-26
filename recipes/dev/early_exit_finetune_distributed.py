@@ -49,9 +49,43 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
     training and can be run on a single node (1 to 8 GPUs).
 
     Features:
-        - Early Exit Loss.
+        - Early Exit Loss. This makes the model more robust to exiting early by applying the outputs of intermediate
+            layers on the model's language model head (a.k.a. unembedding operation) to obtain outputs of earlier
+            layers, then obtain the losses at such earlier layers. Then the loss of the model during training
+            would be a weighted average of the losses at different layers. The different arguments you can
+            configure are:
+                - ``early_exit_loss.layers`` is a string, whose format mimics indexing in numpy arrays (e.g., `:`
+                depicts all layers, `0:10:3` depicts layers 0, 3, 6, 9, and `1,5,11` depicts layers 1,5,11), to
+                represent which layers to apply early exit loss at,
+                - ``early_exit_loss.scale_type`` and ``early_exit_loss.scale`` determine how we calculate the
+                weights of losses at different  layers when calculating total loss, and
+                - ``early_exit_loss.curriculum`` depicts how the early exit loss layers change across training
+                iterations.
+            See ``torchtune/modules/early_exit_loss.py` for more details of each argument.
+            To reproduce results of different papers that use early exit loss:
+                - LayerSkip (https://arxiv.org/abs/2404.16710) results on finetuning on TOPv2: set
+                ``early_exit_loss.scale=1.0, early_exit_loss.curriculum=gradual early_exit_loss.scale_type=l
+                early_exit_loss.layers="::"`,
+                - LITE (https://arxiv.org/abs/2310.18581) results on finetuning Llama2 7B on Alpaca you can set
+                ``early_exit_loss.layers=8,12,16,20,24,28 early_exit_loss.scale_type=one``.
 
-        - Layer Dropout.
+        - Layer Dropout. (a.k.a. Stochastic Depth) This drops samples stochastically for each layer during training.
+            "Dropping" a sample at a layer in this context means a sample will pass through the layer without modification.
+            The different arguments you can configure are:
+                - ``layer_dropout.prob``: is the (maximum) probability of a sample being dropped at each layer.
+                - ``layer_dropout.layers``: is a string, whose format mimics indexing in numpy arrays
+                    (same as ``early_exit_loss.layers``), that determines which layers will have layer dropout applied.
+                - ``layer_dropout.layers_scale``: determines how probability changes across layers from
+                    probability 0 at first layer, to probability ``layer_dropout.prob`` at last layer.
+                    You can choose from ``one`` (all layers have ``layer_dropout.prob``), ``linear``,
+                    ``exp``, ``log``, ``sqrt``.
+                - ``disable_on_eval``: if True, will only apply layer dropout during training. If False, will
+                    apply to both training and evaluation.
+            To reproduce results of different papers that use layer dropout:
+                - LayerDrop(https://arxiv.org/abs/1909.11556) that applies dropout on every other layer, set
+                    ``layer_dropout.prob=0.2 layer_dropout.layers=::2``.
+                - Progressive Layer Dropping (https://arxiv.org/abs/2010.13369) that increases dropout linearly
+                    across layers, set ``layer_dropout.prob=0.5 layer_dropout.layers="::" layer_dropout.layers_scale=linear``
 
         - FSDP. Supported using PyTorch's FSDP APIs. CPU offload of parameters, gradients, and optimizer states
             is supported via ``fsdp_cpu_offload``. Resharding of parameters after the forward pass is
