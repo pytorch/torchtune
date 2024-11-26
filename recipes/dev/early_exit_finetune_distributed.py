@@ -718,9 +718,6 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
             train_last_layer = cfg_early_exit_loss.get("include_last_layer", True)
             verbose = cfg_early_exit_loss.get("verbose", False)
 
-            if train_last_layer:
-                do_output_hidden_states[len(self._model.layers) - 1] = True
-
             if cfg_early_exit_loss.curriculum:
                 early_exit_loss_curriculum = setup_early_exit_loss_curriculum(
                     early_exit_curriculum=cfg_early_exit_loss.curriculum,
@@ -732,6 +729,8 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                 do_output_hidden_states = early_exit_loss_curriculum.get()
             else:
                 early_exit_loss_curriculum = None
+                if train_last_layer:
+                    do_output_hidden_states[len(self._model.layers) - 1] = True
 
         return do_output_hidden_states, early_exit_loss_curriculum
 
