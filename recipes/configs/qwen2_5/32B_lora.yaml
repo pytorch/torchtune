@@ -97,6 +97,7 @@ device: cuda
 dtype: bf16
 enable_activation_checkpointing: False  # True reduces memory
 enable_activation_offloading: False  # True reduces memory
+# custom_sharded_layers: ['tok_embeddings']  # Layers to shard separately (useful for large vocab size models). Lower Memory, but lower speed.
 
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training
