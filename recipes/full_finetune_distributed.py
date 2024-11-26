@@ -916,7 +916,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     )
                     idx += 1  # NOTE: added by us
 
-                mean_val_loss = running_val_loss / (idx + 1 - max_len_samples)
+                mean_val_loss = running_val_loss / (idx + 1)
                 self._metric_logger.log_dict(
                     {"val_loss": mean_val_loss},
                     step=self.global_step,

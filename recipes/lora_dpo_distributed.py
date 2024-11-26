@@ -772,7 +772,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     )
                     idx += 1
 
-                mean_val_loss = running_val_loss / (idx + 1 - max_len_samples)
+                mean_val_loss = running_val_loss / (idx + 1)
                 if self._is_rank_zero:
                     self._metric_logger.log_dict(
                         {"val_loss": mean_val_loss},

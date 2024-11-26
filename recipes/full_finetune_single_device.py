@@ -348,6 +348,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             collate_fn=collate_name,
         )
 
+        # TODO: add some general instruction following dataset here,
+        # e.g. https://huggingface.co/datasets/TIGER-Lab/WebInstructFull
+
         # NOTE: added by us
         # validation dataloader
         cfg["validation_dataset"] = deepcopy(cfg.dataset)
@@ -355,7 +358,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._sampler_validation, self._dataloader_validation = self._setup_data(
             cfg_dataset=cfg["validation_dataset"],
             shuffle=cfg.shuffle,
-            batch_size=cfg.batch_size,  # TODO: have a separate batch size for validation
+            batch_size=cfg.batch_size,
             collate_fn=collate_name,
         )
 
@@ -802,11 +805,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     running_val_loss += current_loss
                     pbar_val.update(1)
                     pbar_val.set_description(
-                        f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {current_loss / (idx + 1)}"
+                        f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {running_val_loss / (idx + 1)}"
                     )
                     idx += 1
 
-                mean_val_loss = running_val_loss / (idx + 1 - max_len_samples)
+                mean_val_loss = running_val_loss / (idx + 1)
                 self._metric_logger.log_dict(
                     {"val_loss": mean_val_loss},
                     step=self.global_step,
@@ -860,6 +863,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 num_tokens += current_num_tokens
                 # NOTE: added by us
                 # let's monitor the total number of tokens
+                # real_num_tokens += batch["labels"].numel()
                 real_num_tokens = batch["labels"].numel()
 
                 # Loss is normalized by default so we multiply by the number of tokens

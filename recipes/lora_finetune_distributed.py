@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from copy import deepcopy
 import sys
 import time
 
@@ -324,9 +325,21 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
+        cfg.dataset["split"] = "train"  # NOTE: added by us
         collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
         self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
+            shuffle=cfg.shuffle,
+            batch_size=cfg.batch_size,
+            collate_fn=collate_name,
+        )
+
+        # NOTE: added by us
+        # validation dataloader
+        cfg["validation_dataset"] = deepcopy(cfg.dataset)
+        cfg["validation_dataset"]["split"] = "validation"
+        self._sampler_validation, self._dataloader_validation = self._setup_data(
+            cfg_dataset=cfg["validation_dataset"],
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
             collate_fn=collate_name,
@@ -809,8 +822,109 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
+            self._sampler_validation.set_epoch(curr_epoch)  # NOTE: added by us
 
-            pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
+            # NOTE: added by us
+            # ------ Validation Step ------ #
+            self._model.eval()
+
+            with torch.no_grad():
+                running_val_loss = 0
+                num_eval_steps = (
+                    min(self._max_validation_steps, len(self._dataloader_validation))
+                    if self._max_validation_steps is not None
+                    else len(self._dataloader_validation)
+                )
+                # NOTE: added by us
+                # start a counter for samples that are too long
+                max_len_samples = 0
+
+                pbar_val = tqdm(total=num_eval_steps, desc="Validation")
+                # NOTE: added by us - counter to account for samples that are too long
+                idx = 0
+                for _, batch in enumerate(self._dataloader_validation):
+                    if (
+                        self.max_steps_per_epoch is not None
+                        and (idx // self._gradient_accumulation_steps)
+                        == self.max_steps_per_epoch
+                    ):
+                        break
+
+                    # NOTE: added by us
+                    if self._skip_max_seq_len_samples(batch):
+                        max_len_samples += 1
+                        continue
+
+                    # Start tracking CUDA memory for active steps for just the first epoch
+                    if (
+                        self._is_rank_zero
+                        and curr_epoch == 0
+                        and self.profiler_profile_memory
+                        and idx == self.profiler_wait_steps + self.profiler_warmup_steps
+                    ):
+                        torch.cuda.memory._record_memory_history()
+
+                    utils.batch_to_device(batch, self._device)
+
+                    # Calculate the number of unmasked tokens in the current batch
+                    # and increment the total number of tokens seen in the step
+                    current_num_tokens = (
+                        batch["labels"] != self._loss_fn.ignore_index
+                    ).sum()
+                    num_tokens += current_num_tokens
+
+                    # Shape [b, s], needed for the loss not the model
+                    labels = batch.pop("labels")
+
+                    with self.activations_handling_ctx:
+                        logits = self._model(**batch)
+
+                    # Shift labels to compute loss
+                    # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
+                    # But this way we dont need to slice the logits. We just add an ignore index to labels.
+                    labels = torch.hstack(
+                        (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
+                    )
+                    if not isinstance(logits, list):
+                        labels = labels.reshape(-1)
+                        logits = logits.reshape(-1, logits.size(-1))
+
+                    # Compute loss
+                    # Loss is normalized by default so we multiply by the number of tokens
+                    # This way we can normalize by the total number of tokens if we're accumulating gradients
+                    current_loss = self._loss_fn(logits, labels) * current_num_tokens
+
+                    # free logits otherwise it peaks backward memory
+                    del logits
+
+                    running_val_loss += current_loss
+                    pbar_val.update(1)
+                    pbar_val.set_description(
+                        f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {running_val_loss / (idx + 1)}"
+                    )
+                    idx += 1
+
+                mean_val_loss = running_val_loss / (idx + 1)
+                if self._is_rank_zero:
+                    self._metric_logger.log_dict(
+                        {"val_loss": mean_val_loss},
+                        step=self.global_step,
+                    )
+                pbar_val.close()
+                print("Number of samples that were too long: ", max_len_samples)
+
+            # ------ Training Epoch ------ #
+            # Initialize tokens count and running loss (for grad accumulation)
+            t0 = time.perf_counter()
+            running_loss = 0
+            num_tokens = 0
+            real_num_tokens = 0
+            max_len_samples = 0
+            self._model.train()  # NOTE: added by us
+
+            pbar = tqdm(
+                total=self._steps_per_epoch, disable=not (rank == 0), desc="Train"
+            )
             # NOTE: added by us - counter to account for samples that are too long
             idx = 0
             for _, batch in enumerate(self._dataloader):
@@ -843,6 +957,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     batch["labels"] != self._loss_fn.ignore_index
                 ).sum()
                 num_tokens += current_num_tokens
+                # NOTE: added by us
+                # let's monitor the total number of tokens
+                # real_num_tokens += batch["labels"].numel()
+                real_num_tokens = batch["labels"].numel()
 
                 # Shape [b, s], needed for the loss not the model
                 labels = batch.pop("labels")
@@ -906,8 +1024,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         log_dict = {
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
-                            "tokens_per_second_per_gpu": num_tokens
-                            / (time_per_step * world_size),
+                            "tokens_per_second_per_gpu": real_num_tokens
+                            / (time_per_step * world_size),  # NOTE: added by us
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
@@ -924,6 +1042,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     # Reset running stats for the next step
                     running_loss = 0
                     num_tokens = 0
+                    real_num_tokens = 0  # NOTE: added by us
                     t0 = time.perf_counter()
 
                     # Stop tracking CUDA memory now that active steps are complete
